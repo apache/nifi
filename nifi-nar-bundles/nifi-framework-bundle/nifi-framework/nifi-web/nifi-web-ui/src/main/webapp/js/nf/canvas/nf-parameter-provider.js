@@ -34,9 +34,10 @@
                 'nf.Verify',
                 'nf.Processor',
                 'nf.ProcessGroup',
-                'nf.ParameterContexts'],
-            function ($, Slick, nfErrorHandler, nfCommon, nfCanvasUtils, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi, nfVerify, nfProcessor, nfProcessGroup, nfParameterContexts) {
-                return (nf.ParameterProvider = factory($, Slick, nfErrorHandler, nfCommon, nfCanvasUtils, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi, nfVerify, nfProcessor, nfProcessGroup, nfParameterContexts));
+                'nf.ParameterContexts',
+                'nf.ProcessGroupConfiguration'],
+            function ($, Slick, nfErrorHandler, nfCommon, nfCanvasUtils, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi, nfVerify, nfProcessor, nfProcessGroup, nfParameterContexts, nfProcessGroupConfiguration) {
+                return (nf.ParameterProvider = factory($, Slick, nfErrorHandler, nfCommon, nfCanvasUtils, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi, nfVerify, nfProcessor, nfProcessGroup, nfParameterContexts, nfProcessGroupConfiguration));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ParameterProvider =
@@ -55,7 +56,8 @@
                 require('nf.Verify'),
                 require('nf.Processor'),
                 require('nf.ProcessGroup'),
-                require('nf.ParameterContexts')));
+                require('nf.ParameterContexts'),
+                require('nf.ProcessGroupConfiguration')));
     } else {
         nf.ParameterProvider = factory(root.$,
             root.Slick,
@@ -72,9 +74,10 @@
             root.nf.Verify,
             root.nf.Processor,
             root.nf.ProcessGroup,
-            root.nf.ParameterContexts);
+            root.nf.ParameterContexts,
+            root.nf.ProcessGroupConfiguration);
     }
-}(this, function ($, Slick, nfErrorHandler, nfCommon, nfCanvasUtils, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi, nfVerify, nfProcessor, nfProcessGroup, nfParameterContexts) {
+}(this, function ($, Slick, nfErrorHandler, nfCommon, nfCanvasUtils, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi, nfVerify, nfProcessor, nfProcessGroup, nfParameterContexts, nfProcessGroupConfiguration) {
     'use strict';
 
     var nfSettings;
@@ -85,8 +88,10 @@
         }
     };
 
+    // load the controller services
+    var controllerServicesUri = config.urls.api + '/flow/controller/controller-services';
+
     var groupCount = 0;
-    var groupIndex = 0;
 
     var parameterCount = 0;
     var sensitiveParametersArray = [];
@@ -186,7 +191,7 @@
         var groupsGrid = table.data('gridInstance');
         var groupsData = groupsGrid.getData();
         $.each(groupsData.getItems(), function (_, g) {
-            if (g.isParameterContext) {
+            if (g.isParameterContext || g.createNewParameterContext) {
                 var group = {
                     'groupName': g.name,
                     'parameterContextName': g.parameterContextName,
@@ -200,27 +205,6 @@
 
         return groups;
     };
-
-    /**
-     * Creates a listing of parameter names.
-     *
-     * @param parameterGroup the parameter group
-     * @param groupName the parameter group name
-     * @returns {*|HTMLElement} listItem
-     */
-    function createParametersListing(parameterGroup, groupName) {
-        var listItem = $('<ol class="fetched-parameters">' + groupName + '</ol>');
-
-        if (parameterGroup.length !== 0) {
-            $.each(parameterGroup, function (i, parameterName) {
-                var li = $('<li></li>').text(parameterName);
-                $('<div class="clear"></div>').appendTo(li);
-                li.appendTo(listItem);
-            });
-        }
-
-        return listItem;
-    }
 
     /**
      * Validates the specified details.
@@ -418,7 +402,7 @@
         nfCommon.cleanUpTooltips($('#parameter-table'), 'div.fa-question-circle, div.fa-info');
 
         var groups = marshalParameterGroups();
-        currentParameterProviderEntity.parameterGroupConfigurations = [...groups];
+        currentParameterProviderEntity.component.parameterGroupConfigurations = groups;
 
         return $.Deferred(function (deferred) {
             // updates the button model to show the close button
@@ -453,7 +437,10 @@
                                 updateReferencingComponentsBorder($('#fetch-parameters-referencing-components'));
                             }
 
-                            applyParametersHandler(currentParameterProviderEntity);
+                            applyParametersHandler(currentParameterProviderEntity).done(function () {
+                                    // reload the parameter provider
+                                    nfParameterProvider.reload(parameterProviderEntity.id);
+                                });
                         }
                     }
                 }, {
@@ -471,7 +458,7 @@
                                 updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
                             }
 
-                            closeModal('#fetch-parameters-dialog');
+                            confirmCancelDialog('#fetch-parameters-dialog');
                         }
                     }
                 }]);
@@ -508,7 +495,10 @@
                 }
 
                 // update the step status
-                $('#fetch-parameters-update-steps').find('div.fetch-parameters-step.ajax-loading').removeClass('ajax-loading').addClass('ajax-error');
+                $('#fetch-parameters-update-steps')
+                    .find('div.fetch-parameters-step.ajax-loading')
+                    .removeClass('ajax-loading')
+                    .addClass('ajax-error');
 
                 // update the button model
                 updateToApplyOrCancelButtonModel();
@@ -521,6 +511,8 @@
 
                     // get the request id
                     requestId = updateRequest.requestId;
+
+                    loadAffectedReferencingComponents($('#affected-referencing-components-container'), updateRequest);
 
                     // update the progress/steps
                     populateFetchParametersUpdateStep(updateRequest.updateSteps, cancelled, errored);
@@ -587,12 +579,24 @@
                     }
                 };
 
-                // update the visibility
-                $('#fetch-parameters-usage-container').hide();
-                $('#fetch-parameters-update-status').show();
+                // get the parameter provider groups names
+                var parameterProviderGroupNames = [];
+                $.each(response.request.parameterProvider.parameterGroupConfigurations, function (_, parameterProviderGroup) {
+                    parameterProviderGroupNames.push(parameterProviderGroup.groupName);
+                });
+                $('#apply-groups-list')
+                    .removeClass('unset')
+                    .attr('title', parameterProviderGroupNames.join(', '))
+                    .text(parameterProviderGroupNames.join(', '));
 
-                // // hide the pending apply message for parameter context
-                // $('#inherited-parameter-contexts-message').addClass('hidden')
+                // update the visibility
+                // left column
+                $('#fetch-parameters-usage-container').hide();
+                $('#apply-groups-container').show();
+
+                // middle column
+                $('#parameters-container').hide();
+                $('#fetch-parameters-update-status').show();
 
                 pollUpdateRequest(response);
             }).fail(handleAjaxFailure);
@@ -630,19 +634,40 @@
             $('#fetch-parameters-id').text(updatedParameterProviderEntity.id);
             $('#fetch-parameters-name').text(nfCommon.getComponentName(updatedParameterProviderEntity));
 
-            // get the reference container
-            var referencingComponentsContainer = $('#fetch-parameter-referencing-components');
+            // set parameters contexts to be updated to none
+            $('<div class="parameter-contexts-to-create"><span class="unset">None</span></div>')
+                .appendTo($('#parameter-contexts-to-create-container'));
 
-            // load the controller referencing components list
-            // loadReferencingProcessGroups(referencingComponentsContainer, parameterProviderEntity);
+            // list parameter contexts to update
+            var parameterContextsToUpdate = $('#parameter-contexts-to-update-container').empty();
 
-            // load the referencing parameter contexts list
-            loadReferencingParameterContexts(referencingComponentsContainer, updatedParameterProviderEntity);
+            if (!updatedParameterProviderEntity.component.referencingParameterContexts) {
+                $('<div class="parameter-contexts-to-update"><span class="unset">None</span></div>')
+                    .appendTo(parameterContextsToUpdate);
+            } else {
+                // populate contexts to be updated
+                var parameterContextNames = [];
+                $.each(updatedParameterProviderEntity.component.referencingParameterContexts, function (_, paramContext) {
+                    parameterContextNames.push(paramContext.component.name);
+                });
+                parameterContextNames.sort();
+                parameterContextsToUpdate
+                    .removeClass('unset')
+                    .attr('title', parameterContextNames.join(', '))
+                    .text(parameterContextNames.join(', '));
+            }
 
-            loadParameterGroups(updatedParameterProviderEntity, false);
+            // hide affected referencing components list
+            var affectedReferencingComponents = $('#fetch-parameters-affected-referencing-components-container');
+            if (!affectedReferencingComponents.hasClass('hidden')) {
+                affectedReferencingComponents.addClass('hidden');
+            }
 
-            // show the parameters listing
+            loadParameterGroups(updatedParameterProviderEntity);
+
+            // update visibility
             $('#fetch-parameters-usage-container').show();
+            $('#parameters-container').show();
 
             // build the button model
             var buttons = [{
@@ -652,9 +677,30 @@
                     hover: '#004849',
                     text: '#ffffff'
                 },
+                disabled: function () {
+                    var disabled = true;
+
+                    if (!updatedParameterProviderEntity.component.referencingParameterContexts) {
+                        var groupsGrid = $('#parameter-groups-table').data('gridInstance');
+                        var groupsData = groupsGrid.getData();
+
+                        $.each(groupsData.getItems(), function (_, group) {
+                            if (group.createNewParameterContext) {
+                                disabled = false;
+                            }
+                        })
+                    } else {
+                        disabled = false;
+                    }
+
+                    return disabled;
+                },
                 handler: {
                     click: function () {
-                        applyParametersHandler(updatedParameterProviderEntity)
+                        applyParametersHandler(updatedParameterProviderEntity).done(function () {
+                            // reload the parameter provider
+                            nfParameterProvider.reload(parameterProviderEntity.id);
+                        });
                     }
                 }
             }, {
@@ -678,24 +724,18 @@
             nfCanvasUtils.queryBulletins([updatedParameterProviderEntity.id]).done(function (response) {
                 updateBulletins(response.bulletinBoard.bulletins, $('#fetch-parameters-bulletins'));
             });
-
-            // update the border if necessary
-            updateReferencingComponentsBorder(referencingComponentsContainer);
-        })
+        });
     };
 
     /**
      * Loads the specified fetched groups.
      *
      * @param {object} parameterProviderGroupEntity
-     // * @param {string} groupToSelect to select
      * @param {boolean} if the parameters should be displayed in a read-only state regardless of permissions
      */
-    var loadParameterGroups = function (parameterProviderGroupEntity, readOnly) {
-        var groupToSelect = null;
+    var loadParameterGroups = function (parameterProviderGroupEntity) {
         // providedGroups will be an array of groups
         if (nfCommon.isDefinedAndNotNull(parameterProviderGroupEntity)) {
-
             var groupsGrid = $('#parameter-groups-table').data('gridInstance');
             var groupsData = groupsGrid.getData();
 
@@ -703,22 +743,19 @@
             groupsData.beginUpdate();
 
             var parameterGroups = [];
-            $.each(parameterProviderGroupEntity.component.parameterGroupConfigurations, function (i, parameterGroupEntity) {
+            $.each(parameterProviderGroupEntity.component.parameterGroupConfigurations, function (i, groupConfig) {
+                var isReferencingParameterContext = parameterProviderGroupEntity.component.referencingParameterContexts
+                    ? isReferencingParamContext(parameterProviderGroupEntity.component.referencingParameterContexts, groupConfig.parameterContextName)
+                    : false;
 
                 var group = {
                     id: groupCount++,
                     hidden: false,
-                    type: 'Provided Parameter Group',
-                    isNew: false,
-                    isModified: false,
-                    hasValueChanged: false,
-                    name: parameterGroupEntity.groupName,
-                    parameterContextName: parameterGroupEntity.parameterContextName,
-                    parameterSensitivities: parameterGroupEntity.parameterSensitivities,
-                    affectedComponents: parameterGroupEntity.affectedComponents ? parameterGroupEntity.affectedComponents : null,
-                    referencingParameterContexts: parameterGroupEntity.referencingParameterContexts ? parameterGroupEntity.referencingParameterContexts : null,
-                    isParameterContext: parameterGroupEntity.referencingParameterContexts ? true : false,
-                    provided: true
+                    isParameterContext: isReferencingParameterContext,
+                    name: groupConfig.groupName,
+                    parameterContextName: groupConfig.parameterContextName,
+                    parameterSensitivities: groupConfig.parameterSensitivities,
+                    referencingParameterContexts: groupConfig.referencingParameterContexts ?? groupConfig.referencingParameterContexts
                 };
 
                 parameterGroups.push({
@@ -732,26 +769,28 @@
             groupsData.endUpdate();
             groupsData.reSort();
 
-            // if we are pre-selecting a specific parameter, get its parameterIndex
-            if (nfCommon.isDefinedAndNotNull(groupToSelect)) {
-                $.each(parameterGroups, function (i, parameterGroupEntity) {
-                    if (parameterGroupEntity.parameter.name === groupToSelect) {
-                        groupIndex = groupsData.getRowById(parameterGroupEntity.group.id);
-                        return false;
-                    }
-                });
-            } else {
-                groupIndex = 0;
-            }
-
-            if (parameterGroups.length === 0) {
-                // resetUsage();
-            } else {
-                // select the desired row
-                groupsGrid.setSelectedRows([groupIndex]);
-            }
+            // select the first row
+            groupsGrid.setSelectedRows([0]);
         }
     };
+
+    /**
+     * Determines if the provided group is synced to a parameter context.
+     *
+     * @param {object} referencingParameterContexts
+     * @param {string} parameterContextName
+     * @returns {boolean}
+     */
+    var isReferencingParamContext = function (referencingParameterContexts, parameterContextName) {
+        var isReferencingParamContext = false;
+        $.each(referencingParameterContexts, function (_, paramContext) {
+            if (paramContext.component.name.includes(parameterContextName)) {
+                return isReferencingParamContext = true;
+            }
+        })
+
+        return isReferencingParamContext;
+    }
 
     /**
      * Loads the selectable parameters for a specified parameter group.
@@ -760,50 +799,38 @@
      */
     var loadSelectableParameters = function (parametersEntity) {
         sensitiveParametersArray = [];
-        console.log('parametersEntity: ', parametersEntity);
         if (nfCommon.isDefinedAndNotNull(parametersEntity)) {
-
             var selectableParametersGrid = $('#selectable-parameters-table').data('gridInstance');
             var parametersData = selectableParametersGrid.getData();
 
-            //TODO: FIX! need to clear the grid before populating with new data,
-            // but this triggers the onSelectedRowsChanged, which I don't want
             selectableParametersGrid.setSelectedRows([]);
             parametersData.setItems([]);
-            console.log('parametersData.getItems(), before update: ', parametersData.getItems());
 
-            // if this is the first time the Fetch Parameters dialog is opened, then load the selectable parameters
-                // begin the update
-                parametersData.beginUpdate();
+            // begin the update
+            parametersData.beginUpdate();
 
-                var idx = 0;
-                for (var param in parametersEntity) {
+            var idx = 0;
+            for (var param in parametersEntity) {
 
-                    var parameter = {
-                        id: idx++,
-                        name: param,
-                        sensitivity: parametersEntity[param] ? parametersEntity[param] : SENSITIVE,
-                        isNew: parametersEntity[param] === null ? true: false,
-                    }
-                    // if the parameter is sensitive, then show the parameter checkbox as check-marked
-                    if (parameter.sensitivity === SENSITIVE) {
-                        sensitiveParametersArray.push(parameter.id);
-                    }
-
-                    parametersData.addItem(parameter);
+                var parameter = {
+                    id: idx++,
+                    name: param,
+                    sensitivity: parametersEntity[param] ? parametersEntity[param] : SENSITIVE
+                }
+                // if the parameter is sensitive, then show the parameter checkbox as check-marked
+                if (parameter.sensitivity === SENSITIVE) {
+                    sensitiveParametersArray.push(parameter.id);
                 }
 
-                // complete the update
-                parametersData.endUpdate();
-                parametersData.reSort();
-            // } else {
-                // the parameters are still saved in the dialog,
-                // and we just need to update the parameter (if there are changes)
-                // or
-                // update the parameter sensitivity based on selecting/un-selecting the checkbox (onClick)
-            // }
+                parametersData.addItem(parameter);
+            }
 
-            console.log('parametersData.getItems(), after update: ', parametersData.getItems());
+            // complete the update
+            parametersData.endUpdate();
+            parametersData.reSort();
+
+            // list the parameters to be created
+            loadParameterContextsToCreate();
 
             // select the desired row
             if (sensitiveParametersArray.length !== 0) {
@@ -813,19 +840,28 @@
     };
 
     /**
-     * Loads the reference for this parameter provider.
+     * Loads the affected referencing components for this parameter provider.
      *
-     * @param {jQuery} referencingProcessGroupsContainer
+     * @param {jQuery} affectedReferencingComponentsContainer
      * @param {object} parameterProvider
      */
-    var loadReferencingProcessGroups = function (referencingProcessGroupsContainer, parameterProvider) {
-        if (parameterProvider.permissions.canRead === false) {
-            referencingProcessGroupsContainer.append('<div class="unset">Unauthorized</div>');
-            return;
+    var loadAffectedReferencingComponents = function (affectedReferencingComponentsContainer, parameterProvider) {
+        affectedReferencingComponentsContainer.empty();
+
+        // update visibility
+        if ($('#fetch-parameters-affected-referencing-components-container').hasClass('hidden')) {
+            $('#fetch-parameters-affected-referencing-components-container').removeClass('hidden');
         }
-        var referencingProcessGroups = parameterProvider.component.boundProcessGroups;
-        if (nfCommon.isEmpty(referencingProcessGroups)) {
-            referencingProcessGroupsContainer.append('<div class="unset">No referencing components.</div>');
+
+        //TODO: do we need?
+        // if (parameterProvider.permissions.canRead === false) {
+        //     affectedReferencingComponentsContainer.append('<div class="unset">Unauthorized</div>');
+        //     return;
+        // }
+
+        var affectedReferencingComponents = parameterProvider.affectedComponents;
+        if (nfCommon.isEmpty(affectedReferencingComponents)) {
+            affectedReferencingComponentsContainer.append('<div class="unset">Pending Apply.</div>');
             return;
         }
 
@@ -842,26 +878,29 @@
 
         var processGroups = $('<ul class="referencing-component-listing clear"></ul>');
         var unauthorized = $('<ul class="referencing-component-listing clear"></ul>');
-        $.each(referencingProcessGroups, function (_, referencingProcessGroupsEntity) {
+
+        $.each(affectedReferencingComponents, function (_, affectedComponent) {
             // check the access policy for this referencing component
-            if (referencingProcessGroupsEntity.permissions.canRead === false) {
-                var unauthorizedReferencingComponent = $('<div class="unset"></div>').text(referencingProcessGroupsEntity.id);
+            if (affectedComponent.permissions.canRead === false) {
+                var unauthorizedReferencingComponent = $('<div class="unset"></div>').text(affectedComponent.id);
                 unauthorized.append(unauthorizedReferencingComponent);
             } else {
-                var referencingComponent = referencingProcessGroupsEntity.component;
+                var referencingComponent = affectedComponent.component;
 
-                var processGroupLink = $('<span class="referencing-component-name link"></span>').text(referencingComponent.name).on('click', function () {
-                    // show the component
-                    if (nfCommon.isDefinedAndNotNull(referencingComponent.parentGroupId)) {
-                        nfCanvasUtils.showComponent(referencingComponent.parentGroupId, referencingComponent.id);
-                    } else {
-                        nfProcessGroup.enterGroup(referencingComponent.id);
-                    }
+                var processGroupLink = $('<span class="referencing-component-name link"></span>')
+                    .text(referencingComponent.name)
+                    .on('click', function () {
+                        // show the component
+                        if (nfCommon.isDefinedAndNotNull(referencingComponent.parentGroupId)) {
+                            nfCanvasUtils.showComponent(referencingComponent.parentGroupId, referencingComponent.id);
+                        } else {
+                            nfProcessGroup.enterGroup(referencingComponent.id);
+                        }
 
-                    // close the dialog and shell
-                    referencingProcessGroupsContainer.closest('.dialog').modal('hide');
-                    $('#shell-close-button').click();
-                });
+                        // close the dialog and shell
+                        affectedReferencingComponentsContainer.closest('.dialog').modal('hide');
+                        $('#shell-close-button').click();
+                    });
                 var processGroupItem = $('<li></li>').append(processGroupLink);
                 processGroups.append(processGroupItem);
             }
@@ -879,16 +918,21 @@
             var count = $('<span class="referencing-component-count"></span>').text('(' + list.children().length + ')');
 
             // create the reference block
-            $('<div class="referencing-component-block pointer unselectable"></div>').on('click', function () {
-                // toggle this block
-                toggle(twist, list);
+            $('<div class="referencing-component-block pointer unselectable"></div>')
+                .on('click', function () {
+                    // toggle this block
+                    toggle(twist, list);
 
-                // update the border if necessary
-                updateReferencingComponentsBorder(referencingProcessGroupsContainer);
-            }).append(twist).append(title).append(count).appendTo(referencingProcessGroupsContainer);
+                    // update the border if necessary
+                    updateReferencingComponentsBorder(affectedReferencingComponentsContainer);
+                })
+                .append(twist)
+                .append(title)
+                .append(count)
+                .appendTo(affectedReferencingComponentsContainer);
 
             // add the listing
-            list.appendTo(referencingProcessGroupsContainer);
+            list.appendTo(affectedReferencingComponentsContainer);
         };
 
         // create blocks for each type of component
@@ -897,106 +941,35 @@
     };
 
     /**
-     * Loads the reference parameter contexts for this parameter provider.
+     * Loads the groups that will be created as a parameter context.
      *
-     * @param {jQuery} referencingParameterContextsContainer
-     * @param {object} referencingComponents
      */
+    var loadParameterContextsToCreate = function () {
+        var parameterContextsToCreate = $('#parameter-contexts-to-create-container').empty();
+        var parameterContextNames = [];
 
-        // TODO: not yet implemented
-    var loadReferencingParameterContexts = function (referencingParameterContextsContainer, referencingComponents) {
-        if (nfCommon.isEmpty(referencingComponents)) {
-            referencingParameterContextsContainer.append('<div class="unset">No referencing components.</div>');
-            return;
-        }
+        var groupsGrid = $('#parameter-groups-table').data('gridInstance');
+        var groupsData = groupsGrid.getData();
 
-        // toggles the visibility of a container
-        var toggle = function (twist, container) {
-            if (twist.hasClass('expanded')) {
-                twist.removeClass('expanded').addClass('collapsed');
-                container.hide();
-            } else {
-                twist.removeClass('collapsed').addClass('expanded');
-                container.show();
+        $.each(groupsData.getItems(), function (_, group) {
+            if (group.createNewParameterContext) {
+                parameterContextNames.push(group.parameterContextName);
             }
-        };
-
-        var parameterContexts = $('<ul class="referencing-component-listing clear"></ul>');
-        var unauthorized = $('<ul class="referencing-component-listing clear"></ul>');
-        $.each(referencingComponents, function (_, referencingComponent) {
-            // // check the access policy for this referencing component
-            // if (referencingParameterContextsEntity.permissions.canRead === false) {
-            //     var unauthorizedReferencingComponent = $('<div class="unset"></div>').text(referencingParameterContextsEntity.id);
-            //     unauthorized.append(unauthorizedReferencingComponent);
-            // } else {
-            //     var referencingComponent = referencingParameterContextsEntity.component;
-            //
-            //     var parameterContextLink = $('<span class="referencing-component-name link"></span>').text(referencingComponent.name).on('click', function () {
-            //         // show the component
-            //         if (nfCommon.isDefinedAndNotNull(referencingComponent.parentGroupId)) {
-            //             nfCanvasUtils.showComponent(referencingComponent.parentGroupId, referencingComponent.id);
-            //         } else {
-            //             nfProcessGroup.enterGroup(referencingComponent.id);
-            //         }
-            //
-            //         // close the dialog and shell
-            //         referencingParameterContextsContainer.closest('.dialog').modal('hide');
-            //         $('#shell-close-button').click();
-            //     });
-            //     var parameterContextItem = $('<li></li>').append(parameterContextLink);
-            //     parameterContexts.append(parameterContextItem);
-            // }
-
-            // var referencingComponent = referencingParameterContextsEntity.component;
-
-            var parameterContextLink = $('<span class="referencing-component-name link"></span>').text(referencingComponent.name).on('click', function () {
-                // // show the component
-                // if (nfCommon.isDefinedAndNotNull(referencingComponent.parentGroupId)) {
-                //     nfCanvasUtils.showComponent(referencingComponent.parentGroupId, referencingComponent.id);
-                // } else {
-                //     nfProcessGroup.enterGroup(referencingComponent.id);
-                // }
-
-                // show the component
-                nfParameterContexts.showParameterContext(referencingComponent.id);
-
-                // close the dialog and shell
-                referencingParameterContextsContainer.closest('.dialog').modal('hide');
-                $('#shell-close-button').click();
-            });
-            var parameterContextItem = $('<li></li>').append(parameterContextLink);
-            parameterContexts.append(parameterContextItem);
         });
 
-        // create the collapsable listing for each type
-        var createReferenceBlock = function (titleText, list) {
-            if (list.is(':empty')) {
-                list.remove();
-                return;
-            }
+        if (parameterContextNames.length === 0) {
+            $('<div class="parameter-contexts-to-create"><span class="unset">None</span></div>')
+                .appendTo(parameterContextsToCreate);
+        } else {
+            parameterContextNames.sort();
+            parameterContextsToCreate
+                .removeClass('unset')
+                .attr('title', parameterContextNames.join(', '))
+                .text(parameterContextNames.join(', '));
+        }
+    }
 
-            var twist = $('<div class="expansion-button expanded"></div>');
-            var title = $('<span class="referencing-component-title"></span>').text(titleText);
-            var count = $('<span class="referencing-component-count"></span>').text('(' + list.children().length + ')');
-
-            // create the reference block
-            $('<div class="referencing-component-block pointer unselectable"></div>').on('click', function () {
-                // toggle this block
-                toggle(twist, list);
-
-                // update the border if necessary
-                updateReferencingComponentsBorder(referencingParameterContextsContainer);
-            }).append(twist).append(title).append(count).appendTo(referencingParameterContextsContainer);
-
-            // add the listing
-            list.appendTo(referencingParameterContextsContainer);
-        };
-
-        // create blocks for each type of component
-        createReferenceBlock('Parameter Contexts', parameterContexts);
-        createReferenceBlock('Unauthorized', unauthorized);
-    };
-
+    // TODO: not yet implemented
     /**
      * Updates the specified bulletinIcon with the specified bulletins if necessary.
      *
@@ -1127,7 +1100,7 @@
             'id': parameterProviderEntity.id,
             'revision': nfClient.getRevision(parameterProviderEntity),
             'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
-            'parameterGroupConfigurations': parameterProviderEntity.parameterGroupConfigurations
+            'parameterGroupConfigurations': parameterProviderEntity.component.parameterGroupConfigurations
         }
 
         return $.ajax({
@@ -1196,16 +1169,20 @@
     var populateFetchParametersColumn = function (fetchedGroup) {
         var updatedGroup = fetchedGroup;
         var isParameterContext = updatedGroup.isParameterContext;
+        var isCreateNewParameterContext = updatedGroup.createNewParameterContext;
+
+        $('#fetch-parameters-listing').empty();
 
         // get an instance of the grid
         var groupsGrid = $('#parameter-groups-table').data('gridInstance');
         var groupsData = groupsGrid.getData();
 
-        // show the appropriate parameters when dialog first opens
+        // show the appropriate parameters table when dialog first opens
         if (isParameterContext) {
-            // get the active Group's parameters to populate the selectable parameters container
+            // get the active group's parameters to populate the selectable parameters container
             loadSelectableParameters(updatedGroup.parameterSensitivities);
 
+            $('#parameters-container').show();
             $('#selectable-parameters-container').show();
             $('#fetched-parameters-container').hide();
         } else {
@@ -1213,46 +1190,70 @@
             $('#fetched-parameters-container').show();
         }
 
-        /* Form the create parameter context checkbox */
-        var parametersCheckboxContainer = $('#create-parameter-context-checkbox-container').empty();
+        if (Object.keys(updatedGroup.parameterSensitivities).length !== 0) {
+            $('#create-parameter-context-checkbox-container').show();
 
-        // checkbox for create parameter context of the group
-        var checkboxMarkup = $('<div class="setting"></div>');
+            /* Form the create parameter context checkbox */
+            var parametersCheckboxContainer = $('#create-parameter-context-checkbox-container').empty();
+            var createParamContextContainer;
 
-        if (isParameterContext) {
-            // check the checkbox
-            $('<div id="create-parameter-context-field" class="nf-checkbox checkbox-checked"></div>').appendTo(checkboxMarkup);
+            /* Form the parameter context name input */
+            if (isParameterContext) {
+                // only show the name
+                createParamContextContainer = $('<div id="create-parameter-context-container" class="string-check-container setting" style="display:block;"></div>');
+
+                $('<div class="setting">' +
+                    '<div class="setting-name">Parameter Context Name</div>' +
+                    '<div class="setting-field">' +
+                    '<div id="referencing-parameter-context-name">' + nfCommon.escapeHtml(fetchedGroup.parameterContextName) + '</div>' +
+                    '</div>').appendTo(createParamContextContainer);
+            } else {
+                var checkboxMarkup = $('<div class="setting"></div>');
+
+                if (isCreateNewParameterContext) {
+                    // check the checkbox
+                    $('<div id="create-parameter-context-field" class="nf-checkbox checkbox-checked"></div>').appendTo(checkboxMarkup);
+
+                    loadSelectableParameters(updatedGroup.parameterSensitivities);
+
+                    $('#parameters-container').show();
+                    $('#selectable-parameters-container').show();
+                    $('#fetched-parameters-container').hide();
+                } else {
+                    // uncheck the checkbox
+                    $('<div id="create-parameter-context-field" class="nf-checkbox checkbox-unchecked"></div>').appendTo(checkboxMarkup);
+
+                    $('#selectable-parameters-container').hide();
+                    $('#fetched-parameters-container').show();
+                }
+
+                $('<div id="create-parameter-context-label" class="nf-checkbox-label ellipsis" title="create-parameter-context" style="text-overflow: ellipsis;">' +
+                    'Create Parameter Context</div></div>').appendTo(checkboxMarkup);
+                $(checkboxMarkup).appendTo(parametersCheckboxContainer);
+
+                // create the input container and set visibility
+                if (isCreateNewParameterContext) {
+                    createParamContextContainer = $('<div id="create-parameter-context-container" class="string-check-container setting" style="display:block;"></div>');
+                } else {
+                    createParamContextContainer = $('<div id="create-parameter-context-container" class="string-check-container setting" style="display:none;"></div>');
+                }
+
+                // create the input
+                $('<div class="setting">' +
+                    '<div class="setting-name">Parameter Context Name</div>' +
+                    '<div class="setting-field required">' +
+                    '<input id="create-parameter-context-input" type="text" name="parameter-context-name"/></div>' +
+                    '</div>').appendTo(createParamContextContainer);
+            }
+
+            createParamContextContainer.appendTo(parametersCheckboxContainer);
+
+            // populate the name input
+            var contextName = updatedGroup.parameterContextName;
+            $('#create-parameter-context-input').val(contextName);
         } else {
-            // uncheck the checkbox
-            $('<div id="create-parameter-context-field" class="nf-checkbox checkbox-unchecked"></div>').appendTo(checkboxMarkup);
+            $('#create-parameter-context-checkbox-container').hide();
         }
-
-        $('<div id="create-parameter-context-label" class="nf-checkbox-label ellipsis" title="create-parameter-context" style="text-overflow: ellipsis;">' +
-            'Create Parameter Context</div></div>').appendTo(checkboxMarkup);
-
-        $(checkboxMarkup).appendTo(parametersCheckboxContainer);
-
-        /* Form the parameter context name input */
-        var createParamContextContainer;
-
-        if (isParameterContext) {
-            // show the name input
-            createParamContextContainer = $('<div id="create-parameter-context-container" class="string-check-container setting" style="display:block;"></div>');
-        } else {
-            // hide the name input
-            createParamContextContainer = $('<div id="create-parameter-context-container" class="string-check-container setting" style="display:none;"></div>');
-        }
-        $('<div class="setting">' +
-            '<div class="setting-name">Parameter Context Name</div>' +
-            '<div class="setting-field required">' +
-            '<input id="create-parameter-context-input" type="text" name="parameter-context-name"/></div>' +
-            '</div>').appendTo(createParamContextContainer);
-
-        createParamContextContainer.appendTo(parametersCheckboxContainer);
-
-        // populate the name input
-        var contextName = updatedGroup.parameterContextName;
-        $('#create-parameter-context-input').val(contextName);
 
         /* Form the parameters listing */
         var fetchedParametersContainer = $('#fetch-parameters-listing').empty();
@@ -1276,11 +1277,7 @@
         // update the border if necessary
         updateReferencingComponentsBorder(fetchedParametersContainer);
 
-        //TODO
-        /* Form the selectable parameters table */
-
         /* Temporarily save any changes */
-
         // begin updating the group table
         groupsData.beginUpdate();
 
@@ -1291,13 +1288,16 @@
 
             // update the group item
             groupsData.updateItem(updatedGroup.id, updatedGroup);
+
+            // update the list of parameters to be created
+            loadParameterContextsToCreate();
         })
 
         // create parameter checkbox behaviors
         $('#create-parameter-context-field').off().on('change', function (event, args) {
             // if checked then show the name input, hide parameters listing, show selectable parameters table
             if (args.isChecked) {
-                updatedGroup.isParameterContext = true;
+                updatedGroup.createNewParameterContext = true;
 
                 loadSelectableParameters(updatedGroup.parameterSensitivities);
 
@@ -1307,8 +1307,9 @@
                 $('#fetch-parameters-dialog').modal('refreshButtons');
             } else {
                 // if unchecked, then hide the input and only show the parameters listing
-                updatedGroup.isParameterContext = false;
+                updatedGroup.createNewParameterContext = false;
 
+                loadSelectableParameters(updatedGroup.parameterSensitivities);
                 $('#create-parameter-context-container').hide();
                 $('#selectable-parameters-container').hide();
                 $('#fetched-parameters-container').show();
@@ -1344,11 +1345,9 @@
 
         //TODO: add these back in when they're ready
         // resetUsage();
-        // resetInheritance();
 
         // reset the last selected parameter
         lastSelectedId = null;
-        groupIndex = 0;
         sensitiveParametersArray = [];
     };
 
@@ -1382,6 +1381,17 @@
     };
 
     /**
+     * Sorts the specified entities based on the name.
+     *
+     * @param {object} a
+     * @param {object} b
+     * @returns {number}
+     */
+    var nameComparator = function (a, b) {
+        return a.component.name.localeCompare(b.component.name);
+    };
+
+    /**
      * Performs the filtering.
      *
      * @param {object} item     The item subject to filtering
@@ -1393,150 +1403,158 @@
     };
 
     /**
-     * Populates the referencing components and parameters for the specified parameter group.
+     * Renders the bulletins as a tooltip of the bulletinIconElement, shows the icon
      *
-     * @param {object} group    the specified parameter group
+     * @param bulletins            bulletins to be rendered
+     * @param bulletinIconElement  jQuery element to display as the bulletin icon and source for the tooltip
      */
-    var populateReferencingComponents = function (group) {
-        var referencingComponents = group.referencingComponents;
+    var renderBulletins = function (bulletins, bulletinIconElement) {
+        // format the new bulletins
+        var formattedBulletins = nfCommon.getFormattedBulletins(bulletins);
 
-        // toggles the visibility of a container
-        var toggle = function (twist, container) {
-            if (twist.hasClass('expanded')) {
-                twist.removeClass('expanded').addClass('collapsed');
-                container.hide();
-            } else {
-                twist.removeClass('collapsed').addClass('expanded');
-                container.show();
-            }
-        };
+        var list = nfCommon.formatUnorderedList(formattedBulletins);
 
-        var referencingProcessors = [];
-        var referencingControllerServices = [];
-        var unauthorizedReferencingComponents = [];
+        // update existing tooltip or initialize a new one if appropriate
+        bulletinIconElement.addClass('has-bulletins').show().qtip($.extend({},
+            nfCanvasUtils.config.systemTooltipConfig,
+            {
+                content: list
+            }));
+    }
 
-        var spinner = $('#fetch-parameters-usage .referencing-components-loading');
+    /**
+     * Renders the specified referencing component.
+     *
+     * @param {object} referencingProcessorEntity
+     * @param {jQuery} container
+     */
+    var renderReferencingProcessor = function (referencingProcessorEntity, container) {
+        var referencingProcessorContainer = $('<li class="referencing-component-container"></li>').appendTo(container);
+        var referencingProcessor = referencingProcessorEntity.component;
 
-        var loadingDeferred = $.Deferred(function (deferred) {
-            spinner.addClass('ajax-loading');
-            deferred.resolve();
-        });
-        loadingDeferred.then(function () {
-            resetUsage();
-        }).then(function() {
-            populateFetchParametersColumn(group);
+        // processor state
+        $('<div class="referencing-component-state"></div>').addClass(function () {
+            if (nfCommon.isDefinedAndNotNull(referencingProcessor.state)) {
+                var icon = $(this);
 
-            var parameterReferencingComponentsContainer = $('#fetch-parameters-referencing-components-container').empty();
+                var state = referencingProcessor.state.toLowerCase();
+                if (state === 'stopped' && !nfCommon.isEmpty(referencingProcessor.validationErrors)) {
+                    state = 'invalid';
 
-            // referencing component will be undefined when a new parameter is added
-            if (nfCommon.isUndefined(referencingComponents)) {
-                // set to pending
-                $('<div class="referencing-component-container"><span class="unset">Pending Apply</span></div>').appendTo(parameterReferencingComponentsContainer);
-            } else {
-                // bin the referencing components according to their type
-                $.each(referencingComponents, function (_, referencingComponentEntity) {
-                    if (referencingComponentEntity.permissions.canRead === true && referencingComponentEntity.permissions.canWrite === true) {
-                        if (referencingComponentEntity.component.referenceType === 'PROCESSOR') {
-                            referencingProcessors.push(referencingComponentEntity);
-                        } else {
-                            referencingControllerServices.push(referencingComponentEntity);
-                        }
-                    } else {
-                        unauthorizedReferencingComponents.push(referencingComponentEntity);
-                    }
-                });
+                    // build the validation error listing
+                    var list = nfCommon.formatUnorderedList(referencingProcessor.validationErrors);
 
-                var referencingProcessGroups = {};
-
-                // bin the referencing processors according to their PG
-                $.each(referencingProcessors, function (_, referencingProcessorEntity) {
-                    if (referencingProcessGroups[referencingProcessorEntity.processGroup.id]) {
-                        referencingProcessGroups[referencingProcessorEntity.processGroup.id].referencingProcessors.push(referencingProcessorEntity);
-                        referencingProcessGroups[referencingProcessorEntity.processGroup.id].id = referencingProcessorEntity.processGroup.id;
-                        referencingProcessGroups[referencingProcessorEntity.processGroup.id].name = referencingProcessorEntity.processGroup.name;
-                    } else {
-                        referencingProcessGroups[referencingProcessorEntity.processGroup.id] = {
-                            referencingProcessors: [],
-                            referencingControllerServices: [],
-                            unauthorizedReferencingComponents: [],
-                            name: referencingProcessorEntity.processGroup.name,
-                            id: referencingProcessorEntity.processGroup.id
-                        };
-
-                        referencingProcessGroups[referencingProcessorEntity.processGroup.id].referencingProcessors.push(referencingProcessorEntity);
-                    }
-                });
-
-                // bin the referencing CS according to their PG
-                $.each(referencingControllerServices, function (_, referencingControllerServiceEntity) {
-                    if (referencingProcessGroups[referencingControllerServiceEntity.processGroup.id]) {
-                        referencingProcessGroups[referencingControllerServiceEntity.processGroup.id].referencingControllerServices.push(referencingControllerServiceEntity);
-                        referencingProcessGroups[referencingControllerServiceEntity.processGroup.id].id = referencingControllerServiceEntity.processGroup.id;
-                        referencingProcessGroups[referencingControllerServiceEntity.processGroup.id].name = referencingControllerServiceEntity.processGroup.name;
-                    } else {
-                        referencingProcessGroups[referencingControllerServiceEntity.processGroup.id] = {
-                            referencingProcessors: [],
-                            referencingControllerServices: [],
-                            unauthorizedReferencingComponents: [],
-                            name: referencingControllerServiceEntity.processGroup.name,
-                            id: referencingControllerServiceEntity.processGroup.id
-                        };
-
-                        referencingProcessGroups[referencingControllerServiceEntity.processGroup.id].referencingControllerServices.push(referencingControllerServiceEntity);
-                    }
-                });
-
-                // bin the referencing unauthorized components according to their PG
-                $.each(unauthorizedReferencingComponents, function (_, unauthorizedReferencingComponentEntity) {
-                    if (referencingProcessGroups[unauthorizedReferencingComponentEntity.processGroup.id]) {
-                        referencingProcessGroups[unauthorizedReferencingComponentEntity.processGroup.id].unauthorizedReferencingComponents.push(unauthorizedReferencingComponentEntity);
-                        referencingProcessGroups[unauthorizedReferencingComponentEntity.processGroup.id].id = unauthorizedReferencingComponentEntity.processGroup.id;
-                        referencingProcessGroups[unauthorizedReferencingComponentEntity.processGroup.id].name = unauthorizedReferencingComponentEntity.processGroup.name;
-                    } else {
-                        referencingProcessGroups[unauthorizedReferencingComponentEntity.processGroup.id] = {
-                            referencingProcessors: [],
-                            referencingControllerServices: [],
-                            unauthorizedReferencingComponents: [],
-                            name: unauthorizedReferencingComponentEntity.processGroup.name,
-                            id: unauthorizedReferencingComponentEntity.processGroup.id
-                        };
-
-                        referencingProcessGroups[unauthorizedReferencingComponentEntity.processGroup.id].unauthorizedReferencingComponents.push(unauthorizedReferencingComponentEntity);
-                    }
-                });
-
-                var parameterReferencingComponentsContainer = $('#fetch-parameters-referencing-components-container');
-                var groups = $('<ul class="referencing-component-listing clear"></ul>');
-
-                var referencingProcessGroupsArray = [];
-                for (var key in referencingProcessGroups) {
-                    if (referencingProcessGroups.hasOwnProperty(key)) {
-                        referencingProcessGroupsArray.push(referencingProcessGroups[key]);
-                    }
+                    // add tooltip for the warnings
+                    icon.qtip($.extend({},
+                        nfCanvasUtils.config.systemTooltipConfig,
+                        {
+                            content: list
+                        }));
                 }
 
-                if (nfCommon.isEmpty(referencingProcessGroupsArray)) {
-                    // set to none
-                    $('<div class="referencing-component-container"><span class="unset">None</span></div>')
-                        .appendTo(parameterReferencingComponentsContainer);
-                } else {
-                    //sort alphabetically
-                    var sortedReferencingProcessGroups = referencingProcessGroupsArray.sort(function (a, b) {
-                        if (a.name < b.name) {
-                            return -1;
-                        }
-                        if (a.name > b.name) {
-                            return 1;
-                        }
-                        return 0;
+                return state;
+            } else {
+                return '';
+            }
+        }).appendTo(referencingProcessorContainer);
+
+
+        // processor name
+        $('<span class="parameter-provider-referencing-component-name link ellipsis"></span>')
+            .prop('title', referencingProcessor.name)
+            .text(referencingProcessor.name)
+            .on('click', function () {
+                // check if there are outstanding changes
+                handleOutstandingChanges()
+                    .done(function () {
+                        // close the shell
+                        $('#shell-dialog').modal('hide');
+
+                        // show the component in question
+                        nfCanvasUtils.showComponent(referencingProcessorEntity.processGroup.id, referencingProcessor.id);
                     });
-                }
+            }).appendTo(referencingProcessorContainer);
+
+        // bulletin
+        var bulletinIcon = $('<div class="referencing-component-bulletins"></div>').addClass(referencingProcessor.id + '-referencing-bulletins');
+        bulletinIcon.appendTo(referencingProcessorContainer);
+        if (!nfCommon.isEmpty(referencingProcessorEntity.bulletins)) {
+            renderBulletins(referencingProcessorEntity.bulletins, bulletinIcon);
+        }
+
+        // processor active threads
+        $('<span class="referencing-component-active-thread-count"></span>').text(function () {
+            if (nfCommon.isDefinedAndNotNull(referencingProcessor.activeThreadCount) && referencingProcessor.activeThreadCount > 0) {
+                return '(' + referencingProcessor.activeThreadCount + ')';
+            } else {
+                return '';
             }
-        })
-            .always(function () {
-                spinner.removeClass('ajax-loading');
-            });
-        return loadingDeferred.promise();
+        }).appendTo(referencingProcessorContainer);
+    };
+
+    /**
+     * Renders the specified affect controller service.
+     *
+     * @param {object} referencingControllerServiceEntity
+     * @param {jQuery} container
+     */
+    var renderReferencingControllerService = function (referencingControllerServiceEntity, container) {
+        var referencingControllerServiceContainer = $('<li class="referencing-component-container"></li>').appendTo(container);
+        var referencingControllerService = referencingControllerServiceEntity.component;
+
+        // controller service state
+        $('<div class="referencing-component-state"></div>').addClass(function () {
+            if (nfCommon.isDefinedAndNotNull(referencingControllerService.state)) {
+                var icon = $(this);
+
+                var state = referencingControllerService.state === 'ENABLED' ? 'enabled' : 'disabled';
+                if (state === 'disabled' && !nfCommon.isEmpty(referencingControllerService.validationErrors)) {
+                    state = 'invalid';
+
+                    // build the error listing
+                    var list = nfCommon.formatUnorderedList(referencingControllerService.validationErrors);
+
+                    // add tooltip for the warnings
+                    icon.qtip($.extend({},
+                        nfCanvasUtils.config.systemTooltipConfig,
+                        {
+                            content: list
+                        }));
+                }
+                return state;
+            } else {
+                return '';
+            }
+        }).appendTo(referencingControllerServiceContainer);
+
+        // bulletin
+        var bulletinIcon = $('<div class="referencing-component-bulletins"></div>')
+            .addClass(referencingControllerService.id + '-referencing-bulletins')
+            .appendTo(referencingControllerServiceContainer);
+        if (!nfCommon.isEmpty(referencingControllerServiceEntity.bulletins)) {
+            renderBulletins(referencingControllerServiceEntity.bulletins, bulletinIcon);
+        }
+
+        // controller service name
+        $('<span class="parameter-provider-referencing-component-name link ellipsis"></span>')
+            .prop('title', referencingControllerService.name)
+            .text(referencingControllerService.name)
+            .on('click', function () {
+                // check if there are outstanding changes
+                handleOutstandingChanges()
+                    .done(function () {
+                        // close the shell
+                        $('#shell-dialog').modal('hide');
+
+                        nfProcessGroup.enterGroup(referencingControllerService.processGroupId);
+
+                        // show the component in question
+                        nfProcessGroupConfiguration.showConfiguration(referencingControllerService.processGroupId)
+                            .done(function () {
+                                nfProcessGroupConfiguration.selectControllerService(referencingControllerService.id);
+                            });
+                    });
+            }).appendTo(referencingControllerServiceContainer);
     };
 
     /**
@@ -1560,13 +1578,6 @@
 
             // return the cell content
             return cellContent.html();
-        };
-
-        var options = {
-            editable: false,
-            enableCellNavigation: true,
-            asyncEditorLoading: false,
-            autoEdit: false
         };
 
         var parametersColumn = [];
@@ -1620,24 +1631,21 @@
         });
 
         selectableParametersGrid.onSelectedRowsChanged.subscribe(function (e, args) {
+            // update parameter sensitivities
             var selectableParametersData = $('#selectable-parameters-table')
                 .data('gridInstance')
                 .getData();
-
             var selectableParameters = selectableParametersData.getItems();
-
-            var sensitiveParams = args.rows; // row #'s are parameters that are marked as sensitive
-
+            var sensitiveParams = args.rows; //rows are parameters that are marked as sensitive
             var parametersToUpdate = {};
 
             // update the sensitivities of selectableParameters with sensitiveParams
-            // var sensitiveParamsIdx = 0;
             var i = 0;
-            $.each(selectableParameters, function (_, parameter) { // 2
-                // if sensitiveParams has idx, then it's sensitive
-                // if idx not in sensitiveParams, then it's non-sensitive
+            $.each(selectableParameters, function (_, parameter) {
                 if (i <= sensitiveParams.length) {
                     var id = sensitiveParams[i];
+
+                    // if parameter id is in sensitiveParams, then it's sensitive
                     if (parameter.id === id) {
                         // mark as sensitive
                         parameter.sensitivity = SENSITIVE;
@@ -1686,9 +1694,9 @@
     }
 
     /**
-     * Initializes the parameter group table
+     * Initializes the parameter groups table
      */
-    var initParameterGroupTable = function () {
+    var initParameterGroupsTable = function () {
         var parameterGroupsTable = $('#parameter-groups-table');
 
         var nameFormatter = function (row, cell, value, columnDef, dataContext) {
@@ -1701,8 +1709,8 @@
                 formattedValue.addClass('required');
             }
 
-            // if not first time, check if previously saved as a parameter context
-            if (dataContext.isParameterContext) {
+            // add icon if group is or will be created as a parameter context
+            if (dataContext.isParameterContext || dataContext.createNewParameterContext) {
                 $('<div class="fa fa-star" alt="Info" style="float: right;"></div>').appendTo(cellContent);
             }
 
@@ -1718,7 +1726,7 @@
             {
                 id: 'name',
                 name: 'Name',
-                field: 'parameterContextName',
+                field: 'name',
                 formatter: nameFormatter,
                 sortable: true,
                 resizable: true,
@@ -1757,29 +1765,19 @@
             }, groupsData);
         });
         groupsGrid.onSelectedRowsChanged.subscribe(function (e, args) {
-            // first, save the previously selected group (row)
-            // get the grid instance data to save it
-            var previousGroupToSave = groupsGrid.getDataItem(args.previousSelectedRows);
-
             if ($.isArray(args.rows) && args.rows.length === 1) {
-                // show the affected referencing components for the selected group
                 if (groupsGrid.getDataLength() > 0) {
                     var groupIndex = args.rows[0];
                     var group = groupsGrid.getDataItem(groupIndex);
-                    console.log(`GROUP [ ${group.name} ] to populate the parameter listing: `, group);
 
-                    // only populate affected referencing components if this group is different than the last selected
+                    // only populate fetch parameters column if this group is different than the last selected
                     if (lastSelectedId === null || lastSelectedId !== group.id) {
-                        populateReferencingComponents(group)
-                            .then(function () {
-                                // update the details for this parameter
-                                $('#fetch-parameter-referencing-components').removeClass('unset').attr('title', group.name).text(group.name);
+                        populateFetchParametersColumn(group);
 
-                                updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
+                        updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
 
-                                // update the last selected id
-                                lastSelectedId = group.id;
-                            });
+                        // update the last selected id
+                        lastSelectedId = group.id;
                     }
                 }
             }
@@ -1801,20 +1799,31 @@
         });
         groupsData.syncGridSelection(groupsGrid, true);
 
-        // hold onto an instance of the grid and create parameter description tooltip
-        parameterGroupsTable.data('gridInstance', groupsGrid);
+        // hold onto an instance of the grid and create parameter context tooltip
+        parameterGroupsTable.data('gridInstance', groupsGrid).on('mouseenter', 'div.slick-cell', function (e) {
+            var starIconElement =  $(this).find('div.fa-star');
+            var tooltipContent = nfCommon.escapeHtml('Synced to a parameter context.');
+
+            // initialize tooltip
+            starIconElement.qtip($.extend({},
+                nfCommon.config.tooltipConfig,
+                {
+                    content: tooltipContent
+                }));
+        });
 
     };
     // end initParameterGroupTable
 
+    // TODO: not yet implemented
     var resetUsage = function () {
         // empty the containers
-        var processorContainer = $('.parameter-context-referencing-processors');
+        var processorContainer = $('.parameter-provider-referencing-processors');
         nfCommon.cleanUpTooltips(processorContainer, 'div.referencing-component-state');
         nfCommon.cleanUpTooltips(processorContainer, 'div.referencing-component-bulletins');
         processorContainer.empty();
 
-        var controllerServiceContainer = $('.parameter-context-referencing-controller-services');
+        var controllerServiceContainer = $('.parameter-provider-referencing-controller-services');
         nfCommon.cleanUpTooltips(controllerServiceContainer, 'div.referencing-component-state');
         nfCommon.cleanUpTooltips(controllerServiceContainer, 'div.referencing-component-bulletins');
         controllerServiceContainer.empty();
@@ -1832,7 +1841,10 @@
         $('<li class="referencing-component-container"><span class="unset">None</span></li>').appendTo(unauthorizedComponentsContainer);
 
         // update the selection context
-        $('#parameter-referencing-components-context').addClass('unset').attr('title', 'None').text('None');
+        $('#parameter-referencing-components-context')
+            .addClass('unset')
+            .attr('title', 'None')
+            .text('None');
 
         // check if border is necessary
         updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
@@ -1938,25 +1950,30 @@
                         $('#fetch-parameters-progress-container').hide();
                         $('#fetch-parameters-progress li.referencing-component').show();
                         $('#fetch-parameters-update-status-container').hide();
+                        $('#apply-groups-container').hide();
 
                         // clear the dialog
                         $('#fetch-parameters-id').text('');
                         $('#fetch-parameters-name').text('');
                         $('#fetch-parameters-listing').empty();
                         $('#fetch-parameters-update-steps').empty();
+                        $('#parameter-contexts-to-create-container').empty();
 
                         // bulletins
                         $('#fetch-parameters-bulletins').removeClass('has-bulletins').removeData('bulletins').hide();
                         nfCommon.cleanUpTooltips($('#fetch-parameters-container'), '#fetch-parameters-bulletins');
 
-                        // reset progress
-                        $('div.fetch-parameters-referencing-components').removeClass('ajax-loading ajax-complete ajax-error');
+                        // clean up tooltips
+                        nfCommon.cleanUpTooltips($('#parameter-groups-table'), 'div.fa-star');
 
-                        // referencing components
-                        var referencingComponents = $('#fetch-parameters-referencing-components');
-                        nfCommon.cleanUpTooltips(referencingComponents, 'div.referencing-component-state');
-                        nfCommon.cleanUpTooltips(referencingComponents, 'div.referencing-component-bulletins');
-                        referencingComponents.css('border-width', '0').empty();
+                        // reset progress
+                        $('div.parameter-contexts-to-update').removeClass('ajax-loading ajax-complete ajax-error');
+
+                        // reset affected referencing components
+                        $('#affected-referencing-components-container').empty();
+                        if (!$('#fetch-parameters-affected-referencing-components-container').hasClass('hidden')) {
+                            $('#fetch-parameters-affected-referencing-components-container').addClass('hidden');
+                        }
 
                         // reset dialog
                         resetFetchParametersDialog();
@@ -1964,7 +1981,7 @@
                 }
             });
 
-            initParameterGroupTable();
+            initParameterGroupsTable();
             initSelectableParametersTable();
         },
 

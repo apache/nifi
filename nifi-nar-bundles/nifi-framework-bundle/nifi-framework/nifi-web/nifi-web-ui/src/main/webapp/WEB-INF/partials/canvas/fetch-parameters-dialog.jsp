@@ -17,6 +17,7 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="fetch-parameters-dialog" layout="column" class="hidden large-dialog">
     <div class="dialog-content">
+        <%--settings-left--%>
         <div class="settings-left">
             <div id="fetch-parameters-container" class="setting">
                 <div class="setting-name">Name</div>
@@ -33,18 +34,7 @@
                 </div>
                 <div id="parameter-groups-table"></div>
             </div>
-            <div id="fetch-parameters-update-status-container" class="setting">
-                <div id="fetch-parameters-update-status" class="hidden">
-                    <div class="setting">
-                        <div class="setting-name">
-                            Steps to update parameters
-                        </div>
-                        <div class="setting-field">
-                            <ol id="fetch-parameters-update-steps"></ol>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
             <div id="fetch-parameters-progress-container" class="setting hidden">
                 <div id="fetch-parameters-progress-label" class="setting-name"></div>
                 <div class="setting-field">
@@ -57,11 +47,19 @@
                     </ol>
                 </div>
             </div>
-        <%--end settings-left--%>
+
+            <div id="apply-groups-container" class="setting hidden">
+                <div class="setting-name">Parameter Group</div>
+                <div class="setting-field">
+                    <div id="apply-groups-list"></div>
+                </div>
+            </div>
         </div>
+        <%--end settings-left--%>
 
         <div class="spacer">&nbsp;</div>
 
+        <%--settings-center--%>
         <div class="settings-center">
             <div id="parameters-container" class="setting">
                 <div id="create-parameter-context-checkbox-container" class="setting-field"></div>
@@ -80,29 +78,54 @@
                     <div id="selectable-parameters-table" class="setting-field"></div>
                 </div>
             </div>
+            <div id="fetch-parameters-update-status-container" class="setting">
+                <div id="fetch-parameters-update-status" class="hidden">
+                    <div class="setting">
+                        <div class="setting-name">
+                            Steps to update parameters
+                        </div>
+                        <div class="setting-field">
+                            <ol id="fetch-parameters-update-steps"></ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+        <%--end settings-center--%>
 
         <div class="spacer">&nbsp;</div>
-        <div id="fetch-parameter-usage" class="settings-right">
-            <%--add selected group's parameters here--%>
+
+        <%--settings-right--%>
+        <div class="settings-right">
             <div class="setting">
                 <div class="setting-name">
-                    Parameter Group
+                    Parameter Contexts To Create
                     <div class="referencing-components-loading"></div>
                 </div>
                 <div class="setting-field">
-                    <div id="fetch-parameter-referencing-components" class="ellipsis"></div>
+                    <div id="parameter-contexts-to-create-container" class="ellipsis"></div>
                 </div>
             </div>
             <div class="setting">
                 <div class="setting-name">
-                    Affected Referencing Components
-                    <div class="fa fa-question-circle" alt="Info" title="Other components referencing this Parameter Provider."></div>
+                    Parameter Contexts To Update
+                    <div class="referencing-components-loading"></div>
                 </div>
-                <div id="fetch-parameters-referencing-components-container" class="setting-field"></div>
+                <div class="setting-field">
+                    <div id="parameter-contexts-to-update-container" class="ellipsis"></div>
+                </div>
+            </div>
+            <div id="fetch-parameters-affected-referencing-components-container" class="setting hidden">
+                <div class="setting-name">
+                    Affected Referencing Components
+                    <div class="fa fa-question-circle" alt="Info" title="Affected components referencing this Parameter Provider."></div>
+                </div>
+                <div id="affected-referencing-components-container" class="setting-field"></div>
             </div>
         </div>
     </div>
+    <%--end settings-right--%>
+
     <div class="fetch-parameters-canceling hidden unset">
         Canceling...
     </div>
