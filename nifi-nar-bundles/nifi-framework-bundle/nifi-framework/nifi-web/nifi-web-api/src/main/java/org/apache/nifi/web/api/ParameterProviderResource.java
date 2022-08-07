@@ -34,6 +34,7 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterGroupConfiguration;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterSensitivity;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
@@ -884,14 +885,15 @@ public class ParameterProviderResource extends AbstractParameterResource {
         // 10. Re-Start all Processors
 
         final Collection<ParameterGroupConfiguration> parameterGroupConfigurations = getParameterGroupConfigurations(requestEntity.getParameterGroupConfigurations());
-        parameterGroupConfigurations.forEach(parameterGroupConfiguration -> {
-            final ParameterContextEntity newParameterContext = createNewParameterContextEntity(parameterProviderId, parameterGroupConfiguration, user);
-            if (newParameterContext != null) {
-                try {
-                    performParameterContextCreate(user, getAbsolutePath(), replicateRequest, newParameterContext);
-                } catch (final LifecycleManagementException e) {
-                    throw new RuntimeException("Failed to create Parameter Context " + parameterGroupConfiguration.getGroupName(), e);
-                }
+        validateParameterGroupConfigurations(parameterProviderId, parameterGroupConfigurations, user);
+        parameterGroupConfigurations.stream()
+                .filter(parameterGroupConfiguration -> requiresNewParameterContext(parameterGroupConfiguration, user))
+                .forEach(parameterGroupConfiguration -> {
+            final ParameterContextEntity newParameterContext = getNewParameterContextEntity(parameterProviderId, parameterGroupConfiguration);
+            try {
+                performParameterContextCreate(user, getAbsolutePath(), replicateRequest, newParameterContext);
+            } catch (final LifecycleManagementException e) {
+                throw new RuntimeException("Failed to create Parameter Context " + parameterGroupConfiguration.getGroupName(), e);
             }
         });
 
@@ -1373,31 +1375,65 @@ public class ParameterProviderResource extends AbstractParameterResource {
         return applyParametersRequestEntity;
     }
 
-    private ParameterContextEntity createNewParameterContextEntity(final String parameterProviderId, final ParameterGroupConfiguration parameterGroupConfiguration,
-                                                                   final NiFiUser user) {
-        final ParameterContext parameterContext = serviceFacade.getParameterContextByName(parameterGroupConfiguration.getParameterContextName(), user);
-        if (parameterContext == null && parameterGroupConfiguration.isSynchronized() != null && parameterGroupConfiguration.isSynchronized()) {
-            final ParameterContextEntity parameterContextEntity = new ParameterContextEntity();
-            final ParameterContextDTO parameterContextDTO = new ParameterContextDTO();
-            parameterContextDTO.setName(parameterGroupConfiguration.getParameterContextName());
-
-            final ParameterProviderConfigurationEntity parameterProviderConfiguration = new ParameterProviderConfigurationEntity();
-            final ParameterProviderConfigurationDTO parameterProviderConfigurationDTO = new ParameterProviderConfigurationDTO();
-            parameterProviderConfigurationDTO.setParameterProviderId(parameterProviderId);
-            parameterProviderConfigurationDTO.setParameterGroupName(parameterGroupConfiguration.getGroupName());
-            parameterProviderConfigurationDTO.setSynchronized(true);
-
-            parameterProviderConfiguration.setComponent(parameterProviderConfigurationDTO);
-            parameterContextDTO.setParameterProviderConfiguration(parameterProviderConfiguration);
-
-            parameterContextEntity.setComponent(parameterContextDTO);
-
-            final RevisionDTO initialRevision = new RevisionDTO();
-            initialRevision.setVersion(0L);
-            parameterContextEntity.setRevision(initialRevision);
-            return parameterContextEntity;
+    private void validateParameterGroupConfigurations(final String parameterProviderId, final Collection<ParameterGroupConfiguration> configurations, final NiFiUser user) {
+        final Set<String> synchronizedParameterContextNames = new HashSet<>();
+        for (final ParameterGroupConfiguration configuration : configurations) {
+            validateParameterGroupConfiguration(parameterProviderId, configuration, user);
+            if (configuration.isSynchronized() != null && configuration.isSynchronized()) {
+                final String parameterContextName = Optional.ofNullable(configuration.getParameterContextName()).orElse(configuration.getGroupName());
+                if (parameterContextName == null) {
+                    throw new IllegalArgumentException("A parameter group name is required for every synchronized parameter group");
+                }
+                if (!synchronizedParameterContextNames.add(parameterContextName)) {
+                    throw new IllegalArgumentException(String.format("Two parameter groups cannot be mapped to the same parameter context [%s]", parameterContextName));
+                }
+            }
         }
-        return null;
+    }
+
+    private void validateParameterGroupConfiguration(final String parameterProviderId, final ParameterGroupConfiguration configuration, final NiFiUser user) {
+        if (configuration.isSynchronized() != null && configuration.isSynchronized()) {
+            final String parameterContextName = Optional.ofNullable(configuration.getParameterContextName()).orElse(configuration.getGroupName());
+            final ParameterContext existingParameterContext = serviceFacade.getParameterContextByName(parameterContextName, user);
+            if (existingParameterContext != null) {
+                final ParameterProvider existingParameterProvider = existingParameterContext.getParameterProvider();
+                if (existingParameterProvider == null || !existingParameterProvider.getIdentifier().equals(parameterProviderId)) {
+                    final ParameterProviderEntity requestedParameterProvider = serviceFacade.getParameterProvider(parameterProviderId);
+                    throw new IllegalStateException(String.format("Cannot synchronize parameter group [%s] to a Parameter Context [%s] that is not provided " +
+                            "by Parameter Provider [%s]", configuration.getGroupName(), existingParameterContext.getName(), requestedParameterProvider.getId()));
+                }
+            }
+        }
+    }
+
+    private boolean requiresNewParameterContext(final ParameterGroupConfiguration parameterGroupConfiguration, final NiFiUser user) {
+        if (parameterGroupConfiguration.isSynchronized() != null && parameterGroupConfiguration.isSynchronized()) {
+            final ParameterContext existingParameterContext = serviceFacade.getParameterContextByName(parameterGroupConfiguration.getParameterContextName(), user);
+            return existingParameterContext == null;
+        }
+        return false;
+    }
+
+    private ParameterContextEntity getNewParameterContextEntity(final String parameterProviderId, final ParameterGroupConfiguration parameterGroupConfiguration) {
+        final ParameterContextEntity parameterContextEntity = new ParameterContextEntity();
+        final ParameterContextDTO parameterContextDTO = new ParameterContextDTO();
+        parameterContextDTO.setName(parameterGroupConfiguration.getParameterContextName());
+
+        final ParameterProviderConfigurationEntity parameterProviderConfiguration = new ParameterProviderConfigurationEntity();
+        final ParameterProviderConfigurationDTO parameterProviderConfigurationDTO = new ParameterProviderConfigurationDTO();
+        parameterProviderConfigurationDTO.setParameterProviderId(parameterProviderId);
+        parameterProviderConfigurationDTO.setParameterGroupName(parameterGroupConfiguration.getGroupName());
+        parameterProviderConfigurationDTO.setSynchronized(true);
+
+        parameterProviderConfiguration.setComponent(parameterProviderConfigurationDTO);
+        parameterContextDTO.setParameterProviderConfiguration(parameterProviderConfiguration);
+
+        parameterContextEntity.setComponent(parameterContextDTO);
+
+        final RevisionDTO initialRevision = new RevisionDTO();
+        initialRevision.setVersion(0L);
+        parameterContextEntity.setRevision(initialRevision);
+        return parameterContextEntity;
     }
 
     private Response submitApplyRequest(final Revision requestRevision, final InitiateParameterProviderApplyParametersRequestWrapper requestWrapper) {
