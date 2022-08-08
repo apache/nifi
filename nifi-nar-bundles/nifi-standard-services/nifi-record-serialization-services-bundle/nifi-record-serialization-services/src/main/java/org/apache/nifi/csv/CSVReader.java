@@ -27,6 +27,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -88,6 +89,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
             .allowableValues("true", "false")
             .defaultValue("true")
             .dependsOn(CSVUtils.CSV_FORMAT, CSVUtils.RFC_4180)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .required(true)
             .build();
 
