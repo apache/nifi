@@ -17,9 +17,11 @@
 
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -29,16 +31,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestRouteText {
 
     @Test
-    public void testRelationships() throws IOException {
+    public void testRelationships() {
         final TestRunner runner = TestRunners.newTestRunner(new RouteText());
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.STARTS_WITH);
         runner.setProperty(RouteText.ROUTE_STRATEGY, RouteText.ROUTE_TO_MATCHED_WHEN_ANY_PROPERTY_MATCHES);
@@ -69,7 +69,7 @@ public class TestRouteText {
     }
 
     @Test
-    public void testSeparationStrategyNotKnown() throws IOException {
+    public void testSeparationStrategyNotKnown() {
         final TestRunner runner = TestRunners.newTestRunner(new RouteText());
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.STARTS_WITH);
 
@@ -106,13 +106,9 @@ public class TestRouteText {
         runner.setProperty("simple", "[");
 
         runner.enqueue("start middle end\nnot match".getBytes("UTF-8"));
-        try {
+        assertThrows(AssertionError.class, () -> {
             runner.run();
-            fail();
-        } catch (AssertionError e) {
-            // Expect to catch error asserting 'simple' as invalid
-        }
-
+        });
     }
 
     @Test
@@ -765,7 +761,7 @@ public class TestRouteText {
     }
 
     @Test
-    public void testPatternCache() throws IOException {
+    public void testPatternCache() {
         final RouteText routeText = new RouteText();
         final TestRunner runner = TestRunners.newTestRunner(routeText);
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.MATCHES_REGULAR_EXPRESSION);
@@ -793,7 +789,7 @@ public class TestRouteText {
         runner.assertTransferCount(RouteText.REL_ORIGINAL, iterations * 2);
 
         runner.setProperty(RouteText.IGNORE_CASE, "true");
-        assertEquals("Pattern cache is not cleared after changing IGNORE_CASE", 0, routeText.patternsCache.size());
+        assertEquals(0, routeText.patternsCache.size(), "Pattern cache is not cleared after changing IGNORE_CASE");
     }
 
 

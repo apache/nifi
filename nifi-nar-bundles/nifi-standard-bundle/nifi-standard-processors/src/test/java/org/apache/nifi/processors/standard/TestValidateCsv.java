@@ -18,7 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TestValidateCsv {
 

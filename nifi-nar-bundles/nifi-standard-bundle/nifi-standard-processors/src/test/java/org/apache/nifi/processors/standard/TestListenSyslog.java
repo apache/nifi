@@ -30,18 +30,18 @@ import org.apache.nifi.syslog.attributes.SyslogAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -64,14 +64,14 @@ public class TestListenSyslog {
 
     private ListenSyslog processor;
 
-    @Before
+    @BeforeEach
     public void setRunner() {
         processor = new ListenSyslog();
         runner = TestRunners.newTestRunner(processor);
         runner.setProperty(ListenSyslog.CHARSET, CHARSET.name());
     }
 
-    @After
+    @AfterEach
     public void closeEventSender() {
         processor.shutdownEventServer();
     }
@@ -130,12 +130,12 @@ public class TestListenSyslog {
         runner.run(1, STOP_ON_FINISH_ENABLED, INITIALIZE_DISABLED);
 
         final List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS);
-        assertEquals("Success FlowFiles not matched", 1, successFlowFiles.size());
+        assertEquals(1, successFlowFiles.size(), "Success FlowFiles not matched");
 
         final Long receivedCounter = runner.getCounterValue(ListenSyslog.RECEIVED_COUNTER);
-        assertEquals("Received Counter not matched", Long.valueOf(messages.length), receivedCounter);
+        assertEquals(Long.valueOf(messages.length), receivedCounter, "Received Counter not matched");
         final Long successCounter = runner.getCounterValue(ListenSyslog.SUCCESS_COUNTER);
-        assertEquals("Success Counter not matched", Long.valueOf(1), successCounter);
+        assertEquals(Long.valueOf(1), successCounter, "Success Counter not matched");
     }
 
     @Test
@@ -150,7 +150,7 @@ public class TestListenSyslog {
         runner.run(1, STOP_ON_FINISH_ENABLED, INITIALIZE_DISABLED);
 
         final List<MockFlowFile> invalidFlowFiles = runner.getFlowFilesForRelationship(ListenSyslog.REL_INVALID);
-        assertEquals("Invalid FlowFiles not matched", 1, invalidFlowFiles.size());
+        assertEquals(1, invalidFlowFiles.size(), "Invalid FlowFiles not matched");
 
         final MockFlowFile flowFile = invalidFlowFiles.iterator().next();
         flowFile.assertAttributeEquals(SyslogAttributes.SYSLOG_SENDER.key(), LOCALHOST_ADDRESS);
@@ -158,7 +158,7 @@ public class TestListenSyslog {
         flowFile.assertAttributeEquals(SyslogAttributes.SYSLOG_PORT.key(), Integer.toString(port));
 
         final String content = flowFile.getContent();
-        assertEquals("FlowFile content not matched", TIMESTAMP, content);
+        assertEquals(TIMESTAMP, content, "FlowFile content not matched");
     }
 
     private void assertSendSuccess(final TransportProtocol protocol, final int port) throws Exception {
@@ -168,10 +168,10 @@ public class TestListenSyslog {
         runner.run(1, STOP_ON_FINISH_ENABLED, INITIALIZE_DISABLED);
 
         final List<MockFlowFile> invalidFlowFiles = runner.getFlowFilesForRelationship(ListenSyslog.REL_INVALID);
-        assertTrue("Invalid FlowFiles found", invalidFlowFiles.isEmpty());
+        assertTrue(invalidFlowFiles.isEmpty(), "Invalid FlowFiles found");
 
         final List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS);
-        assertEquals("Success FlowFiles not matched", 1, successFlowFiles.size());
+        assertEquals(1, successFlowFiles.size(), "Success FlowFiles not matched");
 
         final MockFlowFile flowFile = successFlowFiles.iterator().next();
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), MIME_TYPE);
@@ -187,16 +187,16 @@ public class TestListenSyslog {
         flowFile.assertAttributeExists(SyslogAttributes.SYSLOG_SEVERITY.key());
 
         final Long receivedCounter = runner.getCounterValue(ListenSyslog.RECEIVED_COUNTER);
-        assertEquals("Received Counter not matched", Long.valueOf(1), receivedCounter);
+        assertEquals(Long.valueOf(1), receivedCounter, "Received Counter not matched");
         final Long successCounter = runner.getCounterValue(ListenSyslog.SUCCESS_COUNTER);
-        assertEquals("Success Counter not matched", Long.valueOf(1), successCounter);
+        assertEquals(Long.valueOf(1), successCounter, "Success Counter not matched");
 
         final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
-        assertFalse("Provenance Events not found", events.isEmpty());
+        assertFalse(events.isEmpty(), "Provenance Events not found");
         final ProvenanceEventRecord eventRecord = events.iterator().next();
         assertEquals(ProvenanceEventType.RECEIVE, eventRecord.getEventType());
         final String transitUri = String.format("%s://%s:%d", protocol.toString().toLowerCase(), LOCALHOST_ADDRESS, port);
-        assertEquals("Provenance Transit URI not matched", transitUri, eventRecord.getTransitUri());
+        assertEquals(transitUri, eventRecord.getTransitUri(), "Provenance Transit URI not matched");
     }
 
     private void sendMessages(final TransportProtocol protocol, final int port, final LineEnding lineEnding, final String... messages) throws Exception {

@@ -16,7 +16,10 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -25,10 +28,8 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestReplaceTextWithMapping {
 
@@ -329,7 +330,7 @@ public class TestReplaceTextWithMapping {
         assertEquals(expected, outputString);
     }
 
-    @Test(expected = java.lang.AssertionError.class)
+    @Test
     public void testMatchingGroupForLookupKeyTooLarge() throws IOException {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.REGEX, "-(.*?)-");
@@ -338,7 +339,9 @@ public class TestReplaceTextWithMapping {
 
         final Path path = Paths.get("src/test/resources/TestReplaceTextWithMapping/colors.txt");
         runner.enqueue(path);
-        runner.run();
+        assertThrows(AssertionError.class, () -> {
+            runner.run();
+        });
     }
 
 }

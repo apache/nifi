@@ -29,13 +29,12 @@ import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -47,7 +46,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 
-@RunWith(MockitoJUnitRunner.class)
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@ExtendWith(MockitoExtension.class)
 public class TestListenUDP {
 
     private static final String LOCALHOST = "localhost";
@@ -59,7 +61,7 @@ public class TestListenUDP {
     @Mock
     private ChannelResponder<DatagramChannel> responder;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         runner = TestRunners.newTestRunner(ListenUDP.class);
         port = NetworkUtils.getAvailableUdpPort();
@@ -201,18 +203,18 @@ public class TestListenUDP {
         for (int i = 0; i < mockFlowFiles.size(); i++) {
             MockFlowFile flowFile = mockFlowFiles.get(i);
             flowFile.assertContentEquals("This is message " + (i + 1));
-            Assert.assertEquals(String.valueOf(port), flowFile.getAttribute(ListenUDP.UDP_PORT_ATTR));
-            Assert.assertTrue(StringUtils.isNotEmpty(flowFile.getAttribute(ListenUDP.UDP_SENDER_ATTR)));
+            assertEquals(String.valueOf(port), flowFile.getAttribute(ListenUDP.UDP_PORT_ATTR));
+            assertTrue(StringUtils.isNotEmpty(flowFile.getAttribute(ListenUDP.UDP_SENDER_ATTR)));
         }
     }
 
     private void verifyProvenance(int expectedNumEvents) {
         List<ProvenanceEventRecord> provEvents = runner.getProvenanceEvents();
-        Assert.assertEquals(expectedNumEvents, provEvents.size());
+        assertEquals(expectedNumEvents, provEvents.size());
 
         for (ProvenanceEventRecord event : provEvents) {
-            Assert.assertEquals(ProvenanceEventType.RECEIVE, event.getEventType());
-            Assert.assertTrue(event.getTransitUri().startsWith("udp://"));
+            assertEquals(ProvenanceEventType.RECEIVE, event.getEventType());
+            assertTrue(event.getTransitUri().startsWith("udp://"));
         }
     }
 

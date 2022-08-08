@@ -17,20 +17,21 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestLogMessage {
 
@@ -53,20 +54,20 @@ public class TestLogMessage {
 
     }
 
-    @Before
+    @BeforeEach
     public void before() throws InitializationException {
         testableLogMessage = new TestableLogMessage();
         runner = TestRunners.newTestRunner(testableLogMessage);
 
     }
 
-    @After
+    @AfterEach
     public void after() throws InitializationException {
         runner.shutdown();
     }
 
     @Test
-    public void testInfoMessageLogged() throws InitializationException, IOException {
+    public void testInfoMessageLogged() {
 
         runner.setProperty(LogMessage.LOG_MESSAGE, "This should help the operator to follow the flow: ${foobar}");
         runner.setProperty(LogMessage.LOG_LEVEL, LogMessage.MessageLogLevel.info.toString());
@@ -78,23 +79,23 @@ public class TestLogMessage {
         runner.run();
 
         List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(LogMessage.REL_SUCCESS);
-        Assert.assertEquals(1, successFlowFiles.size());
+        assertEquals(1, successFlowFiles.size());
 
         MockComponentLog mockComponentLog = testableLogMessage.getMockComponentLog();
         List<org.apache.nifi.util.LogMessage> infoMessages = mockComponentLog.getInfoMessages();
-        Assert.assertEquals(1, infoMessages.size());
-        Assert.assertTrue(infoMessages.get(0).getMsg()
+        assertEquals(1, infoMessages.size());
+        assertTrue(infoMessages.get(0).getMsg()
                 .endsWith("This should help the operator to follow the flow: baz"));
 
 
-        Assert.assertTrue(mockComponentLog.getTraceMessages().isEmpty());
-        Assert.assertTrue(mockComponentLog.getDebugMessages().isEmpty());
-        Assert.assertTrue(mockComponentLog.getWarnMessages().isEmpty());
-        Assert.assertTrue(mockComponentLog.getErrorMessages().isEmpty());
+        assertTrue(mockComponentLog.getTraceMessages().isEmpty());
+        assertTrue(mockComponentLog.getDebugMessages().isEmpty());
+        assertTrue(mockComponentLog.getWarnMessages().isEmpty());
+        assertTrue(mockComponentLog.getErrorMessages().isEmpty());
     }
 
     @Test
-    public void testInfoMessageWithPrefixLogged() throws InitializationException, IOException {
+    public void testInfoMessageWithPrefixLogged() {
 
         runner.setProperty(LogMessage.LOG_PREFIX, "FOOBAR>>>");
         runner.setProperty(LogMessage.LOG_MESSAGE, "This should help the operator to follow the flow: ${foobar}");
@@ -107,20 +108,20 @@ public class TestLogMessage {
         runner.run();
 
         List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(LogMessage.REL_SUCCESS);
-        Assert.assertEquals(1, successFlowFiles.size());
+        assertEquals(1, successFlowFiles.size());
 
         MockComponentLog mockComponentLog = testableLogMessage.getMockComponentLog();
         List<org.apache.nifi.util.LogMessage> infoMessages = mockComponentLog.getInfoMessages();
-        Assert.assertEquals(1, infoMessages.size());
-        Assert.assertTrue(infoMessages.get(0).getMsg()
+        assertEquals(1, infoMessages.size());
+        assertTrue(infoMessages.get(0).getMsg()
                 .endsWith("FOOBAR>>>This should help the operator to follow the flow: baz"));
 
 
 
-        Assert.assertTrue(mockComponentLog.getTraceMessages().isEmpty());
-        Assert.assertTrue(mockComponentLog.getDebugMessages().isEmpty());
-        Assert.assertTrue(mockComponentLog.getWarnMessages().isEmpty());
-        Assert.assertTrue(mockComponentLog.getErrorMessages().isEmpty());
+        assertTrue(mockComponentLog.getTraceMessages().isEmpty());
+        assertTrue(mockComponentLog.getDebugMessages().isEmpty());
+        assertTrue(mockComponentLog.getWarnMessages().isEmpty());
+        assertTrue(mockComponentLog.getErrorMessages().isEmpty());
     }
 
 }

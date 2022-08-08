@@ -16,12 +16,10 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Unit tests for the GenerateFlowFile processor.
@@ -29,7 +27,7 @@ import org.junit.Test;
 public class TestGenerateFlowFile {
 
     @Test
-    public void testGenerateCustomText() throws IOException {
+    public void testGenerateCustomText() {
         TestRunner runner = TestRunners.newTestRunner(new GenerateFlowFile());
         runner.setProperty(GenerateFlowFile.FILE_SIZE, "100MB");
         runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_TEXT);
@@ -44,7 +42,7 @@ public class TestGenerateFlowFile {
     }
 
     @Test
-    public void testInvalidCustomText() throws IOException {
+    public void testInvalidCustomText() {
         TestRunner runner = TestRunners.newTestRunner(new GenerateFlowFile());
         runner.setProperty(GenerateFlowFile.FILE_SIZE, "100MB");
         runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_BINARY);
@@ -57,7 +55,7 @@ public class TestGenerateFlowFile {
     }
 
     @Test
-    public void testDynamicPropertiesToAttributes() throws IOException {
+    public void testDynamicPropertiesToAttributes() {
         TestRunner runner = TestRunners.newTestRunner(new GenerateFlowFile());
         runner.setProperty(GenerateFlowFile.FILE_SIZE, "1B");
         runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_TEXT);

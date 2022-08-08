@@ -20,7 +20,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,9 +33,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestGetFile {
 
@@ -43,7 +42,7 @@ public class TestGetFile {
     public void testFilePickedUp() throws IOException {
         final File directory = new File("target/test/data/in");
         deleteDirectory(directory);
-        assertTrue("Unable to create test data directory " + directory.getAbsolutePath(), directory.exists() || directory.mkdirs());
+        assertTrue(directory.exists() || directory.mkdirs(), "Unable to create test data directory " + directory.getAbsolutePath());
 
         final File inFile = new File("src/test/resources/hello.txt");
         final Path inPath = inFile.toPath();
@@ -67,14 +66,14 @@ public class TestGetFile {
         assertEquals(absTargetPathStr, absolutePath);
     }
 
-    private void deleteDirectory(final File directory) throws IOException {
+    private void deleteDirectory(final File directory) {
         if (directory != null && directory.exists()) {
             for (final File file : directory.listFiles()) {
                 if (file.isDirectory()) {
                     deleteDirectory(file);
                 }
 
-                assertTrue("Could not delete " + file.getAbsolutePath(), file.delete());
+                assertTrue(file.delete(), "Could not delete " + file.getAbsolutePath());
             }
         }
     }
@@ -86,7 +85,7 @@ public class TestGetFile {
 
         final File directory = new File("target/test/data/in/" + dirStruc);
         deleteDirectory(directory);
-        assertTrue("Unable to create test data directory " + directory.getAbsolutePath(), directory.exists() || directory.mkdirs());
+        assertTrue(directory.exists() || directory.mkdirs(), "Unable to create test data directory " + directory.getAbsolutePath());
 
         final File inFile = new File("src/test/resources/hello.txt");
         final Path inPath = inFile.toPath();
@@ -110,7 +109,7 @@ public class TestGetFile {
 
         final File directory = new File("target/test/data/in/" + dirStruc);
         deleteDirectory(new File("target/test/data/in"));
-        assertTrue("Unable to create test data directory " + directory.getAbsolutePath(), directory.exists() || directory.mkdirs());
+        assertTrue(directory.exists() || directory.mkdirs(), "Unable to create test data directory " + directory.getAbsolutePath());
 
         final File inFile = new File("src/test/resources/hello.txt");
         final Path inPath = inFile.toPath();
@@ -135,10 +134,10 @@ public class TestGetFile {
     }
 
     @Test
-    public void testAttributes() throws IOException {
+    public void testAttributes() throws IOException, ParseException {
         final File directory = new File("target/test/data/in/");
         deleteDirectory(directory);
-        assertTrue("Unable to create test data directory " + directory.getAbsolutePath(), directory.exists() || directory.mkdirs());
+        assertTrue(directory.exists() || directory.mkdirs(), "Unable to create test data directory " + directory.getAbsolutePath());
 
         final File inFile = new File("src/test/resources/hello.txt");
         final Path inPath = inFile.toPath();
@@ -161,13 +160,9 @@ public class TestGetFile {
         final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(GetFile.REL_SUCCESS);
 
         if (verifyLastModified) {
-            try {
-                final DateFormat formatter = new SimpleDateFormat(GetFile.FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
-                final Date fileModifyTime = formatter.parse(successFiles.get(0).getAttribute("file.lastModifiedTime"));
-                assertEquals(new Date(1000000000), fileModifyTime);
-            } catch (ParseException e) {
-                fail();
-            }
+            final DateFormat formatter = new SimpleDateFormat(GetFile.FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
+            final Date fileModifyTime = formatter.parse(successFiles.get(0).getAttribute("file.lastModifiedTime"));
+            assertEquals(new Date(1000000000), fileModifyTime);
         }
         //permissions are not verified as these are very environmentally specific
     }

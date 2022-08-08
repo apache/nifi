@@ -16,11 +16,14 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.standard.TestNotify.MockCacheClient;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,21 +36,19 @@ import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
 
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.standard.TestNotify.MockCacheClient;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestWait {
 
     private TestRunner runner;
     private MockCacheClient service;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(Wait.class);
 
@@ -158,7 +159,7 @@ public class TestWait {
     }
 
     @Test
-    public void testBadWaitStartTimestamp() throws InitializationException, InterruptedException {
+    public void testBadWaitStartTimestamp() {
         runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
         runner.setProperty(Wait.EXPIRATION_DURATION, "100 ms");
 
@@ -176,7 +177,7 @@ public class TestWait {
     }
 
     @Test
-    public void testEmptyReleaseSignal() throws InitializationException, InterruptedException {
+    public void testEmptyReleaseSignal() {
         runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
 
         final Map<String, String> props = new HashMap<>();
@@ -193,26 +194,23 @@ public class TestWait {
     }
 
     @Test
-    public void testFailingCacheService() throws InitializationException, IOException {
+    public void testFailingCacheService() {
         service.setFailOnCalls(true);
         runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
 
         final Map<String, String> props = new HashMap<>();
         props.put("releaseSignalAttribute", "2");
         runner.enqueue(new byte[]{}, props);
-        try {
-            runner.run();
-            fail("Expect the processor to receive an IO exception from the cache service and throws ProcessException.");
-        } catch (final AssertionError e) {
-            assertTrue(e.getCause() instanceof ProcessException);
-            assertTrue(e.getCause().getCause() instanceof IOException);
-        } finally {
-            service.setFailOnCalls(false);
-        }
+        final AssertionError e = assertThrows(AssertionError.class, () -> {
+           runner.run();
+        });
+        assertInstanceOf(ProcessException.class, e.getCause());
+        assertInstanceOf(IOException.class, e.getCause().getCause());
+        service.setFailOnCalls(false);
     }
 
     @Test
-    public void testWaitPenaltyDuration() throws InitializationException {
+    public void testWaitPenaltyDuration() {
         runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
         runner.setProperty(Wait.WAIT_PENALTY_DURATION, "1 hour");
 
@@ -409,7 +407,7 @@ public class TestWait {
         assertEquals("waitValue", outputFlowFile.getAttribute("both"));
         runner.clearTransferState();
 
-        assertNull("The key no longer exist", protocol.getSignal("key"));
+        assertNull(protocol.getSignal("key"), "The key no longer exist");
     }
 
     @Test
@@ -565,7 +563,7 @@ public class TestWait {
         // All counters are consumed.
         outputFlowFile.assertAttributeEquals("wait.counter.counter", "0");
 
-        assertNull("The key no longer exist", protocol.getSignal("key"));
+        assertNull(protocol.getSignal("key"), "The key no longer exist");
         runner.clearTransferState();
     }
 
