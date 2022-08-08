@@ -34,7 +34,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.runner.Description;
 
@@ -171,50 +170,6 @@ public class TestListFile {
         final long startedAtMillis = System.currentTimeMillis();
         runner.run();
         dumpState.dumpState(startedAtMillis);
-    }
-
-
-    @Test
-    @EnabledIfSystemProperty(
-            named = "nifi.test.performance",
-            matches = "true",
-            disabledReason = "Intended only for manual testing, as is very expensive to run as a unit test. " +
-                    "Performs listing of 1,000,000 files (doesn't actually create the files, though - injects them in) " +
-                    "to ensure performance is not harmed"
-    )
-    public void testPerformanceOnLargeListing() {
-        final List<Path> paths = new ArrayList<>(1_000_000);
-        final File base = new File("target");
-
-        for (int firstLevel=0; firstLevel < 1000; firstLevel++) {
-            final File dir = new File(base, String.valueOf(firstLevel));
-
-            for (int secondLevel = 0; secondLevel < 1000; secondLevel++) {
-                final File file = new File(dir, String.valueOf(secondLevel));
-                paths.add(file.toPath());
-            }
-        }
-
-        processor = new ListFile();
-
-        runner = TestRunners.newTestRunner(processor);
-        runner.setProperty(AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION, AbstractListProcessor.PRECISION_SECONDS.getValue());
-        runner.setProperty(ListFile.TRACK_PERFORMANCE, "true");
-        runner.setProperty(ListFile.MAX_TRACKED_FILES, "100000");
-        runner.setProperty(ListFile.DIRECTORY, "target");
-
-        runner.run();
-
-        final ListFile.PerformanceTracker tracker = processor.getPerformanceTracker();
-        assertEquals(100_000, tracker.getTrackedFileCount());
-
-        final ListFile.MonitorActiveTasks monitorActiveTasks = new ListFile.MonitorActiveTasks(tracker, runner.getLogger(), 1000, 1000, 1);
-
-        while (tracker.getTrackedFileCount() > 0) {
-            monitorActiveTasks.run();
-        }
-
-        assertEquals(0, tracker.getTrackedFileCount());
     }
 
 

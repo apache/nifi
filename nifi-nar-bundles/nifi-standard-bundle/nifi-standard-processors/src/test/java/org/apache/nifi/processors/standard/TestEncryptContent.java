@@ -31,8 +31,6 @@ import org.bouncycastle.bcpg.SymmetricKeyEncSessionPacket;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,7 +54,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-@DisabledOnOs(value = OS.WINDOWS, disabledReason = "Test only runs on *nix")
 public class TestEncryptContent {
 
     private static final Logger logger = LoggerFactory.getLogger(TestEncryptContent.class);
