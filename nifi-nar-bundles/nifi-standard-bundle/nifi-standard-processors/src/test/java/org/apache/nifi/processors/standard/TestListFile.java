@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -31,12 +30,11 @@ import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.runner.Description;
 
 import java.io.File;
@@ -60,10 +58,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@DisabledOnOs(value = OS.WINDOWS, disabledReason = "Test only runs on *nix")
 public class TestListFile {
 
     private static boolean isMillisecondSupported = false;
@@ -83,7 +83,6 @@ public class TestListFile {
     private Long age0millis, age1millis, age2millis, age3millis, age4millis, age5millis;
     private String age0, age1, age2, age3, age4, age5;
 
-    @Rule
     public ListProcessorTestWatcher dumpState = new ListProcessorTestWatcher(
             () -> {
                 try {
@@ -108,24 +107,22 @@ public class TestListFile {
         }
     };
 
-    @BeforeClass
+    @BeforeAll
     public static void setupClass() throws Exception {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
-
         // This only has to be done once.
         final File file = Files.createTempFile(Paths.get("target/"), "TestListFile", null).toFile();
         file.setLastModified(325990917351L);
         isMillisecondSupported = file.lastModified() % 1_000 > 0;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         processor = new ListFile();
         runner = TestRunners.newTestRunner(processor);
         runner.setProperty(AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION, AbstractListProcessor.PRECISION_SECONDS.getValue());
         context = runner.getProcessContext();
         deleteDirectory(testDir);
-        assertTrue("Unable to create test data directory " + testDir.getAbsolutePath(), testDir.exists() || testDir.mkdirs());
+        assertTrue(testDir.exists() || testDir.mkdirs(), "Unable to create test data directory " + testDir.getAbsolutePath());
         resetAges();
     }
 
@@ -173,45 +170,6 @@ public class TestListFile {
         final long startedAtMillis = System.currentTimeMillis();
         runner.run();
         dumpState.dumpState(startedAtMillis);
-    }
-
-
-    @Test
-    @Ignore("Intended only for manual testing, as is very expensive to run as a unit test. Performs listing of 1,000,000 files (doesn't actually create the files, though - injects them in) to " +
-        "ensure performance is not harmed")
-    public void testPerformanceOnLargeListing() {
-        final List<Path> paths = new ArrayList<>(1_000_000);
-        final File base = new File("target");
-
-        for (int firstLevel=0; firstLevel < 1000; firstLevel++) {
-            final File dir = new File(base, String.valueOf(firstLevel));
-
-            for (int secondLevel = 0; secondLevel < 1000; secondLevel++) {
-                final File file = new File(dir, String.valueOf(secondLevel));
-                paths.add(file.toPath());
-            }
-        }
-
-        processor = new ListFile();
-
-        runner = TestRunners.newTestRunner(processor);
-        runner.setProperty(AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION, AbstractListProcessor.PRECISION_SECONDS.getValue());
-        runner.setProperty(ListFile.TRACK_PERFORMANCE, "true");
-        runner.setProperty(ListFile.MAX_TRACKED_FILES, "100000");
-        runner.setProperty(ListFile.DIRECTORY, "target");
-
-        runner.run();
-
-        final ListFile.PerformanceTracker tracker = processor.getPerformanceTracker();
-        assertEquals(100_000, tracker.getTrackedFileCount());
-
-        final ListFile.MonitorActiveTasks monitorActiveTasks = new ListFile.MonitorActiveTasks(tracker, runner.getLogger(), 1000, 1000, 1);
-
-        while (tracker.getTrackedFileCount() > 0) {
-            monitorActiveTasks.run();
-        }
-
-        assertEquals(0, tracker.getTrackedFileCount());
     }
 
 
@@ -862,8 +820,8 @@ public class TestListFile {
             assertTrue(mock1.getAttribute(ListFile.FILE_OWNER_ATTRIBUTE).contains(userName));
         }
         if (store.supportsFileAttributeView("posix")) {
-            assertNotNull("Group name should be set", mock1.getAttribute(ListFile.FILE_GROUP_ATTRIBUTE));
-            assertNotNull("File permissions should be set", mock1.getAttribute(ListFile.FILE_PERMISSIONS_ATTRIBUTE));
+            assertNotNull(mock1.getAttribute(ListFile.FILE_GROUP_ATTRIBUTE), "Group name should be set");
+            assertNotNull(mock1.getAttribute(ListFile.FILE_PERMISSIONS_ATTRIBUTE), "File permissions should be set");
         }
     }
 
@@ -877,8 +835,8 @@ public class TestListFile {
         assertTrue(processor.isListingResetNecessary(ListFile.MAX_AGE));
         assertTrue(processor.isListingResetNecessary(ListFile.MIN_SIZE));
         assertTrue(processor.isListingResetNecessary(ListFile.MAX_SIZE));
-        assertEquals(true, processor.isListingResetNecessary(ListFile.IGNORE_HIDDEN_FILES));
-        assertEquals(false, processor.isListingResetNecessary(new PropertyDescriptor.Builder().name("x").build()));
+        assertTrue(processor.isListingResetNecessary(ListFile.IGNORE_HIDDEN_FILES));
+        assertFalse(processor.isListingResetNecessary(new PropertyDescriptor.Builder().name("x").build()));
     }
 
     private void makeTestFile(final String name, final long millis, final Map<String, Long> fileTimes) throws IOException {
@@ -974,7 +932,7 @@ public class TestListFile {
                     if (file.isDirectory()) {
                         deleteDirectory(file);
                     }
-                    assertTrue("Could not delete " + file.getAbsolutePath(), file.delete());
+                    assertTrue(file.delete(), "Could not delete " + file.getAbsolutePath());
                 }
             }
         }
@@ -986,7 +944,7 @@ public class TestListFile {
         assertEquals(1, results.size());
         final ConfigVerificationResult result = results.get(0);
         assertEquals(expectedOutcome, result.getOutcome());
-        assertTrue(String.format("Expected verification result to match pattern [%s].  Actual explanation was: %s", expectedExplanationRegex, result.getExplanation()),
-                result.getExplanation().matches(expectedExplanationRegex));
+        assertTrue(result.getExplanation().matches(expectedExplanationRegex),
+                String.format("Expected verification result to match pattern [%s].  Actual explanation was: %s", expectedExplanationRegex, result.getExplanation()));
     }
 }

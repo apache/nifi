@@ -24,15 +24,15 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.IntStream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestPartitionRecord {
 
@@ -40,7 +40,7 @@ public class TestPartitionRecord {
     private MockRecordParser readerService;
     private MockRecordWriter writerService;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         readerService = new MockRecordParser();
         writerService = new MockRecordWriter(null, false);

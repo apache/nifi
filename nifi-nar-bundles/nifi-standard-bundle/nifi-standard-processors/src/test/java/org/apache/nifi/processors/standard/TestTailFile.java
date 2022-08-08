@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.processors.standard.TailFile.TailFileState;
@@ -25,11 +24,11 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,12 +52,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestTailFile {
     private static final Logger logger = LoggerFactory.getLogger(TestTailFile.class);
@@ -73,7 +71,7 @@ public class TestTailFile {
     private TailFile processor;
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard", "TRACE");
         clean();
@@ -112,7 +110,7 @@ public class TestTailFile {
         otherRaf = new RandomAccessFile(otherFile, "rw");
     }
 
-    @After
+    @AfterEach
     public void cleanup() throws IOException {
         if (raf != null) {
             raf.close();
@@ -132,6 +130,7 @@ public class TestTailFile {
                 }
             }
         }
+        System.clearProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard");
     }
 
     @Test
@@ -317,10 +316,9 @@ public class TestTailFile {
     }
 
 
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Test requires renaming a file while a file handle is still open to it, so it won't run on Windows")
     @Test
     public void testFileWrittenToAfterRollover() throws IOException, InterruptedException {
-        Assume.assumeTrue("Test requires renaming a file while a file handle is still open to it, so it won't run on Windows", !SystemUtils.IS_OS_WINDOWS);
-
         runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "log.*");
         runner.setProperty(TailFile.START_POSITION, TailFile.START_BEGINNING_OF_TIME.getValue());
         runner.setProperty(TailFile.REREAD_ON_NUL, "true");
@@ -520,7 +518,7 @@ public class TestTailFile {
             } else if ("hello".equals(content)) {
                 hello = true;
             } else {
-                Assert.fail("Got unexpected content: " + content);
+                fail("Got unexpected content: " + content);
             }
         }
 
@@ -1271,13 +1269,9 @@ public class TestTailFile {
         runner.clearTransferState();
     }
 
-    private boolean isWindowsEnvironment() {
-        return System.getProperty("os.name").toLowerCase().startsWith("windows");
-    }
-
+    @DisabledOnOs(OS.WINDOWS)
     @Test
     public void testMigrateFrom100To110() throws IOException {
-        assumeFalse(isWindowsEnvironment());
         runner.setProperty(TailFile.FILENAME, "target/existing-log.txt");
 
         final MockStateManager stateManager = runner.getStateManager();
@@ -1322,11 +1316,9 @@ public class TestTailFile {
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
     }
 
-
+    @DisabledOnOs(OS.WINDOWS)
     @Test
     public void testMigrateFrom100To110FileNotFound() throws IOException {
-        assumeFalse(isWindowsEnvironment());
-
         runner.setProperty(TailFile.FILENAME, "target/not-existing-log.txt");
 
         final MockStateManager stateManager = runner.getStateManager();

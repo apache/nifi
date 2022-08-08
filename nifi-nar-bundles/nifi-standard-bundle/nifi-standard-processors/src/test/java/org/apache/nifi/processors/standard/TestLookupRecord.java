@@ -37,9 +37,8 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -52,7 +51,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestLookupRecord {
 
@@ -61,7 +61,7 @@ public class TestLookupRecord {
     private MockRecordParser recordReader;
     private MockRecordWriter recordWriter;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         recordReader = new MockRecordParser();
         recordWriter = new MockRecordWriter(null, false);
@@ -627,9 +627,9 @@ public class TestLookupRecord {
         private void validateContext(Map<String, String> context) {
             if (expectedContext != null) {
                 for (Map.Entry<String, Object> entry : expectedContext.entrySet()) {
-                    Assert.assertTrue(String.format("%s was not in coordinates.", entry.getKey()),
-                            context.containsKey(entry.getKey()));
-                    Assert.assertEquals("Wrong value", entry.getValue(), context.get(entry.getKey()));
+                    assertTrue(context.containsKey(entry.getKey()),
+                            String.format("%s was not in coordinates.", entry.getKey()));
+                    assertEquals(entry.getValue(), context.get(entry.getKey()), "Wrong value");
                 }
             }
         }

@@ -16,32 +16,44 @@
  */
 package org.apache.nifi.processors.standard.relp.frame;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestRELPFrame {
 
-    @Test(expected = RELPFrameException.class)
+    @Test
     public void testInvalidTxnr() {
-        new RELPFrame.Builder().command("command").dataLength(5).data(new byte[5]).build();
+        assertThrows(RELPFrameException.class, () -> {
+            new RELPFrame.Builder().command("command").dataLength(5).data(new byte[5]).build();
+        });
     }
 
-    @Test(expected = RELPFrameException.class)
+    @Test
     public void testInvalidCommand() {
-        new RELPFrame.Builder().txnr(1).dataLength(5).data(new byte[5]).build();
+        assertThrows(RELPFrameException.class, () -> {
+            new RELPFrame.Builder().txnr(1).dataLength(5).data(new byte[5]).build();
+        });
     }
 
-    @Test(expected = RELPFrameException.class)
+    @Test
     public void testBlankCommand() {
-        new RELPFrame.Builder().txnr(1).command("  ").dataLength(5).data(new byte[5]).build();
+        assertThrows(RELPFrameException.class, () -> {
+            new RELPFrame.Builder().txnr(1).command("  ").dataLength(5).data(new byte[5]).build();
+        });
     }
 
-    @Test(expected = RELPFrameException.class)
+    @Test
     public void testInvalidDataLength() {
-        new RELPFrame.Builder().txnr(1).command("command").data(new byte[5]).build();
+        assertThrows(RELPFrameException.class, () -> {
+            new RELPFrame.Builder().txnr(1).command("command").data(new byte[5]).build();
+        });
     }
 
-    @Test(expected = RELPFrameException.class)
+    @Test
     public void testInvalidData() {
-        new RELPFrame.Builder().txnr(1).command("command").dataLength(5).data(null).build();
+        assertThrows(RELPFrameException.class, () -> {
+            new RELPFrame.Builder().txnr(1).command("command").dataLength(5).data(null).build();
+        });
     }
 }

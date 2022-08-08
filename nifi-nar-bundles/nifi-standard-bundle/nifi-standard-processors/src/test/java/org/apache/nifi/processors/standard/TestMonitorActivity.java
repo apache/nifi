@@ -449,7 +449,7 @@ public class TestMonitorActivity {
 
         final StateMap postProcessedState = runner.getStateManager().getState(Scope.CLUSTER);
         assertTrue(                existingTimestamp < Long.parseLong(postProcessedState.get(
-                        MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER)));
+                MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER)));
         // State should be updated. Null in this case.
         assertNull(postProcessedState.get("key1"));
         assertNull(postProcessedState.get("key2"));

@@ -24,10 +24,12 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.File;
 import java.io.IOException;
@@ -40,9 +42,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeFalse;
-
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Unit tests for ListDatabaseTables processor.
@@ -54,8 +54,8 @@ public class TestListDatabaseTables {
 
     private final static String DB_LOCATION = "target/db_ldt";
 
-    @BeforeClass
-    public static void setupBeforeClass() throws IOException {
+    @BeforeAll
+    public static void setupBeforeClass() {
         System.setProperty("derby.stream.error.file", "target/derby.log");
 
         // remove previous test database, if any
@@ -67,7 +67,7 @@ public class TestListDatabaseTables {
         }
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanUpAfterClass() throws Exception {
         try {
             DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
@@ -81,9 +81,10 @@ public class TestListDatabaseTables {
         } catch (IOException ioe) {
             // Do nothing, may not have existed
         }
+        System.clearProperty("derby.stream.error.file");
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         processor = new ListDatabaseTables();
         final DBCPService dbcp = new DBCPServiceSimpleImpl();
@@ -181,9 +182,9 @@ public class TestListDatabaseTables {
                 "TEST_TABLE2,,APP,APP.TEST_TABLE2,TABLE,,0\n");
     }
 
+    @DisabledOnOs(OS.WINDOWS)
     @Test
     public void testListTablesAfterRefresh() throws Exception {
-        assumeFalse(isWindowsEnvironment());
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
@@ -218,10 +219,9 @@ public class TestListDatabaseTables {
         runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 2);
     }
 
+    @DisabledOnOs(OS.WINDOWS)
     @Test
     public void testListTablesMultipleRefresh() throws Exception {
-        assumeFalse(isWindowsEnvironment());
-
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
@@ -283,9 +283,4 @@ public class TestListDatabaseTables {
             }
         }
     }
-
-    private boolean isWindowsEnvironment() {
-        return System.getProperty("os.name").toLowerCase().startsWith("windows");
-    }
-
 }

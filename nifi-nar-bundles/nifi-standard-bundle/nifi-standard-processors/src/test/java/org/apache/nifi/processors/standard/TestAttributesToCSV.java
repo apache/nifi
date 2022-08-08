@@ -21,7 +21,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -32,9 +32,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestAttributesToCSV {
 
@@ -47,7 +47,7 @@ public class TestAttributesToCSV {
     private static final String newline = System.getProperty("line.separator");
 
     @Test
-    public void testAttrListNoCoreNullOffNewAttrToAttribute() throws Exception {
+    public void testAttrListNoCoreNullOffNewAttrToAttribute() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
         testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
         testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "false");
@@ -68,7 +68,7 @@ public class TestAttributesToCSV {
     }
 
     @Test
-    public void testAttrListNoCoreNullOffNewAttrToContent() throws Exception {
+    public void testAttrListNoCoreNullOffNewAttrToContent() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
         //set the destination of the csv string to be an attribute
         testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
@@ -91,7 +91,7 @@ public class TestAttributesToCSV {
     }
 
     @Test
-    public void testAttrListNoCoreNullOffTwoNewAttrToAttribute() throws Exception {
+    public void testAttrListNoCoreNullOffTwoNewAttrToAttribute() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
         testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
         testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "false");
@@ -112,7 +112,7 @@ public class TestAttributesToCSV {
     }
 
     @Test
-    public void testAttrListNoCoreNullTwoNewAttrToAttribute() throws Exception {
+    public void testAttrListNoCoreNullTwoNewAttrToAttribute() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
         testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
         testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "false");
@@ -133,7 +133,7 @@ public class TestAttributesToCSV {
     }
 
     @Test
-    public void testNoAttrListNoCoreNullOffToAttribute() throws Exception {
+    public void testNoAttrListNoCoreNullOffToAttribute() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
         //set the destination of the csv string to be an attribute
         testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
@@ -152,7 +152,7 @@ public class TestAttributesToCSV {
     }
 
     @Test
-    public void testNoAttrListNoCoreNullToAttribute() throws Exception {
+    public void testNoAttrListNoCoreNullToAttribute() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
         testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
         testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "false");
@@ -212,7 +212,7 @@ public class TestAttributesToCSV {
     }
 
     @Test
-    public void testNoAttrListCoreNullOffToAttribute() throws IOException {
+    public void testNoAttrListCoreNullOffToAttribute() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
         testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "true");
         testRunner.setProperty(AttributesToCSV.NULL_VALUE_FOR_EMPTY_STRING, "false");
@@ -290,7 +290,7 @@ public class TestAttributesToCSV {
 
 
     @Test
-    public void testAttrListNoCoreNullOffToAttribute() throws IOException {
+    public void testAttrListNoCoreNullOffToAttribute() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
         testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
         testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "false");
@@ -329,7 +329,7 @@ public class TestAttributesToCSV {
     }
 
     @Test
-    public void testAttrListCoreNullOffToAttribute() throws IOException {
+    public void testAttrListCoreNullOffToAttribute() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
         testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
         testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "true");
@@ -371,7 +371,7 @@ public class TestAttributesToCSV {
     }
 
     @Test
-    public void testAttrListNoCoreNullOffOverrideCoreByAttrListToAttribute() throws IOException {
+    public void testAttrListNoCoreNullOffOverrideCoreByAttrListToAttribute() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
         testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
         testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "false");
@@ -414,7 +414,7 @@ public class TestAttributesToCSV {
     }
 
     @Test
-    public void testAttrListFromExpCoreNullOffToAttribute() throws IOException {
+    public void testAttrListFromExpCoreNullOffToAttribute() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
         testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
         testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "true");
@@ -478,7 +478,7 @@ public class TestAttributesToCSV {
     }
 
     @Test
-    public void testAttrListWithCommasInNameFromExpCoreNullOffToAttribute() throws IOException {
+    public void testAttrListWithCommasInNameFromExpCoreNullOffToAttribute() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
         testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
         testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "true");
@@ -544,7 +544,7 @@ public class TestAttributesToCSV {
 
 
     @Test
-    public void testAttrListFromExpNoCoreNullOffOverrideCoreByAttrListToAttribute() throws IOException {
+    public void testAttrListFromExpNoCoreNullOffOverrideCoreByAttrListToAttribute() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
         testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
         testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "false");
@@ -588,7 +588,7 @@ public class TestAttributesToCSV {
     }
 
     @Test
-    public void testAttributesRegex() throws IOException {
+    public void testAttributesRegex() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
         testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
         testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "false");
@@ -632,7 +632,7 @@ public class TestAttributesToCSV {
     }
 
     @Test
-    public void testAttributesRegexAndList() throws IOException {
+    public void testAttributesRegexAndList() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
         testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
         testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "false");
@@ -681,7 +681,7 @@ public class TestAttributesToCSV {
 
 
     @Test
-    public void testSchemaToAttribute() throws Exception {
+    public void testSchemaToAttribute() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
         testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
         testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "false");
@@ -746,7 +746,7 @@ public class TestAttributesToCSV {
 
 
     @Test
-    public void testSchemaWithCoreAttribuesToAttribute() throws Exception {
+    public void testSchemaWithCoreAttribuesToAttribute() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
         testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
         testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "true");

@@ -21,19 +21,18 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.hamcrest.CoreMatchers;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestDebugFlow {
 
@@ -45,10 +44,7 @@ public class TestDebugFlow {
     private final Map<Integer, Map<String, String>> attribs = new HashMap<>();
     private Map<String, String> namesToContent = new HashMap<>();
 
-    @Rule
-    public final ExpectedException exception = ExpectedException.none();
-
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         for (int n = 0; n < 6; n++) {
             String filename = "testFile" + (n + 1) + ".txt";
@@ -207,9 +203,11 @@ public class TestDebugFlow {
 
         runner.enqueue(contents.get(0).getBytes(), attribs.get(0));
 
-        exception.expectMessage(CoreMatchers.containsString("forced by org.apache.nifi.processors.standard.DebugFlow"));
-        exception.expectCause(CoreMatchers.isA(RuntimeException.class));
-        runner.run(2);
+        final AssertionError e = assertThrows(AssertionError.class, () -> {
+            runner.run(2);
+        });
+        assertInstanceOf(RuntimeException.class, e.getCause());
+        assertTrue(e.getMessage().contains("forced by org.apache.nifi.processors.standard.DebugFlow"));
     }
 
     @Test
@@ -220,9 +218,11 @@ public class TestDebugFlow {
 
         runner.enqueue(contents.get(0).getBytes(), attribs.get(0));
 
-        exception.expectMessage(CoreMatchers.containsString("forced by org.apache.nifi.processors.standard.DebugFlow"));
-        exception.expectCause(CoreMatchers.isA(RuntimeException.class));
-        runner.run(2);
+        final AssertionError e = assertThrows(AssertionError.class, () -> {
+            runner.run(2);
+        });
+        assertInstanceOf(RuntimeException.class, e.getCause());
+        assertTrue(e.getMessage().contains("forced by org.apache.nifi.processors.standard.DebugFlow"));
     }
 
     @Test
@@ -233,9 +233,11 @@ public class TestDebugFlow {
 
         runner.enqueue(contents.get(0).getBytes(), attribs.get(0));
 
-        exception.expectMessage(CoreMatchers.containsString("forced by org.apache.nifi.processors.standard.DebugFlow"));
-        exception.expectCause(CoreMatchers.isA(NullPointerException.class));
-        runner.run(2);
+        final AssertionError e = assertThrows(AssertionError.class, () -> {
+            runner.run(2);
+        });
+        assertInstanceOf(NullPointerException.class, e.getCause());
+        assertTrue(e.getMessage().contains("forced by org.apache.nifi.processors.standard.DebugFlow"));
     }
 
     @Test
@@ -254,9 +256,11 @@ public class TestDebugFlow {
             runner.enqueue(contents.get(n).getBytes(), attribs.get(n));
         }
 
-        exception.expectMessage(CoreMatchers.containsString("forced by org.apache.nifi.processors.standard.DebugFlow"));
-        exception.expectCause(CoreMatchers.isA(RuntimeException.class));
-        runner.run(8);
+        final AssertionError e = assertThrows(AssertionError.class, () -> {
+            runner.run(8);
+        });
+        assertInstanceOf(RuntimeException.class, e.getCause());
+        assertTrue(e.getMessage().contains("forced by org.apache.nifi.processors.standard.DebugFlow"));
     }
 
     @Test
@@ -302,9 +306,11 @@ public class TestDebugFlow {
         runner.setProperty(DebugFlow.NO_FF_EXCEPTION_ITERATIONS, "1");
         runner.assertValid();
 
-        exception.expectMessage(CoreMatchers.containsString("forced by org.apache.nifi.processors.standard.DebugFlow"));
-        exception.expectCause(CoreMatchers.isA(RuntimeException.class));
-        runner.run(3);
+        final AssertionError e = assertThrows(AssertionError.class, () -> {
+            runner.run(3);
+        });
+        assertInstanceOf(RuntimeException.class, e.getCause());
+        assertTrue(e.getMessage().contains("forced by org.apache.nifi.processors.standard.DebugFlow"));
     }
 
     @Test
@@ -313,9 +319,11 @@ public class TestDebugFlow {
         runner.setProperty(DebugFlow.NO_FF_EXCEPTION_CLASS, "java.lang.RuntimeException");
         runner.assertValid();
 
-        exception.expectMessage(CoreMatchers.containsString("forced by org.apache.nifi.processors.standard.DebugFlow"));
-        exception.expectCause(CoreMatchers.isA(RuntimeException.class));
-        runner.run(3);
+        final AssertionError e = assertThrows(AssertionError.class, () -> {
+            runner.run(3);
+        });
+        assertInstanceOf(RuntimeException.class, e.getCause());
+        assertTrue(e.getMessage().contains("forced by org.apache.nifi.processors.standard.DebugFlow"));
     }
 
     @Test
@@ -324,9 +332,11 @@ public class TestDebugFlow {
         runner.setProperty(DebugFlow.NO_FF_EXCEPTION_CLASS, "java.lang.NullPointerException");
         runner.assertValid();
 
-        exception.expectMessage(CoreMatchers.containsString("forced by org.apache.nifi.processors.standard.DebugFlow"));
-        exception.expectCause(CoreMatchers.isA(NullPointerException.class));
-        runner.run(3);
+        final AssertionError e = assertThrows(AssertionError.class, () -> {
+            runner.run(3);
+        });
+        assertInstanceOf(NullPointerException.class, e.getCause());
+        assertTrue(e.getMessage().contains("forced by org.apache.nifi.processors.standard.DebugFlow"));
     }
 
     @Test

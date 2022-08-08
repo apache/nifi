@@ -20,8 +20,8 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -34,7 +34,7 @@ public class TestExtractGrok {
     private final static Path GROK_LOG_INPUT = Paths.get("src/test/resources/TestExtractGrok/apache.log");
     private final static Path GROK_TEXT_INPUT = Paths.get("src/test/resources/TestExtractGrok/simple_text.log");
 
-    @Before
+    @BeforeEach
     public void init() {
         testRunner = TestRunners.newTestRunner(ExtractGrok.class);
     }
@@ -78,7 +78,7 @@ public class TestExtractGrok {
     }
 
     @Test
-    public void testExtractGrokKeepEmptyCaptures()  {
+    public void testExtractGrokKeepEmptyCaptures() {
         String expression = "%{NUMBER}|%{NUMBER}";
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION,expression);
         testRunner.enqueue("-42");

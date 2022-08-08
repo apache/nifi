@@ -24,14 +24,14 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -75,12 +75,10 @@ public class TestSFTPTransfer {
         final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, sftpClient);
         final MockFlowFile flowFile = new MockFlowFile(0);
         final File remoteDir = new File("/dir1/dir2/dir3");
-        try {
+        final IOException e = assertThrows(IOException.class, () -> {
             sftpTransfer.ensureDirectoryExists(flowFile, remoteDir);
-            fail("Should fail");
-        } catch (IOException e) {
-            assertEquals("Failed to determine if remote directory exists at /dir1/dir2/dir3 due to 4: Failure", e.getMessage());
-        }
+        });
+        assertEquals("Failed to determine if remote directory exists at /dir1/dir2/dir3 due to 4: Failure", e.getMessage());
 
         // Dir existence check should be done by stat
         verify(sftpClient).stat(eq("/dir1/dir2/dir3"));
@@ -139,12 +137,10 @@ public class TestSFTPTransfer {
         final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, sftpClient);
         final MockFlowFile flowFile = new MockFlowFile(0);
         final File remoteDir = new File("/dir1/dir2/dir3");
-        try {
+        final IOException e = assertThrows(IOException.class, () -> {
             sftpTransfer.ensureDirectoryExists(flowFile, remoteDir);
-            fail("Should fail");
-        } catch (IOException e) {
-            assertEquals("Failed to create remote directory /dir1/dir2/dir3 due to 4: Failed", e.getMessage());
-        }
+        });
+        assertEquals("Failed to create remote directory /dir1/dir2/dir3 due to 4: Failed", e.getMessage());
 
         // Dir existence check should be done by stat
         verify(sftpClient).stat(eq("/dir1/dir2/dir3")); // dir3 was not found
@@ -226,12 +222,10 @@ public class TestSFTPTransfer {
         final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, sftpClient);
         final MockFlowFile flowFile = new MockFlowFile(0);
         final File remoteDir = new File("/dir1/dir2/dir3");
-        try {
+        final IOException e = assertThrows(IOException.class, () -> {
             sftpTransfer.ensureDirectoryExists(flowFile, remoteDir);
-            fail("Should fail");
-        } catch (IOException e) {
-            assertEquals("Could not blindly create remote directory due to Permission denied", e.getMessage());
-        }
+        });
+        assertEquals("Could not blindly create remote directory due to Permission denied", e.getMessage());
 
         // stat should not be called.
         verify(sftpClient, times(0)).stat(eq("/dir1/dir2/dir3"));

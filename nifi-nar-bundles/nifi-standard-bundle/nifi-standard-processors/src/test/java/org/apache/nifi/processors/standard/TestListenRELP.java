@@ -38,13 +38,12 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.ssl.SslContextUtils;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.net.ssl.SSLContext;
 import java.io.ByteArrayOutputStream;
@@ -55,9 +54,13 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class TestListenRELP {
 
     public static final String OPEN_FRAME_DATA = "relp_version=0\nrelp_software=librelp,1.2.7,http://librelp.adiscon.com\ncommands=syslog";
@@ -95,14 +98,14 @@ public class TestListenRELP {
 
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setup() {
         encoder = new RELPEncoder(CHARSET);
         ListenRELP mockRELP = new MockListenRELP();
         runner = TestRunners.newTestRunner(mockRELP);
     }
 
-    @After
+    @AfterEach
     public void shutdown() {
         runner.shutdown();
     }
@@ -116,21 +119,21 @@ public class TestListenRELP {
         run(frames, relpFrames, null);
 
         final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
-        Assert.assertNotNull(events);
-        Assert.assertEquals(relpFrames, events.size());
+        assertNotNull(events);
+        assertEquals(relpFrames, events.size());
 
         final ProvenanceEventRecord event = events.get(0);
-        Assert.assertEquals(ProvenanceEventType.RECEIVE, event.getEventType());
-        Assert.assertTrue("transit uri must be set and start with proper protocol", event.getTransitUri().toLowerCase().startsWith("relp"));
+        assertEquals(ProvenanceEventType.RECEIVE, event.getEventType());
+        assertTrue(event.getTransitUri().toLowerCase().startsWith("relp"), "transit uri must be set and start with proper protocol");
 
         final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenRELP.REL_SUCCESS);
-        Assert.assertEquals(relpFrames, mockFlowFiles.size());
+        assertEquals(relpFrames, mockFlowFiles.size());
 
         final MockFlowFile mockFlowFile = mockFlowFiles.get(0);
-        Assert.assertEquals(String.valueOf(RELP_FRAME.getTxnr()), mockFlowFile.getAttribute(ListenRELP.RELPAttributes.TXNR.key()));
-        Assert.assertEquals(RELP_FRAME.getCommand(), mockFlowFile.getAttribute(ListenRELP.RELPAttributes.COMMAND.key()));
-        Assert.assertFalse(StringUtils.isBlank(mockFlowFile.getAttribute(ListenRELP.RELPAttributes.PORT.key())));
-        Assert.assertFalse(StringUtils.isBlank(mockFlowFile.getAttribute(ListenRELP.RELPAttributes.SENDER.key())));
+        assertEquals(String.valueOf(RELP_FRAME.getTxnr()), mockFlowFile.getAttribute(ListenRELP.RELPAttributes.TXNR.key()));
+        assertEquals(RELP_FRAME.getCommand(), mockFlowFile.getAttribute(ListenRELP.RELPAttributes.COMMAND.key()));
+        assertFalse(StringUtils.isBlank(mockFlowFile.getAttribute(ListenRELP.RELPAttributes.PORT.key())));
+        assertFalse(StringUtils.isBlank(mockFlowFile.getAttribute(ListenRELP.RELPAttributes.SENDER.key())));
     }
 
     @Test
@@ -146,20 +149,20 @@ public class TestListenRELP {
         run(frames, expectedFlowFiles, null);
 
         final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
-        Assert.assertNotNull(events);
-        Assert.assertEquals(expectedFlowFiles, events.size());
+        assertNotNull(events);
+        assertEquals(expectedFlowFiles, events.size());
 
         final ProvenanceEventRecord event = events.get(0);
-        Assert.assertEquals(ProvenanceEventType.RECEIVE, event.getEventType());
-        Assert.assertTrue("transit uri must be set and start with proper protocol", event.getTransitUri().toLowerCase().startsWith("relp"));
+        assertEquals(ProvenanceEventType.RECEIVE, event.getEventType());
+        assertTrue(event.getTransitUri().toLowerCase().startsWith("relp"), "transit uri must be set and start with proper protocol");
 
         final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenRELP.REL_SUCCESS);
-        Assert.assertEquals(expectedFlowFiles, mockFlowFiles.size());
+        assertEquals(expectedFlowFiles, mockFlowFiles.size());
 
         final MockFlowFile mockFlowFile = mockFlowFiles.get(0);
-        Assert.assertEquals(RELP_FRAME.getCommand(), mockFlowFile.getAttribute(ListenRELP.RELPAttributes.COMMAND.key()));
-        Assert.assertFalse(StringUtils.isBlank(mockFlowFile.getAttribute(ListenRELP.RELPAttributes.PORT.key())));
-        Assert.assertFalse(StringUtils.isBlank(mockFlowFile.getAttribute(ListenRELP.RELPAttributes.SENDER.key())));
+        assertEquals(RELP_FRAME.getCommand(), mockFlowFile.getAttribute(ListenRELP.RELPAttributes.COMMAND.key()));
+        assertFalse(StringUtils.isBlank(mockFlowFile.getAttribute(ListenRELP.RELPAttributes.PORT.key())));
+        assertFalse(StringUtils.isBlank(mockFlowFile.getAttribute(ListenRELP.RELPAttributes.SENDER.key())));
     }
 
     @Test

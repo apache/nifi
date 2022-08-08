@@ -22,7 +22,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.RecordDataType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 

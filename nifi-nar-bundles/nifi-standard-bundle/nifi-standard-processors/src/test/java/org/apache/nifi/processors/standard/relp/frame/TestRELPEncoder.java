@@ -17,17 +17,18 @@
 package org.apache.nifi.processors.standard.relp.frame;
 
 import org.apache.nifi.processors.standard.relp.response.RELPResponse;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestRELPEncoder {
 
     @Test
-    public void testEncodingWithData() throws IOException {
+    public void testEncodingWithData() {
         final RELPFrame frame = new RELPFrame.Builder()
                 .txnr(1)
                 .command("rsp")
@@ -40,11 +41,11 @@ public class TestRELPEncoder {
         final byte[] result = encoder.encode(frame);
 
         final String expected = "1 rsp 5 12345\n";
-        Assert.assertEquals(expected, new String(result, StandardCharsets.UTF_8));
+        assertEquals(expected, new String(result, StandardCharsets.UTF_8));
     }
 
     @Test
-    public void testEncodingNoData() throws IOException {
+    public void testEncodingNoData() {
         final RELPFrame frame = new RELPFrame.Builder()
                 .txnr(1)
                 .command("rsp")
@@ -57,7 +58,7 @@ public class TestRELPEncoder {
         final byte[] result = encoder.encode(frame);
 
         final String expected = "1 rsp 0\n";
-        Assert.assertEquals(expected, new String(result, StandardCharsets.UTF_8));
+        assertEquals(expected, new String(result, StandardCharsets.UTF_8));
     }
 
     @Test
@@ -77,7 +78,7 @@ public class TestRELPEncoder {
             }
         }
 
-        Assert.assertNotNull(frame);
+        assertNotNull(frame);
 
         final Map<String,String> offers = RELPResponse.parseOffers(frame.getData(), StandardCharsets.UTF_8);
         final RELPFrame responseFrame = RELPResponse.open(frame.getTxnr(), offers).toFrame(StandardCharsets.UTF_8);
