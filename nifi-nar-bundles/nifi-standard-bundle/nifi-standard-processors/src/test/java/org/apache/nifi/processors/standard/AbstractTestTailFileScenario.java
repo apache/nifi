@@ -21,9 +21,8 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,8 +35,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class AbstractTestTailFileScenario {
     public static final String TEST_DIRECTORY = "testTailFileScenario";
@@ -63,7 +63,7 @@ public class AbstractTestTailFileScenario {
     protected List<String> expected;
     private Random random;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard", "TRACE");
 
@@ -105,13 +105,14 @@ public class AbstractTestTailFileScenario {
         random = new Random();
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws IOException {
         if (randomAccessFile != null) {
             randomAccessFile.close();
         }
 
         processor.cleanup(new MockProcessContext(processor));
+        System.clearProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard");
     }
 
     public void testScenario(List<Action> actions) throws Exception {
@@ -125,7 +126,7 @@ public class AbstractTestTailFileScenario {
 
     public void testScenario(List<Action> actions, boolean stopAfterEachTrigger) throws Exception {
         if (actions.contains(Action.ROLLOVER)) {
-            Assume.assumeTrue("Test wants to rename an open file which is not allowed on Windows", !SystemUtils.IS_OS_WINDOWS);
+            assumeTrue(!SystemUtils.IS_OS_WINDOWS, "Test wants to rename an open file which is not allowed on Windows");
         }
 
         // GIVEN
@@ -150,9 +151,9 @@ public class AbstractTestTailFileScenario {
             .collect(Collectors.toList());
 
         assertEquals(
-            stopAfterEachTrigger + " " + actions.toString(),
             expected.stream().collect(Collectors.joining()),
-            actual.stream().collect(Collectors.joining())
+            actual.stream().collect(Collectors.joining()),
+            stopAfterEachTrigger + " " + actions.toString()
         );
     }
 

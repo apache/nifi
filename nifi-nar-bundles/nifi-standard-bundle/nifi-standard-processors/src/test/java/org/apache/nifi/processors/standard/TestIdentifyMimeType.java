@@ -16,7 +16,12 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,13 +30,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestIdentifyMimeType {
 
@@ -107,8 +107,8 @@ public class TestIdentifyMimeType {
             final String extension = file.getAttribute("mime.extension");
             final String expectedExtension = expectedExtensions.get(filename);
 
-            assertEquals("Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType, expected, mimeType);
-            assertEquals("Expected " + file + " to have extension " + expectedExtension + ", but it was " + extension, expectedExtension, extension);
+            assertEquals(expected, mimeType, "Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType);
+            assertEquals(expectedExtension, extension, "Expected " + file + " to have extension " + expectedExtension + ", but it was " + extension);
         }
     }
 
@@ -220,8 +220,8 @@ public class TestIdentifyMimeType {
             final String extension = file.getAttribute("mime.extension");
             final String expectedExtension = expectedExtensions.get(filename);
 
-            assertEquals("Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType, expected, mimeType);
-            assertEquals("Expected " + file + " to have extension " + expectedExtension + ", but it was " + extension, expectedExtension, extension);
+            assertEquals(expected, mimeType, "Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType);
+            assertEquals(expectedExtension, extension, "Expected " + file + " to have extension " + expectedExtension + ", but it was " + extension);
         }
     }
 
@@ -303,13 +303,13 @@ public class TestIdentifyMimeType {
             final String extension = file.getAttribute("mime.extension");
             final String expectedExtension = expectedExtensions.get(filename);
 
-            assertEquals("Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType, expected, mimeType);
-            assertEquals("Expected " + file + " to have extension " + expectedExtension + ", but it was " + extension, expectedExtension, extension);
+            assertEquals(expected, mimeType, "Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType);
+            assertEquals(expectedExtension, extension, "Expected " + file + " to have extension " + expectedExtension + ", but it was " + extension);
         }
     }
 
-    @Test(expected=AssertionError.class)
-    public void testOnlyOneCustomMimeConfigSpecified() throws IOException {
+    @Test
+    public void testOnlyOneCustomMimeConfigSpecified() {
         final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
 
         String configFile = "src/test/resources/TestIdentifyMimeType/.customConfig.xml";
@@ -319,8 +319,9 @@ public class TestIdentifyMimeType {
         runner.setProperty(IdentifyMimeType.MIME_CONFIG_BODY, configBody);
 
         runner.setThreadCount(1);
-        runner.run();
-
+        assertThrows(AssertionError.class, () -> {
+            runner.run();
+        });
     }
 
 }

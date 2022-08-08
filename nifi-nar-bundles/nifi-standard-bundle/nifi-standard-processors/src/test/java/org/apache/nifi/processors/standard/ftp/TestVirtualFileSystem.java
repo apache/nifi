@@ -20,18 +20,18 @@ package org.apache.nifi.processors.standard.ftp;
 import org.apache.nifi.processors.standard.ftp.filesystem.DefaultVirtualFileSystem;
 import org.apache.nifi.processors.standard.ftp.filesystem.VirtualFileSystem;
 import org.apache.nifi.processors.standard.ftp.filesystem.VirtualPath;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestVirtualFileSystem {
 
@@ -47,7 +47,7 @@ public class TestVirtualFileSystem {
             new VirtualPath("/Directory2/SubDirectory4")
     );
 
-    @Before
+    @BeforeEach
     public void setup() {
         setupVirtualDirectoryStructure();
     }

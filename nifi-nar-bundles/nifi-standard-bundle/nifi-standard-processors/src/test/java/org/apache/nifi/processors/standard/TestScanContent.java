@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -24,11 +30,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Ignore;
-import org.junit.Test;
 
 public class TestScanContent {
 
@@ -50,7 +51,7 @@ public class TestScanContent {
 
     }
 
-    @Ignore("This test has a race condition/ordering problem")
+    @Disabled("This test has a race condition/ordering problem")
     @Test
     public void testBinaryScan() throws IOException {
         // Create dictionary file.

@@ -34,8 +34,8 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.xml.XMLReader;
 import org.apache.nifi.xml.XMLRecordSetWriter;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -59,7 +59,7 @@ public abstract class AbstractConversionIT {
     protected Consumer<MockFlowFile> resultHandler;
     protected Consumer<TestRunner> writerConfigurer;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         reader = null;
         inputHandler = null;

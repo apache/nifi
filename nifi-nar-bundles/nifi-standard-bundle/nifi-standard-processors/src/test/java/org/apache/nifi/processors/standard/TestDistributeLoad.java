@@ -16,24 +16,31 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.List;
-
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestDistributeLoad {
 
-    @BeforeClass
+    @BeforeAll
     public static void before() {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.DistributeLoad", "debug");
+    }
+
+    @AfterAll
+    public static void cleanup() {
+        System.clearProperty("org.slf4j.simpleLogger.defaultLogLevel");
+        System.clearProperty("org.slf4j.simpleLogger.showDateTime");
+        System.clearProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.DistributeLoad");
     }
 
     @Test
@@ -79,43 +86,23 @@ public class TestDistributeLoad {
 
         testRunner.setProperty("1", "5");
 
-        try {
-            testRunner.setProperty("1", "0");
-            Assert.fail("Allows property '1' to be set to '0'");
-        } catch (final AssertionError e) {
-            // expected behavior
-        }
+        testRunner.setProperty("1", "0");
+        testRunner.assertNotValid();
 
-        try {
-            testRunner.setProperty("1", "-1");
-            Assert.fail("Allows property '1' to be set to '-1'");
-        } catch (final AssertionError e) {
-            // expected behavior
-        }
+        testRunner.setProperty("1", "-1");
+        testRunner.assertNotValid();
 
         testRunner.setProperty("1", "101");
         testRunner.setProperty("100", "5");
 
-        try {
-            testRunner.setProperty("101", "5");
-            Assert.fail("Allows property '101' to be set to '5'");
-        } catch (final AssertionError e) {
-            // expected behavior
-        }
+        testRunner.setProperty("101", "5");
+        testRunner.assertNotValid();
 
-        try {
-            testRunner.setProperty("0", "5");
-            Assert.fail("Allows property '0' to be set to '5'");
-        } catch (final AssertionError e) {
-            // expected behavior
-        }
+        testRunner.setProperty("0", "5");
+        testRunner.assertNotValid();
 
-        try {
-            testRunner.setProperty("-1", "5");
-            Assert.fail("Allows property '-1' to be set to '5'");
-        } catch (final AssertionError e) {
-            // expected behavior
-        }
+        testRunner.setProperty("-1", "5");
+        testRunner.assertNotValid();
     }
 
     @Test

@@ -16,20 +16,20 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
+
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestUpdateCounter {
 
 
     @Test
-    public void testwithFileName() throws Exception {
+    public void testwithFileName() {
         final TestRunner firstrunner = TestRunners.newTestRunner(new UpdateCounter());
         firstrunner.setProperty(UpdateCounter.COUNTER_NAME,"firewall");
         firstrunner.setProperty(UpdateCounter.DELTA,"1");
@@ -40,7 +40,7 @@ public class TestUpdateCounter {
     }
 
     @Test
-    public void testExpressionLanguage() throws Exception {
+    public void testExpressionLanguage() {
 
         final TestRunner firstrunner = TestRunners.newTestRunner(new UpdateCounter());
         firstrunner.setProperty(UpdateCounter.COUNTER_NAME,"${filename}");

@@ -25,7 +25,7 @@ import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.TestRunner;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -37,7 +37,7 @@ import java.util.Map;
 public class ConversionWithExplicitSchemaIT extends AbstractConversionIT {
     private String schema;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
 
