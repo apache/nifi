@@ -19,7 +19,6 @@ package org.apache.nifi.processors.standard;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -245,6 +244,17 @@ public class PutEmail extends AbstractProcessor {
             .allowableValues("true", "false")
             .defaultValue("false")
             .build();
+    public static final PropertyDescriptor INPUT_CHARACTER_SET = new PropertyDescriptor.Builder()
+            .name("input-character-set")
+            .displayName("Input Character Set")
+            .description("Specifies the character set of the FlowFile contents "
+                    + "for reading input FlowFile contents to generate the message body "
+                    + "or as an attachment to the message. "
+                    + "If not set, UTF-8 will be the default value.")
+            .required(true)
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .defaultValue("UTF-8")
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -255,7 +265,6 @@ public class PutEmail extends AbstractProcessor {
             .description("FlowFiles that fail to send will be routed to this relationship")
             .build();
 
-    private static final Charset CONTENT_CHARSET = StandardCharsets.UTF_8;
 
     private List<PropertyDescriptor> properties;
 
@@ -297,8 +306,10 @@ public class PutEmail extends AbstractProcessor {
         properties.add(SUBJECT);
         properties.add(MESSAGE);
         properties.add(CONTENT_AS_MESSAGE);
+        properties.add(INPUT_CHARACTER_SET);
         properties.add(ATTACH_FILE);
         properties.add(INCLUDE_ALL_ATTRIBUTES);
+
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -386,17 +397,26 @@ public class PutEmail extends AbstractProcessor {
             }
             this.setMessageHeader("X-Mailer", context.getProperty(HEADER_XMAILER).evaluateAttributeExpressions(flowFile).getValue(), message);
             message.setSubject(context.getProperty(SUBJECT).evaluateAttributeExpressions(flowFile).getValue());
-
-            final String messageText = getMessage(flowFile, context, session);
-
-            final String contentType = context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(flowFile).getValue();
-            message.setContent(messageText, contentType);
             message.setSentDate(new Date());
 
+            final String messageText = getMessage(flowFile, context, session);
+            final String contentType = context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(flowFile).getValue();
+            final Charset charset = getCharset(context);
+            final String charsetName = MimeUtility.mimeCharset(charset.name());
+            final DataHandler messageDataHandler = new DataHandler(
+                    new ByteArrayDataSource(
+                            Base64.encodeBase64(messageText.getBytes(charset)),
+                            contentType + String.format("; charset=\"%s\"", charsetName)
+                    )
+            );
+
+            final MimeMultipart multipart = new MimeMultipart();
+            final MimeBodyPart mimeText = new PreencodedMimeBodyPart("base64");
+            mimeText.setDataHandler(messageDataHandler);
+            mimeText.setHeader("Content-Transfer-Encoding", "base64");
+            multipart.addBodyPart(mimeText);
+
             if (context.getProperty(ATTACH_FILE).asBoolean()) {
-                final MimeBodyPart mimeText = new PreencodedMimeBodyPart("base64");
-                mimeText.setDataHandler(new DataHandler(new ByteArrayDataSource(
-                        Base64.encodeBase64(messageText.getBytes(CONTENT_CHARSET)), contentType + "; charset=\"utf-8\"")));
                 final MimeBodyPart mimeFile = new MimeBodyPart();
                 session.read(flowFile, stream -> {
                     try {
@@ -406,12 +426,12 @@ public class PutEmail extends AbstractProcessor {
                     }
                 });
 
-                mimeFile.setFileName(MimeUtility.encodeText(flowFile.getAttribute(CoreAttributes.FILENAME.key()), CONTENT_CHARSET.name(), null));
-                final MimeMultipart multipart = new MimeMultipart();
-                multipart.addBodyPart(mimeText);
+                mimeFile.setFileName(MimeUtility.encodeText(flowFile.getAttribute(CoreAttributes.FILENAME.key()), charsetName, null));
+
                 multipart.addBodyPart(mimeFile);
-                message.setContent(multipart);
             }
+
+            message.setContent(multipart);
 
             send(message);
 
@@ -433,7 +453,8 @@ public class PutEmail extends AbstractProcessor {
             final byte[] byteBuffer = new byte[(int) flowFile.getSize()];
             session.read(flowFile, in -> StreamUtils.fillBuffer(in, byteBuffer, false));
 
-            messageText = new String(byteBuffer, 0, byteBuffer.length, CONTENT_CHARSET);
+            final Charset charset = getCharset(context);
+            messageText = new String(byteBuffer, 0, byteBuffer.length, charset);
         } else if (context.getProperty(MESSAGE).isSet()) {
             messageText = context.getProperty(MESSAGE).evaluateAttributeExpressions(flowFile).getValue();
         }
@@ -587,5 +608,14 @@ public class PutEmail extends AbstractProcessor {
                     .explanation("Valid mail.smtp property found")
                     .build();
         }
+    }
+
+    /**
+     * Utility function to get a charset from the {@code INPUT_CHARACTER_SET} property
+     * @param context the ProcessContext
+     * @return the Charset
+     */
+    private Charset getCharset(final ProcessContext context) {
+        return Charset.forName(context.getProperty(INPUT_CHARACTER_SET).getValue());
     }
 }
