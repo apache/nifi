@@ -35,5 +35,11 @@
             <artifactId>nifi-smb-processors</artifactId>
             <version>1.18.0-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-smb-client-api-nar</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
     </dependencies>
 </project>

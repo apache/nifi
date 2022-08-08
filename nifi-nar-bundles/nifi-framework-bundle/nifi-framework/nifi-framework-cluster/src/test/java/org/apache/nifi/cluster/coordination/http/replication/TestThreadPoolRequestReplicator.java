@@ -34,9 +34,10 @@ import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -60,18 +61,25 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestThreadPoolRequestReplicator {
 
-    @BeforeClass
+    @BeforeAll
     public static void setupClass() {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/conf/nifi.properties");
+    }
+
+    @AfterAll
+    public static void clearProperty() {
+        System.clearProperty(NiFiProperties.PROPERTIES_FILE_PATH);
     }
 
     @Test
@@ -89,12 +97,12 @@ public class TestThreadPoolRequestReplicator {
             final AsyncClusterResponse response = replicator.replicate(nodeIds, HttpMethod.GET, uri, entity, new HashMap<>(), true, true);
 
             // We should get back the same response object
-            assertTrue(response == replicator.getClusterResponse(response.getRequestIdentifier()));
+            assertEquals(response, replicator.getClusterResponse(response.getRequestIdentifier()));
 
             assertEquals(HttpMethod.GET, response.getMethod());
             assertEquals(nodeIds, response.getNodesInvolved());
 
-            assertTrue(response == replicator.getClusterResponse(response.getRequestIdentifier()));
+            assertEquals(response, replicator.getClusterResponse(response.getRequestIdentifier()));
 
             final NodeResponse nodeResponse = response.awaitMergedResponse(3, TimeUnit.SECONDS);
             assertEquals(8000, nodeResponse.getNodeId().getApiPort());
@@ -125,12 +133,12 @@ public class TestThreadPoolRequestReplicator {
             final AsyncClusterResponse response = replicator.replicate(nodeIds, HttpMethod.GET, uri, entity, new HashMap<>(), true, true);
 
             // We should get back the same response object
-            assertTrue(response == replicator.getClusterResponse(response.getRequestIdentifier()));
+            assertEquals(response, replicator.getClusterResponse(response.getRequestIdentifier()));
 
             assertEquals(HttpMethod.GET, response.getMethod());
             assertEquals(nodeIds, response.getNodesInvolved());
 
-            assertTrue(response == replicator.getClusterResponse(response.getRequestIdentifier()));
+            assertEquals(response, replicator.getClusterResponse(response.getRequestIdentifier()));
 
             final NodeResponse nodeResponse = response.awaitMergedResponse(3, TimeUnit.SECONDS);
             assertEquals(8000, nodeResponse.getNodeId().getApiPort());
@@ -192,7 +200,8 @@ public class TestThreadPoolRequestReplicator {
         }, Response.Status.OK, 0L, null, expectedRequestChain, expectedProxiedEntityGroups);
     }
 
-    @Test(timeout = 15000)
+    @Test
+    @Timeout(value = 15)
     public void testLongWaitForResponse() {
         withReplicator(replicator -> {
             final Set<NodeIdentifier> nodeIds = new HashSet<>();
@@ -208,7 +217,7 @@ public class TestThreadPoolRequestReplicator {
             final AsyncClusterResponse response = replicator.replicate(nodeIds, HttpMethod.GET, uri, entity, new HashMap<>(), true, true);
 
             // We should get back the same response object
-            assertTrue(response == replicator.getClusterResponse(response.getRequestIdentifier()));
+            assertEquals(response, replicator.getClusterResponse(response.getRequestIdentifier()));
 
             final NodeResponse completedNodeResponse = response.awaitMergedResponse(2, TimeUnit.SECONDS);
             assertNotNull(completedNodeResponse);
@@ -221,7 +230,8 @@ public class TestThreadPoolRequestReplicator {
         }, Status.OK, 1000, new ProcessingException(new SocketTimeoutException()));
     }
 
-    @Test(timeout = 15000)
+    @Test
+    @Timeout(value = 15)
     public void testCompleteOnError() {
         withReplicator(replicator -> {
             final Set<NodeIdentifier> nodeIds = new HashSet<>();
@@ -246,8 +256,9 @@ public class TestThreadPoolRequestReplicator {
         }, null, 0L, new IllegalArgumentException("Exception created for unit test"));
     }
 
-    @Test(timeout = 15000)
-    public void testMultipleRequestWithTwoPhaseCommit() {
+    @Test
+    @Timeout(value = 15)
+    public void testMultipleRequestWithTwoPhaseCommit() throws Exception {
         final Set<NodeIdentifier> nodeIds = new HashSet<>();
         final NodeIdentifier nodeId = new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, 8103, false);
         nodeIds.add(nodeId);
@@ -285,24 +296,19 @@ public class TestThreadPoolRequestReplicator {
             }
         };
 
-        try {
-            // set the user
-            final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(StandardNiFiUser.ANONYMOUS));
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+        // set the user
+        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(StandardNiFiUser.ANONYMOUS));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            final AsyncClusterResponse clusterResponse = replicator.replicate(nodeIds, HttpMethod.POST,
-                    new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>(), true, true);
-            clusterResponse.awaitMergedResponse();
+        final AsyncClusterResponse clusterResponse = replicator.replicate(nodeIds, HttpMethod.POST,
+                new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>(), true, true);
+        clusterResponse.awaitMergedResponse();
 
-            // Ensure that we received two requests - the first should contain the X-NcmExpects header; the second should not.
-            // These assertions are validated above, in the overridden replicateRequest method.
-            assertEquals(2, requestCount.get());
-        } catch (final Exception e) {
-            e.printStackTrace();
-            Assert.fail(e.toString());
-        } finally {
-            replicator.shutdown();
-        }
+        // Ensure that we received two requests - the first should contain the X-NcmExpects header; the second should not.
+        // These assertions are validated above, in the overridden replicateRequest method.
+        assertEquals(2, requestCount.get());
+
+        replicator.shutdown();
     }
 
     private ClusterCoordinator createClusterCoordinator() {
@@ -317,7 +323,8 @@ public class TestThreadPoolRequestReplicator {
         return coordinator;
     }
 
-    @Test(timeout = 15000)
+    @Test
+    @Timeout(value = 15)
     public void testOneNodeRejectsTwoPhaseCommit() {
         final Set<NodeIdentifier> nodeIds = new HashSet<>();
         nodeIds.add(new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, 8103, false));
@@ -352,26 +359,19 @@ public class TestThreadPoolRequestReplicator {
             }
         };
 
-        try {
-            // set the user
+        final IllegalClusterStateException exception = assertThrows(IllegalClusterStateException.class, () -> {
             final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(StandardNiFiUser.ANONYMOUS));
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             final AsyncClusterResponse clusterResponse = replicator.replicate(nodeIds, HttpMethod.POST,
                     new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>(), true, true);
             clusterResponse.awaitMergedResponse();
-
-            Assert.fail("Expected to get an IllegalClusterStateException but did not");
-        } catch (final IllegalClusterStateException e) {
-            // Expected
-        } catch (final Exception e) {
-            Assert.fail(e.toString());
-        } finally {
-            replicator.shutdown();
-        }
+        });
+        replicator.shutdown();
     }
 
-    @Test(timeout = 5000)
+    @Test
+    @Timeout(value = 5)
     public void testMonitorNotifiedOnException() {
         withReplicator(replicator -> {
             final Object monitor = new Object();
@@ -402,8 +402,7 @@ public class TestThreadPoolRequestReplicator {
             // wait for the background thread to notify that it is synchronized on monitor.
             preNotifyLatch.await();
 
-            try {
-                // set the user
+            assertThrows(IllegalArgumentException.class, () -> {
                 final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(StandardNiFiUser.ANONYMOUS));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -413,18 +412,16 @@ public class TestThreadPoolRequestReplicator {
 
                 // Pass in Collections.emptySet() for the node ID's so that an Exception is thrown
                 replicator.replicate(Collections.emptySet(), "GET", new URI("localhost:8080/nifi"), Collections.emptyMap(),
-                    updatedHeaders, true, null, true, true, monitor);
-                Assert.fail("replicate did not throw IllegalArgumentException");
-            } catch (final IllegalArgumentException iae) {
-                // expected
-            }
+                        updatedHeaders, true, null, true, true, monitor);
+            });
 
             // wait for monitor to be notified.
             postNotifyLatch.await();
         });
     }
 
-    @Test(timeout = 5000)
+    @Test
+    @Timeout(value = 5)
     public void testMonitorNotifiedOnSuccessfulCompletion() {
         withReplicator(replicator -> {
             final Object monitor = new Object();
@@ -477,7 +474,8 @@ public class TestThreadPoolRequestReplicator {
     }
 
 
-    @Test(timeout = 5000)
+    @Test
+    @Timeout(value = 5)
     public void testMonitorNotifiedOnFailureResponse() {
         withReplicator(replicator -> {
             final Object monitor = new Object();
@@ -557,11 +555,9 @@ public class TestThreadPoolRequestReplicator {
                     final StandardAsyncClusterResponse response) {
 
                 if (delayMillis > 0L) {
-                    try {
+                    assertDoesNotThrow(() -> {
                         Thread.sleep(delayMillis);
-                    } catch (InterruptedException e) {
-                        Assert.fail("Thread Interrupted during test");
-                    }
+                    }, "Thread Interrupted during test");
                 }
 
                 if (failure != null) {
@@ -570,11 +566,11 @@ public class TestThreadPoolRequestReplicator {
 
                 // ensure the request chain is in the request
                 final Object proxiedEntities = request.getHeaders().get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN);
-                Assert.assertEquals(expectedRequestChain, proxiedEntities);
+                assertEquals(expectedRequestChain, proxiedEntities);
 
                 // ensure the proxied entity groups are in the request
                 final Object proxiedEntityGroups = request.getHeaders().get(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS);
-                Assert.assertEquals(expectedProxiedEntityGroups, proxiedEntityGroups);
+                assertEquals(expectedProxiedEntityGroups, proxiedEntityGroups);
 
                 // Return given response from all nodes.
                 final Response clientResponse = mock(Response.class);
@@ -583,14 +579,10 @@ public class TestThreadPoolRequestReplicator {
             }
         };
 
-        try {
+        assertDoesNotThrow(() -> {
             function.withReplicator(replicator);
-        } catch (final Exception e) {
-            e.printStackTrace();
-            Assert.fail(e.toString());
-        } finally {
-            replicator.shutdown();
-        }
+        });
+        replicator.shutdown();
     }
 
     private interface WithReplicator {

@@ -19,7 +19,7 @@ package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import org.apache.nifi.cluster.manager.ErrorMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,8 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestProcessorEndpointMerger {
 

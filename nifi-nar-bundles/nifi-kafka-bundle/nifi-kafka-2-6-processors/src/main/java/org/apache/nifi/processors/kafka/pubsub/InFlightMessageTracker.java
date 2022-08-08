@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.kafka.pubsub;
 
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -29,6 +30,7 @@ import org.apache.nifi.logging.ComponentLog;
 public class InFlightMessageTracker {
     private final ConcurrentMap<FlowFile, Counts> messageCountsByFlowFile = new ConcurrentHashMap<>();
     private final ConcurrentMap<FlowFile, Exception> failures = new ConcurrentHashMap<>();
+    private final ConcurrentMap<FlowFile, Set<Exception>> encounteredFailures = new ConcurrentHashMap<>();
     private final Object progressMutex = new Object();
     private final ComponentLog logger;
 
@@ -70,7 +72,12 @@ public class InFlightMessageTracker {
 
     public void fail(final FlowFile flowFile, final Exception exception) {
         failures.putIfAbsent(flowFile, exception);
-        logger.error("Failed to send {} to Kafka", flowFile, exception);
+        boolean newException = encounteredFailures
+            .computeIfAbsent(flowFile, (k) -> ConcurrentHashMap.newKeySet())
+            .add(exception);
+        if (newException) {
+            logger.error("Failed to send {} to Kafka", flowFile, exception);
+        }
 
         synchronized (progressMutex) {
             progressMutex.notify();
@@ -88,6 +95,7 @@ public class InFlightMessageTracker {
     public void reset() {
         messageCountsByFlowFile.clear();
         failures.clear();
+        encounteredFailures.clear();
     }
 
     public PublishResult failOutstanding(final Exception exception) {
