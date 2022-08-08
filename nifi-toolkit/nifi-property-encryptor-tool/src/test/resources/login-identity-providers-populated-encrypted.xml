@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<!--
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?><!--
   Licensed to the Apache Software Foundation (ASF) under one or more
   contributor license agreements.  See the NOTICE file distributed with
   this work for additional information regarding copyright ownership.
@@ -12,13 +11,11 @@
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
--->
-<!--
+--><!--
     This file lists the login identity providers to use when running securely. In order
     to use a specific provider it must be configured here and it's identifier
     must be specified in the nifi.properties file.
--->
-<loginIdentityProviders>
+--><loginIdentityProviders>
     <!--
         Identity Provider for users logging in with username/password against an LDAP server.
 
@@ -60,30 +57,30 @@
             this duration.
     -->
     <provider>
-        <identifier>ldap-provider</identifier>
+        <identifier/>
         <class>org.apache.nifi.ldap.LdapProvider</class>
         <property name="Authentication Strategy">START_TLS</property>
 
         <property name="Manager DN">someuser</property>
-        <property name="Manager Password" encryption="aes/gcm/128">q4r7WIgN0MaxdAKM||SGgdCTPGSFEcuH4RraMYEdeyVbOx93abdWTVSWvh1w+klA</property>
+        <property name="Manager Password" encryption="aes/gcm/256">QmmHEFaztw+n1SiQ||//wfwqTeS7VlpfrGD2w0o8AMqBCMSAdXFa/zIaAPf8IfSA==</property>
 
-        <property name="TLS - Keystore"></property>
-        <property name="TLS - Keystore Password" encryption="aes/gcm/128">Uah59TWX+Ru5GY5p||B44RT/LJtC08QWA5ehQf01JxIpf0qSJUzug25UwkF5a50g</property>
-        <property name="TLS - Keystore Type"></property>
-        <property name="TLS - Truststore"></property>
+        <property name="TLS - Keystore"/>
+        <property name="TLS - Keystore Password" encryption="aes/gcm/256">EMrZyTNTSPSFTNy0||9VTfSm8HCpn5DIo7vfe9Qey5yhnJGLmH63Ew72HvuoWpKw==</property>
+        <property name="TLS - Keystore Type"/>
+        <property name="TLS - Truststore"/>
         <property name="TLS - Truststore Password">thisIsABadPassword</property>
-        <property name="TLS - Truststore Type"></property>
-        <property name="TLS - Client Auth"></property>
-        <property name="TLS - Protocol"></property>
-        <property name="TLS - Shutdown Gracefully"></property>
+        <property name="TLS - Truststore Type"/>
+        <property name="TLS - Client Auth"/>
+        <property name="TLS - Protocol"/>
+        <property name="TLS - Shutdown Gracefully"/>
 
         <property name="Referral Strategy">FOLLOW</property>
         <property name="Connect Timeout">10 secs</property>
         <property name="Read Timeout">10 secs</property>
 
-        <property name="Url"></property>
-        <property name="User Search Base"></property>
-        <property name="User Search Filter"></property>
+        <property name="Url"/>
+        <property name="User Search Base"/>
+        <property name="User Search Filter"/>
 
         <property name="Authentication Expiration">12 hours</property>
     </provider>

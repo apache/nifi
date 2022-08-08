@@ -51,13 +51,12 @@ class XmlEncryptorTest {
         File encryptedXmlFile = new File(XmlEncryptorTest.class.getResource(encryptedXmlFilename).toURI());
         File temporaryOutputFile = FileUtilities.getTemporaryOutputFile("decrypted", encryptedXmlFile);
 
-        try (InputStream inputStream = new FileInputStream(encryptedXmlFile); FileOutputStream outputStream = new FileOutputStream(temporaryOutputFile)) {
+        try (InputStream inputStream = new FileInputStream(encryptedXmlFile);
+             FileOutputStream outputStream = new FileOutputStream(temporaryOutputFile)) {
              decryptor.decrypt(inputStream, outputStream);
         }
 
         assertEquals(3, verifyFileContains(temporaryOutputFile, PASSWORD));
-
-        System.out.println("Decrypted to: " + temporaryOutputFile.getAbsolutePath());
     }
 
     @Test
@@ -73,8 +72,6 @@ class XmlEncryptorTest {
         }
 
         assertEquals(2, verifyFileContains(temporaryOutputFile, DEFAULT_PROTECTION_SCHEME.getPath()));
-
-        System.out.println("Encrypted to: " + temporaryOutputFile.getAbsolutePath());
     }
 
     @Test
@@ -90,8 +87,6 @@ class XmlEncryptorTest {
         }
 
         assertEquals(3, verifyFileContains(temporaryOutputFile, DEFAULT_PROTECTION_SCHEME.getPath()));
-
-        System.out.println("Encrypted to: " + temporaryOutputFile.getAbsolutePath());
     }
 
     private XmlEncryptor intializeXmlEncryptor() {

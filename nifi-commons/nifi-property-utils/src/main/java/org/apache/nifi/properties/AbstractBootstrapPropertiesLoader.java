@@ -169,11 +169,7 @@ public abstract class AbstractBootstrapPropertiesLoader {
             expectedBootstrapFile = getValidBootstrapFile(bootstrapPath);
         }
 
-        if (expectedBootstrapFile.exists() && expectedBootstrapFile.canRead()) {
-            return expectedBootstrapFile;
-        } else {
-            throw new IOException(String.format("Cannot read from [%s]", BOOTSTRAP_CONF));
-        }
+        return expectedBootstrapFile;
     }
 
     /**
@@ -221,7 +217,7 @@ public abstract class AbstractBootstrapPropertiesLoader {
         if (bootstrapFile.exists() && bootstrapFile.canRead()) {
             return bootstrapFile;
         } else {
-            throw new IOException(String.format("Cannot read from [%s]", BOOTSTRAP_CONF));
+            throw new IOException(String.format("Cannot read from [%s]", bootstrapFile.getAbsolutePath()));
         }
     }
 }
