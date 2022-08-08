@@ -16,24 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import jakarta.activation.DataHandler;
 import jakarta.mail.Authenticator;
 import jakarta.mail.Message;
@@ -50,7 +32,6 @@ import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.internet.MimeUtility;
 import jakarta.mail.internet.PreencodedMimeBodyPart;
 import jakarta.mail.util.ByteArrayDataSource;
-
 import org.apache.commons.codec.binary.Base64;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -78,6 +59,24 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @SupportsBatching
 @Tags({"email", "put", "notify", "smtp"})
@@ -245,6 +244,17 @@ public class PutEmail extends AbstractProcessor {
             .allowableValues("true", "false")
             .defaultValue("false")
             .build();
+    public static final PropertyDescriptor INPUT_CHARACTER_SET = new PropertyDescriptor.Builder()
+            .name("input-character-set")
+            .displayName("Input Character Set")
+            .description("Specifies the character set of the FlowFile contents "
+                    + "for reading input FlowFile contents to generate the message body "
+                    + "or as an attachment to the message. "
+                    + "If not set, UTF-8 will be the default value.")
+            .required(true)
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .defaultValue(StandardCharsets.UTF_8.name())
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -255,7 +265,6 @@ public class PutEmail extends AbstractProcessor {
             .description("FlowFiles that fail to send will be routed to this relationship")
             .build();
 
-    private static final Charset CONTENT_CHARSET = StandardCharsets.UTF_8;
 
     private List<PropertyDescriptor> properties;
 
@@ -297,8 +306,10 @@ public class PutEmail extends AbstractProcessor {
         properties.add(SUBJECT);
         properties.add(MESSAGE);
         properties.add(CONTENT_AS_MESSAGE);
+        properties.add(INPUT_CHARACTER_SET);
         properties.add(ATTACH_FILE);
         properties.add(INCLUDE_ALL_ATTRIBUTES);
+
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -390,13 +401,25 @@ public class PutEmail extends AbstractProcessor {
             final String messageText = getMessage(flowFile, context, session);
 
             final String contentType = context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(flowFile).getValue();
-            message.setContent(messageText, contentType);
+            final Charset charset = getCharset(context);
+
+            message.setContent(messageText, contentType + String.format("; charset=\"%s\"", MimeUtility.mimeCharset(charset.name())));
+
             message.setSentDate(new Date());
 
             if (context.getProperty(ATTACH_FILE).asBoolean()) {
-                final MimeBodyPart mimeText = new PreencodedMimeBodyPart("base64");
-                mimeText.setDataHandler(new DataHandler(new ByteArrayDataSource(
-                        Base64.encodeBase64(messageText.getBytes(CONTENT_CHARSET)), contentType + "; charset=\"utf-8\"")));
+                final String encoding = getEncoding(context);
+                final MimeBodyPart mimeText = new PreencodedMimeBodyPart(encoding);
+                final byte[] messageBytes = messageText.getBytes(charset);
+                final byte[] encodedMessageBytes = "base64".equals(encoding) ? Base64.encodeBase64(messageBytes) : messageBytes;
+                final DataHandler messageDataHandler = new DataHandler(
+                        new ByteArrayDataSource(
+                                encodedMessageBytes,
+                                contentType + String.format("; charset=\"%s\"", MimeUtility.mimeCharset(charset.name()))
+                        )
+                );
+                mimeText.setDataHandler(messageDataHandler);
+                mimeText.setHeader("Content-Transfer-Encoding", MimeUtility.getEncoding(mimeText.getDataHandler()));
                 final MimeBodyPart mimeFile = new MimeBodyPart();
                 session.read(flowFile, stream -> {
                     try {
@@ -406,12 +429,20 @@ public class PutEmail extends AbstractProcessor {
                     }
                 });
 
-                mimeFile.setFileName(MimeUtility.encodeText(flowFile.getAttribute(CoreAttributes.FILENAME.key()), CONTENT_CHARSET.name(), null));
+                mimeFile.setFileName(MimeUtility.encodeText(flowFile.getAttribute(CoreAttributes.FILENAME.key()), charset.name(), null));
+                mimeFile.setHeader("Content-Transfer-Encoding", MimeUtility.getEncoding(mimeFile.getDataHandler()));
                 final MimeMultipart multipart = new MimeMultipart();
                 multipart.addBodyPart(mimeText);
                 multipart.addBodyPart(mimeFile);
+
                 message.setContent(multipart);
+            } else {
+                // message is not a Multipart, need to set Content-Transfer-Encoding header at the message level
+                message.setHeader("Content-Transfer-Encoding", MimeUtility.getEncoding(message.getDataHandler()));
             }
+
+
+            message.saveChanges();
 
             send(message);
 
@@ -433,7 +464,8 @@ public class PutEmail extends AbstractProcessor {
             final byte[] byteBuffer = new byte[(int) flowFile.getSize()];
             session.read(flowFile, in -> StreamUtils.fillBuffer(in, byteBuffer, false));
 
-            messageText = new String(byteBuffer, 0, byteBuffer.length, CONTENT_CHARSET);
+            final Charset charset = getCharset(context);
+            messageText = new String(byteBuffer, 0, byteBuffer.length, charset);
         } else if (context.getProperty(MESSAGE).isSet()) {
             messageText = context.getProperty(MESSAGE).evaluateAttributeExpressions(flowFile).getValue();
         }
@@ -587,5 +619,28 @@ public class PutEmail extends AbstractProcessor {
                     .explanation("Valid mail.smtp property found")
                     .build();
         }
+    }
+
+    /**
+     * Utility function to get a charset from the {@code INPUT_CHARACTER_SET} property
+     * @param context the ProcessContext
+     * @return the Charset
+     */
+    private Charset getCharset(final ProcessContext context) {
+        return Charset.forName(context.getProperty(INPUT_CHARACTER_SET).getValue());
+    }
+
+    /**
+     * Utility function to get the correct encoding from the {@code INPUT_CHARACTER_SET} property
+     * @param context the ProcessContext
+     * @return the encoding
+     */
+    private String getEncoding(final ProcessContext context) {
+        final Charset charset = Charset.forName(context.getProperty(INPUT_CHARACTER_SET).getValue());
+        if (Charset.forName("US-ASCII").equals(charset)) {
+            return "7bit";
+        }
+        // Every other charset in StandardCharsets use 8 bits or more. Using base64 encoding by default
+        return "base64";
     }
 }
