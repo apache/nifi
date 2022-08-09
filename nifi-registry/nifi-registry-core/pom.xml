@@ -106,11 +106,6 @@
                 <artifactId>javax.el</artifactId>
                 <version>3.0.1-b08</version>
             </dependency>
-            <dependency>
-                <groupId>io.swagger</groupId>
-                <artifactId>swagger-annotations</artifactId>
-                <version>1.5.16</version>
-            </dependency>
             <!-- open id connect - override transitive dependency version ranges -->
             <dependency>
                 <groupId>com.nimbusds</groupId>
