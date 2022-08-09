@@ -228,8 +228,8 @@ public class ConfigService {
                 try {
                     configuration = configurationProviderValue.getConfiguration();
                 } catch (ConfigurationProviderException cpe) {
-                    logger.warn("No flow available for agent class " + agentClass + ", returning No Content (204)");
-                    response = Response.noContent().build();
+                    logger.warn("No flow available for agent class " + agentClass + ", returning OK (200) with no update request");
+                    response = Response.ok(new C2HeartbeatResponse()).build();
                     return response;
                 }
                 try (InputStream inputStream = configuration.getInputStream();

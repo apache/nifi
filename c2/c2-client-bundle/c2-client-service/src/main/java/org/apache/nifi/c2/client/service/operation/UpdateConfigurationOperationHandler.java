@@ -21,6 +21,7 @@ import static org.apache.nifi.c2.protocol.api.OperandType.CONFIGURATION;
 import static org.apache.nifi.c2.protocol.api.OperationType.UPDATE;
 
 import java.net.URI;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -36,10 +37,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class UpdateConfigurationOperationHandler implements C2OperationHandler {
-
     private static final Logger logger = LoggerFactory.getLogger(UpdateConfigurationOperationHandler.class);
     private static final Pattern FLOW_ID_PATTERN = Pattern.compile("/[^/]+?/[^/]+?/[^/]+?/([^/]+)?/?.*");
-
+    static final String FLOW_ID = "flowId";
     static final String LOCATION = "location";
 
     private final C2Client client;
@@ -75,30 +75,44 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
             .map(map -> map.get(LOCATION))
             .orElse(EMPTY);
 
-        String newFlowId = parseFlowId(updateLocation);
-        if (flowIdHolder.getFlowId() == null || !flowIdHolder.getFlowId().equals(newFlowId)) {
-            logger.info("Will perform flow update from {} for operation #{}. Previous flow id was {}, replacing with new id {}", updateLocation, opIdentifier,
-                flowIdHolder.getFlowId() == null ? "not set" : flowIdHolder.getFlowId(), newFlowId);
+        String flowId = getFlowId(operation.getArgs(), updateLocation);
+        if (flowId == null) {
+            state.setState(C2OperationState.OperationState.NOT_APPLIED);
+            state.setDetails("Could not get flowId from the operation.");
+            logger.info("FlowId is missing, no update will be performed.");
         } else {
-            logger.info("Flow is current, no update is necessary...");
+            if (flowIdHolder.getFlowId() == null || !flowIdHolder.getFlowId().equals(flowId)) {
+                logger.info("Will perform flow update from {} for operation #{}. Previous flow id was {}, replacing with new id {}", updateLocation, opIdentifier,
+                        flowIdHolder.getFlowId() == null ? "not set" : flowIdHolder.getFlowId(), flowId);
+            } else {
+                logger.info("Flow is current, no update is necessary...");
+            }
+            flowIdHolder.setFlowId(flowId);
+            state.setState(updateFlow(opIdentifier, updateLocation));
         }
+        return operationAck;
+    }
 
-        flowIdHolder.setFlowId(newFlowId);
+    private C2OperationState.OperationState updateFlow(String opIdentifier, String updateLocation) {
         Optional<byte[]> updateContent = client.retrieveUpdateContent(updateLocation);
         if (updateContent.isPresent()) {
             if (updateFlow.apply(updateContent.get())) {
-                state.setState(C2OperationState.OperationState.FULLY_APPLIED);
                 logger.debug("Update configuration applied for operation #{}.", opIdentifier);
+                return C2OperationState.OperationState.FULLY_APPLIED;
             } else {
-                state.setState(C2OperationState.OperationState.NOT_APPLIED);
                 logger.error("Update resulted in error for operation #{}.", opIdentifier);
+                return C2OperationState.OperationState.NOT_APPLIED;
             }
         } else {
-            state.setState(C2OperationState.OperationState.NOT_APPLIED);
             logger.error("Update content retrieval resulted in empty content so flow update was omitted for operation #{}.", opIdentifier);
+            return C2OperationState.OperationState.NOT_APPLIED;
         }
+    }
 
-        return operationAck;
+    private String getFlowId(Map<String, String> args, String updateLocation) {
+        return Optional.ofNullable(args)
+        .map(map -> map.get(FLOW_ID))
+        .orElseGet(() -> parseFlowId(updateLocation));
     }
 
     private String parseFlowId(String flowUpdateUrl) {
@@ -108,11 +122,10 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
 
             if (matcher.matches()) {
                 return matcher.group(1);
-            } else {
-                throw new IllegalArgumentException(String.format("Flow Update URL format unexpected [%s]", flowUpdateUrl));
             }
         } catch (Exception e) {
-            throw new IllegalStateException("Could not get flow id from the provided URL", e);
+            logger.error("Could not get flow id from the provided URL, flow update URL format unexpected [{}]", flowUpdateUrl);
         }
+        return null;
     }
 }
