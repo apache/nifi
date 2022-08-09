@@ -28,7 +28,7 @@ import picocli.CommandLine;
         PropertyEncryptorMigrate.class,
         PropertyEncryptorTranslateForCLI.class}
 )
-class PropertyEncryptorCLI extends DefaultCLIOptions implements Runnable {
+class PropertyEncryptorCLI extends BaseCLICommand implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(PropertyEncryptorCLI.class);
 
@@ -37,10 +37,11 @@ class PropertyEncryptorCLI extends DefaultCLIOptions implements Runnable {
         if (verboseLogging) {
             logger.info("Verbose logging enabled");
         }
-        logger.info("Running the Property Encryptor..");
     }
 
     public static void main(String[] args) {
+        logger.warn("Warning: This Property Encryptor tool is currently considered experimental. " +
+                "The original 'encrypt-config' tool should still be used to encrypt and manage your NiFi configuration.");
         System.exit(new CommandLine(new PropertyEncryptorCLI()).setCaseInsensitiveEnumValuesAllowed(true).execute(args));
     }
 }

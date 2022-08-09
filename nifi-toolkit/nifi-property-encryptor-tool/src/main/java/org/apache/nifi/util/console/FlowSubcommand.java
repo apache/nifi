@@ -17,6 +17,8 @@
 package org.apache.nifi.util.console;
 
 import org.apache.nifi.util.console.utils.BaseCommandParameters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "flow",
@@ -25,12 +27,13 @@ import picocli.CommandLine;
 )
 class FlowSubcommand extends BaseCommandParameters implements Runnable {
 
+    private static final Logger logger = LoggerFactory.getLogger(PropertyEncryptorCLI.class);
+
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec;
 
     @Override
     public void run() {
-        // Show usage information if a subcommand was not chosen
-        spec.commandLine().usage(System.err);
+        logger.error("Flow.xml.gz/flow.json.gz commands not yet implemented");
     }
 }

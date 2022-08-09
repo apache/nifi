@@ -23,7 +23,7 @@ import picocli.CommandLine;
         description = "@|bold,fg(blue) Decrypt|@ application configuration files (nifi.properties, login-identity-provider.xml etc)",
         usageHelpWidth=140)
 
-class PropertyEncryptorDecrypt extends DefaultCLIOptions implements Runnable {
+class PropertyEncryptorDecrypt extends BaseCLICommand implements Runnable {
 
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec;

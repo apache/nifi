@@ -30,9 +30,10 @@ import picocli.CommandLine;
 class ConfigSubcommand extends BaseCommandParameters implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(ConfigSubcommand.class);
+    private static final String runMessage = "The property encryptor is running to [{}] configuration files in [{}]";
 
     @CommandLine.ParentCommand
-    private DefaultCLIOptions parent;
+    private BaseCLICommand parent;
 
     @CommandLine.Parameters(description="The encryption scheme to use, from one of the following schemes: [@|bold ${COMPLETION-CANDIDATES}|@]")
     PropertyProtectionScheme scheme;
@@ -41,10 +42,12 @@ class ConfigSubcommand extends BaseCommandParameters implements Runnable {
     public void run() {
         final PropertyEncryptorMain propertyEncryptorMain = new PropertyEncryptorMain(baseDirectory, passphrase);
         if (parent instanceof PropertyEncryptorEncrypt) {
-            logger.info("The property encryptor is running to encrypt configuration files in [{}}]", baseDirectory);
+            logger.info(runMessage, "encrypt", baseDirectory);
             propertyEncryptorMain.encryptConfigurationFiles(baseDirectory, scheme);
         } else if (parent instanceof PropertyEncryptorDecrypt) {
-            logger.info("The property encryptor is running to decrypt configuration files in [{}}]", baseDirectory);
+            logger.info(runMessage, "decrypt", baseDirectory);
+        } else if (parent instanceof PropertyEncryptorMigrate) {
+            logger.info(runMessage, "migrate", baseDirectory);
         }
     }
 }

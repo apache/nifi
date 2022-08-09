@@ -23,7 +23,7 @@ import picocli.CommandLine;
         parameterListHeading = "%nParameters:%n%n",
         optionListHeading    = "%nOptions:%n%n",
         commandListHeading   = "%nCommands:%n%n")
-public class DefaultCLIOptions {
+public class BaseCLICommand {
 
     @CommandLine.Option(names = {"-v", "--verbose"}, description = {
             "Enable verbose logging"}, defaultValue = "false")

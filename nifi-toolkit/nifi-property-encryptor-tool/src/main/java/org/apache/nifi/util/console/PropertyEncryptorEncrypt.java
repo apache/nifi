@@ -23,7 +23,7 @@ import picocli.CommandLine;
         description = "@|bold,fg(blue) Encrypt|@ the sensitive properties in either the application configuration files or the flow definition file.",
         usageHelpWidth=140
 )
-class PropertyEncryptorEncrypt extends DefaultCLIOptions implements Runnable {
+class PropertyEncryptorEncrypt extends BaseCLICommand implements Runnable {
 
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec;
