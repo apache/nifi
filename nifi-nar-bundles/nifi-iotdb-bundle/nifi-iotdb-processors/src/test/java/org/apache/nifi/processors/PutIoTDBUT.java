@@ -18,7 +18,7 @@ package org.apache.nifi.processors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.processors.model.Schema;
+import org.apache.nifi.processors.model.IoTDBSchema;
 import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
@@ -40,7 +40,7 @@ public class PutIoTDBUT {
                         + "\t\t{\"tsName\": \"root.sg.d1.s3\",\"dataType\": \"TEXT\", \"encoding\": \"DICTIONARY\"}\n"
                         + "\t]\n"
                         + "}";
-        Schema.TimeType exceptedTimeType = Schema.TimeType.LONG;
+        IoTDBSchema.TimeType exceptedTimeType = IoTDBSchema.TimeType.LONG;
         ArrayList<String> exceptedFieldNames =
                 new ArrayList<String>() {
                     {
@@ -75,7 +75,7 @@ public class PutIoTDBUT {
                     }
                 };
 
-        Schema schema = new ObjectMapper().readValue(schemaAttribute, Schema.class);
+        IoTDBSchema schema = new ObjectMapper().readValue(schemaAttribute, IoTDBSchema.class);
         Assert.assertEquals(exceptedTimeType, schema.getTimeType());
         Assert.assertEquals(exceptedFieldNames, schema.getFieldNames());
         Assert.assertEquals(exceptedDataTypes, schema.getDataTypes());

@@ -17,15 +17,13 @@
 package org.apache.nifi.processors;
 
 import java.io.InputStream;
-import java.text.SimpleDateFormat;
 import java.util.Set;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.processors.model.Schema;
+import org.apache.nifi.processors.model.IoTDBSchema;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.write.record.Tablet;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
@@ -41,10 +39,10 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.model.ValidationResult;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.util.Tuple;
 
 @Tags({"iotdb", "insert", "tablet"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -67,7 +65,7 @@ public class PutIoTDB extends AbstractIoTDB {
             new PropertyDescriptor.Builder()
                     .name("Time Field")
                     .description(
-                            "The field name which represents time. It can be updated by expression language.")
+                            "The field name which represents time")
                     .defaultValue("Time")
                     .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -81,8 +79,7 @@ public class PutIoTDB extends AbstractIoTDB {
                             "The schema that IoTDB needs doesn't support good by NiFi.\n"
                                     + "Therefore, you can define the schema here.\n"
                                     + "Besides, you can set encoding type and compression type by this method.\n"
-                                    + "If you don't set this property, the inferred schema will be used.\n"
-                                    + "It can be updated by expression language.")
+                                    + "If you don't set this property, the inferred schema will be used.\n")
                     .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                     .required(false)
                     .build();
@@ -90,8 +87,8 @@ public class PutIoTDB extends AbstractIoTDB {
     static final PropertyDescriptor ALIGNED =
             new PropertyDescriptor.Builder()
                     .name("Aligned")
-                    .description("Whether using aligned interface? It can be updated by expression language.")
-                    .allowableValues(new String[] {"true", "false"})
+                    .description("Whether to use the Apache IoTDB Aligned Timeseries interface")
+                    .allowableValues("true", "false")
                     .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
                     .defaultValue("false")
                     .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -102,9 +99,8 @@ public class PutIoTDB extends AbstractIoTDB {
             new PropertyDescriptor.Builder()
                     .name("Max Row Number")
                     .description(
-                            "Specifies the max row number of each tablet. It can be updated by expression language.")
+                            "Specifies the max row number of each Apache IoTDB Tablet")
                     .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-                    .defaultValue("false")
                     .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                     .required(false)
                     .build();
@@ -135,31 +131,28 @@ public class PutIoTDB extends AbstractIoTDB {
                         .getProperty(RECORD_READER_FACTORY)
                         .asControllerService(RecordReaderFactory.class);
 
-        String timeFieldProperty = processContext.getProperty(TIME_FIELD).getValue();
-        String schemaProperty = processContext.getProperty(SCHEMA).getValue();
-        String alignedProperty = processContext.getProperty(ALIGNED).getValue();
-        String maxRowNumberProperty = processContext.getProperty(MAX_ROW_NUMBER).getValue();
-
         FlowFile flowFile = processSession.get();
 
+        if (flowFile == null) {
+            processSession.transfer(flowFile, REL_SUCCESS);
+            return;
+        }
+
+        String timeFieldProperty = processContext.getProperty(TIME_FIELD).evaluateAttributeExpressions(flowFile).getValue();
+        String schemaProperty = processContext.getProperty(SCHEMA).evaluateAttributeExpressions(flowFile).getValue();
+        String alignedProperty = processContext.getProperty(ALIGNED).evaluateAttributeExpressions(flowFile).getValue();
+        String maxRowNumberProperty = processContext.getProperty(MAX_ROW_NUMBER).evaluateAttributeExpressions(flowFile).getValue();
+
         String timeField = timeFieldProperty != null ? timeFieldProperty : "Time";
-        Boolean aligned = alignedProperty != null ? Boolean.valueOf(alignedProperty) : false;
+        final boolean aligned = alignedProperty != null ? Boolean.valueOf(alignedProperty) : false;
         int maxRowNumber = maxRowNumberProperty != null ? Integer.valueOf(maxRowNumberProperty) : 1024;
 
         try (final InputStream inputStream = processSession.read(flowFile);
              final RecordReader recordReader =
                      recordParserFactory.createRecordReader(flowFile, inputStream, getLogger())) {
-            if (flowFile == null) {
-                inputStream.close();
-                recordReader.close();
-                processSession.transfer(flowFile, REL_SUCCESS);
-                return;
-            }
-
-            HashMap<String, Tablet> tablets;
             boolean needInitFormatter;
-            Schema schema;
-            Tuple<Boolean, String> result;
+            IoTDBSchema schema;
+            ValidationResult result;
 
             result =
                     schemaProperty != null
@@ -167,37 +160,37 @@ public class PutIoTDB extends AbstractIoTDB {
                             : validateSchema(recordReader.getSchema());
 
             if (!result.getKey()) {
-                getLogger().error(result.getValue());
+                getLogger().error(String.format("The property `schema` has an error: %s", result.getValue()));
                 inputStream.close();
                 recordReader.close();
                 processSession.transfer(flowFile, REL_FAILURE);
                 return;
             } else {
                 if (result.getValue() != null) {
-                    getLogger().warn(result.getValue());
+                    getLogger().warn(String.format("The property `schema` has a warn: %s", result.getValue()));
                 }
             }
 
             schema =
                     schemaProperty != null
-                            ? new ObjectMapper().readValue(schemaProperty, Schema.class)
+                            ? mapper.readValue(schemaProperty, IoTDBSchema.class)
                             : convertSchema(recordReader.getSchema());
 
             List<String> fieldNames = schema.getFieldNames();
 
-            needInitFormatter = schema.getTimeType() != Schema.TimeType.LONG;
+            needInitFormatter = schema.getTimeType() != IoTDBSchema.TimeType.LONG;
 
-            tablets = generateTablets(schema, maxRowNumber);
-            SimpleDateFormat timeFormatter = null;
+            HashMap<String, Tablet> tablets = generateTablets(schema, maxRowNumber);
+            String format = null;
 
             Record record;
 
             while ((record = recordReader.nextRecord()) != null) {
                 Object[] values = record.getValues();
-                if (timeFormatter == null && needInitFormatter) {
-                    timeFormatter = initFormatter((String) values[0]);
-                    if (timeFormatter == null) {
-                        getLogger().error("The format of time is not supported.");
+                if (format == null && needInitFormatter) {
+                    format = initFormatter((String) values[0]);
+                    if (format == null) {
+                        getLogger().error("{} Record [{}] time format not supported\", flowFile, recordNumber");
                         inputStream.close();
                         recordReader.close();
                         processSession.transfer(flowFile, REL_FAILURE);
@@ -207,12 +200,12 @@ public class PutIoTDB extends AbstractIoTDB {
 
                 long timestamp;
                 if (needInitFormatter) {
-                    timestamp = timeFormatter.parse((String) values[0]).getTime();
+                    timestamp = record.getAsDate(timeField, format).getTime();
                 } else {
                     timestamp = (Long) values[0];
                 }
 
-                boolean flag = false;
+                boolean isFulled = false;
 
                 for (Map.Entry<String, Tablet> entry : tablets.entrySet()) {
                     String device = entry.getKey();
@@ -230,17 +223,18 @@ public class PutIoTDB extends AbstractIoTDB {
                                         .toString();
                         int valueIndex = fieldNames.indexOf(tsName) + 1;
                         Object value;
+                        TSDataType type = measurement.getType();
                         try {
-                            TSDataType type = measurement.getType();
                             value = convertType(values[valueIndex], type);
                         } catch (Exception e) {
+                            getLogger().warn(String.format("The value `%s` can't be converted to the type `%s`", values[valueIndex], type));
                             value = null;
                         }
                         tablet.addValue(measurement.getMeasurementId(), rowIndex, value);
                     }
-                    flag = tablet.rowSize == tablet.getMaxRowNumber();
+                    isFulled = tablet.rowSize == tablet.getMaxRowNumber();
                 }
-                if (flag) {
+                if (isFulled) {
                     if (aligned) {
                         session.get().insertAlignedTablets(tablets);
                     } else {
@@ -264,12 +258,11 @@ public class PutIoTDB extends AbstractIoTDB {
                     session.get().insertTablets(tablets);
                 }
             }
-
             inputStream.close();
             recordReader.close();
             processSession.transfer(flowFile, REL_SUCCESS);
         } catch (Exception e) {
-            getLogger().error(e.getMessage());
+            getLogger().error("Processing failed {}", flowFile, e);
             processSession.transfer(flowFile, REL_FAILURE);
         }
     }

@@ -32,6 +32,12 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-iotdb-processors</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-services-api-nar</artifactId>
+            <version>${project.version}</version>
+            <type>nar</type>
+        </dependency>
     </dependencies>
 
 </project>

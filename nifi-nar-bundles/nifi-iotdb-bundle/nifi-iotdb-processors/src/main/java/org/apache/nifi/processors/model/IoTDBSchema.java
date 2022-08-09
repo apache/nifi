@@ -29,7 +29,7 @@ import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
 
-public class Schema {
+public class IoTDBSchema {
     private TimeType timeType;
     private HashMap<String, Field> fieldMap;
     private ArrayList<String> fieldNames;
@@ -40,8 +40,8 @@ public class Schema {
     }
 
     @JsonCreator
-    public Schema(@JsonProperty("fieldName") String timeType, @JsonProperty("fields") List<Field> fields) {
-        this.timeType = "long".equals(timeType) ? TimeType.LONG : TimeType.STRING;
+    public IoTDBSchema(@JsonProperty("timeType") String timeType, @JsonProperty("fields") List<Field> fields) {
+        this.timeType = TimeType.valueOf(timeType);
         this.fieldMap = new HashMap<>();
         this.fieldNames = new ArrayList<>();
         fields.forEach(
@@ -91,8 +91,8 @@ public class Schema {
 
     public static Set<String> getSupportedTimeType() {
         HashSet<String> supportedTimeType = new HashSet<>();
-        supportedTimeType.add("long");
-        supportedTimeType.add("string");
+        supportedTimeType.add("LONG");
+        supportedTimeType.add("STRING");
 
         return supportedTimeType;
     }

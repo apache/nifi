@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.processors;
 
-import java.text.SimpleDateFormat;
-
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,7 +31,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processors.model.Field;
-import org.apache.nifi.processors.model.Schema;
+import org.apache.nifi.processors.model.IoTDBSchema;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.session.Session;
 import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
@@ -46,13 +46,20 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.model.ValidationResult;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.util.Tuple;
 
 public abstract class AbstractIoTDB extends AbstractProcessor {
     private static final int DEFAULT_IOTDB_PORT = 6667;
+
+    protected static ObjectMapper mapper = new ObjectMapper();
+
+    private static final String TIME_TYPE = "timeType";
+    private static final String FIELDS = "fields";
+    private static final String TIME = "Time";
+    private static final String PREFIX = "root.";
 
     private static Map<RecordFieldType, TSDataType> typeMap =
             new HashMap<>();
@@ -63,7 +70,7 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
     static final Set<RecordFieldType> supportedTimeType =
             new HashSet<>();
 
-    private static final String[] STRING_TIME_FORMAT =
+    protected static final String[] STRING_TIME_FORMAT =
             new String[]{
                     "yyyy-MM-dd HH:mm:ss.SSSX",
                     "yyyy/MM/dd HH:mm:ss.SSSX",
@@ -182,19 +189,16 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
     protected final AtomicReference<Session> session = new AtomicReference<>(null);
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
+    public void onScheduled(ProcessContext context) throws IoTDBConnectionException {
         connectToIoTDB(context);
     }
 
-    void connectToIoTDB(ProcessContext context) {
+    void connectToIoTDB(ProcessContext context) throws IoTDBConnectionException {
         if (session.get() == null) {
-            final String host, username, password;
-            final int port;
-
-            host = context.getProperty(IOTDB_HOST).getValue();
-            port = Integer.parseInt(context.getProperty(IOTDB_PORT).getValue());
-            username = context.getProperty(USERNAME).getValue();
-            password = context.getProperty(PASSWORD).getValue();
+            final String host = context.getProperty(IOTDB_HOST).getValue();
+            final int port = Integer.parseInt(context.getProperty(IOTDB_PORT).getValue());
+            final String username = context.getProperty(USERNAME).getValue();
+            final String password = context.getProperty(PASSWORD).getValue();
 
             session.set(
                     new Session.Builder()
@@ -203,12 +207,7 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
                             .username(username)
                             .password(password)
                             .build());
-            try {
-                session.get().open();
-            } catch (IoTDBConnectionException e) {
-                getLogger().error(e.getMessage());
-                e.printStackTrace();
-            }
+            session.get().open();
         }
     }
 
@@ -217,7 +216,7 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
             try {
                 session.get().close();
             } catch (IoTDBConnectionException e) {
-                e.printStackTrace();
+                getLogger().error("IoTDB disconnection failed", e);
             }
             session.set(null);
         }
@@ -227,44 +226,43 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
         return typeMap.get(type);
     }
 
-    protected Tuple<Boolean, String> validateSchemaAttribute(String schemaAttribute) {
-        ObjectMapper mapper = new ObjectMapper();
+    protected ValidationResult validateSchemaAttribute(String schemaAttribute) {
         JsonNode schema = null;
         try {
             schema = mapper.readTree(schemaAttribute);
         } catch (JsonProcessingException e) {
-            return new Tuple<>(false, e.getMessage());
+            return new ValidationResult(false, e.getMessage());
         }
         Set<String> keySet = new HashSet<>();
         schema.fieldNames().forEachRemaining(field -> keySet.add(field));
 
-        if (!keySet.contains("timeType") || !keySet.contains("fields")) {
-            String msg = "The JSON of schema must contain `timeType` and `fields`.";
-            return new Tuple<>(false, msg);
+        if (!keySet.contains(TIME_TYPE) || !keySet.contains(FIELDS)) {
+            String msg = "The JSON of schema must contain `timeType` and `fields`";
+            return new ValidationResult(false, msg);
         }
 
-        if (!Schema.getSupportedTimeType().contains(schema.get("timeType").asText().toLowerCase())) {
+        if (!IoTDBSchema.getSupportedTimeType().contains(schema.get(TIME_TYPE).asText())) {
             String msg =
                     String.format(
-                            "Unknown `timeType`: %s, there are only two options `long` and `string` for this property.",
-                            schema.get("timeType").asText());
-            return new Tuple<>(false, msg);
+                            "Unknown `timeType`: %s, there are only two options `LONG` and `STRING` for this property",
+                            schema.get(TIME_TYPE).asText());
+            return new ValidationResult(false, msg);
         }
 
-        for (int i = 0; i < schema.get("fields").size(); i++) {
-            JsonNode field = schema.get("fields").get(i);
+        for (int i = 0; i < schema.get(FIELDS).size(); i++) {
+            JsonNode field = schema.get(FIELDS).get(i);
             Set<String> fieldKeySet = new HashSet<>();
 
             field.fieldNames().forEachRemaining(fieldName -> fieldKeySet.add(fieldName));
             if (!fieldKeySet.contains("tsName") || !fieldKeySet.contains("dataType")) {
-                String msg = "`tsName` or `dataType` has not been set.";
-                return new Tuple<>(false, msg);
+                String msg = "`tsName` or `dataType` has not been set";
+                return new ValidationResult(false, msg);
             }
 
-            if (!field.get("tsName").asText().startsWith("root.")) {
+            if (!field.get("tsName").asText().startsWith(PREFIX)) {
                 String msg =
-                        String.format("The tsName `%s` is not start with 'root.'.", field.get("tsName").asText());
-                return new Tuple<>(false, msg);
+                        String.format("The tsName `%s` is not start with 'root.'", field.get("tsName").asText());
+                return new ValidationResult(false, msg);
             }
 
             if (!Field.getSupportedDataType().contains(field.get("dataType").asText())) {
@@ -272,7 +270,7 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
                         String.format(
                                 "Unknown `dataType`: %s. The supported dataTypes are %s",
                                 field.get("dataType").asText(), Field.getSupportedDataType());
-                return new Tuple<>(false, msg);
+                return new ValidationResult(false, msg);
             }
 
             Set<String> supportedKeySet = new HashSet<>();
@@ -287,13 +285,13 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
             tmpKetSet.removeAll(supportedKeySet);
             if (!tmpKetSet.isEmpty()) {
                 String msg = "Unknown property or properties: " + tmpKetSet;
-                return new Tuple<>(false, msg);
+                return new ValidationResult(false, msg);
             }
 
             if (fieldKeySet.contains("compressionType") && !fieldKeySet.contains("encoding")) {
                 String msg =
-                        "The `compressionType` has been set, but the `encoding` has not. The property `compressionType` will not take effect.";
-                return new Tuple<>(true, msg);
+                        "The `compressionType` has been set, but the `encoding` has not. The property `compressionType` will not take effect";
+                return new ValidationResult(true, msg);
             }
 
             if (field.get("encoding") != null
@@ -302,7 +300,7 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
                         String.format(
                                 "Unknown `encoding`: %s, The supported encoding types are %s",
                                 field.get("encoding").asText(), Field.getSupportedEncoding());
-                return new Tuple<>(false, msg);
+                return new ValidationResult(false, msg);
             }
 
             if (field.get("compressionType") != null
@@ -311,27 +309,27 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
                         String.format(
                                 "Unknown `compressionType`: %s, The supported compressionType are %s",
                                 field.get("compressionType").asText(), Field.getSupportedCompressionType());
-                return new Tuple<>(false, msg);
+                return new ValidationResult(false, msg);
             }
         }
 
-        return new Tuple<>(true, null);
+        return new ValidationResult(true, null);
     }
 
-    protected Tuple<Boolean, String> validateSchema(RecordSchema recordSchema) {
+    protected ValidationResult validateSchema(RecordSchema recordSchema) {
         List<String> fieldNames = recordSchema.getFieldNames();
         List<DataType> dataTypes = recordSchema.getDataTypes();
-        if (!fieldNames.contains("Time")) {
-            return new Tuple<>(false, "The fields must contain `Time`.");
+        if (!fieldNames.contains(TIME)) {
+            return new ValidationResult(false, "The fields must contain `Time`");
         }
-        if (!supportedTimeType.contains(recordSchema.getDataType("Time").get().getFieldType())) {
-            return new Tuple<>(false, "The dataType of `Time` must be `STRING` or `LONG`.");
+        if (!supportedTimeType.contains(recordSchema.getDataType(TIME).get().getFieldType())) {
+            return new ValidationResult(false, "The dataType of `Time` must be `STRING` or `LONG`");
         }
-        fieldNames.remove("Time");
+        fieldNames.remove(TIME);
         for (String fieldName : fieldNames) {
-            if (!fieldName.startsWith("root.")) {
-                String msg = String.format("The tsName `%s` is not start with 'root.'.", fieldName);
-                return new Tuple<>(false, msg);
+            if (!fieldName.startsWith(PREFIX)) {
+                String msg = String.format("The tsName `%s` is not start with 'root.'", fieldName);
+                return new ValidationResult(false, msg);
             }
         }
         for (DataType type : dataTypes) {
@@ -341,11 +339,11 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
                         String.format(
                                 "Unknown `dataType`: %s. The supported dataTypes are %s",
                                 dataType.toString(), supportedType);
-                return new Tuple<>(false, msg);
+                return new ValidationResult(false, msg);
             }
         }
 
-        return new Tuple<>(true, null);
+        return new ValidationResult(true, null);
     }
 
     protected Map<String, List<String>> parseSchema(List<String> filedNames) {
@@ -365,7 +363,7 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
         return deviceMeasurementMap;
     }
 
-    protected HashMap<String, Tablet> generateTablets(Schema schema, int maxRowNumber) {
+    protected HashMap<String, Tablet> generateTablets(IoTDBSchema schema, int maxRowNumber) {
         Map<String, List<String>> deviceMeasurementMap = parseSchema(schema.getFieldNames());
         HashMap<String, Tablet> tablets = new HashMap<>();
         deviceMeasurementMap.forEach(
@@ -390,14 +388,13 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
         return tablets;
     }
 
-    protected SimpleDateFormat initFormatter(String time) {
-        for (String timeFormat : STRING_TIME_FORMAT) {
-            SimpleDateFormat format = new SimpleDateFormat(timeFormat);
+    protected String initFormatter(String time) {
+        for (String format : STRING_TIME_FORMAT) {
             try {
-                format.parse(time);
+                DateTimeFormatter.ofPattern(format).parse(time);
                 return format;
-            } catch (java.text.ParseException ignored) {
-                // do nothing
+            } catch (DateTimeParseException e) {
+
             }
         }
         return null;
@@ -422,13 +419,13 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
         }
     }
 
-    protected Schema convertSchema(RecordSchema recordSchema) {
+    protected IoTDBSchema convertSchema(RecordSchema recordSchema) {
         String timeType =
-                recordSchema.getDataType("Time").get().getFieldType() == RecordFieldType.LONG
-                        ? "long"
-                        : "string";
+                recordSchema.getDataType(TIME).get().getFieldType() == RecordFieldType.LONG
+                        ? "LONG"
+                        : "STRING";
         List<String> fieldNames = recordSchema.getFieldNames();
-        fieldNames.remove("Time");
+        fieldNames.remove(TIME);
 
         ArrayList<Field> fields = new ArrayList<>();
         fieldNames.forEach(
@@ -436,7 +433,7 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
                         fields.add(
                                 new Field(
                                         fieldName, getType(recordSchema.getDataType(fieldName).get().getFieldType()))));
-        Schema schema = new Schema(timeType, fields);
+        IoTDBSchema schema = new IoTDBSchema(timeType, fields);
         return schema;
     }
 }
