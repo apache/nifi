@@ -39,4 +39,3 @@ public enum OperandType {
         return super.toString().toLowerCase();
     }
 }
-

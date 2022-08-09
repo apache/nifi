@@ -42,6 +42,8 @@ public class SimpleC2ProtocolService implements C2ProtocolService {
     private static final Logger logger = LoggerFactory.getLogger(SimpleC2ProtocolService.class);
 
     private static final Set<String> issuedOperationIds = new HashSet<>();
+    private static final String LOCATION = "location";
+    private static final String FLOW_ID = "flowId";
 
     private final Map<String, String> currentFlowIds;
 
@@ -108,7 +110,10 @@ public class SimpleC2ProtocolService implements C2ProtocolService {
             c2Operation.setIdentifier(operationID);
             c2Operation.setOperation(OperationType.UPDATE);
             c2Operation.setOperand(OperandType.CONFIGURATION);
-            c2Operation.setArgs(Collections.singletonMap("location", context.getBaseUri().toString()));
+            Map<String, String> args = new HashMap<>();
+            args.put(LOCATION, context.getBaseUri().toString());
+            args.put(FLOW_ID, context.getSha256());
+            c2Operation.setArgs(args);
             List<C2Operation> requestedOperations = Collections.singletonList(c2Operation);
             c2HeartbeatResponse.setRequestedOperations(requestedOperations);
             currentFlowIds.put(heartbeat.getAgentId(), context.getSha256());
