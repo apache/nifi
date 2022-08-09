@@ -2896,7 +2896,7 @@ A complete example of configuring the HTTP service could look like the following
 
 [[proxy_configuration]]
 == Proxy Configuration
-​When running Apache NiFi behind a proxy there are a couple of key items to be aware of during deployment.
+When running Apache NiFi behind a proxy there are a couple of key items to be aware of during deployment.
 
 * NiFi is comprised of a number of web applications (web UI, web API, documentation, custom UIs, data viewers, etc), so the mapping needs to be configured for the *root path*. That way all context
 paths are passed through accordingly. For instance, if only the `/nifi` context path was mapped, the custom UI for UpdateAttribute will not work, since it is available at `/update-attribute-ui-<version>`.
@@ -2964,6 +2964,55 @@ present in the allow list, the "An unexpected error has occurred" page will be s
 * Additional configurations at both proxy server and NiFi cluster are required to make NiFi Site-to-Site work behind reverse proxies. See <<site_to_site_reverse_proxy_properties>> for details.
 
 ** In order to transfer data via Site-to-Site protocol through reverse proxies, both proxy and Site-to-Site client NiFi users need to have following policies, 'retrieve site-to-site details', 'receive data via site-to-site' for input ports, and 'send data via site-to-site' for output ports.
+
+[[session_affinity]]
+=== Session Affinity
+
+All HTTP requests from a single client must be routed to the same Apache NiFi node for the duration of an authenticated
+session. This applies to both browser-based users and programmatic clients accessing the REST API. This is not a concern
+for standalone deployments or direct network access to Apache NiFi, but accessing clustered nodes through a proxy server
+or load balancer requires enabling session affinity, also known as sticky sessions. Session affinity is required for
+mediated access to traditional cluster deployments as well as containerized deployments using platforms such as
+Kubernetes.
+
+Access to clustered deployments through a gateway requires session affinity for the following reasons:
+
+* Each node uses a local key for signing and verifying JSON Web Tokens
+* Each node uses a local cache for tracking configuration change transactions
+
+Attempting to access a clustered node through a gateway without session affinity will result in intermittent failures of
+various types. When authenticating to Apache NiFi with username and password credentials, the lack of session affinity
+often results in HTTP 401 Unauthorized responses, indicating that the node did not accept the JSON Web Token. These
+failures can occur at different times based on the load balancing strategy. Accessing Apache NiFi using an X.509
+certificate avoids the verification issues associated with JSON Web Tokens, but is still subject to problems related to
+configuration change transaction handling across cluster nodes.
+
+==== Session Affinity Configuration
+
+Enabling session affinity requires different settings depending on the product or service providing access. It is
+essential that the session affinity configuration has a timeout that is greater than the session expiration when
+authenticating with username and password credentials.
+
+===== Apache HTTP Server Configuration
+
+link:https://httpd.apache.org[Apache HTTP Server] supports session affinity in the
+link:https://httpd.apache.org/docs/2.4/mod/mod_proxy.html[mod_proxy] module using the
+link:https://httpd.apache.org/docs/2.4/mod/mod_proxy.html#proxypass[ProxyPass] directive with the
+link:https://httpd.apache.org/docs/2.4/mod/mod_proxy_balancer.html#stickyness_implementation[stickysession] parameter to
+configure a cookie name for request routing.
+
+===== Kubernetes Nginx Ingress Controller
+
+The link:https://kubernetes.github.io/ingress-nginx/[Kubernetes Nginx Ingress Controller]
+supports session affinity using deployment annotations to configure
+link:https://kubernetes.github.io/ingress-nginx/examples/affinity/cookie/[sticky sessions] with cookies. The deployment
+annotations provide the ability to configure cookie attributes, including expiration.
+
+===== Nginx Configuration
+
+link:https://nginx.org/[Nginx] supports session affinity in the upstream module using the
+link:https://nginx.org/en/docs/http/ngx_http_upstream_module.html#sticky[sticky] directive. The *sticky* directive
+supports different strategies, including *cookie* and *route* options.
 
 [[kerberos_service]]
 == Kerberos Service
