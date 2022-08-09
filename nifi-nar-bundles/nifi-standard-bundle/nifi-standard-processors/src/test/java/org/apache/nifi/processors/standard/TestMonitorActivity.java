@@ -287,7 +287,6 @@ public class TestMonitorActivity {
         restoredFlowFile.assertAttributeNotEquals(CoreAttributes.UUID.key(), originalFlowFile.getAttribute(CoreAttributes.UUID.key()));
         restoredFlowFile.assertAttributeNotEquals(CoreAttributes.FILENAME.key(), originalFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
         assertNotEquals(restoredFlowFile.getSize(), originalFlowFile.getSize());
-        assertNotEquals(restoredFlowFile.getLineageStartDate(), originalFlowFile.getLineageStartDate());
 
         runner.clearTransferState();
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "true");
@@ -315,7 +314,6 @@ public class TestMonitorActivity {
         restoredFlowFile.assertAttributeNotEquals(CoreAttributes.UUID.key(), originalFlowFile.getAttribute(CoreAttributes.UUID.key()));
         restoredFlowFile.assertAttributeNotEquals(CoreAttributes.FILENAME.key(), originalFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
         assertNotEquals(restoredFlowFile.getSize(), originalFlowFile.getSize());
-        assertNotEquals(restoredFlowFile.getLineageStartDate(), originalFlowFile.getLineageStartDate());
     }
 
     @Timeout(5)
