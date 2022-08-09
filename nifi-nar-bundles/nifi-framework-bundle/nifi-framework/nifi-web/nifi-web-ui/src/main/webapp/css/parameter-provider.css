@@ -317,7 +317,7 @@ span.parameter-provider-referencing-component-name {
 
 #selectable-parameters-table input[type="checkbox"] {
     margin-top: 4px;
-    width: 5px;
+    width: 0;
 }
 
 #selectable-parameters-table input[type="checkbox"]:focus {
@@ -325,16 +325,23 @@ span.parameter-provider-referencing-component-name {
     border: none;
 }
 
+#selectable-parameters-table .slick-column-name input[type="checkbox"] {
+    margin-top: 7px;
+}
+
 #selectable-parameters-table input[type="checkbox"]:before {
     content: url(../images/inputCheckbox.png);
     cursor: pointer;
-    clip-path: polygon(0% -16%, 52% -16%, 52% 104%, 0% 104%);
+    clip-path: polygon(0% -16%, 50% -16%, 50% 104%, 0% 104%);
+    position: absolute;
+    margin-left: 1px;
+    margin-top: 2px;
 }
 
 #selectable-parameters-table input[checked="checked"]:before {
     content: url(../images/inputCheckbox.png);
     cursor: pointer;
-    clip-path: polygon(48% -16%, 100% -16%, 100% 116%, 48% 116%);
+    clip-path: polygon(50% -16%, 100% -16%, 100% 116%, 50% 116%);
     margin-left: -11px;
     margin-top: 1px;
 }
