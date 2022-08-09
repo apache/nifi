@@ -199,7 +199,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .build();
 
     public static final PropertyDescriptor PROP_SESSION_EXPIRY_INTERVAL = new PropertyDescriptor.Builder()
-            .name("Session Expiry Interval")
+            .name("Session Expiry Interval (seconds)")
             .description("After this interval the broker will expire the client and clear the session state.")
             .addValidator(StandardValidators.NON_NEGATIVE_LONG_VALIDATOR)
             .dependsOn(PROP_MQTT_VERSION, ALLOWABLE_VALUE_MQTT_VERSION_500)
