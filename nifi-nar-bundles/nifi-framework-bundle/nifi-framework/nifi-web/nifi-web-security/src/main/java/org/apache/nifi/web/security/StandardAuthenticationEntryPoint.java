@@ -45,6 +45,8 @@ public class StandardAuthenticationEntryPoint implements AuthenticationEntryPoin
 
     protected static final String UNAUTHORIZED = "Unauthorized";
 
+    private static final String ROOT_PATH = "/";
+
     private static final ApplicationCookieService applicationCookieService = new StandardApplicationCookieService();
 
     private final BearerTokenAuthenticationEntryPoint bearerTokenAuthenticationEntryPoint;
@@ -91,7 +93,7 @@ public class StandardAuthenticationEntryPoint implements AuthenticationEntryPoin
     private void removeAuthorizationBearerCookie(final HttpServletRequest request, final HttpServletResponse response) {
         final Optional<String> authorizationBearer = applicationCookieService.getCookieValue(request, ApplicationCookieName.AUTHORIZATION_BEARER);
         if (authorizationBearer.isPresent()) {
-            final URI uri = RequestUriBuilder.fromHttpServletRequest(request).build();
+            final URI uri = RequestUriBuilder.fromHttpServletRequest(request).path(ROOT_PATH).build();
             applicationCookieService.removeCookie(uri, response, ApplicationCookieName.AUTHORIZATION_BEARER);
         }
     }

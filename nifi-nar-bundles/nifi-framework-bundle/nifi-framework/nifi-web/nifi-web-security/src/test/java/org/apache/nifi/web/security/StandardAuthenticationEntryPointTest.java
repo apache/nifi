@@ -17,6 +17,7 @@
 package org.apache.nifi.web.security;
 
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
+import org.apache.nifi.web.util.WebUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -26,10 +27,12 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
 
+import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -40,6 +43,14 @@ class StandardAuthenticationEntryPointTest {
     static final String FAILED = "Authentication Failed";
 
     static final String BEARER_TOKEN = "Bearer Token";
+
+    static final String ROOT_PATH = "/";
+
+    static final String FORWARDED_PATH = "/forwarded";
+
+    static final String FORWARDED_COOKIE_PATH = String.format("%s/", FORWARDED_PATH);
+
+    private static final String ALLOWED_CONTEXT_PATHS_PARAMETER = "allowedContextPaths";
 
     MockHttpServletRequest request;
 
@@ -101,12 +112,38 @@ class StandardAuthenticationEntryPointTest {
         request.setCookies(cookie);
         authenticationEntryPoint.commence(request, response, exception);
 
-        assertEquals(HttpServletResponse.SC_UNAUTHORIZED, response.getStatus());
+        assertResponseStatusUnauthorized();
+        assertBearerCookieRemoved(ROOT_PATH);
+    }
 
-        final Cookie responseCookie = response.getCookie(ApplicationCookieName.AUTHORIZATION_BEARER.getCookieName());
-        assertNotNull(responseCookie);
+    @Test
+    void testCommenceRemoveCookieForwardedPath() throws ServletException, IOException {
+        final AuthenticationException exception = new AuthenticationServiceException(FAILED);
+
+        final ServletContext servletContext = request.getServletContext();
+        servletContext.setInitParameter(ALLOWED_CONTEXT_PATHS_PARAMETER, FORWARDED_PATH);
+
+        request.addHeader(WebUtils.FORWARDED_PREFIX_HTTP_HEADER, FORWARDED_PATH);
+
+        final Cookie cookie = new Cookie(ApplicationCookieName.AUTHORIZATION_BEARER.getCookieName(), BEARER_TOKEN);
+        request.setCookies(cookie);
+        authenticationEntryPoint.commence(request, response, exception);
+
+        assertResponseStatusUnauthorized();
+        assertBearerCookieRemoved(FORWARDED_COOKIE_PATH);
+    }
+
+    void assertResponseStatusUnauthorized() throws UnsupportedEncodingException {
+        assertEquals(HttpServletResponse.SC_UNAUTHORIZED, response.getStatus());
 
         final String content = response.getContentAsString();
         assertEquals(StandardAuthenticationEntryPoint.UNAUTHORIZED, content);
+    }
+
+    void assertBearerCookieRemoved(final String expectedCookiePath) {
+        final Cookie responseCookie = response.getCookie(ApplicationCookieName.AUTHORIZATION_BEARER.getCookieName());
+
+        assertNotNull(responseCookie);
+        assertEquals(expectedCookiePath, responseCookie.getPath());
     }
 }
