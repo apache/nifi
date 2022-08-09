@@ -21,6 +21,7 @@ import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.idp.IdpType;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
+import org.apache.nifi.web.util.WebUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +33,7 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 
+import javax.servlet.ServletContext;
 import javax.servlet.http.Cookie;
 import java.time.Duration;
 import java.util.Collections;
@@ -58,13 +60,27 @@ class Saml2AuthenticationSuccessHandlerTest {
 
     private static final String REQUEST_URI = "/nifi-api";
 
+    private static final String UI_PATH = "/nifi/";
+
     private static final int SERVER_PORT = 8080;
 
-    private static final String TARGET_URL = "http://localhost:8080/nifi/";
+    private static final String LOCALHOST_URL = "http://localhost:8080";
+
+    private static final String TARGET_URL = String.format("%s%s", LOCALHOST_URL, UI_PATH);
+
+    static final String FORWARDED_PATH = "/forwarded";
+
+    static final String FORWARDED_COOKIE_PATH = String.format("%s/", FORWARDED_PATH);
+
+    private static final String FORWARDED_TARGET_URL = String.format("%s%s%s", LOCALHOST_URL, FORWARDED_PATH, UI_PATH);
 
     private static final String FIRST_GROUP = "$1";
 
     private static final Pattern MATCH_PATTERN = Pattern.compile("(.*)");
+
+    static final String ROOT_PATH = "/";
+
+    private static final String ALLOWED_CONTEXT_PATHS_PARAMETER = "allowedContextPaths";
 
     private static final IdentityMapping UPPER_IDENTITY_MAPPING = new IdentityMapping(
             IdentityMapping.Transform.UPPER.toString(),
@@ -111,15 +127,40 @@ class Saml2AuthenticationSuccessHandlerTest {
     void testDetermineTargetUrl() {
         httpServletRequest.setRequestURI(REQUEST_URI);
 
+        assertTargetUrlEquals(TARGET_URL);
+        assertBearerCookieAdded(ROOT_PATH);
+        assertReplaceUserGroupsInvoked();
+    }
+
+    @Test
+    void testDetermineTargetUrlForwardedPath() {
+        final ServletContext servletContext = httpServletRequest.getServletContext();
+        servletContext.setInitParameter(ALLOWED_CONTEXT_PATHS_PARAMETER, FORWARDED_PATH);
+        httpServletRequest.addHeader(WebUtils.FORWARDED_PREFIX_HTTP_HEADER, FORWARDED_PATH);
+
+        httpServletRequest.setRequestURI(REQUEST_URI);
+
+        assertTargetUrlEquals(FORWARDED_TARGET_URL);
+        assertBearerCookieAdded(FORWARDED_COOKIE_PATH);
+        assertReplaceUserGroupsInvoked();
+    }
+
+    void assertReplaceUserGroupsInvoked() {
+        verify(idpUserGroupService).replaceUserGroups(eq(IDENTITY_UPPER), eq(IdpType.SAML), eq(Collections.singleton(AUTHORITY_LOWER)));
+    }
+
+    void assertTargetUrlEquals(final String expectedTargetUrl) {
         final Authentication authentication = new TestingAuthenticationToken(IDENTITY, IDENTITY, AUTHORITY);
 
         final String targetUrl = handler.determineTargetUrl(httpServletRequest, httpServletResponse, authentication);
 
-        assertEquals(TARGET_URL, targetUrl);
+        assertEquals(expectedTargetUrl, targetUrl);
+    }
 
-        verify(idpUserGroupService).replaceUserGroups(eq(IDENTITY_UPPER), eq(IdpType.SAML), eq(Collections.singleton(AUTHORITY_LOWER)));
+    void assertBearerCookieAdded(final String expectedCookiePath) {
+        final Cookie responseCookie = httpServletResponse.getCookie(ApplicationCookieName.AUTHORIZATION_BEARER.getCookieName());
 
-        final Cookie bearerCookie = httpServletResponse.getCookie(ApplicationCookieName.AUTHORIZATION_BEARER.getCookieName());
-        assertNotNull(bearerCookie);
+        assertNotNull(responseCookie);
+        assertEquals(expectedCookiePath, responseCookie.getPath());
     }
 }
