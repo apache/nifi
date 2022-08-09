@@ -1111,7 +1111,9 @@
         var proposedParamContextName = $('#parameter-context-name').val();
         var proposedParamContextDesc = $('#parameter-context-description-field').val();
         var inheritedParameterContexts = marshalInheritedParameterContexts();
-        var componentDescription = _.get(parameterContextEntity, 'component.description') === null ? '' : _.get(parameterContextEntity, 'component.description');
+        var componentDescription = nfCommon.isDefinedAndNotNull(_.get(parameterContextEntity, 'component.description'))
+            ? _.get(parameterContextEntity, 'component.description')
+            : '';
 
         var inheritedParameterContextEquals = isInheritedParameterContextEquals(parameterContextEntity, inheritedParameterContexts);
         if (inheritedParameterContextEquals) {

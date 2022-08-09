@@ -316,7 +316,7 @@ span.parameter-provider-referencing-component-name {
 }
 
 #selectable-parameters-table input[type="checkbox"] {
-    margin-top: 4px;
+    margin-top: 2px;
     width: 0;
 }
 
@@ -326,7 +326,11 @@ span.parameter-provider-referencing-component-name {
 }
 
 #selectable-parameters-table .slick-column-name input[type="checkbox"] {
-    margin-top: 7px;
+    margin-top: 5px;
+}
+
+#selectable-parameters-table .slick-column-name input[checked="checked"]:before {
+    margin-top: 2px;
 }
 
 #selectable-parameters-table input[type="checkbox"]:before {
