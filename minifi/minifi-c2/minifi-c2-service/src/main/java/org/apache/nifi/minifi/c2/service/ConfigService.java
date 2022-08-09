@@ -229,7 +229,7 @@ public class ConfigService {
                     configuration = configurationProviderValue.getConfiguration();
                 } catch (ConfigurationProviderException cpe) {
                     logger.warn("No flow available for agent class " + agentClass + ", returning No Content (204)");
-                    response = Response.noContent().build();
+                    response = Response.ok(new C2HeartbeatResponse()).build();
                     return response;
                 }
                 try (InputStream inputStream = configuration.getInputStream();
