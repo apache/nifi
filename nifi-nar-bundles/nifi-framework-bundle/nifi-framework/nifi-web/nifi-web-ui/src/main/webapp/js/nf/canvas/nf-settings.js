@@ -2494,12 +2494,14 @@
             var providers = [];
             $.each(response.parameterProviders, function (_, provider) {
                 providers.push($.extend({
-                    type: 'ParameterProvider'
+                    type: 'ParameterProvider',
+                    bulletins: []
                 }, provider));
             });
 
             var parameterProvidersElement = $('#parameter-providers-table');
             nfCommon.cleanUpTooltips(parameterProvidersElement, 'div.has-errors');
+            nfCommon.cleanUpTooltips(parameterProvidersElement, 'div.has-bulletins');
 
             var parameterProvidersGrid = parameterProvidersElement.data('gridInstance');
             var parameterProvidersData = parameterProvidersGrid.getData();
@@ -2674,13 +2676,13 @@
 
                     var parameterProviderTypesGrid = $('#parameter-provider-types-table').data('gridInstance');
                     if (nfCommon.isDefinedAndNotNull(parameterProviderTypesGrid)) {
-                        var reportingTaskTypesData = parameterProviderTypesGrid.getData();
+                        var parameterProviderTypesData = parameterProviderTypesGrid.getData();
 
                         // reset the canvas size after the dialog is shown
                         parameterProviderTypesGrid.resizeCanvas();
 
                         // select the first row if possible
-                        if (reportingTaskTypesData.getLength() > 0) {
+                        if (parameterProviderTypesData.getLength() > 0) {
                             nfFilteredDialogCommon.choseFirstRow(parameterProviderTypesGrid);
                         }
                     }

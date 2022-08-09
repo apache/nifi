@@ -148,8 +148,8 @@
                 return '<span class="blank">' + nfCommon.escapeHtml(dataContext.component.parameterProviderConfiguration.id) + '</span>';
             }
 
-            return nfCommon.escapeHtml(`${dataContext.component.parameterProviderConfiguration.component.parameterGroupName} 
-                from ${dataContext.component.parameterProviderConfiguration.component.parameterProviderName}`);
+            return nfCommon.escapeHtml(dataContext.component.parameterProviderConfiguration.component.parameterGroupName +
+                ' from ' + dataContext.component.parameterProviderConfiguration.component.parameterProviderName);
         }
     };
 
@@ -1111,7 +1111,7 @@
         var proposedParamContextName = $('#parameter-context-name').val();
         var proposedParamContextDesc = $('#parameter-context-description-field').val();
         var inheritedParameterContexts = marshalInheritedParameterContexts();
-        var componentDescription = _.get(parameterContextEntity, 'component.description') ?? '';
+        var componentDescription = _.get(parameterContextEntity, 'component.description') === null ? '' : _.get(parameterContextEntity, 'component.description');
 
         var inheritedParameterContextEquals = isInheritedParameterContextEquals(parameterContextEntity, inheritedParameterContexts);
         if (inheritedParameterContextEquals) {
@@ -2973,8 +2973,8 @@
                     }
 
                     var parameterContextProviderSetting = $('#parameter-context-provider-setting').empty();
-                    var providerContent = nfCommon.escapeHtml(`${parameterContextEntity.component.parameterProviderConfiguration.component.parameterGroupName} 
-                from ${parameterContextEntity.component.parameterProviderConfiguration.component.parameterProviderName}`);
+                    var providerContent = nfCommon.escapeHtml(parameterContextEntity.component.parameterProviderConfiguration.component.parameterGroupName +
+                ' from ' + parameterContextEntity.component.parameterProviderConfiguration.component.parameterProviderName);
 
                     $('<div class="setting-name">Provider</div>' +
                         '<div class="setting-field">' +

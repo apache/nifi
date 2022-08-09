@@ -57,6 +57,9 @@
 #fetch-parameters-dialog .dialog-content div.settings-right {
     float: left;
     width: 30%;
+    height: 100%;
+    position: absolute;
+    left: calc(72% - 20px);
 }
 
 #parameter-provider-configuration-advanced {
@@ -105,10 +108,6 @@
     position: relative;
     height: 300px;
 }
-
-/*#parameter-groups-table .slick-pane .slick-viewport .grid-canvas{*/
-/*    width: 100%;*/
-/*}*/
 
 #fetch-parameters-referencing-components {
     border: 0 solid #CCCCCC;
@@ -271,6 +270,31 @@ div.fetch-parameters-referencing-components {
     line-height: 16px;
 }
 
+#affected-referencing-components-container {
+    position: absolute;
+    bottom: 10px;
+    top: 108px;
+    width: calc(100% - 6px);
+    overflow: auto;
+    border: 0 solid #CCCCCC;
+    padding: 2px;
+}
+
+#affected-referencing-components-container div.referencing-component-references {
+    margin: 0;
+}
+
+.affected-referencing-components-template {
+    position: relative;
+    left: 15px;
+    width: calc(100% - 15px);
+}
+
+span.parameter-provider-referencing-component-name {
+    margin-left: 5px;
+    max-width: calc(100% - 30px);
+}
+
 /*
     Slickgrid selectable parameters table
 */
@@ -291,7 +315,29 @@ div.fetch-parameters-referencing-components {
     overflow-x: hidden;
 }
 
-/*TODO: fix styles*/
+#selectable-parameters-table input[type="checkbox"] {
+    margin-top: 4px;
+    width: 5px;
+}
+
+#selectable-parameters-table input[type="checkbox"]:focus {
+    box-shadow: none;
+    border: none;
+}
+
+#selectable-parameters-table input[type="checkbox"]:before {
+    content: url(../images/inputCheckbox.png);
+    cursor: pointer;
+    clip-path: polygon(0% -16%, 52% -16%, 52% 104%, 0% 104%);
+}
+
+#selectable-parameters-table input[checked="checked"]:before {
+    content: url(../images/inputCheckbox.png);
+    cursor: pointer;
+    clip-path: polygon(48% -16%, 100% -16%, 100% 116%, 48% 116%);
+    margin-left: -11px;
+    margin-top: 1px;
+}
 
 #parameter-groups-table .slick-pane-top .slick-viewport-top .grid-canvas-top,
 #selectable-parameters-table .slick-pane-top .slick-viewport .grid-canvas-top {

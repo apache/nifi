@@ -19,7 +19,7 @@
     <div class="dialog-content">
         <%--settings-left--%>
         <div class="settings-left">
-            <div id="fetch-parameters-container" class="setting">
+            <div id="fetch-parameters-provider-groups-container" class="setting">
                 <div class="setting-name">Name</div>
                 <div class="setting-field">
                     <span id="fetch-parameters-id" class="hidden"></span>
@@ -100,7 +100,6 @@
             <div class="setting">
                 <div class="setting-name">
                     Parameter Contexts To Create
-                    <div class="referencing-components-loading"></div>
                 </div>
                 <div class="setting-field">
                     <div id="parameter-contexts-to-create-container" class="ellipsis"></div>
@@ -119,8 +118,35 @@
                 <div class="setting-name">
                     Affected Referencing Components
                     <div class="fa fa-question-circle" alt="Info" title="Affected components referencing this Parameter Provider."></div>
+                    <div class="referencing-components-loading"></div>
                 </div>
-                <div id="affected-referencing-components-container" class="setting-field"></div>
+                <div id="affected-referencing-components-container" class="setting-field">
+                </div>
+            </div>
+            <div id="affected-referencing-components-template" class="affected-referencing-components-template hidden clear">
+                <div class="setting">
+                    <div class="setting-name">Referencing Processors
+                    </div>
+                    <div class="setting-field">
+                        <ul class="fetch-parameters-referencing-processors"></ul>
+                    </div>
+                </div>
+                <div class="setting">
+                    <div class="setting-name">
+                        Referencing Controller Services
+                    </div>
+                    <div class="setting-field">
+                        <ul class="fetch-parameters-referencing-controller-services"></ul>
+                    </div>
+                </div>
+                <div class="setting">
+                    <div class="setting-name">
+                        Unauthorized referencing components
+                    </div>
+                    <div class="setting-field">
+                        <ul class="fetch-parameters-referencing-unauthorized-components"></ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

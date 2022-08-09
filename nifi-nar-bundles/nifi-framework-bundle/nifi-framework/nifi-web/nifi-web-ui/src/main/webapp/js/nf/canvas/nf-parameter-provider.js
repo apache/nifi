@@ -433,8 +433,8 @@
                     },
                     handler: {
                         click: function () {
-                            if ($('#fetch-parameters-referencing-components').is(':visible')) {
-                                updateReferencingComponentsBorder($('#fetch-parameters-referencing-components'));
+                            if ($('#affected-referencing-components-container').is(':visible')) {
+                                updateReferencingComponentsBorder($('#affected-referencing-components-container'));
                             }
 
                             applyParametersHandler(currentParameterProviderEntity).done(function () {
@@ -454,8 +454,8 @@
                         click: function () {
                             deferred.resolve();
 
-                            if ($('#parameter-referencing-components-container').is(':visible')) {
-                                updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
+                            if ($('#affected-referencing-components-container').is(':visible')) {
+                                updateReferencingComponentsBorder($('#affected-referencing-components-container'));
                             }
 
                             confirmCancelDialog('#fetch-parameters-dialog');
@@ -478,8 +478,8 @@
                     click: function () {
                         cancelled = true;
 
-                        if ($('#fetch-parameters-referencing-components').is(':visible')) {
-                            updateReferencingComponentsBorder($('#fetch-parameters-referencing-components'));
+                        if ($('#affected-referencing-components-container').is(':visible')) {
+                            updateReferencingComponentsBorder($('#affected-referencing-components-container'));
                         }
 
                         updateToCloseButtonModel();
@@ -500,6 +500,10 @@
                     .removeClass('ajax-loading')
                     .addClass('ajax-error');
 
+                if ($('#affected-referencing-components-container').is(':visible')) {
+                    updateReferencingComponentsBorder($('#affected-referencing-components-container'));
+                }
+
                 // update the button model
                 updateToApplyOrCancelButtonModel();
             };
@@ -512,7 +516,8 @@
                     // get the request id
                     requestId = updateRequest.requestId;
 
-                    loadAffectedReferencingComponents($('#affected-referencing-components-container'), updateRequest);
+                    // update the affected referencing components
+                    populateAffectedReferencingComponents(updateRequest.referencingComponents);
 
                     // update the progress/steps
                     populateFetchParametersUpdateStep(updateRequest.updateSteps, cancelled, errored);
@@ -567,7 +572,7 @@
                             updateToCloseButtonModel();
 
                             // check if border is necessary
-                            updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
+                            updateReferencingComponentsBorder($('#affected-referencing-components-container'));
                         } else {
                             // wait to get an updated status
                             setTimeout(function () {
@@ -755,7 +760,7 @@
                     name: groupConfig.groupName,
                     parameterContextName: groupConfig.parameterContextName,
                     parameterSensitivities: groupConfig.parameterSensitivities,
-                    referencingParameterContexts: groupConfig.referencingParameterContexts ?? groupConfig.referencingParameterContexts
+                    referencingParameterContexts: groupConfig.referencingParameterContexts ? groupConfig.referencingParameterContexts : null
                 };
 
                 parameterGroups.push({
@@ -840,28 +845,305 @@
     };
 
     /**
-     * Loads the affected referencing components for this parameter provider.
+     * Populates the affected referencing components for the specified parameter provider.
      *
-     * @param {jQuery} affectedReferencingComponentsContainer
-     * @param {object} parameterProvider
+     * @param {object} referencingComponents
      */
-    var loadAffectedReferencingComponents = function (affectedReferencingComponentsContainer, parameterProvider) {
-        affectedReferencingComponentsContainer.empty();
+    var populateAffectedReferencingComponents = function (referencingComponents) {
+        // toggles the visibility of a container
+        var toggle = function (twist, container) {
+            if (twist.hasClass('expanded')) {
+                twist.removeClass('expanded').addClass('collapsed');
+                container.hide();
+            } else {
+                twist.removeClass('collapsed').addClass('expanded');
+                container.show();
+            }
+        };
 
         // update visibility
         if ($('#fetch-parameters-affected-referencing-components-container').hasClass('hidden')) {
             $('#fetch-parameters-affected-referencing-components-container').removeClass('hidden');
         }
 
-        //TODO: do we need?
-        // if (parameterProvider.permissions.canRead === false) {
-        //     affectedReferencingComponentsContainer.append('<div class="unset">Unauthorized</div>');
-        //     return;
-        // }
+        var referencingProcessors = [];
+        var referencingControllerServices = [];
+        var unauthorizedReferencingComponents = [];
 
-        var affectedReferencingComponents = parameterProvider.affectedComponents;
-        if (nfCommon.isEmpty(affectedReferencingComponents)) {
-            affectedReferencingComponentsContainer.append('<div class="unset">Pending Apply.</div>');
+        var spinner = $('#fetch-parameters-affected-referencing-components-container .referencing-components-loading');
+
+        var loadingDeferred = $.Deferred(function (deferred) {
+            spinner.addClass('ajax-loading');
+            deferred.resolve();
+        });
+        loadingDeferred.then(function () {
+            resetUsage();
+        }).then(function() {
+            var parameterReferencingComponentsContainer = $('#affected-referencing-components-container').empty();
+
+            // referencing component will be undefined when a new parameter is added
+            if (nfCommon.isUndefined(referencingComponents)) {
+                // set to pending
+                $('<div class="referencing-component-container"><span class="unset">Pending Apply</span></div>').appendTo(parameterReferencingComponentsContainer);
+            } else {
+                // bin the referencing components according to their type
+                $.each(referencingComponents, function (_, referencingComponentEntity) {
+                    if (referencingComponentEntity.permissions.canRead === true && referencingComponentEntity.permissions.canWrite === true) {
+                        if (referencingComponentEntity.component.referenceType === 'PROCESSOR') {
+                            referencingProcessors.push(referencingComponentEntity);
+                        } else {
+                            referencingControllerServices.push(referencingComponentEntity);
+                        }
+                    } else {
+                        unauthorizedReferencingComponents.push(referencingComponentEntity);
+                    }
+                });
+
+                var referencingProcessGroups = {};
+
+                // bin the referencing processors according to their PG
+                $.each(referencingProcessors, function (_, referencingProcessorEntity) {
+                    if (referencingProcessGroups[referencingProcessorEntity.processGroup.id]) {
+                        referencingProcessGroups[referencingProcessorEntity.processGroup.id].referencingProcessors.push(referencingProcessorEntity);
+                        referencingProcessGroups[referencingProcessorEntity.processGroup.id].id = referencingProcessorEntity.processGroup.id;
+                        referencingProcessGroups[referencingProcessorEntity.processGroup.id].name = referencingProcessorEntity.processGroup.name;
+                    } else {
+                        referencingProcessGroups[referencingProcessorEntity.processGroup.id] = {
+                            referencingProcessors: [],
+                            referencingControllerServices: [],
+                            unauthorizedReferencingComponents: [],
+                            name: referencingProcessorEntity.processGroup.name,
+                            id: referencingProcessorEntity.processGroup.id
+                        };
+
+                        referencingProcessGroups[referencingProcessorEntity.processGroup.id].referencingProcessors.push(referencingProcessorEntity);
+                    }
+                });
+
+                // bin the referencing CS according to their PG
+                $.each(referencingControllerServices, function (_, referencingControllerServiceEntity) {
+                    if (referencingProcessGroups[referencingControllerServiceEntity.processGroup.id]) {
+                        referencingProcessGroups[referencingControllerServiceEntity.processGroup.id].referencingControllerServices.push(referencingControllerServiceEntity);
+                        referencingProcessGroups[referencingControllerServiceEntity.processGroup.id].id = referencingControllerServiceEntity.processGroup.id;
+                        referencingProcessGroups[referencingControllerServiceEntity.processGroup.id].name = referencingControllerServiceEntity.processGroup.name;
+                    } else {
+                        referencingProcessGroups[referencingControllerServiceEntity.processGroup.id] = {
+                            referencingProcessors: [],
+                            referencingControllerServices: [],
+                            unauthorizedReferencingComponents: [],
+                            name: referencingControllerServiceEntity.processGroup.name,
+                            id: referencingControllerServiceEntity.processGroup.id
+                        };
+
+                        referencingProcessGroups[referencingControllerServiceEntity.processGroup.id].referencingControllerServices.push(referencingControllerServiceEntity);
+                    }
+                });
+
+                // bin the referencing unauthorized components according to their PG
+                $.each(unauthorizedReferencingComponents, function (_, unauthorizedReferencingComponentEntity) {
+                    if (referencingProcessGroups[unauthorizedReferencingComponentEntity.processGroup.id]) {
+                        referencingProcessGroups[unauthorizedReferencingComponentEntity.processGroup.id].unauthorizedReferencingComponents.push(unauthorizedReferencingComponentEntity);
+                        referencingProcessGroups[unauthorizedReferencingComponentEntity.processGroup.id].id = unauthorizedReferencingComponentEntity.processGroup.id;
+                        referencingProcessGroups[unauthorizedReferencingComponentEntity.processGroup.id].name = unauthorizedReferencingComponentEntity.processGroup.name;
+                    } else {
+                        referencingProcessGroups[unauthorizedReferencingComponentEntity.processGroup.id] = {
+                            referencingProcessors: [],
+                            referencingControllerServices: [],
+                            unauthorizedReferencingComponents: [],
+                            name: unauthorizedReferencingComponentEntity.processGroup.name,
+                            id: unauthorizedReferencingComponentEntity.processGroup.id
+                        };
+
+                        referencingProcessGroups[unauthorizedReferencingComponentEntity.processGroup.id].unauthorizedReferencingComponents.push(unauthorizedReferencingComponentEntity);
+                    }
+                });
+
+                var parameterReferencingComponentsContainer = $('#affected-referencing-components-container');
+                var groups = $('<ul class="referencing-component-listing clear"></ul>');
+
+                var referencingProcessGroupsArray = [];
+                for (var key in referencingProcessGroups) {
+                    if (referencingProcessGroups.hasOwnProperty(key)) {
+                        referencingProcessGroupsArray.push(referencingProcessGroups[key]);
+                    }
+                }
+
+                if (nfCommon.isEmpty(referencingProcessGroupsArray)) {
+                    // set to none
+                    $('<div class="referencing-component-container"><span class="unset">None</span></div>').appendTo(parameterReferencingComponentsContainer);
+                } else {
+                    //sort alphabetically
+                    var sortedReferencingProcessGroups = referencingProcessGroupsArray.sort(function (a, b) {
+                        if (a.name < b.name) {
+                            return -1;
+                        }
+                        if (a.name > b.name) {
+                            return 1;
+                        }
+                        return 0;
+                    });
+
+                    sortedReferencingProcessGroups.forEach(function (referencingProcessGroup) {
+                        // container for this pg's references
+                        var referencingPgReferencesContainer = $('<div class="referencing-component-references"></div>');
+                        parameterReferencingComponentsContainer.append(referencingPgReferencesContainer);
+
+                        // create the collapsable listing for each PG
+                        var createReferenceBlock = function (referencingProcessGroup, list) {
+                            var twist = $('<div class="expansion-button collapsed"></div>');
+                            var title = $('<span class="referencing-component-title"></span>').text(referencingProcessGroup.name);
+                            var count = $('<span class="referencing-component-count"></span>').text('(' + (referencingProcessGroup.referencingProcessors.length + referencingProcessGroup.referencingControllerServices.length + referencingProcessGroup.unauthorizedReferencingComponents.length) + ')');
+                            var referencingComponents = $('#affected-referencing-components-template').clone();
+                            referencingComponents.removeAttr('id');
+                            referencingComponents.removeClass('hidden');
+
+                            // create the reference block
+                            var groupTwist = $('<div class="referencing-component-block pointer unselectable"></div>').data('processGroupId', referencingProcessGroup.id).on('click', function () {
+                                if (twist.hasClass('collapsed')) {
+                                    groupTwist.append(referencingComponents);
+
+                                    var processorContainer = groupTwist.find('.fetch-parameters-referencing-processors');
+                                    nfCommon.cleanUpTooltips(processorContainer, 'div.referencing-component-state');
+                                    nfCommon.cleanUpTooltips(processorContainer, 'div.referencing-component-bulletins');
+                                    processorContainer.empty();
+
+                                    var controllerServiceContainer = groupTwist.find('.fetch-parameters-referencing-controller-services');
+                                    nfCommon.cleanUpTooltips(controllerServiceContainer, 'div.referencing-component-state');
+                                    nfCommon.cleanUpTooltips(controllerServiceContainer, 'div.referencing-component-bulletins');
+                                    controllerServiceContainer.empty();
+
+                                    var unauthorizedComponentsContainer = groupTwist.find('.fetch-parameters-referencing-unauthorized-components').empty();
+
+                                    if (referencingProcessGroups[$(this).data('processGroupId')].referencingProcessors.length === 0) {
+                                        $('<li class="referencing-component-container"><span class="unset">None</span></li>').appendTo(processorContainer);
+                                    } else {
+                                        // sort the referencing processors
+                                        referencingProcessGroups[$(this).data('processGroupId')].referencingProcessors.sort(nameComparator);
+
+                                        // render each and register a click handler
+                                        $.each(referencingProcessGroups[$(this).data('processGroupId')].referencingProcessors, function (_, referencingProcessorEntity) {
+                                            renderReferencingProcessor(referencingProcessorEntity, processorContainer);
+                                        });
+                                    }
+
+                                    if (referencingProcessGroups[$(this).data('processGroupId')].referencingControllerServices.length === 0) {
+                                        $('<li class="referencing-component-container"><span class="unset">None</span></li>').appendTo(controllerServiceContainer);
+                                    } else {
+                                        // sort the referencing controller services
+                                        referencingProcessGroups[$(this).data('processGroupId')].referencingControllerServices.sort(nameComparator);
+
+                                        // render each and register a click handler
+                                        $.each(referencingProcessGroups[$(this).data('processGroupId')].referencingControllerServices, function (_, referencingControllerServiceEntity) {
+                                            renderReferencingControllerService(referencingControllerServiceEntity, controllerServiceContainer);
+                                        });
+                                    }
+
+                                    if (referencingProcessGroups[$(this).data('processGroupId')].unauthorizedReferencingComponents.length === 0) {
+                                        $('<li class="referencing-component-container"><span class="unset">None</span></li>').appendTo(unauthorizedComponentsContainer);
+                                    } else {
+                                        // sort the unauthorized referencing components
+                                        referencingProcessGroups[$(this).data('processGroupId')].unauthorizedReferencingComponents.sort(function (a, b) {
+                                            if (a.permissions.canRead === true && b.permissions.canRead === true) {
+                                                // processors before controller services
+                                                var sortVal = a.component.referenceType === b.component.referenceType ? 0 : a.component.referenceType > b.component.referenceType ? -1 : 1;
+
+                                                // if a and b are the same type, then sort by name
+                                                if (sortVal === 0) {
+                                                    sortVal = a.component.name === b.component.name ? 0 : a.component.name > b.component.name ? 1 : -1;
+                                                }
+
+                                                return sortVal;
+                                            } else {
+
+                                                // if lacking read and write perms on both, sort by id
+                                                if (a.permissions.canRead === false && b.permissions.canRead === false) {
+                                                    return a.id > b.id ? 1 : -1;
+                                                } else {
+                                                    // if only one has read perms, then let it come first
+                                                    if (a.permissions.canRead === true) {
+                                                        return -1;
+                                                    } else {
+                                                        return 1;
+                                                    }
+                                                }
+                                            }
+                                        });
+
+                                        $.each(referencingProcessGroups[$(this).data('processGroupId')].unauthorizedReferencingComponents, function (_, unauthorizedReferencingComponentEntity) {
+                                            if (unauthorizedReferencingComponentEntity.permissions.canRead === true) {
+                                                if (unauthorizedReferencingComponentEntity.component.referenceType === 'PROCESSOR') {
+                                                    renderReferencingProcessor(unauthorizedReferencingComponentEntity, unauthorizedComponentsContainer);
+                                                } else {
+                                                    renderReferencingControllerService(unauthorizedReferencingComponentEntity, unauthorizedComponentsContainer);
+                                                }
+                                            } else {
+                                                var referencingUnauthorizedComponentContainer = $('<li class="referencing-component-container"></li>').appendTo(unauthorizedComponentsContainer);
+                                                $('<span class="fetch-parameters-referencing-component-name link ellipsis"></span>')
+                                                    .prop('title', unauthorizedReferencingComponentEntity.id)
+                                                    .text(unauthorizedReferencingComponentEntity.id)
+                                                    .on('click', function () {
+                                                        // // check if there are outstanding changes
+                                                        // handleOutstandingChanges().done(function () {
+                                                            // close the shell
+                                                            $('#shell-dialog').modal('hide');
+
+                                                            // show the component in question
+                                                            if (unauthorizedReferencingComponentEntity.referenceType === 'PROCESSOR') {
+                                                                nfCanvasUtils.showComponent(unauthorizedReferencingComponentEntity.processGroup.id, unauthorizedReferencingComponentEntity.id);
+                                                            } else if (unauthorizedReferencingComponentEntity.referenceType === 'CONTROLLER_SERVICE') {
+                                                                nfProcessGroupConfiguration.showConfiguration(unauthorizedReferencingComponentEntity.processGroup.id).done(function () {
+                                                                    nfProcessGroup.enterGroup(unauthorizedReferencingComponentEntity.processGroup.id);
+                                                                    nfProcessGroupConfiguration.selectControllerService(unauthorizedReferencingComponentEntity.id);
+                                                                });
+                                                            }
+                                                        // });
+                                                    })
+                                                    .appendTo(referencingUnauthorizedComponentContainer);
+                                            }
+                                        });
+                                    }
+                                } else {
+                                    groupTwist.find('.affected-referencing-components-template').remove();
+                                }
+
+                                // toggle this block
+                                toggle(twist, list);
+
+                                // update the border if necessary
+                                updateReferencingComponentsBorder($('#affected-referencing-components-container'));
+                            }).append(twist).append(title).append(count).appendTo(referencingPgReferencesContainer);
+
+                            // add the listing
+                            list.appendTo(referencingPgReferencesContainer);
+
+                            // expand the group twist
+                            groupTwist.click();
+                        };
+
+                        // create block for this process group
+                        createReferenceBlock(referencingProcessGroup, groups);
+                    });
+                }
+            }
+        })
+            .always(function () {
+                spinner.removeClass('ajax-loading');
+            });
+        return loadingDeferred.promise();
+    };
+
+    /**
+     * Loads the referencing components for this parameter provider.
+     *
+     * @param {jQuery} parameterProviderReferencingComponentsContainer
+     * @param {object} parameterProviderEntity
+     */
+    var loadParameterProviderReferencingComponents = function (parameterProviderReferencingComponentsContainer, parameterProviderEntity) {
+        parameterProviderReferencingComponentsContainer.empty();
+        var parameterProviderComponent = parameterProviderEntity;
+
+        if (nfCommon.isEmpty(parameterProviderComponent.referencingParameterContexts)) {
+            parameterProviderReferencingComponentsContainer.append('<div class="unset">No referencing components.</div>');
             return;
         }
 
@@ -876,33 +1158,28 @@
             }
         };
 
-        var processGroups = $('<ul class="referencing-component-listing clear"></ul>');
+        var parameterContexts = $('<ul class="referencing-component-listing clear"></ul>');
         var unauthorized = $('<ul class="referencing-component-listing clear"></ul>');
 
-        $.each(affectedReferencingComponents, function (_, affectedComponent) {
+        $.each(parameterProviderComponent.referencingParameterContexts, function (_, refParameterContextComponent) {
             // check the access policy for this referencing component
-            if (affectedComponent.permissions.canRead === false) {
-                var unauthorizedReferencingComponent = $('<div class="unset"></div>').text(affectedComponent.id);
+            if (nfCommon.isDefinedAndNotNull(parameterProviderEntity.permissions) && parameterProviderEntity.permissions.canRead === false) {
+                var unauthorizedReferencingComponent = $('<div class="unset"></div>').text(refParameterContextComponent.id);
                 unauthorized.append(unauthorizedReferencingComponent);
             } else {
-                var referencingComponent = affectedComponent.component;
+                var referencingComponent = refParameterContextComponent.component;
 
-                var processGroupLink = $('<span class="referencing-component-name link"></span>')
+                var parameterContextLink = $('<span class="referencing-component-name link"></span>')
                     .text(referencingComponent.name)
                     .on('click', function () {
                         // show the component
-                        if (nfCommon.isDefinedAndNotNull(referencingComponent.parentGroupId)) {
-                            nfCanvasUtils.showComponent(referencingComponent.parentGroupId, referencingComponent.id);
-                        } else {
-                            nfProcessGroup.enterGroup(referencingComponent.id);
-                        }
-
+                        nfParameterContexts.showParameterContext(referencingComponent.id, null, referencingComponent.name);
                         // close the dialog and shell
-                        affectedReferencingComponentsContainer.closest('.dialog').modal('hide');
+                        parameterProviderReferencingComponentsContainer.closest('.dialog').modal('hide');
                         $('#shell-close-button').click();
                     });
-                var processGroupItem = $('<li></li>').append(processGroupLink);
-                processGroups.append(processGroupItem);
+                var parameterContextItem = $('<li></li>').append(parameterContextLink);
+                parameterContexts.append(parameterContextItem);
             }
         });
 
@@ -924,19 +1201,19 @@
                     toggle(twist, list);
 
                     // update the border if necessary
-                    updateReferencingComponentsBorder(affectedReferencingComponentsContainer);
+                    updateReferencingComponentsBorder(parameterProviderReferencingComponentsContainer);
                 })
                 .append(twist)
                 .append(title)
                 .append(count)
-                .appendTo(affectedReferencingComponentsContainer);
+                .appendTo(parameterProviderReferencingComponentsContainer);
 
             // add the listing
-            list.appendTo(affectedReferencingComponentsContainer);
+            list.appendTo(parameterProviderReferencingComponentsContainer);
         };
 
         // create blocks for each type of component
-        createReferenceBlock('Process Groups', processGroups);
+        createReferenceBlock('Parameter Contexts', parameterContexts);
         createReferenceBlock('Unauthorized', unauthorized);
     };
 
@@ -969,7 +1246,6 @@
         }
     }
 
-    // TODO: not yet implemented
     /**
      * Updates the specified bulletinIcon with the specified bulletins if necessary.
      *
@@ -1161,12 +1437,12 @@
     };
 
     /**
-     * Populates the parameters column for the specified parameter group.
+     * Loads the fetched parameters for the specified parameter group.
      *
      * @param {object} fetchedGroup the parameter group
      */
 
-    var populateFetchParametersColumn = function (fetchedGroup) {
+    var loadFetchedParameters = function (fetchedGroup) {
         var updatedGroup = fetchedGroup;
         var isParameterContext = updatedGroup.isParameterContext;
         var isCreateNewParameterContext = updatedGroup.createNewParameterContext;
@@ -1343,8 +1619,7 @@
         selectableParametersGrid.setSelectedRows([]);
         selectableParametersData.setItems([]);
 
-        //TODO: add these back in when they're ready
-        // resetUsage();
+        resetUsage();
 
         // reset the last selected parameter
         lastSelectedId = null;
@@ -1464,15 +1739,12 @@
             .prop('title', referencingProcessor.name)
             .text(referencingProcessor.name)
             .on('click', function () {
-                // check if there are outstanding changes
-                handleOutstandingChanges()
-                    .done(function () {
-                        // close the shell
-                        $('#shell-dialog').modal('hide');
+                // close the shell
+                $('#shell-dialog').modal('hide');
 
-                        // show the component in question
-                        nfCanvasUtils.showComponent(referencingProcessorEntity.processGroup.id, referencingProcessor.id);
-                    });
+                // show the component in question
+                nfCanvasUtils.showComponent(referencingProcessorEntity.processGroup.id, referencingProcessor.id);
+                $('#fetch-parameters-dialog').modal('hide');
             }).appendTo(referencingProcessorContainer);
 
         // bulletin
@@ -1540,19 +1812,16 @@
             .prop('title', referencingControllerService.name)
             .text(referencingControllerService.name)
             .on('click', function () {
-                // check if there are outstanding changes
-                handleOutstandingChanges()
+                // close the shell
+                $('#shell-dialog').modal('hide');
+
+                nfProcessGroup.enterGroup(referencingControllerService.processGroupId);
+
+                // show the component in question
+                nfProcessGroupConfiguration.showConfiguration(referencingControllerService.processGroupId)
                     .done(function () {
-                        // close the shell
-                        $('#shell-dialog').modal('hide');
-
-                        nfProcessGroup.enterGroup(referencingControllerService.processGroupId);
-
-                        // show the component in question
-                        nfProcessGroupConfiguration.showConfiguration(referencingControllerService.processGroupId)
-                            .done(function () {
-                                nfProcessGroupConfiguration.selectControllerService(referencingControllerService.id);
-                            });
+                        nfProcessGroupConfiguration.selectControllerService(referencingControllerService.id);
+                        $('#fetch-parameters-dialog').modal('hide');
                     });
             }).appendTo(referencingControllerServiceContainer);
     };
@@ -1564,7 +1833,6 @@
         var selectableParametersTable = $('#selectable-parameters-table');
 
         var nameFormatter = function (row, cell, value, columnDef, dataContext) {
-            var nameWidthOffset = 30;
             var cellContent = $('<div></div>');
 
             // format the contents
@@ -1574,7 +1842,7 @@
             }
 
             // adjust the width accordingly
-            formattedValue.width(columnDef.width - nameWidthOffset).ellipsis();
+            formattedValue.width(columnDef.width).ellipsis();
 
             // return the cell content
             return cellContent.html();
@@ -1596,9 +1864,8 @@
             sortable: true,
             resizable: false,
             rerenderOnResize: true,
-            width: 302,
-            minWidth: 302,
-            maxWidth: 302,
+            width: 280,
+            minWidth: 280,
             editor: Slick.Editors.Text
         };
 
@@ -1772,9 +2039,7 @@
 
                     // only populate fetch parameters column if this group is different than the last selected
                     if (lastSelectedId === null || lastSelectedId !== group.id) {
-                        populateFetchParametersColumn(group);
-
-                        updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
+                        loadFetchedParameters(group);
 
                         // update the last selected id
                         lastSelectedId = group.id;
@@ -1815,22 +2080,21 @@
     };
     // end initParameterGroupTable
 
-    // TODO: not yet implemented
     var resetUsage = function () {
         // empty the containers
-        var processorContainer = $('.parameter-provider-referencing-processors');
+        var processorContainer = $('.fetch-parameters-referencing-processors');
         nfCommon.cleanUpTooltips(processorContainer, 'div.referencing-component-state');
         nfCommon.cleanUpTooltips(processorContainer, 'div.referencing-component-bulletins');
         processorContainer.empty();
 
-        var controllerServiceContainer = $('.parameter-provider-referencing-controller-services');
+        var controllerServiceContainer = $('.fetch-parameters-referencing-controller-services');
         nfCommon.cleanUpTooltips(controllerServiceContainer, 'div.referencing-component-state');
         nfCommon.cleanUpTooltips(controllerServiceContainer, 'div.referencing-component-bulletins');
         controllerServiceContainer.empty();
 
-        var unauthorizedComponentsContainer = $('.parameter-context-referencing-unauthorized-components').empty();
+        var unauthorizedComponentsContainer = $('.fetch-parameters-referencing-unauthorized-components').empty();
 
-        $('#parameter-referencing-components-container').empty();
+        $('#affected-referencing-components-container').empty();
 
         // reset the last selected parameter
         lastSelectedId = null;
@@ -1840,14 +2104,8 @@
         $('<li class="referencing-component-container"><span class="unset">None</span></li>').appendTo(controllerServiceContainer);
         $('<li class="referencing-component-container"><span class="unset">None</span></li>').appendTo(unauthorizedComponentsContainer);
 
-        // update the selection context
-        $('#parameter-referencing-components-context')
-            .addClass('unset')
-            .attr('title', 'None')
-            .text('None');
-
         // check if border is necessary
-        updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
+        updateReferencingComponentsBorder($('#affected-referencing-components-container'));
     };
 
     var currentParameterProviderEntity = null;
@@ -1913,7 +2171,6 @@
                         $('#parameter-provider-properties-verification-results-listing').css('border-width', '0').empty();
                         $('#parameter-provider-properties').css('bottom', '0');
 
-
                         // clean up an shown verification errors
                         $('#parameter-provider-properties-verification-results').hide();
                         $('#parameter-provider-properties-verification-results-listing').css('border-width', '0').empty();
@@ -1959,10 +2216,6 @@
                         $('#fetch-parameters-update-steps').empty();
                         $('#parameter-contexts-to-create-container').empty();
 
-                        // bulletins
-                        $('#fetch-parameters-bulletins').removeClass('has-bulletins').removeData('bulletins').hide();
-                        nfCommon.cleanUpTooltips($('#fetch-parameters-container'), '#fetch-parameters-bulletins');
-
                         // clean up tooltips
                         nfCommon.cleanUpTooltips($('#parameter-groups-table'), 'div.fa-star');
 
@@ -1983,6 +2236,12 @@
 
             initParameterGroupsTable();
             initSelectableParametersTable();
+
+            $(window).on('resize', function (e) {
+                if ($('#affected-referencing-components-container').is(':visible')) {
+                    updateReferencingComponentsBorder($('#affected-referencing-components-container'));
+                }
+            });
         },
 
         /**
@@ -2051,6 +2310,9 @@
                 nfCommon.populateField('parameter-provider-bundle', nfCommon.formatBundle(parameterProvider['bundle']));
                 $('#parameter-provider-name').val(parameterProvider['name']);
                 $('#parameter-provider-comments').val(parameterProvider['comments']);
+
+                // load referencing components for the parameter provider
+                loadParameterProviderReferencingComponents($('#parameter-provider-referencing-components'), parameterProvider);
 
                 var buttons = [{
                     buttonText: 'Apply',
@@ -2188,7 +2450,6 @@
                 parameterProviderDialog.data('mode', config.readOnly);
             }
 
-            // TODO: is this necessary for parameter providers?
             // reload the provider in case the property descriptors have changed
             var reloadProvider = $.ajax({
                 type: 'GET',
@@ -2196,7 +2457,6 @@
                 dataType: 'json'
             });
 
-            // TODO: is there a parameter provider history?
             // get the parameter provider history
             var loadHistory = $.ajax({
                 type: 'GET',
@@ -2219,6 +2479,9 @@
                 nfCommon.populateField('parameter-provider-bundle', nfCommon.formatBundle(parameterProvider['bundle']));
                 nfCommon.populateField('read-only-parameter-provider-name', parameterProvider['name']);
                 nfCommon.populateField('read-only-parameter-provider-comments', parameterProvider['comments']);
+
+                // load referencing components for the parameter provider
+                loadParameterProviderReferencingComponents($('#parameter-provider-referencing-components'), parameterProvider);
 
                 var buttons = [{
                     buttonText: 'Ok',

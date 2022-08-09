@@ -48,7 +48,17 @@
                     </div>
                 </div>
                 <div class="spacer">&nbsp;</div>
-                <div class="clear"></div>
+                <div class="settings-right">
+                    <div class="setting">
+                        <div class="setting-name">
+                            Referencing Components
+                            <div class="fa fa-question-circle" alt="Info" title="Other components referencing this parameter provider."></div>
+                        </div>
+                        <div class="setting-field">
+                            <div id="parameter-provider-referencing-components"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div id="parameter-provider-properties-tab-content" class="configuration-tab">
                 <div id="parameter-provider-properties"></div>
