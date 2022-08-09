@@ -36,7 +36,6 @@
         <dependency>
             <groupId>io.swagger</groupId>
             <artifactId>swagger-annotations</artifactId>
-            <version>1.5.16</version>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
