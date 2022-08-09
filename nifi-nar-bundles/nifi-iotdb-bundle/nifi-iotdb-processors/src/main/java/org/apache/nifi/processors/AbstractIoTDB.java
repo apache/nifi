@@ -388,11 +388,11 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
         return tablets;
     }
 
-    protected String initFormatter(String time) {
+    protected DateTimeFormatter initFormatter(String time) {
         for (String format : STRING_TIME_FORMAT) {
             try {
                 DateTimeFormatter.ofPattern(format).parse(time);
-                return format;
+                return DateTimeFormatter.ofPattern(format);
             } catch (DateTimeParseException e) {
 
             }

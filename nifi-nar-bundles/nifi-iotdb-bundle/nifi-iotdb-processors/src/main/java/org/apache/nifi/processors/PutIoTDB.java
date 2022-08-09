@@ -17,6 +17,9 @@
 package org.apache.nifi.processors;
 
 import java.io.InputStream;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Set;
 import java.util.List;
 import java.util.HashMap;
@@ -181,7 +184,7 @@ public class PutIoTDB extends AbstractIoTDB {
             needInitFormatter = schema.getTimeType() != IoTDBSchema.TimeType.LONG;
 
             HashMap<String, Tablet> tablets = generateTablets(schema, maxRowNumber);
-            String format = null;
+            DateTimeFormatter format = null;
 
             Record record;
 
@@ -200,7 +203,7 @@ public class PutIoTDB extends AbstractIoTDB {
 
                 long timestamp;
                 if (needInitFormatter) {
-                    timestamp = record.getAsDate(timeField, format).getTime();
+                    timestamp = Timestamp.valueOf(LocalDateTime.parse((String) values[0], format)).getTime();
                 } else {
                     timestamp = (Long) values[0];
                 }
