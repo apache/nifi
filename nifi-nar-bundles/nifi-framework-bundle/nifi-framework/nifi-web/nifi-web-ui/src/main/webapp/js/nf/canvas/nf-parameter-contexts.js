@@ -1549,7 +1549,7 @@
                 };
                 var parameter = {
                     id: parameterCount++,
-                    hidden: parameterEntity.parameter.provided,
+                    hidden: false,
                     type: 'Parameter',
                     isNew: false,
                     isModified: false,
