@@ -190,6 +190,7 @@
         <nifi.registry.registry.alias.configuration.file>./conf/registry-aliases.xml</nifi.registry.registry.alias.configuration.file>
 
         <!-- nifi-registry.properties: extension properties -->
+        <nifi.registry.extension.archive.type>zip</nifi.registry.extension.archive.type>
         <nifi.registry.extensions.working.directory>./work/extensions</nifi.registry.extensions.working.directory>
         <nifi.registry.extension.dir.aws />
 
@@ -395,7 +396,7 @@
                     <version>1.18.0-SNAPSHOT</version>
                     <classifier>bin</classifier>
                     <scope>runtime</scope>
-                    <type>zip</type>
+                    <type>${nifi.registry.extension.archive.type}</type>
                 </dependency>
             </dependencies>
             <build>
@@ -438,7 +439,7 @@
                     <version>1.18.0-SNAPSHOT</version>
                     <classifier>bin</classifier>
                     <scope>runtime</scope>
-                    <type>zip</type>
+                    <type>${nifi.registry.extension.archive.type}</type>
                 </dependency>
             </dependencies>
             <build>
@@ -469,6 +470,9 @@
             <activation>
                 <activeByDefault>false</activeByDefault>
             </activation>
+            <properties>
+                <nifi.registry.extension.archive.type>tar.gz</nifi.registry.extension.archive.type>
+            </properties>
             <build>
                 <plugins>
                     <plugin>
