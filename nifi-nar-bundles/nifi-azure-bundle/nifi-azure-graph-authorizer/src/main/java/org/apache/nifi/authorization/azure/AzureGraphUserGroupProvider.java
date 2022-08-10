@@ -339,7 +339,6 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
 
         if (currentPage != null && currentPage.size() > 0) {
             final com.microsoft.graph.models.extensions.Group graphGroup = results.getCurrentPage().get(0);
-            //logger.info("calling with "+ graphGroup.id);
             final Group.Builder groupBuilder =
                 new Group.Builder()
                     .identifier(graphGroup.id)
