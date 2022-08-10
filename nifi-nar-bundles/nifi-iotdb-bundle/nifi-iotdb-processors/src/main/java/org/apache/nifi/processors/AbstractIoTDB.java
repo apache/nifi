@@ -319,8 +319,8 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
     protected ValidationResult validateSchema(RecordSchema recordSchema) {
         List<String> fieldNames = recordSchema.getFieldNames();
         List<DataType> dataTypes = recordSchema.getDataTypes();
-        if (!fieldNames.contains(TIME)) {
-            return new ValidationResult(false, "The fields must contain `Time`");
+        if (!fieldNames.contains(TIME) && TIME.equals(fieldNames.get(0))) {
+            return new ValidationResult(false, "The fields must contain `Time`, and it must be the first");
         }
         if (!supportedTimeType.contains(recordSchema.getDataType(TIME).get().getFieldType())) {
             return new ValidationResult(false, "The dataType of `Time` must be `STRING` or `LONG`");

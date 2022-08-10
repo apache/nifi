@@ -64,17 +64,6 @@ public class PutIoTDB extends AbstractIoTDB {
                     .required(true)
                     .build();
 
-    static final PropertyDescriptor TIME_FIELD =
-            new PropertyDescriptor.Builder()
-                    .name("Time Field")
-                    .description(
-                            "The field name which represents time")
-                    .defaultValue("Time")
-                    .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-                    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                    .required(false)
-                    .build();
-
     static final PropertyDescriptor SCHEMA =
             new PropertyDescriptor.Builder()
                     .name("Schema")
@@ -110,7 +99,6 @@ public class PutIoTDB extends AbstractIoTDB {
 
     static {
         descriptors.add(RECORD_READER_FACTORY);
-        descriptors.add(TIME_FIELD);
         descriptors.add(SCHEMA);
         descriptors.add(ALIGNED);
         descriptors.add(MAX_ROW_NUMBER);
@@ -141,12 +129,10 @@ public class PutIoTDB extends AbstractIoTDB {
             return;
         }
 
-        String timeFieldProperty = processContext.getProperty(TIME_FIELD).evaluateAttributeExpressions(flowFile).getValue();
         String schemaProperty = processContext.getProperty(SCHEMA).evaluateAttributeExpressions(flowFile).getValue();
         String alignedProperty = processContext.getProperty(ALIGNED).evaluateAttributeExpressions(flowFile).getValue();
         String maxRowNumberProperty = processContext.getProperty(MAX_ROW_NUMBER).evaluateAttributeExpressions(flowFile).getValue();
 
-        String timeField = timeFieldProperty != null ? timeFieldProperty : "Time";
         final boolean aligned = alignedProperty != null ? Boolean.valueOf(alignedProperty) : false;
         int maxRowNumber = maxRowNumberProperty != null ? Integer.valueOf(maxRowNumberProperty) : 1024;
 
@@ -261,13 +247,12 @@ public class PutIoTDB extends AbstractIoTDB {
                     session.get().insertTablets(tablets);
                 }
             }
-            inputStream.close();
-            recordReader.close();
-            processSession.transfer(flowFile, REL_SUCCESS);
         } catch (Exception e) {
             getLogger().error("Processing failed {}", flowFile, e);
             processSession.transfer(flowFile, REL_FAILURE);
+            return;
         }
+        processSession.transfer(flowFile, REL_SUCCESS);
     }
 
     @Override
