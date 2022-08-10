@@ -260,6 +260,24 @@ public class PutIoTDBIT {
     }
 
     @Test
+    public void testInsertByNativeSchemaWithoutTimeField() throws InitializationException {
+        setUpStandardTestConfig();
+
+        // create schema
+        recordReader.addSchemaField("root.sg5.d1.s1", RecordFieldType.INT);
+        recordReader.addSchemaField("root.sg5.d1.s2", RecordFieldType.INT);
+
+        recordReader.addRecord(1, 1);
+
+        // call the PutIoTDBProcessor
+        testRunner.enqueue("");
+        testRunner.run();
+
+        // test whether transferred successfully?
+        testRunner.assertAllFlowFilesTransferred(PutIoTDB.REL_FAILURE, 1);
+    }
+
+    @Test
     public void testInsertByNativeSchemaWithWrongTimeType() throws InitializationException {
         setUpStandardTestConfig();
 
