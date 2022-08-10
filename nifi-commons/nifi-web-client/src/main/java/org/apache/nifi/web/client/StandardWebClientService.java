@@ -57,6 +57,8 @@ import java.util.OptionalLong;
  * Standard implementation of Web Client Service using OkHttp
  */
 public class StandardWebClientService implements WebClientService {
+    private static final byte[] EMPTY_BYTES = new byte[0];
+
     private static final SSLSocketFactoryProvider sslSocketFactoryProvider = new StandardSSLSocketFactoryProvider();
 
     private OkHttpClient okHttpClient;
@@ -218,8 +220,6 @@ public class StandardWebClientService implements WebClientService {
     class StandardHttpRequestBodySpec implements HttpRequestBodySpec {
         private static final long UNKNOWN_CONTENT_LENGTH = -1;
 
-        private final byte[] emptyBytes = new byte[0];
-
         private final HttpRequestMethod httpRequestMethod;
 
         private final URI uri;
@@ -261,7 +261,7 @@ public class StandardWebClientService implements WebClientService {
             final Headers responseHeaders = response.headers();
             final HttpEntityHeaders headers = new StandardHttpEntityHeaders(responseHeaders.toMultimap());
             final ResponseBody responseBody = response.body();
-            final InputStream body = responseBody == null ? new ByteArrayInputStream(emptyBytes) : responseBody.byteStream();
+            final InputStream body = responseBody == null ? new ByteArrayInputStream(EMPTY_BYTES) : responseBody.byteStream();
 
             return new StandardHttpResponseEntity(code, headers, body);
         }

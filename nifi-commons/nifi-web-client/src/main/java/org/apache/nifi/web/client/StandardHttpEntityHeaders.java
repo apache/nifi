@@ -31,7 +31,7 @@ class StandardHttpEntityHeaders implements HttpEntityHeaders {
     private final Map<String, List<String>> headers;
 
     StandardHttpEntityHeaders(final Map<String, List<String>> headers) {
-        this.headers = headers;
+        this.headers = Collections.unmodifiableMap(headers);
     }
 
     @Override

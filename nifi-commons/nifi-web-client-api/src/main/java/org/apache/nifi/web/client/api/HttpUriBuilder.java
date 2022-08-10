@@ -70,7 +70,7 @@ public interface HttpUriBuilder {
     HttpUriBuilder addPathSegment(String pathSegment);
 
     /**
-     * Add path segment appending to current path
+     * Add query parameter using specified name and value
      *
      * @param name Query parameter name
      * @param value Query parameter value can be null
