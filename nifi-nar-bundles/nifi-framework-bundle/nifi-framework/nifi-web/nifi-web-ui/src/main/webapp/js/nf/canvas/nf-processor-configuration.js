@@ -659,7 +659,7 @@
 
             //if the status bar is supported, initialize it.
             if(config.supportsStatusBar){
-                $('#processor-configuration-status-bar').statusbar();
+                $('#processor-configuration-status-bar').statusbar('processor');
             }
 
             // initialize the bulletin combo
@@ -1048,9 +1048,13 @@
                     if(config.supportsStatusBar){
 
                         //initialize the canvas synchronization
-                        $("#processor-configuration-status-bar").statusbar('observe',processor.id, function(){
-                            $('#processor-configuration').modal('refreshButtons');
-                        });
+                        $("#processor-configuration-status-bar").statusbar(
+                            'observe',
+                            { processor: processor.id },
+                            function () {
+                                $('#processor-configuration').modal('refreshButtons');
+                            }
+                        );
 
                         //if there are active threads, add the terminate button to the status bar
                         if(nfCommon.isDefinedAndNotNull(config.nfActions) &&

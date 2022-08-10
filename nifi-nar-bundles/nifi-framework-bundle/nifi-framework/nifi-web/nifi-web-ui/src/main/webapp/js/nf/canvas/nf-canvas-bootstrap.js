@@ -375,7 +375,12 @@
                     nfConnectionConfiguration.init(nfBirdseye, nfGraph, configDetails.defaultBackPressureObjectThreshold, configDetails.defaultBackPressureDataSizeThreshold);
                     nfControllerService.init(nfControllerServices, nfReportingTask, nfParameterProvider);
                     nfReportingTask.init(nfSettings);
-                    nfParameterProvider.init(nfSettings);
+                    nfParameterProvider.init({
+                        nfSettings: nfSettings,
+                        statusBarOptions: {
+                            supportsStatusBar : true
+                        }
+                    });
                     nfPolicyManagement.init();
                     nfProcessorConfiguration.init({
                         supportsStatusBar : true,

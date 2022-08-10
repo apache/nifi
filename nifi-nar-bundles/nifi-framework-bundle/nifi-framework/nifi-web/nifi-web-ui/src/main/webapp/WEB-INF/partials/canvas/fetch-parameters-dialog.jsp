@@ -16,6 +16,7 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="fetch-parameters-dialog" layout="column" class="hidden large-dialog">
+    <div id="fetch-parameters-status-bar"></div>
     <div class="dialog-content">
         <%--settings-left--%>
         <div class="settings-left">

@@ -25,11 +25,12 @@
     height : 32px;
 }
 
-.dialog-status-bar[state] + .dialog-content {
+.dialog-status-bar[state] + .dialog-content,
+.dialog-status-bar[alerts] + .dialog-content {
     top: 104px;
 }
 
-.dialog-status-bar:not([state]),
+.dialog-status-bar:not([state]):not([alerts]),
 .dialog-status-bar:not([state]) text.run-status-icon,
 .dialog-status-bar-bulletins-content,
 .dialog-status-bar-bulletins[count="0"],

@@ -81,6 +81,7 @@
     'use strict';
 
     var nfSettings;
+    var fetchParameterProviderOptions;
 
     var config = {
         urls: {
@@ -627,8 +628,9 @@
      * Shows the dialog to fetch parameters.
      *
      * @param {object} parameterProviderEntity parameterProviderEntity
+     * @param {object} fetchParameterProviderOptions fetchParameterProviderOptions
      */
-    var showFetchParametersDialog = function (parameterProviderEntity) {
+    var showFetchParametersDialog = function (parameterProviderEntity, fetchParameterProviderOptions) {
         updateFetchParametersRequest(parameterProviderEntity).done(function (response) {
             var updatedParameterProviderEntity = response;
 
@@ -722,8 +724,21 @@
                 }
             }];
 
+            // synchronize the current component canvas attributes in the status bar
+            if (fetchParameterProviderOptions.supportsStatusBar) {
+                // initialize the canvas synchronization
+                if (updatedParameterProviderEntity.bulletins.length !== 0) {
+                    $('#fetch-parameters-status-bar').statusbar(
+                        'observe',
+                        { provider: updatedParameterProviderEntity.bulletins }
+                    );
+                }
+            }
+
             // show the dialog
-            $('#fetch-parameters-dialog').modal('setButtonModel', buttons).modal('show');
+            $('#fetch-parameters-dialog')
+                .modal('setButtonModel', buttons)
+                .modal('show');
 
             // load the bulletins
             nfCanvasUtils.queryBulletins([updatedParameterProviderEntity.id]).done(function (response) {
@@ -2114,10 +2129,12 @@
         /**
          * Initializes the parameter provider configuration dialog.
          *
-         * @param nfSettingsRef   The nfSettings module.
+         * @param options   Option settings for the parameter provider.
          */
-        init: function (nfSettingsRef) {
-            nfSettings = nfSettingsRef;
+        init: function (options) {
+            nfSettings = options.nfSettings;
+            fetchParameterProviderOptions = options.statusBarOptions;
+
 
             // initialize the configuration dialog tabs
             $('#parameter-provider-configuration-tabs').tabbs({
@@ -2184,6 +2201,11 @@
                     }
                 }
             });
+
+            // if the status bar is supported, initialize it.
+            if (fetchParameterProviderOptions) {
+                $('#fetch-parameters-status-bar').statusbar('provider');
+            }
 
             // initialize the property table
             $('#parameter-provider-properties').propertytable({
@@ -2546,7 +2568,7 @@
          * @param {object} parameterProviderEntity parameter provider id
          */
         showFetchDialog: function (parameterProviderEntity) {
-            showFetchParametersDialog(parameterProviderEntity);
+            showFetchParametersDialog(parameterProviderEntity, fetchParameterProviderOptions);
         },
 
         /**
