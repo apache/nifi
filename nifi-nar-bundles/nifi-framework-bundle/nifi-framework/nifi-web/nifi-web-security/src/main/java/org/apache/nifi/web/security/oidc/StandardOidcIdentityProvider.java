@@ -24,6 +24,7 @@ import com.nimbusds.jose.util.ResourceRetriever;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.oauth2.sdk.AuthorizationGrant;
+import com.nimbusds.oauth2.sdk.ErrorObject;
 import com.nimbusds.oauth2.sdk.ParseException;
 import com.nimbusds.oauth2.sdk.Request;
 import com.nimbusds.oauth2.sdk.Scope;
@@ -425,8 +426,9 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         } else {
             // If the response was not successful
             final TokenErrorResponse errorResponse = (TokenErrorResponse) response;
+            final ErrorObject errorObject = errorResponse.getErrorObject();
             throw new RuntimeException("An error occurred while invoking the Token endpoint: " +
-                    errorResponse.getErrorObject().getDescription());
+                    errorObject.getDescription() + " (" + errorObject.getCode() + ")");
         }
     }
 
