@@ -16,24 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_COUNT;
-import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_ID;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
 import net.lingala.zip4j.io.outputstream.ZipOutputStream;
 import net.lingala.zip4j.model.ZipParameters;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
@@ -41,8 +23,23 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
 
-import org.junit.Test;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_COUNT;
+import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_ID;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestUnpackContent {
 
@@ -89,17 +86,13 @@ public class TestUnpackContent {
             assertEquals("jmcarey", flowFile.getAttribute("file.owner"));
             assertEquals("mkpasswd", flowFile.getAttribute("file.group"));
             String modifiedTimeAsString = flowFile.getAttribute("file.lastModifiedTime");
-            try {
-                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(modifiedTimeAsString);
-            } catch (DateTimeParseException e) {
-                fail();
-            }
+
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(modifiedTimeAsString);
+
             String creationTimeAsString = flowFile.getAttribute("file.creationTime");
-            try {
-                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(creationTimeAsString);
-            } catch (DateTimeParseException e) {
-                fail();
-            }
+
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(creationTimeAsString);
+
             assertTrue(Files.exists(path));
 
             flowFile.assertContentEquals(path.toFile());
@@ -507,7 +500,7 @@ public class TestUnpackContent {
 
         final byte[] unpackedBytes = runner.getContentAsByteArray(unpacked);
         final String unpackedContents = new String(unpackedBytes);
-        assertEquals("Unpacked Contents not matched", contents, unpackedContents);
+        assertEquals(contents, unpackedContents, "Unpacked Contents not matched");
     }
 
     private byte[] createZipEncrypted(final EncryptionMethod encryptionMethod, final char[] password, final String contents) throws IOException {

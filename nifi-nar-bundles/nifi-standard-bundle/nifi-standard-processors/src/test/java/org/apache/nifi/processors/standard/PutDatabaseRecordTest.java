@@ -90,6 +90,7 @@ public class PutDatabaseRecordTest {
         } catch (IOException ignore) {
             // Do nothing, may not have existed
         }
+        System.clearProperty("derby.stream.error.file");
     }
 
     @BeforeEach

@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Map;
-import javax.jms.BytesMessage;
-import javax.jms.JMSException;
-import javax.jms.MapMessage;
-import javax.jms.TextMessage;
 import org.apache.activemq.command.ActiveMQBytesMessage;
 import org.apache.activemq.command.ActiveMQMapMessage;
 import org.apache.activemq.command.ActiveMQTextMessage;
@@ -38,7 +29,17 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessorInitializationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import javax.jms.BytesMessage;
+import javax.jms.JMSException;
+import javax.jms.MapMessage;
+import javax.jms.TextMessage;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  *
@@ -66,11 +67,11 @@ public class TestJmsConsumer {
         MapMessage mapMessage = createMapMessage();
 
         Map<String, String> mapMessageValues = JmsConsumer.createMapMessageValues(mapMessage);
-        assertEquals("", 4, mapMessageValues.size());
-        assertEquals("", "Arnold", mapMessageValues.get(JmsConsumer.MAP_MESSAGE_PREFIX + "name"));
-        assertEquals("", "97", mapMessageValues.get(JmsConsumer.MAP_MESSAGE_PREFIX + "age"));
-        assertEquals("", "89686.564", mapMessageValues.get(JmsConsumer.MAP_MESSAGE_PREFIX + "xyz"));
-        assertEquals("", "true", mapMessageValues.get(JmsConsumer.MAP_MESSAGE_PREFIX + "good"));
+        assertEquals(4, mapMessageValues.size());
+        assertEquals("Arnold", mapMessageValues.get(JmsConsumer.MAP_MESSAGE_PREFIX + "name"));
+        assertEquals("97", mapMessageValues.get(JmsConsumer.MAP_MESSAGE_PREFIX + "age"));
+        assertEquals("89686.564", mapMessageValues.get(JmsConsumer.MAP_MESSAGE_PREFIX + "xyz"));
+        assertEquals("true", mapMessageValues.get(JmsConsumer.MAP_MESSAGE_PREFIX + "good"));
     }
 
     /**
@@ -90,13 +91,13 @@ public class TestJmsConsumer {
 
         JmsProcessingSummary summary = JmsConsumer.map2FlowFile(context, session, mapMessage, true, pic.getLogger());
 
-        assertEquals("MapMessage should not create FlowFile content", 0, summary.getBytesReceived());
+        assertEquals(0, summary.getBytesReceived(), "MapMessage should not create FlowFile content");
 
         Map<String, String> attributes = summary.getLastFlowFile().getAttributes();
-        assertEquals("", "Arnold", attributes.get(JmsConsumer.MAP_MESSAGE_PREFIX + "name"));
-        assertEquals("", "97", attributes.get(JmsConsumer.MAP_MESSAGE_PREFIX + "age"));
-        assertEquals("", "89686.564", attributes.get(JmsConsumer.MAP_MESSAGE_PREFIX + "xyz"));
-        assertEquals("", "true", attributes.get(JmsConsumer.MAP_MESSAGE_PREFIX + "good"));
+        assertEquals("Arnold", attributes.get(JmsConsumer.MAP_MESSAGE_PREFIX + "name"));
+        assertEquals("97", attributes.get(JmsConsumer.MAP_MESSAGE_PREFIX + "age"));
+        assertEquals("89686.564", attributes.get(JmsConsumer.MAP_MESSAGE_PREFIX + "xyz"));
+        assertEquals("true", attributes.get(JmsConsumer.MAP_MESSAGE_PREFIX + "good"));
     }
 
     @Test
@@ -114,7 +115,7 @@ public class TestJmsConsumer {
 
         JmsProcessingSummary summary = JmsConsumer.map2FlowFile(context, session, textMessage, true, pic.getLogger());
 
-        assertEquals("TextMessage content length should equal to FlowFile content size", payload.length(), summary.getLastFlowFile().getSize());
+        assertEquals(payload.length(), summary.getLastFlowFile().getSize(), "TextMessage content length should equal to FlowFile content size");
 
         final byte[] buffer = new byte[payload.length()];
         runner.clearTransferState();
@@ -127,7 +128,7 @@ public class TestJmsConsumer {
         });
 
         String contentString = new String(buffer, "UTF-8");
-        assertEquals("", payload, contentString);
+        assertEquals(payload, contentString);
     }
 
     /**
@@ -152,7 +153,7 @@ public class TestJmsConsumer {
 
         JmsProcessingSummary summary = JmsConsumer.map2FlowFile(context, session, bytesMessage, true, pic.getLogger());
 
-        assertEquals("BytesMessage content length should equal to FlowFile content size", payload.length, summary.getLastFlowFile().getSize());
+        assertEquals(payload.length, summary.getLastFlowFile().getSize(), "BytesMessage content length should equal to FlowFile content size");
 
         final byte[] buffer = new byte[payload.length];
         runner.clearTransferState();
@@ -165,7 +166,7 @@ public class TestJmsConsumer {
         });
 
         String contentString = new String(buffer, "UTF-8");
-        assertEquals("", sourceString, contentString);
+        assertEquals(sourceString, contentString);
     }
 
 }

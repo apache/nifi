@@ -83,7 +83,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Tags({"salesforce", "sobject", "soql", "query"})
 @CapabilityDescription("Retrieves records from a Salesforce sObject. Users can add arbitrary filter conditions by setting the 'Custom WHERE Condition' property."
         + " Supports incremental retrieval: users can define a field in the 'Age Field' property that will be used to determine when the record was created."
-        + " When this property is set the processor will retrieve new records. It's also possible to define an initial cutoff value for the age, fitering out all older records"
+        + " When this property is set the processor will retrieve new records. It's also possible to define an initial cutoff value for the age, filtering out all older records"
         + " even for the first run. This processor is intended to be run on the Primary Node only."
         + " FlowFile attribute 'record.count' indicates how many records were retrieved and written to the output.")
 @Stateful(scopes = Scope.CLUSTER, description = "When 'Age Field' is set, after performing a query the time of execution is stored. Subsequent queries will be augmented"

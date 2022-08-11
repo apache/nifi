@@ -56,8 +56,8 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
     private volatile static CsvMapper mapper = new CsvMapper().enable(CsvParser.Feature.WRAP_AS_ARRAY);
 
     public JacksonCSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
-                                  final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding) throws IOException {
-        super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat);
+                                  final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding, final boolean trimDoubleQuote) throws IOException {
+        super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, trimDoubleQuote);
 
         final Reader reader = new InputStreamReader(new BOMInputStream(in), encoding);
 
@@ -97,6 +97,11 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
                 .withFeatures(features.toArray(new CsvParser.Feature[features.size()]));
 
         recordStream = objReader.readValues(reader);
+    }
+
+    public JacksonCSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
+                                  final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding) throws IOException {
+        this(in, logger, schema, csvFormat, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, encoding, true);
     }
 
     @Override

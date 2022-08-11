@@ -28,8 +28,8 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -38,10 +38,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestPutEmail {
 
@@ -81,7 +81,7 @@ public class TestPutEmail {
     PutEmailExtension processor;
     TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setup() {
         processor = new PutEmailExtension();
         runner = TestRunners.newTestRunner(processor);
@@ -104,7 +104,7 @@ public class TestPutEmail {
 
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(PutEmail.REL_FAILURE);
-        assertEquals("Expected an attempt to send a single message", 1, processor.getMessages().size());
+        assertEquals(1, processor.getMessages().size(), "Expected an attempt to send a single message");
     }
 
     @Test
@@ -124,10 +124,10 @@ public class TestPutEmail {
         runner.assertAllFlowFilesTransferred(PutEmail.REL_SUCCESS);
 
         // Verify that the Message was populated correctly
-        assertEquals("Expected a single message to be sent", 1, processor.getMessages().size());
+        assertEquals(1, processor.getMessages().size(), "Expected a single message to be sent");
         Message message = processor.getMessages().get(0);
         assertEquals("test@apache.org", message.getFrom()[0].toString());
-        assertEquals("X-Mailer Header", "TestingNiFi", message.getHeader("X-Mailer")[0]);
+        assertEquals("TestingNiFi", message.getHeader("X-Mailer")[0], "X-Mailer Header");
         assertEquals("Message Body", message.getContent());
         assertEquals("recipient@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
         assertNull(message.getRecipients(RecipientType.BCC));
@@ -162,10 +162,10 @@ public class TestPutEmail {
         runner.assertAllFlowFilesTransferred(PutEmail.REL_SUCCESS);
 
         // Verify that the Message was populated correctly
-        assertEquals("Expected a single message to be sent", 1, processor.getMessages().size());
+        assertEquals(1, processor.getMessages().size(), "Expected a single message to be sent");
         Message message = processor.getMessages().get(0);
         assertEquals("\"test@apache.org\" <NiFi>", message.getFrom()[0].toString());
-        assertEquals("X-Mailer Header", "TestingNíFiNonASCII", MimeUtility.decodeText(message.getHeader("X-Mailer")[0]));
+        assertEquals("TestingNíFiNonASCII", MimeUtility.decodeText(message.getHeader("X-Mailer")[0]), "X-Mailer Header");
         assertEquals("the message body", message.getContent());
         assertEquals(1, message.getRecipients(RecipientType.TO).length);
         assertEquals("to@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
@@ -191,7 +191,7 @@ public class TestPutEmail {
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(PutEmail.REL_FAILURE);
 
-        assertEquals("Expected no messages to be sent", 0, processor.getMessages().size());
+        assertEquals(0, processor.getMessages().size(), "Expected no messages to be sent");
     }
 
     @Test
@@ -209,7 +209,7 @@ public class TestPutEmail {
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(PutEmail.REL_FAILURE);
 
-        assertEquals("Expected no messages to be sent", 0, processor.getMessages().size());
+        assertEquals(0, processor.getMessages().size(), "Expected no messages to be sent");
         assertFalse(runner.getLogger().getErrorMessages().isEmpty());
     }
 
@@ -231,13 +231,13 @@ public class TestPutEmail {
         runner.assertAllFlowFilesTransferred(PutEmail.REL_SUCCESS);
 
         // Verify that the Message was populated correctly
-        assertEquals("Expected a single message to be sent", 1, processor.getMessages().size());
+        assertEquals(1, processor.getMessages().size(), "Expected a single message to be sent");
         Message message = processor.getMessages().get(0);
         assertEquals("test@apache.org", message.getFrom()[0].toString());
-        assertEquals("X-Mailer Header", "TestingNiFi", message.getHeader("X-Mailer")[0]);
+        assertEquals("TestingNiFi", message.getHeader("X-Mailer")[0], "X-Mailer Header");
         assertEquals("recipient@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
 
-        assertTrue(message.getContent() instanceof MimeMultipart);
+        assertInstanceOf(MimeMultipart.class, message.getContent());
 
         final MimeMultipart multipart = (MimeMultipart) message.getContent();
         final BodyPart part = multipart.getBodyPart(0);
@@ -275,11 +275,11 @@ public class TestPutEmail {
         runner.assertAllFlowFilesTransferred(PutEmail.REL_SUCCESS);
 
         // Verify that the Message was populated correctly
-        assertEquals("Expected a single message to be sent", 1, processor.getMessages().size());
+        assertEquals(1, processor.getMessages().size(), "Expected a single message to be sent");
         Message message = processor.getMessages().get(0);
         assertEquals("test@apache.org", message.getFrom()[0].toString());
         assertEquals("from@apache.org", message.getFrom()[1].toString());
-        assertEquals("X-Mailer Header", "TestingNiFi", message.getHeader("X-Mailer")[0]);
+        assertEquals("TestingNiFi", message.getHeader("X-Mailer")[0], "X-Mailer Header");
         assertEquals("Some Text", message.getContent());
         assertEquals("recipient@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
         assertEquals("another@apache.org", message.getRecipients(RecipientType.TO)[1].toString());

@@ -24,7 +24,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -34,9 +34,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class TestAttributesToJSON {
@@ -44,22 +45,23 @@ public class TestAttributesToJSON {
     private static final String TEST_ATTRIBUTE_KEY = "TestAttribute";
     private static final String TEST_ATTRIBUTE_VALUE = "TestValue";
 
-    @Test(expected = AssertionError.class)
-    public void testInvalidUserSuppliedAttributeList() throws Exception {
+    @Test
+    public void testInvalidUserSuppliedAttributeList() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
 
         //Attribute list CANNOT be empty
         testRunner.setProperty(AttributesToJSON.ATTRIBUTES_LIST, "");
-
         ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
 
         testRunner.enqueue(ff);
-        testRunner.run();
+        assertThrows(AssertionError.class, () -> {
+            testRunner.run();
+        });
     }
 
-    @Test(expected = AssertionError.class)
-    public void testInvalidIncludeCoreAttributesProperty() throws Exception {
+    @Test
+    public void testInvalidIncludeCoreAttributesProperty() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
         testRunner.setProperty(AttributesToJSON.ATTRIBUTES_LIST, "val1,val2");
         testRunner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_ATTRIBUTE);
@@ -69,7 +71,9 @@ public class TestAttributesToJSON {
         FlowFile ff = session.create();
 
         testRunner.enqueue(ff);
-        testRunner.run();
+        assertThrows(AssertionError.class, () -> {
+            testRunner.run();
+        });
     }
 
     @Test

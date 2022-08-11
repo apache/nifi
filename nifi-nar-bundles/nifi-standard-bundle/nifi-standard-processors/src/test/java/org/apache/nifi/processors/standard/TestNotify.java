@@ -25,8 +25,8 @@ import org.apache.nifi.processors.standard.WaitNotifyProtocol.Signal;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -39,17 +39,17 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestNotify {
 
     private TestRunner runner;
     private MockCacheClient service;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(Notify.class);
 
@@ -113,7 +113,7 @@ public class TestNotify {
 
         final Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
         Map<String, String> cachedAttributes = signal.getAttributes();
-        assertEquals("Same attribute key will be overwritten by the latest signal", "data3", cachedAttributes.get("key"));
+        assertEquals("data3", cachedAttributes.get("key"), "Same attribute key will be overwritten by the latest signal");
         assertTrue(signal.isTotalCountReached(3));
         assertEquals(2, signal.getCount("success"));
         assertEquals(1, signal.getCount("failure"));
@@ -153,7 +153,7 @@ public class TestNotify {
 
         Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
         Map<String, String> cachedAttributes = signal.getAttributes();
-        assertEquals("Same attribute key will be overwritten by the latest signal", "data2", cachedAttributes.get("key"));
+        assertEquals("data2", cachedAttributes.get("key"), "Same attribute key will be overwritten by the latest signal");
         assertTrue(signal.isTotalCountReached(2));
         assertEquals(2, signal.getCount("success"));
         assertEquals(0, signal.getCount("failure"));
@@ -166,7 +166,7 @@ public class TestNotify {
 
         signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
         cachedAttributes = signal.getAttributes();
-        assertEquals("Same attribute key will be overwritten by the latest signal", "data3", cachedAttributes.get("key"));
+        assertEquals("data3", cachedAttributes.get("key"), "Same attribute key will be overwritten by the latest signal");
         assertTrue(signal.isTotalCountReached(3));
         assertEquals(2, signal.getCount("success"));
         assertEquals(1, signal.getCount("failure"));
@@ -210,7 +210,7 @@ public class TestNotify {
 
         final Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
         Map<String, String> cachedAttributes = signal.getAttributes();
-        assertEquals("Same attribute key will be overwritten by the latest signal", "data3", cachedAttributes.get("key"));
+        assertEquals("data3", cachedAttributes.get("key"), "Same attribute key will be overwritten by the latest signal");
         assertTrue(signal.isTotalCountReached(3584));
         assertEquals(3072, signal.getCount("success"));
         assertEquals(512, signal.getCount("failure"));
@@ -256,7 +256,7 @@ public class TestNotify {
 
         final Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
         Map<String, String> cachedAttributes = signal.getAttributes();
-        assertEquals("Same attribute key will be overwritten by the latest signal", "data3", cachedAttributes.get("key"));
+        assertEquals("data3", cachedAttributes.get("key"), "Same attribute key will be overwritten by the latest signal");
         assertTrue(signal.isTotalCountReached(1536));
         assertEquals(1024, signal.getCount("success"));
         assertEquals(512, signal.getCount("failure"));
@@ -264,7 +264,7 @@ public class TestNotify {
     }
 
     @Test
-    public void testRegex() throws InitializationException, IOException {
+    public void testRegex() throws IOException {
         runner.setProperty(Notify.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
         runner.setProperty(Notify.ATTRIBUTE_CACHE_REGEX, "key[0-9]*");
 
@@ -287,7 +287,7 @@ public class TestNotify {
     }
 
     @Test
-    public void testEmptyReleaseSignal() throws InitializationException, InterruptedException {
+    public void testEmptyReleaseSignal() {
         runner.setProperty(Notify.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
 
         final Map<String, String> props = new HashMap<>();
@@ -300,19 +300,17 @@ public class TestNotify {
     }
 
     @Test
-    public void testFailingCacheService() throws InitializationException, IOException {
+    public void testFailingCacheService() {
         service.setFailOnCalls(true);
         runner.setProperty(Notify.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
 
         final Map<String, String> props = new HashMap<>();
         props.put("releaseSignalAttribute", "2");
         runner.enqueue(new byte[] {}, props);
-        try {
+        final AssertionError e = assertThrows(AssertionError.class, () -> {
             runner.run();
-            fail("Processor should throw RuntimeException in case it receives an IO exception from the cache service and yield for a while.");
-        } catch (final AssertionError e) {
-            assertTrue(e.getCause() instanceof RuntimeException);
-        }
+        });
+        assertTrue(e.getCause() instanceof RuntimeException);
         service.setFailOnCalls(false);
 
     }

@@ -19,12 +19,10 @@ package org.apache.nifi.processors.standard;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -32,6 +30,8 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestParseCEF {
     private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
@@ -157,19 +157,19 @@ public class TestParseCEF {
         JsonNode header = results.get("header");
         JsonNode extension = results.get("extension");
 
-        Assert.assertEquals("TestVendor", header.get("deviceVendor").asText());
-        Assert.assertEquals(sdf.format(new Date(1423441663000L)),
+        assertEquals("TestVendor", header.get("deviceVendor").asText());
+        assertEquals(sdf.format(new Date(1423441663000L)),
                             extension.get("rt").asText());
-        Assert.assertEquals("Test Long", extension.get("cn3Label").asText());
-        Assert.assertEquals( 9223372036854775807L, extension.get("cn3").asLong());
-        Assert.assertTrue(extension.get("cfp1").floatValue() == 1.234F);
-        Assert.assertEquals("Test FP Number", extension.get("cfp1Label").asText());
-        Assert.assertEquals("00:00:0c:07:ac:00", extension.get("smac").asText());
-        Assert.assertEquals("2001:cdba:0:0:0:0:3257:9652", extension.get("c6a3").asText());
-        Assert.assertEquals("Test IPv6", extension.get("c6a3Label").asText());
-        Assert.assertEquals("123.123.123.123", extension.get("destinationTranslatedAddress").asText());
-        Assert.assertEquals("Test String", extension.get("cs1Label").asText());
-        Assert.assertEquals("test test test chocolate", extension.get("cs1").asText());
+        assertEquals("Test Long", extension.get("cn3Label").asText());
+        assertEquals( 9223372036854775807L, extension.get("cn3").asLong());
+        assertEquals(extension.get("cfp1").floatValue(), 1.234F);
+        assertEquals("Test FP Number", extension.get("cfp1Label").asText());
+        assertEquals("00:00:0c:07:ac:00", extension.get("smac").asText());
+        assertEquals("2001:cdba:0:0:0:0:3257:9652", extension.get("c6a3").asText());
+        assertEquals("Test IPv6", extension.get("c6a3Label").asText());
+        assertEquals("123.123.123.123", extension.get("destinationTranslatedAddress").asText());
+        assertEquals("Test String", extension.get("cs1Label").asText());
+        assertEquals("test test test chocolate", extension.get("cs1").asText());
     }
 
     @Test
@@ -189,22 +189,22 @@ public class TestParseCEF {
         JsonNode header = results.get("header");
         JsonNode extension = results.get("extension");
 
-        Assert.assertEquals("TestVendor", header.get("deviceVendor").asText());
-        Assert.assertEquals(sdf.format(new Date(1423441663000L)),
+        assertEquals("TestVendor", header.get("deviceVendor").asText());
+        assertEquals(sdf.format(new Date(1423441663000L)),
                 extension.get("rt").asText());
-        Assert.assertEquals("Test Long", extension.get("cn3Label").asText());
-        Assert.assertEquals( 9223372036854775807L, extension.get("cn3").asLong());
-        Assert.assertTrue(extension.get("cfp1").floatValue() == 1.234F);
-        Assert.assertEquals("Test FP Number", extension.get("cfp1Label").asText());
-        Assert.assertEquals("00:00:0c:07:ac:00", extension.get("smac").asText());
-        Assert.assertEquals("2001:cdba:0:0:0:0:3257:9652", extension.get("c6a3").asText());
-        Assert.assertEquals("Test IPv6", extension.get("c6a3Label").asText());
-        Assert.assertEquals("Test String", extension.get("cs1Label").asText());
-        Assert.assertEquals("test test test chocolate", extension.get("cs1").asText());
-        Assert.assertEquals("123.123.123.123", extension.get("destinationTranslatedAddress").asText());
+        assertEquals("Test Long", extension.get("cn3Label").asText());
+        assertEquals( 9223372036854775807L, extension.get("cn3").asLong());
+        assertEquals(extension.get("cfp1").floatValue(), 1.234F);
+        assertEquals("Test FP Number", extension.get("cfp1Label").asText());
+        assertEquals("00:00:0c:07:ac:00", extension.get("smac").asText());
+        assertEquals("2001:cdba:0:0:0:0:3257:9652", extension.get("c6a3").asText());
+        assertEquals("Test IPv6", extension.get("c6a3Label").asText());
+        assertEquals("Test String", extension.get("cs1Label").asText());
+        assertEquals("test test test chocolate", extension.get("cs1").asText());
+        assertEquals("123.123.123.123", extension.get("destinationTranslatedAddress").asText());
 
         JsonNode inner = new ObjectMapper().readTree(extension.get("cs2").asText());
-        Assert.assertEquals("chocolate!", inner.get("test_test_test").asText());
+        assertEquals("chocolate!", inner.get("test_test_test").asText());
     }
 
     @Test
@@ -225,7 +225,7 @@ public class TestParseCEF {
         JsonNode extension = results.get("extension");
 
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-        Assert.assertEquals(sdf.format(new Date(1423441663000L)),
+        assertEquals(sdf.format(new Date(1423441663000L)),
                 extension.get("rt").asText());
 
         // Converting a field without timezone will always result on render time being dependent
@@ -237,7 +237,7 @@ public class TestParseCEF {
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 
         String prettyEvent = sdf.format(new Date(eventTime - offset));
-        Assert.assertEquals(prettyEvent, extension.get("deviceCustomDate1").asText());
+        assertEquals(prettyEvent, extension.get("deviceCustomDate1").asText());
     }
 
     @Test
@@ -340,7 +340,7 @@ public class TestParseCEF {
         JsonNode results = new ObjectMapper().readTree(rawJson);
 
         JsonNode extension = results.get("extension");
-        Assert.assertEquals(200, extension.get("http_response").asInt());
+        assertEquals(200, extension.get("http_response").asInt());
     }
 
     @Test
@@ -370,11 +370,11 @@ public class TestParseCEF {
         JsonNode results = new ObjectMapper().readTree(rawJson);
 
         JsonNode extensions = results.get("extension");
-        Assert.assertTrue(extensions.has("cn3"));
-        Assert.assertTrue(extensions.get("cn3").isNull());
+        assertTrue(extensions.has("cn3"));
+        assertTrue(extensions.get("cn3").isNull());
 
-        Assert.assertTrue(extensions.has("cn3Label"));
-        Assert.assertTrue(extensions.get("cn3Label").asText().isEmpty());
+        assertTrue(extensions.has("cn3Label"));
+        assertTrue(extensions.get("cn3Label").asText().isEmpty());
     }
 
     @Test
@@ -403,7 +403,7 @@ public class TestParseCEF {
         JsonNode results = new ObjectMapper().readTree(rawJson);
 
         JsonNode extension = results.get("extension");
-        Assert.assertEquals("ICMP", extension.get("proto").asText());
+        assertEquals("ICMP", extension.get("proto").asText());
     }
 
 }

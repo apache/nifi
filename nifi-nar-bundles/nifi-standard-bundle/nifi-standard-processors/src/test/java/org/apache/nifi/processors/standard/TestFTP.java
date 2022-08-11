@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -36,7 +26,6 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
@@ -47,6 +36,17 @@ import org.mockftpserver.fake.filesystem.FileEntry;
 import org.mockftpserver.fake.filesystem.FileSystem;
 import org.mockftpserver.fake.filesystem.Permissions;
 import org.mockftpserver.fake.filesystem.WindowsFakeFileSystem;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestFTP {
 
@@ -145,7 +145,7 @@ public class TestFTP {
         FileSystem results = fakeFtpServer.getFileSystem();
 
         // Check file was uploaded
-        Assertions.assertTrue(results.exists("c:\\data\\randombytes-1"));
+        assertTrue(results.exists("c:\\data\\randombytes-1"));
     }
 
     @Test
@@ -208,7 +208,7 @@ public class TestFTP {
         results.add(sampleFile);
 
         // Check file exists
-        Assertions.assertTrue(results.exists("c:\\data\\randombytes-2"));
+        assertTrue(results.exists("c:\\data\\randombytes-2"));
 
         TestRunner runner = TestRunners.newTestRunner(GetFTP.class);
         runner.setProperty(FTPTransfer.HOSTNAME, LOCALHOST_ADDRESS);
@@ -232,7 +232,7 @@ public class TestFTP {
         results.add(sampleFile);
 
         // Check file exists
-        Assertions.assertTrue(results.exists("c:\\data\\randombytes-2"));
+        assertTrue(results.exists("c:\\data\\randombytes-2"));
 
         TestRunner runner = TestRunners.newTestRunner(FetchFTP.class);
         runner.setProperty(FetchFTP.HOSTNAME, "${host}");
@@ -353,7 +353,7 @@ public class TestFTP {
         results.add(sampleFile);
 
         // Check file exists
-        Assertions.assertTrue(results.exists("c:\\data\\randombytes-2"));
+        assertTrue(results.exists("c:\\data\\randombytes-2"));
 
         TestRunner runner = TestRunners.newTestRunner(ListFTP.class);
         runner.setProperty(ListFTP.HOSTNAME, LOCALHOST_ADDRESS);

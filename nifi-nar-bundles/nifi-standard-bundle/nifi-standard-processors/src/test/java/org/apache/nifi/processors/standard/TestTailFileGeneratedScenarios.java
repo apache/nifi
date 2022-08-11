@@ -16,33 +16,29 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Stream;
 
-@Ignore("Stress test - longrunning. For manual testing.")
-@RunWith(Parameterized.class)
+@EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true", disabledReason = "Stress test - longrunning. For manual testing.")
 public class TestTailFileGeneratedScenarios extends AbstractTestTailFileScenario {
-    private final List<Action> actions;
+    private static List<Arguments> parameters = new ArrayList<>();
 
-    public TestTailFileGeneratedScenarios(List<Action> actions) {
-        this.actions = actions;
-    }
-
-    @Parameterized.Parameters
-    public static Collection parameters() {
-        Collection<Object[]> parameters = new ArrayList();
-
+    @BeforeAll
+    public static final void createParameters() {
         // Uncomment the portion for which to run the scenarios.
         //  They cannot be added to a single large batch because it opens too many files.
-//        List<Action> baseActions = Arrays.asList(
+//        final List<Action> baseActions = Arrays.asList(
 //            Action.WRITE_WORD,
 //            Action.WRITE_NUL,
 //            Action.WRITE_NEW_LINE,
@@ -60,7 +56,7 @@ public class TestTailFileGeneratedScenarios extends AbstractTestTailFileScenario
 //        new ArrayList<>(parameters).forEach(anActionList -> addAction(parameters, Action.ROLLOVER, (List<Action>)anActionList[0], 0, 0));
 //        new ArrayList<>(parameters).forEach(anActionList -> addAction(parameters, Action.SWITCH_FILE, (List<Action>)anActionList[0], 0, 0));
 
-//        List<Action> baseActions = Arrays.asList(
+//        final List<Action> baseActions = Arrays.asList(
 //            Action.WRITE_WORD,
 //            Action.WRITE_NEW_LINE,
 //            Action.WRITE_NUL,
@@ -90,48 +86,50 @@ public class TestTailFileGeneratedScenarios extends AbstractTestTailFileScenario
 //        );
 //        addAction(parameters, Action.TRIGGER, baseActions, 0, 1);
 
-        List<Action> baseActions = Arrays.asList(
-            Action.WRITE_WORD, Action.WRITE_WORD,
-            Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
-            Action.WRITE_NUL, Action.WRITE_NUL,
-            Action.WRITE_WORD, Action.WRITE_WORD,
-            Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
-            Action.OVERWRITE_NUL, Action.OVERWRITE_NUL,
-            Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
-            Action.WRITE_WORD, Action.WRITE_WORD,
-            Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
-            Action.ROLLOVER,
-            Action.WRITE_WORD, Action.WRITE_WORD,
-            Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
-            Action.WRITE_NUL, Action.WRITE_NUL,
-            Action.WRITE_WORD, Action.WRITE_WORD,
-            Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
-            Action.OVERWRITE_NUL, Action.OVERWRITE_NUL,
-            Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
-            Action.WRITE_WORD, Action.WRITE_WORD,
-            Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
-            Action.SWITCH_FILE,
-            Action.WRITE_WORD, Action.WRITE_WORD,
-            Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
-            Action.WRITE_NUL, Action.WRITE_NUL,
-            Action.WRITE_WORD, Action.WRITE_WORD,
-            Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
-            Action.OVERWRITE_NUL, Action.OVERWRITE_NUL,
-            Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
-            Action.WRITE_WORD, Action.WRITE_WORD,
-            Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE
+        final List<Action> baseActions = Arrays.asList(
+                Action.WRITE_WORD, Action.WRITE_WORD,
+                Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
+                Action.WRITE_NUL, Action.WRITE_NUL,
+                Action.WRITE_WORD, Action.WRITE_WORD,
+                Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
+                Action.OVERWRITE_NUL, Action.OVERWRITE_NUL,
+                Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
+                Action.WRITE_WORD, Action.WRITE_WORD,
+                Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
+                Action.ROLLOVER,
+                Action.WRITE_WORD, Action.WRITE_WORD,
+                Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
+                Action.WRITE_NUL, Action.WRITE_NUL,
+                Action.WRITE_WORD, Action.WRITE_WORD,
+                Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
+                Action.OVERWRITE_NUL, Action.OVERWRITE_NUL,
+                Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
+                Action.WRITE_WORD, Action.WRITE_WORD,
+                Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
+                Action.SWITCH_FILE,
+                Action.WRITE_WORD, Action.WRITE_WORD,
+                Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
+                Action.WRITE_NUL, Action.WRITE_NUL,
+                Action.WRITE_WORD, Action.WRITE_WORD,
+                Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
+                Action.OVERWRITE_NUL, Action.OVERWRITE_NUL,
+                Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE,
+                Action.WRITE_WORD, Action.WRITE_WORD,
+                Action.WRITE_NEW_LINE, Action.WRITE_NEW_LINE
         );
         addAction(parameters, Action.TRIGGER, baseActions, 0, 1);
-
-        return parameters;
     }
 
-    private static void addAction(Collection<Object[]> parameters, Action action, List<Action> baseActions, int currentDepth, int recursiveDepth) {
+    private static Stream<Arguments> provideActionsForTestScenario() {
+        return parameters.stream();
+    }
+
+    private static void addAction(List<Arguments> parameters, Action action, List<Action> baseActions, int currentDepth, int recursiveDepth) {
         for (int triggerIndex = 0; triggerIndex < baseActions.size(); triggerIndex++) {
             List<Action> actions = new LinkedList<>(baseActions);
             actions.add(triggerIndex, action);
 
-            parameters.add(new Object[]{ actions});
+            parameters.add(Arguments.of(actions));
 
             if (currentDepth < recursiveDepth) {
                 addAction(parameters, action, actions, currentDepth+1, recursiveDepth);
@@ -139,8 +137,10 @@ public class TestTailFileGeneratedScenarios extends AbstractTestTailFileScenario
         }
     }
 
-    @Test
-    public void testScenario() throws Exception {
+    @ParameterizedTest
+    @MethodSource("provideActionsForTestScenario")
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Test wants to rename an open file which is not allowed on Windows")
+    public void testParameterizedScenario(List<Action> actions) throws Exception {
         testScenario(actions);
     }
 }

@@ -47,6 +47,8 @@ import java.util.stream.Collectors;
 public class Saml2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
     private static final String UI_PATH = "/nifi/";
 
+    private static final String ROOT_PATH = "/";
+
     private final ApplicationCookieService applicationCookieService = new StandardApplicationCookieService();
 
     private final BearerTokenProvider bearerTokenProvider;
@@ -108,7 +110,7 @@ public class Saml2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSu
      */
     @Override
     public String determineTargetUrl(final HttpServletRequest request, final HttpServletResponse response, final Authentication authentication) {
-        final URI resourceUri = RequestUriBuilder.fromHttpServletRequest(request).build();
+        final URI resourceUri = RequestUriBuilder.fromHttpServletRequest(request).path(ROOT_PATH).build();
         processAuthentication(response, authentication, resourceUri);
 
         final URI targetUri = RequestUriBuilder.fromHttpServletRequest(request).path(UI_PATH).build();

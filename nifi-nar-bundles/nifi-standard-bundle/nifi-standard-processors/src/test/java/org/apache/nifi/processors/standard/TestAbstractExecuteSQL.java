@@ -21,18 +21,18 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.standard.sql.SqlWriter;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestAbstractExecuteSQL {
     private AbstractExecuteSQL testSubject;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         testSubject = new AbstractExecuteSQL() {
             @Override
@@ -43,7 +43,7 @@ public class TestAbstractExecuteSQL {
     }
 
     @Test
-    public void testGetQueries() throws Exception {
+    public void testGetQueries() {
         // GIVEN
         String queriesString = "SOME kind of PRE-QUERY statement;\n" +
             "AND another PRE-QUERY statment;";
@@ -61,7 +61,7 @@ public class TestAbstractExecuteSQL {
     }
 
     @Test
-    public void testGetQueriesWithEscapedSemicolon() throws Exception {
+    public void testGetQueriesWithEscapedSemicolon() {
         // GIVEN
         String queriesString = "SET COMPLEX_KEY = 'KEYPART_1=value1\\;KEYPART_2=<valuePart2>\\;’ FOR SESSION;\n" +
             "SOME other PRE-QUERY statement;\n" +

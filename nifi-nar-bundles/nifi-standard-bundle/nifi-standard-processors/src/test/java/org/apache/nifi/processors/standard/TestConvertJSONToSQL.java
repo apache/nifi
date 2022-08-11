@@ -16,7 +16,21 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,31 +44,16 @@ import java.sql.Types;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import com.fasterxml.jackson.core.JsonGenerationException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestConvertJSONToSQL {
 
-    @ClassRule
-    public static TemporaryFolder folder = new TemporaryFolder();
+    private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
 
     /**
      * Setting up Connection pooling is expensive operation.
@@ -62,11 +61,17 @@ public class TestConvertJSONToSQL {
      */
     static protected DBCPService service;
 
-    @BeforeClass
-    public static void setupClass() throws ProcessException, SQLException {
-        System.setProperty("derby.stream.error.file", "target/derby.log");
-        final File tempDir = folder.getRoot();
-        final File dbDir = new File(tempDir, "db");
+    @BeforeAll
+    public static void setupDerbyLog() throws ProcessException {
+        final File derbyLog = new File(getSystemTemporaryDirectory(), "derby.log");
+        derbyLog.deleteOnExit();
+        System.setProperty(DERBY_LOG_PROPERTY, derbyLog.getAbsolutePath());
+    }
+
+    @BeforeEach
+    public void setup() throws SQLException {
+        final File dbDir = new File(getEmptyDirectory(), "db");
+        dbDir.deleteOnExit();
         service = new MockDBCPService(dbDir.getAbsolutePath());
         final String createPersons = "CREATE TABLE PERSONS (id integer primary key, name varchar(100), code integer)";
         try (final Connection conn = service.getConnection()) {
@@ -74,6 +79,11 @@ public class TestConvertJSONToSQL {
                 stmt.executeUpdate(createPersons);
             }
         }
+    }
+
+    @AfterAll
+    public static void cleanupDerbyLog() {
+        System.clearProperty(DERBY_LOG_PROPERTY);
     }
 
     @Test
@@ -956,5 +966,14 @@ public class TestConvertJSONToSQL {
                 throw new ProcessException("getConnection failed: " + e);
             }
         }
+    }
+
+    private File getEmptyDirectory() {
+        final String randomDirectory = String.format("%s-%s", getClass().getSimpleName(), UUID.randomUUID());
+        return Paths.get(getSystemTemporaryDirectory(), randomDirectory).toFile();
+    }
+
+    private static String getSystemTemporaryDirectory() {
+        return System.getProperty("java.io.tmpdir");
     }
 }

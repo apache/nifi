@@ -36,10 +36,10 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.db.SimpleCommerceDataSet;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,10 +57,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -68,16 +69,7 @@ import static org.mockito.Mockito.when;
 
 public class TestExecuteSQLRecord {
 
-    private static final Logger LOGGER;
-
-    static {
-        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
-        System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
-        System.setProperty("org.slf4j.simpleLogger.log.nifi.io.nio", "debug");
-        System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.ExecuteSQLRecord", "debug");
-        System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestExecuteSQLRecord", "debug");
-        LOGGER = LoggerFactory.getLogger(TestExecuteSQLRecord.class);
-    }
+    private final Logger LOGGER = LoggerFactory.getLogger(TestExecuteSQLRecord.class);;
 
     final static String DB_LOCATION = "target/db";
 
@@ -106,14 +98,19 @@ public class TestExecuteSQLRecord {
             + " where PER.ID < ? AND REL.ID < ?";
 
 
-    @BeforeClass
+    @BeforeAll
     public static void setupClass() {
         System.setProperty("derby.stream.error.file", "target/derby.log");
     }
 
+    @AfterAll
+    public static void cleanupClass() {
+        System.clearProperty("derby.stream.error.file");
+    }
+
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         final DBCPService dbcp = new DBCPServiceSimpleImpl("derby");
         final Map<String, String> dbcpProperties = new HashMap<>();
@@ -149,10 +146,12 @@ public class TestExecuteSQLRecord {
         runner.assertTransferCount(AbstractExecuteSQL.REL_FAILURE, 0);
     }
 
-    @Test(expected = AssertionError.class)
+    @Test
     public void testNoIncomingConnectionAndNoQuery() throws InitializationException {
         runner.setIncomingConnection(false);
-        runner.run();
+        assertThrows(AssertionError.class, () -> {
+            runner.run();
+        });
     }
 
     @Test
@@ -633,7 +632,7 @@ public class TestExecuteSQLRecord {
 
         // Assert exception message has been put to flow file attribute
         MockFlowFile failedFlowFile = runner.getFlowFilesForRelationship(AbstractExecuteSQL.REL_FAILURE).get(0);
-        Assert.assertEquals("java.sql.SQLException: test execute statement failed", failedFlowFile.getAttribute(AbstractExecuteSQL.RESULT_ERROR_MESSAGE));
+        assertEquals("java.sql.SQLException: test execute statement failed", failedFlowFile.getAttribute(AbstractExecuteSQL.RESULT_ERROR_MESSAGE));
     }
 
     @Test

@@ -44,19 +44,12 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.Reader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -97,12 +90,13 @@ public class ExtractGrok extends AbstractProcessor {
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .build();
 
-    public static final PropertyDescriptor GROK_PATTERN_FILE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor GROK_PATTERNS = new PropertyDescriptor.Builder()
         .name("Grok Pattern file")
-        .description("Grok Pattern file definition.  This file will be loaded after the default Grok "
-            + "patterns file.  If not set, then only the Grok Expression and the default Grok patterns will be used.")
+        .displayName("Grok Patterns")
+        .description("Custom Grok pattern definitions. These definitions will be loaded after the default Grok "
+            + "patterns. The Grok Parser will use the default Grok patterns when this property is not configured.")
         .required(false)
-        .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
+        .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.TEXT, ResourceType.URL)
         .build();
 
     public static final PropertyDescriptor KEEP_EMPTY_CAPTURES = new PropertyDescriptor.Builder()
@@ -164,7 +158,6 @@ public class ExtractGrok extends AbstractProcessor {
     private final static List<PropertyDescriptor> descriptors;
     private final static Set<Relationship> relationships;
 
-    private volatile GrokCompiler grokCompiler;
     private volatile Grok grok;
     private final BlockingQueue<byte[]> bufferQueue = new LinkedBlockingQueue<>();
 
@@ -178,7 +171,7 @@ public class ExtractGrok extends AbstractProcessor {
 
         final List<PropertyDescriptor> _descriptors = new ArrayList<>();
         _descriptors.add(GROK_EXPRESSION);
-        _descriptors.add(GROK_PATTERN_FILE);
+        _descriptors.add(GROK_PATTERNS);
         _descriptors.add(DESTINATION);
         _descriptors.add(CHARACTER_SET);
         _descriptors.add(MAX_BUFFER_SIZE);
@@ -221,15 +214,13 @@ public class ExtractGrok extends AbstractProcessor {
 
         try {
 
-            try (final InputStream in = getClass().getResourceAsStream(DEFAULT_PATTERN_NAME);
-                 final Reader reader = new InputStreamReader(in)) {
-                grokCompiler.register(in);
+            try (final InputStream defaultPatterns = getClass().getResourceAsStream(DEFAULT_PATTERN_NAME)) {
+                grokCompiler.register(defaultPatterns);
             }
 
-            if (validationContext.getProperty(GROK_PATTERN_FILE).isSet()) {
-                try (final InputStream in = validationContext.getProperty(GROK_PATTERN_FILE).asResource().read();
-                     final Reader reader = new InputStreamReader(in)) {
-                    grokCompiler.register(reader);
+            if (validationContext.getProperty(GROK_PATTERNS).isSet()) {
+                try (final InputStream patterns = validationContext.getProperty(GROK_PATTERNS).asResource().read()) {
+                    grokCompiler.register(patterns);
                 }
             }
             grok = grokCompiler.compile(input, namedCaptures);
@@ -258,17 +249,15 @@ public class ExtractGrok extends AbstractProcessor {
             bufferQueue.add(buffer);
         }
 
-        grokCompiler = GrokCompiler.newInstance();
+        final GrokCompiler grokCompiler = GrokCompiler.newInstance();
 
-        try (final InputStream in = getClass().getResourceAsStream(DEFAULT_PATTERN_NAME);
-             final Reader reader = new InputStreamReader(in)) {
-            grokCompiler.register(in);
+        try (final InputStream defaultPatterns = getClass().getResourceAsStream(DEFAULT_PATTERN_NAME)) {
+            grokCompiler.register(defaultPatterns);
         }
 
-        if (context.getProperty(GROK_PATTERN_FILE).isSet()) {
-            try (final InputStream in = new FileInputStream(new File(context.getProperty(GROK_PATTERN_FILE).getValue()));
-                 final Reader reader = new InputStreamReader(in)) {
-                grokCompiler.register(reader);
+        if (context.getProperty(GROK_PATTERNS).isSet()) {
+            try (final InputStream patterns = context.getProperty(GROK_PATTERNS).asResource().read()) {
+                grokCompiler.register(patterns);
             }
         }
         grok = grokCompiler.compile(context.getProperty(GROK_EXPRESSION).getValue(), context.getProperty(NAMED_CAPTURES_ONLY).asBoolean());
@@ -292,12 +281,7 @@ public class ExtractGrok extends AbstractProcessor {
 
         try {
             final byte[] byteBuffer = buffer;
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(InputStream in) throws IOException {
-                    StreamUtils.fillBuffer(in, byteBuffer, false);
-                }
-            });
+            session.read(flowFile, in -> StreamUtils.fillBuffer(in, byteBuffer, false));
             final long len = Math.min(byteBuffer.length, flowFile.getSize());
             contentString = new String(byteBuffer, 0, (int) len, charset);
         } finally {
@@ -310,7 +294,7 @@ public class ExtractGrok extends AbstractProcessor {
 
         if (captureMap.isEmpty()) {
             session.transfer(flowFile, REL_NO_MATCH);
-            getLogger().info("Did not match any Grok Expressions for FlowFile {}", new Object[]{flowFile});
+            getLogger().info("Did not match any Grok Expressions for FlowFile {}", flowFile);
             return;
         }
 
@@ -327,16 +311,11 @@ public class ExtractGrok extends AbstractProcessor {
                 flowFile = session.putAllAttributes(flowFile, grokResults);
                 session.getProvenanceReporter().modifyAttributes(flowFile);
                 session.transfer(flowFile, REL_MATCH);
-                getLogger().info("Matched {} Grok Expressions and added attributes to FlowFile {}", new Object[]{grokResults.size(), flowFile});
+                getLogger().info("Matched {} Grok Expressions and added attributes to FlowFile {}", grokResults.size(), flowFile);
 
                 break;
             case FLOWFILE_CONTENT:
-                FlowFile conFlowfile = session.write(flowFile, new StreamCallback() {
-                    @Override
-                    public void process(InputStream in, OutputStream out) throws IOException {
-                        out.write(objectMapper.writeValueAsBytes(captureMap));
-                    }
-                });
+                FlowFile conFlowfile = session.write(flowFile, outputStream -> objectMapper.writeValue(outputStream, captureMap));
                 conFlowfile = session.putAttribute(conFlowfile, CoreAttributes.MIME_TYPE.key(), APPLICATION_JSON);
                 session.getProvenanceReporter().modifyContent(conFlowfile, "Replaced content with parsed Grok fields and values", stopWatch.getElapsed(TimeUnit.MILLISECONDS));
                 session.transfer(conFlowfile, REL_MATCH);

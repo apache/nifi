@@ -16,13 +16,17 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.util.Arrays;
 import java.util.List;
 
 public class TestTailFileSimpleScenarios extends AbstractTestTailFileScenario {
+
     @Test
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Test wants to rename an open file which is not allowed on Windows")
     public void testSimpleScenario() throws Exception {
         // GIVEN
         List<Action> actions = Arrays.asList(
@@ -77,6 +81,7 @@ public class TestTailFileSimpleScenarios extends AbstractTestTailFileScenario {
     }
 
     @Test
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Test wants to rename an open file which is not allowed on Windows")
     public void testSimpleScenario4() throws Exception {
         // GIVEN
         List<Action> actions = Arrays.asList(
@@ -94,6 +99,7 @@ public class TestTailFileSimpleScenarios extends AbstractTestTailFileScenario {
     }
 
     @Test
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Test wants to rename an open file which is not allowed on Windows")
     public void testSimpleScenario5() throws Exception {
         // GIVEN
         List<Action> actions = Arrays.asList(

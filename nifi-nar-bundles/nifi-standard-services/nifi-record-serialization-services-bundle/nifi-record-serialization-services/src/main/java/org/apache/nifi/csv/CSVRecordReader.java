@@ -48,8 +48,8 @@ public class CSVRecordReader extends AbstractCSVRecordReader {
     private List<RecordField> recordFields;
 
     public CSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
-                           final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding) throws IOException {
-        super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat);
+                           final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding, final boolean trimDoubleQuote) throws IOException {
+        super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, trimDoubleQuote);
 
         final Reader reader = new InputStreamReader(new BOMInputStream(in), encoding);
 
@@ -67,6 +67,11 @@ public class CSVRecordReader extends AbstractCSVRecordReader {
         }
 
         csvParser = new CSVParser(reader, withHeader);
+    }
+
+    public CSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
+                           final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding) throws IOException {
+        this(in, logger, schema, csvFormat, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, encoding, true);
     }
 
     @Override

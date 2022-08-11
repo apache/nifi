@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.json.JsonRecordSetWriter;
@@ -39,9 +38,9 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.File;
 import java.io.IOException;
@@ -52,6 +51,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@DisabledOnOs(value = OS.WINDOWS, disabledReason = "Pretty printing is not portable as these fail on windows")
 public class TestForkRecord {
 
     private final String dateFormat = RecordFieldType.DATE.getDefaultFormat();
@@ -94,12 +94,6 @@ public class TestForkRecord {
         transactionFields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         transactionFields.add(new RecordField("amount", RecordFieldType.DOUBLE.getDataType()));
         return new SimpleRecordSchema(transactionFields);
-    }
-
-    //Pretty printing is not portable as these fail on windows
-    @BeforeClass
-    public static void setUpSuite() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
     }
 
     @Test

@@ -28,8 +28,8 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -42,10 +42,10 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestPutSyslog {
     private static final String ADDRESS = "127.0.0.1";
@@ -82,7 +82,7 @@ public class TestPutSyslog {
 
     private int port;
 
-    @Before
+    @BeforeEach
     public void setRunner() throws UnknownHostException {
         address = InetAddress.getByName(ADDRESS);
         port = NetworkUtils.getAvailableUdpPort();
@@ -159,14 +159,14 @@ public class TestPutSyslog {
 
     private void assertProvenanceRecordTransitUriFound() {
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
-        assertFalse("Provenance Events not found", provenanceEvents.isEmpty());
+        assertFalse(provenanceEvents.isEmpty(), "Provenance Events not found");
         final ProvenanceEventRecord provenanceEventRecord = provenanceEvents.iterator().next();
         assertEquals(ProvenanceEventType.SEND, provenanceEventRecord.getEventType());
 
         final String transitUri = provenanceEventRecord.getTransitUri();
-        assertNotNull("Transit URI not found", transitUri);
-        assertTrue("Transit URI Protocol not found", transitUri.contains(DEFAULT_PROTOCOL));
-        assertTrue("Transit URI Hostname not found", transitUri.contains(ADDRESS));
-        assertTrue("Transit URI Port not found", transitUri.contains(Integer.toString(port)));
+        assertNotNull(transitUri, "Transit URI not found");
+        assertTrue(transitUri.contains(DEFAULT_PROTOCOL), "Transit URI Protocol not found");
+        assertTrue(transitUri.contains(ADDRESS), "Transit URI Hostname not found");
+        assertTrue(transitUri.contains(Integer.toString(port)), "Transit URI Port not found");
     }
 }

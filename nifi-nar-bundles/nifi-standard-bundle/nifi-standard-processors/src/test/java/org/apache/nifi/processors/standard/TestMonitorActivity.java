@@ -287,7 +287,6 @@ public class TestMonitorActivity {
         restoredFlowFile.assertAttributeNotEquals(CoreAttributes.UUID.key(), originalFlowFile.getAttribute(CoreAttributes.UUID.key()));
         restoredFlowFile.assertAttributeNotEquals(CoreAttributes.FILENAME.key(), originalFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
         assertNotEquals(restoredFlowFile.getSize(), originalFlowFile.getSize());
-        assertNotEquals(restoredFlowFile.getLineageStartDate(), originalFlowFile.getLineageStartDate());
 
         runner.clearTransferState();
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "true");
@@ -315,7 +314,6 @@ public class TestMonitorActivity {
         restoredFlowFile.assertAttributeNotEquals(CoreAttributes.UUID.key(), originalFlowFile.getAttribute(CoreAttributes.UUID.key()));
         restoredFlowFile.assertAttributeNotEquals(CoreAttributes.FILENAME.key(), originalFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
         assertNotEquals(restoredFlowFile.getSize(), originalFlowFile.getSize());
-        assertNotEquals(restoredFlowFile.getLineageStartDate(), originalFlowFile.getLineageStartDate());
     }
 
     @Timeout(5)
@@ -449,7 +447,7 @@ public class TestMonitorActivity {
 
         final StateMap postProcessedState = runner.getStateManager().getState(Scope.CLUSTER);
         assertTrue(                existingTimestamp < Long.parseLong(postProcessedState.get(
-                        MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER)));
+                MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER)));
         // State should be updated. Null in this case.
         assertNull(postProcessedState.get("key1"));
         assertNull(postProcessedState.get("key2"));
