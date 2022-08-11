@@ -18,6 +18,7 @@ package org.apache.nifi.web.client;
 
 import org.apache.nifi.web.client.api.HttpEntityHeaders;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -45,5 +46,10 @@ class StandardHttpEntityHeaders implements HttpEntityHeaders {
         Objects.requireNonNull(headerName, "Header Name required");
         final List<String> values = headers.get(headerName);
         return values == null ? Collections.emptyList() : Collections.unmodifiableList(values);
+    }
+
+    @Override
+    public Collection<String> getHeaderNames() {
+        return Collections.unmodifiableSet(headers.keySet());
     }
 }

@@ -20,7 +20,7 @@ import java.net.Proxy;
 import java.util.Optional;
 
 /**
- * Proxy Context for provides information necessary
+ * Proxy Context provides information necessary to access sites through a Proxy with or without authentication
  */
 public interface ProxyContext {
     /**

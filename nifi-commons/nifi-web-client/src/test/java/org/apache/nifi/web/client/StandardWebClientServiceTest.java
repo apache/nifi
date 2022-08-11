@@ -49,6 +49,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -411,6 +412,9 @@ public class StandardWebClientServiceTest {
         final List<String> contentLengthHeaders = headers.getHeader(CONTENT_LENGTH_HEADER);
         assertFalse(contentLengthHeaders.isEmpty());
         assertEquals(Collections.singletonList(CONTENT_LENGTH_ZERO), contentLengthHeaders);
+
+        final Collection<String> headerNames = headers.getHeaderNames();
+        assertTrue(headerNames.contains(CONTENT_LENGTH_HEADER));
     }
 
     private void enqueueResponseStatus(final HttpResponseStatus httpResponseStatus) {

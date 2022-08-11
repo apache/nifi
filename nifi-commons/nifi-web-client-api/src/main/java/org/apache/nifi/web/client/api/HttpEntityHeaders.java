@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.client.api;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,4 +39,11 @@ public interface HttpEntityHeaders {
      * @return List of Header Values or empty when not found
      */
     List<String> getHeader(String headerName);
+
+    /**
+     * Get Header Names
+     *
+     * @return Collection of Header Names or empty when not found
+     */
+    Collection<String> getHeaderNames();
 }
