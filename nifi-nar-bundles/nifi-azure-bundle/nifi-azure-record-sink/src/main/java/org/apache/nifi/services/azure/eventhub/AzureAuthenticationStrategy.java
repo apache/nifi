@@ -20,7 +20,9 @@ import org.apache.nifi.components.DescribedValue;
 
 public enum AzureAuthenticationStrategy implements DescribedValue {
     SHARED_ACCESS_KEY("Shared Access Key", "Azure Event Hub shared access key"),
-    DEFAULT_AZURE_CREDENTIAL("Default Azure Credential", "Azure Event Hub token credential");
+    DEFAULT_AZURE_CREDENTIAL("Default Azure Credential", "The Default Azure Credential " +
+            "will read credentials from standard environment variables and will also attempt to read " +
+            "Managed Identity credentials when running in Microsoft Azure environments");
 
     private final String displayName;
     private final String description;

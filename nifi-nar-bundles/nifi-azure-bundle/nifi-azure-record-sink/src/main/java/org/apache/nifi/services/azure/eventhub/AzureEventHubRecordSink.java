@@ -121,12 +121,12 @@ public class AzureEventHubRecordSink extends AbstractControllerService implement
             .build();
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(
             Arrays.asList(
+                    SERVICE_BUS_ENDPOINT,
                     EVENT_HUB_NAME,
                     NAMESPACE,
-                    SERVICE_BUS_ENDPOINT,
+                    AUTHENTICATION_STRATEGY,
                     SHARED_ACCESS_POLICY,
                     SHARED_ACCESS_POLICY_KEY,
-                    AUTHENTICATION_STRATEGY,
                     PARTITION_KEY,
                     RECORD_WRITER_FACTORY
             )
@@ -143,14 +143,14 @@ public class AzureEventHubRecordSink extends AbstractControllerService implement
 
     protected EventHubProducerClient createEventHubClient(final String namespace, final String serviceBusEndpoint, final String eventHubName,
                                                           final String policyName, final String policyKey, final AzureAuthenticationStrategy authenticationStrategy) throws ProcessException {
-        final AzureNamedKeyCredential azureNamedKeyCredential = new AzureNamedKeyCredential(policyName, policyKey);
         final String fullyQualifiedNamespace = String.format("%s%s", namespace, serviceBusEndpoint);
-        final DefaultAzureCredentialBuilder defaultAzureCredentialBuilder = new DefaultAzureCredentialBuilder();
-        final DefaultAzureCredential defaultAzureCredential = defaultAzureCredentialBuilder.build();
         final EventHubClientBuilder eventHubClientBuilder = new EventHubClientBuilder();
         if (AzureAuthenticationStrategy.SHARED_ACCESS_KEY == authenticationStrategy) {
+            final AzureNamedKeyCredential azureNamedKeyCredential = new AzureNamedKeyCredential(policyName, policyKey);
             eventHubClientBuilder.credential(fullyQualifiedNamespace, eventHubName, azureNamedKeyCredential);
         } else {
+            final DefaultAzureCredentialBuilder defaultAzureCredentialBuilder = new DefaultAzureCredentialBuilder();
+            final DefaultAzureCredential defaultAzureCredential = defaultAzureCredentialBuilder.build();
             eventHubClientBuilder.credential(fullyQualifiedNamespace, eventHubName, defaultAzureCredential);
         }
         return eventHubClientBuilder.buildProducerClient();
@@ -173,13 +173,12 @@ public class AzureEventHubRecordSink extends AbstractControllerService implement
     @OnDisabled
     public void onDisabled() {
         if (client == null) {
-            getLogger().debug("Event Sender not configured");
+            getLogger().debug("Event Hub Client not configured");
         } else {
             client.close();
         }
     }
 
-    // put all records in one event, then see capacity of event
     @Override
     public WriteResult sendData(RecordSet recordSet, Map<String, String> attributes, boolean sendZeroResults) throws IOException {
         final Map<String, String> writeAttributes = new LinkedHashMap<>(attributes);

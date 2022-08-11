@@ -31,13 +31,12 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
@@ -45,9 +44,15 @@ import java.util.Map;
 import java.util.Arrays;
 import java.util.Collections;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.isA;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 public class TestAzureEventHubRecordSink {
@@ -67,10 +72,9 @@ public class TestAzureEventHubRecordSink {
     @Mock
     private EventDataBatch eventDataBatch;
 
-
     @BeforeEach
     void setRunner() throws Exception {
-        final org.apache.nifi.util.TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.setValidateExpressionUsage(false);
 
         final MockRecordWriter recordWriter = new MockRecordWriter(NULL_HEADER, false);
@@ -85,8 +89,56 @@ public class TestAzureEventHubRecordSink {
         runner.setProperty(azureEventHubRecordSink, AzureEventHubRecordSink.RECORD_WRITER_FACTORY, WRITER_IDENTIFIER);
         runner.enableControllerService(azureEventHubRecordSink);
     }
-    public class MockAzureEventHubRecordSink extends AzureEventHubRecordSink {
 
+    @Test
+    void testSendDataNoRecords() throws IOException {
+        when(client.createBatch(any(CreateBatchOptions.class))).thenReturn(eventDataBatch);
+
+        final RecordSet recordSet = RecordSet.of(RECORD_SCHEMA);
+        final WriteResult writeResult = azureEventHubRecordSink.sendData(recordSet, Collections.emptyMap(), SEND_ZERO_RESULTS);
+
+        assertNotNull(writeResult);
+        assertEquals(0, writeResult.getRecordCount());
+
+        verify(client, times(0)).send(any(EventDataBatch.class));
+    }
+
+    @Test
+    void testSendDataOneRecordException() {
+        when(client.createBatch(any(CreateBatchOptions.class))).thenReturn(eventDataBatch);
+        when(eventDataBatch.tryAdd(isA(EventData.class))).thenReturn(false);
+
+        final RecordSet recordSet = RecordSet.of(RECORD_SCHEMA, getRecords(1));
+        assertThrows(ProcessException.class, ()-> azureEventHubRecordSink.sendData(recordSet, Collections.emptyMap(), SEND_ZERO_RESULTS));
+
+        verify(client, never()).send(any(EventDataBatch.class));
+    }
+
+    @Test
+    void testSendDataOneRecord() throws IOException {
+        when(client.createBatch(any(CreateBatchOptions.class))).thenReturn(eventDataBatch);
+        when(eventDataBatch.tryAdd(isA(EventData.class))).thenReturn(true);
+
+        final RecordSet recordSet = RecordSet.of(RECORD_SCHEMA, getRecords(1));
+        final WriteResult writeResult = azureEventHubRecordSink.sendData(recordSet, Collections.emptyMap(), SEND_ZERO_RESULTS);
+
+        assertNotNull(writeResult);
+        assertEquals(1, writeResult.getRecordCount());
+    }
+
+    @Test
+    void testSendDataTwoRecords() throws IOException {
+        when(client.createBatch(any(CreateBatchOptions.class))).thenReturn(eventDataBatch);
+        when(eventDataBatch.tryAdd(isA(EventData.class))).thenReturn(true);
+
+        final RecordSet recordSet = RecordSet.of(RECORD_SCHEMA, getRecords(2));
+        final WriteResult writeResult = azureEventHubRecordSink.sendData(recordSet, Collections.emptyMap(), SEND_ZERO_RESULTS);
+
+        assertNotNull(writeResult);
+        assertEquals(2, writeResult.getRecordCount());
+    }
+
+    public class MockAzureEventHubRecordSink extends AzureEventHubRecordSink {
         @Override
         protected EventHubProducerClient createEventHubClient(
                 final String namespace,
@@ -110,53 +162,5 @@ public class TestAzureEventHubRecordSink {
         final Record[] records = new Record[numberOfRecords];
         Arrays.fill(records, record);
         return records;
-    }
-
-    @Test
-    void testSendDataNoRecords() throws IOException {
-        when(client.createBatch(any(CreateBatchOptions.class))).thenReturn(eventDataBatch);
-
-        final RecordSet recordSet = RecordSet.of(RECORD_SCHEMA);
-        final WriteResult writeResult = azureEventHubRecordSink.sendData(recordSet, Collections.emptyMap(), SEND_ZERO_RESULTS);
-
-        Assertions.assertNotNull(writeResult);
-        Assertions.assertEquals(0, writeResult.getRecordCount());
-
-        Mockito.verify(client, Mockito.times(0)).send(Mockito.any(EventDataBatch.class));
-    }
-
-    @Test
-    void testSendDataOneRecordException() {
-        when(client.createBatch(any(CreateBatchOptions.class))).thenReturn(eventDataBatch);
-        when(eventDataBatch.tryAdd(isA(EventData.class))).thenReturn(false);
-
-        final RecordSet recordSet = RecordSet.of(RECORD_SCHEMA, getRecords(1));
-        Assertions.assertThrows(ProcessException.class, ()-> azureEventHubRecordSink.sendData(recordSet, Collections.emptyMap(), SEND_ZERO_RESULTS));
-
-        Mockito.verify(client, Mockito.never()).send(Mockito.any(EventDataBatch.class));
-    }
-
-    @Test
-    void testSendDataOneRecord() throws IOException {
-        when(client.createBatch(any(CreateBatchOptions.class))).thenReturn(eventDataBatch);
-        when(eventDataBatch.tryAdd(isA(EventData.class))).thenReturn(true);
-
-        final RecordSet recordSet = RecordSet.of(RECORD_SCHEMA, getRecords(1));
-        final WriteResult writeResult = azureEventHubRecordSink.sendData(recordSet, Collections.emptyMap(), SEND_ZERO_RESULTS);
-
-        Assertions.assertNotNull(writeResult);
-        Assertions.assertEquals(1, writeResult.getRecordCount());
-    }
-
-    @Test
-    void testSendDataTwoRecords() throws IOException {
-        when(client.createBatch(any(CreateBatchOptions.class))).thenReturn(eventDataBatch);
-        when(eventDataBatch.tryAdd(isA(EventData.class))).thenReturn(true);
-
-        final RecordSet recordSet = RecordSet.of(RECORD_SCHEMA, getRecords(2));
-        final WriteResult writeResult = azureEventHubRecordSink.sendData(recordSet, Collections.emptyMap(), SEND_ZERO_RESULTS);
-
-        Assertions.assertNotNull(writeResult);
-        Assertions.assertEquals(2, writeResult.getRecordCount());
     }
 }
