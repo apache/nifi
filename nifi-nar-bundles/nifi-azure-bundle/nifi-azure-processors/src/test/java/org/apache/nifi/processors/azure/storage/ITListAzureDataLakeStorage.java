@@ -58,7 +58,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         uploadFile(testFile1);
         testFiles.put(testFile1.getFilePath(), testFile1);
 
-        TestFile testTempFile1 = new TestFile("_$azuretempdirectory$", "1234file1");
+        TestFile testTempFile1 = new TestFile(AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY, "1234file1");
         uploadFile(testTempFile1);
         testFiles.put(testTempFile1.getFilePath(), testTempFile1);
 
@@ -70,7 +70,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         createDirectoryAndUploadFile(testFile11);
         testFiles.put(testFile11.getFilePath(), testFile11);
 
-        TestFile testTempFile11 = new TestFile("dir1/_$azuretempdirectory$", "5678file11");
+        TestFile testTempFile11 = new TestFile(String.format("dir1/%s", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY), "5678file11");
         uploadFile(testTempFile11);
         testFiles.put(testTempFile11.getFilePath(), testTempFile11);
 
@@ -82,7 +82,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         createDirectoryAndUploadFile(testFile111);
         testFiles.put(testFile111.getFilePath(), testFile111);
 
-        TestFile testTempFile111 = new TestFile("dir1/dir11/_$azuretempdirectory$", "9010file111");
+        TestFile testTempFile111 = new TestFile(String.format("dir1/dir11/%s", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY), "9010file111");
         uploadFile(testTempFile111);
         testFiles.put(testTempFile111.getFilePath(), testTempFile111);
 
@@ -90,7 +90,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         createDirectoryAndUploadFile(testFile21);
         testFiles.put(testFile21.getFilePath(), testFile21);
 
-        TestFile testTempFile21 = new TestFile("dir2/_$azuretempdirectory$", "1112file21", "Test");
+        TestFile testTempFile21 = new TestFile(String.format("dir2/%s", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY), "1112file21", "Test");
         uploadFile(testTempFile21);
         testFiles.put(testTempFile21.getFilePath(), testTempFile21);
 
@@ -109,13 +109,15 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     @Test
     public void testListRootRecursiveWithTempFiles() throws Exception {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
-        runner.setProperty(ListAzureDataLakeStorage.SHOW_TEMPORARY_FILES, "true");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMPORARY_FILES, "true");
 
         runProcessor();
 
         assertSuccess("file1", "file2", "dir1/file11", "dir1/file12", "dir1/dir11/file111", "dir 2/file 21",
-                "_$azuretempdirectory$/1234file1", "dir1/_$azuretempdirectory$/5678file11",
-                "dir1/dir11/_$azuretempdirectory$/9010file111", "dir2/_$azuretempdirectory$/1112file21");
+                String.format("%s/1234file1", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY),
+                String.format("dir1/%s/5678file11", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY),
+                String.format("dir1/dir11/%s/9010file111", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY),
+                String.format("dir2/%s/1112file21", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY));
     }
 
     @Test
@@ -142,7 +144,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     public void testListRootNonRecursiveWithTempFiles() throws Exception {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.RECURSE_SUBDIRECTORIES, "false");
-        runner.setProperty(ListAzureDataLakeStorage.SHOW_TEMPORARY_FILES, "true");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMPORARY_FILES, "true");
 
         runProcessor();
 
@@ -161,12 +163,13 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     @Test
     public void testListSubdirectoryRecursiveWithTempFiles() throws Exception {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "dir1");
-        runner.setProperty(ListAzureDataLakeStorage.SHOW_TEMPORARY_FILES, "true");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMPORARY_FILES, "true");
 
         runProcessor();
 
-        assertSuccess("dir1/file11", "dir1/file12", "dir1/dir11/file111", "dir1/_$azuretempdirectory$/5678file11",
-                "dir1/dir11/_$azuretempdirectory$/9010file111");
+        assertSuccess("dir1/file11", "dir1/file12", "dir1/dir11/file111",
+                String.format("dir1/%s/5678file11", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY),
+                String.format("dir1/dir11/%s/9010file111", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY));
     }
 
     @Test
@@ -183,7 +186,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     public void testListSubdirectoryNonRecursiveWithTempFiles() throws Exception {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "dir1");
         runner.setProperty(ListAzureDataLakeStorage.RECURSE_SUBDIRECTORIES, "false");
-        runner.setProperty(ListAzureDataLakeStorage.SHOW_TEMPORARY_FILES, "true");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMPORARY_FILES, "true");
 
         runProcessor();
 
@@ -204,12 +207,14 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     public void testListWithFileFilterWithTempFiles() throws Exception {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.FILE_FILTER, ".*file1.*$");
-        runner.setProperty(ListAzureDataLakeStorage.SHOW_TEMPORARY_FILES, "true");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMPORARY_FILES, "true");
 
         runProcessor();
 
-        assertSuccess("file1", "dir1/file11", "dir1/file12", "dir1/dir11/file111", "_$azuretempdirectory$/1234file1",
-                "dir1/_$azuretempdirectory$/5678file11", "dir1/dir11/_$azuretempdirectory$/9010file111");
+        assertSuccess("file1", "dir1/file11", "dir1/file12", "dir1/dir11/file111",
+                String.format("%s/1234file1", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY),
+                String.format("dir1/%s/5678file11", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY),
+                String.format("dir1/dir11/%s/9010file111", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY));
     }
 
     @Test
@@ -228,12 +233,14 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.FILE_FILTER, ".*file${suffix}$");
         runner.setVariable("suffix", "1.*");
-        runner.setProperty(ListAzureDataLakeStorage.SHOW_TEMPORARY_FILES, "true");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMPORARY_FILES, "true");
 
         runProcessor();
 
-        assertSuccess("file1", "dir1/file11", "dir1/file12", "dir1/dir11/file111", "_$azuretempdirectory$/1234file1",
-                "dir1/_$azuretempdirectory$/5678file11", "dir1/dir11/_$azuretempdirectory$/9010file111");
+        assertSuccess("file1", "dir1/file11", "dir1/file12", "dir1/dir11/file111",
+                String.format("%s/1234file1", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY),
+                String.format("dir1/%s/5678file11", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY),
+                String.format("dir1/dir11/%s/9010file111", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY));
     }
 
     @Test
@@ -250,12 +257,13 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     public void testListRootWithPathFilterWithTempFiles() throws Exception {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "^dir1.*$");
-        runner.setProperty(ListAzureDataLakeStorage.SHOW_TEMPORARY_FILES, "true");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMPORARY_FILES, "true");
 
         runProcessor();
 
         assertSuccess("dir1/file11", "dir1/file12", "dir1/dir11/file111",
-                "dir1/_$azuretempdirectory$/5678file11", "dir1/dir11/_$azuretempdirectory$/9010file111");
+                String.format("dir1/%s/5678file11", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY),
+                String.format("dir1/dir11/%s/9010file111", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY));
     }
 
     @Test
@@ -276,12 +284,13 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "${prefix}${suffix}");
         runner.setVariable("prefix", "^dir");
         runner.setVariable("suffix", "1.*$");
-        runner.setProperty(ListAzureDataLakeStorage.SHOW_TEMPORARY_FILES, "true");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMPORARY_FILES, "true");
 
         runProcessor();
 
         assertSuccess("dir1/file11", "dir1/file12", "dir1/dir11/file111",
-                "dir1/_$azuretempdirectory$/5678file11", "dir1/dir11/_$azuretempdirectory$/9010file111");
+                String.format("dir1/%s/5678file11", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY),
+                String.format("dir1/dir11/%s/9010file111", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY));
     }
 
     @Test
@@ -298,11 +307,11 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     public void testListSubdirectoryWithPathFilterWithTempFiles() throws Exception {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "dir1");
         runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "dir1.*");
-        runner.setProperty(ListAzureDataLakeStorage.SHOW_TEMPORARY_FILES, "true");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMPORARY_FILES, "true");
 
         runProcessor();
 
-        assertSuccess("dir1/dir11/file111", "dir1/dir11/_$azuretempdirectory$/9010file111");
+        assertSuccess("dir1/dir11/file111", String.format("dir1/dir11/%s/9010file111", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY));
     }
 
     @Test
@@ -321,12 +330,12 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.FILE_FILTER, ".*11");
         runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "dir1.*");
-        runner.setProperty(ListAzureDataLakeStorage.SHOW_TEMPORARY_FILES, "true");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMPORARY_FILES, "true");
 
         runProcessor();
 
-        assertSuccess("dir1/file11", "dir1/dir11/file111", "dir1/_$azuretempdirectory$/5678file11",
-                "dir1/dir11/_$azuretempdirectory$/9010file111");
+        assertSuccess("dir1/file11", "dir1/dir11/file111", String.format("dir1/%s/5678file11", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY),
+                String.format("dir1/dir11/%s/9010file111", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY));
     }
 
     @Test
@@ -382,7 +391,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         runner.enableControllerService(recordWriter);
         runner.setProperty(ListAzureDataLakeStorage.RECORD_WRITER, "record-writer");
 
-        runner.setProperty(ListAzureDataLakeStorage.SHOW_TEMPORARY_FILES, "true");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMPORARY_FILES, "true");
 
         runner.run();
 
@@ -405,7 +414,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     public void testListWithMinAgeWithTempFiles() throws Exception {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.MIN_AGE, "1 hour");
-        runner.setProperty(ListAzureDataLakeStorage.SHOW_TEMPORARY_FILES, "true");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMPORARY_FILES, "true");
 
         runProcessor();
 
@@ -426,13 +435,15 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     public void testListWithMaxAgeWithTempFiles() throws Exception {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.MAX_AGE, "1 hour");
-        runner.setProperty(ListAzureDataLakeStorage.SHOW_TEMPORARY_FILES, "true");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMPORARY_FILES, "true");
 
         runProcessor();
 
         assertSuccess("file1", "file2", "dir1/file11", "dir1/file12", "dir1/dir11/file111", "dir 2/file 21",
-                "_$azuretempdirectory$/1234file1", "dir1/_$azuretempdirectory$/5678file11",
-                "dir1/dir11/_$azuretempdirectory$/9010file111", "dir2/_$azuretempdirectory$/1112file21");
+                String.format("%s/1234file1", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY),
+                String.format("dir1/%s/5678file11", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY),
+                String.format("dir1/dir11/%s/9010file111", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY),
+                String.format("dir2/%s/1112file21", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY));
     }
 
     @Test
@@ -449,13 +460,14 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     public void testListWithMinSizeWithTempFiles() throws Exception {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.MIN_SIZE, "5 B");
-        runner.setProperty(ListAzureDataLakeStorage.SHOW_TEMPORARY_FILES, "true");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMPORARY_FILES, "true");
 
         runProcessor();
 
         assertSuccess("file1", "file2", "dir1/file11", "dir1/file12", "dir1/dir11/file111",
-                "_$azuretempdirectory$/1234file1", "dir1/_$azuretempdirectory$/5678file11",
-                "dir1/dir11/_$azuretempdirectory$/9010file111");
+                String.format("%s/1234file1", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY),
+                String.format("dir1/%s/5678file11", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY),
+                String.format("dir1/dir11/%s/9010file111", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY));
     }
 
     @Test
@@ -472,11 +484,11 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     public void testListWithMaxSizeWithTempFiles() throws Exception {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.MAX_SIZE, "5 B");
-        runner.setProperty(ListAzureDataLakeStorage.SHOW_TEMPORARY_FILES, "true");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMPORARY_FILES, "true");
 
         runProcessor();
 
-        assertSuccess("dir 2/file 21", "dir2/_$azuretempdirectory$/1112file21");
+        assertSuccess("dir 2/file 21", String.format("dir2/%s/1112file21", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY));
     }
 
     private void runProcessor() {

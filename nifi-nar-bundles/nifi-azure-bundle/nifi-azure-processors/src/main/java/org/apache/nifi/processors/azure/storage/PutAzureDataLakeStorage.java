@@ -22,7 +22,6 @@ import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.models.DataLakeRequestConditions;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.io.input.BoundedInputStream;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -89,12 +88,12 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             .allowableValues(FAIL_RESOLUTION, REPLACE_RESOLUTION, IGNORE_RESOLUTION)
             .build();
 
-    public static final PropertyDescriptor TEMP_FILE_DIRECTORY_PATH = new PropertyDescriptor.Builder()
-            .name("temp-file-directory-path")
-            .displayName("Temp File Directory Path")
-            .description("The Path where the temporary files will be created. The Path name cannot contain a leading '/'." +
+    public static final PropertyDescriptor BASE_TEMPORARY_PATH = new PropertyDescriptor.Builder()
+            .name("base-temporary-path")
+            .displayName("Base Temporary Path")
+            .description("The Path where the temporary directory will be created. The Path name cannot contain a leading '/'." +
                     " The root directory can be designated by the empty string value. Non-existing directories will be created." +
-                    "The Temp File Directory name will be " + TEMP_FILE_DIRECTORY)
+                    "The Temporary File Directory name is " + TEMP_FILE_DIRECTORY)
             .defaultValue("")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(new DirectoryValidator("Temp File Directory"))
@@ -105,7 +104,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             FILESYSTEM,
             DIRECTORY,
             FILE,
-            TEMP_FILE_DIRECTORY_PATH,
+            BASE_TEMPORARY_PATH,
             CONFLICT_RESOLUTION,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
     ));
@@ -126,7 +125,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         try {
             final String fileSystem = evaluateFileSystemProperty(context, flowFile);
             final String originalDirectory = evaluateDirectoryProperty(context, flowFile);
-            final String tempPath = evaluateDirectoryProperty(context, flowFile, TEMP_FILE_DIRECTORY_PATH);
+            final String tempPath = evaluateDirectoryProperty(context, flowFile, BASE_TEMPORARY_PATH);
             final String tempDirectory = createPath(tempPath, TEMP_FILE_DIRECTORY);
             final String fileName = evaluateFileNameProperty(context, flowFile);
 
@@ -186,7 +185,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         }
     }
 
-    @VisibleForTesting
+   //Visible for testing
     void appendContent(FlowFile flowFile, DataLakeFileClient fileClient, ProcessSession session) throws IOException {
         final long length = flowFile.getSize();
         if (length > 0) {
@@ -199,7 +198,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         }
     }
 
-    @VisibleForTesting
+    //Visible for testing
     static void uploadContent(DataLakeFileClient fileClient, InputStream in, long length) {
         long chunkStart = 0;
         long chunkSize;
@@ -219,7 +218,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         fileClient.flush(length);
     }
 
-    @VisibleForTesting
+    //Visible for testing
     DataLakeFileClient renameFile(final String fileName, final String directoryPath, final DataLakeFileClient fileClient, final boolean overwrite) {
         try {
             final DataLakeRequestConditions destinationCondition = new DataLakeRequestConditions();
@@ -229,7 +228,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             final String destinationPath = createPath(directoryPath, fileName);
             return fileClient.renameWithResponse(null, destinationPath, null, destinationCondition, null, null).getValue();
         } catch (DataLakeStorageException dataLakeStorageException) {
-            getLogger().error("Error while renaming temp file " + fileClient.getFileName() + " on Azure Data Lake Storage", dataLakeStorageException);
+            getLogger().error("Renaming File [{}] failed", fileClient.getFileName(), dataLakeStorageException);
             removeTempFile(fileClient);
             throw dataLakeStorageException;
         }
@@ -245,7 +244,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         try {
             fileClient.delete();
         } catch (Exception e) {
-            getLogger().error("Error while removing temp file " + fileClient.getFileName() + " on Azure Data Lake Storage", e);
+            getLogger().error("Renaming File [{}] failed", fileClient.getFileName(), e);
         }
     }
 }

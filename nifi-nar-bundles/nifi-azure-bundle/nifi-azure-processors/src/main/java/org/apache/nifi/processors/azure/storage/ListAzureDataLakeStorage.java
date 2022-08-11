@@ -63,6 +63,7 @@ import static org.apache.nifi.processor.util.list.ListedEntityTracker.TRACKING_T
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.ADLS_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.DIRECTORY;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.FILESYSTEM;
+import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.evaluateDirectoryProperty;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.evaluateFileSystemProperty;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.getStorageClient;
@@ -129,14 +130,13 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    public static final PropertyDescriptor SHOW_TEMPORARY_FILES = new PropertyDescriptor.Builder()
-            .name("show-temporary-files")
-            .displayName("Show temporary files")
-            .description("Whether temporary files, created during nifi upload process should be shown." +
-                    "These files are incomplete and removed after a completed upload process.")
+    public static final PropertyDescriptor INCLUDE_TEMPORARY_FILES = new PropertyDescriptor.Builder()
+            .name("include-temporary-files")
+            .displayName("include temporary files")
+            .description("Whether to include temporary files when listing the contents of configured directory paths.")
             .required(true)
-            .allowableValues("true", "false")
-            .defaultValue("false")
+            .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
+            .defaultValue(Boolean.FALSE.toString())
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
@@ -146,7 +146,7 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
             RECURSE_SUBDIRECTORIES,
             FILE_FILTER,
             PATH_FILTER,
-            SHOW_TEMPORARY_FILES,
+            INCLUDE_TEMPORARY_FILES,
             RECORD_WRITER,
             LISTING_STRATEGY,
             TRACKING_STATE_CACHE,
@@ -272,12 +272,12 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
             options.setRecursive(recurseSubdirectories);
 
             final Pattern baseDirectoryPattern = Pattern.compile("^" + baseDirectory + "/?");
-            final boolean includeTempFiles = context.getProperty(SHOW_TEMPORARY_FILES).asBoolean();
+            final boolean includeTempFiles = context.getProperty(INCLUDE_TEMPORARY_FILES).asBoolean();
             final long minimumTimestamp = minTimestamp == null ? 0 : minTimestamp;
 
             final List<ADLSFileInfo> listing = fileSystemClient.listPaths(options, null).stream()
                     .filter(pathItem -> !pathItem.isDirectory())
-                    .filter(pathItem -> includeTempFiles || !pathItem.getName().contains("_$azuretempdirectory$"))
+                    .filter(pathItem -> includeTempFiles || !pathItem.getName().contains(TEMP_FILE_DIRECTORY))
                     .filter(pathItem -> isFileInfoMatchesWithAgeAndSize(context, minimumTimestamp, pathItem.getLastModified().toInstant().toEpochMilli(), pathItem.getContentLength()))
                     .map(pathItem -> new ADLSFileInfo.Builder()
                             .fileSystem(fileSystem)
