@@ -72,6 +72,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
     public static final String COMPRESSION_FORMAT_SNAPPY = "snappy";
     public static final String COMPRESSION_FORMAT_SNAPPY_FRAMED = "snappy framed";
     public static final String COMPRESSION_FORMAT_NONE = "none";
+    public static final String COMPRESSION_FORMAT_ZSTD = "zstd";
 
     static final PropertyDescriptor SUPPRESS_NULLS = new PropertyDescriptor.Builder()
             .name("suppress-nulls")
@@ -101,9 +102,9 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
     public static final PropertyDescriptor COMPRESSION_FORMAT = new PropertyDescriptor.Builder()
             .name("compression-format")
             .displayName("Compression Format")
-            .description("The compression format to use. Valid values are: GZIP, BZIP2, XZ-LZMA2, LZMA, Snappy, and Snappy Framed")
+            .description("The compression format to use. Valid values are: GZIP, BZIP2, ZSTD, XZ-LZMA2, LZMA, Snappy, and Snappy Framed")
             .allowableValues(COMPRESSION_FORMAT_NONE, COMPRESSION_FORMAT_GZIP, COMPRESSION_FORMAT_BZIP2, COMPRESSION_FORMAT_XZ_LZMA2,
-                    COMPRESSION_FORMAT_SNAPPY, COMPRESSION_FORMAT_SNAPPY_FRAMED)
+                    COMPRESSION_FORMAT_SNAPPY, COMPRESSION_FORMAT_SNAPPY_FRAMED, COMPRESSION_FORMAT_ZSTD)
             .defaultValue(COMPRESSION_FORMAT_NONE)
             .required(true)
             .build();
@@ -201,6 +202,10 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
                     break;
                 case COMPRESSION_FORMAT_BZIP2:
                     mimeTypeRef = "application/x-bzip2";
+                    compressionOut = new CompressorStreamFactory().createCompressorOutputStream(compressionFormat.toLowerCase(), bufferedOut);
+                    break;
+                case COMPRESSION_FORMAT_ZSTD:
+                    mimeTypeRef = "application/zstd";
                     compressionOut = new CompressorStreamFactory().createCompressorOutputStream(compressionFormat.toLowerCase(), bufferedOut);
                     break;
                 default:
