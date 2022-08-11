@@ -78,6 +78,11 @@ NfRegistryUsersAdministrationAuthGuard.prototype = {
                             // render the logout button if there is a token locally
                             if (self.nfStorage.getItem('jwt') !== null) {
                                 self.nfRegistryService.currentUser.canLogout = true;
+
+                                // Update Registry Configuration following successful login
+                                self.nfRegistryApi.getRegistryConfig().subscribe(function (registryConfig) {
+                                    self.nfRegistryService.registry.config = registryConfig;
+                                });
                             }
 
                             // redirect to explorer perspective if not admin
@@ -201,6 +206,11 @@ NfRegistryWorkflowsAdministrationAuthGuard.prototype = {
                             // render the logout button if there is a token locally
                             if (self.nfStorage.getItem('jwt') !== null) {
                                 self.nfRegistryService.currentUser.canLogout = true;
+
+                                // Update Registry Configuration following successful login
+                                self.nfRegistryApi.getRegistryConfig().subscribe(function (registryConfig) {
+                                    self.nfRegistryService.registry.config = registryConfig;
+                                });
                             }
 
                             // redirect to explorer perspective if not admin
@@ -303,6 +313,11 @@ NfRegistryLoginAuthGuard.prototype = {
                         // render the logout button if there is a token locally
                         if (self.nfStorage.getItem('jwt') !== null) {
                             self.nfRegistryService.currentUser.canLogout = true;
+
+                            // Update Registry Configuration following successful login
+                            self.nfRegistryApi.getRegistryConfig().subscribe(function (registryConfig) {
+                                self.nfRegistryService.registry.config = registryConfig;
+                            });
                         }
                         self.nfRegistryService.currentUser.canActivateResourcesAuthGuard = true;
                         resolve(false);
@@ -382,6 +397,11 @@ NfRegistryResourcesAuthGuard.prototype = {
                             if (self.nfStorage.hasItem('jwt')) {
                                 self.nfRegistryService.currentUser.canLogout = true;
                                 self.nfRegistryService.currentUser.canActivateResourcesAuthGuard = true;
+
+                                // Update Registry Configuration following successful login
+                                self.nfRegistryApi.getRegistryConfig().subscribe(function (registryConfig) {
+                                    self.nfRegistryService.registry.config = registryConfig;
+                                });
                                 resolve(true);
                             } else {
                                 self.router.navigateByUrl('login');
