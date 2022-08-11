@@ -84,13 +84,12 @@
     var fetchParameterProviderOptions;
 
     var config = {
+        edit: 'edit',
+        readOnly: 'read-only',
         urls: {
             parameterProviders: '../nifi-api/parameter-providers'
         }
     };
-
-    // load the controller services
-    var controllerServicesUri = config.urls.api + '/flow/controller/controller-services';
 
     var groupCount = 0;
 
@@ -256,11 +255,11 @@
             return true;
         } else {
             nfDialog.showOkDialog({
-                    headerText: 'Parameter Provider Exists',
-                    dialogContent: 'A Parameter Provider with this name already exists.'
-                });
-            }
-            return false;
+                headerText: 'Parameter Provider Exists',
+                dialogContent: 'A Parameter Provider with this name already exists.'
+            });
+        }
+        return false;
     };
 
     /**
@@ -277,38 +276,6 @@
             type: 'ParameterProvider',
             bulletins: currentParameterProvider.bulletins
         }, parameterProviderEntity));
-    };
-
-    /**
-     * Goes to a service configuration from the property table.
-     */
-    var goToServiceFromProperty = function () {
-        return $.Deferred(function (deferred) {
-            // close all fields currently being edited
-            $('#parameter-provider-properties').propertytable('saveRow');
-
-            // determine if changes have been made
-            if (isSaveRequired()) {
-                // see if those changes should be saved
-                nfDialog.showYesNoDialog({
-                    headerText: 'Save',
-                    dialogContent: 'Save changes before going to this Controller Service?',
-                    noHandler: function () {
-                        deferred.resolve();
-                    },
-                    yesHandler: function () {
-                        var parameterProvider = $('#parameter-provider-configuration').data('parameterProviderDetails');
-                        saveParameterProvider(parameterProvider).done(function () {
-                            deferred.resolve();
-                        }).fail(function () {
-                            deferred.reject();
-                        });
-                    }
-                });
-            } else {
-                deferred.resolve();
-            }
-        }).promise();
     };
 
     /**
@@ -434,14 +401,10 @@
                     },
                     handler: {
                         click: function () {
-                            if ($('#affected-referencing-components-container').is(':visible')) {
-                                updateReferencingComponentsBorder($('#affected-referencing-components-container'));
-                            }
-
                             applyParametersHandler(currentParameterProviderEntity).done(function () {
-                                    // reload the parameter provider
-                                    nfParameterProvider.reload(parameterProviderEntity.id);
-                                });
+                                // reload the parameter provider
+                                nfParameterProvider.reload(parameterProviderEntity.id);
+                            });
                         }
                     }
                 }, {
@@ -454,11 +417,6 @@
                     handler: {
                         click: function () {
                             deferred.resolve();
-
-                            if ($('#affected-referencing-components-container').is(':visible')) {
-                                updateReferencingComponentsBorder($('#affected-referencing-components-container'));
-                            }
-
                             confirmCancelDialog('#fetch-parameters-dialog');
                         }
                     }
@@ -478,11 +436,6 @@
                 handler: {
                     click: function () {
                         cancelled = true;
-
-                        if ($('#affected-referencing-components-container').is(':visible')) {
-                            updateReferencingComponentsBorder($('#affected-referencing-components-container'));
-                        }
-
                         updateToCloseButtonModel();
                     }
                 }
@@ -740,10 +693,9 @@
                 .modal('setButtonModel', buttons)
                 .modal('show');
 
-            // load the bulletins
-            nfCanvasUtils.queryBulletins([updatedParameterProviderEntity.id]).done(function (response) {
-                updateBulletins(response.bulletinBoard.bulletins, $('#fetch-parameters-bulletins'));
-            });
+            if ($('#fetched-parameters-listing-container').is(':visible')) {
+                updateReferencingComponentsBorder($('#fetched-parameters-listing-container'));
+            }
         });
     };
 
@@ -823,6 +775,7 @@
             var selectableParametersGrid = $('#selectable-parameters-table').data('gridInstance');
             var parametersData = selectableParametersGrid.getData();
 
+            // clear the rows
             selectableParametersGrid.setSelectedRows([]);
             parametersData.setItems([]);
 
@@ -849,13 +802,13 @@
             parametersData.endUpdate();
             parametersData.reSort();
 
-            // list the parameters to be created
-            loadParameterContextsToCreate();
-
-            // select the desired row
+            // select the sensitive rows
             if (sensitiveParametersArray.length !== 0) {
                 selectableParametersGrid.setSelectedRows(sensitiveParametersArray);
             }
+
+            // list the parameters to be created
+            loadParameterContextsToCreate();
         }
     };
 
@@ -1097,21 +1050,18 @@
                                                     .prop('title', unauthorizedReferencingComponentEntity.id)
                                                     .text(unauthorizedReferencingComponentEntity.id)
                                                     .on('click', function () {
-                                                        // // check if there are outstanding changes
-                                                        // handleOutstandingChanges().done(function () {
-                                                            // close the shell
-                                                            $('#shell-dialog').modal('hide');
+                                                        // close the shell
+                                                        $('#shell-dialog').modal('hide');
 
-                                                            // show the component in question
-                                                            if (unauthorizedReferencingComponentEntity.referenceType === 'PROCESSOR') {
-                                                                nfCanvasUtils.showComponent(unauthorizedReferencingComponentEntity.processGroup.id, unauthorizedReferencingComponentEntity.id);
-                                                            } else if (unauthorizedReferencingComponentEntity.referenceType === 'CONTROLLER_SERVICE') {
-                                                                nfProcessGroupConfiguration.showConfiguration(unauthorizedReferencingComponentEntity.processGroup.id).done(function () {
-                                                                    nfProcessGroup.enterGroup(unauthorizedReferencingComponentEntity.processGroup.id);
-                                                                    nfProcessGroupConfiguration.selectControllerService(unauthorizedReferencingComponentEntity.id);
-                                                                });
-                                                            }
-                                                        // });
+                                                        // show the component in question
+                                                        if (unauthorizedReferencingComponentEntity.referenceType === 'PROCESSOR') {
+                                                            nfCanvasUtils.showComponent(unauthorizedReferencingComponentEntity.processGroup.id, unauthorizedReferencingComponentEntity.id);
+                                                        } else if (unauthorizedReferencingComponentEntity.referenceType === 'CONTROLLER_SERVICE') {
+                                                            nfProcessGroupConfiguration.showConfiguration(unauthorizedReferencingComponentEntity.processGroup.id).done(function () {
+                                                                nfProcessGroup.enterGroup(unauthorizedReferencingComponentEntity.processGroup.id);
+                                                                nfProcessGroupConfiguration.selectControllerService(unauthorizedReferencingComponentEntity.id);
+                                                            });
+                                                        }
                                                     })
                                                     .appendTo(referencingUnauthorizedComponentContainer);
                                             }
@@ -1189,6 +1139,7 @@
                     .on('click', function () {
                         // show the component
                         nfParameterContexts.showParameterContext(referencingComponent.id, null, referencingComponent.name);
+
                         // close the dialog and shell
                         parameterProviderReferencingComponentsContainer.closest('.dialog').modal('hide');
                         $('#shell-close-button').click();
@@ -1262,42 +1213,6 @@
     }
 
     /**
-     * Updates the specified bulletinIcon with the specified bulletins if necessary.
-     *
-     * @param {array} bulletins
-     * @param {jQuery} bulletinIcon
-     */
-    var updateBulletins = function (bulletins, bulletinIcon) {
-        var currentBulletins = bulletinIcon.data('bulletins');
-
-        // update the bulletins if necessary
-        if (nfCommon.doBulletinsDiffer(currentBulletins, bulletins)) {
-            bulletinIcon.data('bulletins', bulletins);
-
-            // format the new bulletins
-            var formattedBulletins = nfCommon.getFormattedBulletins(bulletins);
-
-            // if there are bulletins update them
-            if (bulletins.length > 0) {
-                var list = nfCommon.formatUnorderedList(formattedBulletins);
-
-                // update existing tooltip or initialize a new one if appropriate
-                if (bulletinIcon.data('qtip')) {
-                    bulletinIcon.qtip('option', 'content.text', list);
-                } else {
-                    bulletinIcon.addClass('has-bulletins').show().qtip($.extend({},
-                        nfCanvasUtils.config.systemTooltipConfig,
-                        {
-                            content: list
-                        }));
-                }
-            } else if (bulletinIcon.data('qtip')) {
-                bulletinIcon.removeClass('has-bulletins').removeData('bulletins').hide().qtip('api').destroy(true);
-            }
-        }
-    };
-
-    /**
      * Adds a border to the fetch parameters referencing components if necessary.
      *
      * @argument {jQuery} referenceContainer
@@ -1352,6 +1267,7 @@
     /**
      * Obtains the current state of the updateRequest using the specified update request id.
      *
+     * @param {string} parameterProviderId parameter provider id
      * @param {string} updateRequestId update request id
      * @returns {deferred} update request xhr
      */
@@ -1462,7 +1378,7 @@
         var isParameterContext = updatedGroup.isParameterContext;
         var isCreateNewParameterContext = updatedGroup.createNewParameterContext;
 
-        $('#fetch-parameters-listing').empty();
+        $('#fetched-parameters-listing').empty();
 
         // get an instance of the grid
         var groupsGrid = $('#parameter-groups-table').data('gridInstance');
@@ -1547,13 +1463,13 @@
         }
 
         /* Form the parameters listing */
-        var fetchedParametersContainer = $('#fetch-parameters-listing').empty();
+        var fetchedParametersContainer = $('#fetched-parameters-listing').empty();
         var fetchedParameters = updatedGroup.parameterSensitivities;
 
         // put all parameter names in array
         var parametersArray = Object.keys(fetchedParameters);
 
-        // create parameters listing
+        // create parameters name listing
         if (parametersArray.length > 0) {
             $.each(parametersArray, function (i, parameter) {
                 var li = $('<li></li>').text(parameter);
@@ -1566,7 +1482,7 @@
         }
 
         // update the border if necessary
-        updateReferencingComponentsBorder(fetchedParametersContainer);
+        updateReferencingComponentsBorder($('#fetched-parameters-listing-container'));
 
         /* Temporarily save any changes */
         // begin updating the group table
@@ -1848,6 +1764,7 @@
         var selectableParametersTable = $('#selectable-parameters-table');
 
         var nameFormatter = function (row, cell, value, columnDef, dataContext) {
+            var valueWidthOffset = 10;
             var cellContent = $('<div></div>');
 
             // format the contents
@@ -1857,7 +1774,7 @@
             }
 
             // adjust the width accordingly
-            formattedValue.width(columnDef.width).ellipsis();
+            formattedValue.width(columnDef.width - valueWidthOffset).ellipsis();
 
             // return the cell content
             return cellContent.html();
@@ -1921,7 +1838,7 @@
             var sensitiveParams = args.rows; //rows are parameters that are marked as sensitive
             var parametersToUpdate = {};
 
-            // update the sensitivities of selectableParameters with sensitiveParams
+            // update the sensitivities of selectableParameters
             var i = 0;
             $.each(selectableParameters, function (_, parameter) {
                 if (i <= sensitiveParams.length) {
@@ -2118,9 +2035,6 @@
         $('<li class="referencing-component-container"><span class="unset">None</span></li>').appendTo(processorContainer);
         $('<li class="referencing-component-container"><span class="unset">None</span></li>').appendTo(controllerServiceContainer);
         $('<li class="referencing-component-container"><span class="unset">None</span></li>').appendTo(unauthorizedComponentsContainer);
-
-        // check if border is necessary
-        updateReferencingComponentsBorder($('#affected-referencing-components-container'));
     };
 
     var currentParameterProviderEntity = null;
@@ -2212,11 +2126,7 @@
                 readOnly: false,
                 supportsGoTo: true,
                 dialogContainer: '#new-parameter-provider-property-container',
-                descriptorDeferred: getParameterProviderPropertyDescriptor,
-                controllerServiceCreatedDeferred: function (response) {
-                    return nfControllerServices.loadControllerServices(controllerServicesUri, $('#controller-services-table'));
-                },
-                goToServiceDeferred: goToServiceFromProperty
+                descriptorDeferred: getParameterProviderPropertyDescriptor
             });
 
             // initialize the fetch parameters dialog
@@ -2226,15 +2136,13 @@
                 handler: {
                     close: function () {
                         // reset visibility
-                        $('#fetch-parameters-progress-container').hide();
-                        $('#fetch-parameters-progress li.referencing-component').show();
                         $('#fetch-parameters-update-status-container').hide();
                         $('#apply-groups-container').hide();
 
                         // clear the dialog
                         $('#fetch-parameters-id').text('');
                         $('#fetch-parameters-name').text('');
-                        $('#fetch-parameters-listing').empty();
+                        $('#fetched-parameters-listing').empty();
                         $('#fetch-parameters-update-steps').empty();
                         $('#parameter-contexts-to-create-container').empty();
 
@@ -2248,6 +2156,11 @@
                         $('#affected-referencing-components-container').empty();
                         if (!$('#fetch-parameters-affected-referencing-components-container').hasClass('hidden')) {
                             $('#fetch-parameters-affected-referencing-components-container').addClass('hidden');
+                        }
+
+                        //stop any synchronization
+                        if (fetchParameterProviderOptions) {
+                            $('#fetch-parameters-status-bar').statusbar('disconnect');
                         }
 
                         // reset dialog
@@ -2285,11 +2198,7 @@
                     readOnly: false,
                     supportsGoTo: true,
                     dialogContainer: '#new-parameter-provider-property-container',
-                    descriptorDeferred: getParameterProviderPropertyDescriptor,
-                    controllerServiceCreatedDeferred: function (response) {
-                        return nfControllerServices.loadControllerServices(controllerServicesUri, $('#controller-services-table'));
-                    },
-                    goToServiceDeferred: goToServiceFromProperty
+                    descriptorDeferred: getParameterProviderPropertyDescriptor
                 });
 
                 // update the mode

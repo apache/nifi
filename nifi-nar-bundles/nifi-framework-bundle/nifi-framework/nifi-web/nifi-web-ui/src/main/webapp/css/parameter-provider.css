@@ -33,7 +33,7 @@
     position: absolute;
     overflow: hidden;
     min-width: 1048px;
-    height: 450px;
+    height: 62%;
     font-size: 10px;
     z-index: 1301;
     display: none;
@@ -72,6 +72,10 @@
 
 .parameter-provider-editable.setting-field {
     height: 32px;
+}
+
+#parameter-provider-referencing-components {
+    padding: 2px;
 }
 
 /* parameter-provider settings */
@@ -120,22 +124,24 @@
     margin-bottom: 2px;
 }
 
-#fetch-parameters-listing {
+#fetched-parameters-listing-container {
+    position: absolute;
     overflow-x: auto;
     border: 0 solid #CCCCCC;
-    padding: 4px 2px;
-    max-height: 300px;
+    padding: 2px;
+    min-height: 100px;
+    max-height: 382px;
+    width: 326px;
 }
 
-#fetch-parameters-listing li,
-#fetch-parameters-listing span {
+#fetched-parameters-listing li,
+#fetched-parameters-listing span {
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
-    padding-left: 10px;
 }
 
-ol#fetch-parameters-listing ul {
+ol#fetched-parameters-listing ul {
     padding-bottom: 4px;
 }
 
@@ -236,7 +242,6 @@ div.fetch-parameters-canceling {
     float: left;
     max-width: 280px;
     text-overflow: ellipsis;
-    padding: 2px;
 }
 
 #fetch-parameters-bulletins {
@@ -299,8 +304,9 @@ span.parameter-provider-referencing-component-name {
     Slickgrid selectable parameters table
 */
 #selectable-parameters-table {
-    position: relative;
-    height: 300px;
+    position: absolute;
+    height: 316px;
+    width: 332px;
 }
 
 #selectable-parameters-table .slick-cell-checkboxsel {
@@ -363,7 +369,7 @@ span.parameter-provider-referencing-component-name {
     margin-top: 5px;
 }
 
-#fetch-parameters-listing .slick-cell-checkboxsel {
+#fetched-parameters-listing .slick-cell-checkboxsel {
     background: #f0f0f0;
     border-right-color: silver;
     border-right-style: solid;

@@ -35,20 +35,6 @@
                 </div>
                 <div id="parameter-groups-table"></div>
             </div>
-
-            <div id="fetch-parameters-progress-container" class="setting hidden">
-                <div id="fetch-parameters-progress-label" class="setting-name"></div>
-                <div class="setting-field">
-                    <ol id="fetch-parameters-progress">
-                        <li>
-                            Fetching the parameters
-                            <div id="fetch-parameters" class="fetch-parameters-referencing-components"></div>
-                            <div class="clear"></div>
-                        </li>
-                    </ol>
-                </div>
-            </div>
-
             <div id="apply-groups-container" class="setting hidden">
                 <div class="setting-name">Parameter Group</div>
                 <div class="setting-field">
@@ -68,8 +54,8 @@
                     <div class="setting-name">
                         Fetched parameters
                     </div>
-                    <div class="setting-field">
-                        <ol id="fetch-parameters-listing"></ol>
+                    <div id="fetched-parameters-listing-container" class="setting-field">
+                        <ol id="fetched-parameters-listing"></ol>
                     </div>
                 </div>
                 <div id="selectable-parameters-container" class="setting">
