@@ -217,6 +217,15 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             .defaultValue("0 sec")
             .build();
 
+    public static final PropertyDescriptor MAX_AGE = new Builder()
+            .name("max-age")
+            .displayName("Maximum Object Age")
+            .description("The maximum age that an S3 object must be in order to be considered; any object older than this amount of time (according to last modification date) will be ignored")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("0 sec")
+            .build();
+
     public static final PropertyDescriptor WRITE_OBJECT_TAGS = new Builder()
             .name("write-s3-object-tags")
             .displayName("Write Object Tags")
@@ -281,6 +290,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         SECRET_KEY,
         RECORD_WRITER,
         MIN_AGE,
+        MAX_AGE,
         BATCH_SIZE,
         WRITE_OBJECT_TAGS,
         WRITE_USER_METADATA,
@@ -446,6 +456,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
         final long startNanos = System.nanoTime();
         final long minAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long maxAgeMilliseconds = context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         final long listingTimestamp = System.currentTimeMillis();
 
         final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
@@ -478,6 +489,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                     long lastModified = versionSummary.getLastModified().getTime();
                     if (lastModified < currentTimestamp
                         || lastModified == currentTimestamp && currentKeys.contains(versionSummary.getKey())
+                        || lastModified < (listingTimestamp - maxAgeMilliseconds)
                         || lastModified > (listingTimestamp - minAgeMilliseconds)) {
                         continue;
                     }
@@ -1100,6 +1112,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         final List<ConfigVerificationResult> results = new ArrayList<>(super.verify(context, logger, attributes));
         final String bucketName = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
         final long minAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long maxAgeMilliseconds = context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
 
         if (bucketName == null || bucketName.trim().isEmpty()) {
             results.add(new ConfigVerificationResult.Builder()
@@ -1123,7 +1136,8 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                 versionListing = bucketLister.listVersions();
                 for (final S3VersionSummary versionSummary : versionListing.getVersionSummaries()) {
                     long lastModified = versionSummary.getLastModified().getTime();
-                    if (lastModified > (listingTimestamp - minAgeMilliseconds)) {
+                    if (lastModified < (listingTimestamp - maxAgeMilliseconds) 
+                    || lastModified > (listingTimestamp - minAgeMilliseconds)) {
                         continue;
                     }
 
