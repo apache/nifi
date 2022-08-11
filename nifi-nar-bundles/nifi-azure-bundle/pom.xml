@@ -41,6 +41,8 @@
         <module>nifi-azure-nar</module>
         <module>nifi-azure-services-api</module>
         <module>nifi-azure-services-api-nar</module>
+        <module>nifi-azure-record-sink</module>
+        <module>nifi-azure-record-sink-nar</module>
     </modules>
 
     <dependencyManagement>
