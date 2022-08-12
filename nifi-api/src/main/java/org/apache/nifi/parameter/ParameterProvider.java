@@ -59,7 +59,7 @@ public interface ParameterProvider extends ConfigurableComponent {
 
     /**
      * Provides the Parameter Provider with access to objects that may be of use
-     * throughout the life of the service
+     * throughout the life of the provider
      *
      * @param config of initialization context
      * @throws org.apache.nifi.reporting.InitializationException if unable to init

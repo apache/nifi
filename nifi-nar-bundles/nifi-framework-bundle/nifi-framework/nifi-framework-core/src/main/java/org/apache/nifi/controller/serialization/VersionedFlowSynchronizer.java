@@ -575,6 +575,10 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     }
 
     private void inheritParameterProviders(final FlowController controller, final VersionedDataflow dataflow, final AffectedComponentSet affectedComponentSet) {
+        if (dataflow.getParameterProviders() == null) {
+            return;
+        }
+
         for (final VersionedParameterProvider versionedParameterProvider : dataflow.getParameterProviders()) {
             final ParameterProviderNode existing = controller.getFlowManager().getParameterProvider(versionedParameterProvider.getInstanceIdentifier());
             if (existing == null) {
@@ -583,6 +587,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 updateParameterProvider(existing, versionedParameterProvider, controller.getEncryptor());
             }
         }
+
     }
 
     private void addParameterProvider(final FlowController controller, final VersionedParameterProvider parameterProvider, final PropertyEncryptor encryptor) {
