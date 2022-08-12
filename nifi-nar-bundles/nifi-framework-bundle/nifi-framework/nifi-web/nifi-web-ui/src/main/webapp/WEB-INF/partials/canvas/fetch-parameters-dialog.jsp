@@ -32,11 +32,12 @@
             <div id="fetch-parameters-usage-container" class="setting">
                 <div class="setting-name">
                     Select parameter groups to create parameter contexts
+                    <div class="fa fa-question-circle" alt="Info" title="Select a parameter group to cconfigure as a parameter context."></div>
                 </div>
                 <div id="parameter-groups-table"></div>
             </div>
             <div id="apply-groups-container" class="setting hidden">
-                <div class="setting-name">Parameter Group</div>
+                <div class="setting-name">Parameter Groups</div>
                 <div class="setting-field">
                     <div id="apply-groups-list"></div>
                 </div>
@@ -53,6 +54,7 @@
                 <div id="fetched-parameters-container" class="setting">
                     <div class="setting-name">
                         Fetched parameters
+                        <div class="fa fa-question-circle" alt="Info" title="Fetched parameters for the selected parameter group."></div>
                     </div>
                     <div id="fetched-parameters-listing-container" class="setting-field">
                         <ol id="fetched-parameters-listing"></ol>
@@ -61,6 +63,7 @@
                 <div id="selectable-parameters-container" class="setting">
                     <div class="setting-name">
                         Select parameters to be marked as sensitive
+                        <div class="fa fa-question-circle" alt="Info" title="Selected parameters will be set as sensitive."></div>
                     </div>
                     <div id="selectable-parameters-table" class="setting-field"></div>
                 </div>
@@ -87,6 +90,7 @@
             <div class="setting">
                 <div class="setting-name">
                     Parameter Contexts To Create
+                    <div class="fa fa-question-circle" alt="Info" title="Parameter groups set to be created as parameter contexts."></div>
                 </div>
                 <div class="setting-field">
                     <div id="parameter-contexts-to-create-container" class="ellipsis"></div>
@@ -95,6 +99,7 @@
             <div class="setting">
                 <div class="setting-name">
                     Parameter Contexts To Update
+                    <div class="fa fa-question-circle" alt="Info" title="Parameter Contexts to be updated."></div>
                     <div class="referencing-components-loading"></div>
                 </div>
                 <div class="setting-field">
@@ -104,7 +109,7 @@
             <div id="fetch-parameters-affected-referencing-components-container" class="setting hidden">
                 <div class="setting-name">
                     Affected Referencing Components
-                    <div class="fa fa-question-circle" alt="Info" title="Affected components referencing this Parameter Provider."></div>
+                    <div class="fa fa-question-circle" alt="Info" title="Affected components referencing this parameter provider."></div>
                     <div class="referencing-components-loading"></div>
                 </div>
                 <div id="affected-referencing-components-container" class="setting-field">

@@ -29,39 +29,6 @@
     display: none;
 }
 
-#fetch-parameters-dialog {
-    position: absolute;
-    overflow: hidden;
-    min-width: 1048px;
-    height: 62%;
-    font-size: 10px;
-    z-index: 1301;
-    display: none;
-}
-
-#fetch-parameters-dialog div.create-parameter-context-label {
-    display: inline-block;
-    line-height: normal;
-}
-
-#fetch-parameters-dialog .dialog-content div.settings-left {
-    float: left;
-    width: 33%;
-}
-
-#fetch-parameters-dialog .dialog-content div.settings-center {
-    float: left;
-    width: 33%;
-}
-
-#fetch-parameters-dialog .dialog-content div.settings-right {
-    float: left;
-    width: 30%;
-    height: 100%;
-    position: absolute;
-    left: calc(72% - 20px);
-}
-
 #parameter-provider-configuration-advanced {
     display: none;
 }
@@ -108,6 +75,39 @@
     Fetch parameters dialog
 */
 
+#fetch-parameters-dialog {
+    position: absolute;
+    overflow: hidden;
+    min-width: 1048px;
+    height: 62%;
+    font-size: 10px;
+    z-index: 1301;
+    display: none;
+}
+
+#fetch-parameters-dialog div.create-parameter-context-label {
+    display: inline-block;
+    line-height: normal;
+}
+
+#fetch-parameters-dialog .dialog-content div.settings-left {
+    float: left;
+    width: 33%;
+}
+
+#fetch-parameters-dialog .dialog-content div.settings-center {
+    float: left;
+    width: 33%;
+}
+
+#fetch-parameters-dialog .dialog-content div.settings-right {
+    float: left;
+    width: 30%;
+    height: 100%;
+    position: absolute;
+    left: calc(72% - 20px);
+}
+
 #parameter-groups-table {
     position: relative;
     height: 300px;
@@ -125,13 +125,14 @@
 }
 
 #fetched-parameters-listing-container {
-    position: absolute;
+    position: relative;
     overflow-x: auto;
     border: 0 solid #CCCCCC;
     padding: 2px;
     min-height: 100px;
-    max-height: 382px;
-    width: 326px;
+    max-height: 343px;
+    min-width: 150px;
+    max-width: 326px;
 }
 
 #fetched-parameters-listing li,
@@ -300,12 +301,18 @@ span.parameter-provider-referencing-component-name {
     max-width: calc(100% - 30px);
 }
 
+#checkbox-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
 /*
     Slickgrid selectable parameters table
 */
 #selectable-parameters-table {
     position: absolute;
-    height: 316px;
+    height: 279px;
     width: 332px;
 }
 

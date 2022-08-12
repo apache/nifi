@@ -1417,7 +1417,8 @@
                     '<div id="referencing-parameter-context-name">' + nfCommon.escapeHtml(fetchedGroup.parameterContextName) + '</div>' +
                     '</div>').appendTo(createParamContextContainer);
             } else {
-                var checkboxMarkup = $('<div class="setting"></div>');
+
+                var checkboxMarkup = $('<div id="checkbox-container"></div>');
 
                 if (isCreateNewParameterContext) {
                     // check the checkbox
@@ -1437,8 +1438,13 @@
                 }
 
                 $('<div id="create-parameter-context-label" class="nf-checkbox-label ellipsis" title="create-parameter-context" style="text-overflow: ellipsis;">' +
-                    'Create Parameter Context</div></div>').appendTo(checkboxMarkup);
-                $(checkboxMarkup).appendTo(parametersCheckboxContainer);
+                    'Create Parameter Context' +
+                    '<div class="fa fa-question-circle" alt="Info" title="Select to create a parameter context."></div>' +
+                    '</div></div>').appendTo(checkboxMarkup);
+
+                var settingMarkup = $('<div class="setting"></div>');
+                $(checkboxMarkup).appendTo(settingMarkup);
+                $(settingMarkup).appendTo(parametersCheckboxContainer);
 
                 // create the input container and set visibility
                 if (isCreateNewParameterContext) {
