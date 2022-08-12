@@ -767,9 +767,10 @@
     /**
      * Loads the selectable parameters for a specified parameter group.
      *
+     * @param groupId
      * @param {object} parametersEntity
      */
-    var loadSelectableParameters = function (parametersEntity) {
+    var loadSelectableParameters = function (groupId, parametersEntity) {
         sensitiveParametersArray = [];
         if (nfCommon.isDefinedAndNotNull(parametersEntity)) {
             var selectableParametersGrid = $('#selectable-parameters-table').data('gridInstance');
@@ -787,6 +788,7 @@
 
                 var parameter = {
                     id: idx++,
+                    groupId: groupId,
                     name: param,
                     sensitivity: parametersEntity[param] ? parametersEntity[param] : SENSITIVE
                 }
@@ -1387,7 +1389,7 @@
         // show the appropriate parameters table when dialog first opens
         if (isParameterContext) {
             // get the active group's parameters to populate the selectable parameters container
-            loadSelectableParameters(updatedGroup.parameterSensitivities);
+            loadSelectableParameters(updatedGroup.id, updatedGroup.parameterSensitivities);
 
             $('#parameters-container').show();
             $('#selectable-parameters-container').show();
@@ -1421,7 +1423,7 @@
                     // check the checkbox
                     $('<div id="create-parameter-context-field" class="nf-checkbox checkbox-checked"></div>').appendTo(checkboxMarkup);
 
-                    loadSelectableParameters(updatedGroup.parameterSensitivities);
+                    loadSelectableParameters(updatedGroup.id, updatedGroup.parameterSensitivities);
 
                     $('#parameters-container').show();
                     $('#selectable-parameters-container').show();
@@ -1506,7 +1508,7 @@
             if (args.isChecked) {
                 updatedGroup.createNewParameterContext = true;
 
-                loadSelectableParameters(updatedGroup.parameterSensitivities);
+                loadSelectableParameters(updatedGroup.id, updatedGroup.parameterSensitivities);
 
                 $('#fetched-parameters-container').hide();
                 $('#create-parameter-context-container').show();
@@ -1516,7 +1518,8 @@
                 // if unchecked, then hide the input and only show the parameters listing
                 updatedGroup.createNewParameterContext = false;
 
-                loadSelectableParameters(updatedGroup.parameterSensitivities);
+                loadSelectableParameters(updatedGroup.id, updatedGroup.parameterSensitivities);
+
                 $('#create-parameter-context-container').hide();
                 $('#selectable-parameters-container').hide();
                 $('#fetched-parameters-container').show();
@@ -1835,43 +1838,55 @@
                 .data('gridInstance')
                 .getData();
             var selectableParameters = selectableParametersData.getItems();
-            var sensitiveParams = args.rows; //rows are parameters that are marked as sensitive
-            var parametersToUpdate = {};
 
-            // update the sensitivities of selectableParameters
-            var i = 0;
-            $.each(selectableParameters, function (_, parameter) {
-                if (i <= sensitiveParams.length) {
-                    var id = sensitiveParams[i];
+            // parameters marked as sensitive in the table
+            var sensitiveParameters = args.rows;
 
-                    // if parameter id is in sensitiveParams, then it's sensitive
-                    if (parameter.id === id) {
-                        // mark as sensitive
-                        parameter.sensitivity = SENSITIVE;
-                        parametersToUpdate[parameter.name] = SENSITIVE;
+            // sort numerically
+            sensitiveParameters.sort(function (a, b) {
+                return a - b;
+            });
 
-                        i++;
+            // get the currently selected group
+            var groupsGrid = $('#parameter-groups-table').data('gridInstance');
+            var selectedGroupId = groupsGrid.getSelectedRows();
+
+            // only save if editing within the same group
+            if (selectableParameters[0].groupId === selectedGroupId[0]) {
+                var parametersToUpdate = {};
+
+                // update the sensitivities of selectableParameters
+                var i = 0;
+                $.each(selectableParameters, function (_, parameter) {
+                    if (i <= sensitiveParameters.length) {
+                        var id = sensitiveParameters[i];
+
+                        // if parameter id is in sensitiveParams, then it's sensitive
+                        if (parameter.id === id) {
+                            // mark as sensitive
+                            parameter.sensitivity = SENSITIVE;
+                            parametersToUpdate[parameter.name] = SENSITIVE;
+
+                            i++;
+                        } else {
+                            // mark as non-sensitive
+                            parameter.sensitivity = NON_SENSITIVE;
+                            parametersToUpdate[parameter.name] = NON_SENSITIVE;
+                        }
                     } else {
-                        // mark as non-sensitive
+                        // mark the remaining as non-sensitive
                         parameter.sensitivity = NON_SENSITIVE;
                         parametersToUpdate[parameter.name] = NON_SENSITIVE;
                     }
-                } else {
-                    // mark the remaining as non-sensitive
-                    parameter.sensitivity = NON_SENSITIVE;
-                    parametersToUpdate[parameter.name] = NON_SENSITIVE;
+                })
+
+                // save the parameters to the group data
+                var groupsData = groupsGrid.getData();
+                var groupToUpdate = groupsData.getItem(selectedGroupId);
+
+                if (nfCommon.isDefinedAndNotNull(groupToUpdate)) {
+                    groupToUpdate.parameterSensitivities = parametersToUpdate;
                 }
-            })
-
-            // update the group data in the grid
-            var groupsGrid = $('#parameter-groups-table').data('gridInstance');
-            var groupsData = groupsGrid.getData();
-
-            var groupIndex = groupsGrid.getSelectedRows();
-            var groupToUpdate = groupsData.getItem(groupIndex);
-
-            if (nfCommon.isDefinedAndNotNull(groupToUpdate)) {
-                groupToUpdate.parameterSensitivities = parametersToUpdate;
             }
         })
 
