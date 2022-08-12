@@ -132,7 +132,7 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
 
     public static final PropertyDescriptor INCLUDE_TEMPORARY_FILES = new PropertyDescriptor.Builder()
             .name("include-temporary-files")
-            .displayName("include temporary files")
+            .displayName("Include Temporary Files")
             .description("Whether to include temporary files when listing the contents of configured directory paths.")
             .required(true)
             .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())

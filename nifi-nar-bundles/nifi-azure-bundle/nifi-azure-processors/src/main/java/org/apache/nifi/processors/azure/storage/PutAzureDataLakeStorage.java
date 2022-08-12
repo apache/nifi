@@ -96,7 +96,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
                     "The Temporary File Directory name is " + TEMP_FILE_DIRECTORY)
             .defaultValue("")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(new DirectoryValidator("Temp File Directory"))
+            .addValidator(new DirectoryValidator("Base Temporary Path"))
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
