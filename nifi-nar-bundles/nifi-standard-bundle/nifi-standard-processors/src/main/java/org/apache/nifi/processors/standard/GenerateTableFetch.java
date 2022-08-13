@@ -438,7 +438,6 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 IntStream.range(0, numMaxValueColumns).forEach((index) -> {
                     String colName = maxValueColumnNameList.get(index);
 
-                    maxValueSelectColumns.add("MAX(" + colName + ") " + colName);
                     String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName, dbAdapter);
                     if (!StringUtils.isEmpty(maxValue)) {
                         if (columnTypeMap.isEmpty() || getColumnType(tableName, colName, dbAdapter) == null) {
