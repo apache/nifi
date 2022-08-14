@@ -130,8 +130,7 @@ public class FileParameterProvider extends AbstractParameterProvider implements 
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
                     .verificationStepName("Fetch Parameters")
-                    .explanation(String.format("Fetched %s files as parameters.  Matching parameter contexts may be named: %s",
-                            parameterCount, parameterGroupNames))
+                    .explanation(String.format("Fetched %s files as parameters.", parameterCount))
                     .build());
         } catch (final IllegalArgumentException e) {
             verificationLogger.error("Failed to fetch parameters", e);

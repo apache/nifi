@@ -70,6 +70,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
@@ -474,7 +475,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
                 parameterUpdateMap.put(descriptor.getName(), fetchedParameter);
             } else {
                 final boolean isSensitivityChanged = currentParameter.getDescriptor().isSensitive() != fetchedParameter.getDescriptor().isSensitive();
-                if (!currentParameter.getValue().equals(fetchedParameter.getValue()) || isSensitivityChanged) {
+                if (!Objects.equals(currentParameter.getValue(), fetchedParameter.getValue()) || isSensitivityChanged) {
                     // Also add if it's an existing parameter that has a changed value
                     parameterUpdateMap.put(descriptor.getName(), fetchedParameter);
 
