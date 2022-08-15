@@ -20,7 +20,7 @@ import org.apache.nifi.ssl.SSLContextService;
 
 public class MqttConnectionProperties {
 
-    private int mqttVersion;
+    private MqttVersion mqttVersion;
     private int keepAliveInterval;
     private int connectionTimeout;
 
@@ -35,13 +35,13 @@ public class MqttConnectionProperties {
     private Integer lastWillQOS;
 
     private String username;
-    private char[] password;
+    private String password;
 
-    public int getMqttVersion() {
+    public MqttVersion getMqttVersion() {
         return mqttVersion;
     }
 
-    public void setMqttVersion(int mqttVersion) {
+    public void setMqttVersion(MqttVersion mqttVersion) {
         this.mqttVersion = mqttVersion;
     }
 
@@ -125,11 +125,11 @@ public class MqttConnectionProperties {
         this.username = username;
     }
 
-    public char[] getPassword() {
+    public String getPassword() {
         return password;
     }
 
-    public void setPassword(char[] password) {
+    public void setPassword(String password) {
         this.password = password;
     }
 }

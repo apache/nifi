@@ -16,52 +16,26 @@
  */
 package org.apache.nifi.processors.mqtt.common;
 
-public class NifiMqttMessage {
+public class StandardMqttMessage {
     private byte[] payload;
-    private int qos = 1;
-    private boolean retained = false;
-    private boolean duplicate = false;
+    private int qos;
+    private boolean retained;
 
-    // we are not changing that, do we need that field here?
-    private int messageId;
+    public StandardMqttMessage(byte[] payload, int qos, boolean retained) {
+        this.payload = payload;
+        this.qos = qos;
+        this.retained = retained;
+    }
 
     public byte[] getPayload() {
         return payload;
-    }
-
-    public void setPayload(byte[] payload) {
-        this.payload = payload;
     }
 
     public int getQos() {
         return qos;
     }
 
-    public void setQos(int qos) {
-        this.qos = qos;
-    }
-
     public boolean isRetained() {
         return retained;
-    }
-
-    public void setRetained(boolean retained) {
-        this.retained = retained;
-    }
-
-    public boolean isDuplicate() {
-        return duplicate;
-    }
-
-    public void setDuplicate(boolean duplicate) {
-        this.duplicate = duplicate;
-    }
-
-    public int getMessageId() {
-        return messageId;
-    }
-
-    public void setMessageId(int messageId) {
-        this.messageId = messageId;
     }
 }

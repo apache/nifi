@@ -19,15 +19,16 @@ package org.apache.nifi.processors.mqtt.common;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class MqttTestClient implements NifiMqttClient {
+public class MqttTestClient implements MqttClient {
 
     public AtomicBoolean connected = new AtomicBoolean(false);
 
-    public NifiMqttCallback nifiMqttCallback;
+    public MqttCallback mqttCallback;
     public ConnectType type;
     public enum ConnectType {Publisher, Subscriber}
 
-    public MQTTQueueMessage publishedMessage;
+    private StandardMqttMessage lastPublishedMessage;
+    private String lastPublishedTopic;
 
     public String subscribedTopic;
     public int subscribedQos;
@@ -43,32 +44,29 @@ public class MqttTestClient implements NifiMqttClient {
     }
 
     @Override
-    public void connect(MqttConnectionProperties connectionProperties) throws NifiMqttException {
+    public void connect(MqttConnectionProperties connectionProperties) {
         connected.set(true);
     }
 
     @Override
-    public void disconnect(long disconnectTimeout) throws NifiMqttException {
+    public void disconnect(long disconnectTimeout) {
         connected.set(false);
     }
 
     @Override
-    public void close() throws NifiMqttException {
+    public void close() {
 
     }
 
     @Override
-    public void publish(String topic, NifiMqttMessage message) throws NifiMqttException {
+    public void publish(String topic, StandardMqttMessage message) {
         switch (type) {
             case Publisher:
-                publishedMessage = new MQTTQueueMessage(topic, message);
+                lastPublishedMessage = message;
+                lastPublishedTopic = topic;
                 break;
             case Subscriber:
-                try {
-                    nifiMqttCallback.messageArrived(topic, message);
-                } catch (Exception e) {
-                    throw new NifiMqttException(e);
-                }
+                mqttCallback.messageArrived(new ReceivedMqttMessage(message.getPayload(), message.getQos(), message.isRetained(), topic));
                 break;
         }
     }
@@ -80,7 +78,15 @@ public class MqttTestClient implements NifiMqttClient {
     }
 
     @Override
-    public void setCallback(NifiMqttCallback callback) {
-        this.nifiMqttCallback = callback;
+    public void setCallback(MqttCallback callback) {
+        this.mqttCallback = callback;
+    }
+
+    public StandardMqttMessage getLastPublishedMessage() {
+        return lastPublishedMessage;
+    }
+
+    public String getLastPublishedTopic() {
+        return lastPublishedTopic;
     }
 }

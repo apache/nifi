@@ -31,6 +31,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.SSLContextService;
 
 import java.net.URI;
@@ -39,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.commons.lang3.EnumUtils.isValidEnumIgnoreCase;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
@@ -64,7 +66,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
     protected MqttConnectionProperties connectionProperties;
 
     protected MqttClientFactory mqttClientFactory = new MqttClientFactory();
-    protected NifiMqttClient mqttClient;
+    protected MqttClient mqttClient;
 
     public ProcessSessionFactory processSessionFactory;
 
@@ -82,9 +84,9 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             if (!EMPTY.equals(brokerURI.getPath())) {
                 return new ValidationResult.Builder().subject(subject).valid(false).explanation("the broker URI cannot have a path. It currently is:" + brokerURI.getPath()).build();
             }
-            if (!isValidEnumIgnoreCase(MqttConstants.SupportedSchemes.class, brokerURI.getScheme())) {
+            if (!isValidEnumIgnoreCase(MqttProtocolScheme.class, brokerURI.getScheme())) {
                 return new ValidationResult.Builder().subject(subject).valid(false)
-                        .explanation("invalid scheme! supported schemes are: " + MqttConstants.SupportedSchemes.getValuesAsString(", ")).build();
+                        .explanation("invalid scheme! supported schemes are: " + MqttProtocolScheme.getValuesAsString(", ")).build();
             }
         } catch (URISyntaxException e) {
             return new ValidationResult.Builder().subject(subject).valid(false).explanation("it is not valid URI syntax.").build();
@@ -199,12 +201,12 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .build();
 
     public static final PropertyDescriptor PROP_SESSION_EXPIRY_INTERVAL = new PropertyDescriptor.Builder()
-            .name("Session Expiry Interval (seconds)")
+            .name("Session Expiry Interval")
             .description("After this interval the broker will expire the client and clear the session state.")
-            .addValidator(StandardValidators.NON_NEGATIVE_LONG_VALIDATOR)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .dependsOn(PROP_MQTT_VERSION, ALLOWABLE_VALUE_MQTT_VERSION_500)
             .dependsOn(PROP_CLEAN_SESSION, ALLOWABLE_VALUE_CLEAN_SESSION_FALSE)
-            .defaultValue(Long.toString(SESSION_EXPIRY_INTERVAL_IN_SECONDS))
+            .defaultValue(SESSION_EXPIRY_INTERVAL_IN_SECONDS + " secs")
             .build();
 
     public static final PropertyDescriptor PROP_CONN_TIMEOUT = new PropertyDescriptor.Builder()
@@ -298,14 +300,14 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             try {
                 logger.info("Disconnecting client");
                 mqttClient.disconnect(DISCONNECT_TIMEOUT);
-            } catch (NifiMqttException me) {
+            } catch (MqttException me) {
                 logger.error("Error disconnecting MQTT client due to {}", new Object[]{me.getMessage()}, me);
             }
 
             try {
                 logger.info("Closing client");
                 mqttClient.close();
-            } catch (NifiMqttException me) {
+            } catch (MqttException me) {
                 logger.error("Error closing MQTT client due to {}", new Object[]{me.getMessage()}, me);
             }
 
@@ -313,8 +315,8 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         }
     }
 
-    protected NifiMqttClient createMqttClient() throws NifiMqttException {
-        return mqttClientFactory.create(clientProperties, connectionProperties);
+    protected MqttClient createMqttClient() throws TlsException {
+        return mqttClientFactory.create(clientProperties, connectionProperties, getLogger());
     }
 
 
@@ -344,18 +346,18 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         final MqttClientProperties clientProperties = new MqttClientProperties();
 
         try {
-            clientProperties.setBrokerURI(new URI(context.getProperty(PROP_BROKER_URI).evaluateAttributeExpressions().getValue()));
+            clientProperties.setBrokerUri(new URI(context.getProperty(PROP_BROKER_URI).evaluateAttributeExpressions().getValue()));
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
 
-        String clientID = context.getProperty(PROP_CLIENTID).evaluateAttributeExpressions().getValue();
-        if (clientID == null) {
-            clientID = UUID.randomUUID().toString();
+        String clientId = context.getProperty(PROP_CLIENTID).evaluateAttributeExpressions().getValue();
+        if (clientId == null) {
+            clientId = UUID.randomUUID().toString();
         }
-        clientProperties.setClientID(clientID);
+        clientProperties.setClientId(clientId);
 
-        clientProperties.setMqttVersion(context.getProperty(PROP_MQTT_VERSION).asInteger());
+        clientProperties.setMqttVersion(MqttVersion.fromVersionCode(context.getProperty(PROP_MQTT_VERSION).asInteger()));
 
         return clientProperties;
     }
@@ -364,10 +366,10 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         final MqttConnectionProperties connectionProperties = new MqttConnectionProperties();
 
         connectionProperties.setCleanSession(context.getProperty(PROP_CLEAN_SESSION).asBoolean());
-        connectionProperties.setSessionExpiryInterval(context.getProperty(PROP_SESSION_EXPIRY_INTERVAL).asLong());
+        connectionProperties.setSessionExpiryInterval(context.getProperty(PROP_SESSION_EXPIRY_INTERVAL).asTimePeriod(TimeUnit.SECONDS));
 
         connectionProperties.setKeepAliveInterval(context.getProperty(PROP_KEEP_ALIVE_INTERVAL).asInteger());
-        connectionProperties.setMqttVersion(context.getProperty(PROP_MQTT_VERSION).asInteger());
+        connectionProperties.setMqttVersion(MqttVersion.fromVersionCode(context.getProperty(PROP_MQTT_VERSION).asInteger()));
         connectionProperties.setConnectionTimeout(context.getProperty(PROP_CONN_TIMEOUT).asInteger());
 
         final PropertyValue sslProp = context.getProperty(PROP_SSL_CONTEXT_SERVICE);
@@ -386,10 +388,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             connectionProperties.setUsername(usernameProp.evaluateAttributeExpressions().getValue());
         }
 
-        final PropertyValue passwordProp = context.getProperty(PROP_PASSWORD);
-        if (passwordProp.isSet()) {
-            connectionProperties.setPassword(passwordProp.getValue().toCharArray());
-        }
+        connectionProperties.setPassword(context.getProperty(PROP_PASSWORD).getValue());
 
         return connectionProperties;
     }

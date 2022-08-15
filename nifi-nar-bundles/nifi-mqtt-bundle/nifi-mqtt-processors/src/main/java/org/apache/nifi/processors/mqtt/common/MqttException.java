@@ -16,43 +16,13 @@
  */
 package org.apache.nifi.processors.mqtt.common;
 
-import java.net.URI;
+public class MqttException extends RuntimeException {
 
-public class MqttClientProperties {
-    private URI brokerUri;
-    private String clientId;
-
-    private MqttVersion mqttVersion;
-
-    public String getBroker() {
-        return brokerUri.toString();
+    public MqttException(String message) {
+        super(message);
     }
 
-    public MqttProtocolScheme getScheme() {
-        return MqttProtocolScheme.valueOf(brokerUri.getScheme().toUpperCase());
-    }
-
-    public URI getBrokerUri() {
-        return brokerUri;
-    }
-
-    public void setBrokerUri(URI brokerUri) {
-        this.brokerUri = brokerUri;
-    }
-
-    public String getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
-    }
-
-    public MqttVersion getMqttVersion() {
-        return mqttVersion;
-    }
-
-    public void setMqttVersion(MqttVersion mqttVersion) {
-        this.mqttVersion = mqttVersion;
+    public MqttException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

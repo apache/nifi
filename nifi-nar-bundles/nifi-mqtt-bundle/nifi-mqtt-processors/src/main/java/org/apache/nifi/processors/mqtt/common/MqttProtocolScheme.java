@@ -16,13 +16,15 @@
  */
 package org.apache.nifi.processors.mqtt.common;
 
-public class NifiMqttException extends RuntimeException {
+import java.util.Arrays;
 
-    public NifiMqttException(String message) {
-        super(message);
-    }
+public enum MqttProtocolScheme {
+    TCP,
+    SSL,
+    WS,
+    WSS;
 
-    public NifiMqttException(Throwable cause) {
-        super(cause);
+    public static String getValuesAsString(String delimiter) {
+        return String.join(delimiter, Arrays.stream(values()).map(value -> value.name().toLowerCase()).toArray(String[]::new));
     }
 }

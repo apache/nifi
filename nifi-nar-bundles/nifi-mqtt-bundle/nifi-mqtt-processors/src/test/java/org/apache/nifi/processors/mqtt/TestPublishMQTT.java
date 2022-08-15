@@ -17,10 +17,10 @@
 
 package org.apache.nifi.processors.mqtt;
 
-import org.apache.nifi.processors.mqtt.common.MQTTQueueMessage;
+import org.apache.nifi.processors.mqtt.common.MqttClient;
+import org.apache.nifi.processors.mqtt.common.MqttException;
 import org.apache.nifi.processors.mqtt.common.MqttTestClient;
-import org.apache.nifi.processors.mqtt.common.NifiMqttClient;
-import org.apache.nifi.processors.mqtt.common.NifiMqttException;
+import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
 import org.apache.nifi.processors.mqtt.common.TestPublishMqttCommon;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,11 +33,12 @@ public class TestPublishMQTT extends TestPublishMqttCommon {
 
     @Override
     public void verifyPublishedMessage(byte[] payload, int qos, boolean retain) {
-        MQTTQueueMessage mqttQueueMessage = mqttTestClient.publishedMessage;
-        assertEquals(Arrays.toString(payload), Arrays.toString(mqttQueueMessage.getPayload()));
-        assertEquals(qos, mqttQueueMessage.getQos());
-        assertEquals(retain, mqttQueueMessage.isRetained());
-        assertEquals(topic, mqttQueueMessage.getTopic());
+        StandardMqttMessage lastPublishedMessage = mqttTestClient.getLastPublishedMessage();
+        String lastPublishedTopic = mqttTestClient.getLastPublishedTopic();
+        assertEquals(Arrays.toString(payload), Arrays.toString(lastPublishedMessage.getPayload()));
+        assertEquals(qos, lastPublishedMessage.getQos());
+        assertEquals(retain, lastPublishedMessage.isRetained());
+        assertEquals(topic, lastPublishedTopic);
     }
 
     private MqttTestClient mqttTestClient;
@@ -49,7 +50,7 @@ public class TestPublishMQTT extends TestPublishMqttCommon {
         }
 
         @Override
-        protected NifiMqttClient createMqttClient() throws NifiMqttException {
+        protected MqttClient createMqttClient() throws MqttException {
             mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Publisher);
             return mqttTestClient;
         }

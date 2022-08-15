@@ -44,10 +44,10 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.mqtt.common.AbstractMQTTProcessor;
-import org.apache.nifi.processors.mqtt.common.MQTTQueueMessage;
-import org.apache.nifi.processors.mqtt.common.NifiMqttCallback;
-import org.apache.nifi.processors.mqtt.common.NifiMqttException;
-import org.apache.nifi.processors.mqtt.common.NifiMqttMessage;
+import org.apache.nifi.processors.mqtt.common.MqttCallback;
+import org.apache.nifi.processors.mqtt.common.MqttException;
+import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -106,7 +106,7 @@ import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VAL
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The 'Max Queue Size' specifies the maximum number of messages that can be hold in memory by NiFi by a single "
         + "instance of this processor. A high value for this property could represent a lot of data being stored in memory.")
 
-public class ConsumeMQTT extends AbstractMQTTProcessor implements NifiMqttCallback {
+public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
     public final static String RECORD_COUNT_KEY = "record.count";
     public final static String BROKER_ATTRIBUTE_KEY = "mqtt.broker";
@@ -207,7 +207,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements NifiMqttCallba
     private volatile String topicFilter;
     private final AtomicBoolean scheduled = new AtomicBoolean(false);
 
-    private volatile LinkedBlockingQueue<MQTTQueueMessage> mqttQueue;
+    private volatile LinkedBlockingQueue<ReceivedMqttMessage> mqttQueue;
 
     public static final Relationship REL_MESSAGE = new Relationship.Builder()
             .name("Message")
@@ -254,7 +254,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements NifiMqttCallba
                     logger.warn("New receive buffer size ({}) is smaller than the number of messages pending ({}), ignoring resize request. Processor will be invalid.", newSize, msgPending);
                     return;
                 }
-                LinkedBlockingQueue<MQTTQueueMessage> newBuffer = new LinkedBlockingQueue<>(newSize);
+                LinkedBlockingQueue<ReceivedMqttMessage> newBuffer = new LinkedBlockingQueue<>(newSize);
                 mqttQueue.drainTo(newBuffer);
                 mqttQueue = newBuffer;
             }
@@ -399,17 +399,15 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements NifiMqttCallba
         // non-null but not connected, so we need to handle each case and only create a new client when it is null
         try {
             if (mqttClient == null) {
-                logger.debug("Creating client");
                 mqttClient = createMqttClient();
                 mqttClient.setCallback(this);
             }
 
             if (!mqttClient.isConnected()) {
-                logger.debug("Connecting client");
                 mqttClient.connect(connectionProperties);
                 mqttClient.subscribe(topicPrefix + topicFilter, qos);
             }
-        } catch (NifiMqttException e) {
+        } catch (MqttException | TlsException e) {
             logger.error("Connection to {} lost (or was never connected) and connection failed. Yielding processor", new Object[]{clientProperties.getBroker()}, e);
             context.yield();
         }
@@ -417,7 +415,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements NifiMqttCallba
 
     private void transferQueue(ProcessSession session) {
         while (!mqttQueue.isEmpty()) {
-            final MQTTQueueMessage mqttMessage = mqttQueue.peek();
+            final ReceivedMqttMessage mqttMessage = mqttQueue.peek();
 
             final FlowFile messageFlowfile = session.write(createFlowFileAndPopulateAttributes(session, mqttMessage),
                     out -> out.write(mqttMessage.getPayload() == null ? new byte[0] : mqttMessage.getPayload()));
@@ -438,7 +436,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements NifiMqttCallba
         messageFlowfile = session.append(messageFlowfile, out -> {
             int i = 0;
             while (!mqttQueue.isEmpty() && i < MAX_MESSAGES_PER_FLOW_FILE) {
-                final MQTTQueueMessage mqttMessage = mqttQueue.poll();
+                final ReceivedMqttMessage mqttMessage = mqttQueue.poll();
                 out.write(mqttMessage.getPayload() == null ? new byte[0] : mqttMessage.getPayload());
                 out.write(demarcator);
                 session.adjustCounter(COUNTER_RECORDS_RECEIVED, 1L, false);
@@ -451,7 +449,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements NifiMqttCallba
         session.commitAsync();
     }
 
-    private void transferFailure(final ProcessSession session, final MQTTQueueMessage mqttMessage) {
+    private void transferFailure(final ProcessSession session, final ReceivedMqttMessage mqttMessage) {
         final FlowFile messageFlowfile = session.write(createFlowFileAndPopulateAttributes(session, mqttMessage),
                 out -> out.write(mqttMessage.getPayload()));
 
@@ -460,7 +458,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements NifiMqttCallba
         session.adjustCounter(COUNTER_PARSE_FAILURES, 1, false);
     }
 
-    private FlowFile createFlowFileAndPopulateAttributes(ProcessSession session, MQTTQueueMessage mqttMessage) {
+    private FlowFile createFlowFileAndPopulateAttributes(ProcessSession session, ReceivedMqttMessage mqttMessage) {
         FlowFile messageFlowfile = session.create();
 
         Map<String, String> attrs = new HashMap<>();
@@ -484,7 +482,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements NifiMqttCallba
         final Map<String, String> attributes = new HashMap<>();
         final AtomicInteger recordCount = new AtomicInteger();
 
-        final List<MQTTQueueMessage> doneList = new ArrayList<>();
+        final List<ReceivedMqttMessage> doneList = new ArrayList<>();
 
         RecordSetWriter writer = null;
         boolean isWriterInitialized = false;
@@ -492,7 +490,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements NifiMqttCallba
 
         try {
             while (!mqttQueue.isEmpty() && i < MAX_MESSAGES_PER_FLOW_FILE) {
-                final MQTTQueueMessage mqttMessage = mqttQueue.poll();
+                final ReceivedMqttMessage mqttMessage = mqttQueue.poll();
                 if (mqttMessage == null) {
                     break;
                 }
@@ -583,7 +581,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements NifiMqttCallba
 
             // we try to add the messages back into the internal queue
             int numberOfMessages = 0;
-            for (MQTTQueueMessage done : doneList) {
+            for (ReceivedMqttMessage done : doneList) {
                 try {
                     mqttQueue.offer(done, 1, TimeUnit.SECONDS);
                 } catch (InterruptedException ex) {
@@ -627,7 +625,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements NifiMqttCallba
     }
 
     private String getTransitUri(String... appends) {
-        String broker = clientProperties.getBrokerURI().toString();
+        String broker = clientProperties.getBrokerUri().toString();
         StringBuilder stringBuilder = new StringBuilder(broker.endsWith("/") ? broker : broker + "/");
         for (String append : appends) {
             stringBuilder.append(append);
@@ -641,19 +639,23 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements NifiMqttCallba
     }
 
     @Override
-    public void messageArrived(String topic, NifiMqttMessage message) throws Exception {
+    public void messageArrived(ReceivedMqttMessage message) {
         if (logger.isDebugEnabled()) {
             byte[] payload = message.getPayload();
             String text = new String(payload, StandardCharsets.UTF_8);
             if (StringUtils.isAsciiPrintable(text)) {
-                logger.debug("Message arrived from topic {}. Payload: {}", topic, text);
+                logger.debug("Message arrived from topic {}. Payload: {}", message.getTopic(), text);
             } else {
-                logger.debug("Message arrived from topic {}. Binary value of size {}", topic, payload.length);
+                logger.debug("Message arrived from topic {}. Binary value of size {}", message.getTopic(), payload.length);
             }
         }
 
-        if (!mqttQueue.offer(new MQTTQueueMessage(topic, message), 1, TimeUnit.SECONDS)) {
-            throw new IllegalStateException("The subscriber queue is full, cannot receive another message until the processor is scheduled to run.");
+        try {
+            if (!mqttQueue.offer(message, 1, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("The subscriber queue is full, cannot receive another message until the processor is scheduled to run.");
+            }
+        } catch (InterruptedException e) {
+            throw new MqttException("Failed to process message arrived from topic " + message.getTopic());
         }
     }
 

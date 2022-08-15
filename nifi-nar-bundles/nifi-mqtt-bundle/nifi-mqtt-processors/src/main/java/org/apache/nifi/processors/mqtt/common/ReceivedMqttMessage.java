@@ -16,8 +16,20 @@
  */
 package org.apache.nifi.processors.mqtt.common;
 
-public interface NifiMqttCallback {
-    void connectionLost(Throwable cause);
-    void messageArrived(String topic, NifiMqttMessage message) throws Exception;
-    void deliveryComplete(String token);
+public class ReceivedMqttMessage extends StandardMqttMessage {
+
+    private String topic;
+
+    public ReceivedMqttMessage(byte[] payload, int qos, boolean retained, String topic) {
+        super(payload, qos, retained);
+        this.topic = topic;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public boolean isDuplicate() {
+        return false;
+    }
 }

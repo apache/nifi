@@ -64,7 +64,7 @@ public abstract class TestConsumeMqttCommon {
     private static final int LEAST_ONE = 1;
     private static final int EXACTLY_ONCE = 2;
 
-    public abstract void internalPublish(NifiMqttMessage message, String topicName);
+    public abstract void internalPublish(StandardMqttMessage message, String topicName);
 
     @Test
     public void testClientIDConfiguration() {
@@ -293,10 +293,8 @@ public abstract class TestConsumeMqttCommon {
 
         testRunner.assertValid();
 
-        NifiMqttMessage innerMessage = new NifiMqttMessage();
-        innerMessage.setPayload(ByteBuffer.wrap("testMessage".getBytes()).array());
-        innerMessage.setQos(2);
-        MQTTQueueMessage testMessage = new MQTTQueueMessage("testTopic", innerMessage);
+        final byte[] content = ByteBuffer.wrap("testMessage".getBytes()).array();
+        ReceivedMqttMessage testMessage = new ReceivedMqttMessage(content, 2, false, "testTopic");
 
         ConsumeMQTT consumeMQTT = (ConsumeMQTT) testRunner.getProcessor();
         consumeMQTT.onScheduled(testRunner.getProcessContext());
@@ -311,7 +309,7 @@ public abstract class TestConsumeMqttCommon {
         Field f = ConsumeMQTT.class.getDeclaredField("mqttQueue");
         f.setAccessible(true);
         @SuppressWarnings("unchecked")
-        LinkedBlockingQueue<MQTTQueueMessage> queue = (LinkedBlockingQueue<MQTTQueueMessage>) f.get(consumeMQTT);
+        LinkedBlockingQueue<ReceivedMqttMessage> queue = (LinkedBlockingQueue<ReceivedMqttMessage>) f.get(consumeMQTT);
         queue.add(testMessage);
 
         consumeMQTT.onUnscheduled(testRunner.getProcessContext());
@@ -549,7 +547,7 @@ public abstract class TestConsumeMqttCommon {
     private static boolean isConnected(AbstractMQTTProcessor processor) throws NoSuchFieldException, IllegalAccessException {
         Field f = AbstractMQTTProcessor.class.getDeclaredField("mqttClient");
         f.setAccessible(true);
-        NifiMqttClient mqttClient = (NifiMqttClient) f.get(processor);
+        MqttClient mqttClient = (MqttClient) f.get(processor);
         return mqttClient.isConnected();
     }
 
@@ -561,10 +559,10 @@ public abstract class TestConsumeMqttCommon {
     }
 
     @SuppressWarnings("unchecked")
-    public static BlockingQueue<MQTTQueueMessage> getMqttQueue(ConsumeMQTT consumeMQTT) throws IllegalAccessException, NoSuchFieldException {
+    public static BlockingQueue<ReceivedMqttMessage> getMqttQueue(ConsumeMQTT consumeMQTT) throws IllegalAccessException, NoSuchFieldException {
         Field mqttQueueField = ConsumeMQTT.class.getDeclaredField("mqttQueue");
         mqttQueueField.setAccessible(true);
-        return (BlockingQueue<MQTTQueueMessage>) mqttQueueField.get(consumeMQTT);
+        return (BlockingQueue<ReceivedMqttMessage>) mqttQueueField.get(consumeMQTT);
     }
 
     public static void transferQueue(ConsumeMQTT consumeMQTT, ProcessSession session) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
@@ -583,11 +581,7 @@ public abstract class TestConsumeMqttCommon {
     }
 
     private void publishMessage(final String payload, final int qos) {
-        final NifiMqttMessage message = new NifiMqttMessage();
-        message.setPayload(payload.getBytes(StandardCharsets.UTF_8));
-        message.setQos(qos);
-        message.setRetained(false);
-
+        final StandardMqttMessage message = new StandardMqttMessage(payload.getBytes(StandardCharsets.UTF_8), qos, false);
         internalPublish(message, "testTopic");
     }
 }

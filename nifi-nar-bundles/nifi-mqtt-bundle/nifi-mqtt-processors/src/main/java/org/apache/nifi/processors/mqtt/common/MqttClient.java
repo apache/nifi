@@ -14,42 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.processors.mqtt.common;
 
-public class MQTTQueueMessage {
-    private final String topic;
-
-    private final byte[] payload;
-    private final int qos;
-    private final boolean retained;
-    private final boolean duplicate;
-
-    public MQTTQueueMessage(String topic, NifiMqttMessage message) {
-        this.topic = topic;
-        payload = message.getPayload();
-        qos = message.getQos();
-        retained = message.isRetained();
-        duplicate = message.isDuplicate();
-    }
-
-    public String getTopic() {
-        return topic;
-    }
-
-    public byte[] getPayload() {
-        return payload;
-    }
-
-    public int getQos() {
-        return qos;
-    }
-
-    public boolean isRetained() {
-        return retained;
-    }
-
-    public boolean isDuplicate() {
-        return duplicate;
-    }
+public interface MqttClient {
+    boolean isConnected();
+    void connect(MqttConnectionProperties connectionProperties);
+    void disconnect(long disconnectTimeout);
+    void close();
+    void publish(String topic, StandardMqttMessage message);
+    void subscribe(String topicFilter, int qos);
+    void setCallback(MqttCallback callback);
 }

@@ -18,47 +18,42 @@ package org.apache.nifi.processors.mqtt.adapters;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
-import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
 import com.hivemq.client.mqtt.mqtt5.message.connect.Mqtt5Connect;
 import com.hivemq.client.mqtt.mqtt5.message.connect.Mqtt5ConnectBuilder;
+import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAck;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processors.mqtt.common.MqttCallback;
+import org.apache.nifi.processors.mqtt.common.MqttClient;
 import org.apache.nifi.processors.mqtt.common.MqttConnectionProperties;
-import org.apache.nifi.processors.mqtt.common.NifiMqttCallback;
-import org.apache.nifi.processors.mqtt.common.NifiMqttClient;
-import org.apache.nifi.processors.mqtt.common.NifiMqttException;
-import org.apache.nifi.processors.mqtt.common.NifiMqttMessage;
+import org.apache.nifi.processors.mqtt.common.MqttException;
+import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
+import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
 
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.TrustManagerFactory;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
-import java.util.Arrays;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
-public class HiveMqV5ClientAdapter implements NifiMqttClient {
+public class HiveMqV5ClientAdapter implements MqttClient {
 
-    private final Mqtt5Client mqtt5Client;
+    private final Mqtt5BlockingClient mqtt5BlockingClient;
+    private final ComponentLog logger;
 
-    private NifiMqttCallback callback;
+    private MqttCallback callback;
 
-    public HiveMqV5ClientAdapter(Mqtt5BlockingClient mqtt5BlockingClient) {
-        this.mqtt5Client = mqtt5BlockingClient;
+    public HiveMqV5ClientAdapter(Mqtt5BlockingClient mqtt5BlockingClient, ComponentLog logger) {
+        this.mqtt5BlockingClient = mqtt5BlockingClient;
+        this.logger = logger;
     }
 
     @Override
     public boolean isConnected() {
-        return mqtt5Client.getState().isConnected();
+        return mqtt5BlockingClient.getState().isConnected();
     }
 
     @Override
-    public void connect(MqttConnectionProperties connectionProperties) throws NifiMqttException {
+    public void connect(MqttConnectionProperties connectionProperties) {
+        logger.debug("Connecting to broker");
+
         final Mqtt5ConnectBuilder connectBuilder = Mqtt5Connect.builder()
                 .keepAlive(connectionProperties.getKeepAliveInterval());
 
@@ -78,36 +73,36 @@ public class HiveMqV5ClientAdapter implements NifiMqttClient {
                     .applyWillPublish();
         }
 
-        // checking for presence of password because username can be null
-        final char[] password = connectionProperties.getPassword();
-        if (password != null) {
+        final String username = connectionProperties.getUsername();
+        final String password = connectionProperties.getPassword();
+        if (username != null && password != null) {
             connectBuilder.simpleAuth()
                     .username(connectionProperties.getUsername())
-                    .password(toBytes(password))
+                    .password(password.getBytes(StandardCharsets.UTF_8))
                     .applySimpleAuth();
-
-            clearSensitive(connectionProperties.getPassword());
-            clearSensitive(password);
         }
 
         final Mqtt5Connect mqtt5Connect = connectBuilder.build();
-        mqtt5Client.toBlocking().connect(mqtt5Connect);
+        mqtt5BlockingClient.connect(mqtt5Connect);
     }
 
     @Override
-    public void disconnect(long disconnectTimeout) throws NifiMqttException {
+    public void disconnect(long disconnectTimeout) {
+        logger.debug("Disconnecting client");
         // Currently it is not possible to set timeout for disconnect with HiveMQ Client. (Only connect timeout exists.)
-        mqtt5Client.toBlocking().disconnect();
+        mqtt5BlockingClient.disconnect();
     }
 
     @Override
-    public void close() throws NifiMqttException {
+    public void close() {
         // there is no paho's close equivalent in hivemq client
     }
 
     @Override
-    public void publish(String topic, NifiMqttMessage message) throws NifiMqttException {
-        mqtt5Client.toAsync().publishWith()
+    public void publish(String topic, StandardMqttMessage message) {
+        logger.debug("Publishing message to {} with QoS: {}", topic, message.getQos());
+
+        mqtt5BlockingClient.publishWith()
                 .topic(topic)
                 .payload(message.getPayload())
                 .retain(message.isRetained())
@@ -119,76 +114,35 @@ public class HiveMqV5ClientAdapter implements NifiMqttClient {
     public void subscribe(String topicFilter, int qos) {
         Objects.requireNonNull(callback, "callback should be set");
 
-        mqtt5Client.toAsync().subscribeWith()
+        logger.debug("Subscribing to {} with QoS: {}", topicFilter, qos);
+
+        CompletableFuture<Mqtt5SubAck> ack = mqtt5BlockingClient.toAsync().subscribeWith()
                 .topicFilter(topicFilter)
                 .qos(Objects.requireNonNull(MqttQos.fromCode(qos)))
                 .callback(mqtt5Publish -> {
-                    final NifiMqttMessage nifiMqttMessage = new NifiMqttMessage();
-                    nifiMqttMessage.setPayload(mqtt5Publish.getPayloadAsBytes());
-                    nifiMqttMessage.setQos(mqtt5Publish.getQos().getCode());
-                    nifiMqttMessage.setRetained(mqtt5Publish.isRetain());
-                    try {
-                        callback.messageArrived(mqtt5Publish.getTopic().toString(), nifiMqttMessage);
-                    } catch (Exception e) {
-                        throw new NifiMqttException(e);
-                    }
+                    final ReceivedMqttMessage receivedMessage = new ReceivedMqttMessage(
+                            mqtt5Publish.getPayloadAsBytes(),
+                            mqtt5Publish.getQos().getCode(),
+                            mqtt5Publish.isRetain(),
+                            mqtt5Publish.getTopic().toString());
+                    callback.messageArrived(receivedMessage);
                 })
                 .send();
+
+        // Setting "listener" callback is only possible with async client, though sending subscribe message
+        // should happen in a blocking way to make sure the processor is blocked until ack is not arrived.
+        ack.whenComplete((mqtt5SubAck, throwable) -> {
+            logger.debug("Received mqtt5 subscribe ack: {}", mqtt5SubAck.toString());
+
+            if (throwable != null) {
+                throw new MqttException("An error has occurred during sending subscribe message to broker", throwable);
+            }
+        });
     }
 
     @Override
-    public void setCallback(NifiMqttCallback callback) {
+    public void setCallback(MqttCallback callback) {
         this.callback = callback;
-    }
-
-    public static KeyManagerFactory getKeyManagerFactory(String keyStoreType, String path, char[] keyStorePassword) {
-        try {
-            final KeyStore keyStore = loadIntoKeyStore(keyStoreType, path, keyStorePassword);
-
-            final KeyManagerFactory kmf = KeyManagerFactory
-                    .getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            kmf.init(keyStore, new char[0]); // https://stackoverflow.com/questions/1814048/sun-java-keymanagerfactory-and-null-passwords
-
-            return kmf;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static TrustManagerFactory getTrustManagerFactory(String trustStoreType, String path, char[] keyStorePassword) {
-        try {
-            final KeyStore trustStore = loadIntoKeyStore(trustStoreType, path, keyStorePassword);
-
-            final TrustManagerFactory tmf = TrustManagerFactory
-                    .getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            tmf.init(trustStore);
-
-            return tmf;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static KeyStore loadIntoKeyStore(String type, String path, char[] keyStorePassword) throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
-        final KeyStore keyStore = KeyStore.getInstance(type);
-        final InputStream in = new FileInputStream(path);
-        keyStore.load(in, keyStorePassword);
-        return keyStore;
-    }
-
-    private byte[] toBytes(char[] chars) {
-        final ByteBuffer byteBuffer = StandardCharsets.UTF_8.encode(CharBuffer.wrap(chars));
-        final byte[] bytes = Arrays.copyOfRange(byteBuffer.array(), byteBuffer.position(), byteBuffer.limit());
-        clearSensitive(byteBuffer.array());
-        return bytes;
-    }
-
-    private void clearSensitive(char[] chars) {
-        Arrays.fill(chars, '\u0000');
-    }
-
-    private void clearSensitive(byte[] bytes) {
-        Arrays.fill(bytes, (byte) 0);
     }
 
 }

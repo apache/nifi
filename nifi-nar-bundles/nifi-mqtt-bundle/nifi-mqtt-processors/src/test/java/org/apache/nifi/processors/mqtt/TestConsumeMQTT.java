@@ -18,11 +18,10 @@
 package org.apache.nifi.processors.mqtt;
 
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processors.mqtt.common.MQTTQueueMessage;
+import org.apache.nifi.processors.mqtt.common.MqttClient;
 import org.apache.nifi.processors.mqtt.common.MqttTestClient;
-import org.apache.nifi.processors.mqtt.common.NifiMqttClient;
-import org.apache.nifi.processors.mqtt.common.NifiMqttException;
-import org.apache.nifi.processors.mqtt.common.NifiMqttMessage;
+import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
+import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
 import org.apache.nifi.processors.mqtt.common.TestConsumeMqttCommon;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.SslContextFactory;
@@ -58,7 +57,7 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
         }
 
         @Override
-        protected NifiMqttClient createMqttClient() {
+        protected MqttClient createMqttClient() {
             mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber);
             return mqttTestClient;
         }
@@ -110,10 +109,10 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
     public void testMessageNotConsumedOnCommitFail() throws NoSuchFieldException, IllegalAccessException {
         testRunner.run(1, false);
         ConsumeMQTT processor = (ConsumeMQTT) testRunner.getProcessor();
-        MQTTQueueMessage mock = mock(MQTTQueueMessage.class);
+        ReceivedMqttMessage mock = mock(ReceivedMqttMessage.class);
         when(mock.getPayload()).thenReturn(new byte[0]);
         when(mock.getTopic()).thenReturn("testTopic");
-        BlockingQueue<MQTTQueueMessage> mqttQueue = getMqttQueue(processor);
+        BlockingQueue<ReceivedMqttMessage> mqttQueue = getMqttQueue(processor);
         mqttQueue.add(mock);
 
         ProcessSession session = testRunner.getProcessSessionFactory().createSession();
@@ -130,11 +129,7 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
     }
 
     @Override
-    public void internalPublish(final NifiMqttMessage message, final String topicName) {
-        try {
-            mqttTestClient.publish(topicName, message);
-        } catch (NifiMqttException e) {
-            throw e;
-        }
+    public void internalPublish(final StandardMqttMessage message, final String topicName) {
+        mqttTestClient.publish(topicName, message);
     }
 }
