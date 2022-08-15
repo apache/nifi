@@ -2557,6 +2557,27 @@
                 var parameterProviderData = parameterProviderGrid.getData();
                 parameterProviderData.deleteItem(parameterProviderEntity.id);
             }).fail(nfErrorHandler.handleAjaxError);
+        },
+
+        /**
+         * Shows the specified parameter provider.
+         */
+        showParameterProvider: function (parameterProviderId) {
+            // show the settings dialog
+            nfSettings.showSettings().done(function () {
+                var parameterProviderGrid = $('#parameter-providers-table').data('gridInstance');
+                var parameterProviderData = parameterProviderGrid.getData();
+
+                // select the desired provider
+                var row = parameterProviderData.getRowById(parameterProviderId);
+                parameterProviderGrid.setSelectedRows([row]);
+                parameterProviderGrid.scrollRowIntoView(row);
+
+                $('#settings-tabs').find('li:eq(4)').click();
+
+                // adjust the table size
+                nfSettings.resetTableSize();
+            });
         }
     };
 

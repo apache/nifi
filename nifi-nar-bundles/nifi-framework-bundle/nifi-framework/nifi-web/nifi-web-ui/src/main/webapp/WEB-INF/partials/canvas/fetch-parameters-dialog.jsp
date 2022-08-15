@@ -25,7 +25,6 @@
                 <div class="setting-field">
                     <span id="fetch-parameters-id" class="hidden"></span>
                     <div id="fetch-parameters-name"></div>
-                    <div id="fetch-parameters-bulletins"></div>
                     <div class="clear"></div>
                 </div>
             </div>

@@ -352,7 +352,7 @@
                     nfShell.init(nfContextMenu);
                     nfNgBridge.injector.get('headerCtrl').init();
                     nfSettings.init();
-                    nfParameterContexts.init();
+                    nfParameterContexts.init(nfParameterProvider);
                     nfActions.init();
                     nfQueueListing.init();
                     nfVerify.init();

@@ -86,6 +86,8 @@
 }(this, function ($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfNgBridge, nfErrorHandler, nfFilteredDialogCommon, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration, _) {
     'use strict';
 
+    var nfParameterProvider;
+
     var config = {
         urls: {
             parameterContexts: '../nifi-api/parameter-contexts'
@@ -2526,6 +2528,10 @@
                 markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key"></div>';
             }
 
+            if (dataContext.component.parameterProviderConfiguration && canRead) {
+                markup += '<div title="Go To Parameter Provider" class="pointer go-to-provider fa fa-long-arrow-right"></div>';
+            }
+
             return markup;
         };
 
@@ -2637,6 +2643,13 @@
 
                     // close the settings dialog
                     $('#shell-close-button').click();
+                } else if (target.hasClass('go-to-provider')) {
+                    if (parameterContextEntity.component.parameterProviderConfiguration) {
+                        nfParameterProvider.showParameterProvider(parameterContextEntity.component.parameterProviderConfiguration.id);
+
+                        // close the settings dialog
+                        $('#shell-close-button').click();
+                    }
                 }
             } else if (parameterContextsGrid.getColumns()[args.cell].id === 'info') {
                 if (target.hasClass('view-parameter-context')) {
@@ -2694,8 +2707,12 @@
     var nfParameterContexts = {
         /**
          * Initializes the parameter contexts page.
+         *
+         * @param nfParameterProviderRef    The nfParameterProvider module.
          */
-        init: function () {
+        init: function (nfParameterProviderRef) {
+            nfParameterProvider = nfParameterProviderRef;
+
             // parameter context refresh button
             $('#parameter-contexts-refresh-button').on('click', function () {
                 loadParameterContexts();
@@ -2976,12 +2993,28 @@
 
                     var parameterContextProviderSetting = $('#parameter-context-provider-setting').empty();
                     var providerContent = nfCommon.escapeHtml(parameterContextEntity.component.parameterProviderConfiguration.component.parameterGroupName +
-                ' from ' + parameterContextEntity.component.parameterProviderConfiguration.component.parameterProviderName);
+                        ' from ' + parameterContextEntity.component.parameterProviderConfiguration.component.parameterProviderName);
 
-                    $('<div class="setting-name">Provider</div>' +
-                        '<div class="setting-field">' +
-                        '<div id="parameter-context-provider-field" class="ellipsis" title="' + providerContent + '">' +
-                        providerContent + '</div></div>').appendTo(parameterContextProviderSetting);
+                    $('<div class="setting-name">Provider</div>').appendTo(parameterContextProviderSetting);
+                    var settingEl = $('<div class="setting-field"></div>');
+
+                    // provider name
+                    var providerLinkEl = $('<span id="parameter-context-parameter-provider-name" class="parameter-context-parameter-provider-name link ellipsis"></span>')
+                        .prop('title', providerContent)
+                        .text(providerContent)
+                        .on('click', function () {
+                            // check if there are outstanding changes
+                            handleOutstandingChanges().done(function () {
+                                // close the shell
+                                $('#shell-dialog').modal('hide');
+
+                                // show the provider in question
+                                nfParameterProvider.showParameterProvider(parameterContextEntity.component.parameterProviderConfiguration.id)
+                            });
+                        });
+
+                    providerLinkEl.appendTo(settingEl);
+                    settingEl.appendTo(parameterContextProviderSetting);
                 }
 
                 // get the reference container
