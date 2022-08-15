@@ -110,6 +110,7 @@
         <module>nifi-snowflake-bundle</module>
         <module>nifi-salesforce-bundle</module>
         <module>nifi-rocksdb-bundle</module>
+        <module>nifi-hubspot-bundle</module>
     </modules>
 
     <build>
