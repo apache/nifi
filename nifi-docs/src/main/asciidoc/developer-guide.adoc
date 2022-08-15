@@ -2058,10 +2058,9 @@ needed for any number of operational concerns.
 
 Although Parameter Contexts cannot be extended, the `ParameterProvider`
 interface allows an extension point for providing parameters to
-Parameter Contexts.  Each Parameter Context can be configured
-optionally with a Sensitive and a Non-Sensitive `ParameterProvider`,
-and provided Parameters can be fetched and applied to their
-referencing Parameter Contexts.
+Parameter Contexts.  Parameter Providers can fetch groups of parameters
+that can be mapped to new Parameter Contexts, which can then be kept
+up to date by re-fetching the parameters.
 
 This extensibility allows parameters to be both initially provided and
 managed external to NiFi.
