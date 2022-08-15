@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
@@ -39,8 +40,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -60,8 +63,19 @@ import java.util.stream.Collectors;
                         explanation = "Provides operator the ability to read from any file that NiFi has access to.")
         }
 )
-public class FileParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
+public class FileParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider  {
     private static final int MAX_SIZE_LIMIT = 8096;
+    public static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
+
+    private enum ParameterValueEncoding {
+        BASE64,
+        PLAINTEXT
+    }
+
+    private static final AllowableValue BASE64_ENCODING = new AllowableValue("base64", "Base64", "File content is Base64-encoded, " +
+            "and will be decoded before providing the value as a Parameter.");
+    private static final AllowableValue PLAIN_TEXT = new AllowableValue("plaintext", "Plain text", "File content is not encoded, " +
+            "and will be provided directly as a Parameter value.");
 
     public static final PropertyDescriptor PARAMETER_GROUP_DIRECTORIES = new PropertyDescriptor.Builder()
             .name("parameter-group-directories")
@@ -81,6 +95,14 @@ public class FileParameterProvider extends AbstractParameterProvider implements 
             .defaultValue("256 B")
             .required(true)
             .build();
+    public static final PropertyDescriptor PARAMETER_VALUE_ENCODING = new PropertyDescriptor.Builder()
+            .name("parameter-value-encoding")
+            .displayName("Parameter Value Encoding")
+            .description("Indicates how parameter values are encoded inside Parameter files.")
+            .allowableValues(BASE64_ENCODING, PLAIN_TEXT)
+            .defaultValue(BASE64_ENCODING.getValue())
+            .required(true)
+            .build();
 
     private List<PropertyDescriptor> properties;
 
@@ -89,6 +111,7 @@ public class FileParameterProvider extends AbstractParameterProvider implements 
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(PARAMETER_GROUP_DIRECTORIES);
         properties.add(PARAMETER_VALUE_BYTE_LIMIT);
+        properties.add(PARAMETER_VALUE_ENCODING);
 
         this.properties = Collections.unmodifiableList(properties);
     }
@@ -142,6 +165,13 @@ public class FileParameterProvider extends AbstractParameterProvider implements 
         }
         return results;
     }
+    
+    private String getParameterValue(final String rawValue, final ParameterValueEncoding encoding) {
+        if (ParameterValueEncoding.BASE64 == encoding) {
+            return new String(Base64.getDecoder().decode(rawValue.getBytes(DEFAULT_CHARSET)), DEFAULT_CHARSET);
+        }
+        return rawValue;
+    }
 
     private Collection<File> getDirectories(final ConfigurationContext context, final PropertyDescriptor descriptor) {
         return context.getProperty(descriptor).isSet()
@@ -151,6 +181,7 @@ public class FileParameterProvider extends AbstractParameterProvider implements 
 
     private ParameterGroup getParameterGroup(final ConfigurationContext context, final File directory, final String groupName) {
         final int parameterSizeLimit = context.getProperty(PARAMETER_VALUE_BYTE_LIMIT).asDataSize(DataUnit.B).intValue();
+        final ParameterValueEncoding parameterEncoding = ParameterValueEncoding.valueOf(context.getProperty(PARAMETER_VALUE_ENCODING).getValue().toUpperCase());
 
         final File[] files = directory.listFiles();
 
@@ -163,7 +194,9 @@ public class FileParameterProvider extends AbstractParameterProvider implements 
             final String parameterName = file.getName();
 
             try (final InputStream in = new BufferedInputStream(new LimitingInputStream(new FileInputStream(file), parameterSizeLimit))) {
-                final String parameterValue = IOUtils.toString(in, Charset.defaultCharset()).trim();
+                final String rawValue = IOUtils.toString(in, Charset.defaultCharset()).trim();
+                final String parameterValue = getParameterValue(rawValue, parameterEncoding);
+                
                 if (parameterValue.length() >= parameterSizeLimit) {
                     getLogger().warn("Parameter {} may be truncated at {} bytes", parameterName, parameterValue.length());
                 }
