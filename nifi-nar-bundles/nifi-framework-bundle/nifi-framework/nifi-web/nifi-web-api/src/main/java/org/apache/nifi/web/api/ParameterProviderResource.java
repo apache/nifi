@@ -1489,7 +1489,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
             final NodeResponse clusterResponse = createParameterContext(parameterContext, updateUri, headers, user);
 
             final int updateFlowStatus = clusterResponse.getStatus();
-            if (updateFlowStatus != Response.Status.OK.getStatusCode()) {
+            if (updateFlowStatus != Response.Status.CREATED.getStatusCode()) {
                 final String explanation = ParameterUpdateManager.getResponseEntity(clusterResponse, String.class);
                 logger.error("Failed to update flow across cluster when replicating POST request to {} for user {}. Received {} response with explanation: {}",
                         updateUri, user, updateFlowStatus, explanation);
