@@ -87,9 +87,13 @@
         edit: 'edit',
         readOnly: 'read-only',
         urls: {
-            parameterProviders: '../nifi-api/parameter-providers'
+            parameterProviders: '../nifi-api/parameter-providers',
+            api: '../nifi-api'
         }
     };
+
+    // load the controller services
+    var controllerServicesUri = config.urls.api + '/flow/controller/controller-services';
 
     var groupCount = 0;
 
@@ -279,6 +283,38 @@
     };
 
     /**
+     * Goes to a service configuration from the property table.
+     */
+    var goToServiceFromProperty = function () {
+        return $.Deferred(function (deferred) {
+            // close all fields currently being edited
+            $('#parameter-provider-properties').propertytable('saveRow');
+
+            // determine if changes have been made
+            if (isSaveRequired()) {
+                // see if those changes should be saved
+                nfDialog.showYesNoDialog({
+                    headerText: 'Save',
+                    dialogContent: 'Save changes before going to this Controller Service?',
+                    noHandler: function () {
+                        deferred.resolve();
+                    },
+                    yesHandler: function () {
+                        var parameterProvider = $('#parameter-provider-configuration').data('parameterProviderDetails');
+                        saveParameterProvider(parameterProvider).done(function () {
+                            deferred.resolve();
+                        }).fail(function () {
+                            deferred.reject();
+                        });
+                    }
+                });
+            } else {
+                deferred.resolve();
+            }
+        }).promise();
+    };
+
+    /**
      * Saves the specified parameter provider.
      *
      * @param {type} parameterProviderEntity parameter provider entity
@@ -320,14 +356,16 @@
      * Gets a property descriptor for the parameter provider currently being configured.
      *
      * @param {type} propertyName property descriptor name
+     * @param {type} sensitive requested sensitive status
      */
-    var getParameterProviderPropertyDescriptor = function (propertyName) {
+    var getParameterProviderPropertyDescriptor = function (propertyName, sensitive) {
         var details = $('#parameter-provider-configuration').data('parameterProviderDetails');
         return $.ajax({
             type: 'GET',
             url: details.uri + '/descriptors',
             data: {
-                propertyName: propertyName
+                propertyName: propertyName,
+                sensitive: sensitive
             },
             dataType: 'json'
         }).fail(nfErrorHandler.handleAjaxError);
@@ -2147,7 +2185,11 @@
                 readOnly: false,
                 supportsGoTo: true,
                 dialogContainer: '#new-parameter-provider-property-container',
-                descriptorDeferred: getParameterProviderPropertyDescriptor
+                descriptorDeferred: getParameterProviderPropertyDescriptor,
+                controllerServiceCreatedDeferred: function (response) {
+                    return nfControllerServices.loadControllerServices(controllerServicesUri, $('#controller-services-table'));
+                },
+                goToServiceDeferred: goToServiceFromProperty
             });
 
             // initialize the fetch parameters dialog
@@ -2219,7 +2261,11 @@
                     readOnly: false,
                     supportsGoTo: true,
                     dialogContainer: '#new-parameter-provider-property-container',
-                    descriptorDeferred: getParameterProviderPropertyDescriptor
+                    descriptorDeferred: getParameterProviderPropertyDescriptor,
+                    controllerServiceCreatedDeferred: function (response) {
+                        return nfControllerServices.loadControllerServices(controllerServicesUri, $('#controller-services-table'));
+                    },
+                    goToServiceDeferred: goToServiceFromProperty
                 });
 
                 // update the mode
