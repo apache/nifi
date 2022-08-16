@@ -221,9 +221,8 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             .name("max-age")
             .displayName("Maximum Object Age")
             .description("The maximum age that an S3 object must be in order to be considered; any object older than this amount of time (according to last modification date) will be ignored")
-            .required(true)
+            .required(false)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue("0 sec")
             .build();
 
     public static final PropertyDescriptor WRITE_OBJECT_TAGS = new Builder()
