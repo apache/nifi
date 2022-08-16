@@ -27,7 +27,7 @@
 
     <properties>
         <azure-storage.version>8.6.6</azure-storage.version>
-        <azure.core.version>1.26.0</azure.core.version>
+        <azure.core.version>1.31.0</azure.core.version>
         <azure.identity.version>1.4.5</azure.identity.version>
         <!-- azure-identity depends on msal4j transitively, keep these versions consistent -->
         <msal4j.version>1.11.0</msal4j.version>
