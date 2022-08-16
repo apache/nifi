@@ -22,7 +22,7 @@ import org.apache.nifi.processors.model.IoTDBSchema;
 import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -76,10 +76,10 @@ public class PutIoTDBUT {
                 };
 
         IoTDBSchema schema = new ObjectMapper().readValue(schemaAttribute, IoTDBSchema.class);
-        Assert.assertEquals(exceptedTimeType, schema.getTimeType());
-        Assert.assertEquals(exceptedFieldNames, schema.getFieldNames());
-        Assert.assertEquals(exceptedDataTypes, schema.getDataTypes());
-        Assert.assertEquals(exceptedEncodings, schema.getEncodingTypes());
-        Assert.assertEquals(exceptedCompressionTypes, schema.getCompressionTypes());
+        Assertions.assertEquals(exceptedTimeType, schema.getTimeType());
+        Assertions.assertEquals(exceptedFieldNames, schema.getFieldNames());
+        Assertions.assertEquals(exceptedDataTypes, schema.getDataTypes());
+        Assertions.assertEquals(exceptedEncodings, schema.getEncodingTypes());
+        Assertions.assertEquals(exceptedCompressionTypes, schema.getCompressionTypes());
     }
 }

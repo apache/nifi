@@ -29,8 +29,8 @@ import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -125,7 +125,7 @@ public class PutIoTDBIT {
             actualResult[index][6] = fields.get(5).getBinaryV().getStringValue();
             index++;
         }
-        Assert.assertEquals(exceptedResult, actualResult);
+        Assertions.assertEquals(exceptedResult, actualResult);
     }
 
     @Test
@@ -177,7 +177,7 @@ public class PutIoTDBIT {
             actualResult[index][4] = fields.get(3).getFloatV();
             index++;
         }
-        Assert.assertEquals(exceptedResult, actualResult);
+        Assertions.assertEquals(exceptedResult, actualResult);
     }
 
     @Test
@@ -220,7 +220,7 @@ public class PutIoTDBIT {
                     fields.get(1).getObjectValue(TSDataType.INT64) != null ? fields.get(1).getLongV() : null;
             index++;
         }
-        Assert.assertEquals(exceptedResult, actualResult);
+        Assertions.assertEquals(exceptedResult, actualResult);
     }
 
     @Test
