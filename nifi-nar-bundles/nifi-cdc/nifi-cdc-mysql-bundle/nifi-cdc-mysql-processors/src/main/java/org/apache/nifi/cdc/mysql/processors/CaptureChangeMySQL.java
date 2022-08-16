@@ -62,6 +62,8 @@ import org.apache.nifi.cdc.mysql.event.io.DeleteRowsWriter;
 import org.apache.nifi.cdc.mysql.event.io.InsertRowsWriter;
 import org.apache.nifi.cdc.mysql.event.io.UpdateRowsWriter;
 import org.apache.nifi.cdc.mysql.processors.ssl.BinaryLogSSLSocketFactory;
+import org.apache.nifi.cdc.mysql.processors.ssl.ConnectionPropertiesProvider;
+import org.apache.nifi.cdc.mysql.processors.ssl.StandardConnectionPropertiesProvider;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -85,6 +87,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
@@ -840,7 +843,10 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         }
 
         if (createEnrichmentConnection) {
-            jdbcConnectionHolder = new JDBCConnectionHolder(connectedHost, username, password, null, connectTimeout);
+            final TlsConfiguration tlsConfiguration = sslContextService == null ? null : sslContextService.createTlsConfiguration();
+            final ConnectionPropertiesProvider connectionPropertiesProvider = new StandardConnectionPropertiesProvider(sslMode, tlsConfiguration);
+            final Map<String, String> jdbcConnectionProperties = connectionPropertiesProvider.getConnectionProperties();
+            jdbcConnectionHolder = new JDBCConnectionHolder(connectedHost, username, password, jdbcConnectionProperties, connectTimeout);
             try {
                 // Ensure connection can be created.
                 getJdbcConnection();
@@ -1218,9 +1224,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
         private JDBCConnectionHolder(InetSocketAddress host, String username, String password, Map<String, String> customProperties, long connectionTimeoutMillis) {
             this.connectionUrl = "jdbc:mysql://" + host.getHostString() + ":" + host.getPort();
-            if (customProperties != null) {
-                connectionProps.putAll(customProperties);
-            }
+            connectionProps.putAll(customProperties);
             connectionProps.put("user", username);
             connectionProps.put("password", password);
             this.connectionTimeoutMillis = connectionTimeoutMillis;
@@ -1251,7 +1255,6 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             }
         }
     }
-
 
     /**
      * using Thread.currentThread().getContextClassLoader(); will ensure that you are using the ClassLoader for you NAR.
