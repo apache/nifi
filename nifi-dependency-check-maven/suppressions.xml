@@ -46,7 +46,7 @@
     </suppress>
     <suppress>
         <notes>MySQL Binary Log Connector is incorrectly identified as MySQL server</notes>
-        <packageUrl regex="true">^pkg:maven/com\.github\.shyiko/mysql\-binlog\-connector\-java@.*$</packageUrl>
+        <packageUrl regex="true">^pkg:maven/com\.zendesk/mysql\-binlog\-connector\-java@.*$</packageUrl>
         <cpe>cpe:/a:mysql:mysql</cpe>
     </suppress>
     <suppress>
