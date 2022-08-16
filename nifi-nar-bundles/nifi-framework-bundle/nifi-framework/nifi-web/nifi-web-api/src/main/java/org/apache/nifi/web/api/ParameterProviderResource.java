@@ -1495,8 +1495,9 @@ public class ParameterProviderResource extends AbstractParameterResource {
                         updateUri, user, updateFlowStatus, explanation);
                 throw new LifecycleManagementException("Failed to update Flow on all nodes in cluster due to " + explanation);
             }
+            final String parameterContextId = ParameterUpdateManager.getResponseEntity(clusterResponse, ParameterContextEntity.class).getId();
 
-            return serviceFacade.getParameterContext(parameterContext.getId(), false, user);
+            return serviceFacade.getParameterContext(parameterContextId, false, user);
         } else {
             serviceFacade.verifyCreateParameterContext(parameterContext.getComponent());
             final String contextId = generateUuid();
