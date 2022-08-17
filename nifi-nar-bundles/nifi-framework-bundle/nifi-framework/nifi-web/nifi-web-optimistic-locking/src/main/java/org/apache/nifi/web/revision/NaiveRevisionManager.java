@@ -68,7 +68,7 @@ public class NaiveRevisionManager implements RevisionManager {
     }
 
     @Override
-    public synchronized long getRevisionUpdateCount() {
+    public long getRevisionUpdateCount() {
         return revisionUpdateCounter.get();
     }
 
