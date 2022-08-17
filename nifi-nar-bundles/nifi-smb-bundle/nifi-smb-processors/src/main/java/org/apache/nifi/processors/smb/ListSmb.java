@@ -96,7 +96,7 @@ import org.apache.nifi.services.smb.SmbListableEntity;
                         + "Share root directory. For example, for a given remote location"
                         + "smb://HOSTNAME:PORT/SHARE/DIRECTORY, and a file is being listed from "
                         + "smb://HOSTNAME:PORT/SHARE/DIRECTORY/sub/folder/file then the path attribute will be set to "
-                        + "\"DIRECTORY/sub/folder/file\"."),
+                        + "\"DIRECTORY/sub/folder\"."),
         @WritesAttribute(attribute = SERVICE_LOCATION, description =
                 "The SMB URL of the share."),
         @WritesAttribute(attribute = LAST_MODIFIED_TIME, description =
