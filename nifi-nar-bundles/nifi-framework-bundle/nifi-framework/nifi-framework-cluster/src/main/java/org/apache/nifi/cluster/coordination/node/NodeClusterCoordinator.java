@@ -989,6 +989,19 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
                 Exception lastException = null;
                 for (int i = 0; i < attempts; i++) {
+                    // If the node is restarted, it will attempt to reconnect. In that case, we don't want to disconnect the node
+                    // again. So we instead log the fact that the state has now transitioned to this point and consider the task completed.
+                    final NodeConnectionState currentConnectionState = getConnectionState(nodeId);
+                    if (currentConnectionState == NodeConnectionState.CONNECTING || currentConnectionState == NodeConnectionState.CONNECTED) {
+                        reportEvent(nodeId, Severity.INFO, String.format(
+                            "State of Node %s has now transitioned from DISCONNECTED to %s so will no longer attempt to notify node that it is disconnected.", nodeId, currentConnectionState));
+                        future.completeExceptionally(new IllegalStateException("Node was marked as disconnected but its state transitioned from DISCONNECTED back to " + currentConnectionState +
+                            " before the node could be notified. This typically indicates that the node was restarted."));
+
+                        return;
+                    }
+
+                    // Try to send disconnect notice to the node
                     try {
                         senderListener.disconnect(request);
                         reportEvent(nodeId, Severity.INFO, "Node disconnected due to " + request.getExplanation());
