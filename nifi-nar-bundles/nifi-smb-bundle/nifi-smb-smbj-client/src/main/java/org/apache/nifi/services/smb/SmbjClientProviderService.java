@@ -30,6 +30,11 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
+
+import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.share.DiskShare;
+import com.hierynomus.smbj.share.Share;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -116,16 +121,63 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
 
     @Override
     public SmbClientService getClient() throws IOException {
-        final SmbjClientService client = new SmbjClientService(smbClient, authenticationContext, getServiceLocation());
+        Connection connection = smbClient.connect(hostname, port);
 
         try {
-            client.connectToShare(hostname, port, shareName);
+            return connectToShare(connection);
         } catch (IOException e) {
-            client.forceFullyCloseConnection();
-            client.connectToShare(hostname, port, shareName);
+            getLogger().debug("Closing stale connection and trying to create a new one for share " + getServiceLocation());
+
+            closeConnection(connection);
+
+            connection = smbClient.connect(hostname, port);
+            return connectToShare(connection);
+        }
+    }
+
+    private SmbjClientService connectToShare(Connection connection) throws IOException {
+        final Session session;
+        final Share share;
+
+        try {
+            session = connection.authenticate(authenticationContext);
+        } catch (Exception e) {
+            throw new IOException("Could not create session for share " + getServiceLocation(), e);
         }
 
-        return client;
+        try {
+            share = session.connectShare(shareName);
+        } catch (Exception e) {
+            closeSession(session);
+            throw new IOException("Could not connect to share " + getServiceLocation(), e);
+        }
+
+        if (!(share instanceof DiskShare)) {
+            closeSession(session);
+            throw new IllegalArgumentException("DiskShare not found. Share " + share.getClass().getSimpleName() + " found on " + getServiceLocation());
+        }
+
+        return new SmbjClientService(session, (DiskShare) share, getServiceLocation());
+    }
+
+    private void closeConnection(Connection connection) {
+        try {
+            if (connection != null) {
+                connection.close(true);
+            }
+        } catch (Exception e) {
+            getLogger().error("Could not close connection to {}", getServiceLocation(), e);
+        }
+    }
+
+    private void closeSession(Session session) {
+        try {
+            if (session != null) {
+                session.close();
+            }
+        } catch (Exception e) {
+            getLogger().error("Could not close session to {}", getServiceLocation(), e);
+        }
     }
 
     @Override
