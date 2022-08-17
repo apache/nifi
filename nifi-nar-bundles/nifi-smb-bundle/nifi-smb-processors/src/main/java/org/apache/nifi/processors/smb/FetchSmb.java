@@ -194,7 +194,7 @@ public class FetchSmb extends AbstractProcessor {
 
     private void fetchAndTransfer(ProcessSession session, SmbClientService client, FlowFile flowFile, String fileName) {
         try {
-            if (fileName == null || fileName.isBlank()) {
+            if (fileName == null || fileName.isEmpty()) {
                 throw new IllegalArgumentException("Couldn't find filename in flowfile");
             }
             flowFile = session.write(flowFile, outputStream -> client.read(fileName, outputStream));
