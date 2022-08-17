@@ -79,9 +79,9 @@ class GetHubSpotTest {
         runner.addControllerService("standardWebClientServiceProvider", standardWebClientServiceProvider);
         runner.enableControllerService(standardWebClientServiceProvider);
 
-        runner.setProperty(GetHubSpot.WEB_CLIENT_PROVIDER, standardWebClientServiceProvider.getIdentifier());
+        runner.setProperty(GetHubSpot.WEB_CLIENT_SERVICE_PROVIDER, standardWebClientServiceProvider.getIdentifier());
         runner.setProperty(GetHubSpot.ACCESS_TOKEN, "testToken");
-        runner.setProperty(GetHubSpot.CRM_ENDPOINT, GetHubSpot.COMPANIES);
+        runner.setProperty(GetHubSpot.CRM_ENDPOINT, CrmEndpoint.COMPANIES.getAllowableValue());
         runner.setProperty(GetHubSpot.LIMIT, "1");
 
         runner.run(1);
@@ -103,12 +103,12 @@ class GetHubSpotTest {
         runner.addControllerService("standardWebClientServiceProvider", standardWebClientServiceProvider);
         runner.enableControllerService(standardWebClientServiceProvider);
 
-        runner.setProperty(GetHubSpot.WEB_CLIENT_PROVIDER, standardWebClientServiceProvider.getIdentifier());
+        runner.setProperty(GetHubSpot.WEB_CLIENT_SERVICE_PROVIDER, standardWebClientServiceProvider.getIdentifier());
         runner.setProperty(GetHubSpot.ACCESS_TOKEN, "testToken");
-        runner.setProperty(GetHubSpot.CRM_ENDPOINT, GetHubSpot.COMPANIES);
+        runner.setProperty(GetHubSpot.CRM_ENDPOINT, CrmEndpoint.COMPANIES.getAllowableValue());
         runner.setProperty(GetHubSpot.LIMIT, "1");
 
-        runner.getStateManager().setState(Collections.singletonMap(GetHubSpot.COMPANIES.getValue(), "12345"), Scope.CLUSTER);
+        runner.getStateManager().setState(Collections.singletonMap(CrmEndpoint.COMPANIES.getValue(), "12345"), Scope.CLUSTER);
 
         runner.run(1);
 
@@ -129,9 +129,9 @@ class GetHubSpotTest {
         runner.addControllerService("standardWebClientServiceProvider", standardWebClientServiceProvider);
         runner.enableControllerService(standardWebClientServiceProvider);
 
-        runner.setProperty(GetHubSpot.WEB_CLIENT_PROVIDER, standardWebClientServiceProvider.getIdentifier());
+        runner.setProperty(GetHubSpot.WEB_CLIENT_SERVICE_PROVIDER, standardWebClientServiceProvider.getIdentifier());
         runner.setProperty(GetHubSpot.ACCESS_TOKEN, "testToken");
-        runner.setProperty(GetHubSpot.CRM_ENDPOINT, GetHubSpot.COMPANIES);
+        runner.setProperty(GetHubSpot.CRM_ENDPOINT, CrmEndpoint.COMPANIES.getAllowableValue());
         runner.setProperty(GetHubSpot.LIMIT, "1");
 
         runner.run(1);
@@ -164,15 +164,15 @@ class GetHubSpotTest {
         runner.addControllerService("standardWebClientServiceProvider", standardWebClientServiceProvider);
         runner.enableControllerService(standardWebClientServiceProvider);
 
-        runner.setProperty(GetHubSpot.WEB_CLIENT_PROVIDER, standardWebClientServiceProvider.getIdentifier());
+        runner.setProperty(GetHubSpot.WEB_CLIENT_SERVICE_PROVIDER, standardWebClientServiceProvider.getIdentifier());
         runner.setProperty(GetHubSpot.ACCESS_TOKEN, "testToken");
-        runner.setProperty(GetHubSpot.CRM_ENDPOINT, GetHubSpot.COMPANIES);
+        runner.setProperty(GetHubSpot.CRM_ENDPOINT, CrmEndpoint.COMPANIES.getAllowableValue());
         runner.setProperty(GetHubSpot.LIMIT, "1");
 
         runner.run(1);
 
         final StateMap state = runner.getStateManager().getState(Scope.CLUSTER);
-        final String actualPagingCursor = state.get(GetHubSpot.COMPANIES.getValue());
+        final String actualPagingCursor = state.get(CrmEndpoint.COMPANIES.getValue());
 
         assertEquals(expectedPagingCursor, actualPagingCursor);
     }

@@ -28,10 +28,10 @@ import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
+import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
@@ -49,7 +49,6 @@ import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -57,6 +56,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -70,122 +70,39 @@ import java.util.Set;
         + " Only the objects after the paging cursor will be retrieved. The maximum number of retrieved objects is the 'Limit' attribute."
         + " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected,"
         + " the new node can pick up where the previous node left off, without duplicating the data.")
+@DefaultSettings(yieldDuration = "10 sec")
 public class GetHubSpot extends AbstractProcessor {
 
-    // OBJECTS
-
-    static final AllowableValue COMPANIES = new AllowableValue(
-            "/crm/v3/objects/companies",
-            "Companies",
-            "In HubSpot, the companies object is a standard CRM object. Individual company records can be used to store information about businesses" +
-                    " and organizations within company properties."
-    );
-    static final AllowableValue CONTACTS = new AllowableValue(
-            "/crm/v3/objects/contacts",
-            "Contacts",
-            "In HubSpot, contacts store information about individuals. From marketing automation to smart content, the lead-specific data found in" +
-                    " contact records helps users leverage much of HubSpot's functionality."
-    );
-    static final AllowableValue DEALS = new AllowableValue(
-            "/crm/v3/objects/deals",
-            "In HubSpot, a deal represents an ongoing transaction that a sales team is pursuing with a contact or company. It’s tracked through" +
-                    " pipeline stages until won or lost."
-    );
-    static final AllowableValue FEEDBACK_SUBMISSIONS = new AllowableValue(
-            "/crm/v3/objects/feedback_submissions",
-            "In HubSpot, feedback submissions are an object which stores information submitted to a feedback survey. This includes Net Promoter Score (NPS)," +
-                    " Customer Satisfaction (CSAT), Customer Effort Score (CES) and Custom Surveys."
-    );
-    static final AllowableValue LINE_ITEMS = new AllowableValue(
-            "/crm/v3/objects/line_items",
-            "Line Items",
-            "In HubSpot, line items can be thought of as a subset of products. When a product is attached to a deal, it becomes a line item. Line items can" +
-                    " be created that are unique to an individual quote, but they will not be added to the product library."
-    );
-    static final AllowableValue PRODUCTS = new AllowableValue(
-            "/crm/v3/objects/products",
-            "Products",
-            "In HubSpot, products represent the goods or services to be sold. Building a product library allows the user to quickly add products to deals," +
-                    " generate quotes, and report on product performance."
-    );
-    static final AllowableValue TICKETS = new AllowableValue(
-            "/crm/v3/objects/tickets",
-            "Tickets",
-            "In HubSpot, a ticket represents a customer request for help or support."
-    );
-    static final AllowableValue QUOTES = new AllowableValue(
-            "/crm/v3/objects/quotes",
-            "Quotes",
-            "In HubSpot, quotes are used to share pricing information with potential buyers."
-    );
-
-    // ENGAGEMENTS
-
-    private static final AllowableValue CALLS = new AllowableValue(
-            "/crm/v3/objects/calls",
-            "Calls",
-            "Get calls on CRM records and on the calls index page."
-    );
-    private static final AllowableValue EMAILS = new AllowableValue(
-            "/crm/v3/objects/emails",
-            "Emails",
-            "Get emails on CRM records."
-    );
-    private static final AllowableValue MEETINGS = new AllowableValue(
-            "/crm/v3/objects/meetings",
-            "Meetings",
-            "Get meetings on CRM records."
-    );
-    private static final AllowableValue NOTES = new AllowableValue(
-            "/crm/v3/objects/notes",
-            "Notes",
-            "Get notes on CRM records."
-    );
-    private static final AllowableValue TASKS = new AllowableValue(
-            "/crm/v3/objects/tasks",
-            "Tasks",
-            "Get tasks on CRM records."
-    );
-
-    // OTHER
-
-    private static final AllowableValue OWNERS = new AllowableValue(
-            "/crm/v3/owners/",
-            "Owners",
-            "HubSpot uses owners to assign specific users to contacts, companies, deals, tickets, or engagements. Any HubSpot user with access to contacts" +
-                    " can be assigned as an owner, and multiple owners can be assigned to an object by creating a custom property for this purpose."
-    );
-
     static final PropertyDescriptor ACCESS_TOKEN = new PropertyDescriptor.Builder()
-            .name("hubspot-admin-api-access-token")
-            .displayName("Admin API Access Token")
-            .description("")
+            .name("admin-api-access-token")
+            .displayName("Access Token")
+            .description("Access Token to authenticate requests")
             .required(true)
             .sensitive(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     static final PropertyDescriptor CRM_ENDPOINT = new PropertyDescriptor.Builder()
-            .name("hubspot-crm-endpoint")
+            .name("crm-endpoint")
             .displayName("HubSpot CRM API Endpoint")
             .description("The HubSpot CRM API endpoint to get")
             .required(true)
-            .allowableValues(COMPANIES, CONTACTS, DEALS, FEEDBACK_SUBMISSIONS, LINE_ITEMS, PRODUCTS, TICKETS, QUOTES,
-                    CALLS, EMAILS, MEETINGS, NOTES, TASKS, OWNERS)
+            .allowableValues(CrmEndpoint.class)
             .build();
 
     static final PropertyDescriptor LIMIT = new PropertyDescriptor.Builder()
-            .name("hubspot-crm-limit")
+            .name("crm-limit")
             .displayName("Limit")
             .description("The maximum number of results to display per page")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
-    static final PropertyDescriptor WEB_CLIENT_PROVIDER = new PropertyDescriptor.Builder()
-            .name("nifi-web-client")
-            .displayName("NiFi Web Client")
+    static final PropertyDescriptor WEB_CLIENT_SERVICE_PROVIDER = new PropertyDescriptor.Builder()
+            .name("web-client-service-provider")
+            .displayName("Web Client Service Provider")
             .description("Controller service for HTTP client operations")
             .identifiesControllerService(WebClientServiceProvider.class)
             .required(true)
@@ -193,29 +110,38 @@ public class GetHubSpot extends AbstractProcessor {
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("For FlowFiles created as a result of a successful query.")
+            .description("For FlowFiles created as a result of a successful HTTP request.")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = createPropertyDescriptors();
-    public static final String API_BASE_URI = "api.hubapi.com";
-    public static final String HTTPS = "https";
+    static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("In case of HTTP client errors the flowfile will be routed to this relationship")
+            .build();
+
+    private static final String API_BASE_URI = "api.hubapi.com";
+    private static final String HTTPS = "https";
+    private static final String CURSOR_PARAMETER = "after";
+    private static final String LIMIT_PARAMETER = "limit";
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonFactory JSON_FACTORY = OBJECT_MAPPER.getFactory();
 
     private volatile WebClientServiceProvider webClientServiceProvider;
 
-    private static List<PropertyDescriptor> createPropertyDescriptors() {
-        final List<PropertyDescriptor> propertyDescriptors = new ArrayList<>(Arrays.asList(
-                ACCESS_TOKEN,
-                CRM_ENDPOINT,
-                LIMIT,
-                WEB_CLIENT_PROVIDER
-        ));
-        return Collections.unmodifiableList(propertyDescriptors);
-    }
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
+            ACCESS_TOKEN,
+            CRM_ENDPOINT,
+            LIMIT,
+            WEB_CLIENT_SERVICE_PROVIDER
+    ));
 
+    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            REL_SUCCESS,
+            REL_FAILURE
+    )));
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        webClientServiceProvider = context.getProperty(WEB_CLIENT_PROVIDER).asControllerService(WebClientServiceProvider.class);
+        webClientServiceProvider = context.getProperty(WEB_CLIENT_SERVICE_PROVIDER).asControllerService(WebClientServiceProvider.class);
     }
 
     @Override
@@ -225,9 +151,7 @@ public class GetHubSpot extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
@@ -239,22 +163,23 @@ public class GetHubSpot extends AbstractProcessor {
         final URI uri = createUri(context, state);
 
         final HttpResponseEntity response = getHttpResponseEntity(accessToken, uri);
-        final ObjectMapper objectMapper = new ObjectMapper();
-        final JsonFactory jsonFactory = objectMapper.getFactory();
+        final AtomicInteger objectCountHolder = new AtomicInteger();
+
         FlowFile flowFile = session.create();
+        flowFile = session.putAttribute(flowFile, "statusCode", String.valueOf(response.statusCode()));
 
         flowFile = session.write(flowFile, out -> {
 
-
-            try (JsonParser jsonParser = jsonFactory.createParser(response.body());
-                 final JsonGenerator jsonGenerator = jsonFactory.createGenerator(out, JsonEncoding.UTF8)) {
+            try (JsonParser jsonParser = JSON_FACTORY.createParser(response.body());
+                 final JsonGenerator jsonGenerator = JSON_FACTORY.createGenerator(out, JsonEncoding.UTF8)) {
                 while (jsonParser.nextToken() != null) {
                     if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName().equals("results")) {
                         jsonParser.nextToken();
                         jsonGenerator.copyCurrentStructure(jsonParser);
+                        objectCountHolder.incrementAndGet();
                     }
-                    String fieldname = jsonParser.getCurrentName();
-                    if ("after".equals(fieldname)) {
+                    String fieldName = jsonParser.getCurrentName();
+                    if (CURSOR_PARAMETER.equals(fieldName)) {
                         jsonParser.nextToken();
                         Map<String, String> newStateMap = new HashMap<>(state.toMap());
                         newStateMap.put(endpoint, jsonParser.getText());
@@ -264,7 +189,19 @@ public class GetHubSpot extends AbstractProcessor {
                 }
             }
         });
-        session.transfer(flowFile, REL_SUCCESS);
+        if (response.statusCode() >= 400) {
+            if (response.statusCode() == 429) {
+                context.yield();
+                throw new ProcessException("Rate limit exceeded, yielding for 10 seconds before retrying request.");
+            } else {
+                getLogger().warn("HTTP [{}] client error occurred at endpoint [{}]", response.statusCode(), endpoint);
+                session.transfer(flowFile, REL_FAILURE);
+            }
+        } else if (objectCountHolder.get() > 0) {
+            session.transfer(flowFile, REL_SUCCESS);
+        } else {
+            getLogger().debug("Empty response when requested HubSpot endpoint: [{}]", endpoint);
+        }
     }
 
     HttpResponseEntity getHttpResponseEntity(final String accessToken, final URI uri) {
@@ -290,12 +227,12 @@ public class GetHubSpot extends AbstractProcessor {
         final boolean isLimitSet = context.getProperty(LIMIT).isSet();
         if (isLimitSet) {
             final String limit = context.getProperty(LIMIT).getValue();
-            uriBuilder.addQueryParameter("limit", limit);
+            uriBuilder.addQueryParameter(LIMIT_PARAMETER, limit);
         }
 
         final String cursor = state.get(path);
         if (cursor != null) {
-            uriBuilder.addQueryParameter("after", cursor);
+            uriBuilder.addQueryParameter(CURSOR_PARAMETER, cursor);
         }
         return uriBuilder.build();
     }
