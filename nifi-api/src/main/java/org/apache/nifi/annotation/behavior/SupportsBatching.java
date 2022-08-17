@@ -47,5 +47,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
 public @interface SupportsBatching {
-
+    RunDuration duration() default RunDuration.ZERO_MILLIS;
 }
