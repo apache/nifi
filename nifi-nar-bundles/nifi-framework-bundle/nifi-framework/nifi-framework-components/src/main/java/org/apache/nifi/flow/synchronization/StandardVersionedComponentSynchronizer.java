@@ -3072,7 +3072,24 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private Connectable getConnectable(final ProcessGroup group, final ConnectableComponent connectableComponent) {
-        final String id = connectableComponent.getId();
+        // Always prefer the instance identifier, if it's available.
+        final Connectable connectable = getConnectable(group, connectableComponent, ConnectableComponent::getInstanceIdentifier);
+        if (connectable != null) {
+            LOG.debug("Found Connectable {} in Process Group {} by Instance ID {}", connectable, group, connectableComponent.getInstanceIdentifier());
+            return connectable;
+        }
+
+        // If we're synchronizing and the component is not available by the instance ID, lookup the component by the ID instead.
+        final Connectable connectableById = getConnectable(group, connectableComponent, ConnectableComponent::getId);
+        LOG.debug("Found no connectable in Process Group {} by Instance ID. Lookup by ID {} yielded {}", connectable, connectableComponent.getId(), connectableById);
+        return connectableById;
+    }
+
+    private Connectable getConnectable(final ProcessGroup group, final ConnectableComponent connectableComponent, final Function<ConnectableComponent, String> idFunction) {
+        final String id = idFunction.apply(connectableComponent);
+        if (id == null) {
+            return null;
+        }
 
         switch (connectableComponent.getType()) {
             case FUNNEL:
