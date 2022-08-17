@@ -16,12 +16,10 @@
  */
 package org.apache.nifi.remote
 
-
 import org.apache.nifi.authorization.Authorizer
 import org.apache.nifi.connectable.Connectable
 import org.apache.nifi.connectable.ConnectableType
 import org.apache.nifi.controller.ProcessScheduler
-import org.apache.nifi.properties.StandardNiFiProperties
 import org.apache.nifi.remote.protocol.CommunicationsSession
 import org.apache.nifi.remote.protocol.ServerProtocol
 import org.apache.nifi.reporting.BulletinRepository
@@ -87,7 +85,7 @@ class StandardPublicPortGroovyTest extends GroovyTestCase {
                     logger.mock("getProperty(${prop}) -> ${value}")
                     value
                 },
-        ] as StandardNiFiProperties
+        ] as NiFiProperties
 
         StandardPublicPort port = createPublicPort(mockProps)
 

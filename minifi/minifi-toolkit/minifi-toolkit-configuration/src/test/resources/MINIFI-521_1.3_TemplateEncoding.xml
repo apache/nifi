@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+   http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+ -->
+<template encoding-version="1.3">
+    <description></description>
+    <groupId>dacdd7b8-016e-1000-3bfe-7b025a1f4a65</groupId>
+    <name>MiNiFi2</name>
+    <snippet>
+        <processGroups>
+            <id>e544a343-e2f0-3112-0000-000000000000</id>
+            <parentGroupId>f73cd914-561d-3ade-0000-000000000000</parentGroupId>
+            <position>
+                <x>0.0</x>
+                <y>0.0</y>
+            </position>
+            <comments></comments>
+            <contents>
+                <connections>
+                    <id>10de7342-41ef-37a5-0000-000000000000</id>
+                    <parentGroupId>e544a343-e2f0-3112-0000-000000000000</parentGroupId>
+                    <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+                    <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+                    <destination>
+                        <groupId>1e18bdb9-7df3-3fba-0000-000000000000</groupId>
+                        <id>9b02eb45-3c2d-3fb4-91cf-880d5038c0cd</id>
+                        <type>REMOTE_INPUT_PORT</type>
+                    </destination>
+                    <flowFileExpiration>0 sec</flowFileExpiration>
+                    <labelIndex>1</labelIndex>
+                    <loadBalanceCompression>DO_NOT_COMPRESS</loadBalanceCompression>
+                    <loadBalancePartitionAttribute></loadBalancePartitionAttribute>
+                    <loadBalanceStatus>LOAD_BALANCE_NOT_CONFIGURED</loadBalanceStatus>
+                    <loadBalanceStrategy>DO_NOT_LOAD_BALANCE</loadBalanceStrategy>
+                    <name></name>
+                    <selectedRelationships>success</selectedRelationships>
+                    <source>
+                        <groupId>e544a343-e2f0-3112-0000-000000000000</groupId>
+                        <id>246f7d78-f8e1-3c88-0000-000000000000</id>
+                        <type>PROCESSOR</type>
+                    </source>
+                    <zIndex>0</zIndex>
+                </connections>
+                <processors>
+                    <id>246f7d78-f8e1-3c88-0000-000000000000</id>
+                    <parentGroupId>e544a343-e2f0-3112-0000-000000000000</parentGroupId>
+                    <position>
+                        <x>-16.0</x>
+                        <y>104.0</y>
+                    </position>
+                    <bundle>
+                        <artifact>nifi-standard-nar</artifact>
+                        <group>org.apache.nifi</group>
+                        <version>1.10.0</version>
+                    </bundle>
+                    <config>
+                        <bulletinLevel>WARN</bulletinLevel>
+                        <comments></comments>
+                        <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                        <descriptors>
+                            <entry>
+                                <key>tail-mode</key>
+                                <value>
+                                    <name>tail-mode</name>
+                                </value>
+                            </entry>
+                            <entry>
+                                <key>File to Tail</key>
+                                <value>
+                                    <name>File to Tail</name>
+                                </value>
+                            </entry>
+                            <entry>
+                                <key>Rolling Filename Pattern</key>
+                                <value>
+                                    <name>Rolling Filename Pattern</name>
+                                </value>
+                            </entry>
+                            <entry>
+                                <key>tail-base-directory</key>
+                                <value>
+                                    <name>tail-base-directory</name>
+                                </value>
+                            </entry>
+                            <entry>
+                                <key>Initial Start Position</key>
+                                <value>
+                                    <name>Initial Start Position</name>
+                                </value>
+                            </entry>
+                            <entry>
+                                <key>File Location</key>
+                                <value>
+                                    <name>File Location</name>
+                                </value>
+                            </entry>
+                            <entry>
+                                <key>tailfile-recursive-lookup</key>
+                                <value>
+                                    <name>tailfile-recursive-lookup</name>
+                                </value>
+                            </entry>
+                            <entry>
+                                <key>tailfile-lookup-frequency</key>
+                                <value>
+                                    <name>tailfile-lookup-frequency</name>
+                                </value>
+                            </entry>
+                            <entry>
+                                <key>tailfile-maximum-age</key>
+                                <value>
+                                    <name>tailfile-maximum-age</name>
+                                </value>
+                            </entry>
+                        </descriptors>
+                        <executionNode>ALL</executionNode>
+                        <lossTolerant>false</lossTolerant>
+                        <penaltyDuration>30 sec</penaltyDuration>
+                        <properties>
+                            <entry>
+                                <key>tail-mode</key>
+                                <value>Single file</value>
+                            </entry>
+                            <entry>
+                                <key>File to Tail</key>
+                                <value>/opt/minifi/minifi_test_dir</value>
+                            </entry>
+                            <entry>
+                                <key>Rolling Filename Pattern</key>
+                            </entry>
+                            <entry>
+                                <key>tail-base-directory</key>
+                            </entry>
+                            <entry>
+                                <key>Initial Start Position</key>
+                                <value>Beginning of File</value>
+                            </entry>
+                            <entry>
+                                <key>File Location</key>
+                                <value>Local</value>
+                            </entry>
+                            <entry>
+                                <key>tailfile-recursive-lookup</key>
+                                <value>false</value>
+                            </entry>
+                            <entry>
+                                <key>tailfile-lookup-frequency</key>
+                                <value>10 minutes</value>
+                            </entry>
+                            <entry>
+                                <key>tailfile-maximum-age</key>
+                                <value>24 hours</value>
+                            </entry>
+                        </properties>
+                        <runDurationMillis>0</runDurationMillis>
+                        <schedulingPeriod>0 sec</schedulingPeriod>
+                        <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                        <yieldDuration>1 sec</yieldDuration>
+                    </config>
+                    <executionNodeRestricted>false</executionNodeRestricted>
+                    <name>TailFile</name>
+                    <relationships>
+                        <autoTerminate>false</autoTerminate>
+                        <name>success</name>
+                    </relationships>
+                    <state>STOPPED</state>
+                    <style/>
+                    <type>org.apache.nifi.processors.standard.TailFile</type>
+                </processors>
+                <remoteProcessGroups>
+                    <id>1e18bdb9-7df3-3fba-0000-000000000000</id>
+                    <parentGroupId>e544a343-e2f0-3112-0000-000000000000</parentGroupId>
+                    <position>
+                        <x>680.0</x>
+                        <y>88.0</y>
+                    </position>
+                    <comments></comments>
+                    <communicationsTimeout>30 sec</communicationsTimeout>
+                    <contents>
+                        <inputPorts>
+                            <batchSettings/>
+                            <comments></comments>
+                            <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                            <connected>true</connected>
+                            <exists>true</exists>
+                            <groupId>db4d2e20-016e-1000-d3c7-73a67e2b1d67</groupId>
+                            <id>9b02eb45-3c2d-3fb4-91cf-880d5038c0cd</id>
+                            <name>input_minifi</name>
+                            <targetId>dadd7f29-016e-1000-3c91-89495c813674</targetId>
+                            <targetRunning>false</targetRunning>
+                            <transmitting>false</transmitting>
+                            <useCompression>false</useCompression>
+                        </inputPorts>
+                    </contents>
+                    <proxyHost></proxyHost>
+                    <proxyUser></proxyUser>
+                    <targetUri>http://nifi-server:8080/nifi</targetUri>
+                    <targetUris>http://nifi-server:8080/nifi</targetUris>
+                    <transportProtocol>RAW</transportProtocol>
+                    <yieldDuration>10 sec</yieldDuration>
+                </remoteProcessGroups>
+            </contents>
+            <name>MiNiFi</name>
+            <variables/>
+        </processGroups>
+    </snippet>
+    <timestamp>12/06/2019 13:23:39 UTC</timestamp>
+</template>

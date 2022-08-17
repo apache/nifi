@@ -134,6 +134,7 @@ public class ExecuteSQL extends AbstractExecuteSQL {
         pds.add(MAX_ROWS_PER_FLOW_FILE);
         pds.add(OUTPUT_BATCH_SIZE);
         pds.add(FETCH_SIZE);
+        pds.add(AUTO_COMMIT);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 

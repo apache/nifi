@@ -16,16 +16,14 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,19 +39,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@DisabledOnOs(value = OS.WINDOWS, disabledReason = "Test only runs on *nix")
 public class TestPutFile {
 
     public static final String TARGET_DIRECTORY = "target/put-file";
     private File targetDir;
 
-    @BeforeClass
-    public static void setUpSuite() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
-    }
-
-    @Before
+    @BeforeEach
     public void prepDestDirectory() throws IOException {
         targetDir = new File(TARGET_DIRECTORY);
         if (!targetDir.exists()) {
@@ -109,21 +105,14 @@ public class TestPutFile {
         assertEquals("Hello world!!", new String(content));
     }
 
-    @Test(expected = AssertionError.class)
-    public void testCreateEmptyStringDirectory() throws IOException {
+    @Test
+    public void testCreateEmptyStringDirectory() {
         final TestRunner runner = TestRunners.newTestRunner(new PutFile());
         String newDir = "";
         runner.setProperty(PutFile.DIRECTORY, newDir);
         runner.setProperty(PutFile.CONFLICT_RESOLUTION, PutFile.REPLACE_RESOLUTION);
 
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put(CoreAttributes.FILENAME.key(), "targetFile.txt");
-        runner.enqueue("Hello world!!".getBytes(), attributes);
-        runner.run();
-        runner.assertAllFlowFilesTransferred(FetchFile.REL_SUCCESS, 1);
-        Path targetPath = Paths.get(newDir + "/targetFile.txt");
-        byte[] content = Files.readAllBytes(targetPath);
-        assertEquals("Hello world!!", new String(content));
+        runner.assertNotValid();
     }
 
     @Test
@@ -260,8 +249,8 @@ public class TestPutFile {
 
     private final String testFile = "src" + File.separator + "test" + File.separator + "resources" + File.separator + "hello.txt";
 
-    @Before
-    public void setup() throws IOException{
+    @BeforeEach
+    public void setup() throws IOException {
 
         putFileRunner = TestRunners.newTestRunner(PutFile.class);
         putFileRunner.setProperty(PutFile.CHANGE_OWNER, System.getProperty("user.name"));
@@ -272,7 +261,7 @@ public class TestPutFile {
         putFileRunner.setValidateExpressionUsage(false);
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws IOException {
         emptyTestDirectory();
     }
@@ -292,34 +281,34 @@ public class TestPutFile {
         //verify directory exists
         Path newDirectory = Paths.get("target/test/data/out/PutFile/1/2/3/4/5");
         Path newFile = newDirectory.resolve("testfile.txt");
-        Assert.assertTrue("New directory not created.", newDirectory.toAbsolutePath().toFile().exists());
-        Assert.assertTrue("New File not created.", newFile.toAbsolutePath().toFile().exists());
+        assertTrue(newDirectory.toAbsolutePath().toFile().exists(), "New directory not created.");
+        assertTrue(newFile.toAbsolutePath().toFile().exists(), "New File not created.");
 
         PosixFileAttributeView filePosixAttributeView = Files.getFileAttributeView(newFile.toAbsolutePath(), PosixFileAttributeView.class);
-        Assert.assertEquals(System.getProperty("user.name"), filePosixAttributeView.getOwner().getName());
+        assertEquals(System.getProperty("user.name"), filePosixAttributeView.getOwner().getName());
         Set<PosixFilePermission> filePermissions = filePosixAttributeView.readAttributes().permissions();
-        Assert.assertTrue(filePermissions.contains(PosixFilePermission.OWNER_READ));
-        Assert.assertTrue(filePermissions.contains(PosixFilePermission.OWNER_WRITE));
-        Assert.assertFalse(filePermissions.contains(PosixFilePermission.OWNER_EXECUTE));
-        Assert.assertTrue(filePermissions.contains(PosixFilePermission.GROUP_READ));
-        Assert.assertFalse(filePermissions.contains(PosixFilePermission.GROUP_WRITE));
-        Assert.assertFalse(filePermissions.contains(PosixFilePermission.GROUP_EXECUTE));
-        Assert.assertFalse(filePermissions.contains(PosixFilePermission.OTHERS_READ));
-        Assert.assertFalse(filePermissions.contains(PosixFilePermission.OTHERS_WRITE));
-        Assert.assertFalse(filePermissions.contains(PosixFilePermission.OTHERS_EXECUTE));
+        assertTrue(filePermissions.contains(PosixFilePermission.OWNER_READ));
+        assertTrue(filePermissions.contains(PosixFilePermission.OWNER_WRITE));
+        assertFalse(filePermissions.contains(PosixFilePermission.OWNER_EXECUTE));
+        assertTrue(filePermissions.contains(PosixFilePermission.GROUP_READ));
+        assertFalse(filePermissions.contains(PosixFilePermission.GROUP_WRITE));
+        assertFalse(filePermissions.contains(PosixFilePermission.GROUP_EXECUTE));
+        assertFalse(filePermissions.contains(PosixFilePermission.OTHERS_READ));
+        assertFalse(filePermissions.contains(PosixFilePermission.OTHERS_WRITE));
+        assertFalse(filePermissions.contains(PosixFilePermission.OTHERS_EXECUTE));
 
         PosixFileAttributeView dirPosixAttributeView = Files.getFileAttributeView(newDirectory.toAbsolutePath(), PosixFileAttributeView.class);
-        Assert.assertEquals(System.getProperty("user.name"), dirPosixAttributeView.getOwner().getName());
+        assertEquals(System.getProperty("user.name"), dirPosixAttributeView.getOwner().getName());
         Set<PosixFilePermission> dirPermissions = dirPosixAttributeView.readAttributes().permissions();
-        Assert.assertTrue(dirPermissions.contains(PosixFilePermission.OWNER_READ));
-        Assert.assertTrue(dirPermissions.contains(PosixFilePermission.OWNER_WRITE));
-        Assert.assertTrue(dirPermissions.contains(PosixFilePermission.OWNER_EXECUTE));
-        Assert.assertTrue(dirPermissions.contains(PosixFilePermission.GROUP_READ));
-        Assert.assertFalse(dirPermissions.contains(PosixFilePermission.GROUP_WRITE));
-        Assert.assertTrue(dirPermissions.contains(PosixFilePermission.GROUP_EXECUTE));
-        Assert.assertFalse(dirPermissions.contains(PosixFilePermission.OTHERS_READ));
-        Assert.assertFalse(dirPermissions.contains(PosixFilePermission.OTHERS_WRITE));
-        Assert.assertFalse(dirPermissions.contains(PosixFilePermission.OTHERS_EXECUTE));
+        assertTrue(dirPermissions.contains(PosixFilePermission.OWNER_READ));
+        assertTrue(dirPermissions.contains(PosixFilePermission.OWNER_WRITE));
+        assertTrue(dirPermissions.contains(PosixFilePermission.OWNER_EXECUTE));
+        assertTrue(dirPermissions.contains(PosixFilePermission.GROUP_READ));
+        assertFalse(dirPermissions.contains(PosixFilePermission.GROUP_WRITE));
+        assertTrue(dirPermissions.contains(PosixFilePermission.GROUP_EXECUTE));
+        assertFalse(dirPermissions.contains(PosixFilePermission.OTHERS_READ));
+        assertFalse(dirPermissions.contains(PosixFilePermission.OTHERS_WRITE));
+        assertFalse(dirPermissions.contains(PosixFilePermission.OTHERS_EXECUTE));
 
         putFileRunner.clearTransferState();
     }

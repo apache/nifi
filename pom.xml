@@ -8,17 +8,18 @@
     by applicable law or agreed to in writing, software distributed under the
     License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
     OF ANY KIND, either express or implied. See the License for the specific
-    language governing permissions and limitations under the License. --><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    language governing permissions and limitations under the License. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
-        <version>23</version>
+        <version>26</version>
         <relativePath />
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi</artifactId>
-    <version>1.14.0-SNAPSHOT</version>
+    <version>1.18.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <modules>
@@ -33,10 +34,16 @@
         <module>nifi-docs</module>
         <module>nifi-maven-archetypes</module>
         <module>nifi-external</module>
-        <module>nifi-toolkit</module>
         <module>nifi-docker</module>
         <module>nifi-system-tests</module>
-  </modules>
+        <module>minifi</module>
+        <module>nifi-stateless</module>
+        <module>nifi-registry</module>
+        <module>nifi-toolkit</module>
+        <module>nifi-manifest</module>
+        <module>c2</module>
+        <module>nifi-h2</module>
+    </modules>
     <url>https://nifi.apache.org</url>
     <organization>
         <name>Apache NiFi Project</name>
@@ -75,7 +82,7 @@
         <connection>scm:git:git://git.apache.org/nifi.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/nifi.git</developerConnection>
         <url>https://git-wip-us.apache.org/repos/asf?p=nifi.git</url>
-        <tag>HEAD</tag>
+        <tag>nifi-1.15.0-RC3</tag>
     </scm>
     <issueManagement>
         <system>JIRA</system>
@@ -84,111 +91,58 @@
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.showDeprecation>true</maven.compiler.showDeprecation>
+        <!-- Set minimum Java version for maven-enforcer-plugin from parent POM -->
+        <minimalJavaBuildVersion>1.8.0-251</minimalJavaBuildVersion>
         <maven.surefire.arguments />
+        <!-- Disable maven-site-plugin from parent POM -->
+        <maven.site.skip>true</maven.site.skip>
+        <node.version>v16.13.2</node.version>
+        <frontend.mvn.plugin.version>1.12.1</frontend.mvn.plugin.version>
+        <nifi.nar.maven.plugin.version>1.3.5</nifi.nar.maven.plugin.version>
+        <project.build.outputTimestamp>1658953446</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
-        <okhttp.version>4.9.1</okhttp.version>
-        <org.bouncycastle.version>1.68</org.bouncycastle.version>
-        <org.slf4j.version>1.7.30</org.slf4j.version>
-        <ranger.version>2.1.0</ranger.version>
-        <jetty.version>9.4.35.v20201120</jetty.version>
-        <jackson.version>2.9.10</jackson.version>
-        <jackson-databind.version>2.9.10.8</jackson-databind.version>
-        <nifi.registry.version>0.8.0</nifi.registry.version>
-        <nifi.groovy.version>2.5.4</nifi.groovy.version>
-        <surefire.version>2.22.2</surefire.version>
+        <gson.version>2.9.0</gson.version>
+        <kotlin.version>1.6.20</kotlin.version>
+        <okhttp.version>4.10.0</okhttp.version>
+        <org.apache.commons.lang3.version>3.12.0</org.apache.commons.lang3.version>
+        <org.apache.commons.io.version>2.11.0</org.apache.commons.io.version>
+        <org.apache.httpcomponents.httpclient.version>4.5.13</org.apache.httpcomponents.httpclient.version>
+        <org.apache.httpcomponents.httpcore.version>4.4.15</org.apache.httpcomponents.httpcore.version>
+        <org.bouncycastle.version>1.70</org.bouncycastle.version>
+        <testcontainers.version>1.17.3</testcontainers.version>
+        <org.slf4j.version>1.7.36</org.slf4j.version>
+        <ranger.version>2.2.0</ranger.version>
+        <jetty.version>9.4.48.v20220622</jetty.version>
+        <jackson.bom.version>2.13.3</jackson.bom.version>
+        <avro.version>1.11.1</avro.version>
+        <jaxb.runtime.version>2.3.5</jaxb.runtime.version>
+        <javax.annotation-api.version>1.3.2</javax.annotation-api.version>
+        <jakarta.xml.bind-api.version>2.3.3</jakarta.xml.bind-api.version>
+        <json.smart.version>2.4.8</json.smart.version>
+        <nifi.groovy.version>3.0.9</nifi.groovy.version>
+        <groovy.eclipse.batch.version>3.0.8-01</groovy.eclipse.batch.version>
+        <surefire.version>3.0.0-M7</surefire.version>
         <!-- The Hadoop version used by nifi-hadoop-libraries-nar and any NARs that depend on it, other NARs that need
             a specific version should override this property, or use a more specific property like abc.hadoop.version -->
-        <hadoop.version>3.3.0</hadoop.version>
-        <ozone.version>1.0.0</ozone.version>
+        <hadoop.version>3.3.3</hadoop.version>
+        <ozone.version>1.2.1</ozone.version>
         <gcs.version>2.1.5</gcs.version>
         <aspectj.version>1.9.6</aspectj.version>
+        <jersey.bom.version>2.36</jersey.bom.version>
+        <log4j2.version>2.18.0</log4j2.version>
+        <logback.version>1.2.11</logback.version>
+        <mockito.version>3.11.2</mockito.version>
+        <netty.3.version>3.10.6.Final</netty.3.version>
+        <netty.4.version>4.1.79.Final</netty.4.version>
+        <spring.version>5.3.22</spring.version>
+        <spring.security.version>5.7.2</spring.security.version>
+        <swagger.annotations.version>1.6.6</swagger.annotations.version>
+        <h2.version>2.1.214</h2.version>
+        <zookeeper.version>3.8.0</zookeeper.version>
     </properties>
-
-    <repositories>
-        <repository>
-            <id>central</id>
-            <!-- This should be at top, it makes maven try the central repo
-                first and then others and hence faster dep resolution -->
-            <name>Maven Repository</name>
-            <url>https://repo1.maven.org/maven2</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>apache-repo</id>
-            <name>Apache Repository</name>
-            <url>https://repository.apache.org/content/repositories/releases</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>jcenter</id>
-            <url>https://jcenter.bintray.com</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-        </repository>
-        <repository>
-            <id>Shibboleth</id>
-            <name>Shibboleth</name>
-            <url>https://build.shibboleth.net/nexus/content/repositories/releases/</url>
-        </repository>
-    </repositories>
-
-    <pluginRepositories>
-        <pluginRepository>
-            <id>gcs-maven-central-mirror</id>
-            <!--
-              Google Mirror of Maven Central, placed first so that it's used instead of flaky Maven Central.
-              See https://storage-download.googleapis.com/maven-central/index.html
-            -->
-            <name>GCS Maven Central mirror</name>
-            <url>https://maven-central.storage-download.googleapis.com/repos/central/data/</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </pluginRepository>
-        <pluginRepository>
-            <id>central</id>
-            <name>Central Repository</name>
-            <url>https://repo.maven.apache.org/maven2</url>
-            <layout>default</layout>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <releases>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-        </pluginRepository>
-        <pluginRepository>
-            <id>bintray</id>
-            <name>Groovy Bintray</name>
-            <url>https://dl.bintray.com/groovy/maven</url>
-            <releases>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </pluginRepository>
-    </pluginRepositories>
-
     <dependencyManagement>
         <dependencies>
             <!-- The following dependency management entries exist because these are jars
@@ -203,18 +157,18 @@
                 <version>3.1.0</version>
                 <scope>provided</scope>
             </dependency>
-            <!-- jetty-schemas-3.1.jar handling this explicitly  Must be in root lib -->
+            <!-- jetty-schemas handling this explicitly  Must be in root lib -->
             <dependency>
                 <groupId>org.eclipse.jetty.toolchain</groupId>
                 <artifactId>jetty-schemas</artifactId>
-                <version>3.1</version>
+                <version>5.2</version>
                 <scope>provided</scope>
             </dependency>
             <!-- logback-classic, logback-core, log4j-over-slf4j, jul-to-slf4j,jcl-over-slf4j,slf4j-api handling this explicitly  Must be in root lib -->
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
-                <version>1.2.3</version>
+                <version>${logback.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -247,11 +201,6 @@
                 <version>${org.slf4j.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-log4j12</artifactId>
-                <version>${org.slf4j.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk15on</artifactId>
                 <version>${org.bouncycastle.version}</version>
@@ -266,17 +215,84 @@
                 <artifactId>bcpg-jdk15on</artifactId>
                 <version>${org.bouncycastle.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro</artifactId>
+                <version>${avro.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro-ipc</artifactId>
+                <version>${avro.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>${org.apache.commons.io.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${org.apache.commons.lang3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>${org.apache.httpcomponents.httpclient.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>commons-logging</groupId>
+                        <artifactId>commons-logging</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpcore</artifactId>
+                <version>${org.apache.httpcomponents.httpcore.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>fluent-hc</artifactId>
+                <version>${org.apache.httpcomponents.httpclient.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>commons-logging</groupId>
+                        <artifactId>commons-logging</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <!-- Commons Codec -->
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>1.15</version>
+            </dependency>
 
             <!-- These junit/mockito/groovy/spock/hamcrest dependencies are here to encourage consistent unit test library usage -->
             <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>5.8.2</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
-                <version>4.13.1</version>
+                <version>4.13.2</version>
+                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>2.28.2</version>
+                <version>${mockito.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
+                <version>${mockito.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.groovy</groupId>
@@ -294,7 +310,7 @@
             <dependency>
                 <groupId>org.spockframework</groupId>
                 <artifactId>spock-core</artifactId>
-                <version>1.3-groovy-2.5</version>
+                <version>2.1-M2-groovy-3.0</version>
                 <scope>test</scope>
                 <exclusions>
                     <exclusion>
@@ -314,7 +330,7 @@
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers</artifactId>
-                <version>1.11.3</version>
+                <version>1.17.3</version>
                 <scope>test</scope>
             </dependency>
             <!-- These Jetty dependencies are required for the Jetty Web Server all nars extend from it so we dont want this getting overriden -->
@@ -356,6 +372,109 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-alpn-server</artifactId>
+                <version>${jetty.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.http2</groupId>
+                <artifactId>http2-server</artifactId>
+                <version>${jetty.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-alpn-client</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-alpn-java-client</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-continuation</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-client</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-http</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-io</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-jaas</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-rewrite</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-runner</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-util</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-util-ajax</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.http2</groupId>
+                <artifactId>http2-client</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.http2</groupId>
+                <artifactId>http2-common</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.http2</groupId>
+                <artifactId>http2-hpack</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.http2</groupId>
+                <artifactId>http2-http-client-transport</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.websocket</groupId>
+                <artifactId>websocket-api</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.websocket</groupId>
+                <artifactId>websocket-client</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.websocket</groupId>
+                <artifactId>websocket-server</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
                 <artifactId>apache-jsp</artifactId>
                 <version>${jetty.version}</version>
                 <scope>provided</scope>
@@ -376,18 +495,116 @@
                 <artifactId>aspectjweaver</artifactId>
                 <version>${aspectj.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.google.code.gson</groupId>
+                <artifactId>gson</artifactId>
+                <version>${gson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.minidev</groupId>
+                <artifactId>json-smart</artifactId>
+                <version>${json.smart.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.swagger</groupId>
+                <artifactId>swagger-annotations</artifactId>
+                <version>${swagger.annotations.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.bom.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Set snappy-java version for compatibility across multiple Java versions -->
+            <dependency>
+                <groupId>org.xerial.snappy</groupId>
+                <artifactId>snappy-java</artifactId>
+                <version>1.1.8.4</version>
+            </dependency>
+            <!-- Override Log4j 2 libraries for transitive dependencies -->
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-bom</artifactId>
+                <version>${log4j2.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-bom</artifactId>
+                <version>${netty.4.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-framework-bom</artifactId>
+                <version>${spring.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.security</groupId>
+                <artifactId>spring-security-bom</artifactId>
+                <version>${spring.security.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>okhttp-bom</artifactId>
+                <version>${okhttp.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-bom</artifactId>
+                <version>${kotlin.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.glassfish.jersey</groupId>
+                <artifactId>jersey-bom</artifactId>
+                <version>${jersey.bom.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
     <dependencies>
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.vintage</groupId>
+            <artifactId>junit-vintage-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -408,28 +625,28 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.8.1</version>
+                    <version>3.10.1</version>
                     <configuration>
                         <fork>true</fork>
-                        <optimize>true</optimize>
-                        <showDeprecation>true</showDeprecation>
+                        <showDeprecation>${maven.compiler.showDeprecation}</showDeprecation>
                         <showWarnings>true</showWarnings>
                     </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.groovy</groupId>
                     <artifactId>groovy-eclipse-compiler</artifactId>
-                    <version>3.4.0-01</version>
+                    <version>3.7.0</version>
                     <extensions>true</extensions>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.groovy</groupId>
                     <artifactId>groovy-eclipse-batch</artifactId>
-                    <version>${nifi.groovy.version}-01</version>
+                    <version>${groovy.eclipse.batch.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${surefire.version}</version>
                     <configuration>
                         <systemPropertyVariables>
                             <java.awt.headless>true</java.awt.headless>
@@ -443,23 +660,12 @@
                             <exclude>**/*ITSpec.class</exclude>
                         </excludes>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                        <argLine combine.children="append">-Xmx1G
-                            -Djava.net.preferIPv4Stack=true
-                            ${maven.surefire.arguments}
-                            -Dfile.encoding=UTF-8</argLine>
                     </configuration>
-                    <dependencies>
-                        <dependency>
-                            <!-- Force surefire to use JUnit -->
-                            <groupId>org.apache.maven.surefire</groupId>
-                            <artifactId>surefire-junit4</artifactId>
-                            <version>${surefire.version}</version>
-                        </dependency>
-                    </dependencies>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
+                    <version>3.3.0</version>
                     <configuration>
                         <tarLongFileMode>gnu</tarLongFileMode>
                     </configuration>
@@ -467,16 +673,17 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>jaxb2-maven-plugin</artifactId>
-                    <version>2.3.1</version>
+                    <version>2.5.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
-                    <version>1.6.0</version>
+                    <version>3.0.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>3.3.1</version>
                     <configuration>
                         <failOnError>false</failOnError>
                         <quiet>true</quiet>
@@ -490,6 +697,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-release-plugin</artifactId>
+                    <version>3.0.0-M5</version>
                     <configuration>
                         <useReleaseProfile>true</useReleaseProfile>
                         <releaseProfiles>apache-release</releaseProfiles>
@@ -514,12 +722,12 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>rpm-maven-plugin</artifactId>
-                    <version>2.1.5</version>
+                    <version>2.2.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>buildnumber-maven-plugin</artifactId>
-                    <version>1.4</version>
+                    <version>3.0.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.antlr</groupId>
@@ -529,14 +737,24 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>3.1.0</version>
+                    <version>3.1.2</version>
                     <dependencies>
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
                             <artifactId>checkstyle</artifactId>
-                            <version>8.29</version>
+                            <version>9.3</version>
                         </dependency>
                     </dependencies>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>3.3.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.rat</groupId>
+                    <artifactId>apache-rat-plugin</artifactId>
+                    <version>0.14</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -544,7 +762,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
                 <executions>
                     <!-- Only run for tests -->
                     <execution>
@@ -554,6 +771,7 @@
                         </goals>
                         <configuration>
                             <compilerId>groovy-eclipse-compiler</compilerId>
+
                         </configuration>
                     </execution>
                 </executions>
@@ -565,19 +783,19 @@
                     <dependency>
                         <groupId>org.codehaus.groovy</groupId>
                         <artifactId>groovy-eclipse-compiler</artifactId>
-                        <version>3.4.0-01</version>
+                        <version>3.7.0</version>
                     </dependency>
                     <dependency>
                         <groupId>org.codehaus.groovy</groupId>
                         <artifactId>groovy-eclipse-batch</artifactId>
-                        <version>${nifi.groovy.version}-01</version>
+                        <version>${groovy.eclipse.batch.version}</version>
                     </dependency>
                 </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-nar-maven-plugin</artifactId>
-                <version>1.3.1</version>
+                <version>${nifi.nar.maven.plugin.version}</version>
                 <extensions>true</extensions>
                 <configuration>
                     <enforceDocGeneration>true</enforceDocGeneration>
@@ -597,10 +815,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.0.0-M3</version>
+                <version>3.1.0</version>
                 <executions>
                     <execution>
-                        <id>enforce-maven</id>
+                        <id>enforce-maven-version</id>
                         <goals>
                             <goal>enforce</goal>
                         </goals>
@@ -614,39 +832,17 @@
                                     </plugins>
                                 </requireSameVersions>
                                 <requireMavenVersion>
-                                    <!-- We do not test this value so we should probably make it something fairly recent -->
-                                    <version>3.1.1</version>
+                                    <version>3.6.0</version>
                                 </requireMavenVersion>
-                            </rules>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>enforce-no-snapshots</id>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
                                 <requireReleaseDeps>
-                                    <message>Other than org apache nifi components themselves no snapshot dependencies are allowed</message>
-                                    <!-- If we want to only enforce this for nifi release itself we should add 'onlyWhenRelease' and remove 'failWhenParentIsSnapshot' element -->
+                                    <message>Dependencies outside of Apache NiFi must not use SNAPSHOT versions</message>
                                     <failWhenParentIsSnapshot>false</failWhenParentIsSnapshot>
                                     <excludes>
                                         <exclude>org.apache.nifi:*</exclude>
+                                        <exclude>org.apache.nifi.minifi:*</exclude>
                                         <exclude>org.apache.nifi.registry:*</exclude>
                                     </excludes>
                                 </requireReleaseDeps>
-                            </rules>
-                            <fail>true</fail>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>enforce-banned-dependencies</id>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
                                 <bannedDependencies>
                                     <excludes>
                                         <!-- Cat-X Deps -->
@@ -654,6 +850,15 @@
                                         <exclude>c3p0:c3p0:*:*:compile</exclude>
                                         <!-- Versions of JSR305 before 3.0.1 are not allowed https://github.com/findbugsproject/findbugs/issues/128 -->
                                         <exclude>com.google.code.findbugs:jsr305:*:*:compile</exclude>
+                                        <!-- SLF4J routing to Log4j 1.2 is a runtime implementation that conflicts with Logback -->
+                                        <exclude>org.slf4j:slf4j-log4j12</exclude>
+                                        <exclude>org.slf4j:slf4j-reload4j</exclude>
+                                        <!-- Log4J excluded in favor of log4j-over-slf4j and logback -->
+                                        <exclude>log4j:log4j:*</exclude>
+                                        <!-- Log4j 2 log4j-core excluded in favor of log4j-to-slf4j routing to logback -->
+                                        <exclude>org.apache.logging.log4j:log4j-core:*</exclude>
+                                        <!-- Commons Logging excluded in favor of jcl-over-slf4j -->
+                                        <exclude>commons-logging:commons-logging:*</exclude>
                                     </excludes>
                                     <includes>
                                         <!-- Versions of JSR305 after 3.0.1 are allowed https://github.com/findbugsproject/findbugs/issues/128 -->
@@ -756,8 +961,6 @@
                         <exclude>nb-configuration.xml</exclude> <!-- courtesy excludes for netbeans users -->
                         <exclude>nbactions.xml</exclude> <!-- courtesy excludes for netbeans users -->
                         <exclude>DEPENDENCIES</exclude> <!-- auto generated file by apache's maven config while building sources.zip -->
-                        <exclude>.github/PULL_REQUEST_TEMPLATE.md</exclude> <!-- PR Template for GitHub that does not have a mechanism of including comments -->
-                        <exclude>.github/workflows/ci-workflow.yml</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -790,12 +993,6 @@
             </build>
         </profile>
         <profile>
-            <!-- Checks style and licensing requirements. This is a good
-                idea to run for contributions and for the release process. While it would
-                be nice to run always these plugins can considerably slow the build and have
-                proven to create unstable builds in our multi-module project and when building
-                using multiple threads. The stability issues seen with Checkstyle in multi-module
-                builds include false-positives and false negatives. -->
             <id>contrib-check</id>
             <build>
                 <plugins>
@@ -807,7 +1004,7 @@
                                 <goals>
                                     <goal>check</goal>
                                 </goals>
-                                <phase>verify</phase>
+                                <phase>validate</phase>
                             </execution>
                         </executions>
                     </plugin>
@@ -817,7 +1014,7 @@
                         <executions>
                             <execution>
                                 <id>check-style</id>
-                                <phase>verify</phase>
+                                <phase>validate</phase>
                                 <configuration>
                                     <encoding>UTF-8</encoding>
                                     <excludes>**/generated-sources/**/*</excludes>
@@ -885,19 +1082,14 @@
             <dependencyManagement>
                 <dependencies>
                     <dependency>
-                        <groupId>javax.xml.bind</groupId>
-                        <artifactId>jaxb-api</artifactId>
-                        <version>2.3.0</version>
+                        <groupId>jakarta.xml.bind</groupId>
+                        <artifactId>jakarta.xml.bind-api</artifactId>
+                        <version>${jakarta.xml.bind-api.version}</version>
                     </dependency>
                     <dependency>
-                        <groupId>com.sun.xml.bind</groupId>
-                        <artifactId>jaxb-core</artifactId>
-                        <version>2.3.0</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>com.sun.xml.bind</groupId>
-                        <artifactId>jaxb-impl</artifactId>
-                        <version>2.3.0</version>
+                        <groupId>org.glassfish.jaxb</groupId>
+                        <artifactId>jaxb-runtime</artifactId>
+                        <version>${jaxb.runtime.version}</version>
                     </dependency>
                     <dependency>
                         <groupId>com.sun.activation</groupId>
@@ -912,97 +1104,33 @@
                 </dependencies>
             </dependencyManagement>
         </profile>
-        <!-- The following profiles are here as a convenience for folks that
-            want to build against vendor-specific distributions of the various Hadoop
-            ecosystem libraries. These will alter which dependencies are sourced in a
-            manner that can adjust the correct LICENSE and NOTICE requirements for any
-            affected jar and the resulting assembly overall. These L&N impacts are not
-            automatically handled by the build process and are the responsibility of
-            those creating and using the resulting binary artifacts. -->
         <profile>
-            <!-- This profile adds the Hortonworks repository for resolving
-                Hortonworks Data Platform (HDP) artifacts for the Hadoop bundles -->
-            <id>hortonworks</id>
-            <repositories>
-                <repository>
-                    <id>hortonworks-releases</id>
-                    <name>Hortonworks Repository</name>
-                    <url>https://repo.hortonworks.com/content/repositories/releases/</url>
-                    <releases>
-                        <enabled>true</enabled>
-                        <updatePolicy>always</updatePolicy>
-                        <checksumPolicy>warn</checksumPolicy>
-                    </releases>
-                    <snapshots>
-                        <enabled>false</enabled>
-                        <updatePolicy>never</updatePolicy>
-                        <checksumPolicy>fail</checksumPolicy>
-                    </snapshots>
-                </repository>
-                <repository>
-                    <id>hortonworks-jetty</id>
-                    <name>Hortonworks Jetty Repository</name>
-                    <url>https://repo.hortonworks.com/content/repositories/jetty-hadoop/</url>
-                    <releases>
-                        <enabled>true</enabled>
-                        <updatePolicy>always</updatePolicy>
-                        <checksumPolicy>warn</checksumPolicy>
-                    </releases>
-                    <snapshots>
-                        <enabled>false</enabled>
-                        <updatePolicy>never</updatePolicy>
-                        <checksumPolicy>fail</checksumPolicy>
-                    </snapshots>
-                </repository>
-            </repositories>
-            <properties>
-                <!-- Vendor-specific version number included here as default,
-                    should be overridden on the command-line <hadoop.version>2.7.1.2.4.0.0-169</hadoop.version> -->
-            </properties>
-        </profile>
-        <profile>
-            <!-- This profile will add the MapR repository for resolving
-                MapR Hadoop artifacts for the Hadoop bundles -->
-            <id>mapr</id>
-            <repositories>
-                <repository>
-                    <id>mapr-releases</id>
-                    <name>MapR Repository</name>
-                    <url>https://repository.mapr.com/maven/</url>
-                    <snapshots>
-                        <enabled>false</enabled>
-                    </snapshots>
-                    <releases>
-                        <enabled>true</enabled>
-                    </releases>
-                </repository>
-            </repositories>
-            <properties>
-                <!-- Vendor-specific version number included here as default,
-                    should be overridden on the command-line <hadoop.version>2.7.0-mapr-1602</hadoop.version> -->
-            </properties>
-        </profile>
-        <profile>
-            <!-- This profile will add the Cloudera repository for resolving
-                Cloudera Distribution of Hadoop (CDH) artifacts for the Hadoop bundles -->
-            <id>cloudera</id>
-            <repositories>
-                <repository>
-                    <id>cloudera-repo</id>
-                    <name>Cloudera Repository</name>
-                    <url>https://repository.cloudera.com/artifactory/cloudera-repos</url>
-                    <releases>
-                        <enabled>true</enabled>
-                    </releases>
-                    <snapshots>
-                        <enabled>false</enabled>
-                    </snapshots>
-                </repository>
-            </repositories>
-            <properties>
-                <!-- Vendor-specific version number included here as default,
-                    should be overridden on the command-line <hadoop.version>2.6.0-cdh5.8.1</hadoop.version> -->
-            </properties>
+            <!-- Run "mvn validate -P dependency-check" to generate dependency-check-report.html in the target directory -->
+            <!-- Report results require detailed analysis to determine whether the vulnerability impacts the application -->
+            <id>dependency-check</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                        <version>7.1.1</version>
+                        <executions>
+                            <execution>
+                                <inherited>false</inherited>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>aggregate</goal>
+                                </goals>
+                                <configuration>
+                                    <suppressionFiles>nifi-dependency-check-maven/suppressions.xml</suppressionFiles>
+                                    <!-- Skip System Scope to avoid dependency resolution errors with jdk.tools on Java 8 -->
+                                    <skipSystemScope>true</skipSystemScope>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
     </profiles>
 </project>

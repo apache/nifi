@@ -22,7 +22,6 @@ import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.tasks.ConnectableTask;
 import org.apache.nifi.controller.tasks.InvocationResult;
 import org.apache.nifi.controller.tasks.ReportingTaskWrapper;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -37,8 +36,8 @@ public class TimerDrivenSchedulingAgent extends AbstractTimeBasedSchedulingAgent
     private final long noWorkYieldNanos;
 
     public TimerDrivenSchedulingAgent(final FlowController flowController, final FlowEngine flowEngine, final RepositoryContextFactory contextFactory,
-            final PropertyEncryptor encryptor, final NiFiProperties nifiProperties) {
-        super(flowEngine, flowController, contextFactory, encryptor);
+                                      final NiFiProperties nifiProperties) {
+        super(flowEngine, flowController, contextFactory);
 
         final String boredYieldDuration = nifiProperties.getBoredYieldDuration();
         try {
@@ -69,7 +68,7 @@ public class TimerDrivenSchedulingAgent extends AbstractTimeBasedSchedulingAgent
     @Override
     public void doSchedule(final Connectable connectable, final LifecycleState scheduleState) {
         final List<ScheduledFuture<?>> futures = new ArrayList<>();
-        final ConnectableTask connectableTask = new ConnectableTask(this, connectable, flowController, contextFactory, scheduleState, encryptor);
+        final ConnectableTask connectableTask = new ConnectableTask(this, connectable, flowController, contextFactory, scheduleState);
 
         for (int i = 0; i < connectable.getMaxConcurrentTasks(); i++) {
             // Determine the task to run and create it.

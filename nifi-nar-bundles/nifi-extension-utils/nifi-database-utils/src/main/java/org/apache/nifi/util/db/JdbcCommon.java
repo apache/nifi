@@ -16,6 +16,62 @@
  */
 package org.apache.nifi.util.db;
 
+import org.apache.avro.LogicalTypes;
+import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
+import org.apache.avro.SchemaBuilder.BaseTypeBuilder;
+import org.apache.avro.SchemaBuilder.FieldAssembler;
+import org.apache.avro.SchemaBuilder.NullDefault;
+import org.apache.avro.SchemaBuilder.UnionAccumulator;
+import org.apache.avro.UnresolvedUnionException;
+import org.apache.avro.file.CodecFactory;
+import org.apache.avro.file.DataFileWriter;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericDatumWriter;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.DatumWriter;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.nifi.avro.AvroTypeUtil;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
+
+import javax.xml.bind.DatatypeConverter;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLDataException;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLXML;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import static java.sql.Types.ARRAY;
 import static java.sql.Types.BIGINT;
 import static java.sql.Types.BINARY;
@@ -47,62 +103,6 @@ import static java.sql.Types.TIMESTAMP_WITH_TIMEZONE;
 import static java.sql.Types.TINYINT;
 import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLDataException;
-import java.sql.SQLException;
-import java.sql.SQLXML;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.Date;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.apache.avro.LogicalTypes;
-import org.apache.avro.Schema;
-import org.apache.avro.SchemaBuilder;
-import org.apache.avro.SchemaBuilder.BaseTypeBuilder;
-import org.apache.avro.SchemaBuilder.FieldAssembler;
-import org.apache.avro.SchemaBuilder.NullDefault;
-import org.apache.avro.SchemaBuilder.UnionAccumulator;
-import org.apache.avro.file.CodecFactory;
-import org.apache.avro.UnresolvedUnionException;
-import org.apache.avro.file.DataFileWriter;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericDatumWriter;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.DatumWriter;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.avro.AvroTypeUtil;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
-
-import javax.xml.bind.DatatypeConverter;
 
 /**
  * JDBC / SQL common functions.
@@ -187,6 +187,10 @@ public class JdbcCommon {
 
         public int getDefaultScale() {
             return defaultScale;
+        }
+
+        public boolean isUseLogicalTypes() {
+            return useLogicalTypes;
         }
 
         public static class Builder {
@@ -297,7 +301,11 @@ public class JdbcCommon {
                             }
                             ByteBuffer bb = ByteBuffer.wrap(buffer);
                             rec.put(i - 1, bb);
-                            blob.free();
+                            try {
+                                blob.free();
+                            } catch (SQLFeatureNotSupportedException sfnse) {
+                                // The driver doesn't support free, but allow processing to continue
+                            }
                         } else {
                             rec.put(i - 1, null);
                         }
@@ -394,7 +402,14 @@ public class JdbcCommon {
                         } else {
                             rec.put(i-1, value);
                         }
-
+                    } else if (javaSqlType == DATE) {
+                        if (options.useLogicalTypes) {
+                            // Handle SQL DATE fields using system default time zone without conversion
+                            rec.put(i - 1, AvroTypeUtil.convertToAvroObject(value, fieldSchema));
+                        } else {
+                            // As string for backward compatibility.
+                            rec.put(i - 1, value.toString());
+                        }
                     } else if (value instanceof java.sql.Date) {
                         if (options.useLogicalTypes) {
                             // Delegate mapping to AvroTypeUtil in order to utilize logical types.
@@ -571,14 +586,14 @@ public class JdbcCommon {
                 case DECIMAL:
                 case NUMERIC:
                     if (options.useLogicalTypes) {
-                        final int decimalPrecision;
+                        int decimalPrecision;
                         final int decimalScale;
                         if (meta.getPrecision(i) > 0) {
                             // When database returns a certain precision, we can rely on that.
                             decimalPrecision = meta.getPrecision(i);
                             //For the float data type Oracle return decimalScale < 0 which cause is not expected to org.apache.avro.LogicalTypes
                             //Hence falling back to default scale if decimalScale < 0
-                            decimalScale = meta.getScale(i) > 0 ? meta.getScale(i) : options.defaultScale;
+                            decimalScale = meta.getScale(i) >= 0 ? meta.getScale(i) : options.defaultScale;
                         } else {
                             // If not, use default precision.
                             decimalPrecision = options.defaultPrecision;
@@ -587,6 +602,11 @@ public class JdbcCommon {
                             // Queries for example, 'SELECT 1.23 as v from DUAL' can be problematic because it can't be mapped with decimal with scale=0.
                             // Default scale is used to preserve decimals in such case.
                             decimalScale = meta.getScale(i) > 0 ? meta.getScale(i) : options.defaultScale;
+                        }
+                        // Scale can be bigger than precision in some cases (Oracle, e.g.) If this is the case, assume precision refers to the number of
+                        // decimal digits and thus precision = scale
+                        if (decimalScale > decimalPrecision) {
+                            decimalPrecision = decimalScale;
                         }
                         final LogicalTypes.Decimal decimal = LogicalTypes.decimal(decimalPrecision, decimalScale);
                         addNullableField(builder, columnName,
@@ -615,6 +635,7 @@ public class JdbcCommon {
                 case TIMESTAMP_WITH_TIMEZONE:
                 case -101: // Oracle's TIMESTAMP WITH TIME ZONE
                 case -102: // Oracle's TIMESTAMP WITH LOCAL TIME ZONE
+                case -155: // SQL Server's DATETIMEOFFSET
                     addNullableField(builder, columnName,
                             u -> options.useLogicalTypes
                                     ? u.type(LogicalTypes.timestampMillis().addToSchema(SchemaBuilder.builder().longType()))

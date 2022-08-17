@@ -20,36 +20,28 @@
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
-                'nf.Storage'],
-            function ($, nfStorage) {
-                return (nf.AjaxSetup = factory($, nfStorage));
+                'nf.AuthorizationStorage'],
+            function ($, nfAuthorizationStorage) {
+                return (nf.AjaxSetup = factory($, nfAuthorizationStorage));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.AjaxSetup = factory(require('jquery'),
-            require('nf.Storage')));
+            require('nf.AuthorizationStorage')));
     } else {
         nf.AjaxSetup = factory(root.$,
-            root.nf.Storage);
+            root.nf.AuthorizationStorage);
     }
-}(this, function ($, nfStorage) {
+}(this, function ($, nfAuthorizationStorage) {
     /**
      * Performs ajax setup for use within NiFi.
      */
     $(document).ready(function ($) {
-        // include jwt when possible
         $.ajaxSetup({
             'beforeSend': function (xhr) {
-                var hadToken = nfStorage.hasItem('jwt');
-
-                // get the token to include in all requests
-                var token = nfStorage.getItem('jwt');
-                if (token !== null) {
-                    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-                } else {
-                    // if the current user was logged in with a token and the token just expired, cancel the request
-                    if (hadToken === true) {
-                        return false;
-                    }
+                // Get the Request Token for CSRF mitigation on and send on all requests
+                var requestToken = nfAuthorizationStorage.getRequestToken();
+                if (requestToken !== null) {
+                    xhr.setRequestHeader('Request-Token', requestToken);
                 }
             }
         });

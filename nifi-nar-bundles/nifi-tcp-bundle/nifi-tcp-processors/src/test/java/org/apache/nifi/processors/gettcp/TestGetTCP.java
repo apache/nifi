@@ -17,23 +17,23 @@
 
 package org.apache.nifi.processors.gettcp;
 
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-
 public final class TestGetTCP {
     private TestRunner testRunner;
     private GetTCP processor;
 
-    @Before
+    @BeforeEach
     public void setup() {
         processor = new GetTCP();
         testRunner = TestRunners.newTestRunner(processor);
@@ -72,7 +72,11 @@ public final class TestGetTCP {
         testRunner.assertValid();
     }
 
-    @Ignore("test is brittle as depends on timing - not reliable across systems, in parallel builds, etc..")
+    @EnabledIfSystemProperty(
+            named = "nifi.test.unstable",
+            matches = "true",
+            disabledReason = "test is brittle as depends on timing - not reliable across systems, in parallel builds, etc.."
+    )
     @Test
     public void testSuccessInteraction() throws Exception {
         int port = this.availablePort();
@@ -87,7 +91,11 @@ public final class TestGetTCP {
         server.stop();
     }
 
-    @Ignore("test is brittle as depends on timing - not reliable across systems, in parallel builds, etc..")
+    @EnabledIfSystemProperty(
+            named = "nifi.test.unstable",
+            matches = "true",
+            disabledReason = "test is brittle as depends on timing - not reliable across systems, in parallel builds, etc.."
+    )
     @Test
     public void testPartialInteraction() throws Exception {
         int port = this.availablePort();

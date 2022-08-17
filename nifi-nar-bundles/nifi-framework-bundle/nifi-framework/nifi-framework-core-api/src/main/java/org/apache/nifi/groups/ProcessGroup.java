@@ -33,6 +33,7 @@ import org.apache.nifi.controller.Triggerable;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterUpdate;
@@ -40,7 +41,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.remote.RemoteGroupPort;
 
 import java.util.Collection;
@@ -879,7 +880,16 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @param updateDescendantVersionedFlows if a child/descendant Process Group is under Version Control, specifies whether or not to
      *            update the contents of that Process Group
      */
-    void updateFlow(VersionedFlowSnapshot proposedSnapshot, String componentIdSeed, boolean verifyNotDirty, boolean updateSettings, boolean updateDescendantVersionedFlows);
+    void updateFlow(VersionedExternalFlow proposedSnapshot, String componentIdSeed, boolean verifyNotDirty, boolean updateSettings, boolean updateDescendantVersionedFlows);
+
+    /**
+     * Updates the Process Group to match the proposed flow
+     *
+     * @param proposedSnapshot the proposed flow
+     * @param synchronizationOptions options for how the synchronization should occur
+     * @param flowMappingOptions options for how to map the existing dataflow into Versioned components so that it can be compared to the proposed snapshot
+     */
+    void synchronizeFlow(VersionedExternalFlow proposedSnapshot, FlowSynchronizationOptions synchronizationOptions, FlowMappingOptions flowMappingOptions);
 
     /**
      * Verifies a template with the specified name can be created.
@@ -966,7 +976,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      *
      * @throws IllegalStateException if the Process Group is not in a state that will allow the update
      */
-    void verifyCanUpdate(VersionedFlowSnapshot updatedFlow, boolean verifyConnectionRemoval, boolean verifyNotDirty);
+    void verifyCanUpdate(VersionedExternalFlow updatedFlow, boolean verifyConnectionRemoval, boolean verifyNotDirty);
 
     /**
      * Ensures that the Process Group can have any local changes reverted
@@ -1174,4 +1184,47 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @return the DataValve associated with this Process Group
      */
     DataValve getDataValve();
+
+    /**
+     * @param parameterContext A ParameterContext
+     * @return True if the provided ParameterContext is referenced by this Process Group, either directly or
+     * indirectly through inherited ParameterContexts.
+     */
+    boolean referencesParameterContext(ParameterContext parameterContext);
+
+    /**
+     * @return the default flowfile expiration of the ProcessGroup
+     */
+    String getDefaultFlowFileExpiration();
+
+    /**
+     * Updates the default flowfile expiration of this ProcessGroup.
+     *
+     * @param defaultFlowFileExpiration new default flowfile expiration value (must include time unit label)
+     */
+    void setDefaultFlowFileExpiration(String defaultFlowFileExpiration);
+
+    /**
+     * @return the default back pressure object threshold of this ProcessGroup
+     */
+    Long getDefaultBackPressureObjectThreshold();
+
+    /**
+     * Updates the default back pressure object threshold of this ProcessGroup
+     *
+     * @param defaultBackPressureObjectThreshold new default back pressure object threshold value
+     */
+    void setDefaultBackPressureObjectThreshold(Long defaultBackPressureObjectThreshold);
+
+    /**
+     * @return the default back pressure size threshold of this ProcessGroup
+     */
+    String getDefaultBackPressureDataSizeThreshold();
+
+    /**
+     * Updates the default back pressure size threshold of this ProcessGroup
+     *
+     * @param defaultBackPressureDataSizeThreshold new default back pressure size threshold (must include size unit label)
+     */
+    void setDefaultBackPressureDataSizeThreshold(String defaultBackPressureDataSizeThreshold);
 }

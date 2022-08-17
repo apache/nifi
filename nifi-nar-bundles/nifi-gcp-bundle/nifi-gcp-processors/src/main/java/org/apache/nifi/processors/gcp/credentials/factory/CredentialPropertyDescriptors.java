@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.gcp.credentials.factory;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -75,7 +77,7 @@ public final class CredentialPropertyDescriptors {
             .displayName("Service Account JSON File")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .description("Path to a file containing a Service Account key file in JSON format.")
             .build();
 

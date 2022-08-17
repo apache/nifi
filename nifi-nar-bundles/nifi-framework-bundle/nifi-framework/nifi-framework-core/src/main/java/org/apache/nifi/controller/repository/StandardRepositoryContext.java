@@ -20,6 +20,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.repository.claim.ContentClaimWriteCache;
 import org.apache.nifi.controller.repository.claim.StandardContentClaimWriteCache;
+import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 
 import java.util.concurrent.atomic.AtomicLong;
@@ -33,7 +34,7 @@ public class StandardRepositoryContext extends AbstractRepositoryContext impleme
     }
 
     @Override
-    public ContentClaimWriteCache createContentClaimWriteCache() {
-        return new StandardContentClaimWriteCache(getContentRepository());
+    public ContentClaimWriteCache createContentClaimWriteCache(final PerformanceTracker performanceTracker) {
+        return new StandardContentClaimWriteCache(getContentRepository(), performanceTracker);
     }
 }

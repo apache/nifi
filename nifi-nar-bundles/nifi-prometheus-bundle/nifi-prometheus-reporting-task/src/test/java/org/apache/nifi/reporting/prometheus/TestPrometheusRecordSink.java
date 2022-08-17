@@ -31,6 +31,7 @@ import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
+import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
@@ -44,8 +45,8 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.Assert;
-import org.junit.Test;
+import org.apache.nifi.util.MockVariableRegistry;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -57,10 +58,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -114,19 +115,10 @@ public class TestPrometheusRecordSink {
     }
 
     @Test
-    public void testTwoInstances() throws InitializationException {
+    public void testTwoInstances() throws Exception {
         PrometheusRecordSink sink1 = initTask();
-        try {
-            PrometheusRecordSink sink2 = initTask();
-            fail("Should have reported Address In Use");
-        } catch (ProcessException pe) {
-            // Do nothing, this is the expected behavior
-        }
-        try {
-            sink1.onStopped();
-        } catch (Exception e) {
-            // Do nothing, just need to shut down the server before the next run
-        }
+        assertThrows(ProcessException.class, this::initTask);
+        sink1.onStopped();
     }
 
     private String getMetrics() throws IOException {
@@ -134,7 +126,7 @@ public class TestPrometheusRecordSink {
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
         con.setRequestMethod("GET");
         int status = con.getResponseCode();
-        Assert.assertEquals(HttpURLConnection.HTTP_OK, status);
+        assertEquals(HttpURLConnection.HTTP_OK, status);
 
         HttpClient client = HttpClientBuilder.create().build();
         HttpGet request = new HttpGet("http://localhost:" + portString + "/metrics");
@@ -149,9 +141,11 @@ public class TestPrometheusRecordSink {
         final PrometheusRecordSink task = new PrometheusRecordSink();
         ConfigurationContext context = mock(ConfigurationContext.class);
         final StateManager stateManager = new MockStateManager(task);
-
+        final MockVariableRegistry variableRegistry = new MockVariableRegistry();
         final PropertyValue pValue = mock(StandardPropertyValue.class);
-        when(context.getProperty(PrometheusMetricsUtil.METRICS_ENDPOINT_PORT)).thenReturn(new MockPropertyValue(portString));
+
+        variableRegistry.setVariable(new VariableDescriptor("port"), portString);
+        when(context.getProperty(PrometheusMetricsUtil.METRICS_ENDPOINT_PORT)).thenReturn(new MockPropertyValue("${port}", null, variableRegistry));
         when(context.getProperty(PrometheusRecordSink.SSL_CONTEXT)).thenReturn(pValue);
         when(pValue.asControllerService(SSLContextService.class)).thenReturn(null);
 

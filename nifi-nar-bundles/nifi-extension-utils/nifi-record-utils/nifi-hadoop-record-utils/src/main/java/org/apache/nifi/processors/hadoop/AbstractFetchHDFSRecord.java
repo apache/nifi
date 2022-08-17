@@ -179,7 +179,7 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
             FlowFile child = null;
             final String filenameValue = context.getProperty(FILENAME).evaluateAttributeExpressions(originalFlowFile).getValue();
             try {
-                final Path path = new Path(filenameValue);
+                final Path path = getNormalizedPath(context, FILENAME, originalFlowFile);
                 final AtomicReference<Throwable> exceptionHolder = new AtomicReference<>(null);
                 final AtomicReference<WriteResult> writeResult = new AtomicReference<>();
 

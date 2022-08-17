@@ -18,14 +18,14 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-web</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-jetty</artifactId>
     <packaging>jar</packaging>
     <dependencies>
         <dependency>
             <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
+            <artifactId>log4j-over-slf4j</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -45,6 +45,11 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-nar-loading-utils</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-framework-external-resource-utils</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -104,13 +109,16 @@
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.ext</groupId>
-            <artifactId>jersey-spring4</artifactId>
+            <artifactId>jersey-spring5</artifactId>
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.core</groupId>
             <artifactId>jersey-server</artifactId>
-            <version>${jersey.version}</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.media</groupId>
+            <artifactId>jersey-media-jaxb</artifactId>
         </dependency>
         <dependency>
             <groupId>org.aspectj</groupId>
@@ -141,6 +149,19 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ui-extension</artifactId>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-jetty-configuration</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty.http2</groupId>
+            <artifactId>http2-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-alpn-server</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -201,7 +222,6 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
-            <version>5.0.9.RELEASE</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -129,4 +129,14 @@ public class MockProcessContext implements ProcessContext {
     public boolean isConnectedToCluster() {
         return true;
     }
+
+    @Override
+    public boolean isRelationshipRetried(Relationship relationshipName) {
+        return false;
+    }
+
+    @Override
+    public int getRetryCount() {
+        return 0;
+    }
 }

@@ -33,6 +33,8 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.MockRecordParser;
+import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -42,8 +44,8 @@ import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.IOException;
@@ -60,21 +62,26 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import org.apache.nifi.serialization.record.MockRecordParser;
-import org.apache.nifi.serialization.record.MockRecordWriter;
 
 public class TestConsumeAzureEventHub {
     private static final String namespaceName = "nifi-azure-hub";
     private static final String eventHubName = "get-test";
+    private static final String policyName = "test-pn";
+    private static final String policyKey = "test-pk";
     private static final String storageAccountName = "test-sa";
     private static final String storageAccountKey = "test-sa-key";
+    private static final String storageSasToken = "?test-sa-token";
+    private static final String serviceBusEndpoint = ".endpoint";
+
+    private static final String EXPECTED_TRANSIT_URI = "amqps://namespace" + serviceBusEndpoint + "/" +
+            "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id";
 
     private ConsumeAzureEventHub.EventProcessor eventProcessor;
     private MockProcessSession processSession;
@@ -82,7 +89,7 @@ public class TestConsumeAzureEventHub {
     private PartitionContext partitionContext;
     private ConsumeAzureEventHub processor;
 
-    @Before
+    @BeforeEach
     public void setupProcessor() {
         processor = new ConsumeAzureEventHub();
         final ProcessorInitializationContext initContext = Mockito.mock(ProcessorInitializationContext.class);
@@ -95,6 +102,7 @@ public class TestConsumeAzureEventHub {
         final ProcessSessionFactory processSessionFactory = Mockito.mock(ProcessSessionFactory.class);
         processor.setProcessSessionFactory(processSessionFactory);
         processor.setNamespaceName("namespace");
+        processor.setServiceBusEndpoint(serviceBusEndpoint);
 
         sharedState = new SharedSessionState(processor, new AtomicLong(0));
         processSession = new MockProcessSession(sharedState, processor);
@@ -127,8 +135,67 @@ public class TestConsumeAzureEventHub {
         testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, storageAccountName);
         testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY, storageAccountKey);
         testRunner.assertNotValid();
-
         testRunner.setProperty(ConsumeAzureEventHub.USE_MANAGED_IDENTITY,"true");
+        testRunner.assertValid();
+    }
+
+    @Test
+    public void testProcessorConfigValidityWithNeitherStorageKeyNorTokenSet() {
+        TestRunner testRunner = TestRunners.newTestRunner(processor);
+        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME,eventHubName);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE,namespaceName);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.ACCESS_POLICY_NAME, policyName);
+        testRunner.setProperty(ConsumeAzureEventHub.POLICY_PRIMARY_KEY, policyKey);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, storageAccountName);
+        testRunner.assertNotValid();
+    }
+
+    @Test
+    public void testProcessorConfigValidityWithBothStorageKeyAndTokenSet() {
+        TestRunner testRunner = TestRunners.newTestRunner(processor);
+        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME,eventHubName);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE,namespaceName);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.ACCESS_POLICY_NAME, policyName);
+        testRunner.setProperty(ConsumeAzureEventHub.POLICY_PRIMARY_KEY, policyKey);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, storageAccountName);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY, storageAccountKey);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_SAS_TOKEN, storageSasToken);
+        testRunner.assertNotValid();
+    }
+
+    @Test
+    public void testProcessorConfigValidityWithTokenSet() {
+        TestRunner testRunner = TestRunners.newTestRunner(processor);
+        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME,eventHubName);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE,namespaceName);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.ACCESS_POLICY_NAME, policyName);
+        testRunner.setProperty(ConsumeAzureEventHub.POLICY_PRIMARY_KEY, policyKey);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, storageAccountName);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_SAS_TOKEN, storageSasToken);
+        testRunner.assertValid();
+    }
+
+    @Test
+    public void testProcessorConfigValidityWithStorageKeySet() {
+        TestRunner testRunner = TestRunners.newTestRunner(processor);
+        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME,eventHubName);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE,namespaceName);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.ACCESS_POLICY_NAME, policyName);
+        testRunner.setProperty(ConsumeAzureEventHub.POLICY_PRIMARY_KEY, policyKey);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, storageAccountName);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY, storageAccountKey);
         testRunner.assertValid();
     }
 
@@ -137,7 +204,7 @@ public class TestConsumeAzureEventHub {
         final EventData singleEvent = EventData.create("one".getBytes(StandardCharsets.UTF_8));
         singleEvent.getProperties().put("event-sender", "Apache NiFi");
         singleEvent.getProperties().put("application", "TestApp");
-        final Iterable<EventData> eventDataList = Arrays.asList(singleEvent);
+        final Iterable<EventData> eventDataList = Collections.singletonList(singleEvent);
         eventProcessor.onEvents(partitionContext, eventDataList);
 
         processSession.assertCommitted();
@@ -150,7 +217,7 @@ public class TestConsumeAzureEventHub {
 
     @Test
     public void testReceiveOne() throws Exception {
-        final Iterable<EventData> eventDataList = Arrays.asList(EventData.create("one".getBytes(StandardCharsets.UTF_8)));
+        final Iterable<EventData> eventDataList = Collections.singletonList(EventData.create("one".getBytes(StandardCharsets.UTF_8)));
         eventProcessor.onEvents(partitionContext, eventDataList);
 
         processSession.assertCommitted();
@@ -165,8 +232,7 @@ public class TestConsumeAzureEventHub {
         assertEquals(1, provenanceEvents.size());
         final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
-                "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent1.getTransitUri());
+        assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
     }
 
     @Test
@@ -262,7 +328,7 @@ public class TestConsumeAzureEventHub {
                 .collect(Collectors.toList());
 
         final List<Record> recordSetList = addEndRecord.apply(recordList);
-        final Record[] records = recordSetList.toArray(new Record[recordSetList.size()]);
+        final Record[] records = recordSetList.toArray(new Record[0]);
 
         switch (throwExceptionAt) {
             case -1:
@@ -311,8 +377,7 @@ public class TestConsumeAzureEventHub {
         assertEquals(1, provenanceEvents.size());
         final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
-                "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent1.getTransitUri());
+        assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
     }
 
     @Test
@@ -350,13 +415,11 @@ public class TestConsumeAzureEventHub {
 
         final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
-                "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent1.getTransitUri());
+        assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
 
         final ProvenanceEventRecord provenanceEvent2 = provenanceEvents.get(1);
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent2.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
-                "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent2.getTransitUri());
+        assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent2.getTransitUri());
     }
 
     @Test
@@ -387,8 +450,7 @@ public class TestConsumeAzureEventHub {
 
         final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
-                "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent1.getTransitUri());
+        assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
     }
 
     @Test
@@ -426,12 +488,10 @@ public class TestConsumeAzureEventHub {
 
         final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
-                "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent1.getTransitUri());
+        assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
 
         final ProvenanceEventRecord provenanceEvent2 = provenanceEvents.get(1);
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent2.getEventType());
-        assertEquals("amqps://namespace.servicebus.windows.net/" +
-                "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent2.getTransitUri());
+        assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent2.getTransitUri());
     }
 }

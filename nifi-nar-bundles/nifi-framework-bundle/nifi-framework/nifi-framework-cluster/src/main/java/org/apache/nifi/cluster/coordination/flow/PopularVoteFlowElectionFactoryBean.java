@@ -17,12 +17,6 @@
 
 package org.apache.nifi.cluster.coordination.flow;
 
-import org.apache.nifi.encrypt.PropertyEncryptor;
-import org.apache.nifi.encrypt.PropertyEncryptorFactory;
-import org.apache.nifi.encrypt.SensitiveValueEncoder;
-import org.apache.nifi.encrypt.StandardSensitiveValueEncoder;
-import org.apache.nifi.fingerprint.FingerprintFactory;
-import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -34,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 public class PopularVoteFlowElectionFactoryBean implements FactoryBean<PopularVoteFlowElection> {
     private static final Logger logger = LoggerFactory.getLogger(PopularVoteFlowElectionFactoryBean.class);
     private NiFiProperties properties;
-    private ExtensionManager extensionManager;
 
     @Override
     public PopularVoteFlowElection getObject() {
@@ -49,10 +42,7 @@ public class PopularVoteFlowElectionFactoryBean implements FactoryBean<PopularVo
         }
 
         final Integer maxNodes = properties.getFlowElectionMaxCandidates();
-        final PropertyEncryptor encryptor = PropertyEncryptorFactory.getPropertyEncryptor(properties);
-        final SensitiveValueEncoder sensitiveValueEncoder = new StandardSensitiveValueEncoder(properties);
-        final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor, extensionManager, sensitiveValueEncoder);
-        return new PopularVoteFlowElection(maxWaitMillis, TimeUnit.MILLISECONDS, maxNodes, fingerprintFactory);
+        return new PopularVoteFlowElection(maxWaitMillis, TimeUnit.MILLISECONDS, maxNodes);
     }
 
     @Override
@@ -67,9 +57,5 @@ public class PopularVoteFlowElectionFactoryBean implements FactoryBean<PopularVo
 
     public void setProperties(final NiFiProperties properties) {
         this.properties = properties;
-    }
-
-    public void setExtensionManager(ExtensionManager extensionManager) {
-        this.extensionManager = extensionManager;
     }
 }

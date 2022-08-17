@@ -18,6 +18,8 @@ package org.apache.nifi.documentation.example;
 
 import org.apache.nifi.NiFiServer;
 import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.controller.DecommissionTask;
+import org.apache.nifi.controller.status.history.StatusHistoryDumpFactory;
 import org.apache.nifi.diagnostics.DiagnosticsFactory;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.util.NiFiProperties;
@@ -54,4 +56,16 @@ public class NiFiServerStub implements NiFiServer {
     public DiagnosticsFactory getThreadDumpFactory() {
         return null;
     }
+
+    @Override
+    public DecommissionTask getDecommissionTask() {
+        return null;
+    }
+
+    @Override
+    public StatusHistoryDumpFactory getStatusHistoryDumpFactory() {
+        return null;
+    }
+
+
 }

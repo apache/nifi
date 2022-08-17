@@ -17,15 +17,17 @@
 package org.apache.nifi.cluster.protocol;
 
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
-import org.apache.nifi.security.xml.XmlUtils;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
+import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.stream.StreamSource;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -122,9 +124,10 @@ public class HeartbeatPayload {
     public static HeartbeatPayload unmarshal(final InputStream is) throws ProtocolException {
         try {
             final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
-            final XMLStreamReader xsr = XmlUtils.createSafeReader(is);
+            final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
+            final XMLStreamReader xsr = provider.getStreamReader(new StreamSource(is));
             return (HeartbeatPayload) unmarshaller.unmarshal(xsr);
-        } catch (final JAXBException | XMLStreamException e) {
+        } catch (final JAXBException | ProcessingException e) {
             throw new ProtocolException(e);
         }
     }

@@ -505,7 +505,7 @@
                             remoteProcessGroupUri.text(null).selectAll('title').remove();
 
                             // apply ellipsis to the remote process group name as necessary
-                            nfCanvasUtils.ellipsis(remoteProcessGroupUri, d.component.targetUris);
+                            nfCanvasUtils.ellipsis(remoteProcessGroupUri, d.component.targetUris, 'rpg-uri');
                         }).append('title').text(function (d) {
                         return d.component.name;
                     });
@@ -604,7 +604,7 @@
                             remoteProcessGroupName.text(null).selectAll('title').remove();
 
                             // apply ellipsis to the remote process group name as necessary
-                            nfCanvasUtils.ellipsis(remoteProcessGroupName, d.component.name);
+                            nfCanvasUtils.ellipsis(remoteProcessGroupName, d.component.name, 'rpg-name');
                         }).append('title').text(function (d) {
                         return d.component.name;
                     });
@@ -794,7 +794,7 @@
 
             // -------------------
             // active thread count
-            // -------------------            
+            // -------------------
 
             nfCanvasUtils.activeThreadCount(remoteProcessGroup, d, function (off) {
                 offset = off;

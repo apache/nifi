@@ -18,6 +18,7 @@
 package org.apache.nifi.graph;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
@@ -39,10 +40,9 @@ public class GremlinClientServiceIT {
     @Before
     public void setup() throws Exception {
         clientService = new TestableGremlinClientService();
-        runner = TestRunners.newTestRunner(MockProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("gremlinService", clientService);
         runner.setProperty(clientService, AbstractTinkerpopClientService.CONTACT_POINTS, "localhost");
-        runner.setProperty(MockProcessor.GREMLIN_CLIENT, "gremlinService");
         runner.enableControllerService(clientService);
         runner.assertValid();
 

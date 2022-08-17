@@ -17,8 +17,6 @@
 
 package org.apache.nifi.cluster.exception;
 
-import org.apache.nifi.cluster.exception.ClusterException;
-
 public class NoClusterCoordinatorException extends ClusterException {
     private static final long serialVersionUID = -1782098541351698293L;
 

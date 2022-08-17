@@ -45,7 +45,23 @@ public interface ExtensionManager {
      * @param additionalUrls additional URLs to add to the instance class loader
      * @return the ClassLoader for the given instance of the given type, or null if the type is not a detected extension type
      */
-    InstanceClassLoader createInstanceClassLoader(String classType, String instanceIdentifier, Bundle bundle, Set<URL> additionalUrls);
+    default InstanceClassLoader createInstanceClassLoader(String classType, String instanceIdentifier, Bundle bundle, Set<URL> additionalUrls) {
+        return createInstanceClassLoader(classType, instanceIdentifier, bundle, additionalUrls, true, null);
+    }
+
+    /**
+     * Creates the ClassLoader for the instance of the given type.
+     *
+     * @param classType the type of class to create the ClassLoader for
+     * @param instanceIdentifier the identifier of the specific instance of the classType to look up the ClassLoader for
+     * @param bundle the bundle where the classType exists
+     * @param additionalUrls additional URLs to add to the instance class loader
+     * @param registerClassLoader whether or not to register the class loader as the new classloader for the component with the given ID
+     * @param classloaderIsolationKey a classloader key that can be used in order to specify which shared class loader can be used as the instance class loader's parent, or <code>null</code> if the
+     * parent class loader should be shared or if cloning ancestors is not necessary
+     * @return the ClassLoader for the given instance of the given type, or null if the type is not a detected extension type
+     */
+    InstanceClassLoader createInstanceClassLoader(String classType, String instanceIdentifier, Bundle bundle, Set<URL> additionalUrls, boolean registerClassLoader, String classloaderIsolationKey);
 
     /**
      * Retrieves the InstanceClassLoader for the component with the given identifier.
@@ -61,6 +77,13 @@ public interface ExtensionManager {
      * @param instanceIdentifier the of a component
      */
     InstanceClassLoader removeInstanceClassLoader(String instanceIdentifier);
+
+    /**
+     * Registers the given instance class loader so that it can be later retrieved via {@link #getInstanceClassLoader(String)}
+     * @param instanceIdentifier the instance identifier
+     * @param instanceClassLoader the class loader
+     */
+    void registerInstanceClassLoader(String instanceIdentifier, InstanceClassLoader instanceClassLoader);
 
     /**
      * Closes the given ClassLoader if it is an instance of URLClassLoader.
@@ -90,9 +113,16 @@ public interface ExtensionManager {
      * Retrieves the extension classes that were loaded from the bundle with the given coordinate.
      *
      * @param bundleCoordinate the coordinate
-     * @return the classes from the bundle with that coordinate
+     * @return the definitions of the extensions from the bundle with that coordinate
      */
-    Set<Class> getTypes(BundleCoordinate bundleCoordinate);
+    Set<ExtensionDefinition> getTypes(BundleCoordinate bundleCoordinate);
+
+    /**
+     * Returns the Class that is described by the given definition
+     * @param extensionDefinition the extension definition
+     * @return the extension's class
+     */
+    Class<?> getClass(ExtensionDefinition extensionDefinition);
 
     /**
      * Retrieves the bundle for the given class loader.
@@ -108,9 +138,9 @@ public interface ExtensionManager {
      * (i.e getExtensions(Processor.class)
      *
      * @param definition the extension definition, such as Processor.class
-     * @return the set of extensions implementing the defintion
+     * @return the set of extension definitions that describe the the extensions implementing the defintion
      */
-    Set<Class> getExtensions(Class<?> definition);
+    Set<ExtensionDefinition> getExtensions(Class<?> definition);
 
     /**
      * Gets the temp component with the given type from the given bundle.
@@ -130,4 +160,5 @@ public interface ExtensionManager {
      * Logs details about the files loaded by the class loaders
      */
     void logClassLoaderDetails();
+
 }

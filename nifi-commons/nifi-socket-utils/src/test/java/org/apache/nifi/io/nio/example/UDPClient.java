@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.io.nio.example;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  */

@@ -17,15 +17,22 @@
 
 package org.apache.nifi.lookup.rest
 
+import okhttp3.Headers
 import okhttp3.Request
 import okhttp3.Response
 import org.apache.nifi.lookup.RestLookupService
 
 class MockRestLookupService extends RestLookupService {
     Response response
+    Headers headers
 
     @Override
     protected Response executeRequest(Request request) {
+        this.headers = request.headers()
         return response
+    }
+
+    Map<String, List<String>> getHeaders() {
+        headers.toMultimap()
     }
 }

@@ -19,17 +19,6 @@ package org.apache.nifi.processors.azure.cosmos.document;
 import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.implementation.ConflictException;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -55,6 +44,16 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 @EventDriven
 @Tags({ "azure", "cosmos", "insert", "record", "put" })
@@ -208,7 +207,6 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
                 session.transfer(flowFile, REL_FAILURE);
             }
         }
-        session.commit();
     }
 
     @Override

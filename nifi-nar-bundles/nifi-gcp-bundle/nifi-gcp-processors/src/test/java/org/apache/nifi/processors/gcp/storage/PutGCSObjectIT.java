@@ -21,7 +21,7 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 

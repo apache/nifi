@@ -18,22 +18,19 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-json-utils</artifactId>
-    <version>1.14.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson-databind.version}</version>
-            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.codehaus.groovy</groupId>

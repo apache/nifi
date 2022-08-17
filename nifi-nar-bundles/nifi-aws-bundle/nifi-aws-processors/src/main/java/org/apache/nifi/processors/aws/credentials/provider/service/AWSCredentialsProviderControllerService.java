@@ -19,13 +19,17 @@ package org.apache.nifi.processors.aws.credentials.provider.service;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
@@ -33,7 +37,6 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsProviderFactory;
-import org.apache.nifi.reporting.InitializationException;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 
@@ -58,6 +61,14 @@ import static org.apache.nifi.processors.aws.credentials.provider.factory.Creden
         "Default credentials support EC2 instance profile/role, default user profile, environment variables, etc. " +
         "Additional options include access key / secret key pairs, credentials file, named profile, and assume role credentials.")
 @Tags({ "aws", "credentials","provider" })
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.ACCESS_ENVIRONMENT_CREDENTIALS,
+                        explanation = "The default configuration can read environment variables and system properties for credentials"
+                )
+        }
+)
 public class AWSCredentialsProviderControllerService extends AbstractControllerService implements AWSCredentialsProviderService {
 
     public static final PropertyDescriptor ASSUME_ROLE_ARN = CredentialPropertyDescriptors.ASSUME_ROLE_ARN;
@@ -99,21 +110,19 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final Collection<ValidationResult> validationFailureResults =
-                credentialsProviderFactory.validate(validationContext);
-        return validationFailureResults;
+        return credentialsProviderFactory.validate(validationContext);
     }
 
     @OnEnabled
-    public void onConfigured(final ConfigurationContext context) throws InitializationException {
-        final Map<PropertyDescriptor, String> properties = context.getProperties();
-        properties.keySet().forEach(propertyDescriptor -> {
+    public void onConfigured(final ConfigurationContext context) {
+        final Map<PropertyDescriptor, String> evaluatedProperties = new HashMap<>(context.getProperties());
+        evaluatedProperties.keySet().forEach(propertyDescriptor -> {
             if (propertyDescriptor.isExpressionLanguageSupported()) {
-                properties.put(propertyDescriptor,
+                evaluatedProperties.put(propertyDescriptor,
                         context.getProperty(propertyDescriptor).evaluateAttributeExpressions().getValue());
             }
         });
-        credentialsProvider = credentialsProviderFactory.getCredentialsProvider(properties);
+        credentialsProvider = credentialsProviderFactory.getCredentialsProvider(evaluatedProperties);
         getLogger().debug("Using credentials provider: " + credentialsProvider.getClass());
     }
 

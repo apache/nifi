@@ -24,7 +24,7 @@ import org.apache.nifi.atlas.provenance.NiFiProvenanceEventAnalyzerFactory;
 import org.apache.nifi.atlas.resolver.NamespaceResolvers;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.HashMap;
@@ -34,9 +34,9 @@ import static org.apache.nifi.atlas.NiFiTypes.ATTR_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_QUALIFIED_NAME;
 import static org.apache.nifi.atlas.provenance.analyzer.DatabaseAnalyzerUtil.ATTR_INPUT_TABLES;
 import static org.apache.nifi.atlas.provenance.analyzer.DatabaseAnalyzerUtil.ATTR_OUTPUT_TABLES;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.when;
@@ -45,10 +45,11 @@ public class TestHive2JDBC {
 
     /**
      * If a provenance event does not have table name attributes,
-     * then a database lineage should be created.
+     * then a table lineage is created with table name 'unknown'.
+     * Database lineage cannot be sent to Atlas because hive_db is not a DataSet entity.
      */
     @Test
-    public void testDatabaseLineage() {
+    public void testUnknownTableLineage() {
         final String processorName = "PutHiveQL";
         final String transitUri = "jdbc:hive2://0.example.com:10000/database_A";
         final ProvenanceEventRecord record = Mockito.mock(ProvenanceEventRecord.class);
@@ -69,9 +70,9 @@ public class TestHive2JDBC {
         assertEquals(0, refs.getInputs().size());
         assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
-        assertEquals("hive_db", ref.getTypeName());
-        assertEquals("database_a", ref.get(ATTR_NAME));
-        assertEquals("database_a@namespace1", ref.get(ATTR_QUALIFIED_NAME));
+        assertEquals("hive_table", ref.getTypeName());
+        assertEquals("unknown", ref.get(ATTR_NAME));
+        assertEquals("database_a.unknown@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     /**

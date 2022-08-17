@@ -16,18 +16,12 @@
  */
 package org.apache.nifi.security.util.crypto
 
+
 import org.apache.nifi.components.AllowableValue
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
-import org.junit.After
-import org.junit.AfterClass
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Rule
-import org.junit.Test
-import org.junit.rules.TemporaryFolder
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -35,32 +29,16 @@ import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.security.Security
 
-@RunWith(JUnit4.class)
 class HashServiceTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(HashServiceTest.class)
 
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder()
-
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @AfterClass
-    static void tearDownOnce() throws Exception {
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
     }
 
     @Test
@@ -393,15 +371,11 @@ class HashServiceTest extends GroovyTestCase {
         // No command-line md2sum tool available
         def algorithms = HashAlgorithm.values() - HashAlgorithm.MD2
 
-        File inputFile = temporaryFolder.newFile()
-
-        // Generates a file with "apachenifi" 10 times per line for 10_000 lines (11 bytes * 10 * 10_000 ~= 1 MiB)
-        if (!inputFile.exists() || inputFile.length() == 0) {
-            inputFile.createNewFile()
-            10_000.times { int i ->
-                inputFile << "${i.toString().padLeft(5)}: ${"apachenifi " * 10}\n"
-            }
+        StringBuilder sb = new StringBuilder()
+        10_000.times { int i ->
+            sb.append("${i.toString().padLeft(5)}: ${"apachenifi " * 10}\n")
         }
+
 
         /* These values were generated using command-line tools (openssl dgst -md5, shasum [-a 1 224 256 384 512 512224 512256], rhash --sha3-224, b2sum -l 160)
          * Ex: {@code $ openssl dgst -md5 src/test/resources/HashServiceTest/largefile.txt}
@@ -428,9 +402,8 @@ class HashServiceTest extends GroovyTestCase {
         // Act
         def generatedHashes = algorithms.collectEntries { HashAlgorithm algorithm ->
             // Get a new InputStream for each iteration, or it will calculate the hash of an empty input on iterations 1 - n
-            InputStream input = inputFile.newInputStream()
+            InputStream input = new ByteArrayInputStream(sb.toString().bytes)
             String hash = HashService.hashValueStreaming(algorithm, input)
-            logger.info("${algorithm.getName().padLeft(11)}(${inputFile.path}) [${hash.length() / 2}] = ${hash}")
             [(algorithm.name), hash]
         }
 

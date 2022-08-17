@@ -89,7 +89,7 @@ public class AvroReaderWithExplicitSchema extends AvroRecordReader {
         }
 
         try {
-            genericRecord = datumReader.read(genericRecord, decoder);
+            genericRecord = datumReader.read(null, decoder);
         } catch (final EOFException eof) {
             return null;
         }

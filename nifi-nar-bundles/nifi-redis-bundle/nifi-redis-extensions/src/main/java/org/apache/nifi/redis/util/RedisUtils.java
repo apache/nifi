@@ -25,6 +25,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.redis.RedisType;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.util.StringUtils;
 import org.springframework.data.redis.connection.RedisClusterConfiguration;
 import org.springframework.data.redis.connection.RedisConfiguration;
@@ -35,6 +36,7 @@ import org.springframework.data.redis.connection.jedis.JedisClientConfiguration;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import redis.clients.jedis.JedisPoolConfig;
 
+import javax.net.ssl.SSLContext;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -234,6 +236,15 @@ public class RedisUtils {
             .required(true)
             .build();
 
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .displayName("SSL Context Service")
+            .description("If specified, this service will be used to create an SSL Context that will be used "
+                    + "to secure communications; if not specified, communications will not be secure")
+            .required(false)
+            .identifiesControllerService(RestrictedSSLContextService.class)
+            .build();
+
     public static final List<PropertyDescriptor> REDIS_CONNECTION_PROPERTY_DESCRIPTORS;
     static {
         final List<PropertyDescriptor> props = new ArrayList<>();
@@ -244,6 +255,7 @@ public class RedisUtils {
         props.add(RedisUtils.CLUSTER_MAX_REDIRECTS);
         props.add(RedisUtils.SENTINEL_MASTER);
         props.add(RedisUtils.PASSWORD);
+        props.add(RedisUtils.SSL_CONTEXT_SERVICE);
         props.add(RedisUtils.POOL_MAX_TOTAL);
         props.add(RedisUtils.POOL_MAX_IDLE);
         props.add(RedisUtils.POOL_MIN_IDLE);
@@ -260,7 +272,7 @@ public class RedisUtils {
     }
 
 
-    public static JedisConnectionFactory createConnectionFactory(final PropertyContext context, final ComponentLog logger) {
+    public static JedisConnectionFactory createConnectionFactory(final PropertyContext context, final ComponentLog logger, final SSLContext sslContext) {
         final String redisMode = context.getProperty(RedisUtils.REDIS_MODE).getValue();
         final String connectionString = context.getProperty(RedisUtils.CONNECTION_STRING).evaluateAttributeExpressions().getValue();
         final Integer dbIndex = context.getProperty(RedisUtils.DATABASE).evaluateAttributeExpressions().asInteger();
@@ -268,12 +280,21 @@ public class RedisUtils {
         final Integer timeout = context.getProperty(RedisUtils.COMMUNICATION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final JedisPoolConfig poolConfig = createJedisPoolConfig(context);
 
-        final JedisClientConfiguration jedisClientConfiguration = JedisClientConfiguration.builder()
+        JedisClientConfiguration.JedisClientConfigurationBuilder builder = JedisClientConfiguration.builder()
                 .connectTimeout(Duration.ofMillis(timeout))
                 .readTimeout(Duration.ofMillis(timeout))
                 .usePooling()
                 .poolConfig(poolConfig)
-                .build();
+                .and();
+
+        if (sslContext != null) {
+            builder = builder.useSsl()
+                    .sslParameters(sslContext.getSupportedSSLParameters())
+                    .sslSocketFactory(sslContext.getSocketFactory())
+                    .and();
+        }
+
+        final JedisClientConfiguration jedisClientConfiguration = builder.build();
         JedisConnectionFactory connectionFactory;
 
         if (RedisUtils.REDIS_MODE_STANDALONE.getValue().equals(redisMode)) {

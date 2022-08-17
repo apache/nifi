@@ -22,26 +22,26 @@
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'd3',
-                'nf.Storage',
-                'lodash-core',
+                'nf.AuthorizationStorage',
+                'lodash',
                 'moment'],
-            function ($, d3, nfStorage, _, moment) {
-                return (nf.Common = factory($, d3, nfStorage, _, moment));
+            function ($, d3, nfAuthorizationStorage, _, moment) {
+                return (nf.Common = factory($, d3, nfAuthorizationStorage, _, moment));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Common = factory(require('jquery'),
             require('d3'),
-            require('nf.Storage'),
-            require('lodash-core'),
+            require('nf.AuthorizationStorage'),
+            require('lodash'),
             require('moment')));
     } else {
         nf.Common = factory(root.$,
             root.d3,
-            root.nf.Storage,
+            root.nf.AuthorizationStorage,
             root._,
             root.moment);
     }
-}(this, function ($, d3, nfStorage, _, moment) {
+}(this, function ($, d3, nfAuthorizationStorage, _, moment) {
     'use strict';
 
     $(document).ready(function () {
@@ -63,6 +63,11 @@
         $(document).on('click', 'div.nf-checkbox', function () {
             var checkbox = $(this);
             var transitionToChecked = checkbox.hasClass('checkbox-unchecked');
+            var isDisabled = checkbox.hasClass('disabled');
+
+            if (isDisabled) {
+                return;
+            }
 
             if (transitionToChecked) {
                 checkbox.removeClass('checkbox-unchecked').addClass('checkbox-checked');
@@ -91,7 +96,7 @@
         });
 
         // shows the logout link in the message-pane when appropriate and schedule token refresh
-        if (nfStorage.getItem('jwt') !== null) {
+        if (nfAuthorizationStorage.hasToken()) {
             $('#user-logout-container').css('display', 'block');
             nfCommon.scheduleTokenRefresh();
         }
@@ -102,7 +107,7 @@
                 type: 'DELETE',
                 url: '../nifi-api/access/logout',
             }).done(function () {
-                nfStorage.removeItem("jwt");
+                nfAuthorizationStorage.removeToken();
                 window.location = '../nifi/logout';
             }).fail(nfErrorHandler.handleAjaxError);
         });
@@ -110,9 +115,9 @@
         // handle home
         $('#user-home').on('click', function () {
             if (top !== window) {
-                parent.window.location = '../nifi';
+                parent.window.location = '../nifi/';
             } else {
-                window.location = '../nifi';
+                window.location = '../nifi/';
             }
         });
     });
@@ -505,10 +510,12 @@
             var interval = nfCommon.MILLIS_PER_MINUTE;
 
             var checkExpiration = function () {
-                var expiration = nfStorage.getItemExpiration('jwt');
+                var token = nfAuthorizationStorage.getToken();
 
-                // ensure there is an expiration and token present
-                if (expiration !== null) {
+                // Parse token as expiration in number of seconds
+                if (token !== null) {
+                    var expiration = parseInt(token, 10) * nfCommon.MILLIS_PER_SECOND;
+
                     var expirationDate = new Date(expiration);
                     var now = new Date();
 
@@ -556,6 +563,35 @@
 
             // render the anonymous user text
             $('#current-user').text(nfCommon.ANONYMOUS_USER_TEXT).show();
+        },
+
+        /**
+         * Get Session Expiration from JSON Web Token Payload exp claim
+         *
+         * @param {string} jwt
+         * @return {string}
+         */
+        getSessionExpiration: function(jwt) {
+            var sessionExpiration = null;
+
+            var jwtPayload = nfCommon.getJwtPayload(jwt);
+            if (jwtPayload) {
+                sessionExpiration = jwtPayload['exp'];
+            }
+
+            return sessionExpiration;
+        },
+
+        /**
+         * Get Default Session Expiration based on current time plus 12 hours as seconds
+         *
+         * @return {string}
+         */
+        getDefaultExpiration: function() {
+            var now = new Date();
+            var expiration = now.getTime() + 43200000;
+            var expirationSeconds = Math.round(expiration / 1000);
+            return expirationSeconds.toString();
         },
 
         /**
@@ -852,11 +888,11 @@
         /**
          * Shows the logout link if appropriate.
          */
-        showLogoutLink: function () {
-            if (nfStorage.getItem('jwt') === null) {
-                $('#user-logout-container').css('display', 'none');
-            } else {
+        updateLogoutLink: function () {
+            if (nfAuthorizationStorage.hasToken()) {
                 $('#user-logout-container').css('display', 'block');
+            } else {
+                $('#user-logout-container').css('display', 'none');
             }
         },
 
@@ -963,6 +999,34 @@
             } else {
                 return null;
             }
+        },
+
+        /**
+         * Returns a tooltip for leading and/or trailing whitespace.
+         *
+         * @returns {string}
+         */
+        formatWhitespaceTooltip: function () {
+            return nfCommon.escapeHtml('The specified value contains leading and/or trailing whitespace character(s). ' +
+                'This could produce unexpected results if it was not intentional.');
+
+        },
+
+        /**
+         * Constant regex for leading and/or trailing whitespace.
+         */
+        LEAD_TRAIL_WHITE_SPACE_REGEX: /^[ \s]+|[ \s]+$/,
+
+        /**
+         * Checks the specified value for leading and/or trailing whitespace only.
+         *
+         * @argument {string} value     The value to check
+         */
+        hasLeadTrailWhitespace : function (value) {
+            if (nfCommon.isBlank(value)) {
+                return false;
+            }
+            return nfCommon.LEAD_TRAIL_WHITE_SPACE_REGEX.test(value);
         },
 
         /**
@@ -1193,29 +1257,6 @@
             } else {
                 $('#' + domId).removeClass('pointer');
             }
-        },
-
-        /**
-         * Gets an access token from the specified url.
-         *
-         * @param accessTokenUrl    The access token
-         * @returns the access token as a deferred
-         */
-        getAccessToken: function (accessTokenUrl) {
-            return $.Deferred(function (deferred) {
-                if (nfStorage.hasItem('jwt')) {
-                    $.ajax({
-                        type: 'POST',
-                        url: accessTokenUrl
-                    }).done(function (token) {
-                        deferred.resolve(token);
-                    }).fail(function () {
-                        deferred.reject();
-                    })
-                } else {
-                    deferred.resolve('');
-                }
-            }).promise();
         },
 
         /**
@@ -1785,6 +1826,20 @@
             return key.split('.').reduce(function(o,x){
                 return(typeof o === undefined || o === null)? o : (typeof o[x] == 'function')?o[x]():o[x];
             }, obj);
+        },
+
+        /**
+         * Checks if the given value has multi-lines.
+         *
+         * @param value to check
+         * @returns {boolean}
+         */
+        isMultiLine: function (value) {
+            const multiLineMatcher = /\n/.exec(value);
+            if (multiLineMatcher) {
+                return true;
+            }
+            return false;
         }
 
     };

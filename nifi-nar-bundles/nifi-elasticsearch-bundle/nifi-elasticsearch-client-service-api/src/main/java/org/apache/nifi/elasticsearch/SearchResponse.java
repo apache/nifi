@@ -20,20 +20,29 @@ package org.apache.nifi.elasticsearch;
 import java.util.List;
 import java.util.Map;
 
-public class SearchResponse {
-    private List<Map<String, Object>> hits;
-    private Map<String, Object> aggregations;
-    private long numberOfHits;
-    private int took;
-    private boolean timedOut;
+public class SearchResponse implements OperationResponse {
+    private final List<Map<String, Object>> hits;
+    private final Map<String, Object> aggregations;
+    private final long numberOfHits;
+    private final int took;
+    private final boolean timedOut;
+    private final String pitId;
+    private final String scrollId;
+    private final String searchAfter;
+    private final List<String> warnings;
 
-    public SearchResponse(List<Map<String, Object>> hits, Map<String, Object> aggregations,
-                          int numberOfHits, int took, boolean timedOut) {
+    public SearchResponse(final List<Map<String, Object>> hits, final Map<String, Object> aggregations, final String pitId,
+                          final String scrollId, final String searchAfter, final int numberOfHits, final int took, final boolean timedOut,
+                          final List<String> warnings) {
         this.hits = hits;
         this.aggregations = aggregations;
+        this.pitId = pitId;
+        this.scrollId = scrollId;
         this.numberOfHits = numberOfHits;
         this.took = took;
         this.timedOut = timedOut;
+        this.searchAfter = searchAfter;
+        this.warnings = warnings;
     }
 
     public Map<String, Object> getAggregations() {
@@ -44,6 +53,18 @@ public class SearchResponse {
         return hits;
     }
 
+    public String getPitId() {
+        return pitId;
+    }
+
+    public String getScrollId() {
+        return scrollId;
+    }
+
+    public String getSearchAfter() {
+        return searchAfter;
+    }
+
     public long getNumberOfHits() {
         return numberOfHits;
     }
@@ -52,8 +73,13 @@ public class SearchResponse {
         return timedOut;
     }
 
-    public int getTook() {
+    @Override
+    public long getTook() {
         return took;
+    }
+
+    public List<String> getWarnings() {
+        return this.warnings;
     }
 
     @Override
@@ -62,6 +88,12 @@ public class SearchResponse {
                 "hits=" + hits +
                 ", aggregations=" + aggregations +
                 ", numberOfHits=" + numberOfHits +
+                ", took=" + took +
+                ", timedOut=" + timedOut +
+                ", pitId='" + pitId + '\'' +
+                ", scrollId='" + scrollId + '\'' +
+                ", searchAfter='" + searchAfter + '\'' +
+                ", warnings='" + warnings + '\'' +
                 '}';
     }
 }

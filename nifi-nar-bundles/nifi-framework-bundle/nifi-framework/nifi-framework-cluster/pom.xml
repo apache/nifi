@@ -14,7 +14,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-framework-cluster</artifactId>
     <packaging>jar</packaging>
@@ -67,7 +67,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-web-utils</artifactId>
+            <artifactId>nifi-security-utils</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -113,22 +113,18 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson-databind.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
             <artifactId>jackson-module-jaxb-annotations</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
-            <version>${okhttp.version}</version>
         </dependency>
 
         <!-- spring dependencies -->
@@ -198,16 +194,12 @@
             </activation>
             <dependencies>
                 <dependency>
-                    <groupId>javax.xml.bind</groupId>
-                    <artifactId>jaxb-api</artifactId>
+                    <groupId>jakarta.xml.bind</groupId>
+                    <artifactId>jakarta.xml.bind-api</artifactId>
                 </dependency>
                 <dependency>
-                    <groupId>com.sun.xml.bind</groupId>
-                    <artifactId>jaxb-core</artifactId>
-                </dependency>
-                <dependency>
-                    <groupId>com.sun.xml.bind</groupId>
-                    <artifactId>jaxb-impl</artifactId>
+                    <groupId>org.glassfish.jaxb</groupId>
+                    <artifactId>jaxb-runtime</artifactId>
                 </dependency>
             </dependencies>
         </profile>

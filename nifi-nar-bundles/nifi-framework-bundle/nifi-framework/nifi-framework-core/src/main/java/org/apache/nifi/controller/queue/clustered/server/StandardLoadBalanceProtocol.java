@@ -20,6 +20,7 @@ package org.apache.nifi.controller.queue.clustered.server;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.IllegalClusterStateException;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
 import org.apache.nifi.controller.repository.ContentRepository;
@@ -112,21 +113,23 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
     @Override
     public void receiveFlowFiles(final Socket socket, final InputStream in, final OutputStream out) throws IOException {
         String peerDescription = socket.getInetAddress().getHostName();
+        String channelDescription = socket.getLocalSocketAddress() + "::" + socket.getRemoteSocketAddress();
         if (socket instanceof SSLSocket) {
             logger.debug("Connection received from peer {}", peerDescription);
 
             peerDescription = authorizer.authorize((SSLSocket) socket);
+            channelDescription = peerDescription + "::" + channelDescription;
             logger.debug("Client Identities are authorized to load balance data for peer {}", peerDescription);
         }
 
-        final int version = negotiateProtocolVersion(in, out, peerDescription);
+        final int version = negotiateProtocolVersion(in, out, peerDescription, channelDescription);
 
         if (version == SOCKET_CLOSED) {
             socket.close();
             return;
         }
         if (version == NO_DATA_AVAILABLE) {
-            logger.debug("No data is available from {}", socket.getRemoteSocketAddress());
+            logger.debug("No data is available from {}", peerDescription);
             return;
         }
 
@@ -134,7 +137,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
     }
 
 
-    protected int negotiateProtocolVersion(final InputStream in, final OutputStream out, final String peerDescription) throws IOException {
+    protected int negotiateProtocolVersion(final InputStream in, final OutputStream out, final String peerDescription, final String channelDescription) throws IOException {
         final VersionNegotiator negotiator = new StandardVersionNegotiator(1);
 
         for (int i=0;; i++) {
@@ -158,7 +161,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
 
             final boolean supported = negotiator.isVersionSupported(requestedVersion);
             if (supported) {
-                logger.debug("Peer {} requested version {} of the Load Balance Protocol. Accepting version.", peerDescription, requestedVersion);
+                logger.debug("Peer {} requested version {} of the Load Balance Protocol over Channel {}. Accepting version.", peerDescription, requestedVersion, channelDescription);
 
                 out.write(VERSION_ACCEPTED);
                 out.flush();
@@ -167,15 +170,16 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
 
             final Integer preferredVersion = negotiator.getPreferredVersion(requestedVersion);
             if (preferredVersion == null) {
-                logger.debug("Peer {} requested version {} of the Load Balance Protocol. This version is not acceptable. Aborting communications.", peerDescription, requestedVersion);
-
+                logger.debug("Peer {} requested version {} of the Load Balance Protocol over Channel {}. This version is not acceptable. Aborting communications.",
+                        peerDescription, requestedVersion, channelDescription);
                 out.write(ABORT_PROTOCOL_NEGOTIATION);
                 out.flush();
                 throw new IOException("Peer " + peerDescription + " requested that we use version " + requestedVersion
-                    + " of the Load Balance Protocol, but this version is unacceptable. Aborted communications.");
+                    + " of the Load Balance Protocol over Channel " + channelDescription + ", but this version is unacceptable. Aborted communications.");
             }
 
-            logger.debug("Peer {} requested version {} of the Load Balance Protocol. Requesting that peer change to version {} instead.", peerDescription, requestedVersion, preferredVersion);
+            logger.debug("Peer {} requested version {} of the Load Balance Protocol over Channel {}. Requesting that peer change to version {} instead.",
+                    peerDescription, requestedVersion, channelDescription, preferredVersion);
 
             out.write(REQEUST_DIFFERENT_VERSION);
             out.write(preferredVersion);
@@ -314,10 +318,77 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         logger.debug("Received Complete Transaction indicator from Peer {}", peerDescription);
         registerReceiveProvenanceEvents(flowFilesReceived, peerDescription, connectionId, startTimestamp);
         updateFlowFileRepository(flowFilesReceived, flowFileQueue);
-        transferFlowFilesToQueue(flowFilesReceived, flowFileQueue);
+
+        try {
+            transferFlowFilesToQueue(flowFilesReceived, flowFileQueue);
+        } catch (final IllegalClusterStateException e) {
+            logger.error("Failed to transferred received data into FlowFile Queue {}", flowFileQueue, e);
+            out.write(ABORT_TRANSACTION);
+            out.flush();
+
+            try {
+                cleanupRepositoriesOnTransferFailure(flowFilesReceived, flowFileQueue, "Rejected transfer due to " + e.getMessage());
+            } catch (final Exception e1) {
+                logger.error("Failed to update FlowFile/Provenance Repositories to denote that the data that could not be received should no longer be present on this node", e1);
+            }
+
+            // We log the error here and cleanup. We do not throw an Exception. If we did throw an Exception,
+            // the caller of this method would catch the Exception and decrement the Content Claims, etc. However,
+            // since we have already updated the FlowFile Repository to DROP the data, that would decrement the claims
+            // twice, which could lead to data loss.
+            return;
+        }
 
         out.write(CONFIRM_COMPLETE_TRANSACTION);
         out.flush();
+    }
+
+    private void cleanupRepositoriesOnTransferFailure(final List<RemoteFlowFileRecord> flowFilesReceived, final FlowFileQueue flowFileQueue, final String details) throws IOException {
+        dropFlowFilesFromRepository(flowFilesReceived, flowFileQueue);
+        reportDropEvents(flowFilesReceived, flowFileQueue.getIdentifier(), details);
+    }
+
+    private void dropFlowFilesFromRepository(final List<RemoteFlowFileRecord> flowFiles, final FlowFileQueue flowFileQueue) throws IOException {
+        final List<RepositoryRecord> repoRecords = flowFiles.stream()
+            .map(remoteFlowFile -> {
+                final StandardRepositoryRecord record = new StandardRepositoryRecord(flowFileQueue, remoteFlowFile.getFlowFile());
+                record.setDestination(flowFileQueue);
+                record.markForDelete();
+                return record;
+            })
+            .collect(Collectors.toList());
+
+        flowFileRepository.updateRepository(repoRecords);
+        logger.debug("Updated FlowFile Repository to note that {} FlowFiles were dropped from the system because the data received from the other node could not be transferred to the FlowFile Queue",
+            repoRecords);
+    }
+
+    private void reportDropEvents(final List<RemoteFlowFileRecord> flowFilesReceived, final String connectionId, final String details) {
+        final List<ProvenanceEventRecord> events = new ArrayList<>(flowFilesReceived.size());
+        for (final RemoteFlowFileRecord remoteFlowFile : flowFilesReceived) {
+            final FlowFileRecord flowFileRecord = remoteFlowFile.getFlowFile();
+
+            final ProvenanceEventBuilder provenanceEventBuilder = new StandardProvenanceEventRecord.Builder()
+                .fromFlowFile(flowFileRecord)
+                .setEventType(ProvenanceEventType.DROP)
+                .setComponentId(connectionId)
+                .setComponentType("Load Balanced Connection")
+                .setDetails(details);
+
+            final ContentClaim contentClaim = flowFileRecord.getContentClaim();
+            if (contentClaim != null) {
+                final ResourceClaim resourceClaim = contentClaim.getResourceClaim();
+                provenanceEventBuilder.setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
+                    contentClaim.getOffset() + flowFileRecord.getContentClaimOffset(), flowFileRecord.getSize());
+            }
+
+            final ProvenanceEventRecord provenanceEvent = provenanceEventBuilder.build();
+            events.add(provenanceEvent);
+        }
+
+        logger.debug("Updated Provenance Repository to note that {} FlowFiles were dropped from the system because the data received from the other node could not be transferred to the FlowFile " +
+            "Queue", events.size());
+        provenanceRepository.registerEvents(events);
     }
 
     private void registerReceiveProvenanceEvents(final List<RemoteFlowFileRecord> flowFiles, final String nodeName, final String connectionId, final long startTimestamp) {
@@ -361,7 +432,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         flowFileRepository.updateRepository(repoRecords);
     }
 
-    private void transferFlowFilesToQueue(final List<RemoteFlowFileRecord> remoteFlowFiles, final LoadBalancedFlowFileQueue flowFileQueue) {
+    private void transferFlowFilesToQueue(final List<RemoteFlowFileRecord> remoteFlowFiles, final LoadBalancedFlowFileQueue flowFileQueue) throws IllegalClusterStateException {
         final List<FlowFileRecord> flowFiles = remoteFlowFiles.stream().map(RemoteFlowFileRecord::getFlowFile).collect(Collectors.toList());
         flowFileQueue.receiveFromPeer(flowFiles);
     }
@@ -441,6 +512,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
 
         final long lineageStartDate = metadataIn.readLong();
         final long entryDate = metadataIn.readLong();
+        final long penaltyExpirationMillis = metadataIn.readLong();
 
         final ContentClaimTriple contentClaimTriple = consumeContent(dis, out, contentClaim, claimOffset, peerDescription, compression == LoadBalanceCompression.COMPRESS_ATTRIBUTES_AND_CONTENT);
 
@@ -453,6 +525,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             .size(contentClaimTriple.getContentLength())
             .entryDate(entryDate)
             .lineageStart(lineageStartDate, lineageStartIndex.getAndIncrement())
+            .penaltyExpirationTime(penaltyExpirationMillis)
             .build();
 
         logger.debug("Received FlowFile {} with {} attributes and {} bytes of content", flowFileRecord, attributes.size(), contentClaimTriple.getContentLength());

@@ -39,6 +39,7 @@ import org.apache.nifi.web.dao.SnippetDAO;
 import org.apache.nifi.web.util.SnippetUtils;
 
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -293,12 +294,19 @@ public class StandardSnippetDAO implements SnippetDAO {
                     throw new IllegalArgumentException(String.format("Unable to create snippet because Processor '%s' could not be found", processorDTO.getId()));
                 }
 
+                // populate Sensitive Dynamic Property Names
+                final Set<String> sensitiveDynamicPropertyNames = new LinkedHashSet<>();
+                processorConfig.setSensitiveDynamicPropertyNames(sensitiveDynamicPropertyNames);
+
                 // look for sensitive properties get the actual value
                 for (Entry<PropertyDescriptor, String> entry : processorNode.getRawPropertyValues().entrySet()) {
                     final PropertyDescriptor descriptor = entry.getKey();
 
                     if (descriptor.isSensitive()) {
                         processorProperties.put(descriptor.getName(), entry.getValue());
+                        if (descriptor.isDynamic()) {
+                            sensitiveDynamicPropertyNames.add(descriptor.getName());
+                        }
                     }
                 }
             }
@@ -318,13 +326,25 @@ public class StandardSnippetDAO implements SnippetDAO {
                     throw new IllegalArgumentException(String.format("Unable to create snippet because Controller Service '%s' could not be found", serviceDTO.getId()));
                 }
 
-                // look for sensitive properties get the actual value
-                for (Entry<PropertyDescriptor, String> entry : serviceNode.getRawPropertyValues().entrySet()) {
-                    final PropertyDescriptor descriptor = entry.getKey();
+                final Set<String> sensitiveDynamicPropertyNames = new LinkedHashSet<>();
+                serviceDTO.setSensitiveDynamicPropertyNames(sensitiveDynamicPropertyNames);
+                putSensitiveProperties(serviceNode.getRawPropertyValues(), serviceProperties, sensitiveDynamicPropertyNames);
+            }
+        }
+    }
 
-                    if (descriptor.isSensitive()) {
-                        serviceProperties.put(descriptor.getName(), entry.getValue());
-                    }
+    private void putSensitiveProperties(
+            final Map<PropertyDescriptor, String> componentPropertyValues,
+            final Map<String, String> componentProperties,
+            final Set<String> sensitiveDynamicPropertyNames
+    ) {
+        for (Entry<PropertyDescriptor, String> entry : componentPropertyValues.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+
+            if (descriptor.isSensitive()) {
+                componentProperties.put(descriptor.getName(), entry.getValue());
+                if (descriptor.isDynamic()) {
+                    sensitiveDynamicPropertyNames.add(descriptor.getName());
                 }
             }
         }

@@ -18,9 +18,26 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-api</artifactId>
     <packaging>jar</packaging>
-    <!-- This module should kept to having no dependencies -->
- </project>
+
+    <!--
+        This module should have no external dependencies. The following dependency is acceptable ONLY
+        due to the fact that it is an optional dependency, and NiFi functions perfectly without it.
+        Adding a dependency on nifi-api does not bring in any transitive dependencies.
+        The dependency is provided here because Swagger Annotations are used within the Versioned Components
+        objects of the NiFi API in order to provide documentation for generating REST API's, generating clients, etc.
+        While NiFi does not need these, any application that wants these capabilities can achieve this
+        simply by adding their own dependency on Swagger Annotations.
+    -->
+    <dependencies>
+        <dependency>
+            <groupId>io.swagger</groupId>
+            <artifactId>swagger-annotations</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+</project>

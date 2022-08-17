@@ -17,6 +17,9 @@
 
 package org.apache.nifi.annotation.lifecycle;
 
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.processor.ProcessContext;
+
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
@@ -32,7 +35,11 @@ import java.lang.annotation.Target;
  * </p>
  *
  * <p>
- * Methods with this annotation must take zero arguments.
+ * Methods with this annotation are permitted to take no arguments or to take a
+ * single argument. If using a single argument, that argument must be of type
+ * {@link ConfigurationContext} if the component is a ReportingTask or a
+ * ControllerService. If the component is a Processor, then the argument must be
+ * of type {@link ProcessContext}.
  * </p>
  *
  * <p>

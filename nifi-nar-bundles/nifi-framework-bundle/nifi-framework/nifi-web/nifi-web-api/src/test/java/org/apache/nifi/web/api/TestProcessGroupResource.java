@@ -17,7 +17,7 @@
 package org.apache.nifi.web.api;
 
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,7 +53,7 @@ public class TestProcessGroupResource {
         when(versionedFlowSnapshot.getFlowContents()).thenReturn(versionedProcessGroup);
         when(versionedProcessGroup.getName()).thenReturn(flowName);
 
-        final Response response = processGroupResource.exportProcessGroup(groupId);
+        final Response response = processGroupResource.exportProcessGroup(groupId, false);
 
         final VersionedFlowSnapshot resultEntity = (VersionedFlowSnapshot)response.getEntity();
 

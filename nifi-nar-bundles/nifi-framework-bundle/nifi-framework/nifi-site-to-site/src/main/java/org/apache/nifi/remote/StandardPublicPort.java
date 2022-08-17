@@ -109,7 +109,7 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
 
         super(id, name, type, scheduler);
 
-        setScheduldingPeriod(MINIMUM_SCHEDULING_NANOS + " nanos");
+        setSchedulingPeriod(MINIMUM_SCHEDULING_NANOS + " nanos");
         this.authorizer = authorizer;
         this.secure = secure;
         this.identityMappings = identityMappings;
@@ -584,6 +584,10 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
             } else {
                 throw new ProcessException(e);
             }
+        } catch (final InterruptedException e) {
+            logger.error("The NiFi DoS filter has interrupted a long running session. If this is undesired, configure a longer web request timeout value in nifi.properties using '{}'",
+                    NiFiProperties.WEB_REQUEST_TIMEOUT);
+            throw new ProcessException(e);
         } catch (final Exception e) {
             throw new ProcessException(e);
         }

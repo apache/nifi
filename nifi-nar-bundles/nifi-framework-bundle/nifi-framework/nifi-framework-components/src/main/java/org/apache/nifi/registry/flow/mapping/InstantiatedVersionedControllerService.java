@@ -17,7 +17,7 @@
 
 package org.apache.nifi.registry.flow.mapping;
 
-import org.apache.nifi.registry.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedControllerService;
 
 public class InstantiatedVersionedControllerService extends VersionedControllerService implements InstantiatedVersionedComponent {
     private final String instanceId;
@@ -29,7 +29,7 @@ public class InstantiatedVersionedControllerService extends VersionedControllerS
     }
 
     @Override
-    public String getInstanceId() {
+    public String getInstanceIdentifier() {
         return instanceId;
     }
 

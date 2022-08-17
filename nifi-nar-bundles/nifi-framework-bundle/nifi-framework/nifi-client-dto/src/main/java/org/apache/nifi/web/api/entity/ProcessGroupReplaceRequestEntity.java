@@ -30,7 +30,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class ProcessGroupReplaceRequestEntity extends FlowUpdateRequestEntity<ProcessGroupReplaceRequestDTO> {
     private VersionedFlowSnapshot versionedFlowSnapshot;
 
-    @ApiModelProperty(value = "Returns the Versioned Flow to replace with", readOnly = true)
+    @ApiModelProperty(value = "Returns the Versioned Flow to replace with", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public VersionedFlowSnapshot getVersionedFlowSnapshot() {
         return versionedFlowSnapshot;
     }

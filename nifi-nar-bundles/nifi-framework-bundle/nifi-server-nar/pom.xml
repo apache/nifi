@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework-bundle</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-server-nar</artifactId>
     <packaging>nar</packaging>
@@ -30,7 +30,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-nar</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
@@ -40,9 +40,8 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-nar-loading-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
-
         <!-- Dependencies provided by nifi-framework-nar -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -113,49 +112,41 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
-            <version>${spring.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-aop</artifactId>
-            <version>${spring.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-beans</artifactId>
-            <version>${spring.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-core</artifactId>
-            <version>${spring.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
-            <version>${spring.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-expression</artifactId>
-            <version>${spring.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-jdbc</artifactId>
-            <version>${spring.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-tx</artifactId>
-            <version>${spring.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

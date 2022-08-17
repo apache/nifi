@@ -23,7 +23,7 @@ import org.junit.Test;
 public class EmbeddedQuestDbStatusHistoryRepositoryForNodeTest extends AbstractEmbeddedQuestDbStatusHistoryRepositoryTest {
 
     @Test
-    public void testReadingEmptyRepository() throws Exception {
+    public void testReadingEmptyRepository() {
         // when
         final StatusHistory nodeStatusHistory = testSubject.getNodeStatusHistory(START, END);
         final GarbageCollectionHistory garbageCollectionHistory = testSubject.getGarbageCollectionHistory(START, END);

@@ -30,18 +30,31 @@ import org.apache.nifi.serialization.record.RecordSchema
 import org.apache.nifi.serialization.record.type.RecordDataType
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.junit.Assert
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 
 class ElasticSearchLookupService_IT {
     private TestRunner runner
     private ElasticSearchClientService service
     private ElasticSearchLookupService lookupService
 
-    static String TYPE  = System.getProperty("type_name")
+    @BeforeAll
+    static void beforeAll() throws Exception {
+        assumeTrue(ElasticSearchClientService_IT.isElasticsearchSetup(), "Elasticsearch integration-tests not setup")
 
-    @Before
+        System.out.println(
+                String.format("%n%n%n%n%n%n%n%n%n%n%n%n%n%n%nTYPE: %s%nVERSION: %s%nFLAVOUR %s%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n",
+                        ElasticSearchClientService_IT.TYPE, ElasticSearchClientService_IT.VERSION, ElasticSearchClientService_IT.FLAVOUR)
+        )
+    }
+
+    @BeforeEach
     void before() throws Exception {
         runner = TestRunners.newTestRunner(TestControllerServiceProcessor.class)
         service = new ElasticSearchClientServiceImpl()
@@ -51,12 +64,11 @@ class ElasticSearchLookupService_IT {
         runner.setProperty(service, ElasticSearchClientService.HTTP_HOSTS, "http://localhost:9400")
         runner.setProperty(service, ElasticSearchClientService.CONNECT_TIMEOUT, "10000")
         runner.setProperty(service, ElasticSearchClientService.SOCKET_TIMEOUT, "60000")
-        runner.setProperty(service, ElasticSearchClientService.RETRY_TIMEOUT, "60000")
         runner.setProperty(TestControllerServiceProcessor.CLIENT_SERVICE, "Client Service")
         runner.setProperty(TestControllerServiceProcessor.LOOKUP_SERVICE, "Lookup Service")
         runner.setProperty(lookupService, ElasticSearchLookupService.CLIENT_SERVICE, "Client Service")
         runner.setProperty(lookupService, ElasticSearchLookupService.INDEX, "user_details")
-        runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, TYPE)
+        setTypeOnLookupService()
 
         try {
             runner.enableControllerService(service)
@@ -64,6 +76,14 @@ class ElasticSearchLookupService_IT {
         } catch (Exception ex) {
             ex.printStackTrace()
             throw ex
+        }
+    }
+
+    void setTypeOnLookupService() {
+        if (ElasticSearchClientService_IT.TYPE != null) {
+            runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, ElasticSearchClientService_IT.TYPE)
+        } else {
+            runner.removeProperty(lookupService, ElasticSearchLookupService.TYPE)
         }
     }
 
@@ -87,12 +107,12 @@ class ElasticSearchLookupService_IT {
         def coordinates = [ _id: "2" ]
         Optional<Record> result = lookupService.lookup(coordinates)
 
-        Assert.assertNotNull(result)
-        Assert.assertTrue(result.isPresent())
+        assertNotNull(result)
+        assertTrue(result.isPresent())
         def record = result.get()
-        Assert.assertEquals("jane.doe@company.com", record.getAsString("email"))
-        Assert.assertEquals("098-765-4321", record.getAsString("phone"))
-        Assert.assertEquals("GHIJK", record.getAsString("accessKey"))
+        assertEquals("jane.doe@company.com", record.getAsString("email"))
+        assertEquals("098-765-4321", record.getAsString("phone"))
+        assertEquals("GHIJK", record.getAsString("accessKey"))
     }
 
     @Test
@@ -107,7 +127,7 @@ class ElasticSearchLookupService_IT {
         ]
 
         coordinates.each { coordinate ->
-            def exception
+            def exception = null
 
             try {
                 lookupService.lookup(coordinate)
@@ -115,8 +135,8 @@ class ElasticSearchLookupService_IT {
                 exception = ex
             }
 
-            Assert.assertNotNull(exception)
-            Assert.assertTrue(exception instanceof LookupFailureException)
+            assertNotNull(exception)
+            assertTrue(exception instanceof LookupFailureException)
         }
     }
 
@@ -125,12 +145,12 @@ class ElasticSearchLookupService_IT {
         def coordinates = [ "phone": "098-765-4321", "email": "jane.doe@company.com" ]
         Optional<Record> result = lookupService.lookup(coordinates)
 
-        Assert.assertNotNull(result)
-        Assert.assertTrue(result.isPresent())
+        assertNotNull(result)
+        assertTrue(result.isPresent())
         def record = result.get()
-        Assert.assertEquals("jane.doe@company.com", record.getAsString("email"))
-        Assert.assertEquals("098-765-4321", record.getAsString("phone"))
-        Assert.assertEquals("GHIJK", record.getAsString("accessKey"))
+        assertEquals("jane.doe@company.com", record.getAsString("email"))
+        assertEquals("098-765-4321", record.getAsString("phone"))
+        assertEquals("GHIJK", record.getAsString("accessKey"))
     }
 
     @Test
@@ -143,33 +163,33 @@ class ElasticSearchLookupService_IT {
 
         runner.disableControllerService(lookupService)
         runner.setProperty(lookupService, ElasticSearchLookupService.INDEX, "nested")
-        runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, TYPE)
+        setTypeOnLookupService()
         runner.enableControllerService(lookupService)
 
         Optional<Record> response = lookupService.lookup(coordinates)
-        Assert.assertNotNull(response)
-        Assert.assertTrue(response.isPresent())
+        assertNotNull(response)
+        assertTrue(response.isPresent())
         def rec = response.get()
-        Assert.assertEquals("Hello, world", rec.getValue("msg"))
+        assertEquals("Hello, world", rec.getValue("msg"))
         def subRec = getSubRecord(rec, "subField")
-        Assert.assertNotNull(subRec)
+        assertNotNull(subRec)
         def deeper = getSubRecord(subRec, "deeper")
-        Assert.assertNotNull(deeper)
+        assertNotNull(deeper)
         def deepest = getSubRecord(deeper, "deepest")
-        Assert.assertNotNull(deepest)
-        Assert.assertEquals("The sky is blue", deepest.getAsString("super_secret"))
+        assertNotNull(deepest)
+        assertEquals("The sky is blue", deepest.getAsString("super_secret"))
     }
 
     @Test
     void testDetectedSchema() throws LookupFailureException {
         runner.disableControllerService(lookupService)
         runner.setProperty(lookupService, ElasticSearchLookupService.INDEX, "complex")
-        runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, TYPE)
+        setTypeOnLookupService()
         runner.enableControllerService(lookupService)
         def coordinates = ["_id": "1" ]
 
         Optional<Record> response = lookupService.lookup(coordinates)
-        Assert.assertNotNull(response)
+        assertNotNull(response)
         Record rec = response.get()
         Record subRec = getSubRecord(rec, "subField")
 
@@ -178,15 +198,15 @@ class ElasticSearchLookupService_IT {
         def result = path.evaluate(r2)
         result.selectedFields.findFirst().get().updateValue(1234567890L)
 
-        Assert.assertNotNull(rec)
-        Assert.assertNotNull(subRec)
-        Assert.assertEquals("Hello, world", rec.getValue("msg"))
-        Assert.assertNotNull(rec.getValue("subField"))
-        Assert.assertEquals(new Long(100000), subRec.getValue("longField"))
-        Assert.assertEquals("2018-04-10T12:18:05Z", subRec.getValue("dateField"))
+        assertNotNull(rec)
+        assertNotNull(subRec)
+        assertEquals("Hello, world", rec.getValue("msg"))
+        assertNotNull(rec.getValue("subField"))
+        assertEquals(new Long(100000), subRec.getValue("longField"))
+        assertEquals("2018-04-10T12:18:05Z", subRec.getValue("dateField"))
     }
 
-    Record getSubRecord(Record rec, String fieldName) {
+    static Record getSubRecord(Record rec, String fieldName) {
         RecordSchema schema = rec.schema
         RecordSchema subSchema = ((RecordDataType)schema.getField(fieldName).get().dataType).childSchema
         rec.getAsRecord(fieldName, subSchema)
@@ -198,16 +218,16 @@ class ElasticSearchLookupService_IT {
         runner.setProperty(lookupService, "\$.subField.longField", "/longField2")
         runner.setProperty(lookupService, '$.subField.dateField', '/dateField2')
         runner.setProperty(lookupService, ElasticSearchLookupService.INDEX, "nested")
-        runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, TYPE)
+        setTypeOnLookupService()
         runner.enableControllerService(lookupService)
 
         def coordinates = ["msg": "Hello, world"]
         def result = lookupService.lookup(coordinates)
-        Assert.assertTrue(result.isPresent())
+        assertTrue(result.isPresent())
         def rec = result.get()
         ["dateField2": "2018-08-14T10:08:00Z", "longField2": 150000L].each { field ->
             def value = rec.getValue(field.key)
-            Assert.assertEquals(field.value, value)
+            assertEquals(field.value, value)
         }
     }
 }

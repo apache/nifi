@@ -32,6 +32,7 @@ import org.apache.nifi.controller.queue.ConnectionEventListener;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueFactory;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
+import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.FlowFileFilter;
@@ -58,6 +59,7 @@ import java.util.stream.Collectors;
  * component.
  */
 public final class StandardConnection implements Connection, ConnectionEventListener {
+    public static final long DEFAULT_Z_INDEX = 0;
 
     private final String id;
     private final AtomicReference<ProcessGroup> processGroup;
@@ -67,7 +69,7 @@ public final class StandardConnection implements Connection, ConnectionEventList
     private final AtomicReference<Connectable> destination;
     private final AtomicReference<Collection<Relationship>> relationships;
     private final AtomicInteger labelIndex = new AtomicInteger(1);
-    private final AtomicLong zIndex = new AtomicLong(0L);
+    private final AtomicLong zIndex = new AtomicLong(DEFAULT_Z_INDEX);
     private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
     private final ProcessScheduler scheduler;
     private final int hashCode;
@@ -84,7 +86,7 @@ public final class StandardConnection implements Connection, ConnectionEventList
         relationships = new AtomicReference<>(Collections.unmodifiableCollection(builder.relationships));
         scheduler = builder.scheduler;
 
-        flowFileQueue = builder.flowFileQueueFactory.createFlowFileQueue(LoadBalanceStrategy.DO_NOT_LOAD_BALANCE, null, this);
+        flowFileQueue = builder.flowFileQueueFactory.createFlowFileQueue(LoadBalanceStrategy.DO_NOT_LOAD_BALANCE, null, this, processGroup.get());
         hashCode = new HashCodeBuilder(7, 67).append(id).toHashCode();
     }
 
@@ -341,12 +343,12 @@ public final class StandardConnection implements Connection, ConnectionEventList
 
     @Override
     public List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords) {
-        return flowFileQueue.poll(filter, expiredRecords);
+        return flowFileQueue.poll(filter, expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 
     @Override
     public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords) {
-        return flowFileQueue.poll(expiredRecords);
+        return flowFileQueue.poll(expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 
     @Override
@@ -456,6 +458,9 @@ public final class StandardConnection implements Connection, ConnectionEventList
         }
 
         public StandardConnection build() {
+            if (processGroup == null) {
+                throw new IllegalStateException("Cannot build a Connection without a Process Group");
+            }
             if (source == null) {
                 throw new IllegalStateException("Cannot build a Connection without a Source");
             }
@@ -493,17 +498,40 @@ public final class StandardConnection implements Connection, ConnectionEventList
             throw new IllegalStateException("Queue not empty for " + this.getIdentifier());
         }
 
-        if (source.isRunning()) {
-            if (!ConnectableType.FUNNEL.equals(source.getConnectableType())) {
-                throw new IllegalStateException("Source of Connection (" + source.getIdentifier() + ") is running");
-            }
-        }
+        // The source must be stopped unless it is a Funnel. Funnels cannot be stopped & started. But if the source is a Funnel,
+        // it means that its sources must also be stopped, and the check must go on recursively.
+        // This is important for a case in which we have a cluster where two processors (for example) are connected with a funnel in between.
+        // In this case, if a user deletes the connection between the funnel and its destination, the web request that is made will be done in two
+        // phases: (1) Verify that the request is valid and (2) Delete the connection. But if we don't recursively ensure that the upstream components
+        // are stopped, we could have all nodes in the cluster verify the request is valid in the first phase. But before the second phase occurs, one
+        // node may now have data within the Connection, so the second phase (the delete) will fail. In that situation, the node's dataflow will differ
+        // from the rest of the cluster, and the node will be kicked out of the cluster. To avoid this, we simply ensure that the source is stopped,
+        // and if the source is a funnel (which can't be stopped) that its sources are stopped.
+        verifySourceStoppedOrFunnel(this);
 
         final Connectable dest = destination.get();
         if (dest.isRunning()) {
             if (!ConnectableType.FUNNEL.equals(dest.getConnectableType())) {
                 throw new IllegalStateException("Destination of Connection (" + dest.getIdentifier() + ") is running");
             }
+        }
+    }
+
+    private void verifySourceStoppedOrFunnel(final Connection connection) {
+        final Connectable sourceComponent = connection.getSource();
+        if (!sourceComponent.isRunning()) {
+            return;
+        }
+
+        final ConnectableType connectableType = sourceComponent.getConnectableType();
+        if (connectableType != ConnectableType.FUNNEL) {
+            // Source is running and not a funnel. Source is not considered stopped.
+            throw new IllegalStateException("Upstream component of Connection (" + sourceComponent + ") is running");
+        }
+
+        // Source is a funnel and is running. We need to then check all of its upstream components.
+        for (final Connection incoming : sourceComponent.getIncomingConnections()) {
+            verifySourceStoppedOrFunnel(incoming);
         }
     }
 

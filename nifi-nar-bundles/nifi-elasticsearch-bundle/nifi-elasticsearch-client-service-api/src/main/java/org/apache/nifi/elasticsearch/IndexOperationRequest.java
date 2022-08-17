@@ -21,17 +21,18 @@ import java.util.Arrays;
 import java.util.Map;
 
 /**
- * A POJO that represents an "operation on an index." It should not be confused with just indexing documents, as it
+ * A POJO that represents an "operation on an index". It should not be confused with just indexing documents, as it
  * covers all CRUD-related operations that can be executed against an Elasticsearch index with documents.
+ * Type is optional and  will not be used in future versions of Elasticsearch.
  */
 public class IndexOperationRequest {
-    private String index;
-    private String type;
-    private String id;
-    private Map<String, Object> fields;
-    private Operation operation;
+    private final String index;
+    private final String type;
+    private final String id;
+    private final Map<String, Object> fields;
+    private final Operation operation;
 
-    public IndexOperationRequest(String index, String type, String id, Map<String, Object> fields, Operation operation) {
+    public IndexOperationRequest(final String index, final String type, final String id, final Map<String, Object> fields, final Operation operation) {
         this.index = index;
         this.type = type;
         this.id = id;
@@ -65,9 +66,9 @@ public class IndexOperationRequest {
         Index("index"),
         Update("update"),
         Upsert("upsert");
-        String value;
+        private final String value;
 
-        Operation(String value) {
+        Operation(final String value) {
             this.value = value;
         }
 
@@ -80,5 +81,20 @@ public class IndexOperationRequest {
                     .filter(o -> o.getValue().equalsIgnoreCase(value)).findFirst()
                     .orElseThrow(() -> new IllegalArgumentException(String.format("Unknown Index Operation %s", value)));
         }
+
+        public static String[] allValues() {
+            return Arrays.stream(Operation.values()).map(Operation::getValue).sorted().toArray(String[]::new);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "IndexOperationRequest{" +
+                "index='" + index + '\'' +
+                ", type='" + type + '\'' +
+                ", id='" + id + '\'' +
+                ", fields=" + fields +
+                ", operation=" + operation +
+                '}';
     }
 }

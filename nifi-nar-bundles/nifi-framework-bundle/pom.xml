@@ -17,210 +17,232 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-framework-bundle</artifactId>
     <packaging>pom</packaging>
     <description>NiFi: Framework Bundle</description>
     <properties>
-        <jersey.version>2.26</jersey.version>
-        <spring.version>4.3.19.RELEASE</spring.version>
-        <spring.security.version>4.2.13.RELEASE</spring.security.version>
+        <curator.version>5.3.0</curator.version>
     </properties>
     <modules>
         <module>nifi-framework</module>
         <module>nifi-framework-nar</module>
         <module>nifi-server-nar</module>
         <module>nifi-headless-server-nar</module>
-        <module>nifi-stateless-bundle</module>
+        <module>nifi-framework-external-resource-utils</module>
     </modules>
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-custom-ui-utilities</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ui-extension</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-data-provenance-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security-utils-api</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-xml-processing</artifactId>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-expression-language</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mock</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-framework-external-resource-utils</artifactId>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-site-to-site-client</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-logging-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-cluster-protocol</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-cluster</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-runtime</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-client-dto</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-content-access</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-core-api</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-nar-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-nar-loading-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-site-to-site</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-core</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-properties-loader</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-property-protection-api</artifactId>
+                <version>1.18.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-property-protection-loader</artifactId>
+                <version>1.18.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-property-protection-factory</artifactId>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-authorization</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-authorization-providers</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-user-actions</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-administration</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-jetty</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-optimistic-locking</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-security</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-documentation</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-file-authorizer</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-shell-authorizer</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-authorizer</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-parameter</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>com.ibm.icu</groupId>
                 <artifactId>icu4j</artifactId>
-                <version>60.2</version>
+                <version>68.2</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.tika</groupId>
                 <artifactId>tika-core</artifactId>
-                <version>1.24</version>
+                <version>2.4.1</version>
             </dependency>
             <dependency>
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
-                <version>1.14</version>
             </dependency>
             <dependency>
                 <groupId>javax.ws.rs</groupId>
@@ -228,157 +250,36 @@
                 <version>2.1</version>
             </dependency>
             <dependency>
-                <groupId>org.glassfish.jersey.core</groupId>
-                <artifactId>jersey-client</artifactId>
-                <version>${jersey.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.jersey.media</groupId>
-                <artifactId>jersey-media-json-jackson</artifactId>
-                <version>${jersey.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.fasterxml.jackson.module</groupId>
-                        <artifactId>jackson-module-jaxb-annotations</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.fasterxml.jackson.core</groupId>
-                        <artifactId>jackson-databind</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.fasterxml.jackson.core</groupId>
-                        <artifactId>jackson-annotations</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.jersey.media</groupId>
-                <artifactId>jersey-media-multipart</artifactId>
-                <version>${jersey.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.jersey.ext</groupId>
-                <artifactId>jersey-spring4</artifactId>
-                <version>${jersey.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.jersey.core</groupId>
-                <artifactId>jersey-common</artifactId>
-                <version>${jersey.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.jersey.inject</groupId>
-                <artifactId>jersey-hk2</artifactId>
-                <version>${jersey.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-lang3</artifactId>
-                <version>3.9</version>
-            </dependency>
-            <dependency>
                 <groupId>org.quartz-scheduler</groupId>
                 <artifactId>quartz</artifactId>
                 <version>2.3.2</version>
-                <exclusions>
-                    <!-- | Exclude the quartz 2.2.1 bundled version of c3p0
-                    because it is lgpl licensed | We also don't use the JDBC related features
-                    of quartz for which the dependency would matter -->
-                    <exclusion>
-                        <groupId>c3p0</groupId>
-                        <artifactId>c3p0</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>io.swagger</groupId>
-                <artifactId>swagger-annotations</artifactId>
-                <version>1.6.0</version>
-            </dependency>
-            <dependency>
-                <groupId>commons-io</groupId>
-                <artifactId>commons-io</artifactId>
-                <version>2.6</version>
-            </dependency>
-            <dependency>
-                <groupId>javax.mail</groupId>
-                <artifactId>mail</artifactId>
-                <version>1.4.7</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.httpcomponents</groupId>
-                <artifactId>httpclient</artifactId>
-                <version>4.5.5</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>commons-logging</groupId>
-                        <artifactId>commons-logging</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
             <dependency>
                 <groupId>com.h2database</groupId>
                 <artifactId>h2</artifactId>
-                <version>1.4.199</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>28.0-jre</version>
+                <version>${h2.version}</version>
             </dependency>
 
             <!-- open id connect - override transitive dependency version ranges -->
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>oauth2-oidc-sdk</artifactId>
-                <version>6.16.2</version>
-            </dependency>
-            <dependency>
-                <groupId>net.minidev</groupId>
-                <artifactId>json-smart</artifactId>
-                <version>2.3</version>
+                <version>9.10.2</version>
             </dependency>
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>lang-tag</artifactId>
-                <version>1.4.4</version>
+                <version>1.5</version>
             </dependency>
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>
-                <version>7.9</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.jsonwebtoken</groupId>
-                <artifactId>jjwt</artifactId>
-                <version>0.6.0</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.fasterxml.jackson.core</groupId>
-                        <artifactId>jackson-databind</artifactId>
-                    </exclusion>
-                </exclusions>
+                <version>9.11.2</version>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.jettison</groupId>
                 <artifactId>jettison</artifactId>
                 <version>1.3.7</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-jdbc</artifactId>
-                <version>${spring.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-web</artifactId>
-                <version>${spring.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework.security</groupId>
@@ -524,53 +425,21 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>org.springframework.security.extensions</groupId>
-                <artifactId>spring-security-saml2-core</artifactId>
-                <version>1.0.10.RELEASE</version>
-                <exclusions>
-                    <!-- Excluded to avoid inclusion of different version of Bouncy Castle Provider -->
-                    <exclusion>
-                        <groupId>org.bouncycastle</groupId>
-                        <artifactId>bcprov-ext-jdk15on</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>commons-logging</groupId>
-                        <artifactId>commons-logging</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
                 <groupId>org.springframework.security.kerberos</groupId>
                 <artifactId>spring-security-kerberos-core</artifactId>
                 <version>1.0.1.RELEASE</version>
             </dependency>
+            <!-- Override xmlsec from spring-security-saml2-service-provider -->
             <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-aop</artifactId>
-                <version>${spring.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-core</artifactId>
-                <version>${spring.version}</version>
+                <groupId>org.apache.santuario</groupId>
+                <artifactId>xmlsec</artifactId>
+                <version>2.3.1</version>
                 <exclusions>
-                    <!-- <artifactId>jcl-over-slf4j</artifactId> is used
-                    in dependencies section -->
                     <exclusion>
-                        <groupId>commons-logging</groupId>
-                        <artifactId>commons-logging</artifactId>
+                        <groupId>com.fasterxml.woodstox</groupId>
+                        <artifactId>woodstox-core</artifactId>
                     </exclusion>
                 </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-beans</artifactId>
-                <version>${spring.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-context</artifactId>
-                <version>${spring.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -590,7 +459,7 @@
             <dependency>
                 <groupId>org.apache.curator</groupId>
                 <artifactId>curator-test</artifactId>
-                <version>4.2.0</version>
+                <version>${curator.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -604,15 +473,21 @@
                 <artifactId>cglib-nodep</artifactId>
                 <version>3.3.0</version>
             </dependency>
+            <!-- metrics-core marked as provided in zookeeper -->
+            <dependency>
+                <groupId>io.dropwizard.metrics</groupId>
+                <artifactId>metrics-core</artifactId>
+                <version>4.1.12.1</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper</artifactId>
-                <version>3.5.6</version>
+                <version>${zookeeper.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.curator</groupId>
                 <artifactId>curator-framework</artifactId>
-                <version>4.2.0</version>
+                <version>${curator.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.apache.zookeeper</groupId>
@@ -623,7 +498,7 @@
             <dependency>
                 <groupId>org.apache.curator</groupId>
                 <artifactId>curator-recipes</artifactId>
-                <version>4.2.0</version>
+                <version>${curator.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.apache.zookeeper</groupId>
@@ -634,7 +509,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
-                <version>1.20</version>
+                <version>1.21</version>
             </dependency>
             <dependency>
                 <groupId>commons-net</groupId>
@@ -642,10 +517,9 @@
                 <version>3.6</version>
             </dependency>
             <dependency>
-                <!-- Explicitly force Netty to 3.7.1 due to CVE-2014-0193 -->
                 <groupId>io.netty</groupId>
                 <artifactId>netty</artifactId>
-                <version>3.7.1.Final</version>
+                <version>${netty.3.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

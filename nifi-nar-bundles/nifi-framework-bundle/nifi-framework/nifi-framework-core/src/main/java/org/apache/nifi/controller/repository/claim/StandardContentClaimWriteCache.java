@@ -17,6 +17,10 @@
 
 package org.apache.nifi.controller.repository.claim;
 
+import org.apache.nifi.controller.repository.ContentRepository;
+import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
+import org.apache.nifi.controller.repository.metrics.PerformanceTrackingOutputStream;
+
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -25,20 +29,20 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.nifi.controller.repository.ContentRepository;
-
 public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
     private final ContentRepository contentRepo;
     private final Map<ResourceClaim, OutputStream> streamMap = new ConcurrentHashMap<>();
     private final Queue<ContentClaim> queue = new LinkedList<>();
+    private final PerformanceTracker performanceTracker;
     private final int bufferSize;
 
-    public StandardContentClaimWriteCache(final ContentRepository contentRepo) {
-        this(contentRepo, 8192);
+    public StandardContentClaimWriteCache(final ContentRepository contentRepo, final PerformanceTracker performanceTracker) {
+        this(contentRepo, performanceTracker, 8192);
     }
 
-    public StandardContentClaimWriteCache(final ContentRepository contentRepo, final int bufferSize) {
+    public StandardContentClaimWriteCache(final ContentRepository contentRepo, final PerformanceTracker performanceTracker, final int bufferSize) {
         this.contentRepo = contentRepo;
+        this.performanceTracker = performanceTracker;
         this.bufferSize = bufferSize;
     }
 
@@ -67,7 +71,8 @@ public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
 
     private OutputStream registerStream(final ContentClaim contentClaim) throws IOException {
         final OutputStream out = contentRepo.write(contentClaim);
-        final OutputStream buffered = new BufferedOutputStream(out, bufferSize);
+        final OutputStream performanceTrackingOut = new PerformanceTrackingOutputStream(out, performanceTracker);
+        final OutputStream buffered = new BufferedOutputStream(performanceTrackingOut, bufferSize);
         streamMap.put(contentClaim.getResourceClaim(), buffered);
         return buffered;
     }

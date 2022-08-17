@@ -16,20 +16,19 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.nifi.processors.aws.kinesis.stream.PutKinesisStream;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * This test contains both unit and integration test (integration tests are ignored by default).
@@ -42,7 +41,7 @@ public class ITPutKinesisStream {
     private TestRunner runner;
     protected final static String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         runner = TestRunners.newTestRunner(PutKinesisStream.class);
         runner.setProperty(PutKinesisStream.KINESIS_STREAM_NAME, "kstream");
@@ -50,7 +49,7 @@ public class ITPutKinesisStream {
         runner.assertValid();
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         runner = null;
     }

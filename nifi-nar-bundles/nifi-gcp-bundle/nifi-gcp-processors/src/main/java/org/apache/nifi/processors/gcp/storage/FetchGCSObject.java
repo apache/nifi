@@ -22,24 +22,34 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
-import com.google.common.collect.ImmutableList;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.input.BoundedInputStream;
+import org.apache.commons.io.output.CountingOutputStream;
+import org.apache.commons.io.output.NullOutputStream;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -159,21 +169,78 @@ public class FetchGCSObject extends AbstractGCSProcessor {
             .sensitive(true)
             .build();
 
+    public static final PropertyDescriptor RANGE_START = new PropertyDescriptor.Builder()
+            .name("gcs-object-range-start")
+            .displayName("Range Start")
+            .description("The byte position at which to start reading from the object. An empty value or a value of " +
+                    "zero will start reading at the beginning of the object.")
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
+            .build();
+
+    public static final PropertyDescriptor RANGE_LENGTH = new PropertyDescriptor.Builder()
+            .name("gcs-object-range-length")
+            .displayName("Range Length")
+            .description("The number of bytes to download from the object, starting from the Range Start. An empty " +
+                    "value or a value that extends beyond the end of the object will read to the end of the object.")
+            .addValidator(StandardValidators.createDataSizeBoundsValidator(1, Long.MAX_VALUE))
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
+            .build();
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return ImmutableList.<PropertyDescriptor>builder()
-            .add(BUCKET)
-            .add(KEY)
-            .addAll(super.getSupportedPropertyDescriptors())
-            .add(GENERATION)
-            .add(ENCRYPTION_KEY)
-            .build();
+        final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(BUCKET);
+        descriptors.add(KEY);
+        descriptors.addAll(super.getSupportedPropertyDescriptors());
+        descriptors.add(GENERATION);
+        descriptors.add(ENCRYPTION_KEY);
+        descriptors.add(RANGE_START);
+        descriptors.add(RANGE_LENGTH);
+        return Collections.unmodifiableList(descriptors);
     }
 
-
+    @Override
+    protected List<String> getRequiredPermissions() {
+        return Collections.singletonList("storage.objects.get");
+    }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
+        final List<ConfigVerificationResult> results = new ArrayList<>(super.verify(context, verificationLogger, attributes));
+
+        final String bucketName = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
+        final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
+
+        final Storage storage = getCloudService(context);
+
+        try {
+            final FetchedBlob blob = fetchBlob(context, storage, attributes);
+
+            final CountingOutputStream out = new CountingOutputStream(NullOutputStream.NULL_OUTPUT_STREAM);
+            IOUtils.copy(blob.contents, out);
+            final long byteCount = out.getByteCount();
+            results.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("Fetch GCS Blob")
+                    .outcome(Outcome.SUCCESSFUL)
+                    .explanation(String.format("Successfully fetched [%s] from Bucket [%s], totaling %s bytes", key, bucketName, byteCount))
+                    .build());
+        } catch (final StorageException | IOException e) {
+            getLogger().error(String.format("Failed to fetch [%s] from Bucket [%s]", key, bucketName), e);
+            results.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("Fetch GCS Blob")
+                    .outcome(Outcome.FAILED)
+                    .explanation(String.format("Failed to fetch [%s] from Bucket [%s]: %s", key, bucketName, e.getMessage()))
+                    .build());
+        }
+
+        return results;
+    }
+
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -183,34 +250,19 @@ public class FetchGCSObject extends AbstractGCSProcessor {
 
         final String bucketName = context.getProperty(BUCKET).evaluateAttributeExpressions(flowFile).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
-        final Long generation = context.getProperty(GENERATION).evaluateAttributeExpressions(flowFile).asLong();
-        final String encryptionKey = context.getProperty(ENCRYPTION_KEY).evaluateAttributeExpressions(flowFile).getValue();
 
         final Storage storage = getCloudService();
-        final BlobId blobId = BlobId.of(bucketName, key, generation);
+
+        final long rangeStart = (context.getProperty(RANGE_START).isSet() ? context.getProperty(RANGE_START).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : 0L);
+        final Long rangeLength = (context.getProperty(RANGE_LENGTH).isSet() ? context.getProperty(RANGE_LENGTH).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : null);
 
         try {
-            final List<Storage.BlobSourceOption> blobSourceOptions = new ArrayList<>(2);
+            final FetchedBlob blob = fetchBlob(context, storage, flowFile.getAttributes());
+            flowFile = session.importFrom(blob.contents, flowFile);
 
-            if (encryptionKey != null) {
-                blobSourceOptions.add(Storage.BlobSourceOption.decryptionKey(encryptionKey));
-            }
-
-            if (generation != null) {
-                blobSourceOptions.add(Storage.BlobSourceOption.generationMatch());
-            }
-
-            final Blob blob = storage.get(blobId);
-            if (blob == null) {
-                throw new StorageException(404, "Blob " + blobId + " not found");
-            }
-
-            final ReadChannel reader = storage.reader(blobId, blobSourceOptions.toArray(new Storage.BlobSourceOption[0]));
-            flowFile = session.importFrom(Channels.newInputStream(reader), flowFile);
-
-            final Map<String, String> attributes = StorageAttributes.createAttributes(blob);
+            final Map<String, String> attributes = StorageAttributes.createAttributes(blob.blob);
             flowFile = session.putAllAttributes(flowFile, attributes);
-        } catch (StorageException e) {
+        } catch (final StorageException | IOException e) {
             getLogger().error("Failed to fetch GCS Object due to {}", new Object[] {e}, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
@@ -222,5 +274,65 @@ public class FetchGCSObject extends AbstractGCSProcessor {
         final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully retrieved GCS Object for {} in {} millis; routing to success", new Object[]{flowFile, millis});
         session.getProvenanceReporter().fetch(flowFile, "https://" + bucketName + ".storage.googleapis.com/" + key, millis);
+    }
+
+    private FetchedBlob fetchBlob(final ProcessContext context, final Storage storage, final Map<String, String> attributes) throws IOException {
+        final String bucketName = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
+        final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
+        final Long generation = context.getProperty(GENERATION).evaluateAttributeExpressions(attributes).asLong();
+        final long rangeStart = (context.getProperty(RANGE_START).isSet() ? context.getProperty(RANGE_START).evaluateAttributeExpressions(attributes).asDataSize(DataUnit.B).longValue() : 0L);
+        final Long rangeLength = (context.getProperty(RANGE_LENGTH).isSet() ? context.getProperty(RANGE_LENGTH).evaluateAttributeExpressions(attributes).asDataSize(DataUnit.B).longValue() : null);
+
+        final BlobId blobId = BlobId.of(bucketName, key, generation);
+        final List<Storage.BlobSourceOption> blobSourceOptions = getBlobSourceOptions(context, attributes);
+
+        if (blobId.getName() == null || blobId.getName().isEmpty()) {
+            throw new IllegalArgumentException("Name is required");
+        }
+        final Blob blob = storage.get(blobId);
+        if (blob == null) {
+            throw new StorageException(404, "Blob " + blobId + " not found");
+        }
+        if (rangeStart > 0 && rangeStart >= blob.getSize()) {
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug("Start position: {}, blob size: {}", new Object[] {rangeStart, blob.getSize()});
+            }
+            throw new StorageException(416, "The range specified is not valid for the blob " + blob.getBlobId()
+                    + ". Range Start is beyond the end of the blob.");
+        }
+
+        final ReadChannel reader = storage.reader(blob.getBlobId(), blobSourceOptions.toArray(new Storage.BlobSourceOption[0]));
+        reader.seek(rangeStart);
+
+        final InputStream rawInputStream = Channels.newInputStream(reader);
+        final InputStream blobContents = rangeLength == null ? rawInputStream : new BoundedInputStream(rawInputStream, rangeLength);
+
+        return new FetchedBlob(blobContents, blob);
+    }
+
+    private List<Storage.BlobSourceOption> getBlobSourceOptions(final ProcessContext context, final Map<String, String> attributes) {
+        final Long generation = context.getProperty(GENERATION).evaluateAttributeExpressions(attributes).asLong();
+        final String encryptionKey = context.getProperty(ENCRYPTION_KEY).evaluateAttributeExpressions(attributes).getValue();
+
+        final List<Storage.BlobSourceOption> blobSourceOptions = new ArrayList<>(2);
+
+        if (encryptionKey != null) {
+            blobSourceOptions.add(Storage.BlobSourceOption.decryptionKey(encryptionKey));
+        }
+
+        if (generation != null) {
+            blobSourceOptions.add(Storage.BlobSourceOption.generationMatch());
+        }
+        return blobSourceOptions;
+    }
+
+    private class FetchedBlob {
+        private final InputStream contents;
+        private final Blob blob;
+
+        private FetchedBlob(final InputStream contents, final Blob blob) {
+            this.contents = contents;
+            this.blob = blob;
+        }
     }
 }

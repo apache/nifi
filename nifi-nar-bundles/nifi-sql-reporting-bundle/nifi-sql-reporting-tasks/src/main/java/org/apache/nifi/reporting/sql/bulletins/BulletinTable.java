@@ -38,7 +38,6 @@ import org.apache.nifi.reporting.ReportingContext;
 
 import java.lang.reflect.Type;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -165,7 +164,8 @@ public class BulletinTable extends AbstractTable implements QueryableTable, Tran
                 "bulletinSourceId",
                 "bulletinSourceName",
                 "bulletinSourceType",
-                "bulletinTimestamp"
+                "bulletinTimestamp",
+                "bulletinFlowFileUuid"
         );
         final List<RelDataType> types = Arrays.asList(
                 typeFactory.createJavaType(long.class),
@@ -180,7 +180,8 @@ public class BulletinTable extends AbstractTable implements QueryableTable, Tran
                 typeFactory.createJavaType(String.class),
                 typeFactory.createJavaType(String.class),
                 typeFactory.createJavaType(String.class),
-                typeFactory.createJavaType(Date.class)
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(String.class)
         );
 
         relDataType = typeFactory.createStructType(Pair.zip(names, types));

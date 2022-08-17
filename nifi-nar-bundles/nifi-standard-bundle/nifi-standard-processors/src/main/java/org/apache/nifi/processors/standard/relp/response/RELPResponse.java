@@ -127,9 +127,23 @@ public class RELPResponse {
      * @return a RELPResponse with a 500 code and a message of "ERROR"
      */
     public static RELPResponse error(final long txnr) {
-        return new RELPResponse(txnr, ERROR, "ERROR", null);
+        return error(txnr, "ERROR");
     }
 
+    /**
+     * Utility method to create a default "ERROR" response if the server event queue is full.
+     *
+     * @param txnr the transaction number being responded to
+     *
+     * @return a RELPResponse with a 500 code and a message of "SERVER FULL"
+     */
+    public static RELPResponse serverFullError(final long txnr) {
+        return error(txnr, "SERVER FULL");
+    }
+
+    private static RELPResponse error(final long txnr, final String message) {
+        return new RELPResponse(txnr, ERROR, message, null);
+    }
 
     /**
      * Parses the provided data into a Map of offers.

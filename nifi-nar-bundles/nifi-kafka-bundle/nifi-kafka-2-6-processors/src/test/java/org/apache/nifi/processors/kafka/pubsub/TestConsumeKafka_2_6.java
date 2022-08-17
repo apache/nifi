@@ -18,21 +18,26 @@ package org.apache.nifi.processors.kafka.pubsub;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.kerberos.KerberosUserService;
+import org.apache.nifi.kerberos.SelfContainedKerberosUserService;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestConsumeKafka_2_6 {
 
     ConsumerLease mockLease = null;
     ConsumerPool mockConsumerPool = null;
 
-    @Before
+    @BeforeEach
     public void setup() {
         mockLease = mock(ConsumerLease.class);
         mockConsumerPool = mock(ConsumerPool.class);
@@ -68,32 +73,23 @@ public class TestConsumeKafka_2_6 {
         runner.setProperty(ConsumeKafka_2_6.AUTO_OFFSET_RESET, ConsumeKafka_2_6.OFFSET_EARLIEST);
 
         runner.removeProperty(ConsumeKafka_2_6.GROUP_ID);
-        try {
-            runner.assertValid();
-            fail();
-        } catch (AssertionError e) {
-            assertTrue(e.getMessage().contains("invalid because Group ID is required"));
-        }
+
+        AssertionError e = assertThrows(AssertionError.class, () -> runner.assertValid());
+        assertTrue(e.getMessage().contains("invalid because Group ID is required"));
 
         runner.setProperty(ConsumeKafka_2_6.GROUP_ID, "");
-        try {
-            runner.assertValid();
-            fail();
-        } catch (AssertionError e) {
-            assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
-        }
+
+        e = assertThrows(AssertionError.class, () -> runner.assertValid());
+        assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
 
         runner.setProperty(ConsumeKafka_2_6.GROUP_ID, "  ");
-        try {
-            runner.assertValid();
-            fail();
-        } catch (AssertionError e) {
-            assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
-        }
+
+        e = assertThrows(AssertionError.class, () -> runner.assertValid());
+        assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
     }
 
     @Test
-    public void testJaasConfiguration() throws Exception {
+    public void testJaasGssApiConfiguration() throws Exception {
         ConsumeKafka_2_6 consumeKafka = new ConsumeKafka_2_6();
         TestRunner runner = TestRunners.newTestRunner(consumeKafka);
         runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "okeydokey:1234");
@@ -102,10 +98,11 @@ public class TestConsumeKafka_2_6 {
         runner.setProperty(ConsumeKafka_2_6.AUTO_OFFSET_RESET, ConsumeKafka_2_6.OFFSET_EARLIEST);
 
         runner.setProperty(KafkaProcessorUtils.SECURITY_PROTOCOL, KafkaProcessorUtils.SEC_SASL_PLAINTEXT);
+        runner.setProperty(KafkaProcessorUtils.SASL_MECHANISM, KafkaProcessorUtils.GSSAPI_VALUE);
         runner.assertNotValid();
 
         runner.setProperty(KafkaProcessorUtils.JAAS_SERVICE_NAME, "kafka");
-        runner.assertValid();
+        runner.assertNotValid();
 
         runner.setProperty(KafkaProcessorUtils.USER_PRINCIPAL, "nifi@APACHE.COM");
         runner.assertNotValid();
@@ -120,9 +117,43 @@ public class TestConsumeKafka_2_6 {
         runner.setVariable("principal", "nifi@APACHE.COM");
         runner.setVariable("service", "kafka");
         runner.setProperty(KafkaProcessorUtils.USER_PRINCIPAL, "${principal}");
-        runner.setProperty(KafkaProcessorUtils.USER_KEYTAB, "${keytab}s");
+        runner.setProperty(KafkaProcessorUtils.USER_KEYTAB, "${keytab}");
         runner.setProperty(KafkaProcessorUtils.JAAS_SERVICE_NAME, "${service}");
         runner.assertValid();
+
+        final KerberosUserService kerberosUserService = enableKerberosUserService(runner);
+        runner.setProperty(KafkaProcessorUtils.SELF_CONTAINED_KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
+        runner.assertNotValid();
+
+        runner.removeProperty(KafkaProcessorUtils.USER_PRINCIPAL);
+        runner.removeProperty(KafkaProcessorUtils.USER_KEYTAB);
+        runner.assertValid();
+
+        final KerberosCredentialsService kerberosCredentialsService = enabledKerberosCredentialsService(runner);
+        runner.setProperty(KafkaProcessorUtils.KERBEROS_CREDENTIALS_SERVICE, kerberosCredentialsService.getIdentifier());
+        runner.assertNotValid();
+
+        runner.removeProperty(KafkaProcessorUtils.SELF_CONTAINED_KERBEROS_USER_SERVICE);
+        runner.assertValid();
+    }
+
+    private SelfContainedKerberosUserService enableKerberosUserService(final TestRunner runner) throws InitializationException {
+        final SelfContainedKerberosUserService kerberosUserService = mock(SelfContainedKerberosUserService.class);
+        when(kerberosUserService.getIdentifier()).thenReturn("userService1");
+        runner.addControllerService(kerberosUserService.getIdentifier(), kerberosUserService);
+        runner.enableControllerService(kerberosUserService);
+        return kerberosUserService;
+    }
+
+    private KerberosCredentialsService enabledKerberosCredentialsService(final TestRunner runner) throws InitializationException {
+        final KerberosCredentialsService credentialsService = mock(KerberosCredentialsService.class);
+        when(credentialsService.getIdentifier()).thenReturn("credsService1");
+        when(credentialsService.getPrincipal()).thenReturn("principal1");
+        when(credentialsService.getKeytab()).thenReturn("keytab1");
+
+        runner.addControllerService(credentialsService.getIdentifier(), credentialsService);
+        runner.enableControllerService(credentialsService);
+        return credentialsService;
     }
 
 }

@@ -28,18 +28,16 @@ import org.apache.nifi.bootstrap.notification.NotificationType;
 import org.apache.nifi.bootstrap.notification.http.HttpNotificationService;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,9 +56,9 @@ import static org.apache.nifi.bootstrap.notification.http.HttpNotificationServic
 import static org.apache.nifi.bootstrap.notification.http.HttpNotificationService.PROP_TRUSTSTORE_TYPE;
 import static org.apache.nifi.bootstrap.notification.http.HttpNotificationService.NOTIFICATION_SUBJECT_KEY;
 import static org.apache.nifi.bootstrap.notification.http.HttpNotificationService.NOTIFICATION_TYPE_KEY;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class HttpNotificationServiceTest {
 
@@ -78,12 +76,12 @@ public class HttpNotificationServiceTest {
 
     private MockWebServer mockWebServer;
 
-    @Before
+    @BeforeEach
     public void startServer() {
         mockWebServer = new MockWebServer();
     }
 
-    @After
+    @AfterEach
     public void shutdownServer() throws IOException {
         mockWebServer.shutdown();
     }
@@ -133,34 +131,29 @@ public class HttpNotificationServiceTest {
     }
 
     @Test
-    public void testStartNotificationHttps() throws GeneralSecurityException, NotificationFailedException, InterruptedException, IOException {
-        final TlsConfiguration tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
+    public void testStartNotificationHttps() throws GeneralSecurityException, NotificationFailedException, InterruptedException {
+        final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
 
-        try {
-            final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration);
-            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-            mockWebServer.useHttps(sslSocketFactory, false);
+        final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration);
+        final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+        mockWebServer.useHttps(sslSocketFactory, false);
 
-            enqueueResponseCode(200);
+        enqueueResponseCode(200);
 
-            final Map<PropertyDescriptor, PropertyValue> properties = getProperties();
+        final Map<PropertyDescriptor, PropertyValue> properties = getProperties();
 
-            properties.put(PROP_KEYSTORE, createPropertyValue(tlsConfiguration.getKeystorePath()));
-            properties.put(PROP_KEYSTORE_PASSWORD, createPropertyValue(tlsConfiguration.getKeystorePassword()));
-            properties.put(PROP_KEY_PASSWORD, createPropertyValue(tlsConfiguration.getKeyPassword()));
-            properties.put(PROP_KEYSTORE_TYPE, createPropertyValue(tlsConfiguration.getKeystoreType().getType()));
-            properties.put(PROP_TRUSTSTORE, createPropertyValue(tlsConfiguration.getTruststorePath()));
-            properties.put(PROP_TRUSTSTORE_PASSWORD, createPropertyValue(tlsConfiguration.getTruststorePassword()));
-            properties.put(PROP_TRUSTSTORE_TYPE, createPropertyValue(tlsConfiguration.getTruststoreType().getType()));
+        properties.put(PROP_KEYSTORE, createPropertyValue(tlsConfiguration.getKeystorePath()));
+        properties.put(PROP_KEYSTORE_PASSWORD, createPropertyValue(tlsConfiguration.getKeystorePassword()));
+        properties.put(PROP_KEY_PASSWORD, createPropertyValue(tlsConfiguration.getKeyPassword()));
+        properties.put(PROP_KEYSTORE_TYPE, createPropertyValue(tlsConfiguration.getKeystoreType().getType()));
+        properties.put(PROP_TRUSTSTORE, createPropertyValue(tlsConfiguration.getTruststorePath()));
+        properties.put(PROP_TRUSTSTORE_PASSWORD, createPropertyValue(tlsConfiguration.getTruststorePassword()));
+        properties.put(PROP_TRUSTSTORE_TYPE, createPropertyValue(tlsConfiguration.getTruststoreType().getType()));
 
-            final HttpNotificationService service = getHttpNotificationService(properties);
-            service.notify(getNotificationContext(), NotificationType.NIFI_STARTED, SUBJECT, MESSAGE);
+        final HttpNotificationService service = getHttpNotificationService(properties);
+        service.notify(getNotificationContext(), NotificationType.NIFI_STARTED, SUBJECT, MESSAGE);
 
-            assertRequestMatches(NotificationType.NIFI_STARTED);
-        } finally {
-            Files.deleteIfExists(Paths.get(tlsConfiguration.getKeystorePath()));
-            Files.deleteIfExists(Paths.get(tlsConfiguration.getTruststorePath()));
-        }
+        assertRequestMatches(NotificationType.NIFI_STARTED);
     }
 
     private void assertRequestMatches(final NotificationType notificationType) throws InterruptedException {

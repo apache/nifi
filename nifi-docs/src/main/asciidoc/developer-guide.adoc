@@ -326,21 +326,47 @@ instance of the `PropertyDescriptor.Builder` object,
 calling the appropriate methods on the builder, and finally calling
 the `build` method.
 
-While this method covers most of the use cases, it is sometimes
+===== Dynamic Processor Properties
+
+In addition to standard properties, it is sometimes
 desirable to allow users to configure
-additional properties whose name are not known. This can be achieved
-by overriding the
+additional properties whose names are not predefined.
+This can be achieved by overriding the
 `getSupportedDynamicPropertyDescriptor` method. This method takes a
 `String` as its only argument, which
 indicates the name of the property. The method returns a
 `PropertyDescriptor` object that can be used to validate
 both the name of the property, as well as the value. Any
 PropertyDescriptor that is returned from this method
-should be built setting the value of `isDynamic` to true in the
+should be built setting the value of `isDynamic` to `true` in the
 `PropertyDescriptor.Builder` class. The default
 behavior of AbstractProcessor is to not allow any dynamically created
 properties.
 
+===== Sensitive Dynamic Properties
+
+The default implementation for dynamic properties does not treat the
+property values as sensitive. This approach is sufficient when configuring
+features such as FlowFile attributes or custom expressions, but it does
+not provide protection for values such as passwords or keys.
+
+NiFi 1.17.0 introduced framework support for sensitive dynamic properties
+through a new behavior annotation named `SupportsSensitiveDynamicProperties`.
+The annotation can be applied to a Processor, Controller Service, or
+Reporting Task that supports dynamic properties through the
+`getSupportedDynamicPropertyDescriptor` method. The annotation indicates
+that the component allows individual dynamic properties to be marked as
+sensitive for the purpose of persistence and framework processing.
+
+The `getSupportedDynamicPropertyDescriptor` must return a `PropertyDescriptor`
+with the `sensitive` field set to `false` to allow customization of sensitive
+status. Setting the `sensitive` field to `true` in this method forces all
+dynamic properties to be handled as sensitive. This approach allows sensitive
+status to be upgraded in supported components, but not downgraded.
+
+Secure handling of sensitive property values is the responsibility of the
+annotated class. Components that support sensitive dynamic properties must
+not log property values or provide property values as FlowFile attributes.
 
 ==== Validating Processor Properties
 
@@ -1455,7 +1481,7 @@ The appropriate data is then copied from the InputStream of the
 original FlowFile to the OutputStream for the new FlowFile.
 
 *Clone Method*
-If the content of the newly created created FlowFile is to be only a
+If the content of the newly created FlowFile is to be only a
 contiguous subset of the bytes of the original FlowFile, it is
 preferred
 to use the `clone(FlowFile, long, long)` method instead of the
@@ -1932,7 +1958,7 @@ public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescrip
 Using this method, the user will be prompted to supply the SSL Context
 Service that should be used. This is
 done by providing the user with a drop-down menu from which they are
-able to choose any of the SSLContextService
+able to choose any of the `SSLContextService`
 configurations that have been configured, regardless of the implementation.
 
 In order to make use of this service, the Processor can use code such as:
@@ -2380,7 +2406,7 @@ This is included by adding the following snippet to the NAR's pom.xml:
         <plugin>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-nar-maven-plugin</artifactId>
-            <version>1.1.0</version>
+            <version>1.3.4</version>
             <extensions>true</extensions>
         </plugin>
     </plugins>
@@ -2483,7 +2509,7 @@ far less complicated. Note here that the
 This is done so that any NAR that has a dependency on
 `my-controller-service-api-nar` will also be able to access
 all of the Controller Services that are provided by the
-`nifi-standard-services-api-nar`, such as the SSLContextService.
+`nifi-standard-services-api-nar`, such as the `SSLContextService`.
 In this same vein, it is not necessary to create a different
 "service-api" NAR for each service. Instead, it often
 makes sense to have a single "service-api" NAR that encapsulates the
@@ -2530,8 +2556,8 @@ directories, an OS-handled temporary copy is created and cached before loading i
 and classloader isolation.
 
 Each property may impose further restrictions on the format of the value through the validators.
-For example, using StandardValidators.FILE_EXISTS_VALIDATOR restricts the property to accepting a
-single file. Using StandardValidators.NON_EMPTY_VALIDATOR allows any combination of comma-separated
+For example, using `StandardValidators.FILE_EXISTS_VALIDATOR` restricts the property to accepting a
+single file. Using `StandardValidators.NON_EMPTY_VALIDATOR` allows any combination of comma-separated
 files or directories.
 
 Resources are added to the instance ClassLoader by adding them to an inner ClassLoader that is always
@@ -2545,17 +2571,17 @@ component's NAR ClassLoader. When `@RequiresInstanceClassLoading` is not present
 instance ClassLoader simply has its parent ClassLoader set to the NAR ClassLoader, rather than
 copying resources.
 
-The `@RequiresInstanceClassLoading` annotation also provides an optional flag `cloneAncestorResources'. If
+The `@RequiresInstanceClassLoading` annotation also provides an optional flag `cloneAncestorResources`. If
 set to true, the instance ClassLoader will include ancestor resources up to the first ClassLoader containing a
 controller service API referenced by the component, or up to the Jetty NAR. If set to false, or not specified,
 only the resources from the component's NAR will be included.
 
-Because @RequiresInstanceClassLoading copies resources from the NAR ClassLoader for each instance of the
+Because `@RequiresInstanceClassLoading` copies resources from the NAR ClassLoader for each instance of the
 component, use this capability judiciously. If ten instances of one component are created, all classes
 from the component's NAR ClassLoader are loaded into memory ten times. This could eventually increase the
 memory footprint significantly when enough instances of the component are created.
 
-Additionally, there are some restrictions when using @RequiresInstanceClassLoading when using Controller
+Additionally, there are some restrictions when using `@RequiresInstanceClassLoading` when using Controller
 Services. Processors, Reporting Tasks, and Controller Services can reference a Controller Service API
 in one of its Property Descriptors. An issue may arise when the Controller Service API is bundled in the same
 NAR with a component that references it or with the Controller Service implementation. If either of these cases
@@ -2563,14 +2589,14 @@ are encountered and the extension requires instance classloading, the extension 
 ERROR will be logged. To address this issue, the Controller Service API should be bundled in a parent NAR. The
 service implementation and extensions that reference that service should depend on the Controller Service API NAR.
 Please refer to the Controller Service NAR Layout in the <<nars>> section. Anytime a Controller Service API is
-bundled with an extension that requires it, even if @RequiresInstanceClassLoading isn't used, a WARNING will be
+bundled with an extension that requires it, even if `@RequiresInstanceClassLoading` isn't used, a WARNING will be
 logged to help avoid this bad practice.
 
 
 [[deprecation]]
 == Deprecating a Component
 Sometimes it may be desirable to deprecate a component. Whenever this occurs the developer may use the
- @DeprecationNotice annotation to indicate that a component has been deprecated, allowing the developer
+ `@DeprecationNotice` annotation to indicate that a component has been deprecated, allowing the developer
  to describe a reason for the deprecation and suggest alternative components. An example of how to do this can
  be found below:
 
@@ -2582,6 +2608,33 @@ Sometimes it may be desirable to deprecate a component. Whenever this occurs the
 As you can see, the alternatives can be used to define and array of alternative Components, while classNames can be
 used to represent the similar content through an array of strings.
 
+[[build]]
+== Build Options
+=== Maven Profiles
+
+[options="header,footer"]
+|==================================================================================================================================================
+| Package                                         | Maven Profile       | Description
+| Apache Accumulo Bundle | include-accumulo   | Adds support for https://accumulo.apache.org[Apache Accumulo].
+| Apache Atlas Bundle | include-atlas | Adds support for the Apache Atlas data governance tool. The functionality from this bundle is based around reporting tasks that integrate with https://atlas.apache.org[Apache Atlas].
+| Apache Hive 1.1 Bundle | include-hive1_1 | Adds support for Apache Hive 1.1.X.
+| Apache Hive 3 Bundle | include-hive3 | Adds support for Apache Hive 3.X
+| Apache Ranger Bundle | include-ranger | Adds support for https://ranger.apache.org[Apache Ranger].
+| ASN1 Support | include-asn1 | Adds support for ASN1
+| Contribution Check | contrib-check | Runs various quality checks that are required to be accepted before a contribution can be accepted into the core NiFi code base.
+| Graph Database Bundle | include-graph     | Adds support for various common graph database scenarios. Support is currently for https://neo4j.com/developer/cypher[Cypher] and https://tinkerpop.apache.org/gremlin.html[Gremlin]-compatible databases such as Neo4J and JanusGraph. Includes controller services that provide driver functionality and a suite of processors for ingestion and querying.
+| GRPC Bundle | include-grpc | **This profile is active in official builds and should be active** Provides support for the GRPC protocol.
+| Media Bundle | include-media | The media bundle provides functionality based on https://tika.apache.org[Apache Tika] for extracting content and metadata from various types of binary formats supported by Apache Tika (ex. PDF, Microsoft Office).
+| Rules Engine Bundle | include-rules | Adds support for creating scripted rules engines that can be integrated into existing flows. These rules engines can provide flexibility to people who need more complex flow logic or are more comfortable with flow decision-making using custom code.
+| Snowflake Bundle | include-snowflake | Adds support for integration with the https://www.snowflake.com[Snowflake platform].
+| SQL Reporting Bundle | include-sql-reporting | Adds reporting tasks that are designed to use SQL to update a RDBMS with metrics and other related data from Apache NiFi.
+|==================================================================================================================================================
+
+=== Standard Build Instructions
+
+The following command is used to generate a standard binary distribution of Apache NiFi:
+
+`mvn clean install -Pinclude-grpc,contrib-check`
 
 == How to contribute to Apache NiFi
 

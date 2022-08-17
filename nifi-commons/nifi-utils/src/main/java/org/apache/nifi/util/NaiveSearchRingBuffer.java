@@ -50,7 +50,7 @@ public class NaiveSearchRingBuffer {
     private final byte[] lookingFor;
     private final int[] buffer;
     private int insertionPointer = 0;
-    private int bufferSize = 0;
+    private long bufferSize = 0;
 
     public NaiveSearchRingBuffer(final byte[] lookingFor) {
         this.lookingFor = lookingFor;
@@ -63,7 +63,7 @@ public class NaiveSearchRingBuffer {
      * sequence for which we are looking
      */
     public byte[] getBufferContents() {
-        final int contentLength = Math.min(lookingFor.length, bufferSize);
+        final int contentLength = (int) Math.min(lookingFor.length, bufferSize);
         final byte[] contents = new byte[contentLength];
         for (int i = 0; i < contentLength; i++) {
             final byte nextByte = (byte) buffer[(insertionPointer + i) % lookingFor.length];

@@ -21,7 +21,6 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -61,7 +60,6 @@ import java.util.concurrent.atomic.AtomicReference;
             + "E.g.: file.txt is uploaded to /Folder1/SubFolder, then the value of the path attribute will be \"/Folder1/SubFolder/\" "
             + "(note that it ends with a separator character).")
 })
-@SeeAlso(classNames = {"org.apache.nifi.ssl.RestrictedSSLContextService","org.apache.nifi.ssl.SSLContextService"})
 public class ListenFTP extends AbstractSessionFactoryProcessor {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()

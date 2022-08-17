@@ -19,48 +19,40 @@ package org.apache.nifi.processors;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.jr.ob.JSON;
+import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.model.IspResponse;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.maxmind.DatabaseReader;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import static org.powermock.api.mockito.PowerMockito.mock;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({ISPEnrichIP.class})
-@SuppressWarnings("WeakerAccess")
 public class TestISPEnrichIP {
     DatabaseReader databaseReader;
     ISPEnrichIP ispEnrichIP;
     TestRunner testRunner;
 
-    @Before
-    public void setUp() throws Exception {
-        mockStatic(InetAddress.class);
+    @BeforeEach
+    public void setUp() {
         databaseReader = mock(DatabaseReader.class);
         ispEnrichIP = new TestableIspEnrichIP();
         testRunner = TestRunners.newTestRunner(ispEnrichIP);
@@ -198,7 +190,6 @@ public class TestISPEnrichIP {
         assertEquals(0, found.size());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldFlowToNotFoundWhenIOExceptionThrownFromMaxMind() throws Exception {
         testRunner.setProperty(ISPEnrichIP.GEO_DATABASE_FILE, "./");
@@ -221,7 +212,6 @@ public class TestISPEnrichIP {
         assertEquals(0, found.size());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldFlowToNotFoundWhenExceptionThrownFromMaxMind() throws Exception {
         testRunner.setProperty(ISPEnrichIP.GEO_DATABASE_FILE, "./");
@@ -243,7 +233,6 @@ public class TestISPEnrichIP {
         assertEquals(0, found.size());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void whenInetAddressThrowsUnknownHostFlowFileShouldBeSentToNotFound() throws Exception {
         testRunner.setProperty(ISPEnrichIP.GEO_DATABASE_FILE, "./");
@@ -251,8 +240,6 @@ public class TestISPEnrichIP {
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("ip", "somenonexistentdomain.comm");
-
-        when(InetAddress.getByName("somenonexistentdomain.comm")).thenThrow(UnknownHostException.class);
 
         testRunner.enqueue(new byte[0], attributes);
 
@@ -269,13 +256,25 @@ public class TestISPEnrichIP {
     }
 
     private IspResponse getIspResponse(final String ipAddress) throws Exception {
-        final String maxMindIspResponse = "{\n" +
+        String maxMindIspResponse = "{\n" +
             "         \"isp\" : \"Apache NiFi - Test ISP\",\n" +
             "         \"organization\" : \"Apache NiFi - Test Organization\",\n" +
             "         \"autonomous_system_number\" : 1337,\n" +
             "         \"autonomous_system_organization\" : \"Apache NiFi - Test Chocolate\", \n" +
             "         \"ip_address\" : \"" + ipAddress + "\"\n" +
             "      }\n";
+
+        maxMindIspResponse = JSON.std
+                .composeString()
+                .startObject()
+                .put("autonomous_system_number", 1337)
+                .put("autonomous_system_organization", "Apache NiFi - Test Chocolate")
+                .put("isp", "Apache NiFi - Test ISP")
+                .put("organization", "Apache NiFi - Test Organization")
+                .put("ip_address", "1.1.1.1")
+                .put("network", "1.1.1.0/24")
+                .end()
+                .finish();
 
         InjectableValues inject = new InjectableValues.Std().addValue("locales", Collections.singletonList("en"));
         ObjectMapper mapper = new ObjectMapper();
@@ -287,12 +286,16 @@ public class TestISPEnrichIP {
     }
 
     private IspResponse getIspResponseWithoutASNDetail(final String ipAddress) throws Exception {
-        final String maxMindIspResponse = "{\n" +
-            "         \"isp\" : \"Apache NiFi - Test ISP\",\n" +
-            "         \"organization\" : \"Apache NiFi - Test Organization\",\n" +
-            "         \"autonomous_system_number\" : null,\n" +
-            "         \"ip_address\" : \"" + ipAddress + "\"\n" +
-            "      }\n";
+        final String maxMindIspResponse = JSON.std
+                .composeString()
+                .startObject()
+                .put("autonomous_system_number", null)
+                .put("isp", "Apache NiFi - Test ISP")
+                .put("organization", "Apache NiFi - Test Organization")
+                .put("ip_address", ipAddress)
+                .put("network", "1.1.1.0/24")
+                .end()
+                .finish();
 
         InjectableValues inject = new InjectableValues.Std().addValue("locales", Collections.singletonList("en"));
         ObjectMapper mapper = new ObjectMapper();
@@ -302,13 +305,11 @@ public class TestISPEnrichIP {
         return new ObjectMapper().readerFor(IspResponse.class).with(inject).readValue(maxMindIspResponse);
     }
 
-
     class TestableIspEnrichIP extends ISPEnrichIP {
         @OnScheduled
         @Override
-        public void onScheduled(ProcessContext context) throws IOException {
+        public void onScheduled(ProcessContext context) {
             databaseReaderRef.set(databaseReader);
         }
     }
-
 }

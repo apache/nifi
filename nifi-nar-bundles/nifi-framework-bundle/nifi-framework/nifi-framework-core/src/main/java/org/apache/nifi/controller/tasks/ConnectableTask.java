@@ -31,6 +31,9 @@ import org.apache.nifi.controller.repository.RepositoryContext;
 import org.apache.nifi.controller.repository.StandardProcessSession;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
 import org.apache.nifi.controller.repository.WeakHashMapProcessSessionFactory;
+import org.apache.nifi.controller.repository.metrics.NanoTimePerformanceTracker;
+import org.apache.nifi.controller.repository.metrics.NopPerformanceTracker;
+import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
 import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
 import org.apache.nifi.controller.repository.scheduling.ConnectableProcessContext;
 import org.apache.nifi.controller.scheduling.LifecycleState;
@@ -50,6 +53,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadMXBean;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -68,17 +73,22 @@ public class ConnectableTask {
     private final ProcessContext processContext;
     private final FlowController flowController;
     private final int numRelationships;
-
+    private final ThreadMXBean threadMXBean;
+    private final AtomicLong invocations = new AtomicLong(0L);
+    private volatile SampledMetrics sampledMetrics = new SampledMetrics();
+    private final int perfTrackingNthIteration;
 
     public ConnectableTask(final SchedulingAgent schedulingAgent, final Connectable connectable,
-            final FlowController flowController, final RepositoryContextFactory contextFactory, final LifecycleState scheduleState,
-            final PropertyEncryptor encryptor) {
+                           final FlowController flowController, final RepositoryContextFactory contextFactory, final LifecycleState scheduleState) {
 
         this.schedulingAgent = schedulingAgent;
         this.connectable = connectable;
         this.scheduleState = scheduleState;
         this.numRelationships = connectable.getRelationships().size();
         this.flowController = flowController;
+        this.threadMXBean = ManagementFactory.getThreadMXBean();
+
+        final PropertyEncryptor encryptor = flowController.getEncryptor();
 
         final StateManager stateManager = new TaskTerminationAwareStateManager(flowController.getStateManagerProvider().getStateManager(connectable.getIdentifier()), scheduleState::isTerminated);
         if (connectable instanceof ProcessorNode) {
@@ -89,6 +99,13 @@ public class ConnectableTask {
         }
 
         repositoryContext = contextFactory.newProcessContext(connectable, new AtomicLong(0L));
+
+        final int perfTrackingPercentage = flowController.getPerformanceTrackingPercentage();
+        if (perfTrackingPercentage == 0) {
+            perfTrackingNthIteration = 0;
+        } else {
+            perfTrackingNthIteration = 100 / perfTrackingPercentage;
+        }
     }
 
     public Connectable getConnectable() {
@@ -164,7 +181,7 @@ public class ConnectableTask {
         // make sure that either we're not clustered or this processor runs on all nodes or that this is the primary node
         if (!isRunOnCluster(flowController)) {
             logger.debug("Will not trigger {} because this is not the primary node", connectable);
-            return InvocationResult.DO_NOT_YIELD;
+            return InvocationResult.yield("This node is not the primary node");
         }
 
         // Make sure processor has work to do.
@@ -182,18 +199,33 @@ public class ConnectableTask {
         }
 
         logger.debug("Triggering {}", connectable);
+        final long totalInvocationCount = invocations.getAndIncrement();
+
+        final boolean measureExpensiveMetrics = isMeasureExpensiveMetrics(totalInvocationCount);
+        final boolean measureCpuTime = measureExpensiveMetrics && threadMXBean.isCurrentThreadCpuTimeSupported();
+        final long startCpuTime;
+        final long startGcMillis;
+        if (measureCpuTime) {
+            startCpuTime = threadMXBean.getCurrentThreadCpuTime();
+            startGcMillis = flowController.getGarbageCollectionLog().getTotalGarbageCollectionMillis();
+        } else {
+            startCpuTime = 0L;
+            startGcMillis = 0L;
+        }
+
+        final PerformanceTracker performanceTracker = measureExpensiveMetrics ? new NanoTimePerformanceTracker() : new NopPerformanceTracker();
 
         final long batchNanos = connectable.getRunDuration(TimeUnit.NANOSECONDS);
         final ProcessSessionFactory sessionFactory;
         final StandardProcessSession rawSession;
         final boolean batch;
         if (connectable.isSessionBatchingSupported() && batchNanos > 0L) {
-            rawSession = new StandardProcessSession(repositoryContext, scheduleState::isTerminated);
+            rawSession = new StandardProcessSession(repositoryContext, scheduleState::isTerminated, performanceTracker);
             sessionFactory = new BatchingSessionFactory(rawSession);
             batch = true;
         } else {
             rawSession = null;
-            sessionFactory = new StandardProcessSessionFactory(repositoryContext, scheduleState::isTerminated);
+            sessionFactory = new StandardProcessSessionFactory(repositoryContext, scheduleState::isTerminated, performanceTracker);
             batch = false;
         }
 
@@ -242,51 +274,40 @@ public class ConnectableTask {
                         shouldRun = repositoryContext.isRelationshipAvailabilitySatisfied(requiredNumberOfAvailableRelationships);
                     }
                 }
-            } catch (final TerminatedTaskException tte) {
-                final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
-                procLog.info("Failed to process session due to task being terminated", new Object[] {tte});
-            } catch (final ProcessException pe) {
-                final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
-                procLog.error("Failed to process session due to {}", new Object[] {pe});
-            } catch (final Throwable t) {
-                // Use ComponentLog to log the event so that a bulletin will be created for this processor
-                final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
-                procLog.error("{} failed to process session due to {}; Processor Administratively Yielded for {}",
-                    new Object[] {connectable.getRunnableComponent(), t, schedulingAgent.getAdministrativeYieldDuration()}, t);
-                logger.warn("Administratively Yielding {} due to uncaught Exception: {}", connectable.getRunnableComponent(), t.toString(), t);
-
+            } catch (final TerminatedTaskException e) {
+                final ComponentLog componentLog = getComponentLog();
+                componentLog.info("Processing terminated", e);
+            } catch (final ProcessException e) {
+                final ComponentLog componentLog = getComponentLog();
+                componentLog.error("Processing failed", e);
+            } catch (final Throwable e) {
+                final ComponentLog componentLog = getComponentLog();
+                componentLog.error("Processing halted: yielding [{}]", schedulingAgent.getAdministrativeYieldDuration(), e);
+                logger.warn("Processing halted: uncaught exception in Component [{}]", connectable.getRunnableComponent(), e);
                 connectable.yield(schedulingAgent.getAdministrativeYieldDuration(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
             }
         } finally {
             try {
                 if (batch) {
-                    try {
-                        rawSession.commit();
-                    } catch (final Throwable t) {
-                        final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
-                        procLog.error("Failed to commit session {} due to {}; rolling back", new Object[] { rawSession, t.toString() }, t);
+                    final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
 
-                        try {
-                            rawSession.rollback(true);
-                        } catch (final Exception e1) {
-                            procLog.error("Failed to roll back session {} due to {}", new Object[] { rawSession, t.toString() }, t);
-                        }
+                    try {
+                        rawSession.commitAsync(null, t -> {
+                            procLog.error("Failed to commit session {} due to {}; rolling back", new Object[]{rawSession, t.toString()}, t);
+                        });
+                    } catch (final TerminatedTaskException tte) {
+                        procLog.debug("Cannot commit Batch Process Session because the Task was forcefully terminated", tte);
                     }
                 }
 
-                final long processingNanos = System.nanoTime() - startNanos;
-
                 try {
-                    final StandardFlowFileEvent procEvent = new StandardFlowFileEvent();
-                    procEvent.setProcessingNanos(processingNanos);
-                    procEvent.setInvocations(invocationCount);
-                    repositoryContext.getFlowFileEventRepository().updateRepository(procEvent, connectable.getIdentifier());
+                    updateEventRepo(startNanos, startCpuTime, startGcMillis, invocationCount, measureCpuTime, performanceTracker);
                 } catch (final IOException e) {
                     logger.error("Unable to update FlowFileEvent Repository for {}; statistics may be inaccurate. Reason for failure: {}", connectable.getRunnableComponent(), e.toString());
                     logger.error("", e);
                 }
             } finally {
-                scheduleState.decrementActiveThreadCount(activeSessionFactory);
+                scheduleState.decrementActiveThreadCount();
                 Thread.currentThread().setName(originalThreadName);
             }
         }
@@ -294,4 +315,128 @@ public class ConnectableTask {
         return InvocationResult.DO_NOT_YIELD;
     }
 
+    private void updateEventRepo(final long startNanoTime, final long startCpuTime, final long startGcMillis, final int invocationCount, final boolean measureCpuTime,
+                                 final PerformanceTracker performanceTracker)
+                throws IOException {
+        final long processingNanos = System.nanoTime() - startNanoTime;
+        final StandardFlowFileEvent flowFileEvent = new StandardFlowFileEvent();
+        flowFileEvent.setProcessingNanos(processingNanos);
+        flowFileEvent.setInvocations(invocationCount);
+
+        // We won't always measure CPU time because it's expensive to calculate. So when we do measure it, we keep track of
+        // total CPU nanos measured as well as total processing time for those iterations. This gives us a ratio of CPU time vs. total time.
+        // We can then use that to extrapolate an approximate CPU Time.
+        if (measureCpuTime) {
+            updatePerformanceTrackingMetrics(flowFileEvent, performanceTracker, startCpuTime, startGcMillis, processingNanos);
+        } else {
+            estimatePerformanceTrackingMetrics(flowFileEvent, processingNanos);
+        }
+
+        repositoryContext.getFlowFileEventRepository().updateRepository(flowFileEvent, connectable.getIdentifier());
+    }
+
+    private void estimatePerformanceTrackingMetrics(final StandardFlowFileEvent flowFileEvent, final long processingNanos) {
+        // Use ratio of measured CPU time vs. total time for that those iterations, to estimate the CPU time for this iteration.
+        final SampledMetrics currentMetrics = sampledMetrics;
+        final double processingRatio = (double) processingNanos / (double) Math.max(1, currentMetrics.getProcessingNanosSampled());
+        flowFileEvent.setCpuNanoseconds((long) (processingRatio * currentMetrics.getTotalCpuNanos()));
+        flowFileEvent.setContentReadNanoseconds((long) (processingRatio * currentMetrics.getReadNanos()));
+        flowFileEvent.setContentWriteNanoseconds((long) (processingRatio * currentMetrics.getWriteNanos()));
+        flowFileEvent.setSessionCommitNanos((long) (processingRatio * currentMetrics.getSessionCommitNanos()));
+        flowFileEvent.setGarbageCollectionMillis((long) (processingRatio * currentMetrics.getGcMillis()));
+    }
+
+    private void updatePerformanceTrackingMetrics(final StandardFlowFileEvent flowFileEvent, final PerformanceTracker performanceTracker, final long startCpuTime,
+                                                  final long startGcMillis, final long processingNanos) {
+        final long cpuTime = threadMXBean.getCurrentThreadCpuTime();
+        final long cpuNanos = cpuTime - startCpuTime;
+
+        final long endGcMillis = flowController.getGarbageCollectionLog().getTotalGarbageCollectionMillis();
+        final long gcMillis = endGcMillis - startGcMillis;
+
+        flowFileEvent.setCpuNanoseconds(cpuNanos);
+        flowFileEvent.setContentWriteNanoseconds(performanceTracker.getContentWriteNanos());
+        flowFileEvent.setContentReadNanoseconds(performanceTracker.getContentReadNanos());
+        flowFileEvent.setSessionCommitNanos(performanceTracker.getSessionCommitNanos());
+        flowFileEvent.setGarbageCollectionMillis(gcMillis);
+
+        final SampledMetrics previousMetrics = sampledMetrics;
+        final SampledMetrics updatedMetrics = new SampledMetrics();
+        updatedMetrics.setProcessingNanosSampled(previousMetrics.getProcessingNanosSampled() + processingNanos);
+        updatedMetrics.setTotalCpuNanos(previousMetrics.getTotalCpuNanos() + cpuNanos);
+        updatedMetrics.setReadNanos(previousMetrics.getReadNanos() + performanceTracker.getContentReadNanos());
+        updatedMetrics.setWriteNanos(previousMetrics.getWriteNanos() + performanceTracker.getContentWriteNanos());
+        updatedMetrics.setSessionCommitNanos(previousMetrics.getSessionCommitNanos() + performanceTracker.getSessionCommitNanos());
+        updatedMetrics.setGcMillis(gcMillis);
+        this.sampledMetrics = updatedMetrics;
+    }
+
+    private boolean isMeasureExpensiveMetrics(final long invocationCount) {
+        if (perfTrackingNthIteration == 0) { // A value of 0 indicates we should never track performance metrics.
+            return false;
+        }
+
+        return invocationCount % perfTrackingNthIteration == 0;
+    }
+
+    private ComponentLog getComponentLog() {
+        return new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
+    }
+
+    private static class SampledMetrics {
+        private long processingNanosSampled = 0L;
+        private long totalCpuNanos = 0L;
+        private long readNanos = 0L;
+        private long writeNanos = 0L;
+        private long sessionCommitNanos = 0L;
+        private long gcMillis = 0L;
+
+        public long getProcessingNanosSampled() {
+            return processingNanosSampled;
+        }
+
+        public void setProcessingNanosSampled(final long processingNanosSampled) {
+            this.processingNanosSampled = processingNanosSampled;
+        }
+
+        public long getTotalCpuNanos() {
+            return totalCpuNanos;
+        }
+
+        public void setTotalCpuNanos(final long totalCpuNanos) {
+            this.totalCpuNanos = totalCpuNanos;
+        }
+
+        public long getReadNanos() {
+            return readNanos;
+        }
+
+        public void setReadNanos(final long readNanos) {
+            this.readNanos = readNanos;
+        }
+
+        public long getWriteNanos() {
+            return writeNanos;
+        }
+
+        public void setWriteNanos(final long writeNanos) {
+            this.writeNanos = writeNanos;
+        }
+
+        public long getSessionCommitNanos() {
+            return sessionCommitNanos;
+        }
+
+        public void setSessionCommitNanos(final long sessionCommitNanos) {
+            this.sessionCommitNanos = sessionCommitNanos;
+        }
+
+        public long getGcMillis() {
+            return gcMillis;
+        }
+
+        public void setGcMillis(final long gcMillis) {
+            this.gcMillis = gcMillis;
+        }
+    }
 }

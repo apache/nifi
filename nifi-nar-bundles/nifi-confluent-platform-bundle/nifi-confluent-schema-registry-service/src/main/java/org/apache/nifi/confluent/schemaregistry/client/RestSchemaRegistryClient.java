@@ -36,6 +36,7 @@ import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 import javax.net.ssl.SSLContext;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -44,6 +45,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -61,6 +63,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
     private final List<String> baseUrls;
     private final Client client;
     private final ComponentLog logger;
+    private final Map<String, String> httpHeaders;
 
     private static final String SUBJECT_FIELD_NAME = "subject";
     private static final String VERSION_FIELD_NAME = "version";
@@ -75,8 +78,10 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
                                     final SSLContext sslContext,
                                     final String username,
                                     final String password,
-                                    final ComponentLog logger) {
+                                    final ComponentLog logger,
+                                    final Map<String, String> httpHeaders) {
         this.baseUrls = new ArrayList<>(baseUrls);
+        this.httpHeaders = httpHeaders;
 
         final ClientConfig clientConfig = new ClientConfig();
         clientConfig.property(ClientProperties.CONNECT_TIMEOUT, timeoutMillis);
@@ -109,7 +114,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
     @Override
     public RecordSchema getSchema(final int schemaId) throws IOException, SchemaNotFoundException {
-        // The Confluent Schema Registry's REST API does not provide us with the 'subject' (name) of a Schema given the ID.
+        // The Confluent Schema Registry's version below 5.3.1 REST API does not provide us with the 'subject' (name) of a Schema given the ID.
         // It will provide us only the text of the Schema itself. Therefore, in order to determine the name (which is required for
         // a SchemaIdentifier), we must obtain a list of all Schema names, and then request each and every one of the schemas to determine
         // if the ID requested matches the Schema's ID.
@@ -117,28 +122,104 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
         // Check if we have cached the Identifier to Name mapping
 
-        final String schemaPath = getSchemaPath(schemaId);
-        final JsonNode responseJson = fetchJsonResponse(schemaPath, "id " + schemaId);
-        final JsonNode subjectsJson = fetchJsonResponse("/subjects", "subjects array");
-        final ArrayNode subjectsList = (ArrayNode) subjectsJson;
-
         JsonNode completeSchema = null;
-        for (JsonNode subject: subjectsList) {
-            try {
-                final String subjectName = subject.asText();
-                completeSchema = postJsonResponse("/subjects/" + subjectName, responseJson, "schema id: " + schemaId);
-                break;
-            } catch (SchemaNotFoundException e) {
-                continue;
+
+        // We get the schema definition using the ID of the schema
+        // GET /schemas/ids/{int: id}
+        final String schemaPath = getSchemaPath(schemaId);
+        final JsonNode schemaJson = fetchJsonResponse(schemaPath, "id " + schemaId);
+
+        // Get subject name by id, works only with v5.3.1+ Confluent Schema Registry
+        // GET /schemas/ids/{int: id}/subjects
+        JsonNode subjectsJson = null;
+        try {
+            subjectsJson = fetchJsonResponse(schemaPath + "/subjects", "schema name");
+
+            if(subjectsJson != null) {
+                final ArrayNode subjectsList = (ArrayNode) subjectsJson;
+                for (JsonNode subject: subjectsList) {
+                    final String searchName = subject.asText();
+                    try {
+                        // get complete schema (name + id + version) using the subject name API
+                        completeSchema = postJsonResponse("/subjects/" + searchName, schemaJson, "schema id: " + schemaId);
+                        break;
+                    } catch (SchemaNotFoundException e) {
+                        logger.debug("Could not find schema in registry by subject name " + searchName, e);
+                        continue;
+                    }
+                }
             }
 
+        } catch (SchemaNotFoundException e) {
+            logger.debug("Could not find schema metadata in registry by id and subjects in: " + schemaPath);
         }
 
+        // Get all couples (subject name, version) for a given schema ID
+        // GET /schemas/ids/{int: id}/versions
         if(completeSchema == null) {
-            throw new SchemaNotFoundException("could not get schema with id: " + schemaId);
+            try {
+                JsonNode subjectsVersions = fetchJsonResponse(schemaPath + "/versions", "schema name");
+
+                if(subjectsVersions != null) {
+                    final ArrayNode subjectsVersionsList = (ArrayNode) subjectsVersions;
+                    // we want to make sure we get the latest version
+                    int maxVersion = 0;
+                    String subjectName = null;
+                    for (JsonNode subjectVersion: subjectsVersionsList) {
+                        int currentVersion = subjectVersion.get(VERSION_FIELD_NAME).asInt();
+                        String currentSubjectName = subjectVersion.get(SUBJECT_FIELD_NAME).asText();
+                        if(currentVersion > maxVersion) {
+                            maxVersion = currentVersion;
+                            subjectName = currentSubjectName;
+                        }
+                    }
+
+                    if(subjectName != null) {
+                        return createRecordSchema(subjectName, maxVersion, schemaId, schemaJson.get(SCHEMA_TEXT_FIELD_NAME).asText());
+                    }
+                }
+            } catch (SchemaNotFoundException e) {
+                logger.debug("Could not find schema metadata in registry by id and versions in: " + schemaPath);
+            }
+        }
+
+        // Last resort option: we get the full list of subjects and check one by one to get the complete schema info
+        if(completeSchema == null) {
+            try {
+                final JsonNode subjectsAllJson = fetchJsonResponse("/subjects", "subjects array");
+                final ArrayNode subjectsAllList = (ArrayNode) subjectsAllJson;
+                for (JsonNode subject: subjectsAllList) {
+                    try {
+                        final String searchName = subject.asText();
+                        completeSchema = postJsonResponse("/subjects/" + searchName, schemaJson, "schema id: " + schemaId);
+                        break;
+                    } catch (SchemaNotFoundException e) {
+                        continue;
+                    }
+                }
+            } catch (SchemaNotFoundException e) {
+                logger.debug("Could not find schema metadata in registry by iterating through subjects");
+            }
+        }
+
+        // At this point, we could not get a subject/version associated to the schema and its ID
+        // we add the schema and its ID in the cache without a subject/version
+        if(completeSchema == null) {
+            return createRecordSchema(null, null, schemaId, schemaJson.get(SCHEMA_TEXT_FIELD_NAME).asText());
         }
 
         return createRecordSchema(completeSchema);
+    }
+
+    private RecordSchema createRecordSchema(final String name, final Integer version, final int id, final String schema) throws SchemaNotFoundException {
+        try {
+            final Schema avroSchema = new Schema.Parser().parse(schema);
+            final SchemaIdentifier schemaId = SchemaIdentifier.builder().name(name).id((long) id).version(version).build();
+            return AvroTypeUtil.createSchema(avroSchema, schema, schemaId);
+        } catch (final SchemaParseException spe) {
+            throw new SchemaNotFoundException("Obtained Schema with id " + id + " and name " + name
+                    + " from Confluent Schema Registry but the Schema Text that was returned is not a valid Avro Schema");
+        }
     }
 
     private RecordSchema createRecordSchema(final JsonNode schemaNode) throws SchemaNotFoundException {
@@ -150,11 +231,10 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
         try {
             final Schema avroSchema = new Schema.Parser().parse(schemaText);
             final SchemaIdentifier schemaId = SchemaIdentifier.builder().name(subject).id((long) id).version(version).build();
-
             return AvroTypeUtil.createSchema(avroSchema, schemaText, schemaId);
         } catch (final SchemaParseException spe) {
             throw new SchemaNotFoundException("Obtained Schema with id " + id + " and name " + subject
-                + " from Confluent Schema Registry but the Schema Text that was returned is not a valid Avro Schema");
+                    + " from Confluent Schema Registry but the Schema Text that was returned is not a valid Avro Schema");
         }
     }
 
@@ -173,48 +253,81 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
             final String path = getPath(pathSuffix);
             final String trimmedBase = getTrimmedBase(baseUrl);
             final String url = trimmedBase + path;
-            final WebTarget builder = client.target(url);
-            final Response response = builder.request().accept(MediaType.APPLICATION_JSON).header(CONTENT_TYPE_HEADER, SCHEMA_REGISTRY_CONTENT_TYPE).post(Entity.json(schema.toString()));
+
+            logger.debug("POST JSON response URL {}", url);
+
+            final WebTarget webTarget = client.target(url);
+            Invocation.Builder builder = webTarget.request().accept(MediaType.APPLICATION_JSON).header(CONTENT_TYPE_HEADER, SCHEMA_REGISTRY_CONTENT_TYPE);
+            for (Map.Entry<String, String> header : httpHeaders.entrySet()) {
+                builder = builder.header(header.getKey(), header.getValue());
+            }
+            final Response response = builder.post(Entity.json(schema.toString()));
             final int responseCode = response.getStatus();
 
-            if (responseCode == Response.Status.NOT_FOUND.getStatusCode()) {
-                continue;
-            }
+            switch (Response.Status.fromStatusCode(responseCode)) {
+                case OK:
+                    JsonNode jsonResponse =  response.readEntity(JsonNode.class);
 
-            if(responseCode == Response.Status.OK.getStatusCode()) {
-                return response.readEntity(JsonNode.class);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("JSON Response: {}", jsonResponse);
+                    }
+
+                    return jsonResponse;
+
+                case NOT_FOUND:
+                    logger.debug("Could not find Schema {} from Registry {}", schemaDescription, baseUrl);
+                    continue;
+
+                default:
+                    errorMessage = response.readEntity(String.class);
+                    continue;
             }
         }
 
-        throw new SchemaNotFoundException("Failed to retrieve Schema with " + schemaDescription + " from any of the Confluent Schema Registry URL's provided; failure response message: "
+        throw new SchemaNotFoundException("Failed to retrieve Schema with " + schemaDescription
+                + " from any of the Confluent Schema Registry URL's provided; failure response message: "
                 + errorMessage);
     }
 
-    private JsonNode fetchJsonResponse(final String pathSuffix, final String schemaDescription) throws SchemaNotFoundException, IOException {
+    private JsonNode fetchJsonResponse(final String pathSuffix, final String schemaDescription) throws SchemaNotFoundException {
         String errorMessage = null;
         for (final String baseUrl : baseUrls) {
             final String path = getPath(pathSuffix);
             final String trimmedBase = getTrimmedBase(baseUrl);
             final String url = trimmedBase + path;
 
+            logger.debug("GET JSON response URL {}", url);
+
             final WebTarget webTarget = client.target(url);
-            final Response response = webTarget.request().accept(MediaType.APPLICATION_JSON).get();
+            Invocation.Builder builder = webTarget.request().accept(MediaType.APPLICATION_JSON);
+            for (Map.Entry<String, String> header : httpHeaders.entrySet()) {
+                builder = builder.header(header.getKey(), header.getValue());
+            }
+            final Response response = builder.get();
             final int responseCode = response.getStatus();
 
-            if (responseCode == Response.Status.OK.getStatusCode()) {
-                return response.readEntity(JsonNode.class);
-            }
+            switch (Response.Status.fromStatusCode(responseCode)) {
+                case OK:
+                    JsonNode jsonResponse =  response.readEntity(JsonNode.class);
 
-            if (responseCode == Response.Status.NOT_FOUND.getStatusCode()) {
-                throw new SchemaNotFoundException("Could not find Schema with " + schemaDescription + " from the Confluent Schema Registry located at " + baseUrl);
-            }
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("JSON Response {}", jsonResponse);
+                    }
 
-            if (errorMessage == null) {
-                errorMessage = response.readEntity(String.class);
+                    return jsonResponse;
+
+                case NOT_FOUND:
+                    logger.debug("Could not find Schema {} from Registry {}", schemaDescription, baseUrl);
+                    continue;
+
+                default:
+                    errorMessage = response.readEntity(String.class);
+                    continue;
             }
         }
 
-        throw new IOException("Failed to retrieve Schema with " + schemaDescription + " from any of the Confluent Schema Registry URL's provided; failure response message: " + errorMessage);
+        throw new SchemaNotFoundException("Failed to retrieve Schema with " + schemaDescription
+                + " from any of the Confluent Schema Registry URL's provided; failure response message: " + errorMessage);
     }
 
     private String getTrimmedBase(String baseUrl) {

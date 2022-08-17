@@ -19,8 +19,18 @@ package org.apache.nifi.cluster.manager;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
 
 import java.util.Collection;
+import java.util.List;
 
 public class AllowableValueEntityMerger {
+    public static AllowableValueEntity merge(List<AllowableValueEntity> entities) {
+        AllowableValueEntity mergedEntity;
+
+        mergedEntity = entities.remove(0);
+        merge(mergedEntity, entities);
+
+        return mergedEntity;
+    }
+
     public static void merge(AllowableValueEntity clientAllowableValue, Collection<AllowableValueEntity> allowableValues) {
         for (AllowableValueEntity allowableValue : allowableValues) {
             if (clientAllowableValue.getCanRead() && !allowableValue.getCanRead()) {

@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-hbase-bundle</artifactId>
@@ -35,7 +35,13 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-hbase-processors</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
+            </dependency>
+            <!-- Override commons-compress -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.21</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

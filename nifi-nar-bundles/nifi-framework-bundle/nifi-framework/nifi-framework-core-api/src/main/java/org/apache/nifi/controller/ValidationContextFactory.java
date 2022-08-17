@@ -24,6 +24,7 @@ import java.util.Map;
 
 public interface ValidationContextFactory {
 
-    ValidationContext newValidationContext(Map<PropertyDescriptor, PropertyConfiguration> properties, String annotationData, String groupId, String componentId, ParameterContext parameterContext);
+    ValidationContext newValidationContext(Map<PropertyDescriptor, PropertyConfiguration> properties, String annotationData, String groupId, String componentId, ParameterContext parameterContext,
+                                           boolean validateConnections);
 
 }

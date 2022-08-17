@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-scripting-bundle</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-scripting-processors</artifactId>
@@ -41,7 +41,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -54,7 +54,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-path</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -68,17 +68,17 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-rules-engine-service-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.ivy</groupId>
             <artifactId>ivy</artifactId>
-            <version>2.4.0</version>
+            <version>2.5.0</version>
         </dependency>
         <dependency>
-            <groupId>org.scijava</groupId>
-            <artifactId>jython-shaded</artifactId>
-            <version>2.7.1.1</version>
+            <groupId>org.python</groupId>
+            <artifactId>jython-standalone</artifactId>
+            <version>2.7.2</version>
         </dependency>
         <dependency>
             <groupId>org.luaj</groupId>
@@ -88,7 +88,7 @@
         <dependency>
             <groupId>org.jruby</groupId>
             <artifactId>jruby-complete</artifactId>
-            <version>9.2.6.0</version>
+            <version>9.3.4.0</version>
         </dependency>
         <dependency>
             <groupId>org.clojure</groupId>
@@ -98,12 +98,10 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.9</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.6</version>
         </dependency>
         <dependency>
             <groupId>commons-net</groupId>
@@ -114,18 +112,18 @@
         <dependency>
             <groupId>xerces</groupId>
             <artifactId>xercesImpl</artifactId>
-            <version>2.12.0</version>
+            <version>2.12.2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock-record-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -153,4 +151,43 @@
             <version>${scripting.groovy.version}</version>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes combine.children="append">
+                        <exclude>src/test/resources/jython/test_compress.py</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                        <id>copy</id>
+                        <phase>process-test-resources</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.apache.commons</groupId>
+                                    <artifactId>commons-math3</artifactId>
+                                    <version>3.6.1</version>
+                                    <type>jar</type>
+                                    <overWrite>true</overWrite>
+                                    <outputDirectory>${project.build.testOutputDirectory}/jar</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

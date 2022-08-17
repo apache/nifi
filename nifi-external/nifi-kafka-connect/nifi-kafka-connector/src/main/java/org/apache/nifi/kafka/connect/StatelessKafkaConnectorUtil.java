@@ -19,8 +19,8 @@ package org.apache.nifi.kafka.connect;
 
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.nifi.kafka.connect.validators.ConnectDirectoryExistsValidator;
-import org.apache.nifi.kafka.connect.validators.FlowSnapshotValidator;
 import org.apache.nifi.kafka.connect.validators.ConnectHttpUrlValidator;
+import org.apache.nifi.kafka.connect.validators.FlowSnapshotValidator;
 import org.apache.nifi.stateless.bootstrap.StatelessBootstrap;
 import org.apache.nifi.stateless.config.ExtensionClientDefinition;
 import org.apache.nifi.stateless.config.ParameterOverride;
@@ -38,10 +38,12 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.jar.JarFile;
@@ -49,12 +51,15 @@ import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.apache.kafka.common.config.ConfigDef.NonEmptyStringWithoutControlChars.nonEmptyStringWithoutControlChars;
+
 public class StatelessKafkaConnectorUtil {
     private static final String UNKNOWN_VERSION = "<Unable to determine Stateless NiFi Kafka Connector Version>";
     private static final Logger logger = LoggerFactory.getLogger(StatelessKafkaConnectorUtil.class);
     private static final Lock unpackNarLock = new ReentrantLock();
 
     static final String NAR_DIRECTORY = "nar.directory";
+    static final String EXTENSIONS_DIRECTORY = "extensions.directory";
     static final String WORKING_DIRECTORY = "working.directory";
     static final String FLOW_SNAPSHOT = "flow.snapshot";
     static final String KRB5_FILE = "krb5.file";
@@ -79,6 +84,7 @@ public class StatelessKafkaConnectorUtil {
     static final String DEFAULT_KRB5_FILE = "/etc/krb5.conf";
     static final String DEFAULT_DATAFLOW_TIMEOUT = "60 sec";
     static final File DEFAULT_WORKING_DIRECTORY = new File("/tmp/nifi-stateless-working");
+    static final File DEFAULT_EXTENSIONS_DIRECTORY = new File("/tmp/nifi-stateless-extensions");
     static final String DEFAULT_SENSITIVE_PROPS_KEY = "nifi-stateless";
 
     private static final Pattern STATELESS_BOOTSTRAP_FILE_PATTERN = Pattern.compile("nifi-stateless-bootstrap-(.*).jar");
@@ -88,11 +94,13 @@ public class StatelessKafkaConnectorUtil {
     public static void addCommonConfigElements(final ConfigDef configDef) {
         configDef.define(NAR_DIRECTORY, ConfigDef.Type.STRING, null, new ConnectDirectoryExistsValidator(), ConfigDef.Importance.HIGH,
             "Specifies the directory that stores the NiFi Archives (NARs)");
-        configDef.define(WORKING_DIRECTORY, ConfigDef.Type.STRING, null, new ConnectDirectoryExistsValidator(), ConfigDef.Importance.HIGH,
+        configDef.define(EXTENSIONS_DIRECTORY, ConfigDef.Type.STRING, null, ConfigDef.Importance.HIGH,
+            "Specifies the directory that stores the extensions that will be downloaded (if any) from the configured Extension Client");
+        configDef.define(WORKING_DIRECTORY, ConfigDef.Type.STRING, null, ConfigDef.Importance.HIGH,
             "Specifies the temporary working directory for expanding NiFi Archives (NARs)");
         configDef.define(FLOW_SNAPSHOT, ConfigDef.Type.STRING, null, new FlowSnapshotValidator(), ConfigDef.Importance.HIGH,
             "Specifies the dataflow to run. This may be a file containing the dataflow, a URL that points to a dataflow, or a String containing the entire dataflow as an escaped JSON.");
-        configDef.define(DATAFLOW_NAME, ConfigDef.Type.STRING, null, ConfigDef.Importance.HIGH, "The name of the dataflow.");
+        configDef.define(DATAFLOW_NAME, ConfigDef.Type.STRING, ConfigDef.NO_DEFAULT_VALUE, nonEmptyStringWithoutControlChars(), ConfigDef.Importance.HIGH, "The name of the dataflow.");
 
         configDef.define(StatelessKafkaConnectorUtil.KRB5_FILE, ConfigDef.Type.STRING, StatelessKafkaConnectorUtil.DEFAULT_KRB5_FILE, ConfigDef.Importance.MEDIUM,
             "Specifies the krb5.conf file to use if connecting to Kerberos-enabled services");
@@ -147,7 +155,7 @@ public class StatelessKafkaConnectorUtil {
         final List<ParameterOverride> parameterOverrides = parseParameterOverrides(properties);
         final String dataflowName = properties.get(DATAFLOW_NAME);
 
-        final DataflowDefinition<?> dataflowDefinition;
+        final DataflowDefinition dataflowDefinition;
         final StatelessBootstrap bootstrap;
         try {
             final Map<String, String> dataflowDefinitionProperties = new HashMap<>();
@@ -179,8 +187,8 @@ public class StatelessKafkaConnectorUtil {
                 unpackNarLock.unlock();
             }
 
-            dataflowDefinition = bootstrap.parseDataflowDefinition(dataflowDefinitionProperties);
-            return bootstrap.createDataflow(dataflowDefinition, parameterOverrides);
+            dataflowDefinition = bootstrap.parseDataflowDefinition(dataflowDefinitionProperties, parameterOverrides);
+            return bootstrap.createDataflow(dataflowDefinition);
         } catch (final Exception e) {
             throw new RuntimeException("Failed to bootstrap Stateless NiFi Engine", e);
         }
@@ -229,12 +237,23 @@ public class StatelessKafkaConnectorUtil {
             narDirectory = new File(narDirectoryFilename);
         }
 
-        final File workingDirectory;
+        final String dataflowName = properties.get(DATAFLOW_NAME);
+
+        final File baseWorkingDirectory;
         final String workingDirectoryFilename = properties.get(WORKING_DIRECTORY);
         if (workingDirectoryFilename == null) {
-            workingDirectory = DEFAULT_WORKING_DIRECTORY;
+            baseWorkingDirectory = DEFAULT_WORKING_DIRECTORY;
         } else {
-            workingDirectory = new File(workingDirectoryFilename);
+            baseWorkingDirectory = new File(workingDirectoryFilename);
+        }
+        final File workingDirectory = new File(baseWorkingDirectory, dataflowName);
+
+        final File extensionsDirectory;
+        final String extensionsDirectoryFilename = properties.get(EXTENSIONS_DIRECTORY);
+        if (extensionsDirectoryFilename == null) {
+            extensionsDirectory = DEFAULT_EXTENSIONS_DIRECTORY;
+        } else {
+            extensionsDirectory = new File(extensionsDirectoryFilename);
         }
 
         final SslContextDefinition sslContextDefinition = createSslContextDefinition(properties);
@@ -251,8 +270,23 @@ public class StatelessKafkaConnectorUtil {
             }
 
             @Override
+            public File getExtensionsDirectory() {
+                return extensionsDirectory;
+            }
+
+            @Override
+            public Collection<File> getReadOnlyExtensionsDirectories() {
+                return Collections.emptyList();
+            }
+
+            @Override
             public File getKrb5File() {
                 return new File(properties.getOrDefault(KRB5_FILE, DEFAULT_KRB5_FILE));
+            }
+
+            @Override
+            public Optional<File> getContentRepositoryDirectory() {
+                return Optional.empty();
             }
 
             @Override
@@ -280,6 +314,11 @@ public class StatelessKafkaConnectorUtil {
                 }
 
                 return extensionClientDefinitions;
+            }
+
+            @Override
+            public String getStatusTaskInterval() {
+                return "1 min";
             }
         };
 

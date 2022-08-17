@@ -16,19 +16,7 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
-
+import com.google.common.collect.Maps;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -39,17 +27,28 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Maps;
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestDeleteHDFS {
     private NiFiProperties mockNiFiProperties;
     private FileSystem mockFileSystem;
     private KerberosProperties kerberosProperties;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         mockNiFiProperties = mock(NiFiProperties.class);
         when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
@@ -130,7 +129,7 @@ public class TestDeleteHDFS {
     }
 
     @Test
-    public void testNoFlowFilesWithIncomingConnection() throws Exception {
+    public void testNoFlowFilesWithIncomingConnection() {
         Path filePath = new Path("${hdfs.file}");
         DeleteHDFS deleteHDFS = new TestableDeleteHDFS(kerberosProperties, mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
@@ -227,7 +226,7 @@ public class TestDeleteHDFS {
     }
 
     @Test
-    public void testGlobMatcher() throws Exception {
+    public void testGlobMatcher() {
         DeleteHDFS deleteHDFS = new DeleteHDFS();
         assertTrue(deleteHDFS.GLOB_MATCHER.reset("/data/for/08/09/*").find());
         assertTrue(deleteHDFS.GLOB_MATCHER.reset("/data/for/08/09/[01-04]").find());

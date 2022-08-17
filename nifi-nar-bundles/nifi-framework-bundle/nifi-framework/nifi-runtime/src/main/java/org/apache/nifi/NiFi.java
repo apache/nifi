@@ -17,11 +17,15 @@
 package org.apache.nifi;
 
 import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.diagnostics.DiagnosticsDump;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.nar.SystemBundle;
+import org.apache.nifi.nar.NarUnpackMode;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.util.DiagnosticUtils;
 import org.apache.nifi.util.FileUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -29,9 +33,10 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.Thread.UncaughtExceptionHandler;
+import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
@@ -39,7 +44,10 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -54,33 +62,38 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
 
 public class NiFi implements NiFiEntryPoint {
 
+    public static final String BOOTSTRAP_PORT_PROPERTY = "nifi.bootstrap.listen.port";
+    public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
+
     private static final Logger LOGGER = LoggerFactory.getLogger(NiFi.class);
     private static final String KEY_FILE_FLAG = "-K";
+
     private final NiFiServer nifiServer;
     private final BootstrapListener bootstrapListener;
+    private final NiFiProperties properties;
 
-    public static final String BOOTSTRAP_PORT_PROPERTY = "nifi.bootstrap.listen.port";
     private volatile boolean shutdown = false;
 
     public NiFi(final NiFiProperties properties)
-            throws ClassNotFoundException, IOException, NoSuchMethodException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-
+            throws ClassNotFoundException, IOException, IllegalArgumentException {
         this(properties, ClassLoader.getSystemClassLoader());
-
     }
 
     public NiFi(final NiFiProperties properties, ClassLoader rootClassLoader)
-            throws ClassNotFoundException, IOException, NoSuchMethodException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+            throws ClassNotFoundException, IOException, IllegalArgumentException {
+
+        this.properties = properties;
 
         // There can only be one krb5.conf for the overall Java process so set this globally during
         // start up so that processors and our Kerberos authentication code don't have to set this
         final File kerberosConfigFile = properties.getKerberosConfigurationFile();
         if (kerberosConfigFile != null) {
             final String kerberosConfigFilePath = kerberosConfigFile.getAbsolutePath();
-            LOGGER.info("Setting java.security.krb5.conf to {}", new Object[]{kerberosConfigFilePath});
+            LOGGER.debug("Setting java.security.krb5.conf to {}", kerberosConfigFilePath);
             System.setProperty("java.security.krb5.conf", kerberosConfigFilePath);
         }
 
@@ -99,7 +112,7 @@ public class NiFi implements NiFiEntryPoint {
                 }
 
                 bootstrapListener = new BootstrapListener(this, port);
-                bootstrapListener.start();
+                bootstrapListener.start(properties.getDefaultListenerBootstrapPort());
             } catch (final NumberFormatException nfe) {
                 throw new RuntimeException("Failed to start NiFi because system property '" + BOOTSTRAP_PORT_PROPERTY + "' is not a valid integer in the range 1 - 65535");
             }
@@ -125,13 +138,13 @@ public class NiFi implements NiFiEntryPoint {
         final Bundle systemBundle = SystemBundle.create(properties, rootClassLoader);
 
         // expand the nars
-        final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties, systemBundle);
+        final NarUnpackMode unpackMode = properties.isUnpackNarsToUberJar() ? NarUnpackMode.UNPACK_TO_UBER_JAR : NarUnpackMode.UNPACK_INDIVIDUAL_JARS;
+        final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties, systemBundle, unpackMode);
 
         // load the extensions classloaders
         NarClassLoaders narClassLoaders = NarClassLoadersHolder.getInstance();
 
-        narClassLoaders.init(rootClassLoader,
-                properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
+        narClassLoaders.init(rootClassLoader, properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory(), true);
 
         // load the framework classloader
         final ClassLoader frameworkClassLoader = narClassLoaders.getFrameworkBundle().getClassLoader();
@@ -164,8 +177,8 @@ public class NiFi implements NiFiEntryPoint {
             }
 
             final long duration = System.nanoTime() - startTime;
-            LOGGER.info("Controller initialization took " + duration + " nanoseconds "
-                    + "(" + (int) TimeUnit.SECONDS.convert(duration, TimeUnit.NANOSECONDS) + " seconds).");
+            final double durationSeconds = TimeUnit.NANOSECONDS.toMillis(duration) / 1000.0;
+            LOGGER.info("Started Application Controller in {} seconds ({} ns)", durationSeconds, duration);
         }
     }
 
@@ -174,23 +187,16 @@ public class NiFi implements NiFiEntryPoint {
     }
 
     protected void setDefaultUncaughtExceptionHandler() {
-        Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(final Thread t, final Throwable e) {
-                LOGGER.error("An Unknown Error Occurred in Thread {}: {}", t, e.toString());
-                LOGGER.error("", e);
-            }
+        Thread.setDefaultUncaughtExceptionHandler((thread, exception) -> {
+            LOGGER.error("An Unknown Error Occurred in Thread {}: {}", thread, exception.toString(), exception);
         });
     }
 
     protected void addShutdownHook() {
-        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-            @Override
-            public void run() {
+        Runtime.getRuntime().addShutdownHook(new Thread(() ->
                 // shutdown the jetty server
-                shutdownHook(false);
-            }
-        }));
+                shutdownHook(false)
+        ));
     }
 
     protected void initLogging() {
@@ -201,12 +207,12 @@ public class NiFi implements NiFiEntryPoint {
     private static ClassLoader createBootstrapClassLoader() {
         //Get list of files in bootstrap folder
         final List<URL> urls = new ArrayList<>();
-        try {
-            Files.list(Paths.get("lib/bootstrap")).forEach(p -> {
+        try (final Stream<Path> files = Files.list(Paths.get("lib/bootstrap"))) {
+            files.forEach(p -> {
                 try {
                     urls.add(p.toUri().toURL());
                 } catch (final MalformedURLException mef) {
-                    LOGGER.warn("Unable to load " + p.getFileName() + " due to " + mef, mef);
+                    LOGGER.warn("Unable to load bootstrap library [{}]", p.getFileName(), mef);
                 }
             });
         } catch (IOException ioe) {
@@ -216,25 +222,51 @@ public class NiFi implements NiFiEntryPoint {
         return new URLClassLoader(urls.toArray(new URL[0]), Thread.currentThread().getContextClassLoader());
     }
 
-    public void shutdownHook(boolean isReload) {
+    public void shutdownHook(final boolean isReload) {
         try {
+            runDiagnosticsOnShutdown();
             shutdown();
         } catch (final Throwable t) {
-            LOGGER.warn("Problem occurred ensuring Jetty web server was properly terminated due to " + t);
+            LOGGER.warn("Problem occurred ensuring Jetty web server was properly terminated", t);
         }
     }
+
+    private void runDiagnosticsOnShutdown() throws IOException {
+        if (properties.isDiagnosticsOnShutdownEnabled()) {
+            final String diagnosticDirectoryPath = properties.getDiagnosticsOnShutdownDirectory();
+            final boolean isCreated = DiagnosticUtils.createDiagnosticDirectory(diagnosticDirectoryPath);
+            if (isCreated) {
+                LOGGER.debug("Diagnostic directory has successfully been created.");
+            }
+            while (DiagnosticUtils.isFileCountExceeded(diagnosticDirectoryPath, properties.getDiagnosticsOnShutdownMaxFileCount())
+                    || DiagnosticUtils.isSizeExceeded(diagnosticDirectoryPath, DataUnit.parseDataSize(properties.getDiagnosticsOnShutdownDirectoryMaxSize(), DataUnit.B).longValue())) {
+                final Path oldestFile = DiagnosticUtils.getOldestFile(diagnosticDirectoryPath);
+                Files.delete(oldestFile);
+            }
+            final String fileName = String.format("%s/diagnostic-%s.log", diagnosticDirectoryPath, DATE_TIME_FORMATTER.format(LocalDateTime.now()));
+            diagnose(new File(fileName), properties.isDiagnosticsOnShutdownVerbose());
+        }
+    }
+
+    private void diagnose(final File file, final boolean verbose) throws IOException {
+        final DiagnosticsDump diagnosticsDump = getServer().getDiagnosticsFactory().create(verbose);
+        try (final OutputStream fileOutputStream = new FileOutputStream(file)) {
+            diagnosticsDump.writeTo(fileOutputStream);
+        }
+    }
+
 
     protected void shutdown() {
         this.shutdown = true;
 
-        LOGGER.info("Initiating shutdown of Jetty web server...");
+        LOGGER.info("Application Server shutdown started");
         if (nifiServer != null) {
             nifiServer.stop();
         }
         if (bootstrapListener != null) {
             bootstrapListener.stop();
         }
-        LOGGER.info("Jetty web server shutdown completed (nicely or otherwise).");
+        LOGGER.info("Application Server shutdown completed");
     }
 
     /**
@@ -249,8 +281,8 @@ public class NiFi implements NiFiEntryPoint {
             private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
 
             @Override
-            public Thread newThread(final Runnable r) {
-                final Thread t = defaultFactory.newThread(r);
+            public Thread newThread(final Runnable runnable) {
+                final Thread t = defaultFactory.newThread(runnable);
                 t.setDaemon(true);
                 t.setName("Detect Timing Issues");
                 return t;
@@ -259,18 +291,15 @@ public class NiFi implements NiFiEntryPoint {
 
         final AtomicInteger occurrencesOutOfRange = new AtomicInteger(0);
         final AtomicInteger occurrences = new AtomicInteger(0);
-        final Runnable command = new Runnable() {
-            @Override
-            public void run() {
-                final long curMillis = System.currentTimeMillis();
-                final long difference = curMillis - lastTriggerMillis.get();
-                final long millisOff = Math.abs(difference - 2000L);
-                occurrences.incrementAndGet();
-                if (millisOff > 500L) {
-                    occurrencesOutOfRange.incrementAndGet();
-                }
-                lastTriggerMillis.set(curMillis);
+        final Runnable command = () -> {
+            final long curMillis = System.currentTimeMillis();
+            final long difference = curMillis - lastTriggerMillis.get();
+            final long millisOff = Math.abs(difference - 2000L);
+            occurrences.incrementAndGet();
+            if (millisOff > 500L) {
+                occurrencesOutOfRange.incrementAndGet();
             }
+            lastTriggerMillis.set(curMillis);
         };
 
         final ScheduledFuture<?> future = service.scheduleWithFixedDelay(command, 2000L, 2000L, TimeUnit.MILLISECONDS);
@@ -302,7 +331,7 @@ public class NiFi implements NiFiEntryPoint {
             NiFiProperties properties = convertArgumentsToValidatedNiFiProperties(args);
             new NiFi(properties);
         } catch (final Throwable t) {
-            LOGGER.error("Failure to launch NiFi due to " + t, t);
+            LOGGER.error("Failure to launch NiFi", t);
         }
     }
 
@@ -339,7 +368,7 @@ public class NiFi implements NiFiEntryPoint {
             final Object loaderInstance = withKeyMethod.invoke(null, key);
             final Method getMethod = propsLoaderClass.getMethod("get");
             final NiFiProperties properties = (NiFiProperties) getMethod.invoke(loaderInstance);
-            LOGGER.info("Loaded {} properties", properties.size());
+            LOGGER.info("Application Properties loaded [{}]", properties.size());
             return properties;
         } catch (InvocationTargetException wrappedException) {
             final String msg = "There was an issue decrypting protected properties";
@@ -377,48 +406,46 @@ public class NiFi implements NiFiEntryPoint {
 
     private static String getKeyFromKeyFileAndPrune(List<String> parsedArgs) {
         String key = null;
-        LOGGER.debug("The bootstrap process provided the " + KEY_FILE_FLAG + " flag");
+        LOGGER.debug("The bootstrap process provided the {} flag", KEY_FILE_FLAG);
         int i = parsedArgs.indexOf(KEY_FILE_FLAG);
         if (parsedArgs.size() <= i + 1) {
             LOGGER.error("The bootstrap process passed the {} flag without a filename", KEY_FILE_FLAG);
             throw new IllegalArgumentException("The bootstrap process provided the " + KEY_FILE_FLAG + " flag but no key");
         }
         try {
-          String passwordfile_path = parsedArgs.get(i + 1);
-          // Slurp in the contents of the file:
-          byte[] encoded = Files.readAllBytes(Paths.get(passwordfile_path));
-          key = new String(encoded,StandardCharsets.UTF_8);
-          if (0 == key.length())
-            throw new IllegalArgumentException("Key in keyfile " + passwordfile_path + " yielded an empty key");
+            String passwordfilePath = parsedArgs.get(i + 1);
+            // Slurp in the contents of the file:
+            byte[] encoded = Files.readAllBytes(Paths.get(passwordfilePath));
+            key = new String(encoded, StandardCharsets.UTF_8);
+            if (0 == key.length())
+                throw new IllegalArgumentException("Key in keyfile " + passwordfilePath + " yielded an empty key");
 
-          LOGGER.info("Now overwriting file in "+passwordfile_path);
+            LOGGER.debug("Overwriting temporary bootstrap key file [{}]", passwordfilePath);
 
-          // Overwrite the contents of the file (to avoid littering file system
-          // unlinked with key material):
-          File password_file = new File(passwordfile_path);
-          FileWriter overwriter = new FileWriter(password_file,false);
+            // Overwrite the contents of the file (to avoid littering file system
+            // unlinked with key material):
+            File passwordFile = new File(passwordfilePath);
+            FileWriter overwriter = new FileWriter(passwordFile, false);
 
-          // Construe a random pad:
-          Random r = new Random();
-          StringBuffer sb = new StringBuffer();
-          // Note on correctness: this pad is longer, but equally sufficient.
-          while(sb.length() < encoded.length){
-            sb.append(Integer.toHexString(r.nextInt()));
-          }
-          String pad = sb.toString();
-          LOGGER.info("Overwriting key material with pad: "+pad);
-          overwriter.write(pad);
-          overwriter.close();
+            // Construe a random pad:
+            Random random = new Random();
+            StringBuffer sb = new StringBuffer();
+            // Note on correctness: this pad is longer, but equally sufficient.
+            while (sb.length() < encoded.length) {
+                sb.append(Integer.toHexString(random.nextInt()));
+            }
+            String pad = sb.toString();
+            overwriter.write(pad);
+            overwriter.close();
 
-          LOGGER.info("Removing/unlinking file: "+passwordfile_path);
-          password_file.delete();
+            LOGGER.debug("Removing temporary bootstrap key file [{}]", passwordfilePath);
+            passwordFile.delete();
 
         } catch (IOException e) {
-          LOGGER.error("Caught IOException while retrieving the "+KEY_FILE_FLAG+"-passed keyfile; aborting: "+e.toString());
-          System.exit(1);
+            LOGGER.error("Caught IOException while retrieving the {} -passed keyfile; aborting: {}", KEY_FILE_FLAG, e.toString());
+            System.exit(1);
         }
 
-        LOGGER.info("Read property protection key from key file provided by bootstrap process");
         return key;
     }
 

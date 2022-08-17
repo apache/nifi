@@ -20,8 +20,8 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -35,14 +35,14 @@ public class ITConsumeKafka_2_6 {
     ConsumerLease mockLease = null;
     ConsumerPool mockConsumerPool = null;
 
-    @Before
+    @BeforeEach
     public void setup() {
         mockLease = mock(ConsumerLease.class);
         mockConsumerPool = mock(ConsumerPool.class);
     }
 
     @Test
-    public void validateGetAllMessages() throws Exception {
+    public void validateGetAllMessages() {
         String groupName = "validateGetAllMessages";
 
         when(mockConsumerPool.obtainConsumer(any(), any())).thenReturn(mockLease);
@@ -72,7 +72,7 @@ public class ITConsumeKafka_2_6 {
     }
 
     @Test
-    public void validateGetAllMessagesPattern() throws Exception {
+    public void validateGetAllMessagesPattern() {
         String groupName = "validateGetAllMessagesPattern";
 
         when(mockConsumerPool.obtainConsumer(any(), any())).thenReturn(mockLease);
@@ -103,7 +103,7 @@ public class ITConsumeKafka_2_6 {
     }
 
     @Test
-    public void validateGetErrorMessages() throws Exception {
+    public void validateGetErrorMessages() {
         String groupName = "validateGetErrorMessages";
 
         when(mockConsumerPool.obtainConsumer(any(), any())).thenReturn(mockLease);

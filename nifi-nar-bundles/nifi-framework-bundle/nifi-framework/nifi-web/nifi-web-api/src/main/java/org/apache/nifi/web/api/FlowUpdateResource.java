@@ -28,10 +28,10 @@ import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.FlowRegistryUtils;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedParameterContext;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.ResumeFlowException;
@@ -49,8 +49,10 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.FlowUpdateRequestEntity;
+import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupDescriptorEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.util.AffectedComponentUtils;
 import org.apache.nifi.web.util.CancellableTimedPause;
 import org.apache.nifi.web.util.ComponentLifecycle;
@@ -85,7 +87,7 @@ import java.util.stream.Collectors;
  * @param <U>   Entity to capture the status and result of an update request
  */
 public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity, U extends FlowUpdateRequestEntity> extends ApplicationResource {
-
+    private static final String DISABLED_COMPONENT_STATE = "DISABLED";
     private static final Logger logger = LoggerFactory.getLogger(FlowUpdateResource.class);
 
     protected NiFiServiceFacade serviceFacade;
@@ -297,6 +299,20 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         return createUpdateRequestResponse(requestType, requestId, request, false);
     }
 
+    private boolean isActive(final AffectedComponentDTO affectedComponentDto) {
+        final String state = affectedComponentDto.getState();
+        if ("Running".equalsIgnoreCase(state) || "Starting".equalsIgnoreCase(state)) {
+            return true;
+        }
+
+        final Integer threadCount = affectedComponentDto.getActiveThreadCount();
+        if (threadCount != null && threadCount > 0) {
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      * Perform the specified flow update
      */
@@ -316,8 +332,8 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         stoppableReferenceTypes.add(AffectedComponentDTO.COMPONENT_TYPE_OUTPUT_PORT);
 
         final Set<AffectedComponentEntity> runningComponents = affectedComponents.stream()
-                .filter(dto -> stoppableReferenceTypes.contains(dto.getComponent().getReferenceType()))
-                .filter(dto -> "Running".equalsIgnoreCase(dto.getComponent().getState()))
+                .filter(entity -> stoppableReferenceTypes.contains(entity.getComponent().getReferenceType()))
+                .filter(entity -> isActive(entity.getComponent()))
                 .collect(Collectors.toSet());
 
         logger.info("Stopping {} Processors", runningComponents.size());
@@ -330,16 +346,27 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         }
         asyncRequest.markStepComplete();
 
-        // Steps 7-8. Disable enabled controller services that are affected
-        final Set<AffectedComponentEntity> enabledServices = affectedComponents.stream()
-                .filter(dto -> AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE.equals(dto.getComponent().getReferenceType()))
-                .filter(dto -> "Enabled".equalsIgnoreCase(dto.getComponent().getState()))
-                .collect(Collectors.toSet());
+        // Steps 7-8. Disable enabled controller services that are affected.
+        // We don't want to disable services that are already disabling. But we need to wait for their state to transition from Disabling to Disabled.
+        final Set<AffectedComponentEntity> servicesToWaitFor = affectedComponents.stream()
+            .filter(dto -> AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE.equals(dto.getComponent().getReferenceType()))
+            .filter(dto -> {
+                final String state = dto.getComponent().getState();
+                return "Enabled".equalsIgnoreCase(state) || "Enabling".equalsIgnoreCase(state) || "Disabling".equalsIgnoreCase(state);
+            })
+            .collect(Collectors.toSet());
+
+        final Set<AffectedComponentEntity> enabledServices = servicesToWaitFor.stream()
+            .filter(dto -> {
+                final String state = dto.getComponent().getState();
+                return "Enabling".equalsIgnoreCase(state) || "Enabled".equalsIgnoreCase(state);
+            })
+            .collect(Collectors.toSet());
 
         logger.info("Disabling {} Controller Services", enabledServices.size());
         final CancellableTimedPause disableServicesPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
         asyncRequest.setCancelCallback(disableServicesPause::cancel);
-        componentLifecycle.activateControllerServices(requestUri, groupId, enabledServices, ControllerServiceState.DISABLED, disableServicesPause, InvalidComponentAction.SKIP);
+        componentLifecycle.activateControllerServices(requestUri, groupId, enabledServices, servicesToWaitFor, ControllerServiceState.DISABLED, disableServicesPause, InvalidComponentAction.SKIP);
 
         if (asyncRequest.isCancelled()) {
             return;
@@ -413,7 +440,8 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 logger.info("Successfully updated flow; re-enabling {} Controller Services", servicesToEnable.size());
 
                 try {
-                    componentLifecycle.activateControllerServices(requestUri, groupId, servicesToEnable, ControllerServiceState.ENABLED, enableServicesPause, InvalidComponentAction.SKIP);
+                    componentLifecycle.activateControllerServices(requestUri, groupId, servicesToEnable, servicesToEnable,
+                        ControllerServiceState.ENABLED, enableServicesPause, InvalidComponentAction.SKIP);
                 } catch (final IllegalStateException ise) {
                     // Component Lifecycle will re-enable the Controller Services only if they are valid. If IllegalStateException gets thrown, we need to provide
                     // a more intelligent error message as to exactly what happened, rather than indicate that the flow could not be updated.
@@ -439,14 +467,37 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 for (final AffectedComponentEntity componentEntity : componentsToStart) {
                     final AffectedComponentDTO componentDto = componentEntity.getComponent();
                     final String referenceType = componentDto.getReferenceType();
-                    if (!AffectedComponentDTO.COMPONENT_TYPE_REMOTE_INPUT_PORT.equals(referenceType)
-                            && !AffectedComponentDTO.COMPONENT_TYPE_REMOTE_OUTPUT_PORT.equals(referenceType)) {
-                        continue;
-                    }
 
-                    boolean startComponent;
+                    boolean startComponent = true;
                     try {
-                        startComponent = serviceFacade.isRemoteGroupPortConnected(componentDto.getProcessGroupId(), componentDto.getId());
+                        switch (referenceType) {
+                            case AffectedComponentDTO.COMPONENT_TYPE_REMOTE_INPUT_PORT:
+                            case AffectedComponentDTO.COMPONENT_TYPE_REMOTE_OUTPUT_PORT: {
+                                startComponent = serviceFacade.isRemoteGroupPortConnected(componentDto.getProcessGroupId(), componentDto.getId());
+                                break;
+                            }
+                            case AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR: {
+                                final ProcessorEntity entity = serviceFacade.getProcessor(componentEntity.getId());
+                                if (entity == null || DISABLED_COMPONENT_STATE.equals(entity.getComponent().getState())) {
+                                    startComponent = false;
+                                }
+                                break;
+                            }
+                            case AffectedComponentDTO.COMPONENT_TYPE_INPUT_PORT: {
+                                final PortEntity entity = serviceFacade.getInputPort(componentEntity.getId());
+                                if (entity == null || DISABLED_COMPONENT_STATE.equals(entity.getComponent().getState())) {
+                                    startComponent = false;
+                                }
+                                break;
+                            }
+                            case AffectedComponentDTO.COMPONENT_TYPE_OUTPUT_PORT: {
+                                final PortEntity entity = serviceFacade.getOutputPort(componentEntity.getId());
+                                if (entity == null || DISABLED_COMPONENT_STATE.equals(entity.getComponent().getState())) {
+                                    startComponent = false;
+                                }
+                                break;
+                            }
+                        }
                     } catch (final ResourceNotFoundException rnfe) {
                         // Could occur if RPG is refreshed at just the right time.
                         startComponent = false;

@@ -58,7 +58,7 @@
                         headerText: 'Session Expired',
                         dialogContent: 'Your session has expired. Please press Ok to log in again.',
                         okHandler: function () {
-                            window.location = '/nifi';
+                            window.location = '../nifi/';
                         }
                     });
                 }

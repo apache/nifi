@@ -16,24 +16,6 @@
  */
 package org.apache.nifi.processors.hive;
 
-import java.nio.charset.Charset;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -61,6 +43,24 @@ import org.apache.nifi.processor.util.pattern.PartialFunctions;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.hive.CsvOutputOptions;
 import org.apache.nifi.util.hive.HiveJdbcCommon;
+
+import java.nio.charset.Charset;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.apache.nifi.util.hive.HiveJdbcCommon.AVRO;
 import static org.apache.nifi.util.hive.HiveJdbcCommon.CSV;
@@ -236,6 +236,21 @@ public class SelectHive3QL extends AbstractHive3QLProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
+    public static final PropertyDescriptor USE_AVRO_LOGICAL_TYPES = new PropertyDescriptor.Builder()
+            .name("use-logical-types")
+            .displayName("Use Avro Logical Types")
+            .description("Whether to use Avro Logical Types for DECIMAL, DATE and TIMESTAMP columns. "
+                    + "If disabled, written as string. "
+                    + "If enabled, Logical types are used and written as its underlying type, specifically, "
+                    + "DECIMAL as logical 'decimal': written as bytes with additional precision and scale meta data, "
+                    + "DATE as logical 'date': written as int denoting days since Unix epoch (1970-01-01), "
+                    + "and TIMESTAMP as logical 'timestamp-millis': written as long denoting milliseconds since Unix epoch. "
+                    + "If a reader of written Avro records also knows these logical types, then these values can be deserialized with more context depending on reader implementation.")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
+
     private final static List<PropertyDescriptor> propertyDescriptors;
     private final static Set<Relationship> relationships;
 
@@ -255,6 +270,7 @@ public class SelectHive3QL extends AbstractHive3QLProcessor {
         _propertyDescriptors.add(MAX_FRAGMENTS);
         _propertyDescriptors.add(HIVEQL_OUTPUT_FORMAT);
         _propertyDescriptors.add(NORMALIZE_NAMES_FOR_AVRO);
+        _propertyDescriptors.add(USE_AVRO_LOGICAL_TYPES);
         _propertyDescriptors.add(HIVEQL_CSV_HEADER);
         _propertyDescriptors.add(HIVEQL_CSV_ALT_HEADER);
         _propertyDescriptors.add(HIVEQL_CSV_DELIMITER);
@@ -343,7 +359,8 @@ public class SelectHive3QL extends AbstractHive3QLProcessor {
         final String altHeader = context.getProperty(HIVEQL_CSV_ALT_HEADER).evaluateAttributeExpressions(fileToProcess).getValue();
         final String delimiter = context.getProperty(HIVEQL_CSV_DELIMITER).evaluateAttributeExpressions(fileToProcess).getValue();
         final boolean quote = context.getProperty(HIVEQL_CSV_QUOTE).asBoolean();
-        final boolean escape = context.getProperty(HIVEQL_CSV_HEADER).asBoolean();
+        final boolean escape = context.getProperty(HIVEQL_CSV_ESCAPE).asBoolean();
+        final boolean useLogicalTypes = context.getProperty(USE_AVRO_LOGICAL_TYPES).asBoolean();
         final String fragmentIdentifier = UUID.randomUUID().toString();
 
         try (final Connection con = dbcpService.getConnection(fileToProcess == null ? Collections.emptyMap() : fileToProcess.getAttributes());
@@ -411,7 +428,7 @@ public class SelectHive3QL extends AbstractHive3QLProcessor {
                         flowfile = session.write(flowfile, out -> {
                             try {
                                 if (AVRO.equals(outputFormat)) {
-                                    nrOfRows.set(HiveJdbcCommon.convertToAvroStream(resultSet, out, maxRowsPerFlowFile, convertNamesForAvro));
+                                    nrOfRows.set(HiveJdbcCommon.convertToAvroStream(resultSet, out, maxRowsPerFlowFile, convertNamesForAvro, useLogicalTypes));
                                 } else if (CSV.equals(outputFormat)) {
                                     CsvOutputOptions options = new CsvOutputOptions(header, altHeader, delimiter, quote, escape, maxRowsPerFlowFile);
                                     nrOfRows.set(HiveJdbcCommon.convertToCsvStream(resultSet, out, options));

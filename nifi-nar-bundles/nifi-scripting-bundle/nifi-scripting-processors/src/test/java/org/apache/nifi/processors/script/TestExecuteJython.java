@@ -18,19 +18,21 @@ package org.apache.nifi.processors.script;
 
 import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Unit tests for ExecuteScript with Jython.
  */
 public class TestExecuteJython extends BaseScriptTest {
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         super.setupExecuteScript();
     }
@@ -62,10 +64,9 @@ public class TestExecuteJython extends BaseScriptTest {
     /**
      * Tests a script that does not transfer or remove the original flow file, thereby causing an error during commit.
      *
-     * @throws Exception Any error encountered while testing. Expecting
      */
-    @Test(expected = AssertionError.class)
-    public void testScriptNoTransfer() throws Exception {
+    @Test
+    public void testScriptNoTransfer() {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY,
@@ -73,12 +74,12 @@ public class TestExecuteJython extends BaseScriptTest {
 
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
-        runner.run();
+        assertThrows(AssertionError.class, () -> runner.run());
     }
 
-    @Ignore("This is more of an integration test, can be run before and after changes to ExecuteScript to measure performance improvements")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
     @Test
-    public void testPerformance() throws Exception {
+    public void testPerformance() {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY,

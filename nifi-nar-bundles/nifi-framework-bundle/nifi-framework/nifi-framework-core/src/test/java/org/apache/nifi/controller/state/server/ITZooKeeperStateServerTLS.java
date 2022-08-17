@@ -24,6 +24,8 @@ import org.apache.curator.utils.DefaultZookeeperFactory;
 import org.apache.curator.utils.ZookeeperFactory;
 import org.apache.nifi.controller.cluster.SecureClientZooKeeperFactory;
 import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
@@ -32,6 +34,7 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -50,9 +53,6 @@ import static org.junit.Assert.assertNotNull;
 
 // Testing setting up a ZooKeeperStateServer with TLS
 public class ITZooKeeperStateServerTLS {
-    private static final String KEY_STORE = getPath("keystore.jks");
-    private static final String TRUST_STORE = getPath("truststore.jks");
-    private static final String STORE_TYPE = "JKS";
     private static final String INSECURE_ZOOKEEPER_PROPS = getPath("insecure.zookeeper.properties");
     private static final String PARTIAL_ZOOKEEPER_PROPS = getPath("partial.zookeeper.properties");
     private static final String SECURE_ZOOKEEPER_PROPS = getPath("secure.zookeeper.properties");
@@ -60,40 +60,44 @@ public class ITZooKeeperStateServerTLS {
     private static final String ZOOKEEPER_CNXN_FACTORY = "org.apache.zookeeper.server.NettyServerCnxnFactory";
     private static final String QUORUM_CONNECT_STRING = "node0.apache.org:2281,node1.apache.org:2281";
 
+    private static final Map<String, String> SECURE_NIFI_PROPS = new HashMap<>();
+    private static final Map<String, String> SECURE_ZOOKEEPER_NIFI_PROPS = new HashMap<>();
+
+    private static TlsConfiguration tlsConfiguration;
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
+
+    @BeforeClass
+    public static void setTlsConfiguration() {
+        tlsConfiguration = new TemporaryKeyStoreBuilder().build();
+
+        SECURE_NIFI_PROPS.put(NiFiProperties.STATE_MANAGEMENT_ZOOKEEPER_PROPERTIES, SECURE_ZOOKEEPER_PROPS);
+        SECURE_NIFI_PROPS.put(NiFiProperties.WEB_HTTPS_PORT, "8443");
+        SECURE_NIFI_PROPS.put(NiFiProperties.SECURITY_KEYSTORE, tlsConfiguration.getKeystorePath());
+        SECURE_NIFI_PROPS.put(NiFiProperties.SECURITY_KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
+        SECURE_NIFI_PROPS.put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, tlsConfiguration.getKeystorePassword());
+        SECURE_NIFI_PROPS.put(NiFiProperties.SECURITY_TRUSTSTORE, tlsConfiguration.getTruststorePath());
+        SECURE_NIFI_PROPS.put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
+        SECURE_NIFI_PROPS.put(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, tlsConfiguration.getTruststorePassword());
+        SECURE_NIFI_PROPS.put(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
+
+        SECURE_ZOOKEEPER_NIFI_PROPS.put(NiFiProperties.STATE_MANAGEMENT_ZOOKEEPER_PROPERTIES, SECURE_ZOOKEEPER_PROPS);
+        SECURE_ZOOKEEPER_NIFI_PROPS.put(NiFiProperties.WEB_HTTPS_PORT, "8443");
+        SECURE_ZOOKEEPER_NIFI_PROPS.put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, tlsConfiguration.getKeystorePath());
+        SECURE_ZOOKEEPER_NIFI_PROPS.put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
+        SECURE_ZOOKEEPER_NIFI_PROPS.put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, tlsConfiguration.getKeystorePassword());
+        SECURE_ZOOKEEPER_NIFI_PROPS.put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, tlsConfiguration.getTruststorePath());
+        SECURE_ZOOKEEPER_NIFI_PROPS.put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
+        SECURE_ZOOKEEPER_NIFI_PROPS.put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD, tlsConfiguration.getTruststorePassword());
+        SECURE_ZOOKEEPER_NIFI_PROPS.put(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
+    }
 
     private static final Map<String, String> INSECURE_NIFI_PROPS = new HashMap<String, String>() {{
         put(ZOOKEEPER_PROPERTIES_FILE_KEY, INSECURE_ZOOKEEPER_PROPS);
         put(NiFiProperties.WEB_HTTP_HOST, "localhost");
         put(NiFiProperties.WEB_HTTP_PORT, "8080");
         put(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "false");
-    }};
-
-    private static final String TEST_PASSWORD = "passwordpassword";
-
-    private static final Map<String, String> SECURE_NIFI_PROPS = new HashMap<String, String>() {{
-        put(NiFiProperties.STATE_MANAGEMENT_ZOOKEEPER_PROPERTIES, SECURE_ZOOKEEPER_PROPS);
-        put(NiFiProperties.WEB_HTTPS_PORT, "8443");
-        put(NiFiProperties.SECURITY_KEYSTORE, KEY_STORE);
-        put(NiFiProperties.SECURITY_KEYSTORE_TYPE, STORE_TYPE);
-        put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, TEST_PASSWORD);
-        put(NiFiProperties.SECURITY_TRUSTSTORE, TRUST_STORE);
-        put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, STORE_TYPE);
-        put(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, TEST_PASSWORD);
-        put(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
-    }};
-
-    private static final Map<String, String> SECURE_ZOOKEEPER_NIFI_PROPS = new HashMap<String, String>() {{
-        put(NiFiProperties.STATE_MANAGEMENT_ZOOKEEPER_PROPERTIES, SECURE_ZOOKEEPER_PROPS);
-        put(NiFiProperties.WEB_HTTPS_PORT, "8443");
-        put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, KEY_STORE);
-        put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, STORE_TYPE);
-        put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, TEST_PASSWORD);
-        put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, TRUST_STORE);
-        put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, STORE_TYPE);
-        put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD, TEST_PASSWORD);
-        put(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
     }};
 
     private NiFiProperties niFiProps;
@@ -245,7 +249,6 @@ public class ITZooKeeperStateServerTLS {
     @Test
     public void testSecureClientQuorumConnectString() throws Exception {
         final int actualPort = Integer.parseInt(secureZooKeeperProps.getProperty("secureClientPort", "0"));
-        final String connect = "localhost:" + actualPort;
         final NiFiProperties validZkClientProps = NiFiProperties.createBasicNiFiProperties(null, new HashMap<String, String>() {{
             putAll(SECURE_NIFI_PROPS);
             put(ZOOKEEPER_PROPERTIES_FILE_KEY, SECURE_ZOOKEEPER_PROPS);
@@ -271,7 +274,6 @@ public class ITZooKeeperStateServerTLS {
     // Connect to an insecure ZooKeeperStateServer with an insecure client (ensure insecure setup still works)
     @Test
     public void testInsecureZooKeeperWithInsecureClient() throws Exception {
-        final int actualPort = Integer.parseInt(insecureZooKeeperProps.getProperty("clientPort", "0"));
         final String connect = "localhost:" + 2381;
         final NiFiProperties validZkClientProps = NiFiProperties.createBasicNiFiProperties(null, new HashMap<String, String>() {{
             putAll(INSECURE_NIFI_PROPS);
@@ -281,8 +283,6 @@ public class ITZooKeeperStateServerTLS {
 
         server = ZooKeeperStateServer.create(validZkClientProps);
         assertNotNull(server);
-        final int serverPort = server.getQuorumPeerConfig().getClientPortAddress().getPort();
-        //assertEquals(actualPort, 2381);
         server.start();
 
         // Set up a ZK client
@@ -318,7 +318,7 @@ public class ITZooKeeperStateServerTLS {
         final String testPath = "/test";
 
         // Expect this to fail with ConnectionLossException
-        final String createResult = client.create().forPath(testPath, new byte[0]);
+        client.create().forPath(testPath, new byte[0]);
     }
 
     // Fail to connect to a secure ZooKeeperStateServer with missing client configuration
@@ -516,12 +516,12 @@ public class ITZooKeeperStateServerTLS {
         // TODO: port being set needs to be based on port set in nifi.properties, should create client in the same
         clientProperties = createSecureClientProperties(
                 port,
-                Paths.get(KEY_STORE),
-                STORE_TYPE,
-                TEST_PASSWORD,
-                Paths.get(TRUST_STORE),
-                STORE_TYPE,
-                TEST_PASSWORD
+                Paths.get(tlsConfiguration.getKeystorePath()),
+                tlsConfiguration.getKeystoreType().getType(),
+                tlsConfiguration.getKeystorePassword(),
+                Paths.get(tlsConfiguration.getTruststorePath()),
+                tlsConfiguration.getTruststoreType().getType(),
+                tlsConfiguration.getTruststorePassword()
         );
 
         final ZooKeeperClientConfig zkClientConfig =

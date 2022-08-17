@@ -23,6 +23,7 @@ import org.apache.nifi.elasticsearch.ElasticSearchClientService
 import org.apache.nifi.elasticsearch.IndexOperationRequest
 import org.apache.nifi.elasticsearch.IndexOperationResponse
 import org.apache.nifi.elasticsearch.SearchResponse
+import org.apache.nifi.elasticsearch.UpdateOperationResponse
 
 class TestElasticSearchClientService extends AbstractControllerService implements ElasticSearchClientService {
     Map data = [
@@ -33,46 +34,75 @@ class TestElasticSearchClientService extends AbstractControllerService implement
     ]
 
     @Override
-    IndexOperationResponse add(IndexOperationRequest operation) {
+    IndexOperationResponse add(IndexOperationRequest operation, Map<String, String> requestParameters) {
         return null
     }
 
     @Override
-    IndexOperationResponse bulk(List<IndexOperationRequest> operations) {
+    IndexOperationResponse bulk(List<IndexOperationRequest> operations, Map<String, String> requestParameters) {
         return null
     }
 
     @Override
-    Long count(String query, String index, String type) {
+    Long count(String query, String index, String type, Map<String, String> requestParameters) {
         return null
     }
 
     @Override
-    DeleteOperationResponse deleteById(String index, String type, String id) {
+    DeleteOperationResponse deleteById(String index, String type, String id, Map<String, String> requestParameters) {
         return null
     }
 
     @Override
-    DeleteOperationResponse deleteById(String index, String type, List<String> ids) {
+    DeleteOperationResponse deleteById(String index, String type, List<String> ids, Map<String, String> requestParameters) {
         return null
     }
 
     @Override
-    DeleteOperationResponse deleteByQuery(String query, String index, String type) {
+    DeleteOperationResponse deleteByQuery(String query, String index, String type, Map<String, String> requestParameters) {
         return null
     }
 
     @Override
-    Map<String, Object> get(String index, String type, String id) {
+    UpdateOperationResponse updateByQuery(String query, String index, String type, Map<String, String> requestParameters) {
+        return null
+    }
+
+    @Override
+    void refresh(final String index, final Map<String, String> requestParameters) {
+    }
+
+    @Override
+    Map<String, Object> get(String index, String type, String id, Map<String, String> requestParameters) {
         return data
     }
 
     @Override
-    SearchResponse search(String query, String index, String type) {
+    SearchResponse search(String query, String index, String type, Map<String, String> requestParameters) {
         List hits = [[
             "_source": data
         ]]
-        return new SearchResponse(hits, null, 1, 100, false)
+        return new SearchResponse(hits, null, null, null, null, 1, 100, false, null)
+    }
+
+    @Override
+    SearchResponse scroll(String scroll) {
+        return search(null, null, null, null)
+    }
+
+    @Override
+    String initialisePointInTime(String index, String keepAlive) {
+        return null
+    }
+
+    @Override
+    DeleteOperationResponse deletePointInTime(String pitId) {
+        return null
+    }
+
+    @Override
+    DeleteOperationResponse deleteScroll(String scrollId) {
+        return null
     }
 
     @Override

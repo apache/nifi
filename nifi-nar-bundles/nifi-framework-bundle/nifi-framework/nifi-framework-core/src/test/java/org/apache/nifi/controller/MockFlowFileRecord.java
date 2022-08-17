@@ -17,15 +17,15 @@
 
 package org.apache.nifi.controller;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class MockFlowFileRecord implements FlowFileRecord {
     private static final AtomicLong idGenerator = new AtomicLong(0L);
@@ -35,6 +35,10 @@ public class MockFlowFileRecord implements FlowFileRecord {
     private final Map<String, String> attributes;
     private final long size;
     private final ContentClaim contentClaim;
+    private long lastQueuedDate = System.currentTimeMillis() + 1;
+
+    private volatile long penaltyExpiration = 0L;
+
 
     public MockFlowFileRecord() {
         this(1L);
@@ -83,13 +87,8 @@ public class MockFlowFileRecord implements FlowFileRecord {
     }
 
     @Override
-    public Long getLastQueueDate() {
-        return null;
-    }
-
-    @Override
     public boolean isPenalized() {
-        return false;
+        return penaltyExpiration > System.currentTimeMillis();
     }
 
     @Override
@@ -114,7 +113,11 @@ public class MockFlowFileRecord implements FlowFileRecord {
 
     @Override
     public long getPenaltyExpirationMillis() {
-        return 0;
+        return penaltyExpiration;
+    }
+
+    public void setPenaltyExpiration(final long timestamp) {
+        penaltyExpiration = timestamp;
     }
 
     @Override
@@ -133,7 +136,16 @@ public class MockFlowFileRecord implements FlowFileRecord {
     }
 
     @Override
+    public Long getLastQueueDate() {
+        return lastQueuedDate;
+    }
+
+    public void setLastQueuedDate(long lastQueuedDate) {
+        this.lastQueuedDate = lastQueuedDate;
+    }
+
+    @Override
     public long getQueueDateIndex() {
-        return 0;
+        return lastQueuedDate;
     }
 }

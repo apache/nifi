@@ -17,9 +17,9 @@
 
 package org.apache.nifi.reporting.azure.loganalytics;
 
-import static org.junit.Assert.assertTrue;
-
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestVerification {
 

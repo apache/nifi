@@ -24,12 +24,14 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public interface ElasticsearchRestProcessor {
     String ATTR_RECORD_COUNT = "record.count";
@@ -61,6 +63,7 @@ public interface ElasticsearchRestProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(JsonValidator.INSTANCE)
             .build();
+
     PropertyDescriptor QUERY_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("el-query-attribute")
             .displayName("Query Attribute")
@@ -97,27 +100,30 @@ public interface ElasticsearchRestProcessor {
             .name("retry")
             .description("All flowfiles that fail due to server/cluster availability go to this relationship.")
             .build();
-    Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("All flowfiles that succeed in being transferred into Elasticsearch go here.")
-            .build();
-    Relationship REL_FAILED_RECORDS = new Relationship.Builder()
-            .name("errors").description("If an output record write is set, any record that failed to process the way it was " +
-                    "configured will be sent to this relationship as part of a failed record record set.")
-            .autoTerminateDefault(true).build();
 
-    default String getQuery(FlowFile input, ProcessContext context, ProcessSession session) throws IOException {
+    default String getQuery(final FlowFile input, final ProcessContext context, final ProcessSession session) throws IOException {
         String retVal = null;
         if (context.getProperty(QUERY).isSet()) {
             retVal = context.getProperty(QUERY).evaluateAttributeExpressions(input).getValue();
         } else if (input != null) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            final ByteArrayOutputStream out = new ByteArrayOutputStream();
             session.exportTo(input, out);
             out.close();
 
-            retVal = new String(out.toByteArray());
+            retVal = out.toString();
         }
 
         return retVal;
+    }
+
+    default Map<String, String> getUrlQueryParameters(final ProcessContext context, final FlowFile flowFile) {
+        return context.getProperties().entrySet().stream()
+                // filter non-null dynamic properties
+                .filter(e -> e.getKey().isDynamic() && e.getValue() != null)
+                // convert to Map of URL parameter keys and values
+                .collect(Collectors.toMap(
+                    e -> e.getKey().getName(),
+                    e -> context.getProperty(e.getKey()).evaluateAttributeExpressions(flowFile).getValue()
+                ));
     }
 }

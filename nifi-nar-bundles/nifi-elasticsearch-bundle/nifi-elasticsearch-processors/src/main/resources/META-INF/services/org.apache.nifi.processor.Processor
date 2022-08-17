@@ -12,8 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-org.apache.nifi.processors.elasticsearch.FetchElasticsearch
-org.apache.nifi.processors.elasticsearch.PutElasticsearch
 org.apache.nifi.processors.elasticsearch.FetchElasticsearchHttp
 org.apache.nifi.processors.elasticsearch.PutElasticsearchHttp
 org.apache.nifi.processors.elasticsearch.PutElasticsearchHttpRecord

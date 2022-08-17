@@ -18,21 +18,32 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-extension-utils</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-database-utils</artifactId>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Override commons-compress -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.21</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-record-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-avro-record-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
@@ -42,12 +53,10 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.9</version>
         </dependency>
         <dependency>
             <groupId>org.apache.avro</groupId>
             <artifactId>avro</artifactId>
-            <version>1.8.1</version>
         </dependency>
         <!-- Other modules using nifi-database-utils are expected to have these APIs available, typically through a NAR dependency -->
         <dependency>
@@ -57,25 +66,24 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.6</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.derby</groupId>
             <artifactId>derby</artifactId>
-            <version>10.11.1.1</version>
+            <version>10.14.2.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <version>1.4.187</version>
+            <version>${h2.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -108,16 +116,12 @@
             </activation>
             <dependencies>
                 <dependency>
-                    <groupId>javax.xml.bind</groupId>
-                    <artifactId>jaxb-api</artifactId>
+                    <groupId>jakarta.xml.bind</groupId>
+                    <artifactId>jakarta.xml.bind-api</artifactId>
                 </dependency>
                 <dependency>
-                    <groupId>com.sun.xml.bind</groupId>
-                    <artifactId>jaxb-core</artifactId>
-                </dependency>
-                <dependency>
-                    <groupId>com.sun.xml.bind</groupId>
-                    <artifactId>jaxb-impl</artifactId>
+                    <groupId>org.glassfish.jaxb</groupId>
+                    <artifactId>jaxb-runtime</artifactId>
                 </dependency>
             </dependencies>
         </profile>

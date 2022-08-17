@@ -20,15 +20,15 @@ import org.apache.atlas.utils.AtlasPathExtractorUtil;
 import org.apache.atlas.v1.model.instance.Referenceable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.atlas.provenance.DataSetRefs;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_QUALIFIED_NAME;
 import static org.apache.nifi.atlas.provenance.analyzer.AwsS3Directory.ATTR_CONTAINER_V2;
 import static org.apache.nifi.atlas.provenance.analyzer.AwsS3Directory.ATTR_OBJECT_PREFIX_V2;
 import static org.apache.nifi.atlas.provenance.analyzer.AwsS3Directory.TYPE_BUCKET_V2;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestAwsS3DirectoryV2 extends AbstractTestAwsS3Directory {
 
@@ -82,7 +82,7 @@ public class TestAwsS3DirectoryV2 extends AbstractTestAwsS3Directory {
             assertEquals(AwsS3Directory.TYPE_DIRECTORY_V2, ref.getTypeName());
             assertEquals(String.format("s3a://%s%s/@%s", AWS_BUCKET, actualPath, ATLAS_NAMESPACE), ref.get(ATTR_QUALIFIED_NAME));
             assertEquals(directory, ref.get(ATTR_NAME));
-            assertEquals(actualPath + "/", ref.get(ATTR_OBJECT_PREFIX_V2));
+            assertEquals(StringUtils.substringBeforeLast(actualPath, "/") + "/", ref.get(ATTR_OBJECT_PREFIX_V2));
             assertNotNull(ref.get(ATTR_CONTAINER_V2));
 
             ref = (Referenceable) ref.get(ATTR_CONTAINER_V2);

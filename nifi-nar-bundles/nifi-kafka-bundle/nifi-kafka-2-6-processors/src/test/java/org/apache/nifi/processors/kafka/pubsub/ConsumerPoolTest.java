@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.kafka.pubsub;
 
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerGroupMetadata;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.KafkaException;
@@ -26,8 +27,8 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.kafka.pubsub.ConsumerPool.PoolStats;
 import org.apache.nifi.provenance.ProvenanceReporter;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.nio.charset.StandardCharsets;
@@ -40,8 +41,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -58,7 +62,7 @@ public class ConsumerPoolTest {
     private ConsumerPool testDemarcatedPool = null;
     private ComponentLog logger = null;
 
-    @Before
+    @BeforeEach
     @SuppressWarnings("unchecked")
     public void setup() {
         consumer = mock(Consumer.class);
@@ -80,7 +84,8 @@ public class ConsumerPoolTest {
                 true,
                 StandardCharsets.UTF_8,
                 null,
-                null) {
+                null,
+                true) {
             @Override
             protected Consumer<byte[], byte[]> createKafkaConsumer() {
                 return consumer;
@@ -100,7 +105,8 @@ public class ConsumerPoolTest {
                 true,
                 StandardCharsets.UTF_8,
                 Pattern.compile(".*"),
-                null) {
+                null,
+                true) {
             @Override
             protected Consumer<byte[], byte[]> createKafkaConsumer() {
                 return consumer;
@@ -109,7 +115,7 @@ public class ConsumerPoolTest {
     }
 
     @Test
-    public void validatePoolSimpleCreateClose() throws Exception {
+    public void validatePoolSimpleCreateClose() {
 
         when(consumer.poll(any(Duration.class))).thenReturn(createConsumerRecords("nifi", 0, 0L, new byte[][]{}));
         try (final ConsumerLease lease = testPool.obtainConsumer(mockSession, mockContext)) {
@@ -135,7 +141,7 @@ public class ConsumerPoolTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void validatePoolSimpleCreatePollClose() throws Exception {
+    public void validatePoolSimpleCreatePollClose() {
         final byte[][] firstPassValues = new byte[][]{
             "Hello-1".getBytes(StandardCharsets.UTF_8),
             "Hello-2".getBytes(StandardCharsets.UTF_8),
@@ -144,13 +150,14 @@ public class ConsumerPoolTest {
         final ConsumerRecords<byte[], byte[]> firstRecs = createConsumerRecords("foo", 1, 1L, firstPassValues);
 
         when(consumer.poll(any(Duration.class))).thenReturn(firstRecs, createConsumerRecords("nifi", 0, 0L, new byte[][]{}));
+        when(consumer.groupMetadata()).thenReturn(mock(ConsumerGroupMetadata.class));
         try (final ConsumerLease lease = testPool.obtainConsumer(mockSession, mockContext)) {
             lease.poll();
             lease.commit();
         }
         testPool.close();
         verify(mockSession, times(3)).create();
-        verify(mockSession, times(1)).commit();
+        verify(mockSession, times(1)).commitAsync(Mockito.any(Runnable.class), Mockito.any(java.util.function.Consumer.class));
         final PoolStats stats = testPool.getPoolStats();
         assertEquals(1, stats.consumerCreatedCount);
         assertEquals(1, stats.consumerClosedCount);
@@ -158,7 +165,90 @@ public class ConsumerPoolTest {
     }
 
     @Test
-    public void validatePoolSimpleBatchCreateClose() throws Exception {
+    public void testConsumerCreatedOnDemand() {
+        try (final ConsumerLease lease = testPool.obtainConsumer(mockSession, mockContext)) {
+            final List<ConsumerLease> created = new ArrayList<>();
+            try {
+                for (int i = 0; i < 3; i++) {
+                    final ConsumerLease newLease = testPool.obtainConsumer(mockSession, mockContext);
+                    created.add(newLease);
+                    assertNotSame(lease, newLease);
+                }
+            } finally {
+                created.forEach(ConsumerLease::close);
+            }
+        }
+    }
+
+    @Test
+    public void testConsumerNotCreatedOnDemandWhenUsingStaticAssignment() {
+        final ConsumerPool staticAssignmentPool = new ConsumerPool(
+            1,
+            null,
+            false,
+            Collections.emptyMap(),
+            Collections.singletonList("nifi"),
+            100L,
+            "utf-8",
+            "ssl",
+            "localhost",
+            logger,
+            true,
+            StandardCharsets.UTF_8,
+            null,
+            new int[] {1, 2, 3},
+            true) {
+            @Override
+            protected Consumer<byte[], byte[]> createKafkaConsumer() {
+                return consumer;
+            }
+        };
+
+        try (final ConsumerLease lease = staticAssignmentPool.obtainConsumer(mockSession, mockContext)) {
+            ConsumerLease partition2Lease = null;
+            ConsumerLease partition3Lease = null;
+
+            try {
+                partition2Lease = staticAssignmentPool.obtainConsumer(mockSession, mockContext);
+                assertNotSame(lease, partition2Lease);
+                assertEquals(1, partition2Lease.getAssignedPartitions().size());
+                assertEquals(2, partition2Lease.getAssignedPartitions().get(0).partition());
+
+                partition3Lease = staticAssignmentPool.obtainConsumer(mockSession, mockContext);
+                assertNotSame(lease, partition3Lease);
+                assertNotSame(partition2Lease, partition3Lease);
+                assertEquals(1, partition3Lease.getAssignedPartitions().size());
+                assertEquals(3, partition3Lease.getAssignedPartitions().get(0).partition());
+
+                final ConsumerLease nullLease = staticAssignmentPool.obtainConsumer(mockSession, mockContext);
+                assertNull(nullLease);
+
+                // Close the lease for Partition 2. We should now be able to get another Lease for Partition 2.
+                partition2Lease.close();
+
+                partition2Lease = staticAssignmentPool.obtainConsumer(mockSession, mockContext);
+                assertNotNull(partition2Lease);
+
+                assertEquals(1, partition2Lease.getAssignedPartitions().size());
+                assertEquals(2, partition2Lease.getAssignedPartitions().get(0).partition());
+
+                assertNull(staticAssignmentPool.obtainConsumer(mockSession, mockContext));
+            } finally {
+                closeLeases(partition2Lease, partition3Lease);
+            }
+        }
+    }
+
+    private void closeLeases(final ConsumerLease... leases) {
+        for (final ConsumerLease lease : leases) {
+            if (lease != null) {
+                lease.close();
+            }
+        }
+    }
+
+    @Test
+    public void validatePoolSimpleBatchCreateClose() {
         when(consumer.poll(any(Duration.class))).thenReturn(createConsumerRecords("nifi", 0, 0L, new byte[][]{}));
         for (int i = 0; i < 100; i++) {
             try (final ConsumerLease lease = testPool.obtainConsumer(mockSession, mockContext)) {
@@ -178,7 +268,7 @@ public class ConsumerPoolTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void validatePoolBatchCreatePollClose() throws Exception {
+    public void validatePoolBatchCreatePollClose() {
         final byte[][] firstPassValues = new byte[][]{
             "Hello-1".getBytes(StandardCharsets.UTF_8),
             "Hello-2".getBytes(StandardCharsets.UTF_8),
@@ -187,13 +277,14 @@ public class ConsumerPoolTest {
         final ConsumerRecords<byte[], byte[]> firstRecs = createConsumerRecords("foo", 1, 1L, firstPassValues);
 
         when(consumer.poll(any(Duration.class))).thenReturn(firstRecs, createConsumerRecords("nifi", 0, 0L, new byte[][]{}));
+        when(consumer.groupMetadata()).thenReturn(mock(ConsumerGroupMetadata.class));
         try (final ConsumerLease lease = testDemarcatedPool.obtainConsumer(mockSession, mockContext)) {
             lease.poll();
             lease.commit();
         }
         testDemarcatedPool.close();
         verify(mockSession, times(1)).create();
-        verify(mockSession, times(1)).commit();
+        verify(mockSession, times(1)).commitAsync(Mockito.any(Runnable.class), Mockito.any(java.util.function.Consumer.class));
         final PoolStats stats = testDemarcatedPool.getPoolStats();
         assertEquals(1, stats.consumerCreatedCount);
         assertEquals(1, stats.consumerClosedCount);
@@ -201,16 +292,11 @@ public class ConsumerPoolTest {
     }
 
     @Test
-    public void validatePoolConsumerFails() throws Exception {
+    public void validatePoolConsumerFails() {
 
         when(consumer.poll(any(Duration.class))).thenThrow(new KafkaException("oops"));
         try (final ConsumerLease lease = testPool.obtainConsumer(mockSession, mockContext)) {
-            try {
-                lease.poll();
-                fail();
-            } catch (final KafkaException ke) {
-
-            }
+            assertThrows(KafkaException.class, () -> lease.poll());
         }
         testPool.close();
         verify(mockSession, times(0)).create();

@@ -33,8 +33,8 @@ import org.apache.nifi.service.CassandraSessionProvider;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
@@ -46,10 +46,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -61,7 +62,7 @@ public class AbstractCassandraProcessorTest {
     MockAbstractCassandraProcessor processor;
     private TestRunner testRunner;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         processor = new MockAbstractCassandraProcessor();
         testRunner = TestRunners.newTestRunner(processor);
@@ -137,9 +138,9 @@ public class AbstractCassandraProcessorTest {
         assertEquals(AbstractCassandraProcessor.getSchemaForType("bytes").getType().getName(), "bytes");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testGetSchemaForTypeBadType() throws Exception {
-        AbstractCassandraProcessor.getSchemaForType("nothing");
+        assertThrows(IllegalArgumentException.class, () -> AbstractCassandraProcessor.getSchemaForType("nothing"));
     }
 
     @Test
@@ -165,10 +166,10 @@ public class AbstractCassandraProcessorTest {
         assertEquals("bytes", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataType.blob()));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testGetPrimitiveAvroTypeFromCassandraTypeBadType() throws Exception {
         DataType mockDataType = mock(DataType.class);
-        AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(mockDataType);
+        assertThrows(IllegalArgumentException.class, () -> AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(mockDataType));
     }
 
     @Test

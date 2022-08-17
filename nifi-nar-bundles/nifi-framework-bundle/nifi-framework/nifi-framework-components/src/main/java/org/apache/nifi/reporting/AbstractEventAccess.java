@@ -29,12 +29,15 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileEvent;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.RepositoryStatusReport;
 import org.apache.nifi.controller.repository.metrics.EmptyFlowFileEvent;
 import org.apache.nifi.controller.status.ConnectionStatus;
+import org.apache.nifi.controller.status.LoadBalanceStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
@@ -227,6 +230,8 @@ public abstract class AbstractEventAccess implements EventAccess {
         final Collection<ConnectionStatus> connectionStatusCollection = new ArrayList<>();
         status.setConnectionStatus(connectionStatusCollection);
 
+        long now = System.currentTimeMillis();
+
         // get the connection and remote port status
         for (final Connection conn : group.getConnections()) {
             final boolean isConnectionAuthorized = isAuthorized.test(conn);
@@ -242,6 +247,10 @@ public abstract class AbstractEventAccess implements EventAccess {
             connStatus.setDestinationName(isDestinationAuthorized ? conn.getDestination().getName() : conn.getDestination().getIdentifier());
             connStatus.setBackPressureDataSizeThreshold(conn.getFlowFileQueue().getBackPressureDataSizeThreshold());
             connStatus.setBackPressureObjectThreshold(conn.getFlowFileQueue().getBackPressureObjectThreshold());
+            connStatus.setTotalQueuedDuration(conn.getFlowFileQueue().getTotalQueuedDuration(now));
+            long minLastQueueDate = conn.getFlowFileQueue().getMinLastQueueDate();
+            connStatus.setMaxQueuedDuration(minLastQueueDate == 0 ? 0 : now - minLastQueueDate);
+            connStatus.setFlowFileAvailability(conn.getFlowFileQueue().getFlowFileAvailability());
 
             final FlowFileEvent connectionStatusReport = statusReport.getReportEntry(conn.getIdentifier());
             if (connectionStatusReport != null) {
@@ -292,6 +301,16 @@ public abstract class AbstractEventAccess implements EventAccess {
             if (connectionQueuedCount > 0) {
                 connStatus.setQueuedBytes(connectionQueuedBytes);
                 connStatus.setQueuedCount(connectionQueuedCount);
+            }
+
+            final FlowFileQueue flowFileQueue = conn.getFlowFileQueue();
+            final LoadBalanceStrategy loadBalanceStrategy = flowFileQueue.getLoadBalanceStrategy();
+            if (loadBalanceStrategy == LoadBalanceStrategy.DO_NOT_LOAD_BALANCE) {
+                connStatus.setLoadBalanceStatus(LoadBalanceStatus.LOAD_BALANCE_NOT_CONFIGURED);
+            } else if (flowFileQueue.isActivelyLoadBalancing()) {
+                connStatus.setLoadBalanceStatus(LoadBalanceStatus.LOAD_BALANCE_ACTIVE);
+            } else {
+                connStatus.setLoadBalanceStatus(LoadBalanceStatus.LOAD_BALANCE_INACTIVE);
             }
 
             if (populateChildStatuses) {
@@ -491,6 +510,9 @@ public abstract class AbstractEventAccess implements EventAccess {
         final RemoteProcessGroupStatus status = new RemoteProcessGroupStatus();
         status.setGroupId(remoteGroup.getProcessGroup().getIdentifier());
         status.setName(isRemoteProcessGroupAuthorized ? remoteGroup.getName() : remoteGroup.getIdentifier());
+        status.setComments(isRemoteProcessGroupAuthorized ? remoteGroup.getComments() : null);
+        status.setAuthorizationIssue(remoteGroup.getAuthorizationIssue());
+        status.setLastRefreshTime(remoteGroup.getLastRefreshTime());
         status.setTargetUri(isRemoteProcessGroupAuthorized ? remoteGroup.getTargetUri() : null);
 
         long lineageMillis = 0L;
@@ -544,7 +566,7 @@ public abstract class AbstractEventAccess implements EventAccess {
         }
 
         status.setId(remoteGroup.getIdentifier());
-        status.setTransmissionStatus(remoteGroup.isTransmitting() ? TransmissionStatus.Transmitting : TransmissionStatus.NotTransmitting);
+        status.setTransmissionStatus(remoteGroup.isConfiguredToTransmit() ? TransmissionStatus.Transmitting : TransmissionStatus.NotTransmitting);
         status.setActiveThreadCount(activeThreadCount);
         status.setReceivedContentSize(receivedContentSize);
         status.setReceivedCount(receivedCount);
@@ -616,7 +638,7 @@ public abstract class AbstractEventAccess implements EventAccess {
             status.setRunStatus(RunStatus.Running);
         } else if (procNode.getValidationStatus() == ValidationStatus.VALIDATING) {
             status.setRunStatus(RunStatus.Validating);
-        } else if (procNode.getValidationStatus() == ValidationStatus.INVALID) {
+        } else if (procNode.getValidationStatus() == ValidationStatus.INVALID && procNode.getActiveThreadCount() == 0) {
             status.setRunStatus(RunStatus.Invalid);
         } else {
             status.setRunStatus(RunStatus.Stopped);
@@ -624,7 +646,7 @@ public abstract class AbstractEventAccess implements EventAccess {
 
         status.setExecutionNode(procNode.getExecutionNode());
         status.setTerminatedThreadCount(procNode.getTerminatedThreadCount());
-        status.setActiveThreadCount(processScheduler.getActiveThreadCount(procNode));
+        status.setActiveThreadCount(procNode.getActiveThreadCount());
 
         return status;
     }

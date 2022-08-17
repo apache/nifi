@@ -30,6 +30,7 @@ import java.net.InetAddress;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Set;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable, VersionedComponent {
@@ -107,10 +108,15 @@ public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable,
     String getCommunicationsTimeout();
 
     /**
-     * @return Indicates whether or not the RemoteProcessGroup is currently scheduled to
-     * transmit data
+     * @return Indicates whether or not the RemoteProcessGroup is currently configured to transmit data OR if there are any threads that are currently
+     * active due to previously being scheduled to transmit that have not completed yet.
      */
     boolean isTransmitting();
+
+    /**
+     * @return <code>true</code> if the RPG is configured to transmit, <code>false</code> otherwise
+     */
+    boolean isConfiguredToTransmit();
 
     /**
      * Initiates communications between this instance and the remote instance.
@@ -121,7 +127,7 @@ public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable,
      * Immediately terminates communications between this instance and the
      * remote instance.
      */
-    void stopTransmitting();
+    Future<?> stopTransmitting();
 
     /**
      * Initiates communications between this instance and the remote instance

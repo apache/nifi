@@ -46,6 +46,7 @@ import org.apache.nifi.serialization.record.StandardSchemaIdentifier;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.DecimalDataType;
+import org.apache.nifi.serialization.record.type.EnumDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
@@ -62,7 +63,8 @@ import java.sql.Blob;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Duration;
-import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -76,7 +78,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class AvroTypeUtil {
     private static final Logger logger = LoggerFactory.getLogger(AvroTypeUtil.class);
@@ -88,6 +89,7 @@ public class AvroTypeUtil {
     private static final String LOGICAL_TYPE_TIMESTAMP_MILLIS = "timestamp-millis";
     private static final String LOGICAL_TYPE_TIMESTAMP_MICROS = "timestamp-micros";
     private static final String LOGICAL_TYPE_DECIMAL = "decimal";
+    private static final String LOGICAL_TYPE_UUID = "uuid";
 
 
     public static Schema extractAvroSchema(final RecordSchema recordSchema) {
@@ -124,16 +126,18 @@ public class AvroTypeUtil {
         return avroSchema;
     }
 
-    private static Field buildAvroField(final RecordField recordField, String fieldNamePrefix) {
+    private static Field buildAvroField(final RecordField recordField, final String fieldNamePrefix) {
         final Schema schema = buildAvroSchema(recordField.getDataType(), recordField.getFieldName(), fieldNamePrefix, recordField.isNullable());
 
         final Field field;
         final String recordFieldName = recordField.getFieldName();
         if (isValidAvroFieldName(recordFieldName)) {
-            field = new Field(recordField.getFieldName(), schema, null, recordField.getDefaultValue());
+            final Object avroDefaultValue = convertToAvroObject(recordField.getDefaultValue(), schema);
+            field = new Field(recordField.getFieldName(), schema, null, avroDefaultValue);
         } else {
             final String validName = createValidAvroFieldName(recordField.getFieldName());
-            field = new Field(validName, schema, null, recordField.getDefaultValue());
+            final Object avroDefaultValue = convertToAvroObject(recordField.getDefaultValue(), schema);
+            field = new Field(validName, schema, null, avroDefaultValue);
             field.addAlias(recordField.getFieldName());
         }
 
@@ -232,11 +236,15 @@ public class AvroTypeUtil {
                 final List<Schema> unionTypes = new ArrayList<>(options.size());
                 final Set<Type> typesAdded = new HashSet<>();
 
+                int optionCounter = 1;
                 for (final DataType option : options) {
                     final Schema optionSchema = buildAvroSchema(option, fieldName, fieldNamePrefix, false);
                     if (!typesAdded.contains(optionSchema.getType())) {
                         unionTypes.add(optionSchema);
                         typesAdded.add(optionSchema.getType());
+                    } else if (Type.RECORD.equals(optionSchema.getType()) && !unionTypes.contains(optionSchema)) {
+                        final Schema indexedOptionSchema = buildAvroSchema(option, fieldName + ++optionCounter, fieldNamePrefix, false);
+                        unionTypes.add(indexedOptionSchema);
                     }
                 }
 
@@ -292,6 +300,14 @@ public class AvroTypeUtil {
                 schema = Schema.create(Type.LONG);
                 LogicalTypes.timestampMillis().addToSchema(schema);
                 break;
+            case UUID:
+                schema = Schema.create(Type.STRING);
+                LogicalTypes.uuid().addToSchema(schema);
+                break;
+            case ENUM:
+                final EnumDataType enumType = (EnumDataType) dataType;
+                schema = Schema.createEnum(fieldName, "", "org.apache.nifi", enumType.getEnums());
+                break;
             default:
                 return null;
         }
@@ -315,7 +331,7 @@ public class AvroTypeUtil {
             return Schema.createUnion(unionTypes);
         }
 
-        return Schema.createUnion(Schema.create(Type.NULL), schema);
+        return Schema.createUnion(schema, Schema.create(Type.NULL));
     }
 
     /**
@@ -351,6 +367,8 @@ public class AvroTypeUtil {
                 case LOGICAL_TYPE_DECIMAL:
                     final LogicalTypes.Decimal decimal = (LogicalTypes.Decimal) logicalType;
                     return RecordFieldType.DECIMAL.getDecimalDataType(decimal.getPrecision(), decimal.getScale());
+                case LOGICAL_TYPE_UUID:
+                    return RecordFieldType.UUID.getDataType();
             }
         }
 
@@ -582,26 +600,52 @@ public class AvroTypeUtil {
         final GenericRecord rec = new GenericData.Record(avroSchema);
         final RecordSchema recordSchema = record.getSchema();
 
-        for (final RecordField recordField : recordSchema.getFields()) {
-            final Object rawValue = record.getValue(recordField);
-
-            Pair<String, Field> fieldPair = lookupField(avroSchema, recordField);
-            final String fieldName = fieldPair.getLeft();
-            final Field field = fieldPair.getRight();
-            if (field == null) {
+        final Map<String, Object> recordValues = record.toMap();
+        for (final Map.Entry<String, Object> entry : recordValues.entrySet()) {
+            final Object rawValue = entry.getValue();
+            if (rawValue == null) {
                 continue;
             }
 
+            final String rawFieldName = entry.getKey();
+            final Optional<RecordField> optionalRecordField = recordSchema.getField(rawFieldName);
+            if (!optionalRecordField.isPresent()) {
+                continue;
+            }
+
+            final RecordField recordField = optionalRecordField.get();
+
+            final Field field;
+            final Field avroField = avroSchema.getField(rawFieldName);
+            if (avroField == null) {
+                final Pair<String, Field> fieldPair = lookupField(avroSchema, recordField);
+                field = fieldPair.getRight();
+
+                if (field == null) {
+                    continue;
+                }
+            } else {
+                field = avroField;
+            }
+
+            final String fieldName = field.name();
             final Object converted = convertToAvroObject(rawValue, field.schema(), fieldName, charset);
-            rec.put(field.name(), converted);
+            rec.put(fieldName, converted);
         }
 
         // see if the Avro schema has any fields that aren't in the RecordSchema, and if those fields have a default
         // value then we want to populate it in the GenericRecord being produced
         for (final Field field : avroSchema.getFields()) {
-            final Optional<RecordField> recordField = recordSchema.getField(field.name());
-            if (!recordField.isPresent() && rec.get(field.name()) == null && field.defaultVal() != null) {
-                rec.put(field.name(), field.defaultVal());
+            final Object defaultValue = field.defaultVal();
+            if (defaultValue == null || defaultValue == JsonProperties.NULL_VALUE) {
+                continue;
+            }
+
+            if (rec.get(field.name()) == null) {
+                // The default value may not actually be the proper value for Avro. For example, the schema may indicate that we need a long but provide a default value of 0.
+                // To address this, we need to ensure that the value that we set is correct based on the Avro schema, so we need to call convertToAvroObject even on the default value.
+                final Object normalized = convertToAvroObject(defaultValue, field.schema());
+                rec.put(field.name(), normalized);
             }
         }
 
@@ -667,8 +711,8 @@ public class AvroTypeUtil {
 
                 if (LOGICAL_TYPE_DATE.equals(logicalType.getName())) {
                     final String format = AvroTypeUtil.determineDataType(fieldSchema).getFormat();
-                    final java.sql.Date date = DataTypeUtils.toDate(rawValue, () -> DataTypeUtils.getDateFormat(format), fieldName);
-                    return (int) ChronoUnit.DAYS.between(Instant.EPOCH, Instant.ofEpochMilli(date.getTime()));
+                    final LocalDate localDate = DataTypeUtils.toLocalDate(rawValue, () -> DataTypeUtils.getDateTimeFormatter(format, ZoneId.systemDefault()), fieldName);
+                    return (int) localDate.toEpochDay();
                 } else if (LOGICAL_TYPE_TIME_MILLIS.equals(logicalType.getName())) {
                     final String format = AvroTypeUtil.determineDataType(fieldSchema).getFormat();
                     final Time time = DataTypeUtils.toTime(rawValue, () -> DataTypeUtils.getDateFormat(format), fieldName);
@@ -738,7 +782,17 @@ public class AvroTypeUtil {
                     return ByteBuffer.wrap(((String) rawValue).getBytes(charset));
                 }
                 if (rawValue instanceof Object[]) {
-                    return AvroTypeUtil.convertByteArray((Object[]) rawValue);
+                    if (fieldSchema.getType() == Type.FIXED && "INT96".equals(fieldSchema.getName())) {
+                        Object[] rawObjects = (Object[]) rawValue;
+                        byte[] rawBytes = new byte[rawObjects.length];
+                        for (int elementIndex = 0; elementIndex < rawObjects.length; elementIndex++) {
+                            rawBytes[elementIndex] = (Byte) rawObjects[elementIndex];
+                        }
+
+                        return new GenericData.Fixed(fieldSchema, rawBytes);
+                    } else {
+                        return AvroTypeUtil.convertByteArray((Object[]) rawValue);
+                    }
                 }
                 try {
                     if (rawValue instanceof Blob) {
@@ -837,6 +891,10 @@ public class AvroTypeUtil {
                     throw new IllegalTypeConversionException(rawValue + " is not a possible value of the ENUM" + enums + ".");
                 }
             case STRING:
+                if (rawValue instanceof String) {
+                    return rawValue;
+                }
+
                 return DataTypeUtils.toString(rawValue, (String) null, charset);
         }
 
@@ -896,10 +954,26 @@ public class AvroTypeUtil {
     private static Object convertUnionFieldValue(final Object originalValue, final Schema fieldSchema, final Function<Schema, Object> conversion, final String fieldName) {
         boolean foundNonNull = false;
 
-        Optional<Schema> mostSuitableType = DataTypeUtils.findMostSuitableType(
+        // It is an extremely common case to have a UNION type because a field can be NULL or some other type. In this situation,
+        // we will have two possible types, and one of them will be null. When this happens, we can be much more efficient by simply
+        // determining the non-null type and converting to that.
+        final List<Schema> schemaTypes = fieldSchema.getTypes();
+        if (schemaTypes.size() == 2) {
+            final Schema firstSchema = schemaTypes.get(0);
+            final Schema secondSchema = schemaTypes.get(1);
+
+            if (firstSchema.getType() == Type.NULL) {
+                return conversion.apply(secondSchema);
+            }
+            if (secondSchema.getType() == Type.NULL) {
+                return conversion.apply(firstSchema);
+            }
+        }
+
+        final Optional<Schema> mostSuitableType = DataTypeUtils.findMostSuitableType(
                 originalValue,
-                fieldSchema.getTypes().stream().filter(schema -> schema.getType() != Type.NULL).collect(Collectors.toList()),
-                subSchema -> AvroTypeUtil.determineDataType(subSchema)
+                getNonNullSubSchemas(fieldSchema),
+                AvroTypeUtil::determineDataType
         );
         if (mostSuitableType.isPresent()) {
             return conversion.apply(mostSuitableType.get());
@@ -989,7 +1063,7 @@ public class AvroTypeUtil {
                 final String logicalName = logicalType.getName();
                 if (LOGICAL_TYPE_DATE.equals(logicalName)) {
                     // date logical name means that the value is number of days since Jan 1, 1970
-                    return new java.sql.Date(TimeUnit.DAYS.toMillis((int) value));
+                    return java.sql.Date.valueOf(LocalDate.ofEpochDay((int) value));
                 } else if (LOGICAL_TYPE_TIME_MILLIS.equals(logicalName)) {
                     // time-millis logical name means that the value is number of milliseconds since midnight.
                     return new java.sql.Time((int) value);

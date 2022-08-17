@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web
 
+import io.prometheus.client.CollectorRegistry
+import io.prometheus.client.exporter.common.TextFormat
 import org.apache.nifi.authorization.AccessDeniedException
 import org.apache.nifi.authorization.AccessPolicy
 import org.apache.nifi.authorization.AuthorizableLookup
@@ -30,20 +32,45 @@ import org.apache.nifi.authorization.resource.ResourceFactory
 import org.apache.nifi.authorization.user.NiFiUser
 import org.apache.nifi.authorization.user.NiFiUserDetails
 import org.apache.nifi.authorization.user.StandardNiFiUser
+import org.apache.nifi.components.state.StateManagerProvider
+import org.apache.nifi.connectable.Connection
+import org.apache.nifi.controller.NodeTypeProvider
+import org.apache.nifi.controller.ProcessScheduler
+import org.apache.nifi.controller.ReloadComponent
+import org.apache.nifi.controller.flow.FlowManager
+import org.apache.nifi.controller.flow.StandardFlowManager
+import org.apache.nifi.controller.repository.FlowFileEvent
+import org.apache.nifi.controller.repository.FlowFileEventRepository
 import org.apache.nifi.controller.service.ControllerServiceProvider
+import org.apache.nifi.controller.status.PortStatus
+import org.apache.nifi.controller.status.ProcessGroupStatus
+import org.apache.nifi.controller.status.RunStatus
+import org.apache.nifi.diagnostics.StorageUsage
+import org.apache.nifi.diagnostics.SystemDiagnostics
+import org.apache.nifi.groups.ProcessGroup
+import org.apache.nifi.groups.StandardProcessGroup
+import org.apache.nifi.nar.ExtensionManager
+import org.apache.nifi.registry.flow.FlowRegistryClient
+import org.apache.nifi.registry.variable.MutableVariableRegistry
 import org.apache.nifi.reporting.Bulletin
 import org.apache.nifi.reporting.BulletinRepository
+import org.apache.nifi.util.MockBulletinRepository
+import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.web.api.dto.AccessPolicyDTO
 import org.apache.nifi.web.api.dto.BulletinDTO
 import org.apache.nifi.web.api.dto.DtoFactory
 import org.apache.nifi.web.api.dto.EntityFactory
+import org.apache.nifi.web.api.dto.PermissionsDTO
 import org.apache.nifi.web.api.dto.RevisionDTO
 import org.apache.nifi.web.api.dto.UserDTO
 import org.apache.nifi.web.api.dto.UserGroupDTO
+import org.apache.nifi.web.api.dto.status.StatusHistoryDTO
 import org.apache.nifi.web.api.entity.BulletinEntity
+import org.apache.nifi.web.api.entity.StatusHistoryEntity
 import org.apache.nifi.web.api.entity.UserEntity
 import org.apache.nifi.web.controller.ControllerFacade
 import org.apache.nifi.web.dao.AccessPolicyDAO
+import org.apache.nifi.web.dao.ProcessGroupDAO
 import org.apache.nifi.web.dao.UserDAO
 import org.apache.nifi.web.dao.UserGroupDAO
 import org.apache.nifi.web.revision.DeleteRevisionTask
@@ -196,7 +223,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         userEntityUpdateResult != null
         def userEntity = userEntityUpdateResult?.result
         if (isAuthorized) {
-            assert userEntity?.component?.id?.equals(userDto.id)
+            assert userEntity?.component?.getIdentifier?.equals(userDto.id)
             assert userEntity?.getPermissions?.canRead
             assert userEntity?.getPermissions?.canWrite
         } else {
@@ -305,7 +332,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
             def userEntity = userGroupDto.users.find { it.id.equals(userId) }?.component
             assert userEntity != null
             new User.Builder().identifier(userEntity.id).identity(userEntity.identity)
-                    .addGroups(userEntity.groups.collect { it.id } as Set)
+                    .addGroups(userEntity.groups.collect { it.getIdentifier } as Set)
                     .build()
         }
         userGroupDto.users.size() * revisionManager.get(_, _) >> { String id, ReadOnlyRevisionCallback callback ->
@@ -451,7 +478,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
 
         assert userGroupEntity != null
         if (isAuthorized) {
-            assert userGroupEntity?.component?.id?.equals(userGroupDto.id)
+            assert userGroupEntity?.component?.getIdentifier?.equals(userGroupDto.id)
             assert userGroupEntity?.getPermissions?.canRead
             assert userGroupEntity?.getPermissions?.canWrite
         } else {
@@ -752,7 +779,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
 
         assert accessPolicyEntity != null
         if (isAuthorized) {
-            assert accessPolicyEntity?.component?.id?.equals(accessPolicyDto.id)
+            assert accessPolicyEntity?.component?.getIdentifier?.equals(accessPolicyDto.id)
             assert accessPolicyEntity?.getPermissions?.canRead
             assert accessPolicyEntity?.getPermissions?.canWrite
         } else {
@@ -895,6 +922,169 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         bulletinEntity
         bulletinEntity.bulletin.message == bulletinDto.message
 
+
+    }
+
+    def "Test REST API Prometheus Metrics Endpoint"() {
+        given:
+        def serviceFacade = new StandardNiFiServiceFacade()
+        BulletinRepository bulletinRepository = new MockBulletinRepository()
+        serviceFacade.setBulletinRepository(bulletinRepository)
+
+        ControllerFacade controllerFacade = Mock()
+        serviceFacade.setControllerFacade(controllerFacade)
+        controllerFacade.getInstanceId() >> "ABC"
+        controllerFacade.getMaxEventDrivenThreadCount() >> 1
+        controllerFacade.getMaxTimerDrivenThreadCount() >> 10
+
+        // Setting up storage repositories
+        StorageUsage flowFileStorage = new StorageUsage()
+        flowFileStorage.setIdentifier("flowFile")
+        flowFileStorage.setTotalSpace(222)
+        flowFileStorage.setFreeSpace(111)
+
+        StorageUsage contentStorage = new StorageUsage()
+        contentStorage.setIdentifier("default")
+        contentStorage.setTotalSpace(444)
+        contentStorage.setFreeSpace(111)
+        Map<String, StorageUsage> contentStorageMap = new HashMap<>()
+        contentStorageMap.put("default", contentStorage)
+
+        StorageUsage provenanceStorage = new StorageUsage()
+        provenanceStorage.setIdentifier("default")
+        provenanceStorage.setTotalSpace(666)
+        provenanceStorage.setFreeSpace(111)
+        Map<String, StorageUsage> provenanceStorageMap = new HashMap<>()
+        provenanceStorageMap.put("default", provenanceStorage)
+
+        // Setting up SystemDiagnostics
+        SystemDiagnostics systemDiagnostics = new SystemDiagnostics()
+        systemDiagnostics.setFlowFileRepositoryStorageUsage(flowFileStorage)
+        systemDiagnostics.setContentRepositoryStorageUsage(contentStorageMap)
+        systemDiagnostics.setProvenanceRepositoryStorageUsage(provenanceStorageMap)
+
+        controllerFacade.getSystemDiagnostics() >> systemDiagnostics
+
+        // Setting up flow
+        ProcessGroupStatus rootGroupStatus = new ProcessGroupStatus()
+        rootGroupStatus.setId("1234");
+        rootGroupStatus.setFlowFilesReceived(5);
+        rootGroupStatus.setBytesReceived(10000);
+        rootGroupStatus.setFlowFilesSent(10);
+        rootGroupStatus.setBytesSent(20000);
+        rootGroupStatus.setQueuedCount(100);
+        rootGroupStatus.setQueuedContentSize(1024L);
+        rootGroupStatus.setBytesRead(60000L);
+        rootGroupStatus.setBytesWritten(80000L);
+        rootGroupStatus.setActiveThreadCount(5);
+        rootGroupStatus.setName("root");
+        rootGroupStatus.setFlowFilesTransferred(5);
+        rootGroupStatus.setBytesTransferred(10000);
+        rootGroupStatus.setOutputContentSize(1000L);
+        rootGroupStatus.setInputContentSize(1000L);
+        rootGroupStatus.setOutputCount(100);
+        rootGroupStatus.setInputCount(1000);
+
+        PortStatus outputPortStatus = new PortStatus();
+        outputPortStatus.setId("9876");
+        outputPortStatus.setName("out");
+        outputPortStatus.setGroupId("1234");
+        outputPortStatus.setRunStatus(RunStatus.Stopped);
+        outputPortStatus.setActiveThreadCount(1);
+
+        rootGroupStatus.setOutputPortStatus(Collections.singletonList(outputPortStatus));
+        // Create a nested group status
+        ProcessGroupStatus groupStatus2 = new ProcessGroupStatus();
+        groupStatus2.setFlowFilesReceived(5);
+        groupStatus2.setBytesReceived(10000);
+        groupStatus2.setFlowFilesSent(10);
+        groupStatus2.setBytesSent(20000);
+        groupStatus2.setQueuedCount(100);
+        groupStatus2.setQueuedContentSize(1024L);
+        groupStatus2.setActiveThreadCount(2);
+        groupStatus2.setBytesRead(12345L);
+        groupStatus2.setBytesWritten(11111L);
+        groupStatus2.setFlowFilesTransferred(5);
+        groupStatus2.setBytesTransferred(10000);
+        groupStatus2.setOutputContentSize(1000L);
+        groupStatus2.setInputContentSize(1000L);
+        groupStatus2.setOutputCount(100);
+        groupStatus2.setInputCount(1000);
+        groupStatus2.setId("3378");
+        groupStatus2.setName("nestedPG");
+        Collection<ProcessGroupStatus> nestedGroupStatuses = new ArrayList<>();
+        nestedGroupStatuses.add(groupStatus2);
+        rootGroupStatus.setProcessGroupStatus(nestedGroupStatuses);
+
+        // setting up flowFile events
+        controllerFacade.getProcessGroupStatus("root") >> rootGroupStatus
+        FlowFileEventRepository flowFileEventRepository = Mock()
+        controllerFacade.getFlowFileEventRepository() >> flowFileEventRepository
+        FlowFileEvent aggregateEvent = Mock()
+        flowFileEventRepository.reportAggregateEvent() >> aggregateEvent
+
+        ProcessGroupDAO processGroupDAO = Mock()
+        serviceFacade.setProcessGroupDAO(processGroupDAO)
+        ProcessGroup processGroup = Mock()
+        processGroupDAO.getProcessGroup(rootGroupStatus.getId()) >> processGroup
+        DtoFactory dtoFactory = new DtoFactory()
+        serviceFacade.setDtoFactory(dtoFactory)
+        PermissionsDTO permissions = Mock()
+        dtoFactory.createPermissionsDto(processGroup) >> permissions
+        StatusHistoryEntity statusHistoryEntity = new StatusHistoryEntity()
+        StatusHistoryDTO statusHistory = new StatusHistoryDTO()
+        statusHistory.setAggregateSnapshots(Collections.EMPTY_LIST)
+        statusHistoryEntity.setStatusHistory(statusHistory)
+        controllerFacade.getProcessGroupStatusHistory("1234") >> statusHistory
+        EntityFactory entityFactory = new EntityFactory()
+        serviceFacade.setEntityFactory(entityFactory)
+        entityFactory.createStatusHistoryEntity(statusHistoryEntity, permissions) >> statusHistoryEntity
+        serviceFacade.getProcessGroupStatusHistory("1234") >> statusHistory
+
+        // setting up connections (empty list for testing)
+        Set<Connection> connections = new HashSet()
+        StandardFlowManager flowManager = Mock()
+        controllerFacade.getFlowManager() >> flowManager
+        flowManager.findAllConnections() >> connections
+
+        when:
+        Collection<CollectorRegistry> allRegistries = serviceFacade.generateFlowMetrics()
+
+        // Converts metrics into a String for testing
+        Writer writer = new StringWriter();
+        for (CollectorRegistry collectorRegistry : allRegistries) {
+            TextFormat.write004(writer, collectorRegistry.metricFamilySamples());
+        }
+        String output = writer.toString();
+        writer.close()
+
+        // rename root group and generate metrics again to a different string
+        rootGroupStatus.setName("rootroot")
+        allRegistries = serviceFacade.generateFlowMetrics()
+        writer = new StringWriter()
+        for (CollectorRegistry collectorRegistry : allRegistries) {
+            TextFormat.write004(writer, collectorRegistry.metricFamilySamples())
+        }
+        String output2 = writer.toString()
+        writer.close()
+
+        then:
+        // flow metrics
+        output.contains("nifi_amount_flowfiles_received{instance=\"ABC\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0");
+        output.contains("nifi_amount_threads_active{instance=\"ABC\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0");
+        output.contains("nifi_amount_threads_active{instance=\"ABC\",component_type=\"ProcessGroup\",component_name=\"nestedPG\",component_id=\"3378\",parent_id=\"1234\",} 2.0");
+
+        // jvm
+        output.contains("nifi_jvm_heap_used{instance=\"ABC\",}")
+        output.contains("# HELP nifi_jvm_heap_used NiFi JVM heap used")
+        output.contains("# TYPE nifi_jvm_heap_used gauge")
+        output.contains("nifi_jvm_thread_count{instance=\"ABC\",}")
+
+        // test that renamed items are in the metrics output and that the previously named versions have been removed from the metrics output.
+        output2.contains("nifi_amount_flowfiles_received{instance=\"ABC\",component_type=\"RootProcessGroup\",component_name=\"rootroot\",component_id=\"1234\",parent_id=\"\",} 5.0");
+        output2.contains("nifi_amount_threads_active{instance=\"ABC\",component_type=\"RootProcessGroup\",component_name=\"rootroot\",component_id=\"1234\",parent_id=\"\",} 5.0");
+        !output2.contains("nifi_amount_flowfiles_received{instance=\"ABC\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0");
+        !output2.contains("nifi_amount_threads_active{instance=\"ABC\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0");
 
     }
 

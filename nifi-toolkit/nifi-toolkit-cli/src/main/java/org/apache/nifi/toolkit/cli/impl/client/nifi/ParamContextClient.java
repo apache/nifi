@@ -26,7 +26,7 @@ public interface ParamContextClient {
 
     ParameterContextsEntity getParamContexts() throws NiFiClientException, IOException;
 
-    ParameterContextEntity getParamContext(String id) throws NiFiClientException, IOException;
+    ParameterContextEntity getParamContext(String id, boolean includeInheritedParameters) throws NiFiClientException, IOException;
 
     ParameterContextEntity createParamContext(ParameterContextEntity paramContext) throws NiFiClientException, IOException;
 

@@ -19,59 +19,100 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-elasticsearch-bundle</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-elasticsearch-client-service</artifactId>
     <packaging>jar</packaging>
 
     <properties>
+        <!-- use with integration-tests only -->
         <es.int.version>5.6.16</es.int.version>
-        <script.name>setup-5.script</script.name>
-        <type.name>faketype</type.name>
+        <alexcojocaru.plugin.version>6.19</alexcojocaru.plugin.version>
+        <es.int.script.name>setup-5.script</es.int.script.name>
+        <es.int.type.name>faketype</es.int.type.name>
+        <es.int.path.conf>src/test/resources/conf-5/</es.int.path.conf>
+        <es.int.clusterName>testCluster</es.int.clusterName>
+        <es.int.transportPort>9500</es.int.transportPort>
+        <es.int.httpPort>9400</es.int.httpPort>
+        <es.int.timeout>90</es.int.timeout>
+        <es.int.logLevel>ERROR</es.int.logLevel>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-lookup-service-api</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>provided</scope>
-            <version>1.14.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>provided</scope>
-            <version>1.14.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-distributed-cache-client-service-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-ssl-context-service-api</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-proxy-configuration-api</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-elasticsearch-client-service-api</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-avro-record-utils</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-schema-registry-service-api</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record-path</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson-databind.version}</version>
         </dependency>
 
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.8.0</version>
         </dependency>
 
         <dependency>
@@ -82,77 +123,61 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.11</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>log4j-over-slf4j</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.jayway.jsonpath</groupId>
+            <artifactId>json-path</artifactId>
+            <version>2.7.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+        </dependency>
 
-
-        <!-- test dependencies -->
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-mock</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-ssl-context-service-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-elasticsearch-client-service-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.elasticsearch</groupId>
-            <artifactId>elasticsearch</artifactId>
-            <version>5.6.16</version>
-            <scope>compile</scope>
-        </dependency>
         <dependency>
             <groupId>org.elasticsearch.client</groupId>
-            <artifactId>elasticsearch-rest-high-level-client</artifactId>
-            <version>5.6.16</version>
+            <artifactId>elasticsearch-rest-client</artifactId>
+            <!-- stopped at 7.13.4 as it is the last version prior to Elastic forcing the client to check it is connecting
+             to an Elastic-provided Elasticsearch instead of an instance provided by someone else (e.g. AWS OpenSearch)
+             see: https://opensearch.org/blog/community/2021/08/community-clients/ for more info.
+
+             Note: the low-level elasticsearch-rest-client remains licensed with Apache 2.0
+             (https://www.elastic.co/guide/en/elasticsearch/client/java-rest/current/_license.html) even after the move
+             of the main Elasticsearch product and elasticsearch-rest-high-level-client to Elastic 2.0/SSPL 1.0 in v7.11.0+ -->
+            <version>7.13.4</version>
             <scope>compile</scope>
             <exclusions>
                 <exclusion>
                     <groupId>com.vividsolutions</groupId>
                     <artifactId>jts</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
+
+        <!-- test dependencies -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-avro-record-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-schema-registry-service-api</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.jayway.jsonpath</groupId>
-            <artifactId>json-path</artifactId>
-            <version>2.4.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>4.5.13</version>
+            <artifactId>nifi-security-utils</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-record-path</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
-            <scope>compile</scope>
+            <artifactId>nifi-mock</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -160,61 +185,180 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-artifact</artifactId>
+            <version>3.8.5</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy-json</artifactId>
             <version>${nifi.groovy.version}</version>
             <scope>test</scope>
-	</dependency>
-	<dependency>
-            <groupId>org.elasticsearch.client</groupId>
-            <artifactId>elasticsearch-rest-client</artifactId>
-            <version>5.6.16</version>
         </dependency>
     </dependencies>
 
     <profiles>
         <profile>
-            <id>integration-6</id>
-            <properties>
-                <es.int.version>6.8.13</es.int.version>
-                <type.name>_doc</type.name>
-                <script.name>setup-6.script</script.name>
-            </properties>
-        </profile>
-        <profile>
-            <id>integration-7</id>
-            <properties>
-                <es.int.version>7.10.0</es.int.version>
-                <script.name>setup-7.script</script.name>
-                <type.name>_doc</type.name>
-            </properties>
-        </profile>
-        <profile>
             <id>integration-tests</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-failsafe-plugin</artifactId>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+            </build>
+        </profile>
+
+        <profile>
+            <!-- use with elasticsearch-oss only (-default can be used if x-pack-ml permissions fixed) -->
+            <id>elasticsearch-6</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <es.int.version>6.8.23</es.int.version>
+                <es.int.type.name>_doc</es.int.type.name>
+                <es.int.script.name>setup-6.script</es.int.script.name>
+                <es.int.path.conf />
+            </properties>
+        </profile>
+        <profile>
+            <!-- use with elasticsearch-oss or elasticsearch-default -->
+            <id>elasticsearch-7</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <es.int.version>7.10.2</es.int.version>
+                <es.int.script.name>setup-7.script</es.int.script.name>
+                <es.int.type.name />
+                <es.int.path.conf />
+            </properties>
+        </profile>
+        <profile>
+            <!-- use with elasticsearch-default -->
+            <id>elasticsearch-7-no-oss</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <es.int.version>7.17.3</es.int.version>
+                <es.int.script.name>setup-7.script</es.int.script.name>
+                <es.int.type.name />
+                <es.int.path.conf />
+            </properties>
+        </profile>
+        <profile>
+            <!-- use with elasticsearch-default -->
+            <id>elasticsearch-8</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <es.int.version>8.2.0</es.int.version>
+                <!-- elasticsearch-maven-plugin version 6.20+ required for Elasticsearch 8.x+ -->
+                <alexcojocaru.plugin.version>6.22</alexcojocaru.plugin.version>
+                <es.int.script.name>setup-8.script</es.int.script.name>
+                <es.int.type.name />
+                <es.int.path.conf />
+            </properties>
+        </profile>
+
+        <profile>
+            <!-- OSS Elasticsearch (no XPack features); required for ES 5.x or < 6.3 and option for 7.x up to 7.10.2 -->
+            <id>elasticsearch-oss</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
             <build>
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
-                        <version>3.0.0-M5</version>
                         <configuration>
                             <systemPropertyVariables>
-                                <type_name>${type.name}</type_name>
+                                <type_name>${es.int.type.name}</type_name>
+                                <es_version>${es.int.version}</es_version>
+                                <es_flavour>oss</es_flavour>
                             </systemPropertyVariables>
                         </configuration>
                     </plugin>
                     <plugin>
                         <groupId>com.github.alexcojocaru</groupId>
                         <artifactId>elasticsearch-maven-plugin</artifactId>
-                        <version>6.19</version>
+                        <version>${alexcojocaru.plugin.version}</version>
                         <configuration>
-                            <clusterName>testCluster</clusterName>
-                            <transportPort>9500</transportPort>
-                            <httpPort>9400</httpPort>
+                            <clusterName>${es.int.clusterName}</clusterName>
+                            <transportPort>${es.int.transportPort}</transportPort>
+                            <httpPort>${es.int.httpPort}</httpPort>
                             <version>${es.int.version}</version>
-                            <timeout>90</timeout>
-                            <logLevel>ERROR</logLevel>
-                            <pathInitScript>${project.basedir}/src/test/resources/${script.name}</pathInitScript>
+                            <timeout>${es.int.timeout}</timeout>
+                            <logLevel>${es.int.logLevel}</logLevel>
+			                <pathInitScript>${project.basedir}/src/test/resources/${es.int.script.name}</pathInitScript>
+                            <keepExistingData>false</keepExistingData>
+                            <pathConf>${es.int.path.conf}</pathConf>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>start-elasticsearch</id>
+                                <phase>pre-integration-test</phase>
+                                <goals>
+                                    <goal>runforked</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>stop-elasticsearch</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>stop</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <!-- Elasticsearch (default) with XPack (only for ES 6.3+ & 7.x although there are XPack permission problems in 6.x startup) -->
+            <id>elasticsearch-default</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <type_name>${es.int.type.name}</type_name>
+                                <es_version>${es.int.version}</es_version>
+                                <es_flavour>default</es_flavour>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>com.github.alexcojocaru</groupId>
+                        <artifactId>elasticsearch-maven-plugin</artifactId>
+                        <version>${alexcojocaru.plugin.version}</version>
+                        <configuration>
+                            <flavour>default</flavour>
+                            <clusterName>${es.int.clusterName}</clusterName>
+                            <transportPort>${es.int.transportPort}</transportPort>
+                            <httpPort>${es.int.httpPort}</httpPort>
+                            <version>${es.int.version}</version>
+                            <timeout>${es.int.timeout}</timeout>
+                            <logLevel>${es.int.logLevel}</logLevel>
+			                <pathInitScript>${project.basedir}/src/test/resources/${es.int.script.name}</pathInitScript>
+                            <keepExistingData>false</keepExistingData>
                         </configuration>
                         <executions>
                             <execution>

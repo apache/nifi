@@ -17,36 +17,36 @@
 package org.apache.nifi.cluster.manager;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.web.api.dto.AllowableValueDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class PropertyDescriptorDtoMerger {
     public static void merge(PropertyDescriptorDTO clientPropertyDescriptor, Map<NodeIdentifier, PropertyDescriptorDTO> dtoMap) {
-        final Map<Integer, List<AllowableValueEntity>> allowableValueMap = new HashMap<>();
+        if (clientPropertyDescriptor.getAllowableValues() != null) {
+            Map<AllowableValueDTO, List<AllowableValueEntity>> allowableValueDtoToEntities = new LinkedHashMap<>();
 
-        // values are guaranteed to be in order, so map each allowable value for each property descriptor across all node IDs to the index of the value in the descriptor's list of allowable values
-        for (final Map.Entry<NodeIdentifier, PropertyDescriptorDTO> nodeEntry : dtoMap.entrySet()) {
-            final PropertyDescriptorDTO nodePropertyDescriptor = nodeEntry.getValue();
-            final List<AllowableValueEntity> nodePropertyDescriptorAllowableValues = nodePropertyDescriptor.getAllowableValues();
-            if (nodePropertyDescriptorAllowableValues != null) {
-                nodePropertyDescriptorAllowableValues.stream().forEach(allowableValueEntity -> {
-                    allowableValueMap.computeIfAbsent(nodePropertyDescriptorAllowableValues.indexOf(allowableValueEntity), propertyDescriptorToAllowableValue -> new ArrayList<>())
-                            .add(allowableValueEntity);
-                });
-            }
-        }
+            addEntities(clientPropertyDescriptor, allowableValueDtoToEntities);
+            dtoMap.values().forEach(propertyDescriptorDTO -> addEntities(propertyDescriptorDTO, allowableValueDtoToEntities));
 
-        // for each AllowableValueEntity in this PropertyDescriptorDTO, get the corresponding AVs previously aggregated and merge them.
-        final List<AllowableValueEntity> clientPropertyDescriptorAllowableValues = clientPropertyDescriptor.getAllowableValues();
-        if (clientPropertyDescriptorAllowableValues != null) {
-            for (AllowableValueEntity clientAllowableValueEntity : clientPropertyDescriptorAllowableValues) {
-                AllowableValueEntityMerger.merge(clientAllowableValueEntity, allowableValueMap.get(clientPropertyDescriptorAllowableValues.indexOf(clientAllowableValueEntity)));
-            }
+            List<AllowableValueEntity> mergedAllowableValues = allowableValueDtoToEntities.values().stream()
+                .filter(entities -> Integer.valueOf(entities.size()).equals(dtoMap.size() + 1))
+                .map(AllowableValueEntityMerger::merge)
+                .collect(Collectors.toList());
+
+            clientPropertyDescriptor.setAllowableValues(mergedAllowableValues);
         }
+    }
+
+    private static void addEntities(PropertyDescriptorDTO propertyDescriptorDTO, Map<AllowableValueDTO, List<AllowableValueEntity>> dtoToEntities) {
+        propertyDescriptorDTO.getAllowableValues().forEach(
+            allowableValueEntity -> dtoToEntities.computeIfAbsent(allowableValueEntity.getAllowableValue(), __ -> new ArrayList<>()).add(allowableValueEntity)
+        );
     }
 }

@@ -31,12 +31,27 @@ public class LabelDTO extends ComponentDTO {
 
     private Double width;
     private Double height;
+    private Long zIndex;
 
     // font-size = 12px
     // background-color = #eee
     private Map<String, String> style;
 
     public LabelDTO() {
+    }
+
+    /**
+     * @return z index for this label
+     */
+    @ApiModelProperty(
+            value = "The z index of the label."
+    )
+    public Long getzIndex() {
+        return zIndex;
+    }
+
+    public void setzIndex(Long zIndex) {
+        this.zIndex = zIndex;
     }
 
     /**

@@ -16,47 +16,53 @@
  */
 package org.apache.nifi.lookup.script
 
-import org.apache.commons.io.FileUtils
-import org.apache.nifi.components.PropertyDescriptor
-import org.apache.nifi.controller.ConfigurationContext
-import org.apache.nifi.controller.ControllerServiceInitializationContext
-import org.apache.nifi.logging.ComponentLog
+import org.apache.nifi.processor.AbstractProcessor
+import org.apache.nifi.processor.ProcessContext
+import org.apache.nifi.processor.ProcessSession
+import org.apache.nifi.processor.exception.ProcessException
 import org.apache.nifi.processors.script.AccessibleScriptingComponentHelper
 import org.apache.nifi.script.ScriptingComponentHelper
 import org.apache.nifi.script.ScriptingComponentUtils
 import org.apache.nifi.util.MockFlowFile
-import org.apache.nifi.util.MockPropertyValue
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
+import org.apache.nifi.util.TestRunner
+import org.apache.nifi.util.TestRunners
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
+
 import static junit.framework.TestCase.assertEquals
-import static org.junit.Assert.assertFalse
-import static org.junit.Assert.assertTrue
-import static org.mockito.Mockito.mock
-import static org.mockito.Mockito.when
+import static org.junit.jupiter.api.Assertions.assertFalse
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 /**
  * Unit tests for the ScriptedLookupService controller service
  */
 class TestScriptedLookupService {
-
+    private static final String GROOVY_SCRIPT = "test_lookup_inline.groovy"
+    private static final Path SOURCE_PATH = Paths.get("src/test/resources/groovy", GROOVY_SCRIPT)
+    private static final Path TARGET_PATH = Paths.get("target", GROOVY_SCRIPT)
     private static final Logger logger = LoggerFactory.getLogger(TestScriptedLookupService)
     ScriptedLookupService scriptedLookupService
     def scriptingComponent
 
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = {String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-        FileUtils.copyDirectory('src/test/resources' as File, 'target/test/resources' as File)
+        Files.copy(SOURCE_PATH, TARGET_PATH, StandardCopyOption.REPLACE_EXISTING)
+        TARGET_PATH.toFile().deleteOnExit()
     }
 
-    @Before
+    @BeforeEach
     void setUp() {
         scriptedLookupService = new MockScriptedLookupService()
         scriptingComponent = (AccessibleScriptingComponentHelper) scriptedLookupService
@@ -64,30 +70,18 @@ class TestScriptedLookupService {
 
     @Test
     void testLookupServiceGroovyScript() {
+        final TestRunner runner = TestRunners.newTestRunner(new AbstractProcessor() {
+            @Override
+            public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+            }
+        });
 
-        def properties = [:] as Map<PropertyDescriptor, String>
-        scriptedLookupService.getSupportedPropertyDescriptors().each {PropertyDescriptor descriptor ->
-            properties.put(descriptor, descriptor.getDefaultValue())
-        }
-
-        // Mock the ConfigurationContext for setup(...)
-        def configurationContext = mock(ConfigurationContext)
-        when(configurationContext.getProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE))
-                .thenReturn(new MockPropertyValue('Groovy'))
-        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
-                .thenReturn(new MockPropertyValue('target/test/resources/groovy/test_lookup_inline.groovy'))
-        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
-                .thenReturn(new MockPropertyValue(null))
-        when(configurationContext.getProperty(ScriptingComponentUtils.MODULES))
-                .thenReturn(new MockPropertyValue(null))
-
-        def logger = mock(ComponentLog)
-        def initContext = mock(ControllerServiceInitializationContext)
-        when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString())
-        when(initContext.getLogger()).thenReturn(logger)
-
-        scriptedLookupService.initialize initContext
-        scriptedLookupService.onEnabled configurationContext
+        runner.addControllerService("lookupService", scriptedLookupService);
+        runner.setProperty(scriptedLookupService, "Script Engine", "Groovy");
+        runner.setProperty(scriptedLookupService, ScriptingComponentUtils.SCRIPT_FILE, TARGET_PATH.toString());
+        runner.setProperty(scriptedLookupService, ScriptingComponentUtils.SCRIPT_BODY, (String) null);
+        runner.setProperty(scriptedLookupService, ScriptingComponentUtils.MODULES, (String) null);
+        runner.enableControllerService(scriptedLookupService);
 
         MockFlowFile mockFlowFile = new MockFlowFile(1L)
         InputStream inStream = new ByteArrayInputStream('Flow file content not used'.bytes)

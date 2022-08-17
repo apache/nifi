@@ -16,7 +16,10 @@
  */
 package org.apache.nifi.diagnostics.bootstrap.tasks;
 
+import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
@@ -26,11 +29,16 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.diagnostics.DiagnosticTask;
 import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.StandardDiagnosticsDumpElement;
+import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -63,6 +71,10 @@ public class ContentRepositoryScanTask implements DiagnosticTask {
 
         final List<String> details = new ArrayList<>();
 
+        final Map<String, RetainedFileSet> retainedFileSetsByQueue = new HashMap<>();
+        final FlowManager flowManager = flowController.getFlowManager();
+
+        final NumberFormat numberFormat = NumberFormat.getNumberInstance();
         for (final String containerName : contentRepository.getContainerNames()) {
             try {
                 final Set<ResourceClaim> resourceClaims = contentRepository.getActiveResourceClaims(containerName);
@@ -77,8 +89,22 @@ public class ContentRepositoryScanTask implements DiagnosticTask {
                     final Set<ResourceClaimReference> references = referenceMap == null ? Collections.emptySet() : referenceMap.getOrDefault(resourceClaim, Collections.emptySet());
 
                     final String path = resourceClaim.getContainer() + "/" + resourceClaim.getSection() + "/" + resourceClaim.getId();
-                    details.add(String.format("%1$s, Claimant Count = %2$d, In Use = %3$b, Awaiting Destruction = %4$b, References (%5$d) = %6$s",
-                        path, claimCount, inUse, destructable,  references.size(), references.toString()));
+                    final long fileSize = contentRepository.size(resourceClaim);
+                    details.add(String.format("%1$s; Size = %2$s bytes; Claimant Count = %3$d; In Use = %4$b; Awaiting Destruction = %5$b; References (%6$d) = %7$s",
+                        path, numberFormat.format(fileSize), claimCount, inUse, destructable,  references.size(), references));
+
+                    for (final ResourceClaimReference claimReference : references) {
+                        final String queueId = claimReference.getQueueIdentifier();
+                        final Connection connection = flowManager.getConnection(queueId);
+                        QueueSize queueSize = new QueueSize(0, 0L);
+                        if (connection != null) {
+                            queueSize = connection.getFlowFileQueue().size();
+                        }
+
+                        final RetainedFileSet retainedFileSet = retainedFileSetsByQueue.computeIfAbsent(queueId, RetainedFileSet::new);
+                        retainedFileSet.addFile(path, fileSize);
+                        retainedFileSet.setQueueSize(queueSize);
+                    }
                 }
             } catch (final Exception e) {
                 logger.error("Failed to obtain listing of Active Resource Claims for container {}", containerName, e);
@@ -100,6 +126,60 @@ public class ContentRepositoryScanTask implements DiagnosticTask {
             }
         }
 
+        details.add("");
+
+        final List<RetainedFileSet> retainedFileSets = new ArrayList<>(retainedFileSetsByQueue.values());
+        retainedFileSets.sort(Comparator.comparing(RetainedFileSet::getByteCount).reversed());
+        details.add("The following queues retain data in the Content Repository:");
+        if (retainedFileSets.isEmpty()) {
+            details.add("No queues retain any files in the Content Repository");
+        } else {
+            for (final RetainedFileSet retainedFileSet : retainedFileSets) {
+                final String formatted = String.format("Queue ID = %s; Queue Size = %s FlowFiles / %s; Retained Files = %d; Retained Size = %s bytes (%s)",
+                    retainedFileSet.getQueueId(), numberFormat.format(retainedFileSet.getQueueSize().getObjectCount()), FormatUtils.formatDataSize(retainedFileSet.getQueueSize().getByteCount()),
+                    retainedFileSet.getFilenames().size(), numberFormat.format(retainedFileSet.getByteCount()), FormatUtils.formatDataSize(retainedFileSet.getByteCount()));
+
+                details.add(formatted);
+            }
+        }
+
         return new StandardDiagnosticsDumpElement("Content Repository Scan", details);
+    }
+
+    private static class RetainedFileSet {
+        private final String queueId;
+        private final Set<String> filenames = new HashSet<>();
+        private long byteCount;
+        private QueueSize queueSize;
+
+        public RetainedFileSet(final String queueId) {
+            this.queueId = queueId;
+        }
+
+        public String getQueueId() {
+            return queueId;
+        }
+
+        public void addFile(final String filename, final long bytes) {
+            if (filenames.add(filename)) {
+                byteCount += bytes;
+            }
+        }
+
+        public Set<String> getFilenames() {
+            return filenames;
+        }
+
+        public long getByteCount() {
+            return byteCount;
+        }
+
+        public QueueSize getQueueSize() {
+            return queueSize;
+        }
+
+        public void setQueueSize(final QueueSize queueSize) {
+            this.queueSize = queueSize;
+        }
     }
 }

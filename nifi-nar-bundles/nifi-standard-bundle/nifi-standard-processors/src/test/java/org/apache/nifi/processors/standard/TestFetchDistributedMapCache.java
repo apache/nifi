@@ -24,8 +24,8 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -42,10 +42,9 @@ public class TestFetchDistributedMapCache {
     private TestRunner runner;
     private MockCacheClient service;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(FetchDistributedMapCache.class);
-
         service = new MockCacheClient();
         runner.addControllerService("service", service);
         runner.enableControllerService(service);
@@ -53,7 +52,7 @@ public class TestFetchDistributedMapCache {
     }
 
     @Test
-    public void testNoCacheKey() throws InitializationException {
+    public void testNoCacheKey() {
 
         runner.setProperty(FetchDistributedMapCache.PROP_CACHE_ENTRY_IDENTIFIER, "${cacheKeyAttribute}");
 
@@ -70,8 +69,7 @@ public class TestFetchDistributedMapCache {
     }
 
     @Test
-    public void testNoCacheKeyValue() throws InitializationException {
-
+    public void testNoCacheKeyValue() {
         runner.setProperty(FetchDistributedMapCache.PROP_CACHE_ENTRY_IDENTIFIER, "${cacheKeyAttribute}");
         runner.enqueue(new byte[] {});
         runner.run();
@@ -83,7 +81,7 @@ public class TestFetchDistributedMapCache {
     }
 
     @Test
-    public void testFailingCacheService() throws InitializationException, IOException {
+    public void testFailingCacheService() {
         service.setFailOnCalls(true);
         runner.setProperty(FetchDistributedMapCache.PROP_CACHE_ENTRY_IDENTIFIER, "${cacheKeyAttribute}");
 
@@ -100,7 +98,7 @@ public class TestFetchDistributedMapCache {
     }
 
     @Test
-    public void testSingleFlowFile() throws InitializationException, IOException {
+    public void testSingleFlowFile() throws IOException {
         service.put("key","value", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
         runner.setProperty(FetchDistributedMapCache.PROP_CACHE_ENTRY_IDENTIFIER, "${cacheKeyAttribute}");
 
@@ -121,7 +119,7 @@ public class TestFetchDistributedMapCache {
     }
 
     @Test
-    public void testSingleFlowFileToAttribute() throws InitializationException, IOException {
+    public void testSingleFlowFileToAttribute() throws IOException {
         service.put("key","value", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
         runner.setProperty(FetchDistributedMapCache.PROP_CACHE_ENTRY_IDENTIFIER, "${cacheKeyAttribute}");
         runner.setProperty(FetchDistributedMapCache.PROP_PUT_CACHE_VALUE_IN_ATTRIBUTE, "test");
@@ -143,7 +141,7 @@ public class TestFetchDistributedMapCache {
     }
 
     @Test
-    public void testToAttributeTooLong() throws InitializationException, IOException {
+    public void testToAttributeTooLong() throws IOException {
         service.put("key","value", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
         runner.setProperty(FetchDistributedMapCache.PROP_CACHE_ENTRY_IDENTIFIER, "${cacheKeyAttribute}");
         runner.setProperty(FetchDistributedMapCache.PROP_PUT_CACHE_VALUE_IN_ATTRIBUTE, "test");
@@ -165,7 +163,7 @@ public class TestFetchDistributedMapCache {
     }
 
     @Test
-    public void testMultipleKeysToAttributes() throws InitializationException, IOException {
+    public void testMultipleKeysToAttributes() throws IOException {
         service.put("key1","value1", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
         service.put("key2","value2", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
         runner.setProperty(FetchDistributedMapCache.PROP_CACHE_ENTRY_IDENTIFIER, "key1, key2");
@@ -188,7 +186,7 @@ public class TestFetchDistributedMapCache {
     }
 
     @Test
-    public void testMultipleKeysOneNotFound() throws InitializationException, IOException {
+    public void testMultipleKeysOneNotFound() throws IOException {
         service.put("key1","value1", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
         runner.setProperty(FetchDistributedMapCache.PROP_CACHE_ENTRY_IDENTIFIER, "key1, key2");
         // Not valid to set multiple keys without Put Cache Value In Attribute set

@@ -27,10 +27,9 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bson.Document;
 import org.bson.types.ObjectId;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
@@ -40,16 +39,18 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PutMongoIT extends MongoWriteTestBase {
-    @Before
+    @BeforeEach
     public void setup() {
         super.setup(PutMongo.class);
     }
 
     @Override
-    @After
+    @AfterEach
     public void teardown() {
         super.teardown();
     }
@@ -71,10 +72,10 @@ public class PutMongoIT extends MongoWriteTestBase {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(2, results.size());
+        assertEquals(2, results.size());
         Iterator<ValidationResult> it = results.iterator();
-        Assert.assertTrue(it.next().toString().contains("is invalid because Mongo Database Name is required"));
-        Assert.assertTrue(it.next().toString().contains("is invalid because Mongo Collection Name is required"));
+        assertTrue(it.next().toString().contains("is invalid because Mongo Database Name is required"));
+        assertTrue(it.next().toString().contains("is invalid because Mongo Collection Name is required"));
 
         // invalid write concern
         runner.setProperty(AbstractMongoProcessor.URI, MONGO_URI);
@@ -88,8 +89,8 @@ public class PutMongoIT extends MongoWriteTestBase {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
-        Assert.assertTrue(results.iterator().next().toString().matches("'Write Concern' .* is invalid because Given value not found in allowed set .*"));
+        assertEquals(1, results.size());
+        assertTrue(results.iterator().next().toString().matches("'Write Concern' .* is invalid because Given value not found in allowed set .*"));
 
         // valid write concern
         runner.setProperty(PutMongo.WRITE_CONCERN, PutMongo.WRITE_CONCERN_UNACKNOWLEDGED);
@@ -99,7 +100,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(0, results.size());
+        assertEquals(0, results.size());
     }
 
     @Test
@@ -218,14 +219,14 @@ public class PutMongoIT extends MongoWriteTestBase {
 
         MongoCursor<Document> cursor = collection.find(document).iterator();
         Document found = cursor.next();
-        Assert.assertEquals(found.get("name"), document.get("name"));
-        Assert.assertEquals(found.get("department"), document.get("department"));
+        assertEquals(found.get("name"), document.get("name"));
+        assertEquals(found.get("department"), document.get("department"));
         Document contacts = (Document)found.get("contacts");
-        Assert.assertNotNull(contacts);
-        Assert.assertEquals(contacts.get("twitter"), "@JohnSmith");
-        Assert.assertEquals(contacts.get("email"), "john.smith@test.com");
-        Assert.assertEquals(contacts.get("phone"), "555-555-5555");
-        Assert.assertEquals(collection.count(document), 1);
+        assertNotNull(contacts);
+        assertEquals(contacts.get("twitter"), "@JohnSmith");
+        assertEquals(contacts.get("email"), "john.smith@test.com");
+        assertEquals(contacts.get("phone"), "555-555-5555");
+        assertEquals(collection.countDocuments(document), 1);
     }
 
     @Test
@@ -257,12 +258,12 @@ public class PutMongoIT extends MongoWriteTestBase {
         runner.assertTransferCount(PutMongo.REL_SUCCESS, 1);
 
         MongoCursor<Document> iterator = collection.find(new Document("name", "John Smith")).iterator();
-        Assert.assertTrue("Document did not come back.", iterator.hasNext());
+        assertTrue(iterator.hasNext(), "Document did not come back.");
         Document val = iterator.next();
         Map contacts = (Map)val.get("contacts");
-        Assert.assertNotNull(contacts);
-        Assert.assertTrue(contacts.containsKey("twitter") && contacts.get("twitter").equals("@JohnSmith"));
-        Assert.assertTrue(val.containsKey("writes") && val.get("writes").equals(1));
+        assertNotNull(contacts);
+        assertTrue(contacts.containsKey("twitter") && contacts.get("twitter").equals("@JohnSmith"));
+        assertTrue(val.containsKey("writes") && val.get("writes").equals(1));
     }
 
     private void updateTests(TestRunner runner, Document document) {
@@ -271,11 +272,11 @@ public class PutMongoIT extends MongoWriteTestBase {
         runner.assertTransferCount(PutMongo.REL_SUCCESS, 1);
 
         MongoCursor<Document> iterator = collection.find(document).iterator();
-        Assert.assertTrue("Document did not come back.", iterator.hasNext());
+        assertTrue(iterator.hasNext(), "Document did not come back.");
         Document val = iterator.next();
-        Assert.assertTrue(val.containsKey("email") && val.get("email").equals("john.smith@test.com"));
-        Assert.assertTrue(val.containsKey("grade") && val.get("grade").equals("Sr. Principle Eng."));
-        Assert.assertTrue(val.containsKey("writes") && val.get("writes").equals(1));
+        assertTrue(val.containsKey("email") && val.get("email").equals("john.smith@test.com"));
+        assertTrue(val.containsKey("grade") && val.get("grade").equals("Sr. Principle Eng."));
+        assertTrue(val.containsKey("writes") && val.get("writes").equals(1));
     }
 
     @Test
@@ -293,7 +294,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         out.assertContentEquals(bytes);
 
         // verify 1 doc inserted into the collection
-        assertEquals(1, collection.count());
+        assertEquals(1, collection.countDocuments());
         assertEquals(doc, collection.find().first());
     }
 
@@ -313,7 +314,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         }
 
         // verify 3 docs inserted into the collection
-        assertEquals(3, collection.count());
+        assertEquals(3, collection.countDocuments());
     }
 
     @Test
@@ -340,7 +341,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         }
 
         // verify 2 docs inserted into the collection for a total of 3
-        assertEquals(3, collection.count());
+        assertEquals(3, collection.countDocuments());
     }
 
     /**
@@ -363,7 +364,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         out.assertContentEquals(bytes);
 
         // nothing was in collection, so nothing to update since upsert defaults to false
-        assertEquals(0, collection.count());
+        assertEquals(0, collection.countDocuments());
     }
 
     /**
@@ -387,7 +388,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         out.assertContentEquals(bytes);
 
         // verify 1 doc inserted into the collection
-        assertEquals(1, collection.count());
+        assertEquals(1, collection.countDocuments());
         assertEquals(doc, collection.find().first());
     }
 
@@ -407,7 +408,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         out.assertContentEquals(bytes);
 
         // verify 1 doc inserted into the collection
-        assertEquals(1, collection.count());
+        assertEquals(1, collection.countDocuments());
         assertEquals(oidDocument, collection.find().first());
     }
 
@@ -435,7 +436,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).get(0);
         out.assertContentEquals(bytes);
 
-        assertEquals(1, collection.count());
+        assertEquals(1, collection.countDocuments());
         assertEquals(doc, collection.find().first());
     }
 
@@ -462,13 +463,13 @@ public class PutMongoIT extends MongoWriteTestBase {
         Document query = new Document("_id", "Test");
         Document result = collection.find(query).first();
         List array = (List)result.get("testArr");
-        Assert.assertNotNull("Array was empty", array);
-        Assert.assertEquals("Wrong size", array.size(), 3);
+        assertNotNull(array, "Array was empty");
+        assertEquals(3, array.size(), "Wrong size");
         for (int index = 0; index < array.size(); index++) {
             Document doc = (Document)array.get(index);
             String msg = doc.getString("msg");
-            Assert.assertNotNull("Msg was null", msg);
-            Assert.assertEquals("Msg had wrong value", msg, "Hi");
+            assertNotNull("Msg was null", msg);
+            assertEquals(msg, "Hi", "Msg had wrong value");
         }
     }
 
@@ -517,8 +518,9 @@ public class PutMongoIT extends MongoWriteTestBase {
 
             Document query = new Document(updateKeyProps[index], updateKeys[index]);
             Document result = collection.find(query).first();
-            Assert.assertNotNull("Result was null", result);
-            Assert.assertEquals("Count was wrong", 1, collection.count(query));
+
+            assertNotNull(result, "Result was null");
+            assertEquals(1, collection.countDocuments(query), "Count was wrong");
             runner.clearTransferState();
             index++;
         }

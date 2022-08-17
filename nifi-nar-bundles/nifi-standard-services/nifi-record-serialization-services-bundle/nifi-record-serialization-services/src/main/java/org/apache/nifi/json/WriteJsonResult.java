@@ -17,6 +17,10 @@
 
 package org.apache.nifi.json;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.util.MinimalPrettyPrinter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.record.NullSuppression;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
@@ -35,15 +39,12 @@ import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonGenerator;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.util.MinimalPrettyPrinter;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -80,7 +81,8 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         this.outputGrouping = outputGrouping;
         this.mimeType = mimeType;
 
-        final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
+        // Use DateFormat with default TimeZone to avoid unexpected conversion of year-month-day
+        final DateFormat df = dateFormat == null ? null : new SimpleDateFormat(dateFormat);
         final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
         final DateFormat tsf = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
 
@@ -91,7 +93,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         final JsonFactory factory = new JsonFactory();
         factory.setCodec(objectMapper);
 
-        this.generator = factory.createJsonGenerator(out);
+        this.generator = factory.createGenerator(out);
         if (prettyPrint) {
             generator.useDefaultPrettyPrinter();
         } else if (OutputGrouping.OUTPUT_ONELINE.equals(outputGrouping)) {
@@ -216,7 +218,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
 
             endTask.apply(generator);
         } catch (final Exception e) {
-            logger.error("Failed to write {} with schema {} as a JSON Object due to {}", new Object[] {record, record.getSchema(), e.toString(), e});
+            logger.error("Failed to write {} with reader schema {} and writer schema {} as a JSON Object due to {}", record, record.getSchema(), writeSchema, e.toString(), e);
             throw e;
         }
     }
@@ -372,6 +374,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             case SHORT:
                 generator.writeNumber(DataTypeUtils.toInteger(coercedValue, fieldName));
                 break;
+            case UUID:
             case CHAR:
             case STRING:
                 generator.writeString(coercedValue.toString());

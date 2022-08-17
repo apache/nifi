@@ -16,16 +16,21 @@
  */
 package org.apache.nifi.parameter;
 
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.VersionedComponent;
 import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.groups.ProcessGroup;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -49,11 +54,44 @@ public class StandardParameterReferenceManager implements ParameterReferenceMana
     }
 
     @Override
+    public List<ParameterReferencedControllerServiceData> getReferencedControllerServiceData(final ParameterContext parameterContext, final String parameterName) {
+        final List<ParameterReferencedControllerServiceData> referencedControllerServiceData = new ArrayList<>();
+
+        final String versionedServiceId = parameterContext.getParameter(parameterName)
+            .map(Parameter::getValue)
+            .map(this.flowManager::getControllerServiceNode)
+            .flatMap(VersionedComponent::getVersionedComponentId)
+            .orElse(null);
+
+
+        final ProcessGroup rootGroup = flowManager.getRootGroup();
+        final List<ProcessGroup> referencingGroups = rootGroup.findAllProcessGroups(group -> group.referencesParameterContext(parameterContext));
+
+        for (final ProcessGroup group : referencingGroups) {
+            for (ProcessorNode processor : group.getProcessors()) {
+                referencedControllerServiceData.addAll(getReferencedControllerServiceData(
+                    processor,
+                    parameterName,
+                    versionedServiceId
+                ));
+            }
+
+            for (ControllerServiceNode controllerService : group.getControllerServices(false)) {
+                referencedControllerServiceData.addAll(getReferencedControllerServiceData(
+                    controllerService,
+                    parameterName,
+                    versionedServiceId
+                ));
+            }
+        }
+
+        return referencedControllerServiceData;
+    }
+
+    @Override
     public Set<ProcessGroup> getProcessGroupsBound(final ParameterContext parameterContext) {
         final ProcessGroup rootGroup = flowManager.getRootGroup();
-        final String contextId = parameterContext.getIdentifier();
-        final List<ProcessGroup> referencingGroups = rootGroup.findAllProcessGroups(
-            group -> group.getParameterContext() != null && group.getParameterContext().getIdentifier().equals(contextId));
+        final List<ProcessGroup> referencingGroups = rootGroup.findAllProcessGroups(group -> group.referencesParameterContext(parameterContext));
 
         return new HashSet<>(referencingGroups);
     }
@@ -63,13 +101,11 @@ public class StandardParameterReferenceManager implements ParameterReferenceMana
         final Set<T> referencingComponents = new HashSet<>();
 
         final ProcessGroup rootGroup = flowManager.getRootGroup();
-        final String contextId = parameterContext.getIdentifier();
-        final List<ProcessGroup> referencingGroups = rootGroup.findAllProcessGroups(
-            group -> group.getParameterContext() != null && group.getParameterContext().getIdentifier().equals(contextId));
+        final List<ProcessGroup> referencingGroups = rootGroup.findAllProcessGroups(group -> group.referencesParameterContext(parameterContext));
 
         for (final ProcessGroup group : referencingGroups) {
             for (final T componentNode : componentFunction.apply(group)) {
-                if (isComponentReferencing(componentNode, parameterName)) {
+                if (componentNode.isReferencingParameter(parameterName)) {
                     referencingComponents.add(componentNode);
                     continue;
                 }
@@ -79,20 +115,37 @@ public class StandardParameterReferenceManager implements ParameterReferenceMana
         return referencingComponents;
     }
 
-    private boolean isComponentReferencing(final ComponentNode componentNode, final String parameterName) {
-        for (final PropertyConfiguration configuration : componentNode.getProperties().values()) {
-            if (configuration == null) {
+    private Set<ParameterReferencedControllerServiceData> getReferencedControllerServiceData(
+        final ComponentNode componentNode,
+        final String parameterName,
+        final String versionedServiceId
+    ) {
+        Set<ParameterReferencedControllerServiceData> referencedControllerServiceTypes = new HashSet<>();
+
+        for (Map.Entry<PropertyDescriptor, PropertyConfiguration> propertyDescriptorAndPropertyConfiguration : componentNode.getProperties().entrySet()) {
+            PropertyDescriptor descriptor = propertyDescriptorAndPropertyConfiguration.getKey();
+            PropertyConfiguration configuration = propertyDescriptorAndPropertyConfiguration.getValue();
+
+            Class<? extends ControllerService> referencedControllerServiceType = descriptor.getControllerServiceDefinition();
+
+            if (referencedControllerServiceType == null || configuration == null) {
                 continue;
             }
 
             for (final ParameterReference reference : configuration.getParameterReferences()) {
                 if (parameterName.equals(reference.getParameterName())) {
-                    return true;
+                    referencedControllerServiceTypes.add(new ParameterReferencedControllerServiceData(
+                        parameterName,
+                        componentNode,
+                        descriptor,
+                        referencedControllerServiceType,
+                        versionedServiceId
+                    ));
                 }
             }
         }
 
-        return false;
+        return referencedControllerServiceTypes;
     }
 
 }

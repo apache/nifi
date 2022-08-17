@@ -39,6 +39,7 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterReferenceManager;
+import org.apache.nifi.parameter.ReferenceOnlyParameterContext;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterReferenceManager;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
@@ -46,15 +47,19 @@ import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.util.ReflectionUtils;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -74,6 +79,8 @@ public abstract class AbstractFlowManager implements FlowManager {
 
     private volatile ControllerServiceProvider controllerServiceProvider;
     private volatile ProcessGroup rootGroup;
+
+    private final ThreadLocal<Boolean> withParameterContextResolution = ThreadLocal.withInitial(() -> false);
 
     public AbstractFlowManager(final FlowFileEventRepository flowFileEventRepository, final ParameterContextManager parameterContextManager,
                                final FlowRegistryClient flowRegistryClient, final BooleanSupplier flowInitializedCheck) {
@@ -107,6 +114,12 @@ public abstract class AbstractFlowManager implements FlowManager {
         String identifier = procNode.getIdentifier();
         flowFileEventRepository.purgeTransferEvents(identifier);
         allProcessors.remove(identifier);
+    }
+
+    public Set<ProcessorNode> findAllProcessors(final Predicate<ProcessorNode> filter) {
+        return allProcessors.values().stream()
+            .filter(filter)
+            .collect(Collectors.toSet());
     }
 
     public Connectable findConnectable(final String id) {
@@ -268,6 +281,8 @@ public abstract class AbstractFlowManager implements FlowManager {
         for (final ParameterContext parameterContext : parameterContextManager.getParameterContexts()) {
             parameterContextManager.removeParameterContext(parameterContext.getIdentifier());
         }
+
+        LogRepositoryFactory.purge();
     }
 
     private void verifyCanPurge() {
@@ -341,7 +356,7 @@ public abstract class AbstractFlowManager implements FlowManager {
     }
 
     public ProcessorNode createProcessor(final String type, String id, final BundleCoordinate coordinate, final boolean firstTimeAdded) {
-        return createProcessor(type, id, coordinate, Collections.emptySet(), firstTimeAdded, true);
+        return createProcessor(type, id, coordinate, Collections.emptySet(), firstTimeAdded, true, null);
     }
 
     public ReportingTaskNode createReportingTask(final String type, final BundleCoordinate bundleCoordinate) {
@@ -354,7 +369,7 @@ public abstract class AbstractFlowManager implements FlowManager {
 
     @Override
     public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded) {
-        return createReportingTask(type, id, bundleCoordinate, Collections.emptySet(), firstTimeAdded, true);
+        return createReportingTask(type, id, bundleCoordinate, Collections.emptySet(), firstTimeAdded, true, null);
     }
 
     public ReportingTaskNode getReportingTaskNode(final String taskId) {
@@ -414,7 +429,8 @@ public abstract class AbstractFlowManager implements FlowManager {
     }
 
     @Override
-    public ParameterContext createParameterContext(final String id, final String name, final Map<String, Parameter> parameters) {
+    public ParameterContext createParameterContext(final String id, final String name, final Map<String, Parameter> parameters,
+                                                   final List<String> inheritedContextIds) {
         final boolean namingConflict = parameterContextManager.getParameterContexts().stream()
             .anyMatch(paramContext -> paramContext.getName().equals(name));
 
@@ -425,8 +441,74 @@ public abstract class AbstractFlowManager implements FlowManager {
         final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(this);
         final ParameterContext parameterContext = new StandardParameterContext(id, name, referenceManager, getParameterContextParent());
         parameterContext.setParameters(parameters);
+
+        if (inheritedContextIds != null && !inheritedContextIds.isEmpty()) {
+            if (!withParameterContextResolution.get()) {
+                throw new IllegalStateException("A ParameterContext with inherited ParameterContexts may only be created from within a call to AbstractFlowManager#withParameterContextResolution");
+            }
+            final List<ParameterContext> parameterContextList = new ArrayList<>();
+            for(final String inheritedContextId : inheritedContextIds) {
+                parameterContextList.add(lookupParameterContext(inheritedContextId));
+            }
+            parameterContext.setInheritedParameterContexts(parameterContextList);
+        }
+
         parameterContextManager.addParameterContext(parameterContext);
         return parameterContext;
+    }
+
+    @Override
+    public void withParameterContextResolution(final Runnable parameterContextAction) {
+        withParameterContextResolution.set(true);
+        try {
+            parameterContextAction.run();
+        } finally {
+            withParameterContextResolution.set(false);
+        }
+
+        for (final ParameterContext parameterContext : parameterContextManager.getParameterContexts()) {
+            // if a param context in the manager itself is reference-only, it means there is a reference to a param
+            // context that no longer exists
+            if (parameterContext instanceof ReferenceOnlyParameterContext) {
+                throw new IllegalStateException(String.format("A Parameter Context tries to inherit from another Parameter Context [%s] that does not exist",
+                        parameterContext.getIdentifier()));
+            }
+
+            // resolve any references nested in the actual param contexts
+            final List<ParameterContext> inheritedParamContexts = new ArrayList<>();
+            for(final ParameterContext inheritedParamContext : parameterContext.getInheritedParameterContexts()) {
+                if (inheritedParamContext instanceof ReferenceOnlyParameterContext) {
+                    inheritedParamContexts.add(parameterContextManager.getParameterContext(inheritedParamContext.getIdentifier()));
+                } else {
+                    inheritedParamContexts.add(inheritedParamContext);
+                }
+            }
+            parameterContext.setInheritedParameterContexts(inheritedParamContexts);
+        }
+
+        // if any reference-only inherited param contexts still exist, it means they couldn't be resolved
+        for (final ParameterContext parameterContext : parameterContextManager.getParameterContexts()) {
+            for(final ParameterContext inheritedParamContext : parameterContext.getInheritedParameterContexts()) {
+                if (inheritedParamContext instanceof ReferenceOnlyParameterContext) {
+                    throw new IllegalStateException(String.format("Parameter Context [%s] tries to inherit from a Parameter Context [%s] that does not exist",
+                            parameterContext.getName(), inheritedParamContext.getIdentifier()));
+                }
+            }
+        }
+    }
+
+    /**
+     * Looks up a ParameterContext by ID.  If not found, registers a ReferenceOnlyParameterContext, preventing
+     * chicken-egg scenarios where a referenced ParameterContext is not registered before the referencing one.
+     * @param id A parameter context ID
+     * @return The matching ParameterContext, or ReferenceOnlyParameterContext if not found yet
+     */
+    private ParameterContext lookupParameterContext(final String id) {
+        if (!parameterContextManager.hasParameterContext(id)) {
+            parameterContextManager.addParameterContext(new ReferenceOnlyParameterContext(id));
+        }
+
+        return parameterContextManager.getParameterContext(id);
     }
 
     protected abstract Authorizable getParameterContextParent();

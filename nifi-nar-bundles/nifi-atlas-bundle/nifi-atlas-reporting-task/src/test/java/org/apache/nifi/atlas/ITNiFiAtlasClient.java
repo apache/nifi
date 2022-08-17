@@ -23,8 +23,8 @@ import org.apache.nifi.atlas.security.AtlasAuthN;
 import org.apache.nifi.atlas.security.Basic;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +37,7 @@ public class ITNiFiAtlasClient {
     private static final Logger logger = LoggerFactory.getLogger(ITNiFiAtlasClient.class);
     private NiFiAtlasClient atlasClient;
 
-    @Before
+    @BeforeEach
     public void setup() {
         // Add your atlas server ip address into /etc/hosts as atlas.example.com
         PropertyContext propertyContext = mock(PropertyContext.class);

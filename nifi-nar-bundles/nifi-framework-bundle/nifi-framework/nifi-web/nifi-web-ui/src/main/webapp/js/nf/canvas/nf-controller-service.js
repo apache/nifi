@@ -29,10 +29,11 @@
                 'nf.Settings',
                 'nf.UniversalCapture',
                 'nf.CustomUi',
+                'nf.Verify',
                 'nf.CanvasUtils',
                 'nf.Processor'],
-            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfProcessor) {
-                return (nf.ControllerService = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfProcessor));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfVerify, nfCanvasUtils, nfProcessor) {
+                return (nf.ControllerService = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfVerify, nfCustomUi, nfCanvasUtils, nfProcessor));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ControllerService =
@@ -46,6 +47,7 @@
                 require('nf.Settings'),
                 require('nf.UniversalCapture'),
                 require('nf.CustomUi'),
+                require('nf.Verify'),
                 require('nf.CanvasUtils'),
                 require('nf.Processor')));
     } else {
@@ -59,10 +61,11 @@
             root.nf.Settings,
             root.nf.UniversalCapture,
             root.nf.CustomUi,
+            root.nf.Verify,
             root.nf.CanvasUtils,
             root.nf.Processor);
     }
-}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfProcessor) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfVerify, nfCanvasUtils, nfProcessor) {
     'use strict';
 
     var nfControllerServices, nfReportingTask;
@@ -77,6 +80,9 @@
         }
     };
 
+    // the last submitted referenced attributes
+    var referencedAttributes = null;
+
     /**
      * Determines whether the user has made any changes to the controller service configuration
      * that needs to be saved.
@@ -90,6 +96,9 @@
             return true;
         }
         if ($('#controller-service-comments').val() !== entity.component['comments']) {
+            return true;
+        }
+        if ($('#controller-service-bulletin-level-combo').combo('getSelectedOption').value !== (entity.component['bulletinLevel'] + '')) {
             return true;
         }
 
@@ -108,12 +117,14 @@
         var controllerServiceDto = {};
         controllerServiceDto['id'] = $('#controller-service-id').text();
         controllerServiceDto['name'] = $('#controller-service-name').val();
+        controllerServiceDto['bulletinLevel'] = $('#controller-service-bulletin-level-combo').combo('getSelectedOption').value;
         controllerServiceDto['comments'] = $('#controller-service-comments').val();
 
         // set the properties
         if ($.isEmptyObject(properties) === false) {
             controllerServiceDto['properties'] = properties;
         }
+        controllerServiceDto['sensitiveDynamicPropertyNames'] = $('#controller-service-properties').propertytable('getSensitiveDynamicPropertyNames');
 
         // create the controller service entity
         var controllerServiceEntity = {};
@@ -159,7 +170,10 @@
         return $.ajax({
             type: 'GET',
             url: controllerServiceEntity.uri,
-            dataType: 'json'
+            dataType: 'json',
+            data: {
+                uiOnly: true
+            }
         }).done(function (response) {
             renderControllerService(serviceTable, response);
         }).fail(nfErrorHandler.handleAjaxError);
@@ -427,7 +441,6 @@
             }
         };
 
-        var referencingComponentIds = [];
         var processors = $('<ul class="referencing-component-listing clear"></ul>');
         var services = $('<ul class="referencing-component-listing clear"></ul>');
         var tasks = $('<ul class="referencing-component-listing clear"></ul>');
@@ -439,7 +452,6 @@
                 unauthorized.append(unauthorizedReferencingComponent);
             } else {
                 var referencingComponent = referencingComponentEntity.component;
-                referencingComponentIds.push(referencingComponent.id);
 
                 if (referencingComponent.referenceType === 'Processor') {
                     var processorLink = $('<span class="referencing-component-name link"></span>').text(referencingComponent.name).on('click', function () {
@@ -457,6 +469,9 @@
 
                     // bulletin
                     var processorBulletins = $('<div class="referencing-component-bulletins"></div>').addClass(referencingComponent.id + '-bulletins');
+                    if (!nfCommon.isEmpty(referencingComponentEntity.bulletins)) {
+                        updateBulletins(referencingComponentEntity.bulletins, processorBulletins);
+                    }
 
                     // type
                     var processorType = $('<span class="referencing-component-type"></span>').text(referencingComponent.type);
@@ -517,6 +532,9 @@
 
                     // bulletin
                     var serviceBulletins = $('<div class="referencing-component-bulletins"></div>').addClass(referencingComponent.id + '-bulletins');
+                    if (!nfCommon.isEmpty(referencingComponentEntity.bulletins)) {
+                        updateBulletins(referencingComponentEntity.bulletins, serviceBulletins);
+                    }
 
                     // type
                     var serviceType = $('<span class="referencing-component-type"></span>').text(referencingComponent.type);
@@ -548,6 +566,9 @@
 
                     // bulletins
                     var reportingTaskBulletins = $('<div class="referencing-component-bulletins"></div>').addClass(referencingComponent.id + '-bulletins');
+                    if (!nfCommon.isEmpty(referencingComponentEntity.bulletins)) {
+                        updateBulletins(referencingComponentEntity.bulletins, reportingTaskBulletins);
+                    }
 
                     // type
                     var reportingTaskType = $('<span class="referencing-component-type"></span>').text(nfCommon.substringAfterLast(referencingComponent.type, '.'));
@@ -563,12 +584,6 @@
                     tasks.append(reportingTaskItem);
                 }
             }
-        });
-
-        // query for the bulletins
-        nfCanvasUtils.queryBulletins(referencingComponentIds).done(function (response) {
-            var bulletins = response.bulletinBoard.bulletins;
-            updateReferencingComponentBulletins(bulletins);
         });
 
         // create the collapsable listing for each type
@@ -600,6 +615,9 @@
         createReferenceBlock('Reporting Tasks', tasks);
         createReferenceBlock('Controller Services', services);
         createReferenceBlock('Unauthorized', unauthorized);
+
+        // now that the dom elements are in place, we can show the bulletin icons.
+        $('div.referencing-component-bulletins.has-bulletins').show();
     };
 
     /**
@@ -615,7 +633,8 @@
         var updateControllerServiceEntity = {
             'revision': nfClient.getRevision(controllerServiceEntity),
             'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
-            'state': enabled ? 'ENABLED' : 'DISABLED'
+            'state': enabled ? 'ENABLED' : 'DISABLED',
+            'uiOnly': true
         };
 
         var updated = $.ajax({
@@ -742,7 +761,8 @@
             'id': controllerServiceEntity.id,
             'state': running ? 'RUNNING' : 'STOPPED',
             'referencingComponentRevisions': referencingRevisions,
-            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+            'uiOnly': true
         };
 
         // issue the request to update the referencing components
@@ -812,7 +832,10 @@
             return $.ajax({
                 type: 'GET',
                 url: '../nifi-api/controller-services/' + encodeURIComponent(controllerServiceId),
-                dataType: 'json'
+                dataType: 'json',
+                data: {
+                    uiOnly: true
+                }
             }).fail(nfErrorHandler.handleAjaxError);
         }
     };
@@ -847,7 +870,10 @@
                 var service = $.ajax({
                     type: 'GET',
                     url: controllerServiceEntity.uri,
-                    dataType: 'json'
+                    dataType: 'json',
+                    data: {
+                        uiOnly: true
+                    }
                 });
 
                 $.when(bulletins, service).done(function (bulletinResponse, serviceResult) {
@@ -1038,7 +1064,8 @@
             'id': controllerServiceEntity.id,
             'state': enabled ? 'ENABLED' : 'DISABLED',
             'referencingComponentRevisions': referencingRevisions,
-            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+            'uiOnly': true
         };
 
         // issue the request to update the referencing components
@@ -1496,14 +1523,16 @@
      * Gets a property descriptor for the controller service currently being configured.
      *
      * @param {type} propertyName
+     * @param {type} sensitive Requested sensitive status
      */
-    var getControllerServicePropertyDescriptor = function (propertyName) {
+    var getControllerServicePropertyDescriptor = function (propertyName, sensitive) {
         var controllerServiceEntity = $('#controller-service-configuration').data('controllerServiceDetails');
         return $.ajax({
             type: 'GET',
             url: controllerServiceEntity.uri + '/descriptors',
             data: {
-                propertyName: propertyName
+                propertyName: propertyName,
+                sensitive: sensitive
             },
             dataType: 'json'
         }).fail(nfErrorHandler.handleAjaxError);
@@ -1534,6 +1563,9 @@
                     $.ajax({
                         type: 'GET',
                         url: '../nifi-api/parameter-contexts/' + encodeURIComponent(parameterContext.id),
+                        data: {
+                            includeInheritedParameters: 'true'
+                        },
                         dataType: 'json'
                     }).done(function (response) {
                         var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
@@ -1690,6 +1722,29 @@
     };
 
     /**
+     * Handles verification results.
+     */
+    var handleVerificationResults = function (verificationResults, referencedAttributeMap) {
+        // record the most recently submitted referenced attributes
+        referencedAttributes = referencedAttributeMap;
+
+        var verificationResultsContainer = $('#controller-service-properties-verification-results');
+
+        // expand the dialog to make room for the verification result
+        if (verificationResultsContainer.is(':visible') === false) {
+            // show the verification results
+            $('#controller-service-properties').css('bottom', '40%').propertytable('resetTableSize')
+            verificationResultsContainer.show();
+        }
+
+        // show borders if appropriate
+        var verificationResultsListing = $('#controller-service-properties-verification-results-listing');
+        if (verificationResultsListing.get(0).scrollHeight > Math.round(verificationResultsListing.innerHeight())) {
+            verificationResultsListing.css('border-width', '1px');
+        }
+    };
+
+    /**
      * Track the current table
      */
     var currentTable;
@@ -1761,6 +1816,14 @@
 
                         // removed the cached controller service details
                         $('#controller-service-configuration').removeData('controllerServiceDetails');
+
+                        // clean up an shown verification errors
+                        $('#controller-service-properties-verification-results').hide();
+                        $('#controller-service-properties-verification-results-listing').css('border-width', '0').empty();
+                        $('#controller-service-properties').css('bottom', '0');
+
+                        // clear most recently submitted referenced attributes
+                        referencedAttributes = null;
                     },
                     open: function () {
                         nfCommon.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
@@ -1799,6 +1862,27 @@
                     }
                 }
             });
+            
+            // initialize the bulletin combo
+            $('#controller-service-bulletin-level-combo').combo({
+                options: [{
+                    text: 'DEBUG',
+                    value: 'DEBUG'
+                }, {
+                    text: 'INFO',
+                    value: 'INFO'
+                }, {
+                    text: 'WARN',
+                    value: 'WARN'
+                }, {
+                    text: 'ERROR',
+                    value: 'ERROR'
+                }, {
+                    text: 'NONE',
+                    value: 'NONE'
+                }]
+            });
+
 
             // initialize the enable scope combo
             $('#enable-controller-service-scope').combo({
@@ -1911,7 +1995,10 @@
             var reloadService = $.ajax({
                 type: 'GET',
                 url: controllerServiceEntity.uri,
-                dataType: 'json'
+                dataType: 'json',
+                data: {
+                    uiOnly: true
+                }
             });
 
             // get the controller service history
@@ -1935,10 +2022,18 @@
 
                 // populate the controller service settings
                 nfCommon.populateField('controller-service-id', controllerService['id']);
+
                 nfCommon.populateField('controller-service-type', nfCommon.formatType(controllerService));
+                $('#controller-service-configuration').modal('setSubtitle', nfCommon.formatType(controllerService));
+
                 nfCommon.populateField('controller-service-bundle', nfCommon.formatBundle(controllerService['bundle']));
                 $('#controller-service-name').val(controllerService['name']);
                 $('#controller-service-comments').val(controllerService['comments']);
+
+                // select the appropriate bulletin level
+                $('#controller-service-bulletin-level-combo').combo('setSelectedOption', {
+                    value: controllerService['bulletinLevel']
+                });
 
                 // set the implemented apis
                 if (!nfCommon.isEmpty(controllerService['controllerServiceApis'])) {
@@ -2051,7 +2146,11 @@
                 // load the property table
                 $('#controller-service-properties')
                     .propertytable('setGroupId', controllerService.parentGroupId)
-                    .propertytable('loadProperties', controllerService.properties, controllerService.descriptors, controllerServiceHistory.propertyHistory);
+                    .propertytable('setSupportsSensitiveDynamicProperties', controllerService.supportsSensitiveDynamicProperties)
+                    .propertytable('loadProperties', controllerService.properties, controllerService.descriptors, controllerServiceHistory.propertyHistory)
+                    .propertytable('setPropertyVerificationCallback', function (proposedProperties) {
+                        nfVerify.verify(controllerService['id'], controllerServiceEntity['uri'], proposedProperties, referencedAttributes, handleVerificationResults, $('#controller-service-properties-verification-results-listing'));
+                    });
 
                 // show the details
                 controllerServiceDialog.modal('show');
@@ -2095,7 +2194,10 @@
             var reloadService = $.ajax({
                 type: 'GET',
                 url: controllerServiceEntity.uri,
-                dataType: 'json'
+                dataType: 'json',
+                data: {
+                    uiOnly: true
+                }
             });
 
             // get the controller service history
@@ -2121,8 +2223,11 @@
                 nfCommon.populateField('controller-service-id', controllerService['id']);
                 nfCommon.populateField('controller-service-type', nfCommon.formatType(controllerService));
                 nfCommon.populateField('controller-service-bundle', nfCommon.formatBundle(controllerService['bundle']));
+                nfCommon.populateField('read-only-controller-service-bulletin-level', controllerService['bulletinLevel']);
                 nfCommon.populateField('read-only-controller-service-name', controllerService['name']);
                 nfCommon.populateField('read-only-controller-service-comments', controllerService['comments']);
+
+                $('#controller-service-configuration').modal('setSubtitle', nfCommon.formatType(controllerService));
 
                 // set the implemented apis
                 if (!nfCommon.isEmpty(controllerService['controllerServiceApis'])) {
@@ -2187,6 +2292,7 @@
                 // load the property table
                 $('#controller-service-properties')
                     .propertytable('setGroupId', controllerService.parentGroupId)
+                    .propertytable('setSupportsSensitiveDynamicProperties', controllerService.supportsSensitiveDynamicProperties)
                     .propertytable('loadProperties', controllerService.properties, controllerService.descriptors, controllerServiceHistory.propertyHistory);
 
                 // show the details

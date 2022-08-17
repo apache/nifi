@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
-
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
@@ -33,6 +26,13 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 public interface ProcessScheduler {
 
@@ -224,7 +224,7 @@ public interface ProcessScheduler {
      *
      * @param taskNode to unschedule
      */
-    void unschedule(ReportingTaskNode taskNode);
+    Future<Void> unschedule(ReportingTaskNode taskNode);
 
     /**
      * Begins scheduling the given Reporting Task to run

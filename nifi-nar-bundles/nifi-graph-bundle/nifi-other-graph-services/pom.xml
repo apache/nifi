@@ -1,4 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <!-- Licensed to the Apache Software Foundation (ASF) under one or more
     contributor license agreements. See the NOTICE file distributed with this
     work for additional information regarding copyright ownership. The ASF licenses
@@ -13,20 +13,18 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-graph-bundle</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-other-graph-services</artifactId>
     <packaging>jar</packaging>
 
+    <properties>
+        <gremlin.version>3.4.4</gremlin.version>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-processor-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -47,7 +45,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -56,13 +54,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-avro-record-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -73,23 +71,43 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-json-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.opencypher.gremlin</groupId>
             <artifactId>cypher-gremlin-neo4j-driver</artifactId>
-            <version>0.9.13</version>
+            <version>1.0.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy</artifactId>
+            <classifier>indy</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-json</artifactId>
+            <classifier>indy</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-groovysh</artifactId>
+            <classifier>indy</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-jsr223</artifactId>
+            <classifier>indy</classifier>
         </dependency>
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-core</artifactId>
-            <version>3.3.5</version>
+            <version>${gremlin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-driver</artifactId>
-            <version>3.3.5</version>
+            <version>${gremlin.version}</version>
         </dependency>
     </dependencies>
 

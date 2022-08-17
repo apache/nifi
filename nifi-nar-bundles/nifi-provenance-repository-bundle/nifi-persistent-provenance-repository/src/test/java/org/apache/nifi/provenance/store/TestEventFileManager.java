@@ -17,17 +17,19 @@
 
 package org.apache.nifi.provenance.store;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(value = 5)
 public class TestEventFileManager {
 
-    @Test(timeout = 5000)
+    @Test
     public void testTwoWriteLocks() throws InterruptedException {
         final EventFileManager fileManager = new EventFileManager();
         final File f1 = new File("1.prov");
@@ -35,41 +37,35 @@ public class TestEventFileManager {
 
         final AtomicBoolean obtained = new AtomicBoolean(false);
 
-        final Thread t1 = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                fileManager.obtainWriteLock(f1);
+        final Thread t1 = new Thread(() -> {
+            fileManager.obtainWriteLock(f1);
 
-                synchronized (obtained) {
-                    obtained.set(true);
-                    obtained.notify();
-                }
-
-                try {
-                    Thread.sleep(500L);
-                } catch (InterruptedException e) {
-                }
-                fileManager.releaseWriteLock(f1);
+            synchronized (obtained) {
+                obtained.set(true);
+                obtained.notify();
             }
+
+            try {
+                Thread.sleep(500L);
+            } catch (InterruptedException e) {
+            }
+            fileManager.releaseWriteLock(f1);
         });
 
         t1.start();
 
-        final Thread t2 = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                synchronized (obtained) {
-                    while (!obtained.get()) {
-                        try {
-                            obtained.wait();
-                        } catch (InterruptedException e) {
-                        }
+        final Thread t2 = new Thread(() -> {
+            synchronized (obtained) {
+                while (!obtained.get()) {
+                    try {
+                        obtained.wait();
+                    } catch (InterruptedException e) {
                     }
                 }
-
-                fileManager.obtainWriteLock(gz);
-                fileManager.releaseWriteLock(gz);
             }
+
+            fileManager.obtainWriteLock(gz);
+            fileManager.releaseWriteLock(gz);
         });
 
         final long start = System.nanoTime();
@@ -80,7 +76,7 @@ public class TestEventFileManager {
     }
 
 
-    @Test(timeout = 5000)
+    @Test
     public void testTwoReadLocks() throws InterruptedException {
         final EventFileManager fileManager = new EventFileManager();
         final File f1 = new File("1.prov");
@@ -88,41 +84,35 @@ public class TestEventFileManager {
 
         final AtomicBoolean obtained = new AtomicBoolean(false);
 
-        final Thread t1 = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                fileManager.obtainReadLock(f1);
+        final Thread t1 = new Thread(() -> {
+            fileManager.obtainReadLock(f1);
 
-                synchronized (obtained) {
-                    obtained.set(true);
-                    obtained.notify();
-                }
-
-                try {
-                    Thread.sleep(100000L);
-                } catch (InterruptedException e) {
-                }
-                fileManager.releaseReadLock(f1);
+            synchronized (obtained) {
+                obtained.set(true);
+                obtained.notify();
             }
+
+            try {
+                Thread.sleep(100000L);
+            } catch (InterruptedException e) {
+            }
+            fileManager.releaseReadLock(f1);
         });
 
         t1.start();
 
-        final Thread t2 = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                synchronized (obtained) {
-                    while (!obtained.get()) {
-                        try {
-                            obtained.wait();
-                        } catch (InterruptedException e) {
-                        }
+        final Thread t2 = new Thread(() -> {
+            synchronized (obtained) {
+                while (!obtained.get()) {
+                    try {
+                        obtained.wait();
+                    } catch (InterruptedException e) {
                     }
                 }
-
-                fileManager.obtainReadLock(gz);
-                fileManager.releaseReadLock(gz);
             }
+
+            fileManager.obtainReadLock(gz);
+            fileManager.releaseReadLock(gz);
         });
 
         final long start = System.nanoTime();
@@ -133,7 +123,7 @@ public class TestEventFileManager {
     }
 
 
-    @Test(timeout = 5000)
+    @Test
     public void testWriteThenRead() throws InterruptedException {
         final EventFileManager fileManager = new EventFileManager();
         final File f1 = new File("1.prov");
@@ -141,41 +131,35 @@ public class TestEventFileManager {
 
         final AtomicBoolean obtained = new AtomicBoolean(false);
 
-        final Thread t1 = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                fileManager.obtainWriteLock(f1);
+        final Thread t1 = new Thread(() -> {
+            fileManager.obtainWriteLock(f1);
 
-                synchronized (obtained) {
-                    obtained.set(true);
-                    obtained.notify();
-                }
-
-                try {
-                    Thread.sleep(500L);
-                } catch (InterruptedException e) {
-                }
-                fileManager.releaseWriteLock(f1);
+            synchronized (obtained) {
+                obtained.set(true);
+                obtained.notify();
             }
+
+            try {
+                Thread.sleep(500L);
+            } catch (InterruptedException e) {
+            }
+            fileManager.releaseWriteLock(f1);
         });
 
         t1.start();
 
-        final Thread t2 = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                synchronized (obtained) {
-                    while (!obtained.get()) {
-                        try {
-                            obtained.wait();
-                        } catch (InterruptedException e) {
-                        }
+        final Thread t2 = new Thread(() -> {
+            synchronized (obtained) {
+                while (!obtained.get()) {
+                    try {
+                        obtained.wait();
+                    } catch (InterruptedException e) {
                     }
                 }
-
-                fileManager.obtainReadLock(gz);
-                fileManager.releaseReadLock(gz);
             }
+
+            fileManager.obtainReadLock(gz);
+            fileManager.releaseReadLock(gz);
         });
 
         final long start = System.nanoTime();
@@ -186,7 +170,7 @@ public class TestEventFileManager {
     }
 
 
-    @Test(timeout = 5000)
+    @Test
     public void testReadThenWrite() throws InterruptedException {
         final EventFileManager fileManager = new EventFileManager();
         final File f1 = new File("1.prov");
@@ -194,41 +178,35 @@ public class TestEventFileManager {
 
         final AtomicBoolean obtained = new AtomicBoolean(false);
 
-        final Thread t1 = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                fileManager.obtainReadLock(f1);
+        final Thread t1 = new Thread(() -> {
+            fileManager.obtainReadLock(f1);
 
-                synchronized (obtained) {
-                    obtained.set(true);
-                    obtained.notify();
-                }
-
-                try {
-                    Thread.sleep(500L);
-                } catch (InterruptedException e) {
-                }
-                fileManager.releaseReadLock(f1);
+            synchronized (obtained) {
+                obtained.set(true);
+                obtained.notify();
             }
+
+            try {
+                Thread.sleep(500L);
+            } catch (InterruptedException e) {
+            }
+            fileManager.releaseReadLock(f1);
         });
 
         t1.start();
 
-        final Thread t2 = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                synchronized (obtained) {
-                    while (!obtained.get()) {
-                        try {
-                            obtained.wait();
-                        } catch (InterruptedException e) {
-                        }
+        final Thread t2 = new Thread(() -> {
+            synchronized (obtained) {
+                while (!obtained.get()) {
+                    try {
+                        obtained.wait();
+                    } catch (InterruptedException e) {
                     }
                 }
-
-                fileManager.obtainWriteLock(gz);
-                fileManager.releaseWriteLock(gz);
             }
+
+            fileManager.obtainWriteLock(gz);
+            fileManager.releaseWriteLock(gz);
         });
 
         final long start = System.nanoTime();

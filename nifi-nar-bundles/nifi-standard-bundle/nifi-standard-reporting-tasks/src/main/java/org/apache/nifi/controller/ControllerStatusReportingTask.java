@@ -119,7 +119,7 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
                 "Flow Files Out", "Bytes Read", "Bytes Written", "Tasks", "Proc Time");
         processorBorderLine = createLine(processorHeader);
 
-        counterHeader = String.format(COUNTER_LINE_FORMAT, "Context Context", "Counter Name", "Counter Value");
+        counterHeader = String.format(COUNTER_LINE_FORMAT, "Counter Context", "Counter Name", "Counter Value");
         counterBorderLine = createLine(counterHeader);
     }
 
@@ -204,29 +204,35 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
         for (final ProcessorStatus processorStatus : processorStatuses) {
             final Map<String, Long> counters = processorStatus.getCounters();
 
-            for (final Map.Entry<String, Long> entry : counters.entrySet()) {
-                final String counterName = entry.getKey();
-                final Long counterValue = entry.getValue() / divisor;
+            if (counters != null && !counters.isEmpty()){
+                for (final Map.Entry<String, Long> entry : counters.entrySet()) {
+                    final String counterName = entry.getKey();
+                    final Long counterValue = entry.getValue() / divisor;
 
-                final String counterId = processorStatus.getId() + "_" + counterName;
-                final Long lastValue = lastCounterValues.getOrDefault(counterId, 0L);
+                    final String counterId = processorStatus.getId() + "_" + counterName;
+                    final Long lastValue = lastCounterValues.getOrDefault(counterId, 0L);
 
-                lastCounterValues.put(counterId, counterValue);
+                    lastCounterValues.put(counterId, counterValue);
 
-                if (showDeltas) {
-                    final String diff = toDiff(lastValue, counterValue);
+                    if (showDeltas) {
+                        final String diff = toDiff(lastValue, counterValue);
 
-                    builder.append(String.format(COUNTER_LINE_FORMAT,
-                        processorStatus.getName() + "(" + processorStatus.getId() + ")",
-                        counterName,
-                        counterValue + diff));
-                } else {
-                    builder.append(String.format(COUNTER_LINE_FORMAT,
-                        processorStatus.getName() + "(" + processorStatus.getId() + ")",
-                        counterName,
-                        counterValue));
+                        builder.append(String.format(COUNTER_LINE_FORMAT,
+                                processorStatus.getName() + "(" + processorStatus.getId() + ")",
+                                counterName,
+                                counterValue + diff));
+                    } else {
+                        builder.append(String.format(COUNTER_LINE_FORMAT,
+                                processorStatus.getName() + "(" + processorStatus.getId() + ")",
+                                counterName,
+                                counterValue));
+                    }
                 }
             }
+        }
+
+        for (final ProcessGroupStatus childGroupStatus : status.getProcessGroupStatus()) {
+            printCounterStatus(childGroupStatus, builder, showDeltas, divisor);
         }
     }
 

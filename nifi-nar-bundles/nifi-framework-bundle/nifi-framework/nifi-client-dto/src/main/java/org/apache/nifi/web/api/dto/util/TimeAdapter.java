@@ -37,23 +37,29 @@ public class TimeAdapter extends XmlAdapter<String, Date> {
     private static final ZoneId ZONE_ID = TimeZone.getDefault().toZoneId();
 
     @Override
-    public String marshal(Date date) throws Exception {
+    public String marshal(Date date) {
         final DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DEFAULT_TIME_FORMAT, Locale.US);
         final ZonedDateTime localDateTime = ZonedDateTime.ofInstant(date.toInstant(), ZONE_ID);
         return formatter.format(localDateTime);
     }
 
+
+    private final ParseDefaultingDateTimeFormatter formatter = new ParseDefaultingDateTimeFormatter(
+        timestamp -> String.format("%s%s%s", timestamp.getYear(), timestamp.getMonthValue(), timestamp.getDayOfMonth()),
+        timestamp -> new DateTimeFormatterBuilder().appendPattern(DEFAULT_TIME_FORMAT)
+            .parseDefaulting(ChronoField.YEAR, timestamp.getYear())
+            .parseDefaulting(ChronoField.MONTH_OF_YEAR, timestamp.getMonthValue())
+            .parseDefaulting(ChronoField.DAY_OF_MONTH, timestamp.getDayOfMonth())
+            .parseDefaulting(ChronoField.MILLI_OF_SECOND, 0)
+            .toFormatter(Locale.US));
+
+
     @Override
-    public Date unmarshal(String date) throws Exception {
-        final LocalDateTime now = LocalDateTime.now();
-        final DateTimeFormatter parser = new DateTimeFormatterBuilder().appendPattern(DEFAULT_TIME_FORMAT)
-                .parseDefaulting(ChronoField.YEAR, now.getYear())
-                .parseDefaulting(ChronoField.MONTH_OF_YEAR, now.getMonthValue())
-                .parseDefaulting(ChronoField.DAY_OF_MONTH, now.getDayOfMonth())
-                .parseDefaulting(ChronoField.MILLI_OF_SECOND, 0)
-                .toFormatter(Locale.US);
+    public Date unmarshal(String date) {
+        final DateTimeFormatter parser = formatter.get();
         final LocalDateTime parsedDateTime = LocalDateTime.parse(date, parser);
+
+        final LocalDateTime now = LocalDateTime.now();
         return Date.from(parsedDateTime.toInstant(ZONE_ID.getRules().getOffset(now)));
     }
-
 }

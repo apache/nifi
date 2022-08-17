@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.influxdb;
 
-import static org.junit.Assert.assertEquals;
-
 import java.io.EOFException;
 import java.net.SocketTimeoutException;
 import java.util.List;
@@ -28,15 +26,17 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBIOException;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestPutInfluxDB {
     private TestRunner runner;
     private PutInfluxDB mockPutInfluxDB;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         mockPutInfluxDB = new PutInfluxDB() {
             @Override
@@ -61,7 +61,7 @@ public class TestPutInfluxDB {
         runner.assertValid();
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         runner = null;
     }

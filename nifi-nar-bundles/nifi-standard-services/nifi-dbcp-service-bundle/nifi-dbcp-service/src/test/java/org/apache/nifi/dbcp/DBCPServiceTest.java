@@ -16,183 +16,219 @@
  */
 package org.apache.nifi.dbcp;
 
-import org.apache.derby.drda.NetworkServerControl;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.kerberos.MockKerberosCredentialsService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.h2.tools.Server;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
+
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.net.InetAddress;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
+import java.nio.file.Paths;
 import java.sql.Connection;
-import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DBCPServiceTest {
+    private static final String SERVICE_ID = DBCPConnectionPool.class.getName();
 
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder(new File("target"));
+    private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
 
-    private String dbLocation;
+    private static final String DERBY_SHUTDOWN_STATE = "XJ015";
 
-    @BeforeClass
-    public static void setup() {
-        System.setProperty("derby.stream.error.file", "target/derby.log");
+    private TestRunner runner;
+
+    private File databaseDirectory;
+
+    private DBCPConnectionPool service;
+
+    @BeforeAll
+    public static void setDerbyLog() {
+        final File derbyLog = new File(getSystemTemporaryDirectory(), "derby.log");
+        derbyLog.deleteOnExit();
+        System.setProperty(DERBY_LOG_PROPERTY, derbyLog.getAbsolutePath());
     }
 
-    @Before
-    public void before() throws IOException {
-        this.dbLocation = new File(tempFolder.getRoot(), "db").getPath();
+    @AfterAll
+    public static void clearDerbyLog() {
+        System.clearProperty(DERBY_LOG_PROPERTY);
     }
 
-    /**
-     * Missing property values.
-     */
+    @BeforeEach
+    public void setService() throws InitializationException {
+        databaseDirectory = getEmptyDirectory();
+
+        service = new DBCPConnectionPool();
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        runner.addControllerService(SERVICE_ID, service);
+
+        final String url = String.format("jdbc:derby:%s;create=true", databaseDirectory);
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, url);
+        runner.setProperty(service, DBCPConnectionPool.DB_USER, String.class.getSimpleName());
+        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, String.class.getName());
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+    }
+
+    @AfterEach
+    public void shutdown() throws IOException {
+        if (databaseDirectory.exists()) {
+            final SQLException exception = assertThrows(SQLException.class, () -> DriverManager.getConnection("jdbc:derby:;shutdown=true"));
+            assertEquals(DERBY_SHUTDOWN_STATE, exception.getSQLState());
+            FileUtils.deleteFile(databaseDirectory, true);
+        }
+    }
+
     @Test
-    public void testMissingPropertyValues() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPConnectionPool service = new DBCPConnectionPool();
-        final Map<String, String> properties = new HashMap<String, String>();
-        runner.addControllerService("test-bad1", service, properties);
+    public void testCustomValidateOfKerberosProperties() throws InitializationException {
+        // direct principal + password and no kerberos services is valid
+        runner.setProperty(service, DBCPConnectionPool.KERBEROS_PRINCIPAL, "foo@FOO.COM");
+        runner.setProperty(service, DBCPConnectionPool.KERBEROS_PASSWORD, "fooPassword");
+        runner.assertValid(service);
+
+        // direct principal + password with kerberos credential service is invalid
+        final KerberosCredentialsService kerberosCredentialsService = enabledKerberosCredentialsService(runner);
+        runner.setProperty(service, DBCPConnectionPool.KERBEROS_CREDENTIALS_SERVICE, kerberosCredentialsService.getIdentifier());
+        runner.assertNotValid(service);
+
+        // kerberos credential service by itself is valid
+        runner.removeProperty(service, DBCPConnectionPool.KERBEROS_PRINCIPAL);
+        runner.removeProperty(service, DBCPConnectionPool.KERBEROS_PASSWORD);
+        runner.assertValid(service);
+
+        // kerberos credential service with kerberos user service is invalid
+        final KerberosUserService kerberosUserService = enableKerberosUserService(runner);
+        runner.setProperty(service, DBCPConnectionPool.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
+        runner.assertNotValid(service);
+
+        // kerberos user service by itself is valid
+        runner.removeProperty(service, DBCPConnectionPool.KERBEROS_CREDENTIALS_SERVICE);
+        runner.assertValid(service);
+
+        // kerberos user service with direct principal + password is invalid
+        runner.setProperty(service, DBCPConnectionPool.KERBEROS_PRINCIPAL, "foo@FOO.COM");
+        runner.setProperty(service, DBCPConnectionPool.KERBEROS_PASSWORD, "fooPassword");
         runner.assertNotValid(service);
     }
 
     @Test
-    public void testDynamicProperties() throws InitializationException, SQLException {
+    public void testNotValidWithNegativeMinIdleProperty() {
+        runner.setProperty(service, DBCPConnectionPool.MIN_IDLE, "-1");
+        runner.assertNotValid(service);
+    }
+
+    @Test
+    public void testGetConnectionDynamicProperty() throws SQLException {
         assertConnectionNotNullDynamicProperty("create", "true");
     }
 
     @Test
-    public void testExpressionLanguageDynamicProperties() throws InitializationException, SQLException {
+    public void testGetConnectionDynamicPropertyExpressionLanguageSupported() throws SQLException {
         assertConnectionNotNullDynamicProperty("create", "${literal(1):gt(0)}");
     }
 
     @Test
-    public void testSensitiveDynamicProperties() throws InitializationException, SQLException {
+    public void testGetConnectionDynamicPropertySensitivePrefixSupported() throws SQLException {
         assertConnectionNotNullDynamicProperty("SENSITIVE.create", "true");
     }
 
-    private void assertConnectionNotNullDynamicProperty(final String propertyName, final String propertyValue) throws InitializationException, SQLException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPConnectionPool service = new DBCPConnectionPool();
-        runner.addControllerService(DBCPConnectionPool.class.getSimpleName(), service);
-
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + dbLocation);
-        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
-        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
-        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
-        runner.setProperty(service, propertyName, propertyValue);
-
+    @Test
+    public void testGetConnectionExecuteStatements() throws SQLException {
         runner.enableControllerService(service);
         runner.assertValid(service);
 
         try (final Connection connection = service.getConnection()) {
             assertNotNull(connection);
+
+            try (final Statement st = connection.createStatement()) {
+                st.executeUpdate("create table restaurants(id integer, name varchar(20), city varchar(50))");
+
+                st.executeUpdate("insert into restaurants values (1, 'Irifunes', 'San Mateo')");
+                st.executeUpdate("insert into restaurants values (2, 'Estradas', 'Daly City')");
+                st.executeUpdate("insert into restaurants values (3, 'Prime Rib House', 'San Francisco')");
+
+                try (final ResultSet resultSet = st.executeQuery("select count(*) AS total_rows from restaurants")) {
+                    assertTrue(resultSet.next(), "Result Set Row not found");
+                    final int rows = resultSet.getInt(1);
+                    assertEquals(3, rows);
+                }
+            }
         }
     }
 
-    /**
-     * Max wait set to -1
-     */
     @Test
-    public void testMaxWait() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPConnectionPool service = new DBCPConnectionPool();
-        runner.addControllerService("test-good1", service);
+    public void testGetConnectionKerberosLoginException() throws InitializationException {
+        final KerberosCredentialsService kerberosCredentialsService = new MockKerberosCredentialsService();
+        final String kerberosServiceId = "kcs";
+        runner.addControllerService(kerberosServiceId, kerberosCredentialsService);
+        runner.setProperty(kerberosCredentialsService, MockKerberosCredentialsService.PRINCIPAL, "bad@PRINCIPAL.COM");
+        runner.setProperty(kerberosCredentialsService, MockKerberosCredentialsService.KEYTAB, "src/test/resources/fake.keytab");
+        runner.enableControllerService(kerberosCredentialsService);
 
-        // set embedded Derby database connection url
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + dbLocation + ";create=true");
-        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
-        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
-        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
-        runner.setProperty(service, DBCPConnectionPool.MAX_WAIT_TIME, "-1");
+        // set fake Derby database connection url
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby://localhost:1527/NoDB");
+        // Use the client driver here rather than the embedded one, as it will generate a ConnectException for the test
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.ClientDriver");
+        runner.setProperty(service, DBCPConnectionPool.KERBEROS_CREDENTIALS_SERVICE, kerberosServiceId);
 
+        try {
+            runner.enableControllerService(service);
+        } catch (AssertionError ae) {
+            // Ignore, this happens because it tries to do the initial Kerberos login
+        }
+
+        runner.assertValid(service);
+        assertThrows(ProcessException.class, service::getConnection);
+    }
+
+    @Test
+    public void testGetConnection() throws SQLException {
+        runner.setProperty(service, DBCPConnectionPool.MAX_TOTAL_CONNECTIONS, "2");
         runner.enableControllerService(service);
         runner.assertValid(service);
+
+        try (final Connection connection = service.getConnection()) {
+            assertNotNull(connection, "First Connection not found");
+        }
+        try (final Connection connection = service.getConnection()) {
+            assertNotNull(connection, "Second Connection not found");
+        }
     }
 
-    /**
-     * Checks validity of idle limit and time settings including a default
-     */
     @Test
-    public void testIdleConnectionsSettings() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPConnectionPool service = new DBCPConnectionPool();
-        runner.addControllerService("test-good1", service);
-
-        // set embedded Derby database connection url
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + dbLocation + ";create=true");
-        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
-        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
-        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
-        runner.setProperty(service, DBCPConnectionPool.MAX_WAIT_TIME, "-1");
-        runner.setProperty(service, DBCPConnectionPool.MAX_IDLE, "2");
-        runner.setProperty(service, DBCPConnectionPool.MAX_CONN_LIFETIME, "1 secs");
-        runner.setProperty(service, DBCPConnectionPool.EVICTION_RUN_PERIOD, "1 secs");
-        runner.setProperty(service, DBCPConnectionPool.MIN_EVICTABLE_IDLE_TIME, "1 secs");
-        runner.setProperty(service, DBCPConnectionPool.SOFT_MIN_EVICTABLE_IDLE_TIME, "1 secs");
-
+    public void testGetConnectionMaxTotalConnectionsExceeded() {
+        runner.setProperty(service, DBCPConnectionPool.MAX_TOTAL_CONNECTIONS, "1");
+        runner.setProperty(service, DBCPConnectionPool.MAX_WAIT_TIME, "1 ms");
         runner.enableControllerService(service);
         runner.assertValid(service);
+
+        final Connection connection = service.getConnection();
+        assertNotNull(connection);
+        assertThrows(ProcessException.class, service::getConnection);
     }
 
     @Test
-    public void testMinIdleCannotBeNegative() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPConnectionPool service = new DBCPConnectionPool();
-        runner.addControllerService("test-good1", service);
-
-        // set embedded Derby database connection url
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + dbLocation + ";create=true");
-        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
-        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
-        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
-        runner.setProperty(service, DBCPConnectionPool.MAX_WAIT_TIME, "-1");
-        runner.setProperty(service, DBCPConnectionPool.MIN_IDLE, "-1");
-
-        runner.assertNotValid(service);
-    }
-
-    /**
-     * Checks to ensure that settings have been passed down into the DBCP
-     */
-    @Test
-    public void testIdleSettingsAreSet() throws InitializationException, SQLException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPConnectionPool service = new DBCPConnectionPool();
-        runner.addControllerService("test-good1", service);
-
-        // set embedded Derby database connection url
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + dbLocation + ";create=true");
-        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
-        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
-        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+    public void testGetDataSourceProperties() throws SQLException {
         runner.setProperty(service, DBCPConnectionPool.MAX_WAIT_TIME, "-1");
         runner.setProperty(service, DBCPConnectionPool.MAX_IDLE, "6");
         runner.setProperty(service, DBCPConnectionPool.MIN_IDLE, "4");
@@ -203,30 +239,18 @@ public class DBCPServiceTest {
 
         runner.enableControllerService(service);
 
-        Assert.assertEquals(6, service.getDataSource().getMaxIdle());
-        Assert.assertEquals(4, service.getDataSource().getMinIdle());
-        Assert.assertEquals(1000, service.getDataSource().getMaxConnLifetimeMillis());
-        Assert.assertEquals(1000, service.getDataSource().getTimeBetweenEvictionRunsMillis());
-        Assert.assertEquals(1000, service.getDataSource().getMinEvictableIdleTimeMillis());
-        Assert.assertEquals(1000, service.getDataSource().getSoftMinEvictableIdleTimeMillis());
+        assertEquals(6, service.getDataSource().getMaxIdle());
+        assertEquals(4, service.getDataSource().getMinIdle());
+        assertEquals(1000, service.getDataSource().getMaxConnLifetimeMillis());
+        assertEquals(1000, service.getDataSource().getTimeBetweenEvictionRunsMillis());
+        assertEquals(1000, service.getDataSource().getMinEvictableIdleTimeMillis());
+        assertEquals(1000, service.getDataSource().getSoftMinEvictableIdleTimeMillis());
 
         service.getDataSource().close();
     }
 
-    /**
-     * Creates a few connections and step closes them to see what happens
-     */
     @Test
-    public void testIdle() throws InitializationException, SQLException, InterruptedException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPConnectionPool service = new DBCPConnectionPool();
-        runner.addControllerService("test-good1", service);
-
-        // set embedded Derby database connection url
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + dbLocation + ";create=true");
-        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
-        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
-        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+    public void testGetDataSourceIdleProperties() throws SQLException {
         runner.setProperty(service, DBCPConnectionPool.MAX_WAIT_TIME, "${max.wait.time}");
         runner.setProperty(service, DBCPConnectionPool.MAX_TOTAL_CONNECTIONS, "${max.total.connections}");
         runner.setProperty(service, DBCPConnectionPool.MAX_IDLE, "${max.idle}");
@@ -252,452 +276,67 @@ public class DBCPServiceTest {
             connections.add(service.getConnection());
         }
 
-        Assert.assertEquals(6, service.getDataSource().getNumActive());
+        assertEquals(6, service.getDataSource().getNumActive());
 
         connections.get(0).close();
-        Assert.assertEquals(5, service.getDataSource().getNumActive());
-        Assert.assertEquals(1, service.getDataSource().getNumIdle());
+        assertEquals(5, service.getDataSource().getNumActive());
+        assertEquals(1, service.getDataSource().getNumIdle());
 
         connections.get(1).close();
         connections.get(2).close();
         connections.get(3).close();
         //now at max idle
-        Assert.assertEquals(2, service.getDataSource().getNumActive());
-        Assert.assertEquals(4, service.getDataSource().getNumIdle());
+        assertEquals(2, service.getDataSource().getNumActive());
+        assertEquals(4, service.getDataSource().getNumIdle());
 
         //now a connection should get closed for real so that numIdle does not exceed maxIdle
         connections.get(4).close();
-        Assert.assertEquals(4, service.getDataSource().getNumIdle());
-        Assert.assertEquals(1, service.getDataSource().getNumActive());
+        assertEquals(4, service.getDataSource().getNumIdle());
+        assertEquals(1, service.getDataSource().getNumActive());
 
         connections.get(5).close();
-        Assert.assertEquals(4, service.getDataSource().getNumIdle());
-        Assert.assertEquals(0, service.getDataSource().getNumActive());
+        assertEquals(4, service.getDataSource().getNumIdle());
+        assertEquals(0, service.getDataSource().getNumActive());
 
         service.getDataSource().close();
     }
 
-    /**
-     * Test database connection using Derby. Connect, create table, insert, select, drop table.
-     *
-     */
-    @Test
-    public void testCreateInsertSelect() throws InitializationException, SQLException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPConnectionPool service = new DBCPConnectionPool();
-        runner.addControllerService("test-good1", service);
-
-        // set embedded Derby database connection url
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + dbLocation + ";create=true");
-        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
-        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
-        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+    private void assertConnectionNotNullDynamicProperty(final String propertyName, final String propertyValue) throws SQLException {
+        runner.setProperty(service, propertyName, propertyValue);
 
         runner.enableControllerService(service);
-
         runner.assertValid(service);
-        final DBCPService dbcpService = (DBCPService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-good1");
-        Assert.assertNotNull(dbcpService);
-        final Connection connection = dbcpService.getConnection();
-        Assert.assertNotNull(connection);
 
-        createInsertSelectDrop(connection);
-
-        connection.close(); // return to pool
-    }
-
-    /**
-     * NB!!!! Prerequisite: file should be present in /var/tmp/mariadb-java-client-1.1.7.jar Prerequisite: access to running MariaDb database server
-     *
-     * Test database connection using external JDBC jar located by URL. Connect, create table, insert, select, drop table.
-     *
-     */
-    @Ignore
-    @Test
-    public void testExternalJDBCDriverUsage() throws InitializationException, SQLException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPConnectionPool service = new DBCPConnectionPool();
-        runner.addControllerService("test-external-jar", service);
-
-        // set MariaDB database connection url
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:mariadb://localhost:3306/" + "testdb");
-        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.mariadb.jdbc.Driver");
-        runner.setProperty(service, DBCPConnectionPool.DB_DRIVER_LOCATION, "file:///var/tmp/mariadb-java-client-1.1.7.jar");
-
-        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
-        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
-
-        runner.enableControllerService(service);
-
-        runner.assertValid(service);
-        final DBCPService dbcpService = (DBCPService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-external-jar");
-        Assert.assertNotNull(dbcpService);
-        final Connection connection = dbcpService.getConnection();
-        Assert.assertNotNull(connection);
-
-        createInsertSelectDrop(connection);
-
-        connection.close(); // return to pool
-    }
-
-    /**
-     * Test that we relogin to Kerberos if a ConnectException occurs during getConnection().
-     */
-    @Test(expected = ProcessException.class)
-    public void testConnectExceptionCausesKerberosRelogin() throws InitializationException, SQLException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPConnectionPool service = new DBCPConnectionPool();
-        runner.addControllerService("test-good1", service);
-
-        final KerberosCredentialsService kerberosCredentialsService = new MockKerberosCredentialsService();
-        runner.addControllerService("kcs", kerberosCredentialsService);
-        runner.setProperty(kerberosCredentialsService, MockKerberosCredentialsService.PRINCIPAL, "bad@PRINCIPAL.COM");
-        runner.setProperty(kerberosCredentialsService, MockKerberosCredentialsService.KEYTAB, "src/test/resources/fake.keytab");
-        runner.enableControllerService(kerberosCredentialsService);
-
-        // set fake Derby database connection url
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby://localhost:1527/NoDB");
-        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
-        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
-        // Use the client driver here rather than the embedded one, as it will generate a ConnectException for the test
-        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.ClientDriver");
-        runner.setProperty(service, DBCPConnectionPool.KERBEROS_CREDENTIALS_SERVICE, "kcs");
-
-        try {
-            runner.enableControllerService(service);
-        } catch (AssertionError ae) {
-            // Ignore, this happens because it tries to do the initial Kerberos login
-        }
-
-        runner.assertValid(service);
-        final DBCPService dbcpService = (DBCPService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-good1");
-        Assert.assertNotNull(dbcpService);
-
-        dbcpService.getConnection();
-    }
-
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
-
-    /**
-     * Test get database connection using Derby. Get many times, after a while pool should not contain any available connection and getConnection should fail.
-     */
-    @Test
-    public void testExhaustPool() throws InitializationException, SQLException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPConnectionPool service = new DBCPConnectionPool();
-        runner.addControllerService("test-exhaust", service);
-
-        // set embedded Derby database connection url
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + dbLocation + ";create=true");
-        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
-        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
-
-        runner.enableControllerService(service);
-
-        runner.assertValid(service);
-        final DBCPService dbcpService = (DBCPService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-exhaust");
-        Assert.assertNotNull(dbcpService);
-
-        exception.expect(ProcessException.class);
-        exception.expectMessage("Cannot get a connection, pool error Timeout waiting for idle object");
-        for (int i = 0; i < 100; i++) {
-            final Connection connection = dbcpService.getConnection();
-            Assert.assertNotNull(connection);
+        try (final Connection connection = service.getConnection()) {
+            assertNotNull(connection);
         }
     }
 
-    /**
-     * Test Drop invalid connections and create new ones.
-     * Default behavior, invalid connections in pool.
-     */
-    @Test
-    public void testDropInvalidConnectionsH2_Default() throws Exception {
-
-        // start the H2 TCP Server
-        String[] args = new String[0];
-        Server server = Server.createTcpServer(args).start();
-
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPConnectionPool service = new DBCPConnectionPool();
-        runner.addControllerService("test-dropcreate", service);
-
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL,
-            "jdbc:h2:tcp://localhost:" + server.getPort() + "/./" + dbLocation);
-        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.h2.Driver");
-        runner.enableControllerService(service);
-
-        runner.assertValid(service);
-        final DBCPService dbcpService = (DBCPService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-dropcreate");
-        Assert.assertNotNull(dbcpService);
-
-        // get and verify connections
-        for (int i = 0; i < 10; i++) {
-            final Connection connection = dbcpService.getConnection();
-            Assert.assertNotNull(connection);
-            assertValidConnectionH2(connection, i);
-            connection.close();
-        }
-
-        // restart server, connections in pool should became invalid
-        server.stop();
-        server.shutdown();
-        server.start();
-
-        for (int i = 0; i < 10; i++) {
-            final Connection connection = dbcpService.getConnection();
-            Assert.assertNotNull(connection);
-            assertValidConnectionH2(connection, i);
-            connection.close();
-        }
-
-        server.shutdown();
+    private KerberosUserService enableKerberosUserService(final TestRunner runner) throws InitializationException {
+        final KerberosUserService kerberosUserService = mock(KerberosUserService.class);
+        when(kerberosUserService.getIdentifier()).thenReturn("userService1");
+        runner.addControllerService(kerberosUserService.getIdentifier(), kerberosUserService);
+        runner.enableControllerService(kerberosUserService);
+        return kerberosUserService;
     }
 
-    /**
-     * Test Drop invalid connections and create new ones.
-     * Better behavior, invalid connections are dropped and valid created.
-     */
-    @Test
-    public void testDropInvalidConnectionsH2_Better() throws Exception {
+    private KerberosCredentialsService enabledKerberosCredentialsService(final TestRunner runner) throws InitializationException {
+        final KerberosCredentialsService credentialsService = mock(KerberosCredentialsService.class);
+        when(credentialsService.getIdentifier()).thenReturn("credsService1");
+        when(credentialsService.getPrincipal()).thenReturn("principal1");
+        when(credentialsService.getKeytab()).thenReturn("keytab1");
 
-        // start the H2 TCP Server
-        String[] args = new String[0];
-        Server server = Server.createTcpServer(args).start();
-
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPConnectionPool service = new DBCPConnectionPool();
-        runner.addControllerService("test-dropcreate", service);
-
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL,
-            "jdbc:h2:tcp://localhost:" + server.getPort() + "/./" + dbLocation);
-        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.h2.Driver");
-        runner.setProperty(service, DBCPConnectionPool.VALIDATION_QUERY, "SELECT 5");
-        runner.enableControllerService(service);
-
-        runner.assertValid(service);
-        final DBCPService dbcpService = (DBCPService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-dropcreate");
-        Assert.assertNotNull(dbcpService);
-
-        // get and verify connections
-        for (int i = 0; i < 10; i++) {
-            final Connection connection = dbcpService.getConnection();
-            Assert.assertNotNull(connection);
-            assertValidConnectionH2(connection, i);
-            connection.close();
-        }
-
-        // restart server, connections in pool should became invalid
-        server.stop();
-        server.shutdown();
-        server.start();
-
-        Thread.sleep(2500L); //allow time to pass for the server to startup.
-
-        // Note!! We should not get something like:
-        // org.h2.jdbc.JdbcSQLException: Connection is broken: "session closed" [90067-192]
-        // Pool should remove invalid connections and create new valid connections.
-        for (int i = 0; i < 10; i++) {
-            final Connection connection = dbcpService.getConnection();
-            Assert.assertNotNull(connection);
-            assertValidConnectionH2(connection, i);
-            connection.close();
-        }
-
-        server.shutdown();
+        runner.addControllerService(credentialsService.getIdentifier(), credentialsService);
+        runner.enableControllerService(credentialsService);
+        return credentialsService;
     }
 
-    private void assertValidConnectionH2(Connection connection, int num) throws SQLException {
-        try (Statement statement = connection.createStatement()) {
-            ResultSet rs = statement.executeQuery("SELECT " + num);
-            assertTrue(rs.next());
-            int value = rs.getInt(1);
-            assertEquals(num, value);
-            assertTrue(connection.isValid(20));
-        }
+    private File getEmptyDirectory() {
+        final String randomDirectory = String.format("%s-%s", getClass().getSimpleName(), UUID.randomUUID());
+        return Paths.get(getSystemTemporaryDirectory(), randomDirectory).toFile();
     }
 
-    /**
-     * Note!! Derby keeps something open even after server shutdown.
-     * So it's difficult to get invalid connections.
-     *
-     * Test Drop invalid connections and create new ones.
-     */
-    @Ignore
-    @Test
-    public void testDropInvalidConnectionsDerby() throws Exception {
-
-        // Start Derby server.
-        System.setProperty("derby.drda.startNetworkServer", "true");
-        System.setProperty("derby.system.home", dbLocation);
-        NetworkServerControl serverControl = new NetworkServerControl(InetAddress.getLocalHost(),1527);
-        serverControl.start(new PrintWriter(System.out, true));
-
-        // create sample database
-        Class.forName("org.apache.derby.jdbc.ClientDriver");
-        Connection conn = DriverManager.getConnection("jdbc:derby://127.0.0.1:1527/sample;create=true");
-        conn.close();
-
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPConnectionPool service = new DBCPConnectionPool();
-        runner.addControllerService("test-dropcreate", service);
-
-        // set Derby database props
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + "//127.0.0.1:1527/sample");
-        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
-        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.ClientDriver");
-
-        runner.enableControllerService(service);
-
-        runner.assertValid(service);
-        final DBCPService dbcpService = (DBCPService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-dropcreate");
-        Assert.assertNotNull(dbcpService);
-
-        for (int i = 0; i < 10; i++) {
-            final Connection connection = dbcpService.getConnection();
-            Assert.assertNotNull(connection);
-            assertValidConnectionDerby(connection, i);
-            connection.close();
-        }
-
-        serverControl.shutdown();
-
-        Thread.sleep(2000);
-
-        for (int i = 0; i < 10; i++) {
-            final Connection connection = dbcpService.getConnection();
-            Assert.assertNotNull(connection);
-            assertValidConnectionDerby(connection, i);
-            connection.close();
-        }
-
+    private static String getSystemTemporaryDirectory() {
+        return System.getProperty("java.io.tmpdir");
     }
-
-
-    private void assertValidConnectionDerby(Connection connection, int num) throws SQLException {
-        try (Statement statement = connection.createStatement()) {
-            ResultSet rs = statement.executeQuery("SELECT " + num + " FROM SYSIBM.SYSDUMMY1");
-            assertTrue(rs.next());
-            int value = rs.getInt(1);
-            assertEquals(num, value);
-            assertTrue(connection.isValid(20));
-        }
-    }
-
-    /**
-     * Test get database connection using Derby. Get many times, release immediately and getConnection should not fail.
-     */
-    @Test
-    public void testGetManyNormal() throws InitializationException, SQLException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPConnectionPool service = new DBCPConnectionPool();
-        runner.addControllerService("test-exhaust", service);
-
-        // set embedded Derby database connection url
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + dbLocation + ";create=true");
-        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
-        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
-        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
-
-        runner.enableControllerService(service);
-
-        runner.assertValid(service);
-        final DBCPService dbcpService = (DBCPService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-exhaust");
-        Assert.assertNotNull(dbcpService);
-
-        for (int i = 0; i < 1000; i++) {
-            final Connection connection = dbcpService.getConnection();
-            Assert.assertNotNull(connection);
-            connection.close(); // will return connection to pool
-        }
-    }
-
-    @Test
-    public void testDriverLoad() throws ClassNotFoundException {
-        final Class<?> clazz = Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-        assertNotNull(clazz);
-    }
-
-    /**
-     * NB!!!! Prerequisite: file should be present in /var/tmp/mariadb-java-client-1.1.7.jar
-     */
-    @Test
-    @Ignore("Intended only for local testing, not automated testing")
-    public void testURLClassLoader() throws ClassNotFoundException, MalformedURLException, SQLException, InstantiationException, IllegalAccessException {
-
-        final URL url = new URL("file:///var/tmp/mariadb-java-client-1.1.7.jar");
-        final URL[] urls = new URL[] { url };
-
-        final ClassLoader parent = Thread.currentThread().getContextClassLoader();
-        final URLClassLoader ucl = new URLClassLoader(urls, parent);
-
-        final Class<?> clazz = Class.forName("org.mariadb.jdbc.Driver", true, ucl);
-        assertNotNull(clazz);
-
-        final Driver driver = (Driver) clazz.newInstance();
-        final Driver shim = new DriverShim(driver);
-        DriverManager.registerDriver(shim);
-
-        final Driver driver2 = DriverManager.getDriver("jdbc:mariadb://localhost:3306/testdb");
-        assertNotNull(driver2);
-    }
-
-    /**
-     * NB!!!! Prerequisite: file should be present in /var/tmp/mariadb-java-client-1.1.7.jar Prerequisite: access to running MariaDb database server
-     */
-    @Test
-    @Ignore("Intended only for local testing, not automated testing")
-    public void testURLClassLoaderGetConnection() throws ClassNotFoundException, MalformedURLException, SQLException, InstantiationException, IllegalAccessException {
-
-        final URL url = new URL("file:///var/tmp/mariadb-java-client-1.1.7.jar");
-        final URL[] urls = new URL[] { url };
-
-        final ClassLoader parent = Thread.currentThread().getContextClassLoader();
-        final URLClassLoader ucl = new URLClassLoader(urls, parent);
-
-        final Class<?> clazz = Class.forName("org.mariadb.jdbc.Driver", true, ucl);
-        assertNotNull(clazz);
-
-        final Driver driver = (Driver) clazz.newInstance();
-        final Driver shim = new DriverShim(driver);
-        DriverManager.registerDriver(shim);
-
-        final Driver driver2 = DriverManager.getDriver("jdbc:mariadb://localhost:3306/testdb");
-        assertNotNull(driver2);
-
-        final Connection connection = DriverManager.getConnection("jdbc:mariadb://localhost:3306/testdb", "tester", "testerp");
-        assertNotNull(connection);
-        connection.close();
-
-        DriverManager.deregisterDriver(shim);
-    }
-
-    String createTable = "create table restaurants(id integer, name varchar(20), city varchar(50))";
-    String dropTable = "drop table restaurants";
-
-    protected void createInsertSelectDrop(Connection con) throws SQLException {
-
-        final Statement st = con.createStatement();
-
-        try {
-            st.executeUpdate(dropTable);
-        } catch (final Exception e) {
-            // table may not exist, this is not serious problem.
-        }
-
-        st.executeUpdate(createTable);
-
-        st.executeUpdate("insert into restaurants values (1, 'Irifunes', 'San Mateo')");
-        st.executeUpdate("insert into restaurants values (2, 'Estradas', 'Daly City')");
-        st.executeUpdate("insert into restaurants values (3, 'Prime Rib House', 'San Francisco')");
-
-        int nrOfRows = 0;
-        final ResultSet resultSet = st.executeQuery("select * from restaurants");
-        while (resultSet.next())
-            nrOfRows++;
-        assertEquals(3, nrOfRows);
-
-        st.close();
-    }
-
 }

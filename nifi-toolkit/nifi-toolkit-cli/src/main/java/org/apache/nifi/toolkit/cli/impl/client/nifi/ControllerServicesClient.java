@@ -19,7 +19,9 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceRunStatusEntity;
+import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.UpdateControllerServiceReferenceRequestEntity;
+import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 
 import java.io.IOException;
 
@@ -41,4 +43,12 @@ public interface ControllerServicesClient {
     ControllerServiceReferencingComponentsEntity getControllerServiceReferences(String id) throws NiFiClientException, IOException;
 
     ControllerServiceReferencingComponentsEntity updateControllerServiceReferences(UpdateControllerServiceReferenceRequestEntity referencesEntity) throws NiFiClientException, IOException;
+
+    VerifyConfigRequestEntity submitConfigVerificationRequest(VerifyConfigRequestEntity configRequestEntity) throws NiFiClientException, IOException;
+
+    VerifyConfigRequestEntity getConfigVerificationRequest(String serviceId, String verificationRequestId) throws NiFiClientException, IOException;
+
+    VerifyConfigRequestEntity deleteConfigVerificationRequest(String serviceId, String verificationRequestId) throws NiFiClientException, IOException;
+
+    PropertyDescriptorEntity getPropertyDescriptor(String serviceId, String propertyName, Boolean sensitive) throws NiFiClientException, IOException;
 }

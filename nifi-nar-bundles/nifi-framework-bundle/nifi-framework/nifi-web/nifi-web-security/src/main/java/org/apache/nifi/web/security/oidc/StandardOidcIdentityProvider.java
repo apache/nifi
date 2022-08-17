@@ -24,6 +24,7 @@ import com.nimbusds.jose.util.ResourceRetriever;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.oauth2.sdk.AuthorizationGrant;
+import com.nimbusds.oauth2.sdk.ErrorObject;
 import com.nimbusds.oauth2.sdk.ParseException;
 import com.nimbusds.oauth2.sdk.Request;
 import com.nimbusds.oauth2.sdk.Scope;
@@ -53,6 +54,20 @@ import com.nimbusds.openid.connect.sdk.token.OIDCTokens;
 import com.nimbusds.openid.connect.sdk.validators.AccessTokenValidator;
 import com.nimbusds.openid.connect.sdk.validators.IDTokenValidator;
 import com.nimbusds.openid.connect.sdk.validators.InvalidHashException;
+import net.minidev.json.JSONObject;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authentication.exception.IdentityAccessException;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.security.token.LoginAuthenticationToken;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
@@ -63,15 +78,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import net.minidev.json.JSONObject;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authentication.exception.IdentityAccessException;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.jwt.JwtService;
-import org.apache.nifi.web.security.token.LoginAuthenticationToken;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 /**
@@ -82,24 +88,22 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     private static final Logger logger = LoggerFactory.getLogger(StandardOidcIdentityProvider.class);
     private final String EMAIL_CLAIM = "email";
 
-    private NiFiProperties properties;
-    private JwtService jwtService;
+    private final NiFiProperties properties;
     private OIDCProviderMetadata oidcProviderMetadata;
     private int oidcConnectTimeout;
     private int oidcReadTimeout;
     private IDTokenValidator tokenValidator;
     private ClientID clientId;
     private Secret clientSecret;
+    private SSLContext sslContext;
 
     /**
      * Creates a new StandardOidcIdentityProvider.
      *
-     * @param jwtService jwt service
      * @param properties properties
      */
-    public StandardOidcIdentityProvider(final JwtService jwtService, final NiFiProperties properties) {
+    public StandardOidcIdentityProvider(final NiFiProperties properties) {
         this.properties = properties;
-        this.jwtService = jwtService;
     }
 
     /**
@@ -114,6 +118,11 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             return;
         }
 
+        // Set up trust store SSLContext
+        if (TruststoreStrategy.NIFI.name().equals(properties.getOidcClientTruststoreStrategy())) {
+            setSslContext();
+        }
+
         validateOIDCConfiguration();
 
         try {
@@ -124,6 +133,15 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         }
 
         validateOIDCProviderMetadata();
+    }
+
+    private void setSslContext() {
+        TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
+        try {
+            this.sslContext = SslContextFactory.createSslContext(tlsConfiguration);
+        } catch (TlsException e) {
+            throw new RuntimeException("Unable to establish an SSL context for OIDC identity provider from nifi.properties", e);
+        }
     }
 
     /**
@@ -170,7 +188,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             } else if (JWSAlgorithm.HS256.equals(preferredJwsAlgorithm) || JWSAlgorithm.HS384.equals(preferredJwsAlgorithm) || JWSAlgorithm.HS512.equals(preferredJwsAlgorithm)) {
                 tokenValidator = new IDTokenValidator(oidcProviderMetadata.getIssuer(), clientId, preferredJwsAlgorithm, clientSecret);
             } else {
-                final ResourceRetriever retriever = new DefaultResourceRetriever(oidcConnectTimeout, oidcReadTimeout);
+                final ResourceRetriever retriever = getResourceRetriever();
                 tokenValidator = new IDTokenValidator(oidcProviderMetadata.getIssuer(), clientId, preferredJwsAlgorithm, oidcProviderMetadata.getJWKSetURI().toURL(), retriever);
             }
         } catch (final Exception e) {
@@ -249,9 +267,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     private OIDCProviderMetadata retrieveOidcProviderMetadata(final String discoveryUri) throws IOException, ParseException {
         final URL url = new URL(discoveryUri);
         final HTTPRequest httpRequest = new HTTPRequest(HTTPRequest.Method.GET, url);
-        httpRequest.setConnectTimeout(oidcConnectTimeout);
-        httpRequest.setReadTimeout(oidcReadTimeout);
-
+        setHttpRequestProperties(httpRequest);
         final HTTPResponse httpResponse = httpRequest.send();
 
         if (httpResponse.getStatusCode() != 200) {
@@ -410,8 +426,9 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         } else {
             // If the response was not successful
             final TokenErrorResponse errorResponse = (TokenErrorResponse) response;
+            final ErrorObject errorObject = errorResponse.getErrorObject();
             throw new RuntimeException("An error occurred while invoking the Token endpoint: " +
-                    errorResponse.getErrorObject().getDescription());
+                    errorObject.getDescription() + " (" + errorObject.getCode() + ")");
         }
     }
 
@@ -457,10 +474,8 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         final Date expiration = claimsSet.getExpirationTime();
         final long expiresIn = expiration.getTime() - now.getTimeInMillis();
 
-        // Convert into a NiFi JWT for retrieval later
-        final LoginAuthenticationToken loginToken = new LoginAuthenticationToken(
+        return new LoginAuthenticationToken(
                 identity, identity, expiresIn, claimsSet.getIssuer().getValue());
-        return loginToken;
     }
 
     private OIDCTokens getOidcTokens(OIDCTokenResponse response) {
@@ -491,10 +506,24 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     }
 
     private HTTPRequest formHTTPRequest(Request request) {
-        final HTTPRequest httpRequest = request.toHTTPRequest();
+        return setHttpRequestProperties(request.toHTTPRequest());
+    }
+
+    private HTTPRequest setHttpRequestProperties(final HTTPRequest httpRequest) {
         httpRequest.setConnectTimeout(oidcConnectTimeout);
         httpRequest.setReadTimeout(oidcReadTimeout);
+        if (TruststoreStrategy.NIFI.name().equals(properties.getOidcClientTruststoreStrategy())) {
+            httpRequest.setSSLSocketFactory(sslContext.getSocketFactory());
+        }
         return httpRequest;
+    }
+
+    private ResourceRetriever getResourceRetriever() {
+        if (TruststoreStrategy.NIFI.name().equals(properties.getOidcClientTruststoreStrategy())) {
+            return new DefaultResourceRetriever(oidcConnectTimeout, oidcReadTimeout, 0, true, sslContext.getSocketFactory());
+        } else {
+            return new DefaultResourceRetriever(oidcConnectTimeout, oidcReadTimeout);
+        }
     }
 
     private ClientAuthentication createClientAuthentication() {
@@ -510,14 +539,13 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
 
     private static List<String> getAvailableClaims(JWTClaimsSet claimSet) {
         // Get the claims available in the ID token response
-        List<String> presentClaims = claimSet.getClaims().entrySet().stream()
+        return claimSet.getClaims().entrySet().stream()
                 // Check claim values are not empty
-                .filter(e -> StringUtils.isNotBlank(e.getValue().toString()))
+                .filter(e -> e.getValue() != null && StringUtils.isNotBlank(e.getValue().toString()))
                 // If not empty, put claim name in a map
                 .map(Map.Entry::getKey)
                 .sorted()
                 .collect(Collectors.toList());
-        return presentClaims;
     }
 
     private void validateAccessToken(OIDCTokens oidcTokens) throws Exception {

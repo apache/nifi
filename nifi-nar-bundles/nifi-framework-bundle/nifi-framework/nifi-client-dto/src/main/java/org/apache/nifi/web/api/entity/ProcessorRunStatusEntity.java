@@ -26,6 +26,7 @@ import javax.xml.bind.annotation.XmlType;
 @XmlType(name = "processorRunStatus")
 public class ProcessorRunStatusEntity extends ComponentRunStatusEntity {
 
+    // Must match the @ApiModelProperty.allowableValues above getState()
     private static String[] SUPPORTED_STATE = {"RUNNING", "RUN_ONCE", "STOPPED", "DISABLED"};
 
     @Override
@@ -39,7 +40,7 @@ public class ProcessorRunStatusEntity extends ComponentRunStatusEntity {
      */
     @ApiModelProperty(
             value = "The run status of the Processor.",
-            allowableValues = "RUNNING, STOPPED, DISABLED"
+            allowableValues = "RUNNING, STOPPED, DISABLED, RUN_ONCE"
     )
     public String getState() {
         return super.getState();

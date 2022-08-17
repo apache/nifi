@@ -27,19 +27,28 @@ import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsControllerService;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+
+import static org.apache.nifi.processors.azure.AzureServiceEndpoints.DEFAULT_ADLS_ENDPOINT_SUFFIX;
 
 public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorageIT {
 
     private static final String FILESYSTEM_NAME_PREFIX = "nifi-test-filesystem";
-    private static final String TEST_FILE_CONTENT = "test";
+
+    protected static final String TEST_FILE_CONTENT = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 
     protected String fileSystemName;
     protected DataLakeFileSystemClient fileSystemClient;
+
+    @Override
+    protected String getDefaultEndpointSuffix() {
+        return DEFAULT_ADLS_ENDPOINT_SUFFIX;
+    }
 
     @Override
     protected void setUpCredentials() throws Exception {
@@ -52,7 +61,7 @@ public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorag
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.ADLS_CREDENTIALS_SERVICE, "ADLSCredentials");
     }
 
-    @Before
+    @BeforeEach
     public void setUpAzureDataLakeStorageIT() {
         fileSystemName = String.format("%s-%s", FILESYSTEM_NAME_PREFIX, UUID.randomUUID());
 
@@ -62,7 +71,7 @@ public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorag
         fileSystemClient = storageClient.createFileSystem(fileSystemName);
     }
 
-    @After
+    @AfterEach
     public void tearDownAzureDataLakeStorageIT() {
         fileSystemClient.delete();
     }
@@ -79,22 +88,28 @@ public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorag
     }
 
     protected void uploadFile(String directory, String filename, String fileContent) {
-        byte[] fileContentBytes = fileContent.getBytes();
-
-        DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);
-        DataLakeFileClient fileClient = directoryClient.createFile(filename);
-
-        PutAzureDataLakeStorage.uploadContent(fileClient, new ByteArrayInputStream(fileContentBytes), fileContentBytes.length);
+        uploadFile(directory, filename, fileContent.getBytes(StandardCharsets.UTF_8));
     }
 
     protected void uploadFile(TestFile testFile) {
         uploadFile(testFile.getDirectory(), testFile.getFilename(), testFile.getFileContent());
     }
 
+    protected void uploadFile(String directory, String filename, byte[] fileData) {
+        DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);
+        DataLakeFileClient fileClient = directoryClient.createFile(filename);
+
+        PutAzureDataLakeStorage.uploadContent(fileClient, new ByteArrayInputStream(fileData), fileData.length);
+    }
+
     protected void createDirectoryAndUploadFile(String directory, String filename, String fileContent) {
+        createDirectoryAndUploadFile(directory, filename, fileContent.getBytes(StandardCharsets.UTF_8));
+    }
+
+    protected void createDirectoryAndUploadFile(String directory, String filename, byte[] fileData) {
         createDirectory(directory);
 
-        uploadFile(directory, filename, fileContent);
+        uploadFile(directory, filename, fileData);
     }
 
     protected void createDirectoryAndUploadFile(TestFile testFile) {

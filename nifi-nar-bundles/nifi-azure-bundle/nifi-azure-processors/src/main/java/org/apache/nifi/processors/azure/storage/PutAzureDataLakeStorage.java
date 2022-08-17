@@ -21,7 +21,6 @@ import com.azure.storage.file.datalake.DataLakeFileClient;
 import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.io.input.BoundedInputStream;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -34,13 +33,13 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -84,18 +83,18 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             .allowableValues(FAIL_RESOLUTION, REPLACE_RESOLUTION, IGNORE_RESOLUTION)
             .build();
 
-    private List<PropertyDescriptor> properties;
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> props = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        props.add(CONFLICT_RESOLUTION);
-        properties = Collections.unmodifiableList(props);
-    }
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            ADLS_CREDENTIALS_SERVICE,
+            FILESYSTEM,
+            DIRECTORY,
+            FILE,
+            CONFLICT_RESOLUTION,
+            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
+    ));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
@@ -173,7 +172,6 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         }
     }
 
-    @VisibleForTesting
     static void uploadContent(DataLakeFileClient fileClient, InputStream in, long length) {
         long chunkStart = 0;
         long chunkSize;

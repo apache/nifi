@@ -75,9 +75,28 @@ public class PutSNS extends AbstractSNSProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor MESSAGEGROUPID = new PropertyDescriptor.Builder()
+            .name("Message Group ID")
+            .displayName("Message Group ID")
+            .description("If using FIFO, the message group to which the flowFile belongs")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    public static final PropertyDescriptor MESSAGEDEDUPLICATIONID = new PropertyDescriptor.Builder()
+            .name("Deduplication Message ID")
+            .displayName("Deduplication Message ID")
+            .description("The token used for deduplication of sent messages")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(ARN, ARN_TYPE, SUBJECT, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT,
-                    USE_JSON_STRUCTURE, CHARACTER_ENCODING, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
+                    USE_JSON_STRUCTURE, CHARACTER_ENCODING, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD,
+                    MESSAGEGROUPID, MESSAGEDEDUPLICATIONID));
 
     public static final int MAX_SIZE = 256 * 1024;
 
@@ -119,6 +138,18 @@ public class PutSNS extends AbstractSNSProcessor {
         final AmazonSNSClient client = getClient();
         final PublishRequest request = new PublishRequest();
         request.setMessage(message);
+
+        if (context.getProperty(MESSAGEGROUPID).isSet()) {
+            request.setMessageGroupId(context.getProperty(MESSAGEGROUPID)
+                    .evaluateAttributeExpressions(flowFile)
+                    .getValue());
+        }
+
+        if (context.getProperty(MESSAGEDEDUPLICATIONID).isSet()) {
+            request.setMessageDeduplicationId(context.getProperty(MESSAGEDEDUPLICATIONID)
+                    .evaluateAttributeExpressions(flowFile)
+                    .getValue());
+        }
 
         if (context.getProperty(USE_JSON_STRUCTURE).asBoolean()) {
             request.setMessageStructure("json");

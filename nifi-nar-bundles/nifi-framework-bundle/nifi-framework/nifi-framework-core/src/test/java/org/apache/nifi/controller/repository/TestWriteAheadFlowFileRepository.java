@@ -16,37 +16,17 @@
  */
 package org.apache.nifi.controller.repository;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.when;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
+import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueSize;
 import org.apache.nifi.controller.queue.ListFlowFileStatus;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.NopConnectionEventListener;
+import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueDiagnostics;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.StandardFlowFileQueue;
@@ -74,6 +54,29 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.wali.MinimalLockingWriteAheadLog;
 import org.wali.WriteAheadRepository;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.when;
 
 @SuppressWarnings("deprecation")
 public class TestWriteAheadFlowFileRepository {
@@ -173,8 +176,23 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
+            public long getTotalQueuedDuration(long fromTimestamp) {
+                return 0;
+            }
+
+            @Override
+            public long getMinLastQueueDate() {
+                return 0;
+            }
+
+            @Override
             public boolean isEmpty() {
                 return false;
+            }
+
+            @Override
+            public FlowFileAvailability getFlowFileAvailability() {
+                return isActiveQueueEmpty() ? FlowFileAvailability.ACTIVE_QUEUE_EMPTY : FlowFileAvailability.FLOWFILE_AVAILABLE;
             }
 
             @Override
@@ -209,12 +227,27 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
+            public FlowFileRecord poll(Set<FlowFileRecord> expiredRecords, PollStrategy pollStrategy) {
+                return null;
+            }
+
+            @Override
             public FlowFileRecord poll(Set<FlowFileRecord> expiredRecords) {
                 return null;
             }
 
             @Override
+            public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords, PollStrategy pollStrategy) {
+                return null;
+            }
+
+            @Override
             public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords) {
+                return null;
+            }
+
+            @Override
+            public List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords, PollStrategy pollStrategy) {
                 return null;
             }
 
@@ -510,7 +543,7 @@ public class TestWriteAheadFlowFileRepository {
         when(connection.getDestination()).thenReturn(Mockito.mock(Connectable.class));
 
         final FlowFileSwapManager swapMgr = new MockFlowFileSwapManager();
-        final FlowFileQueue queue = new StandardFlowFileQueue("1234", new NopConnectionEventListener(), null, null, claimManager, null, swapMgr, null, 10000, 0L, "0 B");
+        final FlowFileQueue queue = new StandardFlowFileQueue("1234", new NopConnectionEventListener(), null, null, claimManager, null, swapMgr, null, 10000, "0 sec", 0L, "0 B");
 
         when(connection.getFlowFileQueue()).thenReturn(queue);
         queueProvider.addConnection(connection);
@@ -763,7 +796,7 @@ public class TestWriteAheadFlowFileRepository {
                 }
             }
 
-            return new StandardSwapSummary(new QueueSize(records.size(), size), maxId, resourceClaims);
+            return new StandardSwapSummary(new QueueSize(records.size(), size), maxId, resourceClaims, 0L, 0L);
         }
 
         @Override

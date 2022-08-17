@@ -16,25 +16,19 @@
  */
 package org.apache.nifi.io.socket
 
-
 import org.apache.nifi.security.util.KeystoreType
 import org.apache.nifi.security.util.StandardTlsConfiguration
 import org.apache.nifi.security.util.TlsConfiguration
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import javax.net.ssl.SSLServerSocket
 import java.security.Security
 
-@RunWith(JUnit4.class)
 class SocketUtilsTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(SocketUtilsTest.class)
 
@@ -65,23 +59,13 @@ class SocketUtilsTest extends GroovyTestCase {
 //    private static final TlsConfiguration TLS_CONFIGURATION = new StandardTlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_PASSWORD, KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, PROTOCOL)
 //    private static final SSLContext sslContext = SslContextFactory.createSslContext(TLS_CONFIGURATION, ClientAuth.NONE)
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() {
-
-    }
-
-    @After
-    void tearDown() {
-
     }
 
     @Test

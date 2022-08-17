@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.hive;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileConstants;
 import org.apache.avro.file.DataFileStream;
@@ -42,6 +43,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hadoop.KerberosProperties;
@@ -63,6 +66,7 @@ import org.apache.nifi.processor.util.pattern.ExceptionHandler;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.processor.util.pattern.RoutingResult;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
+import org.apache.nifi.security.krb.KerberosLoginException;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.util.hive.AuthenticationFailedException;
@@ -70,10 +74,9 @@ import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.HiveOptions;
 import org.apache.nifi.util.hive.HiveUtils;
 import org.apache.nifi.util.hive.HiveWriter;
-import org.xerial.snappy.Snappy;
 import org.apache.nifi.util.hive.ValidationResources;
+import org.xerial.snappy.Snappy;
 
-import javax.security.auth.login.LoginException;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -185,7 +188,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
                     + "to a number greater than one, the 'hcatalog.hive.client.cache.disabled' property will be forced to 'true' to avoid concurrency issues. "
                     + "Please see the Hive documentation for more details.")
             .required(false)
-            .addValidator(HiveUtils.createMultipleFilesExistValidator())
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -774,6 +777,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
                 throw s;
 
             } catch (IllegalArgumentException
+                    | AvroRuntimeException
                     | HiveWriter.WriteFailure
                     | SerializationError inputError) {
 
@@ -1171,7 +1175,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             try {
                 getLogger().debug("checking TGT on kerberosUser [{}]", new Object[] {kerberosUser});
                 kerberosUser.checkTGTAndRelogin();
-            } catch (LoginException e) {
+            } catch (final KerberosLoginException e) {
                 throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
             }
         } else {

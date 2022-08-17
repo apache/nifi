@@ -44,7 +44,7 @@ public class DirectInjectionExtensionManager extends StandardExtensionDiscoverin
             throw new IllegalArgumentException("Given extension is not a Processor, Controller Service, or Reporting Task");
         }
 
-        super.loadExtension(extension, extensionType, INTEGRATION_TEST_BUNDLE);
+        super.loadExtension(extension.getClass().getName(), extensionType, INTEGRATION_TEST_BUNDLE);
     }
 
     public void injectExtensionType(final Class<?> extensionType, final String implementationClassName) {
@@ -59,6 +59,6 @@ public class DirectInjectionExtensionManager extends StandardExtensionDiscoverin
     }
 
     public void injectExtensionType(final Class<?> extensionType, final Class<?> implementationClass) {
-        super.registerExtensionClass(extensionType, implementationClass, INTEGRATION_TEST_BUNDLE);
+        super.registerExtensionClass(extensionType, implementationClass.getName(), INTEGRATION_TEST_BUNDLE);
     }
 }

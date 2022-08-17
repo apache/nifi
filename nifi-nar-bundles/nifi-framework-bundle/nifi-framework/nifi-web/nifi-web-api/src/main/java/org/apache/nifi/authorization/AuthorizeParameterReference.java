@@ -25,14 +25,15 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterTokenList;
-import org.apache.nifi.registry.flow.VersionedParameter;
-import org.apache.nifi.registry.flow.VersionedParameterContext;
+import org.apache.nifi.flow.VersionedParameter;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -160,6 +161,8 @@ public class AuthorizeParameterReference {
             .map(ParameterDescriptor::getName)
             .collect(Collectors.toSet());
 
+        final List<String> existingParameterContextNames = parameterContext.getInheritedParameterContextNames();
+
         boolean requiresAddition = false;
         for (final VersionedParameter versionedParameter : versionedParameterContext.getParameters()) {
             final String versionedParameterName = versionedParameter.getName();
@@ -169,7 +172,7 @@ public class AuthorizeParameterReference {
             }
         }
 
-        if (requiresAddition) {
+        if (requiresAddition || !existingParameterContextNames.equals(versionedParameterContext.getInheritedParameterContexts())) {
             // User is required to have WRITE permission to the Parameter Context in order to add one or more parameters.
             parameterContext.authorize(authorizer, RequestAction.WRITE, user);
         }

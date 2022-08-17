@@ -19,10 +19,8 @@ package org.apache.nifi.processors.aws.kinesis;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 
 import com.amazonaws.AmazonWebServiceClient;
@@ -32,66 +30,35 @@ import com.amazonaws.AmazonWebServiceClient;
  */
 public abstract class AbstractBaseKinesisProcessor<ClientType extends AmazonWebServiceClient>
     extends AbstractAWSCredentialsProviderProcessor<ClientType> {
-
-    /**
-     * Kinesis put record response error message
-     */
-    public static final String AWS_KINESIS_ERROR_MESSAGE = "aws.kinesis.error.message";
-
-    public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-            .displayName("Message Batch Size")
-            .name("message-batch-size")
-            .description("Batch size for messages (1-500).")
-            .defaultValue("250")
-            .required(false)
-            .addValidator(StandardValidators.createLongValidator(1, 500, true))
-            .sensitive(false)
-            .build();
-
-    public static final PropertyDescriptor MAX_MESSAGE_BUFFER_SIZE_MB = new PropertyDescriptor.Builder()
-            .name("max-message-buffer-size")
-            .displayName("Max message buffer size (MB)")
-            .description("Max message buffer size in Mega-bytes")
-            .defaultValue("1 MB")
-            .required(false)
-            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-            .sensitive(false)
-            .build();
-
     /**
      * Max buffer size 1 MB
      */
     public static final int MAX_MESSAGE_SIZE = 1000 * 1024;
 
-    protected FlowFile handleFlowFileTooBig(final ProcessSession session, FlowFile flowFileCandidate,
-                                            String message) {
-        flowFileCandidate = session.putAttribute(flowFileCandidate, message,
-                "record too big " + flowFileCandidate.getSize() + " max allowed " + MAX_MESSAGE_SIZE );
-        session.transfer(flowFileCandidate, REL_FAILURE);
+    private void handleFlowFileTooBig(final ProcessSession session, final FlowFile flowFileCandidate, final String message) {
+        final FlowFile tooBig = session.putAttribute(flowFileCandidate, message,
+                "record too big " + flowFileCandidate.getSize() + " max allowed " + MAX_MESSAGE_SIZE);
+        session.transfer(tooBig, REL_FAILURE);
         getLogger().error("Failed to publish to kinesis records {} because the size was greater than {} bytes",
-                new Object[]{flowFileCandidate, MAX_MESSAGE_SIZE});
-        return flowFileCandidate;
+                tooBig, MAX_MESSAGE_SIZE);
     }
 
     protected List<FlowFile> filterMessagesByMaxSize(final ProcessSession session, final int batchSize, final long maxBufferSizeBytes, String message) {
-        List<FlowFile> flowFiles = new ArrayList<FlowFile>(batchSize);
+        final List<FlowFile> flowFiles = new ArrayList<>(batchSize);
 
         long currentBufferSizeBytes = 0;
-
         for (int i = 0; (i < batchSize) && (currentBufferSizeBytes <= maxBufferSizeBytes); i++) {
+            final FlowFile flowFileCandidate = session.get();
+            if (flowFileCandidate != null) {
+                if (flowFileCandidate.getSize() > MAX_MESSAGE_SIZE) {
+                    handleFlowFileTooBig(session, flowFileCandidate, message);
+                    continue;
+                }
 
-            FlowFile flowFileCandidate = session.get();
-            if ( flowFileCandidate == null )
-                break;
+                currentBufferSizeBytes += flowFileCandidate.getSize();
 
-            if (flowFileCandidate.getSize() > MAX_MESSAGE_SIZE) {
-                flowFileCandidate = handleFlowFileTooBig(session, flowFileCandidate, message);
-                continue;
+                flowFiles.add(flowFileCandidate);
             }
-
-            currentBufferSizeBytes += flowFileCandidate.getSize();
-
-            flowFiles.add(flowFileCandidate);
         }
         return flowFiles;
     }

@@ -15,6 +15,11 @@ The following binary components are provided under the Apache Software License v
       Google Cloud Client Library for Java
       Copyright 2016 Google Inc. All Rights Reserved.
 
+  (ASLv2) Google Java API Client Services - Drive API
+    The following NOTICE information applies:
+      Google Java API Client Services - Drive API
+      Copyright 2011-2022 Google Inc. All Rights Reserved.
+
   (ASLv2) The Netty Project
     The following NOTICE information applies:
       The Netty Project
@@ -72,11 +77,6 @@ The following binary components are provided under the Apache Software License v
       with permission from the original authors.
       Original source copyright:
       Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
-
-  (ASLv2) Apache Commons Logging
-    The following NOTICE information applies:
-      Apache Commons Logging
-      Copyright 2003-2014 The Apache Software Foundation
 
   (ASLv2) Guava
     The following NOTICE information applies:

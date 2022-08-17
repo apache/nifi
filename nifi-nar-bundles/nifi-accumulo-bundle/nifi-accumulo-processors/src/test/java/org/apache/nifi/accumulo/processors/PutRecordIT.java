@@ -22,26 +22,26 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.io.Text;
+import org.apache.nifi.accumulo.controllerservices.AccumuloService;
+import org.apache.nifi.accumulo.controllerservices.MockAccumuloService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.apache.nifi.accumulo.controllerservices.AccumuloService;
-import org.apache.nifi.accumulo.controllerservices.MockAccumuloService;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -54,6 +54,10 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@DisabledOnOs(OS.WINDOWS)
 public class PutRecordIT {
 
     public static final String DEFAULT_COLUMN_FAMILY = "family1";
@@ -74,9 +78,8 @@ public class PutRecordIT {
 
 
 
-    @BeforeClass
+    @BeforeAll
     public static void setupInstance() throws IOException, InterruptedException, AccumuloSecurityException, AccumuloException, TableExistsException {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
         Path tempDirectory = Files.createTempDirectory("acc"); // JUnit and Guava supply mechanisms for creating temp directories
         accumulo = new MiniAccumuloCluster(tempDirectory.toFile(), "password");
         accumulo.start();
@@ -133,15 +136,15 @@ public class PutRecordIT {
     void verifyKey(String tableName, Set<Key> expectedKeys, Authorizations auths) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
         if (null == auths)
             auths = new Authorizations();
-        try(BatchScanner scanner = accumulo.getConnector("root","password").createBatchScanner(tableName,auths,1)) {
+        try(BatchScanner scanner = accumulo.createAccumuloClient("root", new PasswordToken("password")).createBatchScanner(tableName,auths,1)) {
             List<Range> ranges = new ArrayList<>();
             ranges.add(new Range());
             scanner.setRanges(ranges);
             for (Map.Entry<Key, Value> kv : scanner) {
-                Assert.assertTrue(kv.getKey() + " not in expected keys",expectedKeys.remove(kv.getKey()));
+                assertTrue(expectedKeys.remove(kv.getKey()), kv.getKey() + " not in expected keys");
             }
         }
-        Assert.assertEquals(0, expectedKeys.size());
+        assertEquals(0, expectedKeys.size());
 
     }
 
@@ -157,7 +160,8 @@ public class PutRecordIT {
         String tableName = UUID.randomUUID().toString();
         tableName=tableName.replace("-","a");
         if (null != defaultVis)
-        accumulo.getConnector("root","password").securityOperations().changeUserAuthorizations("root",defaultVis);
+            accumulo.createAccumuloClient("root", new PasswordToken("password")).securityOperations().changeUserAuthorizations("root",defaultVis);
+
         TestRunner runner = getTestRunner(tableName, DEFAULT_COLUMN_FAMILY);
         runner.setProperty(PutAccumuloRecord.CREATE_TABLE, "True");
         runner.setProperty(PutAccumuloRecord.ROW_FIELD_NAME, "id");
@@ -178,7 +182,7 @@ public class PutRecordIT {
         runner.run();
 
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(PutAccumuloRecord.REL_SUCCESS);
-        Assert.assertTrue("Wrong count", results.size() == 1);
+        assertTrue(results.size() == 1, "Wrong count");
         verifyKey(tableName, expectedKeys, defaultVis);
         if (deletes){
             runner.setProperty(PutAccumuloRecord.DELETE_KEY, "true");

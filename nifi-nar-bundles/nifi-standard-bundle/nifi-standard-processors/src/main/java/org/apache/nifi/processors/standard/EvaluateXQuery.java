@@ -22,7 +22,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,17 +30,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.TransformerFactoryConfigurationError;
-import javax.xml.transform.sax.SAXSource;
+import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import net.sf.saxon.s9api.DOMDestination;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.XQueryCompiler;
@@ -56,6 +48,9 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
+import org.apache.nifi.annotation.behavior.SystemResourceConsiderations;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -72,16 +67,12 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.xml.XmlUtils;
+import org.apache.nifi.processors.standard.xml.DocumentTypeAllowedDocumentProvider;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
+import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
 import org.w3c.dom.Document;
-import org.xml.sax.EntityResolver;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
-import org.xml.sax.helpers.XMLReaderFactory;
 
 @EventDriven
 @SideEffectFree
@@ -103,6 +94,9 @@ import org.xml.sax.helpers.XMLReaderFactory;
 @WritesAttribute(attribute = "user-defined", description = "This processor adds user-defined attributes if the <Destination> property is set to flowfile-attribute .")
 @DynamicProperty(name = "A FlowFile attribute(if <Destination> is set to 'flowfile-attribute'", value = "An XQuery", description = "If <Destination>='flowfile-attribute' "
         + "then the FlowFile attribute is set to the result of the XQuery.  If <Destination>='flowfile-content' then the FlowFile content is set to the result of the XQuery.")
+@SystemResourceConsiderations({
+        @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "Processing requires reading the entire FlowFile into memory")
+})
 public class EvaluateXQuery extends AbstractProcessor {
 
     public static final String DESTINATION_ATTRIBUTE = "flowfile-attribute";
@@ -111,8 +105,6 @@ public class EvaluateXQuery extends AbstractProcessor {
     public static final String OUTPUT_METHOD_XML = "xml";
     public static final String OUTPUT_METHOD_HTML = "html";
     public static final String OUTPUT_METHOD_TEXT = "text";
-
-    public static final String UTF8 = "UTF-8";
 
     public static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
             .name("Destination")
@@ -152,11 +144,13 @@ public class EvaluateXQuery extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor VALIDATE_DTD = new PropertyDescriptor.Builder()
+            .displayName("Allow DTD")
             .name("Validate DTD")
-            .description("Specifies whether or not the XML content should be validated against the DTD.")
+            .description("Allow embedded Document Type Declaration in XML. "
+                    + "This feature should be disabled to avoid XML entity expansion vulnerabilities.")
             .required(true)
             .allowableValues("true", "false")
-            .defaultValue("true")
+            .defaultValue("false")
             .build();
 
     public static final Relationship REL_MATCH = new Relationship.Builder()
@@ -248,24 +242,6 @@ public class EvaluateXQuery extends AbstractProcessor {
         final Map<String, XQueryExecutable> attributeToXQueryMap = new HashMap<>();
 
         final Processor proc = new Processor(false);
-        final XMLReader xmlReader;
-
-        try {
-            xmlReader = XMLReaderFactory.createXMLReader();
-        } catch (SAXException e) {
-            logger.error("Error while constructing XMLReader {}", new Object[]{e});
-            throw new ProcessException(e.getMessage());
-        }
-
-        if (!context.getProperty(VALIDATE_DTD).asBoolean()) {
-            xmlReader.setEntityResolver(new EntityResolver() {
-                @Override
-                public InputSource resolveEntity(String publicId, String systemId) throws SAXException, IOException {
-                    return new InputSource(new StringReader(""));
-                }
-            });
-        }
-
         final XQueryCompiler comp = proc.newXQueryCompiler();
 
         for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
@@ -281,16 +257,8 @@ public class EvaluateXQuery extends AbstractProcessor {
             }
         }
 
-        final XQueryExecutable slashExpression;
-        try {
-            slashExpression = comp.compile("/");
-        } catch (SaxonApiException e) {
-            logger.error("unable to compile XQuery expression due to {}", new Object[]{e});
-            session.transfer(flowFileBatch, REL_FAILURE);
-            return;
-        }
-
         final String destination = context.getProperty(DESTINATION).getValue();
+        final boolean validateDeclaration = context.getProperty(VALIDATE_DTD).asBoolean();
 
         flowFileLoop:
         for (FlowFile flowFile : flowFileBatch) {
@@ -299,28 +267,20 @@ public class EvaluateXQuery extends AbstractProcessor {
                 return;
             }
 
-            final AtomicReference<Throwable> error = new AtomicReference<>(null);
-            final AtomicReference<XdmNode> sourceRef = new AtomicReference<>(null);
-
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(final InputStream rawIn) throws IOException {
+            final AtomicReference<DOMSource> sourceRef = new AtomicReference<>(null);
+            try {
+                session.read(flowFile, rawIn -> {
                     try (final InputStream in = new BufferedInputStream(rawIn)) {
-                        XQueryEvaluator qe = slashExpression.load();
-                        qe.setSource(new SAXSource(xmlReader, new InputSource(in)));
-                        Document dom = XmlUtils.createSafeDocumentBuilder(true).newDocument();
-                        qe.run(new DOMDestination(dom));
-                        XdmNode rootNode = proc.newDocumentBuilder().wrap(dom);
-                        sourceRef.set(rootNode);
-                    } catch (final Exception e) {
-                        error.set(e);
+                        final StandardDocumentProvider documentProvider = validateDeclaration
+                                ? new DocumentTypeAllowedDocumentProvider()
+                                : new StandardDocumentProvider();
+                        documentProvider.setNamespaceAware(true);
+                        final Document document = documentProvider.parse(in);
+                        sourceRef.set(new DOMSource(document));
                     }
-                }
-            });
-
-            if (error.get() != null) {
-                logger.error("unable to evaluate XQuery against {} due to {}; routing to 'failure'",
-                        new Object[]{flowFile, error.get()});
+                });
+            } catch (final Exception e) {
+                logger.error("Input parsing failed {}", flowFile, e);
                 session.transfer(flowFile, REL_FAILURE);
                 continue;
             }
@@ -331,7 +291,7 @@ public class EvaluateXQuery extends AbstractProcessor {
             for (final Map.Entry<String, XQueryExecutable> entry : attributeToXQueryMap.entrySet()) {
                 try {
                     XQueryEvaluator qe = entry.getValue().load();
-                    qe.setContextItem(sourceRef.get());
+                    qe.setSource(sourceRef.get());
                     XdmValue result = qe.evaluate();
 
                     if (DESTINATION_ATTRIBUTE.equals(destination)) {
@@ -346,33 +306,27 @@ public class EvaluateXQuery extends AbstractProcessor {
                         }
                     } else { // if (DESTINATION_CONTENT.equals(destination)){
                         if (result.size() == 0) {
-                            logger.info("Routing {} to 'unmatched'", new Object[]{flowFile});
+                            logger.info("No XQuery results found {}", flowFile);
                             session.transfer(flowFile, REL_NO_MATCH);
                             continue flowFileLoop;
                         } else if (result.size() == 1) {
                             final XdmItem item = result.itemAt(0);
-                            flowFile = session.write(flowFile, new OutputStreamCallback() {
-                                @Override
-                                public void process(final OutputStream rawOut) throws IOException {
-                                    try (final OutputStream out = new BufferedOutputStream(rawOut)) {
-                                        writeformattedItem(item, context, out);
-                                    } catch (TransformerFactoryConfigurationError | TransformerException e) {
-                                        throw new IOException(e);
-                                    }
+                            flowFile = session.write(flowFile, rawOut -> {
+                                try (final OutputStream out = new BufferedOutputStream(rawOut)) {
+                                    writeFormattedItem(item, context, out);
+                                } catch (final ProcessingException e) {
+                                    throw new IOException("Writing Formatted Output failed", e);
                                 }
                             });
                         } else {
                             for (final XdmItem item : result) {
                                 FlowFile ff = session.clone(flowFile);
-                                ff = session.write(ff, new OutputStreamCallback() {
-                                    @Override
-                                    public void process(final OutputStream rawOut) throws IOException {
-                                        try (final OutputStream out = new BufferedOutputStream(rawOut)) {
-                                            try {
-                                                writeformattedItem(item, context, out);
-                                            } catch (TransformerFactoryConfigurationError | TransformerException e) {
-                                                throw new IOException(e);
-                                            }
+                                ff = session.write(ff, rawOut -> {
+                                    try (final OutputStream out = new BufferedOutputStream(rawOut)) {
+                                        try {
+                                            writeFormattedItem(item, context, out);
+                                        } catch (final ProcessingException e) {
+                                            throw new IOException("Writing Formatted Output failed", e);
                                         }
                                     }
                                 });
@@ -381,14 +335,12 @@ public class EvaluateXQuery extends AbstractProcessor {
                         }
                     }
                 } catch (final SaxonApiException e) {
-                    logger.error("failed to evaluate XQuery for {} for Property {} due to {}; routing to failure",
-                            new Object[]{flowFile, entry.getKey(), e});
+                    logger.error("XQuery Property [{}] processing failed", entry.getKey(), e);
                     session.transfer(flowFile, REL_FAILURE);
                     session.remove(childrenFlowFiles);
                     continue flowFileLoop;
-                } catch (TransformerFactoryConfigurationError | TransformerException | IOException e) {
-                    logger.error("Failed to write XQuery result for {} due to {}; routing original to 'failure'",
-                            new Object[]{flowFile, error.get()});
+                } catch (final IOException e) {
+                    logger.error("XQuery Property [{}] configuration failed", entry.getKey(), e);
                     session.transfer(flowFile, REL_FAILURE);
                     session.remove(childrenFlowFiles);
                     continue flowFileLoop;
@@ -398,18 +350,16 @@ public class EvaluateXQuery extends AbstractProcessor {
             if (DESTINATION_ATTRIBUTE.equals(destination)) {
                 flowFile = session.putAllAttributes(flowFile, xQueryResults);
                 final Relationship destRel = xQueryResults.isEmpty() ? REL_NO_MATCH : REL_MATCH;
-                logger.info("Successfully evaluated XQueries against {} and found {} matches; routing to {}",
-                        new Object[]{flowFile, xQueryResults.size(), destRel.getName()});
+                logger.info("XQuery results found [{}] for {}", xQueryResults.size(), flowFile);
                 session.transfer(flowFile, destRel);
                 session.getProvenanceReporter().modifyAttributes(flowFile);
             } else { // if (DESTINATION_CONTENT.equals(destination)) {
                 if (!childrenFlowFiles.isEmpty()) {
-                    logger.info("Successfully created {} new FlowFiles from {}; routing all to 'matched'",
-                            new Object[]{childrenFlowFiles.size(), flowFile});
+                    logger.info("XQuery results found [{}] for {} FlowFiles created [{}]", xQueryResults.size(), flowFile, childrenFlowFiles.size());
                     session.transfer(childrenFlowFiles, REL_MATCH);
                     session.remove(flowFile);
                 } else {
-                    logger.info("Successfully updated content for {}; routing to 'matched'", new Object[]{flowFile});
+                    logger.info("XQuery results found for {} content updated", flowFile);
                     session.transfer(flowFile, REL_MATCH);
                     session.getProvenanceReporter().modifyContent(flowFile);
                 }
@@ -417,14 +367,13 @@ public class EvaluateXQuery extends AbstractProcessor {
         } // end flowFileLoop
     }
 
-    private String formatItem(XdmItem item, ProcessContext context) throws TransformerFactoryConfigurationError, TransformerException, IOException {
+    private String formatItem(XdmItem item, ProcessContext context) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        writeformattedItem(item, context, baos);
+        writeFormattedItem(item, context, baos);
         return baos.toString();
     }
 
-    void writeformattedItem(XdmItem item, ProcessContext context, OutputStream out)
-            throws TransformerFactoryConfigurationError, TransformerException, IOException {
+    void writeFormattedItem(XdmItem item, ProcessContext context, OutputStream out) throws IOException {
 
         if (item.isAtomicValue()) {
             out.write(item.getStringValue().getBytes(StandardCharsets.UTF_8));
@@ -433,30 +382,23 @@ public class EvaluateXQuery extends AbstractProcessor {
             switch (node.getNodeKind()) {
                 case DOCUMENT:
                 case ELEMENT:
-                    Transformer transformer = TransformerFactory.newInstance().newTransformer();
-                    final Properties props = getTransformerProperties(context);
-                    transformer.setOutputProperties(props);
-                    transformer.transform(node.asSource(), new StreamResult(out));
+                    final StandardTransformProvider transformProvider = new StandardTransformProvider();
+                    final String method = context.getProperty(XML_OUTPUT_METHOD).getValue();
+                    transformProvider.setMethod(method);
+
+                    final boolean indentEnabled = context.getProperty(XML_OUTPUT_INDENT).asBoolean();
+                    transformProvider.setIndent(indentEnabled);
+
+                    final boolean omitXmlDeclaration = context.getProperty(XML_OUTPUT_OMIT_XML_DECLARATION).asBoolean();
+                    transformProvider.setOmitXmlDeclaration(omitXmlDeclaration);
+
+                    final StreamResult result = new StreamResult(out);
+                    transformProvider.transform(node.asSource(), result);
                     break;
                 default:
                     out.write(node.getStringValue().getBytes(StandardCharsets.UTF_8));
             }
         }
-    }
-
-    private Properties getTransformerProperties(ProcessContext context) {
-        final String method = context.getProperty(XML_OUTPUT_METHOD).getValue();
-        boolean indent = context.getProperty(XML_OUTPUT_INDENT).asBoolean();
-        boolean omitDeclaration = context.getProperty(XML_OUTPUT_OMIT_XML_DECLARATION).asBoolean();
-        return getTransformerProperties(method, indent, omitDeclaration);
-    }
-
-    static Properties getTransformerProperties(final String method, final boolean indent, final boolean omitDeclaration) {
-        final Properties props = new Properties();
-        props.setProperty(OutputKeys.METHOD, method);
-        props.setProperty(OutputKeys.INDENT, indent ? "yes" : "no");
-        props.setProperty(OutputKeys.OMIT_XML_DECLARATION, omitDeclaration ? "yes" : "no");
-        return props;
     }
 
     private static class XQueryValidator implements Validator {
@@ -475,7 +417,7 @@ public class EvaluateXQuery extends AbstractProcessor {
                 return new ValidationResult.Builder().input(input).subject(subject).valid(error == null).explanation(error).build();
             } catch (final Exception e) {
                 return new ValidationResult.Builder().input(input).subject(subject).valid(false)
-                        .explanation("Unable to initialize XQuery engine due to " + e.toString()).build();
+                        .explanation("Unable to initialize XQuery engine due to " + e).build();
             }
         }
     }

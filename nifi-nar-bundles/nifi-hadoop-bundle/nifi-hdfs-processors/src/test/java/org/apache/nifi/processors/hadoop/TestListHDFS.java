@@ -36,9 +36,8 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.io.File;
@@ -63,8 +62,9 @@ import java.util.stream.Stream;
 import static org.apache.nifi.processors.hadoop.ListHDFS.FILTER_DIRECTORIES_AND_FILES_VALUE;
 import static org.apache.nifi.processors.hadoop.ListHDFS.FILTER_FILES_ONLY_VALUE;
 import static org.apache.nifi.processors.hadoop.ListHDFS.FILTER_FULL_PATH_VALUE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.atLeast;
@@ -82,7 +82,7 @@ public class TestListHDFS {
     private KerberosProperties kerberosProperties;
     private MockComponentLog mockLogger;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         mockNiFiProperties = mock(NiFiProperties.class);
         when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
@@ -199,7 +199,7 @@ public class TestListHDFS {
             } else if ( filename.equals("1.txt")) {
                 ff.assertAttributeEquals("path", "/test/testDir");
             } else {
-                Assert.fail("filename was " + filename);
+                fail("filename was " + filename);
             }
         }
     }
@@ -243,7 +243,7 @@ public class TestListHDFS {
             } else if (filename.equals("3.txt")) {
                 ff.assertAttributeEquals("path", "/test/txtDir");
             } else {
-                Assert.fail("filename was " + filename);
+                fail("filename was " + filename);
             }
         }
     }
@@ -287,7 +287,7 @@ public class TestListHDFS {
             } else if (filename.equals("2.txt")) {
                 ff.assertAttributeEquals("path", "/test/testDir/anotherDir");
             } else {
-                Assert.fail("filename was " + filename);
+                fail("filename was " + filename);
             }
         }
     }
@@ -343,7 +343,7 @@ public class TestListHDFS {
             } else if (filename.equals("1.txt")) {
                 ff.assertAttributeEquals("path", "/test/testDir/anotherDir");
             } else {
-                Assert.fail("filename was " + filename);
+                fail("filename was " + filename);
             }
         }
     }
@@ -399,7 +399,7 @@ public class TestListHDFS {
             } else if (filename.equals("1.txt")) {
                 ff.assertAttributeEquals("path", "/test/testDir/anotherDir");
             } else {
-                Assert.fail("filename was " + filename);
+                fail("filename was " + filename);
             }
         }
     }
@@ -452,20 +452,12 @@ public class TestListHDFS {
         runner.getStateManager().setFailOnStateGet(Scope.CLUSTER, true);
 
         // Should fail to perform @OnScheduled methods.
-        try {
-            runner.run();
-            Assert.fail("Processor ran successfully");
-        } catch (final AssertionError e) {
-        }
+        runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 0);
 
         // Should fail to perform @OnScheduled methods.
-        try {
-            runner.run();
-            Assert.fail("Processor ran successfully");
-        } catch (final AssertionError e) {
-        }
+        runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 0);
 

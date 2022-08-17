@@ -555,7 +555,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                                 + "Also, any generated SQL statements may be duplicated.", this, ioe);
             }
 
-            session.commit();
+            session.commitAsync();
 
         } catch (final ProcessException pe) {
             // Log the cause of the ProcessException if it is available

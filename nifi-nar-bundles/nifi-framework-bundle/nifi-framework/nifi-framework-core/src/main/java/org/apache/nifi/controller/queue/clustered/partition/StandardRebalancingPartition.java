@@ -23,12 +23,15 @@ import org.apache.nifi.controller.queue.DropFlowFileAction;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
+import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,7 +41,9 @@ import java.util.Optional;
 import java.util.Set;
 
 public class StandardRebalancingPartition implements RebalancingPartition {
-    private final String SWAP_PARTITION_NAME = "rebalance";
+    private static final Logger logger = LoggerFactory.getLogger(StandardRebalancingPartition.class);
+    private static final String SWAP_PARTITION_NAME = "rebalance";
+
     private final String queueIdentifier;
     private final BlockingSwappablePriorityQueue queue;
     private final LoadBalancedFlowFileQueue flowFileQueue;
@@ -65,6 +70,16 @@ public class StandardRebalancingPartition implements RebalancingPartition {
     @Override
     public QueueSize size() {
         return queue.size();
+    }
+
+    @Override
+    public long getTotalActiveQueuedDuration(long fromTimestamp) {
+        return queue.getTotalQueuedDuration(fromTimestamp);
+    }
+
+    @Override
+    public long getMinLastQueueDate() {
+        return queue.getMinLastQueueDate();
     }
 
     @Override
@@ -116,11 +131,13 @@ public class StandardRebalancingPartition implements RebalancingPartition {
 
     private synchronized void rebalanceFromQueue() {
         if (stopped) {
+            logger.debug("Will not rebalance from queue because {} is stopped", this);
             return;
         }
 
         // If a task is already defined, do nothing. There's already a thread running.
         if (rebalanceTask != null) {
+            logger.debug("Rebalance Task already exists for {}", this);
             return;
         }
 
@@ -129,6 +146,7 @@ public class StandardRebalancingPartition implements RebalancingPartition {
         final Thread rebalanceThread = new Thread(this.rebalanceTask);
         rebalanceThread.setName("Rebalance queued data for Connection " + queueIdentifier);
         rebalanceThread.start();
+        logger.debug("No Rebalance Task currently exists for {}. Starting new Rebalance Thread {}", this, rebalanceThread);
     }
 
     @Override
@@ -137,12 +155,16 @@ public class StandardRebalancingPartition implements RebalancingPartition {
             return;
         }
 
+        logger.debug("Adding {} to Rebalance queue for {}", queueContents, this);
+
         queue.inheritQueueContents(queueContents);
         rebalanceFromQueue();
     }
 
     @Override
     public void rebalance(final Collection<FlowFileRecord> flowFiles) {
+        logger.debug("Adding {} to Rebalance queue for {}", flowFiles, this);
+
         queue.putAll(flowFiles);
         rebalanceFromQueue();
     }
@@ -152,7 +174,7 @@ public class StandardRebalancingPartition implements RebalancingPartition {
         return queue.packageForRebalance(newPartitionName);
     }
 
-    private synchronized boolean complete() {
+    private synchronized boolean isComplete() {
         if (!queue.isEmpty()) {
             return false;
         }
@@ -181,7 +203,7 @@ public class StandardRebalancingPartition implements RebalancingPartition {
                 // Wait up to #pollWaitMillis milliseconds to get a FlowFile. If none, then check if stopped
                 // and if not, poll again.
                 try {
-                    polled = queue.poll(expiredRecords, -1, pollWaitMillis);
+                    polled = queue.poll(expiredRecords, -1, pollWaitMillis, PollStrategy.ALL_FLOWFILES);
                 } catch (final InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     continue;
@@ -190,7 +212,8 @@ public class StandardRebalancingPartition implements RebalancingPartition {
                 if (polled == null) {
                     flowFileQueue.handleExpiredRecords(expiredRecords);
 
-                    if (complete()) {
+                    if (isComplete()) {
+                        logger.debug("Rebalance Task completed for {}", this);
                         return;
                     } else {
                         continue;
@@ -201,10 +224,12 @@ public class StandardRebalancingPartition implements RebalancingPartition {
                 final List<FlowFileRecord> toDistribute = new ArrayList<>();
                 toDistribute.add(polled);
 
-                final List<FlowFileRecord> additionalRecords = queue.poll(999, expiredRecords, -1);
+                final List<FlowFileRecord> additionalRecords = queue.poll(999, expiredRecords, -1, PollStrategy.ALL_FLOWFILES);
                 toDistribute.addAll(additionalRecords);
 
                 flowFileQueue.handleExpiredRecords(expiredRecords);
+
+                logger.debug("{} Rebalancing {}", this, toDistribute);
 
                 // Transfer all of the FlowFiles that we got back to the FlowFileQueue itself. This will cause the data to be
                 // re-partitioned and binned appropriately. We also then need to ensure that we acknowledge the data from our

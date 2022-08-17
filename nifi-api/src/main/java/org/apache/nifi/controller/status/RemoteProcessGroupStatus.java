@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.status;
 
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -28,6 +29,9 @@ public class RemoteProcessGroupStatus implements Cloneable {
     private TransmissionStatus transmissionStatus;
     private String uri;
     private String name;
+    private String comments;
+    private String authorizationIssue;
+    private Date lastRefreshTime;
     private Integer activeThreadCount;
     private int sentCount;
     private long sentContentSize;
@@ -68,6 +72,30 @@ public class RemoteProcessGroupStatus implements Cloneable {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getComments() {
+        return comments;
+    }
+
+    public void setComments(String comments) {
+        this.comments = comments;
+    }
+
+    public String getAuthorizationIssue() {
+        return authorizationIssue;
+    }
+
+    public void setAuthorizationIssue(String authorizationIssue) {
+        this.authorizationIssue = authorizationIssue;
+    }
+
+    public Date getLastRefreshTime() {
+        return lastRefreshTime;
+    }
+
+    public void setLastRefreshTime(Date lastRefreshTime) {
+        this.lastRefreshTime = lastRefreshTime;
     }
 
     public String getId() {
@@ -156,6 +184,9 @@ public class RemoteProcessGroupStatus implements Cloneable {
         clonedObj.id = id;
         clonedObj.groupId = groupId;
         clonedObj.name = name;
+        clonedObj.comments = comments;
+        clonedObj.authorizationIssue = authorizationIssue;
+        clonedObj.lastRefreshTime = lastRefreshTime;
         clonedObj.uri = uri;
         clonedObj.activeThreadCount = activeThreadCount;
         clonedObj.transmissionStatus = transmissionStatus;
@@ -178,6 +209,12 @@ public class RemoteProcessGroupStatus implements Cloneable {
         builder.append(groupId);
         builder.append(", name=");
         builder.append(name);
+        builder.append(", comments=");
+        builder.append(comments);
+        builder.append(", authorizationIssue=");
+        builder.append(authorizationIssue);
+        builder.append(", lastRefreshTime=");
+        builder.append(lastRefreshTime);
         builder.append(", uri=");
         builder.append(uri);
         builder.append(", activeThreadCount=");

@@ -16,10 +16,16 @@
  */
 package org.apache.nifi.processors.hadoop;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.base.Throwables;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CreateFlag;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.AclEntryScope;
+import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.fs.permission.FsCreateModes;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -34,6 +40,8 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -52,14 +60,14 @@ import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 import org.ietf.jgss.GSSException;
 
-import com.google.common.base.Throwables;
-
 import java.io.BufferedInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.security.PrivilegedAction;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -80,7 +88,8 @@ import java.util.stream.Stream;
 @ReadsAttribute(attribute = "filename", description = "The name of the file written to HDFS comes from the value of this attribute.")
 @WritesAttributes({
         @WritesAttribute(attribute = "filename", description = "The name of the file written to HDFS is stored in this attribute."),
-        @WritesAttribute(attribute = "absolute.hdfs.path", description = "The absolute path to the file on HDFS is stored in this attribute.")
+        @WritesAttribute(attribute = "absolute.hdfs.path", description = "The absolute path to the file on HDFS is stored in this attribute."),
+        @WritesAttribute(attribute = "target.dir.created", description = "The result(true/false) indicates if the folder is created by the processor.")
 })
 @SeeAlso(GetHDFS.class)
 @Restricted(restrictions = {
@@ -90,24 +99,15 @@ import java.util.stream.Stream;
 })
 public class PutHDFS extends AbstractHadoopProcessor {
 
-    public static final String REPLACE_RESOLUTION = "replace";
-    public static final String IGNORE_RESOLUTION = "ignore";
-    public static final String FAIL_RESOLUTION = "fail";
-    public static final String APPEND_RESOLUTION = "append";
+    protected static final String BUFFER_SIZE_KEY = "io.file.buffer.size";
+    protected static final int BUFFER_SIZE_DEFAULT = 4096;
 
-    public static final AllowableValue REPLACE_RESOLUTION_AV = new AllowableValue(REPLACE_RESOLUTION,
-            REPLACE_RESOLUTION, "Replaces the existing file if any.");
-    public static final AllowableValue IGNORE_RESOLUTION_AV = new AllowableValue(IGNORE_RESOLUTION, IGNORE_RESOLUTION,
-            "Ignores the flow file and routes it to success.");
-    public static final AllowableValue FAIL_RESOLUTION_AV = new AllowableValue(FAIL_RESOLUTION, FAIL_RESOLUTION,
-            "Penalizes the flow file and routes it to failure.");
-    public static final AllowableValue APPEND_RESOLUTION_AV = new AllowableValue(APPEND_RESOLUTION, APPEND_RESOLUTION,
-            "Appends to the existing file if any, creates a new file otherwise.");
+    // state
 
-    public static final String BUFFER_SIZE_KEY = "io.file.buffer.size";
-    public static final int BUFFER_SIZE_DEFAULT = 4096;
+    private Cache<Path, AclStatus> aclCache;
 
     // relationships
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Files that have been successfully written to HDFS are transferred to this relationship")
@@ -115,18 +115,48 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description(
-                    "Files that could not be written to HDFS for some reason are transferred to this relationship")
+            .description("Files that could not be written to HDFS for some reason are transferred to this relationship")
             .build();
 
     // properties
 
-    public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
+    protected static final String REPLACE_RESOLUTION = "replace";
+    protected static final String IGNORE_RESOLUTION = "ignore";
+    protected static final String FAIL_RESOLUTION = "fail";
+    protected static final String APPEND_RESOLUTION = "append";
+
+    protected static final String WRITE_AND_RENAME = "writeAndRename";
+    protected static final String SIMPLE_WRITE = "simpleWrite";
+
+    protected static final AllowableValue REPLACE_RESOLUTION_AV = new AllowableValue(REPLACE_RESOLUTION,
+            REPLACE_RESOLUTION, "Replaces the existing file if any.");
+    protected static final AllowableValue IGNORE_RESOLUTION_AV = new AllowableValue(IGNORE_RESOLUTION, IGNORE_RESOLUTION,
+            "Ignores the flow file and routes it to success.");
+    protected static final AllowableValue FAIL_RESOLUTION_AV = new AllowableValue(FAIL_RESOLUTION, FAIL_RESOLUTION,
+            "Penalizes the flow file and routes it to failure.");
+    protected static final AllowableValue APPEND_RESOLUTION_AV = new AllowableValue(APPEND_RESOLUTION, APPEND_RESOLUTION,
+            "Appends to the existing file if any, creates a new file otherwise.");
+
+    protected static final AllowableValue WRITE_AND_RENAME_AV = new AllowableValue(WRITE_AND_RENAME, "Write and rename",
+            "The processor writes FlowFile data into a temporary file and renames it after completion. This prevents other processes from reading partially written files.");
+    protected static final AllowableValue SIMPLE_WRITE_AV = new AllowableValue(SIMPLE_WRITE, "Simple write",
+            "The processor writes FlowFile data directly to the destination file. In some cases this might cause reading partially written files.");
+
+    protected static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
             .name("Conflict Resolution Strategy")
             .description("Indicates what should happen when a file with the same name already exists in the output directory")
             .required(true)
-.defaultValue(FAIL_RESOLUTION_AV.getValue())
+            .defaultValue(FAIL_RESOLUTION_AV.getValue())
             .allowableValues(REPLACE_RESOLUTION_AV, IGNORE_RESOLUTION_AV, FAIL_RESOLUTION_AV, APPEND_RESOLUTION_AV)
+            .build();
+
+    protected static final PropertyDescriptor WRITING_STRATEGY = new PropertyDescriptor.Builder()
+            .name("writing-strategy")
+            .displayName("Writing Strategy")
+            .description("Defines the approach for writing the FlowFile data.")
+            .required(true)
+            .defaultValue(WRITE_AND_RENAME_AV.getValue())
+            .allowableValues(WRITE_AND_RENAME_AV, SIMPLE_WRITE_AV)
             .build();
 
     public static final PropertyDescriptor BLOCK_SIZE = new PropertyDescriptor.Builder()
@@ -152,7 +182,8 @@ public class PutHDFS extends AbstractHadoopProcessor {
             .description(
                    "A umask represented as an octal number which determines the permissions of files written to HDFS. " +
                            "This overrides the Hadoop property \"fs.permissions.umask-mode\".  " +
-                           "If this property and \"fs.permissions.umask-mode\" are undefined, the Hadoop default \"022\" will be used.")
+                           "If this property and \"fs.permissions.umask-mode\" are undefined, the Hadoop default \"022\" will be used.  "+
+                           "If the PutHDFS target folder has a default ACL defined, the umask property is ignored by HDFS.")
             .addValidator(HadoopValidators.UMASK_VALIDATOR)
             .build();
 
@@ -205,6 +236,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                 .description("The parent HDFS directory to which files should be written. The directory will be created if it doesn't exist.")
                 .build());
         props.add(CONFLICT_RESOLUTION);
+        props.add(WRITING_STRATEGY);
         props.add(BLOCK_SIZE);
         props.add(BUFFER_SIZE);
         props.add(REPLICATION_FACTOR);
@@ -229,6 +261,21 @@ public class PutHDFS extends AbstractHadoopProcessor {
         FsPermission.setUMask(config, new FsPermission(dfsUmask));
     }
 
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        aclCache = Caffeine.newBuilder()
+                .maximumSize(20L)
+                .expireAfterWrite(Duration.ofHours(1))
+                .build();
+    }
+
+    @OnStopped
+    public void onStopped() {
+        if (aclCache != null) { // aclCache may be null if the parent class's @OnScheduled method failed
+            aclCache.invalidateAll();
+        }
+    }
+
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         final FlowFile flowFile = session.get();
@@ -242,7 +289,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
         if (configuration == null || hdfs == null || ugi == null) {
             getLogger().error("HDFS not configured properly");
-            session.transfer(flowFile, REL_FAILURE);
+            session.transfer(flowFile, getFailureRelationship());
             context.yield();
             return;
         }
@@ -253,20 +300,12 @@ public class PutHDFS extends AbstractHadoopProcessor {
                 Path tempDotCopyFile = null;
                 FlowFile putFlowFile = flowFile;
                 try {
-                    final String dirValue = context.getProperty(DIRECTORY).evaluateAttributeExpressions(putFlowFile).getValue();
-                    final Path configuredRootDirPath = new Path(dirValue);
-
+                    final String writingStrategy = context.getProperty(WRITING_STRATEGY).getValue();
+                    final Path dirPath = getNormalizedPath(context, DIRECTORY, putFlowFile);
                     final String conflictResponse = context.getProperty(CONFLICT_RESOLUTION).getValue();
-
-                    final Double blockSizeProp = context.getProperty(BLOCK_SIZE).asDataSize(DataUnit.B);
-                    final long blockSize = blockSizeProp != null ? blockSizeProp.longValue() : hdfs.getDefaultBlockSize(configuredRootDirPath);
-
-                    final Double bufferSizeProp = context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B);
-                    final int bufferSize = bufferSizeProp != null ? bufferSizeProp.intValue() : configuration.getInt(BUFFER_SIZE_KEY, BUFFER_SIZE_DEFAULT);
-
-                    final Integer replicationProp = context.getProperty(REPLICATION_FACTOR).asInteger();
-                    final short replication = replicationProp != null ? replicationProp.shortValue() : hdfs
-                            .getDefaultReplication(configuredRootDirPath);
+                    final long blockSize = getBlockSize(context, session, putFlowFile, dirPath);
+                    final int bufferSize = getBufferSize(context, session, putFlowFile);
+                    final short replication = getReplication(context, session, putFlowFile, dirPath);
 
                     final CompressionCodec codec = getCompressionCodec(context, configuration);
 
@@ -274,19 +313,34 @@ public class PutHDFS extends AbstractHadoopProcessor {
                             ? putFlowFile.getAttribute(CoreAttributes.FILENAME.key()) + codec.getDefaultExtension()
                             : putFlowFile.getAttribute(CoreAttributes.FILENAME.key());
 
-                    final Path tempCopyFile = new Path(configuredRootDirPath, "." + filename);
-                    final Path copyFile = new Path(configuredRootDirPath, filename);
+                    final Path tempCopyFile = new Path(dirPath, "." + filename);
+                    final Path copyFile = new Path(dirPath, filename);
+
+                    // Depending on the writing strategy, we might need a temporary file
+                    final Path actualCopyFile = (writingStrategy.equals(WRITE_AND_RENAME))
+                            ? tempCopyFile
+                            : copyFile;
 
                     // Create destination directory if it does not exist
+                    boolean targetDirCreated = false;
                     try {
-                        if (!hdfs.getFileStatus(configuredRootDirPath).isDirectory()) {
-                            throw new IOException(configuredRootDirPath.toString() + " already exists and is not a directory");
+                        final FileStatus fileStatus = hdfs.getFileStatus(dirPath);
+                        if (!fileStatus.isDirectory()) {
+                            throw new IOException(dirPath.toString() + " already exists and is not a directory");
+                        }
+                        if (fileStatus.hasAcl()) {
+                            checkAclStatus(getAclStatus(dirPath));
                         }
                     } catch (FileNotFoundException fe) {
-                        if (!hdfs.mkdirs(configuredRootDirPath)) {
-                            throw new IOException(configuredRootDirPath.toString() + " could not be created");
+                        targetDirCreated = hdfs.mkdirs(dirPath);
+                        if (!targetDirCreated) {
+                            throw new IOException(dirPath.toString() + " could not be created");
                         }
-                        changeOwner(context, hdfs, configuredRootDirPath, flowFile);
+                        final FileStatus fileStatus = hdfs.getFileStatus(dirPath);
+                        if (fileStatus.hasAcl()) {
+                            checkAclStatus(getAclStatus(dirPath));
+                        }
+                        changeOwner(context, hdfs, dirPath, flowFile);
                     }
 
                     final boolean destinationExists = hdfs.exists(copyFile);
@@ -294,19 +348,19 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     // If destination file already exists, resolve that based on processor configuration
                     if (destinationExists) {
                         switch (conflictResponse) {
-                        case REPLACE_RESOLUTION:
+                            case REPLACE_RESOLUTION:
                                 if (hdfs.delete(copyFile, false)) {
                                     getLogger().info("deleted {} in order to replace with the contents of {}",
                                             new Object[]{copyFile, putFlowFile});
                                 }
                                 break;
-                        case IGNORE_RESOLUTION:
-                                session.transfer(putFlowFile, REL_SUCCESS);
+                            case IGNORE_RESOLUTION:
+                                session.transfer(putFlowFile, getSuccessRelationship());
                                 getLogger().info("transferring {} to success because file with same name already exists",
                                         new Object[]{putFlowFile});
                                 return null;
-                        case FAIL_RESOLUTION:
-                                session.transfer(session.penalize(putFlowFile), REL_FAILURE);
+                            case FAIL_RESOLUTION:
+                                session.transfer(session.penalize(putFlowFile), getFailureRelationship());
                                 getLogger().warn("penalizing {} and routing to failure because file with same name already exists",
                                         new Object[]{putFlowFile});
                                 return null;
@@ -324,25 +378,24 @@ public class PutHDFS extends AbstractHadoopProcessor {
                             OutputStream fos = null;
                             Path createdFile = null;
                             try {
-                                if (conflictResponse.equals(APPEND_RESOLUTION_AV.getValue()) && destinationExists) {
+                                if (conflictResponse.equals(APPEND_RESOLUTION) && destinationExists) {
                                     fos = hdfs.append(copyFile, bufferSize);
                                 } else {
-                                  final EnumSet<CreateFlag> cflags = EnumSet.of(CreateFlag.CREATE, CreateFlag.OVERWRITE);
+                                    final EnumSet<CreateFlag> cflags = EnumSet.of(CreateFlag.CREATE, CreateFlag.OVERWRITE);
 
-                                  final Boolean ignoreLocality = context.getProperty(IGNORE_LOCALITY).asBoolean();
-                                  if (ignoreLocality) {
-                                    cflags.add(CreateFlag.IGNORE_CLIENT_LOCALITY);
-                                  }
+                                    if (shouldIgnoreLocality(context, session)) {
+                                        cflags.add(CreateFlag.IGNORE_CLIENT_LOCALITY);
+                                    }
 
-                                  fos = hdfs.create(tempCopyFile, FsCreateModes.applyUMask(FsPermission.getFileDefault(),
-                                      FsPermission.getUMask(hdfs.getConf())), cflags, bufferSize, replication, blockSize,
-                                      null, null);
+                                    fos = hdfs.create(actualCopyFile, FsCreateModes.applyUMask(FsPermission.getFileDefault(),
+                                            FsPermission.getUMask(hdfs.getConf())), cflags, bufferSize, replication, blockSize,
+                                            null, null);
                                 }
 
                                 if (codec != null) {
                                     fos = codec.createOutputStream(fos);
                                 }
-                                createdFile = tempCopyFile;
+                                createdFile = actualCopyFile;
                                 BufferedInputStream bis = new BufferedInputStream(in);
                                 StreamUtils.copy(bis, fos);
                                 bis = null;
@@ -372,9 +425,12 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
                     tempDotCopyFile = tempCopyFile;
 
-                    if (!conflictResponse.equals(APPEND_RESOLUTION_AV.getValue())
-                            || (conflictResponse.equals(APPEND_RESOLUTION_AV.getValue()) && !destinationExists)) {
+                    if  (
+                        writingStrategy.equals(WRITE_AND_RENAME)
+                        && (!conflictResponse.equals(APPEND_RESOLUTION) || (conflictResponse.equals(APPEND_RESOLUTION) && !destinationExists))
+                    ) {
                         boolean renamed = false;
+
                         for (int i = 0; i < 10; i++) { // try to rename multiple times.
                             if (hdfs.rename(tempCopyFile, copyFile)) {
                                 renamed = true;
@@ -398,22 +454,23 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     final String hdfsPath = copyFile.getParent().toString();
                     putFlowFile = session.putAttribute(putFlowFile, CoreAttributes.FILENAME.key(), newFilename);
                     putFlowFile = session.putAttribute(putFlowFile, ABSOLUTE_HDFS_PATH_ATTRIBUTE, hdfsPath);
+                    putFlowFile = session.putAttribute(putFlowFile, TARGET_HDFS_DIR_CREATED_ATTRIBUTE, String.valueOf(targetDirCreated));
                     final Path qualifiedPath = copyFile.makeQualified(hdfs.getUri(), hdfs.getWorkingDirectory());
                     session.getProvenanceReporter().send(putFlowFile, qualifiedPath.toString());
 
-                    session.transfer(putFlowFile, REL_SUCCESS);
+                    session.transfer(putFlowFile, getSuccessRelationship());
 
                 } catch (final IOException e) {
-                  Optional<GSSException> causeOptional = findCause(e, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
-                  if (causeOptional.isPresent()) {
-                    getLogger().warn("An error occurred while connecting to HDFS. "
-                        + "Rolling back session, and penalizing flow file {}",
-                         new Object[] {putFlowFile.getAttribute(CoreAttributes.UUID.key()), causeOptional.get()});
-                    session.rollback(true);
-                  } else {
-                    getLogger().error("Failed to access HDFS due to {}", new Object[]{e});
-                    session.transfer(putFlowFile, REL_FAILURE);
-                  }
+                    Optional<GSSException> causeOptional = findCause(e, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
+                    if (causeOptional.isPresent()) {
+                        getLogger().warn("An error occurred while connecting to HDFS. "
+                                        + "Rolling back session, and penalizing flow file {}",
+                                new Object[] {putFlowFile.getAttribute(CoreAttributes.UUID.key()), causeOptional.get()});
+                        session.rollback(true);
+                    } else {
+                        getLogger().error("Failed to access HDFS due to {}", new Object[]{e});
+                        session.transfer(putFlowFile, getFailureRelationship());
+                    }
                 } catch (final Throwable t) {
                     if (tempDotCopyFile != null) {
                         try {
@@ -423,39 +480,92 @@ public class PutHDFS extends AbstractHadoopProcessor {
                         }
                     }
                     getLogger().error("Failed to write to HDFS due to {}", new Object[]{t});
-                    session.transfer(session.penalize(putFlowFile), REL_FAILURE);
+                    session.transfer(session.penalize(putFlowFile), getFailureRelationship());
                     context.yield();
                 }
 
                 return null;
             }
+
+            private void checkAclStatus(final AclStatus aclStatus) throws IOException {
+                final boolean isDefaultACL = aclStatus.getEntries().stream().anyMatch(
+                        aclEntry -> AclEntryScope.DEFAULT.equals(aclEntry.getScope()));
+                final boolean isSetUmask = context.getProperty(UMASK).isSet();
+                if (isDefaultACL && isSetUmask) {
+                    throw new IOException("PutHDFS umask setting is ignored by HDFS when HDFS default ACL is set.");
+                }
+            }
+
+            private AclStatus getAclStatus(final Path dirPath) {
+                return aclCache.get(dirPath, fn -> {
+                    try {
+                        return hdfs.getAclStatus(dirPath);
+                    } catch (final IOException e) {
+                        throw new UncheckedIOException(String.format("Unable to query ACL for directory [%s]", dirPath), e);
+                    }
+                });
+            }
         });
     }
 
+    protected Relationship getSuccessRelationship() {
+        return REL_SUCCESS;
+    }
+
+    protected Relationship getFailureRelationship() {
+        return REL_FAILURE;
+    }
+
+    protected long getBlockSize(final ProcessContext context, final ProcessSession session, final FlowFile flowFile, Path dirPath) {
+        final Double blockSizeProp = context.getProperty(BLOCK_SIZE).asDataSize(DataUnit.B);
+        return blockSizeProp != null ? blockSizeProp.longValue() : getFileSystem().getDefaultBlockSize(dirPath);
+    }
+
+    protected int getBufferSize(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {
+        final Double bufferSizeProp = context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B);
+        return bufferSizeProp != null ? bufferSizeProp.intValue() : getConfiguration().getInt(BUFFER_SIZE_KEY, BUFFER_SIZE_DEFAULT);
+    }
+
+    protected short getReplication(final ProcessContext context, final ProcessSession session, final FlowFile flowFile, Path dirPath) {
+        final Integer replicationProp = context.getProperty(REPLICATION_FACTOR).asInteger();
+        return replicationProp != null ? replicationProp.shortValue() : getFileSystem()
+                .getDefaultReplication(dirPath);
+    }
+
+    protected boolean shouldIgnoreLocality(final ProcessContext context, final ProcessSession session) {
+        return context.getProperty(IGNORE_LOCALITY).asBoolean();
+    }
+
+    protected String getOwner(final ProcessContext context, final FlowFile flowFile) {
+        final String owner = context.getProperty(REMOTE_OWNER).evaluateAttributeExpressions(flowFile).getValue();
+        return owner == null || owner.isEmpty() ? null : owner;
+    }
+
+    protected String getGroup(final ProcessContext context, final FlowFile flowFile) {
+        final String group = context.getProperty(REMOTE_GROUP).evaluateAttributeExpressions(flowFile).getValue();
+        return group == null || group.isEmpty() ? null : group;
+    }
 
     /**
      * Returns an optional with the first throwable in the causal chain that is assignable to the provided cause type,
      * and satisfies the provided cause predicate, {@link Optional#empty()} otherwise.
      * @param t The throwable to inspect for the cause.
-     * @return
+     * @return Throwable Cause
      */
     private <T extends Throwable> Optional<T> findCause(Throwable t, Class<T> expectedCauseType, Predicate<T> causePredicate) {
-       Stream<Throwable> causalChain = Throwables.getCausalChain(t).stream();
-       return causalChain
-               .filter(expectedCauseType::isInstance)
-               .map(expectedCauseType::cast)
-               .filter(causePredicate)
-               .findFirst();
+        Stream<Throwable> causalChain = Throwables.getCausalChain(t).stream();
+        return causalChain
+                .filter(expectedCauseType::isInstance)
+                .map(expectedCauseType::cast)
+                .filter(causePredicate)
+                .findFirst();
     }
 
     protected void changeOwner(final ProcessContext context, final FileSystem hdfs, final Path name, final FlowFile flowFile) {
         try {
             // Change owner and group of file if configured to do so
-            String owner = context.getProperty(REMOTE_OWNER).evaluateAttributeExpressions(flowFile).getValue();
-            String group = context.getProperty(REMOTE_GROUP).evaluateAttributeExpressions(flowFile).getValue();
-
-            owner = owner == null || owner.isEmpty() ? null : owner;
-            group = group == null || group.isEmpty() ? null : group;
+            final String owner = getOwner(context, flowFile);
+            final String group = getGroup(context, flowFile);
 
             if (owner != null || group != null) {
                 hdfs.setOwner(name, owner, group);
@@ -464,5 +574,4 @@ public class PutHDFS extends AbstractHadoopProcessor {
             getLogger().warn("Could not change owner or group of {} on HDFS due to {}", new Object[]{name, e});
         }
     }
-
 }

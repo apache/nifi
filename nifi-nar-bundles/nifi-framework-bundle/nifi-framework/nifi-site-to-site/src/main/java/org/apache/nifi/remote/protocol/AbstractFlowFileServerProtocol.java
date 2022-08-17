@@ -150,7 +150,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
         this.port = (PublicPort) receivedPort;
         final PortAuthorizationResult portAuthResult = this.port.checkUserAuthorization(peer.getCommunicationsSession().getUserDn());
         if (!portAuthResult.isAuthorized()) {
-            logger.debug("Responding with ResponseCode UNAUTHORIZED: ", portAuthResult.getExplanation());
+            logger.debug("Responding with ResponseCode UNAUTHORIZED: {}", portAuthResult.getExplanation());
             throw new HandshakeException(ResponseCode.UNAUTHORIZED, portAuthResult.getExplanation());
         }
 
@@ -375,7 +375,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             throw new ProtocolException("After sending data, expected TRANSACTION_FINISHED response but got " + transactionResponse);
         }
 
-        session.commit();
+        session.commitAsync();
 
         StopWatch stopWatch = transaction.getStopWatch();
         long bytesSent = transaction.getBytesSent();

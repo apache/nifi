@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.web.api;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeAccess;
@@ -50,16 +50,25 @@ import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.security.cookie.ApplicationCookieName;
+import org.apache.nifi.web.security.cookie.ApplicationCookieService;
+import org.apache.nifi.web.security.cookie.StandardApplicationCookieService;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ComponentEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.util.CacheKey;
+import org.apache.nifi.web.util.RequestUriBuilder;
 import org.apache.nifi.web.util.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.CacheControl;
@@ -70,10 +79,8 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriBuilderException;
 import javax.ws.rs.core.UriInfo;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -92,12 +99,12 @@ import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
-import static org.apache.nifi.web.util.WebUtils.PROXY_SCHEME_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.PROXY_HOST_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.PROXY_PORT_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.FORWARDED_PROTO_HTTP_HEADER;
 import static org.apache.nifi.web.util.WebUtils.FORWARDED_HOST_HTTP_HEADER;
 import static org.apache.nifi.web.util.WebUtils.FORWARDED_PORT_HTTP_HEADER;
+import static org.apache.nifi.web.util.WebUtils.FORWARDED_PROTO_HTTP_HEADER;
+import static org.apache.nifi.web.util.WebUtils.PROXY_HOST_HTTP_HEADER;
+import static org.apache.nifi.web.util.WebUtils.PROXY_PORT_HTTP_HEADER;
+import static org.apache.nifi.web.util.WebUtils.PROXY_SCHEME_HTTP_HEADER;
 
 /**
  * Base class for controllers.
@@ -107,10 +114,14 @@ public abstract class ApplicationResource {
     public static final String VERSION = "version";
     public static final String CLIENT_ID = "clientId";
     public static final String DISCONNECTED_NODE_ACKNOWLEDGED = "disconnectedNodeAcknowledged";
+    static final String LOGIN_ERROR_TITLE = "Unable to continue login sequence";
+    static final String LOGOUT_ERROR_TITLE = "Unable to continue logout sequence";
 
     protected static final String NON_GUARANTEED_ENDPOINT = "Note: This endpoint is subject to change as NiFi and it's REST API evolve.";
 
     private static final Logger logger = LoggerFactory.getLogger(ApplicationResource.class);
+
+    private static final String ROOT_PATH = "/";
 
     public static final String NODEWISE = "false";
 
@@ -120,13 +131,31 @@ public abstract class ApplicationResource {
     @Context
     protected UriInfo uriInfo;
 
+    protected ApplicationCookieService applicationCookieService = new StandardApplicationCookieService();
     protected NiFiProperties properties;
     private RequestReplicator requestReplicator;
     private ClusterCoordinator clusterCoordinator;
     private FlowController flowController;
 
     private static final int MAX_CACHE_SOFT_LIMIT = 500;
-    private final Cache<CacheKey, Request<? extends Entity>> twoPhaseCommitCache = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
+    private final Cache<CacheKey, Request<? extends Entity>> twoPhaseCommitCache = Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
+
+    protected void forwardToLoginMessagePage(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse, final String message) throws Exception {
+        forwardToMessagePage(httpServletRequest, httpServletResponse, LOGIN_ERROR_TITLE, message);
+    }
+
+    protected void forwardToLogoutMessagePage(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse, final String message) throws Exception {
+        forwardToMessagePage(httpServletRequest, httpServletResponse, LOGOUT_ERROR_TITLE, message);
+    }
+
+    protected void forwardToMessagePage(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse,
+                                      final String title, final String message) throws Exception {
+        httpServletRequest.setAttribute("title", title);
+        httpServletRequest.setAttribute("messages", message);
+
+        final ServletContext uiContext = httpServletRequest.getServletContext().getContext("/nifi");
+        uiContext.getRequestDispatcher("/WEB-INF/pages/message-page.jsp").forward(httpServletRequest, httpServletResponse);
+    }
 
     /**
      * Generate a resource uri based off of the specified parameters.
@@ -139,53 +168,25 @@ public abstract class ApplicationResource {
         return uri.toString();
     }
 
+    /**
+     * Get Resource URI used for Cookie Domain and Path properties
+     *
+     * @return Cookie Resource URI
+     */
+    protected URI getCookieResourceUri() {
+        final UriBuilder uriBuilder = uriInfo.getBaseUriBuilder();
+        return buildResourceUri(uriBuilder.replacePath(ROOT_PATH).build());
+    }
+
     private URI buildResourceUri(final String... path) {
         final UriBuilder uriBuilder = uriInfo.getBaseUriBuilder();
-        uriBuilder.segment(path);
-        URI uri = uriBuilder.build();
-        try {
+        return buildResourceUri(uriBuilder.segment(path).build());
+    }
 
-            // check for proxy settings
-
-            final String scheme = getFirstHeaderValue(PROXY_SCHEME_HTTP_HEADER, FORWARDED_PROTO_HTTP_HEADER);
-            final String hostHeaderValue = getFirstHeaderValue(PROXY_HOST_HTTP_HEADER, FORWARDED_HOST_HTTP_HEADER);
-            final String portHeaderValue = getFirstHeaderValue(PROXY_PORT_HTTP_HEADER, FORWARDED_PORT_HTTP_HEADER);
-
-            final String host = WebUtils.determineProxiedHost(hostHeaderValue);
-            final String port = WebUtils.determineProxiedPort(hostHeaderValue, portHeaderValue);
-
-            // Catch header poisoning
-            String allowedContextPaths = properties.getAllowedContextPaths();
-            String resourcePath = WebUtils.getResourcePath(uri, httpServletRequest, allowedContextPaths);
-
-            // determine the port uri
-            int uriPort = uri.getPort();
-            if (port != null) {
-                if (StringUtils.isWhitespace(port)) {
-                    uriPort = -1;
-                } else {
-                    try {
-                        uriPort = Integer.parseInt(port);
-                    } catch (final NumberFormatException nfe) {
-                        logger.warn(String.format("Unable to parse proxy port HTTP header '%s'. Using port from request URI '%s'.", port, uriPort));
-                    }
-                }
-            }
-
-            // construct the URI
-            uri = new URI(
-                    (StringUtils.isBlank(scheme)) ? uri.getScheme() : scheme,
-                    uri.getUserInfo(),
-                    (StringUtils.isBlank(host)) ? uri.getHost() : host,
-                    uriPort,
-                    resourcePath,
-                    uri.getQuery(),
-                    uri.getFragment());
-
-        } catch (final URISyntaxException use) {
-            throw new UriBuilderException(use);
-        }
-        return uri;
+    private URI buildResourceUri(final URI uri) {
+        final RequestUriBuilder builder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest, properties.getAllowedContextPathsAsList());
+        builder.path(uri.getPath());
+        return builder.build();
     }
 
     /**
@@ -289,7 +290,7 @@ public abstract class ApplicationResource {
     }
 
     protected MultivaluedMap<String, String> getRequestParameters() {
-        final MultivaluedMap<String, String> entity = new MultivaluedHashMap();
+        final MultivaluedMap<String, String> entity = new MultivaluedHashMap<>();
 
         for (final Map.Entry<String, String[]> entry : httpServletRequest.getParameterMap().entrySet()) {
             if (entry.getValue() == null) {
@@ -305,7 +306,7 @@ public abstract class ApplicationResource {
     }
 
     protected Map<String, String> getHeaders() {
-        return getHeaders(new HashMap<String, String>());
+        return getHeaders(new HashMap<>());
     }
 
     protected Map<String, String> getHeaders(final Map<String, String> overriddenHeaders) {
@@ -721,7 +722,7 @@ public abstract class ApplicationResource {
     }
 
     private <T extends Entity> void phaseOneStoreTransaction(final T requestEntity, final Revision revision, final Set<Revision> revisions) {
-        if (twoPhaseCommitCache.size() > MAX_CACHE_SOFT_LIMIT) {
+        if (twoPhaseCommitCache.estimatedSize() > MAX_CACHE_SOFT_LIMIT) {
             throw new IllegalStateException("The maximum number of requests are in progress.");
         }
 
@@ -793,7 +794,7 @@ public abstract class ApplicationResource {
         }
     }
 
-    private final class Request<T extends Entity> {
+    private static final class Request<T extends Entity> {
         final String userChain;
         final String uri;
         final Revision revision;
@@ -1256,5 +1257,52 @@ public abstract class ApplicationResource {
                     .entity(entity).build();
         }
 
+    }
+
+    /**
+     * Set Bearer Token as HTTP Session Cookie using standard Cookie Name
+     *
+     * @param response HTTP Servlet Response
+     * @param bearerToken JSON Web Token
+     */
+    protected void setBearerToken(final HttpServletResponse response, final String bearerToken) {
+        applicationCookieService.addSessionCookie(getCookieResourceUri(), response, ApplicationCookieName.AUTHORIZATION_BEARER, bearerToken);
+    }
+
+    protected String getNiFiUri() {
+        final String nifiApiUrl = generateResourceUri();
+        final String baseUrl = StringUtils.substringBeforeLast(nifiApiUrl, "/nifi-api");
+        // Note: if the URL does not end with a / then Jetty will end up doing a redirect which can cause
+        // a problem when being behind a proxy b/c Jetty's redirect doesn't consider proxy headers
+        return baseUrl + "/nifi/";
+    }
+
+    protected void stripNonUiRelevantFields(final ControllerServiceEntity serviceEntity) {
+        final ControllerServiceDTO dto = serviceEntity.getComponent();
+        if (dto == null) {
+            return;
+        }
+
+        final Set<ControllerServiceReferencingComponentEntity> referencingEntities = dto.getReferencingComponents();
+        if (referencingEntities == null) {
+            return;
+        }
+
+        referencingEntities.forEach(this::stripNonUiRelevantFields);
+    }
+
+    protected void stripNonUiRelevantFields(final ControllerServiceReferencingComponentEntity entity) {
+        final ControllerServiceReferencingComponentDTO dto = entity.getComponent();
+        if (dto == null) {
+            return;
+        }
+
+        dto.setDescriptors(null);
+        dto.setProperties(null);
+
+        final Set<ControllerServiceReferencingComponentEntity> referencingEntities = dto.getReferencingComponents();
+        if (referencingEntities != null) {
+            referencingEntities.forEach(this::stripNonUiRelevantFields);
+        }
     }
 }

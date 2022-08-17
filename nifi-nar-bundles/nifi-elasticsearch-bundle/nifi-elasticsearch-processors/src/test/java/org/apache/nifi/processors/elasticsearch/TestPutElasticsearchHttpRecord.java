@@ -25,23 +25,19 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okio.Buffer;
-import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.schema.access.SchemaAccessUtils;
-import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -49,25 +45,42 @@ import java.net.ConnectException;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestPutElasticsearchHttpRecord {
+    private static final int DATE_YEAR = 2018;
+    private static final int DATE_MONTH = 12;
+    private static final int DATE_DAY = 20;
+    private static final int TIME_HOUR = 12;
+    private static final int TIME_MINUTE = 55;
+
+    private static final String ISO_DATE = String.format("%d-%d-%d", DATE_YEAR, DATE_MONTH, DATE_DAY);
+    private static final String EXPECTED_DATE = String.format("%d/%d/%d", DATE_DAY, DATE_MONTH, DATE_YEAR);
+    private static final LocalDateTime LOCAL_DATE_TIME = LocalDateTime.of(DATE_YEAR, DATE_MONTH, DATE_DAY, TIME_HOUR, TIME_MINUTE);
+    private static final LocalDate LOCAL_DATE = LocalDate.of(DATE_YEAR, DATE_MONTH, DATE_DAY);
+    private static final LocalTime LOCAL_TIME = LocalTime.of(TIME_HOUR, TIME_MINUTE);
+
     private TestRunner runner;
 
-    @After
+    @AfterEach
     public void teardown() {
         runner = null;
     }
@@ -76,35 +89,35 @@ public class TestPutElasticsearchHttpRecord {
     public void testPutElasticSearchOnTriggerIndex() throws IOException {
         PutElasticsearchHttpRecordTestProcessor processor = new PutElasticsearchHttpRecordTestProcessor(false);
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("h:m a");
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("d/M/YYYY h:m a");
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("d/M/yyyy h:m a");
         processor.setRecordChecks(record -> {
             assertEquals(1, record.get("id"));
             assertEquals("reç1", record.get("name"));
             assertEquals(101, record.get("code"));
-            assertEquals("20/12/2018", record.get("date"));
-            assertEquals(LocalTime.of(18, 55).format(timeFormatter), record.get("time"));
-            assertEquals(LocalDateTime.of(2018, 12, 20, 18, 55).format(dateTimeFormatter), record.get("ts"));
+            assertEquals(EXPECTED_DATE, record.get("date"));
+            assertEquals(LOCAL_TIME.format(timeFormatter), record.get("time"));
+            assertEquals(LOCAL_DATE_TIME.format(dateTimeFormatter), record.get("ts"));
         }, record -> {
             assertEquals(2, record.get("id"));
             assertEquals("reç2", record.get("name"));
             assertEquals(102, record.get("code"));
-            assertEquals("20/12/2018", record.get("date"));
-            assertEquals(LocalTime.of(18, 55).format(timeFormatter), record.get("time"));
-            assertEquals(LocalDateTime.of(2018, 12, 20, 18, 55).format(dateTimeFormatter), record.get("ts"));
+            assertEquals(EXPECTED_DATE, record.get("date"));
+            assertEquals(LOCAL_TIME.format(timeFormatter), record.get("time"));
+            assertEquals(LOCAL_DATE_TIME.format(dateTimeFormatter), record.get("ts"));
         }, record -> {
             assertEquals(3, record.get("id"));
             assertEquals("reç3", record.get("name"));
             assertEquals(103, record.get("code"));
-            assertEquals("20/12/2018", record.get("date"));
-            assertEquals(LocalTime.of(18, 55).format(timeFormatter), record.get("time"));
-            assertEquals(LocalDateTime.of(2018, 12, 20, 18, 55).format(dateTimeFormatter), record.get("ts"));
+            assertEquals(EXPECTED_DATE, record.get("date"));
+            assertEquals(LOCAL_TIME.format(timeFormatter), record.get("time"));
+            assertEquals(LOCAL_DATE_TIME.format(dateTimeFormatter), record.get("ts"));
         }, record -> {
             assertEquals(4, record.get("id"));
             assertEquals("reç4", record.get("name"));
             assertEquals(104, record.get("code"));
-            assertEquals("20/12/2018", record.get("date"));
-            assertEquals(LocalTime.of(18, 55).format(timeFormatter), record.get("time"));
-            assertEquals(LocalDateTime.of(2018, 12, 20, 18, 55).format(dateTimeFormatter), record.get("ts"));
+            assertEquals(EXPECTED_DATE, record.get("date"));
+            assertEquals(LOCAL_TIME.format(timeFormatter), record.get("time"));
+            assertEquals(LOCAL_DATE_TIME.format(dateTimeFormatter), record.get("ts"));
         });
         runner = TestRunners.newTestRunner(processor); // no failures
         generateTestData();
@@ -117,9 +130,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.TIME_FORMAT, "h:m a");
         runner.setProperty(PutElasticsearchHttpRecord.TIMESTAMP_FORMAT, "d/M/yyyy h:m a");
 
-        runner.enqueue(new byte[0], new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
+        runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
 
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
@@ -143,9 +154,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "create");
 
-        runner.enqueue(new byte[0], new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
+        runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
 
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
@@ -163,35 +172,35 @@ public class TestPutElasticsearchHttpRecord {
     public void testPutElasticSearchOnTriggerIndex_withoutType() throws IOException {
         PutElasticsearchHttpRecordTestProcessor processor = new PutElasticsearchHttpRecordTestProcessor(false);
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("h:m a");
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("d/M/YYYY h:m a");
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("d/M/yyyy h:m a");
         processor.setRecordChecks(record -> {
             assertEquals(1, record.get("id"));
             assertEquals("reç1", record.get("name"));
             assertEquals(101, record.get("code"));
             assertEquals("20/12/2018", record.get("date"));
-            assertEquals(LocalTime.of(18, 55).format(timeFormatter), record.get("time"));
-            assertEquals(LocalDateTime.of(2018, 12, 20, 18, 55).format(dateTimeFormatter), record.get("ts"));
+            assertEquals(LOCAL_TIME.format(timeFormatter), record.get("time"));
+            assertEquals(LOCAL_DATE_TIME.format(dateTimeFormatter), record.get("ts"));
         }, record -> {
             assertEquals(2, record.get("id"));
             assertEquals("reç2", record.get("name"));
             assertEquals(102, record.get("code"));
-            assertEquals("20/12/2018", record.get("date"));
-            assertEquals(LocalTime.of(18, 55).format(timeFormatter), record.get("time"));
-            assertEquals(LocalDateTime.of(2018, 12, 20, 18, 55).format(dateTimeFormatter), record.get("ts"));
+            assertEquals(EXPECTED_DATE, record.get("date"));
+            assertEquals(LOCAL_TIME.format(timeFormatter), record.get("time"));
+            assertEquals(LOCAL_DATE_TIME.format(dateTimeFormatter), record.get("ts"));
         }, record -> {
             assertEquals(3, record.get("id"));
             assertEquals("reç3", record.get("name"));
             assertEquals(103, record.get("code"));
-            assertEquals("20/12/2018", record.get("date"));
-            assertEquals(LocalTime.of(18, 55).format(timeFormatter), record.get("time"));
-            assertEquals(LocalDateTime.of(2018, 12, 20, 18, 55).format(dateTimeFormatter), record.get("ts"));
+            assertEquals(EXPECTED_DATE, record.get("date"));
+            assertEquals(LOCAL_TIME.format(timeFormatter), record.get("time"));
+            assertEquals(LOCAL_DATE_TIME.format(dateTimeFormatter), record.get("ts"));
         }, record -> {
             assertEquals(4, record.get("id"));
             assertEquals("reç4", record.get("name"));
             assertEquals(104, record.get("code"));
-            assertEquals("20/12/2018", record.get("date"));
-            assertEquals(LocalTime.of(18, 55).format(timeFormatter), record.get("time"));
-            assertEquals(LocalDateTime.of(2018, 12, 20, 18, 55).format(dateTimeFormatter), record.get("ts"));
+            assertEquals(EXPECTED_DATE, record.get("date"));
+            assertEquals(LOCAL_TIME.format(timeFormatter), record.get("time"));
+            assertEquals(LOCAL_DATE_TIME.format(dateTimeFormatter), record.get("ts"));
         });
         runner = TestRunners.newTestRunner(processor); // no failures
         generateTestData();
@@ -204,9 +213,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.TIME_FORMAT, "h:m a");
         runner.setProperty(PutElasticsearchHttpRecord.TIMESTAMP_FORMAT, "d/M/yyyy h:m a");
 
-        runner.enqueue(new byte[0], new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
+        runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
 
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
@@ -230,9 +237,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "Update");
-        runner.enqueue(new byte[0], new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
+        runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
 
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
@@ -251,9 +256,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.removeProperty(PutElasticsearchHttpRecord.TYPE);
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "Update");
-        runner.enqueue(new byte[0], new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
+        runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
 
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
@@ -272,9 +275,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "DELETE");
-        runner.enqueue(new byte[0], new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
+        runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
 
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
@@ -293,9 +294,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.removeProperty(PutElasticsearchHttpRecord.TYPE);
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "DELETE");
-        runner.enqueue(new byte[0], new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
+        runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
 
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
@@ -319,9 +318,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.setVariable("es.url", "http://127.0.0.1:9200");
         runner.setVariable("connect.timeout", "5s");
 
-        runner.enqueue(new byte[0], new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
+        runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
 
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
@@ -340,9 +337,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "${no.attr}");
-        runner.enqueue(new byte[0], new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
+        runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
 
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_FAILURE, 1);
@@ -383,17 +378,13 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
 
-        runner.enqueue(new byte[0], new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
+        runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_FAILURE, 1);
         runner.clearTransferState();
 
         processor.setStatus(500, "Should retry");
-        runner.enqueue(new byte[0], new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
+        runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_RETRY, 1);
     }
@@ -409,9 +400,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
 
-        runner.enqueue(new byte[0], new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
+        runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_FAILURE, 1);
     }
@@ -502,14 +491,147 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "index_fail");
         runner.assertValid();
 
-        runner.enqueue(new byte[0], new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
+        runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
 
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_FAILURE, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_FAILURE).get(0);
         assertNotNull(out);
+    }
+
+    @Test
+    public void testPutElasticsearchOnTriggerWithNoAtTimestampPath() throws Exception {
+        PutElasticsearchHttpRecordTestProcessor processor = new PutElasticsearchHttpRecordTestProcessor(false);
+        runner = TestRunners.newTestRunner(processor);
+        generateTestData(1);
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
+
+        runner.removeProperty(PutElasticsearchHttpRecord.AT_TIMESTAMP); // no default
+        runner.setProperty(PutElasticsearchHttpRecord.AT_TIMESTAMP_RECORD_PATH, "/none"); // Field does not exist
+        processor.setRecordChecks(record -> assertTimestamp(record, null)); // no @timestamp
+        runner.enqueue(new byte[0]);
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0);
+        assertNotNull(out);
+        runner.clearTransferState();
+
+        // now add a default @timestamp
+        final String timestamp = "2020-11-27T14:37:00.000Z";
+        runner.setProperty(PutElasticsearchHttpRecord.AT_TIMESTAMP, timestamp);
+        processor.setRecordChecks(record -> assertTimestamp(record, timestamp)); // @timestamp defaulted
+        runner.enqueue(new byte[0]);
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        final MockFlowFile out2 = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0);
+        assertNotNull(out2);
+    }
+
+    @Test
+    public void testPutElasticsearchOnTriggerWithAtTimestampFromAttribute() throws IOException {
+        PutElasticsearchHttpRecordTestProcessor processor = new PutElasticsearchHttpRecordTestProcessor(false);
+        runner = TestRunners.newTestRunner(processor);
+        generateTestData(1);
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "${i}");
+        runner.setProperty(PutElasticsearchHttpRecord.AT_TIMESTAMP, "${timestamp}");
+
+        final String timestamp = "2020-11-27T15:10:00.000Z";
+        processor.setRecordChecks(record -> assertTimestamp(record, timestamp));
+        runner.enqueue(new byte[0], new HashMap<String, String>() {{
+            put("doc_id", "28039652144");
+            put("i", "doc");
+            put("timestamp", timestamp);
+        }});
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0);
+        assertNotNull(out);
+        runner.clearTransferState();
+
+        // Now try an empty attribute value, should be no timestamp
+        processor.setRecordChecks(record -> assertTimestamp(record, null));
+        runner.enqueue(new byte[0], new HashMap<String, String>() {{
+            put("doc_id", "28039652144");
+            put("i", "doc");
+        }});
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        final MockFlowFile out2 = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0);
+        assertNotNull(out2);
+    }
+
+    @Test
+    public void testPutElasticsearchOnTriggerWithAtTimstampPath() throws Exception {
+        PutElasticsearchHttpRecordTestProcessor processor = new PutElasticsearchHttpRecordTestProcessor(false);
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern(RecordFieldType.TIME.getDefaultFormat());
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(RecordFieldType.TIMESTAMP.getDefaultFormat());
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern(RecordFieldType.DATE.getDefaultFormat());
+        runner = TestRunners.newTestRunner(processor);
+        generateTestData(1);
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
+
+        runner.setProperty(PutElasticsearchHttpRecord.AT_TIMESTAMP_RECORD_PATH, "/ts"); // TIMESTAMP
+        processor.setRecordChecks(record -> assertTimestamp(record, LOCAL_DATE_TIME.format(dateTimeFormatter)));
+        runner.enqueue(new byte[0]);
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        assertNotNull(runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0));
+        runner.clearTransferState();
+
+        runner.setProperty(PutElasticsearchHttpRecord.AT_TIMESTAMP_RECORD_PATH, "/date"); // DATE;
+        processor.setRecordChecks(record -> assertTimestamp(record, LOCAL_DATE.format(dateFormatter)));
+        runner.enqueue(new byte[0]);
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        assertNotNull(runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0));
+        runner.clearTransferState();
+
+        runner.setProperty(PutElasticsearchHttpRecord.AT_TIMESTAMP_RECORD_PATH, "/time"); // TIME
+        processor.setRecordChecks(record -> assertTimestamp(record, LOCAL_TIME.format(timeFormatter)));
+        runner.enqueue(new byte[0]);
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        assertNotNull(runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0));
+        runner.clearTransferState();
+
+        // these INT/STRING values might not make sense from an Elasticsearch point of view,
+        // but we want to prove we can handle them being selected from the Record
+        runner.setProperty(PutElasticsearchHttpRecord.AT_TIMESTAMP_RECORD_PATH, "/code"); // INT
+        processor.setRecordChecks(record -> assertTimestamp(record, 101));
+        runner.enqueue(new byte[0]);
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        assertNotNull(runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0));
+        runner.clearTransferState();
+
+        runner.setProperty(PutElasticsearchHttpRecord.AT_TIMESTAMP_RECORD_PATH, "/name"); // STRING
+        processor.setRecordChecks(record -> assertTimestamp(record, "reç1"));
+        runner.enqueue(new byte[0]);
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        assertNotNull(runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0));
+        runner.clearTransferState();
+
+        runner.setProperty(PutElasticsearchHttpRecord.AT_TIMESTAMP_RECORD_PATH, "/coerce"); // STRING coerced to LONG
+        processor.setRecordChecks(record -> assertTimestamp(record, 1000));
+        runner.enqueue(new byte[0]);
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        assertNotNull(runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0));
+        runner.clearTransferState();
     }
 
     @Test
@@ -527,9 +649,7 @@ public class TestPutElasticsearchHttpRecord {
         // Set dynamic property, to be added to the URL as a query parameter
         runner.setProperty("pipeline", "my-pipeline");
 
-        runner.enqueue(new byte[0], new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
+        runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
 
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
@@ -611,12 +731,12 @@ public class TestPutElasticsearchHttpRecord {
      * A Test class that extends the processor in order to inject/mock behavior
      */
     private static class PutElasticsearchHttpRecordTestProcessor extends PutElasticsearchHttpRecord {
-        int numResponseFailures = 0;
+        int numResponseFailures;
         OkHttpClient client;
         int statusCode = 200;
         String statusMessage = "OK";
         String expectedUrl = null;
-        Consumer<Map>[] recordChecks;
+        Consumer<Map<String, Object>>[] recordChecks;
 
         PutElasticsearchHttpRecordTestProcessor(boolean responseHasFailures) {
             this.numResponseFailures = responseHasFailures ? 1 : 0;
@@ -636,10 +756,11 @@ public class TestPutElasticsearchHttpRecord {
         }
 
         @SafeVarargs
-        final void setRecordChecks(Consumer<Map>... checks) {
+        final void setRecordChecks(Consumer<Map<String, Object>>... checks) {
             recordChecks = checks;
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         protected void createElasticsearchClient(ProcessContext context) throws ProcessException {
             client = mock(OkHttpClient.class);
@@ -652,7 +773,7 @@ public class TestPutElasticsearchHttpRecord {
                     if (recordChecks != null) {
                         final ObjectMapper mapper = new ObjectMapper();
                         Buffer sink = new Buffer();
-                        realRequest.body().writeTo(sink);
+                        Objects.requireNonNull(realRequest.body()).writeTo(sink);
                         String line;
                         int recordIndex = 0;
                         boolean content = false;
@@ -687,7 +808,7 @@ public class TestPutElasticsearchHttpRecord {
                             .protocol(Protocol.HTTP_1_1)
                             .code(statusCode)
                             .message(statusMessage)
-                            .body(ResponseBody.create(MediaType.parse("application/json"), sb.toString()))
+                            .body(ResponseBody.create(sb.toString(), MediaType.parse("application/json")))
                             .build();
 
                     when(call.execute()).thenReturn(mockResponse);
@@ -704,94 +825,24 @@ public class TestPutElasticsearchHttpRecord {
         }
     }
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Integration test section below
-    //
-    // The tests below are meant to run on real ES instances, and are thus @Ignored during normal test execution.
-    // However if you wish to execute them as part of a test phase, comment out the @Ignored line for each
-    // desired test.
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Tests basic ES functionality against a local or test ES cluster
-     */
     @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
-    public void testPutElasticSearchBasic() throws InitializationException {
-        System.out.println("Starting test " + new Object() {
-        }.getClass().getEnclosingMethod().getName());
-        final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
-
-        final RecordReaderFactory reader = new JsonTreeReader();
-        runner.addControllerService("reader", reader);
-        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "infer-schema");
-        runner.enableControllerService(reader);
-        runner.setProperty(PutElasticsearchHttpRecord.RECORD_READER, "reader");
-
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
-        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "_doc");
-        runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
-        runner.assertValid();
-
-        runner.enqueue("{\"id\": 28039652140}");
-
-        runner.enqueue(new byte[0]);
-        runner.run(1, true, true);
-        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
-        List<ProvenanceEventRecord> provEvents = runner.getProvenanceEvents();
-        assertNotNull(provEvents);
-        assertEquals(1, provEvents.size());
-        assertEquals(ProvenanceEventType.SEND, provEvents.get(0).getEventType());
-    }
-
-    @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
-    public void testPutElasticSearchBatch() throws InitializationException {
-        System.out.println("Starting test " + new Object() {
-        }.getClass().getEnclosingMethod().getName());
-        final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
-
-        final RecordReaderFactory reader = new JsonTreeReader();
-        runner.addControllerService("reader", reader);
-        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "infer-schema");
-        runner.enableControllerService(reader);
-        runner.setProperty(PutElasticsearchHttpRecord.RECORD_READER, "reader");
-
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
-        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "_doc");
-        runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
-        runner.assertValid();
-
-        final StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 100; i++) {
-            long newId = 28039652140L + i;
-            final String newStrId = Long.toString(newId);
-            sb.append("{\"id\": ").append(newStrId).append("}\n");
-        }
-        runner.enqueue(sb.toString().getBytes());
-        runner.run();
-        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
-        final String content = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0).getContent();
-        assertEquals(sb.toString(), content);
-    }
-
-    @Test(expected = AssertionError.class)
-    public void testPutElasticSearchBadHostInEL() throws IOException {
+    public void testPutElasticSearchBadHostInEL() {
         final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
 
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "${es.url}");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
-        runner.assertValid();
+        assertThrows(AssertionError.class, () -> {
+            runner.assertValid();
+            runner.enqueue(new byte[0], new HashMap<String, String>() {{
+                put("doc_id", "1");
+            }});
 
-        runner.enqueue(new byte[0], new HashMap<String, String>() {{
-            put("doc_id", "1");
-        }});
+            runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "1"));
 
-        runner.run();
+            runner.run();
+        });
     }
 
     private void generateTestData() throws IOException {
@@ -816,9 +867,13 @@ public class TestPutElasticsearchHttpRecord {
         parser.addSchemaField("time", RecordFieldType.TIME);
         parser.addSchemaField("ts", RecordFieldType.TIMESTAMP);
         parser.addSchemaField("amount", RecordFieldType.DECIMAL);
+        parser.addSchemaField("coerce", RecordFieldType.STRING);
 
+        final Date date = Date.valueOf(ISO_DATE);
+        final Timestamp timestamp = Timestamp.valueOf(LOCAL_DATE_TIME);
+        final Time time = Time.valueOf(LOCAL_TIME);
         for(int i=1; i<=numRecords; i++) {
-            parser.addRecord(i, "reç" + i, 100 + i, new Date(1545282000000L), new Time(68150000), new Timestamp(1545332150000L), new BigDecimal(Double.MAX_VALUE).multiply(BigDecimal.TEN));
+            parser.addRecord(i, "reç" + i, 100 + i, date, time, timestamp, new BigDecimal(Double.MAX_VALUE).multiply(BigDecimal.TEN), "1000");
         }
     }
 
@@ -831,5 +886,13 @@ public class TestPutElasticsearchHttpRecord {
         }
         runner.enableControllerService(writer);
         runner.setProperty(PutElasticsearchHttpRecord.RECORD_WRITER, "writer");
+    }
+
+    private void assertTimestamp(final Map<String, Object> record, final Object timestamp) {
+        if (timestamp == null) {
+            assertFalse(record.containsKey("@timestamp"));
+        } else {
+            assertEquals(timestamp, record.get("@timestamp"));
+        }
     }
 }

@@ -25,7 +25,7 @@ public abstract class AbstractProcessor extends AbstractSessionFactoryProcessor 
         final ProcessSession session = sessionFactory.createSession();
         try {
             onTrigger(context, session);
-            session.commit();
+            session.commitAsync();
         } catch (final Throwable t) {
             session.rollback(true);
             throw t;

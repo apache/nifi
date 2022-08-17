@@ -110,4 +110,12 @@ public interface NiFiInstance {
      * @param properties the properties to change
      */
     void setProperties(Map<String, String> properties) throws IOException;
+
+    /**
+     * Copies instance configuration, logs, etc. to the given directory
+     * @param directory directory to write quarantine info to
+     * @param failureCause the reason for the test failure
+     * @throws IOException if unable to write the information
+     */
+    void quarantineTroubleshootingInfo(final File directory, final Throwable failureCause) throws IOException;
 }

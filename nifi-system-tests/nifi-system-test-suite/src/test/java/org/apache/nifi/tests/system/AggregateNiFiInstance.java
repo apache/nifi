@@ -147,4 +147,13 @@ public class AggregateNiFiInstance implements NiFiInstance {
             instance.setProperties(properties);
         }
     }
+
+    @Override
+    public void quarantineTroubleshootingInfo(final File directory, final Throwable cause) throws IOException {
+        int i=0;
+        for (final NiFiInstance instance : instances) {
+            final File nodeDirectory = new File(directory, "node-" + (++i));
+            instance.quarantineTroubleshootingInfo(nodeDirectory, cause);
+        }
+    }
 }

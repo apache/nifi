@@ -43,9 +43,10 @@ import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -54,8 +55,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Depends on generated test classes
@@ -156,7 +157,7 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
         String dataFile = "target/bmpstring_wrapper.dat";
 
         BMPStringWrapper berValue = new BMPStringWrapper();
-        berValue.setValue(new BerBMPString("Some UTF-8 String. こんにちは世界。".getBytes()));
+        berValue.setValue(new BerBMPString("Some UTF-8 String. こんにちは世界。".getBytes(StandardCharsets.UTF_8)));
 
         Map<String, Object> expectedValues = new HashMap<String, Object>() {{
             put("value", "Some UTF-8 String. こんにちは世界。");

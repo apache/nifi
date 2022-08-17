@@ -17,7 +17,7 @@
 
 package org.apache.nifi.registry.flow.mapping;
 
-import org.apache.nifi.registry.flow.VersionedFunnel;
+import org.apache.nifi.flow.VersionedFunnel;
 
 public class InstantiatedVersionedFunnel extends VersionedFunnel implements InstantiatedVersionedComponent {
     private final String instanceId;
@@ -29,7 +29,7 @@ public class InstantiatedVersionedFunnel extends VersionedFunnel implements Inst
     }
 
     @Override
-    public String getInstanceId() {
+    public String getInstanceIdentifier() {
         return instanceId;
     }
 

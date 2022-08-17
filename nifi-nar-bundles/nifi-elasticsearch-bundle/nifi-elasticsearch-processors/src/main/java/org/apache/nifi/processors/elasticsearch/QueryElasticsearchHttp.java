@@ -32,6 +32,7 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
@@ -63,6 +64,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Deprecated
+@DeprecationNotice(classNames = {"org.apache.nifi.processors.elasticsearch.PaginatedJsonQueryElasticsearch"},
+        reason = "This processor is deprecated and may be removed in future releases.")
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @EventDriven
 @SupportsBatching

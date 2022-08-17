@@ -21,7 +21,6 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.tasks.ConnectableTask;
 import org.apache.nifi.controller.tasks.ReportingTaskWrapper;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.quartz.CronExpression;
@@ -37,8 +36,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class QuartzSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
     private final Map<Object, List<AtomicBoolean>> canceledTriggers = new HashMap<>();
 
-    public QuartzSchedulingAgent(final FlowController flowController, final FlowEngine flowEngine, final RepositoryContextFactory contextFactory, final PropertyEncryptor encryptor) {
-        super(flowEngine, flowController, contextFactory, encryptor);
+    public QuartzSchedulingAgent(final FlowController flowController, final FlowEngine flowEngine, final RepositoryContextFactory contextFactory) {
+        super(flowEngine, flowController, contextFactory);
     }
 
     @Override
@@ -106,7 +105,8 @@ public class QuartzSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
             throw new IllegalStateException("Cannot schedule " + connectable + " because it is already scheduled to run");
         }
 
-        final String cronSchedule = connectable.getSchedulingPeriod();
+        final String cronSchedule = connectable.evaluateParameters(connectable.getSchedulingPeriod());
+
         final CronExpression cronExpression;
         try {
             cronExpression = new CronExpression(cronSchedule);
@@ -116,7 +116,7 @@ public class QuartzSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
 
         final List<AtomicBoolean> triggers = new ArrayList<>();
         for (int i = 0; i < connectable.getMaxConcurrentTasks(); i++) {
-            final ConnectableTask continuallyRunTask = new ConnectableTask(this, connectable, flowController, contextFactory, scheduleState, encryptor);
+            final ConnectableTask continuallyRunTask = new ConnectableTask(this, connectable, flowController, contextFactory, scheduleState);
 
             final AtomicBoolean canceled = new AtomicBoolean(false);
 
@@ -174,12 +174,10 @@ public class QuartzSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
 
     private void unschedule(final Object scheduled, final LifecycleState scheduleState) {
         final List<AtomicBoolean> triggers = canceledTriggers.remove(scheduled);
-        if (triggers == null) {
-            throw new IllegalStateException("Cannot unschedule " + scheduled + " because it was not scheduled to run");
-        }
-
-        for (final AtomicBoolean trigger : triggers) {
-            trigger.set(true);
+        if (triggers != null) {
+            for (final AtomicBoolean trigger : triggers) {
+                trigger.set(true);
+            }
         }
 
         scheduleState.setScheduled(false);

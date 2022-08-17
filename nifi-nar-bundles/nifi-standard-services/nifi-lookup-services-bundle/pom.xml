@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-services</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-lookup-services-bundle</artifactId>
     <packaging>pom</packaging>
@@ -25,4 +25,14 @@
         <module>nifi-lookup-services</module>
         <module>nifi-lookup-services-nar</module>
     </modules>
+    <dependencyManagement>
+        <dependencies>
+            <!-- Override commons-compress -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.21</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>

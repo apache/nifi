@@ -21,7 +21,6 @@ import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
-import com.google.common.collect.ImmutableList;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -33,6 +32,12 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
@@ -44,6 +49,9 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processor.util.list.ListableEntityWrapper;
+import org.apache.nifi.processor.util.list.ListedEntity;
+import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -66,6 +74,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_ATTR;
@@ -157,6 +166,45 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_DESC;
         @WritesAttribute(attribute = URI_ATTR, description = URI_DESC)
 })
 public class ListGCSBucket extends AbstractGCSProcessor {
+    public static final AllowableValue BY_TIMESTAMPS = new AllowableValue("timestamps", "Tracking Timestamps",
+        "This strategy tracks the latest timestamp of listed entity to determine new/updated entities." +
+            " Since it only tracks few timestamps, it can manage listing state efficiently." +
+            " This strategy will not pick up any newly added or modified entity if their timestamps are older than the tracked latest timestamp." +
+            " Also may miss files when multiple subdirectories are being written at the same time while listing is running.");
+
+    public static final AllowableValue BY_ENTITIES = new AllowableValue("entities", "Tracking Entities",
+        "This strategy tracks information of all the listed entities within the latest 'Entity Tracking Time Window' to determine new/updated entities." +
+            " This strategy can pick entities having old timestamp that can be missed with 'Tracing Timestamps'." +
+            " Works even when multiple subdirectories are being written at the same time while listing is running." +
+            " However an additional DistributedMapCache controller service is required and more JVM heap memory is used." +
+            " For more information on how the 'Entity Tracking Time Window' property works, see the description.");
+
+    public static final PropertyDescriptor LISTING_STRATEGY = new PropertyDescriptor.Builder()
+        .name("listing-strategy")
+        .displayName("Listing Strategy")
+        .description("Specify how to determine new/updated entities. See each strategy descriptions for detail.")
+        .required(true)
+        .allowableValues(BY_TIMESTAMPS, BY_ENTITIES)
+        .defaultValue(BY_TIMESTAMPS.getValue())
+        .build();
+
+    public static final PropertyDescriptor TRACKING_STATE_CACHE = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(ListedEntityTracker.TRACKING_STATE_CACHE)
+        .dependsOn(LISTING_STRATEGY, BY_ENTITIES)
+        .required(true)
+        .build();
+
+    public static final PropertyDescriptor INITIAL_LISTING_TARGET = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(ListedEntityTracker.INITIAL_LISTING_TARGET)
+        .dependsOn(LISTING_STRATEGY, BY_ENTITIES)
+        .build();
+
+    public static final PropertyDescriptor TRACKING_TIME_WINDOW = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(ListedEntityTracker.TRACKING_TIME_WINDOW)
+        .dependsOn(INITIAL_LISTING_TARGET, ListedEntityTracker.INITIAL_LISTING_TARGET_WINDOW)
+        .required(true)
+        .build();
+
     public static final PropertyDescriptor BUCKET = new PropertyDescriptor
             .Builder().name("gcs-bucket")
             .displayName("Bucket")
@@ -198,13 +246,17 @@ public class ListGCSBucket extends AbstractGCSProcessor {
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return ImmutableList.<PropertyDescriptor>builder()
-            .add(BUCKET)
-            .add(RECORD_WRITER)
-            .addAll(super.getSupportedPropertyDescriptors())
-            .add(PREFIX)
-            .add(USE_GENERATIONS)
-            .build();
+        final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(LISTING_STRATEGY);
+        descriptors.add(TRACKING_STATE_CACHE);
+        descriptors.add(INITIAL_LISTING_TARGET);
+        descriptors.add(TRACKING_TIME_WINDOW);
+        descriptors.add(BUCKET);
+        descriptors.add(RECORD_WRITER);
+        descriptors.addAll(super.getSupportedPropertyDescriptors());
+        descriptors.add(PREFIX);
+        descriptors.add(USE_GENERATIONS);
+        return Collections.unmodifiableList(descriptors);
     }
 
     private static final Set<Relationship> relationships = Collections.singleton(REL_SUCCESS);
@@ -220,6 +272,39 @@ public class ListGCSBucket extends AbstractGCSProcessor {
     private volatile long currentTimestamp = 0L;
     private final Set<String> currentKeys = Collections.synchronizedSet(new HashSet<>());
 
+    private volatile boolean justElectedPrimaryNode = false;
+    private volatile boolean resetEntityTrackingState = false;
+    private volatile ListedEntityTracker<ListableBlob> listedEntityTracker;
+
+    @OnPrimaryNodeStateChange
+    public void onPrimaryNodeChange(final PrimaryNodeState newState) {
+        justElectedPrimaryNode = (newState == PrimaryNodeState.ELECTED_PRIMARY_NODE);
+    }
+
+    @OnScheduled
+    public void initListedEntityTracker(ProcessContext context) {
+        final boolean isTrackingEntityStrategy = BY_ENTITIES.getValue().equals(context.getProperty(LISTING_STRATEGY).getValue());
+        if (listedEntityTracker != null && (resetEntityTrackingState || !isTrackingEntityStrategy)) {
+            try {
+                listedEntityTracker.clearListedEntities();
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to reset previously listed entities due to " + e, e);
+            }
+        }
+        resetEntityTrackingState = false;
+
+        if (isTrackingEntityStrategy) {
+            if (listedEntityTracker == null) {
+                listedEntityTracker = createListedEntityTracker();
+            }
+        } else {
+            listedEntityTracker = null;
+        }
+    }
+
+    protected ListedEntityTracker<ListableBlob> createListedEntityTracker() {
+        return new ListedBlobTracker();
+    }
 
     private Set<String> extractKeys(final StateMap stateMap) {
         return stateMap.toMap().entrySet().parallelStream()
@@ -266,7 +351,54 @@ public class ListGCSBucket extends AbstractGCSProcessor {
     }
 
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+    protected List<String> getRequiredPermissions() {
+        return Collections.singletonList("storage.objects.list");
+    }
+
+    @Override
+    protected String getBucketName(final ProcessContext context, final Map<String, String> attributes) {
+        return context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
+        final List<ConfigVerificationResult> results = new ArrayList<>(super.verify(context, verificationLogger, attributes));
+        final String bucketName = getBucketName(context, attributes);
+
+        try {
+            final VerifyListingAction listingAction = new VerifyListingAction(context);
+            listBucket(context, listingAction);
+            final int blobCount = listingAction.getBlobWriter().getCount();
+            results.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("List GCS Bucket")
+                    .outcome(Outcome.SUCCESSFUL)
+                    .explanation(String.format("Successfully listed Bucket [%s], finding %s blobs matching the filter", bucketName, blobCount))
+                    .build());
+        } catch (final Exception e) {
+            verificationLogger.error("Failed to list GCS Bucket", e);
+            results.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("List GCS Bucket")
+                    .outcome(Outcome.FAILED)
+                    .explanation(String.format("Failed to list Bucket [%s]: %s", bucketName, e.getMessage()))
+                    .build());
+        }
+        return results;
+    }
+
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSession session) {
+        final String listingStrategy = context.getProperty(LISTING_STRATEGY).getValue();
+
+        if (BY_TIMESTAMPS.equals(listingStrategy)) {
+            listByTrackingTimestamps(context, session);
+        } else if (BY_ENTITIES.equals(listingStrategy)) {
+            listByTrackingEntities(context, session);
+        } else {
+            throw new ProcessException("Unknown listing strategy: " + listingStrategy);
+        }
+    }
+
+    private void listByTrackingTimestamps(ProcessContext context, ProcessSession session) {
         try {
             restoreState(session);
         } catch (IOException e) {
@@ -277,11 +409,77 @@ public class ListGCSBucket extends AbstractGCSProcessor {
 
         final long startNanos = System.nanoTime();
 
+        final ListingAction listingAction = new TriggerListingAction(context, session);
+        try {
+            listBucket(context, listingAction);
+        } catch (final Exception e) {
+            getLogger().error("Failed to list contents of GCS Bucket due to {}", new Object[] {e}, e);
+            listingAction.getBlobWriter().finishListingExceptionally(e);
+            session.rollback();
+            context.yield();
+            return;
+        }
+
+        final long listMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+        getLogger().info("Successfully listed GCS bucket {} in {} millis", new Object[]{ context.getProperty(BUCKET).evaluateAttributeExpressions().getValue(), listMillis });
+    }
+
+    private void listBucket(final ProcessContext context, final ListingAction listingAction) throws IOException, SchemaNotFoundException {
         final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
+        final List<Storage.BlobListOption> listOptions = getBlobListOptions(context);
+
+        final Storage storage = listingAction.getCloudService();
+
+        long maxTimestamp = 0L;
+        final Set<String> keysMatchingTimestamp = new HashSet<>();
+
+        final BlobWriter writer = listingAction.getBlobWriter();
+
+        writer.beginListing();
+
+        Page<Blob> blobPage = storage.list(bucket, listOptions.toArray(new Storage.BlobListOption[0]));
+        int listCount = 0;
+
+        do {
+            for (final Blob blob : blobPage.getValues()) {
+                long lastModified = blob.getUpdateTime();
+                if (listingAction.skipBlob(blob)) {
+                    continue;
+                }
+
+                writer.addToListing(blob);
+
+                // Update state
+                if (lastModified > maxTimestamp) {
+                    maxTimestamp = lastModified;
+                    keysMatchingTimestamp.clear();
+                }
+                if (lastModified == maxTimestamp) {
+                    keysMatchingTimestamp.add(blob.getName());
+                }
+
+                listCount++;
+            }
+
+            if (writer.isCheckpoint()) {
+                listingAction.commit(listCount);
+                listCount = 0;
+            }
+
+            blobPage = blobPage.getNextPage();
+        } while (blobPage != null);
+
+        writer.finishListing();
+
+        listingAction.finishListing(listCount, maxTimestamp, keysMatchingTimestamp);
+    }
+
+    private List<Storage.BlobListOption> getBlobListOptions(ProcessContext context) {
         final String prefix = context.getProperty(PREFIX).evaluateAttributeExpressions().getValue();
         final boolean useGenerations = context.getProperty(USE_GENERATIONS).asBoolean();
 
         final List<Storage.BlobListOption> listOptions = new ArrayList<>();
+
         if (prefix != null) {
             listOptions.add(Storage.BlobListOption.prefix(prefix));
         }
@@ -289,87 +487,227 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             listOptions.add(Storage.BlobListOption.versions(true));
         }
 
-        final Storage storage = getCloudService();
+        return listOptions;
+    }
 
-        long maxTimestamp = 0L;
-        final Set<String> keysMatchingTimestamp = new HashSet<>();
+    private void listByTrackingEntities(ProcessContext context, ProcessSession session) {
+        listedEntityTracker.trackEntities(context, session, justElectedPrimaryNode, Scope.CLUSTER, minTimestampToList -> {
+            List<ListableBlob> listedEntities = new ArrayList<>();
 
-        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-
-        final BlobWriter writer;
-        if (writerFactory == null) {
-            writer = new AttributeBlobWriter(session);
-        } else {
-            writer = new RecordBlobWriter(session, writerFactory, getLogger());
-        }
-
-        try {
-            writer.beginListing();
+            Storage storage = getCloudService();
+            String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
+            final List<Storage.BlobListOption> listOptions = getBlobListOptions(context);
 
             Page<Blob> blobPage = storage.list(bucket, listOptions.toArray(new Storage.BlobListOption[0]));
-            int listCount = 0;
-
+            int pageNr=0;
             do {
                 for (final Blob blob : blobPage.getValues()) {
-                    long lastModified = blob.getUpdateTime();
-                    if (lastModified < currentTimestamp || lastModified == currentTimestamp && currentKeys.contains(blob.getName())) {
-                        continue;
+                    if (blob.getUpdateTime() >= minTimestampToList) {
+                        listedEntities.add(new ListableBlob(
+                            blob,
+                            pageNr
+                        ));
                     }
+                }
+                blobPage = blobPage.getNextPage();
+                pageNr++;
+            } while (blobPage != null);
+
+            return listedEntities;
+        }, null);
+
+        justElectedPrimaryNode = false;
+    }
+
+    private void commit(final ProcessSession session, final int listCount) {
+        if (listCount > 0) {
+            getLogger().info("Successfully listed {} new files from GCS; routing to success", new Object[] {listCount});
+            session.commitAsync();
+        }
+    }
+
+    private interface ListingAction<T extends BlobWriter> {
+        boolean skipBlob(final Blob blob);
+
+        T getBlobWriter();
+
+        Storage getCloudService();
+
+        void finishListing(int listCount, long maxTimestamp, Set<String> keysMatchingTimestamp);
+
+        void commit(int listCount);
+    }
+
+    private class TriggerListingAction implements ListingAction<BlobWriter> {
+        final ProcessContext context;
+        final ProcessSession session;
+        final BlobWriter blobWriter;
+
+        private TriggerListingAction(final ProcessContext context, final ProcessSession session) {
+            this.context = context;
+            this.session = session;
+
+            final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+            if (writerFactory == null) {
+                blobWriter = new AttributeBlobWriter(session);
+            } else {
+                blobWriter = new RecordBlobWriter(session, writerFactory, getLogger());
+            }
+        }
+
+        @Override
+        public boolean skipBlob(final Blob blob) {
+            final long lastModified = blob.getUpdateTime();
+            return lastModified < currentTimestamp || lastModified == currentTimestamp && currentKeys.contains(blob.getName());
+        }
+
+        @Override
+        public void commit(final int listCount) {
+            ListGCSBucket.this.commit(session, listCount);
+        }
+
+        @Override
+        public BlobWriter getBlobWriter() {
+            return blobWriter;
+        }
+
+        @Override
+        public Storage getCloudService() {
+            return ListGCSBucket.this.getCloudService();
+        }
+
+        @Override
+        public void finishListing(final int listCount, final long maxTimestamp, final Set<String> keysMatchingTimestamp) {
+            if (maxTimestamp == 0) {
+                getLogger().debug("No new objects in GCS bucket {} to list. Yielding.", context.getProperty(BUCKET).evaluateAttributeExpressions().getValue());
+                context.yield();
+            } else {
+                commit(listCount);
+
+                currentTimestamp = maxTimestamp;
+                currentKeys.clear();
+                currentKeys.addAll(keysMatchingTimestamp);
+                persistState(session, currentTimestamp, currentKeys);
+            }
+        }
+    }
+
+    protected class ListedBlobTracker extends ListedEntityTracker<ListableBlob> {
+        public ListedBlobTracker() {
+            super(getIdentifier(), getLogger(), RecordBlobWriter.RECORD_SCHEMA);
+        }
+
+        @Override
+        protected void createRecordsForEntities(ProcessContext context, ProcessSession session, List<ListableBlob> updatedEntities) throws IOException, SchemaNotFoundException {
+            publishListing(context, session, updatedEntities);
+        }
+
+        @Override
+        protected void createFlowFilesForEntities(ProcessContext context, ProcessSession session, List<ListableBlob> updatedEntities, Function<ListableBlob, Map<String, String>> createAttributes) {
+            publishListing(context, session, updatedEntities);
+        }
+
+        private void publishListing(ProcessContext context, ProcessSession session, List<ListableBlob> updatedEntities) {
+            final BlobWriter writer;
+            final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+            if (writerFactory == null) {
+                writer = new AttributeBlobWriter(session);
+            } else {
+                writer = new RecordBlobWriter(session, writerFactory, getLogger());
+            }
+
+            try {
+                writer.beginListing();
+
+                int listCount = 0;
+                int pageNr = -1;
+                for (ListableBlob listableBlob : updatedEntities) {
+                    Blob blob = listableBlob.getRawEntity();
+                    int currentPageNr = listableBlob.getPageNr();
 
                     writer.addToListing(blob);
 
-                    // Update state
-                    if (lastModified > maxTimestamp) {
-                        maxTimestamp = lastModified;
-                        keysMatchingTimestamp.clear();
-                    }
-                    if (lastModified == maxTimestamp) {
-                        keysMatchingTimestamp.add(blob.getName());
-                    }
-
                     listCount++;
+
+                    if (pageNr != -1 && pageNr != currentPageNr && writer.isCheckpoint()) {
+                        commit(session, listCount);
+                        listCount = 0;
+                    }
+
+                    pageNr = currentPageNr;
+
+                    final ListedEntity listedEntity = new ListedEntity(listableBlob.getTimestamp(), listableBlob.getSize());
+                    alreadyListedEntities.put(listableBlob.getIdentifier(), listedEntity);
                 }
 
-                if (writer.isCheckpoint()) {
-                    commit(session, listCount, maxTimestamp, keysMatchingTimestamp);
-                    listCount = 0;
-                }
-
-                blobPage = blobPage.getNextPage();
-            } while (blobPage != null);
-
-            writer.finishListing();
-
-            if (maxTimestamp == 0) {
-                getLogger().debug("No new objects in GCS bucket {} to list. Yielding.", bucket);
+                writer.finishListing();
+            } catch (final Exception e) {
+                getLogger().error("Failed to list contents of bucket due to {}", new Object[] {e}, e);
+                writer.finishListingExceptionally(e);
+                session.rollback();
                 context.yield();
-            } else {
-                commit(session, listCount, maxTimestamp, keysMatchingTimestamp);
+                return;
             }
-        } catch (final Exception e) {
-            getLogger().error("Failed to list contents of GCS Bucket due to {}", new Object[] {e}, e);
-            writer.finishListingExceptionally(e);
-            session.rollback();
-            context.yield();
-            return;
-        }
-
-        final long listMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-        getLogger().info("Successfully listed GCS bucket {} in {} millis", new Object[]{bucket, listMillis});
-    }
-
-    private void commit(final ProcessSession session, final int listCount, final long timestamp, final Set<String> keysMatchingTimestamp) {
-        if (listCount > 0) {
-            currentTimestamp = timestamp;
-            currentKeys.clear();
-            currentKeys.addAll(keysMatchingTimestamp);
-            persistState(session, currentTimestamp, currentKeys);
-
-            getLogger().info("Successfully listed {} new files from GCS; routing to success", new Object[] {listCount});
-            session.commit();
         }
     }
 
+    private static class ListableBlob extends ListableEntityWrapper<Blob> {
+        private final int pageNr;
+
+        public ListableBlob(
+            Blob blob,
+            int pageNr
+        ) {
+            super(
+                blob,
+                Blob::getName,
+                Blob::getGeneratedId,
+                Blob::getUpdateTime,
+                Blob::getSize
+            );
+            this.pageNr = pageNr;
+        }
+
+        public int getPageNr() {
+            return pageNr;
+        }
+    }
+
+    private class VerifyListingAction implements ListingAction<CountingBlobWriter> {
+        final ProcessContext context;
+        final CountingBlobWriter blobWriter;
+
+        private VerifyListingAction(final ProcessContext context) {
+            this.context = context;
+            blobWriter = new CountingBlobWriter();
+        }
+
+        @Override
+        public boolean skipBlob(final Blob blob) {
+            return false;
+        }
+
+        @Override
+        public void commit(final int listCount) {
+
+        }
+
+        @Override
+        public CountingBlobWriter getBlobWriter() {
+            return blobWriter;
+        }
+
+        @Override
+        public Storage getCloudService() {
+            // Use the verification context
+            return ListGCSBucket.this.getCloudService(context);
+        }
+
+        @Override
+        public void finishListing(final int listCount, final long maxTimestamp, final Set<String> keysMatchingTimestamp) {
+
+        }
+    }
 
     private interface BlobWriter {
         void beginListing() throws IOException, SchemaNotFoundException;
@@ -547,8 +885,6 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         }
     }
 
-
-
     /**
      * Writes Blobs by creating a new FlowFile for each blob and writing information as FlowFile attributes
      */
@@ -584,6 +920,39 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         @Override
         public boolean isCheckpoint() {
             return true;
+        }
+    }
+
+    /**
+     * Simply counts the blobs.
+     */
+    private static class CountingBlobWriter implements BlobWriter {
+        private int count = 0;
+
+        @Override
+        public void beginListing() {
+        }
+
+        @Override
+        public void addToListing(final Blob blob) {
+            count++;
+        }
+
+        @Override
+        public void finishListing() {
+        }
+
+        @Override
+        public void finishListingExceptionally(final Exception cause) {
+        }
+
+        @Override
+        public boolean isCheckpoint() {
+            return false;
+        }
+
+        public int getCount() {
+            return count;
         }
     }
 }

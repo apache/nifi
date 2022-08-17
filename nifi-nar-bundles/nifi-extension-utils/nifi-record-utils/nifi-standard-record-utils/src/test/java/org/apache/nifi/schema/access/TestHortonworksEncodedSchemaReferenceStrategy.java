@@ -18,7 +18,7 @@ package org.apache.nifi.schema.access;
 
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -26,7 +26,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Collections;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 
@@ -64,8 +65,8 @@ public class TestHortonworksEncodedSchemaReferenceStrategy extends AbstractSchem
         }
     }
 
-    @Test(expected = SchemaNotFoundException.class)
-    public void testGetSchemaWithInvalidProtocol() throws IOException, SchemaNotFoundException {
+    @Test
+    public void testGetSchemaWithInvalidProtocol() throws IOException {
         final SchemaAccessStrategy schemaAccessStrategy = new HortonworksEncodedSchemaReferenceStrategy(schemaRegistry);
 
         final int protocol = 0; // use an invalid protocol
@@ -80,7 +81,7 @@ public class TestHortonworksEncodedSchemaReferenceStrategy extends AbstractSchem
             out.flush();
 
             try (final ByteArrayInputStream in = new ByteArrayInputStream(bytesOut.toByteArray())) {
-                schemaAccessStrategy.getSchema(Collections.emptyMap(), in, recordSchema);
+                assertThrows(SchemaNotFoundException.class, () -> schemaAccessStrategy.getSchema(Collections.emptyMap(), in, recordSchema));
             }
         }
     }

@@ -29,9 +29,10 @@ import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -297,7 +298,35 @@ public class MapRecord implements Record {
             return false;
         }
         final MapRecord other = (MapRecord) obj;
-        return schema.equals(other.schema) && values.equals(other.values);
+        return schema.equals(other.schema) && valuesEqual(values, other.values);
+    }
+
+    private boolean valuesEqual(final Map<String, Object> thisValues, final Map<String, Object> otherValues) {
+        if (thisValues == null || otherValues == null) {
+            return false;
+        }
+
+        if (thisValues.size() != otherValues.size()) {
+            return false;
+        }
+
+        for (final Map.Entry<String, Object> entry : thisValues.entrySet()) {
+            final Object thisValue = entry.getValue();
+            final Object otherValue = otherValues.get(entry.getKey());
+            if (Objects.equals(thisValue, otherValue)) {
+                continue;
+            }
+
+            if (thisValue instanceof Object[] && otherValue instanceof Object[]) {
+                if (!Arrays.equals((Object[]) thisValue, (Object[]) otherValue)) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     @Override
@@ -312,7 +341,50 @@ public class MapRecord implements Record {
 
     @Override
     public Map<String, Object> toMap() {
-        return Collections.unmodifiableMap(values);
+        return toMap(false);
+    }
+
+    public Map<String, Object> toMap(boolean convertSubRecords) {
+        if (convertSubRecords) {
+            Map<String, Object> newMap = new LinkedHashMap<>();
+            values.forEach((key, value) -> {
+                Object valueToAdd;
+
+                if (value instanceof MapRecord) {
+                    valueToAdd = ((MapRecord) value).toMap(true);
+                } else if (value != null
+                        && value.getClass().isArray()
+                        && ((Object[]) value)[0] instanceof MapRecord) {
+                    Object[] records = (Object[]) value;
+                    Map<String, Object>[] maps = new Map[records.length];
+                    for (int index = 0; index < records.length; index++) {
+                        maps[index] = ((MapRecord) records[index]).toMap(true);
+                    }
+                    valueToAdd = maps;
+                } else if (value instanceof List) {
+                    List<?> valueList = (List<?>) value;
+                    if (!valueList.isEmpty() && valueList.get(0) instanceof MapRecord) {
+                        List<Map<String, Object>> newRecords = new ArrayList<>();
+                        for (Object o : valueList) {
+                            MapRecord rec = (MapRecord) o;
+                            newRecords.add(rec.toMap(true));
+                        }
+
+                        valueToAdd = newRecords;
+                    } else {
+                        valueToAdd = value;
+                    }
+                } else {
+                    valueToAdd = value;
+                }
+
+                newMap.put(key, valueToAdd);
+            });
+
+            return newMap;
+        } else {
+            return Collections.unmodifiableMap(values);
+        }
     }
 
     @Override
@@ -423,7 +495,7 @@ public class MapRecord implements Record {
 
         Object mapObject = values.get(recordField.getFieldName());
         if (mapObject == null) {
-            mapObject = new HashMap<String, Object>();
+            mapObject = new LinkedHashMap<String, Object>();
         }
         if (!(mapObject instanceof Map)) {
             return;

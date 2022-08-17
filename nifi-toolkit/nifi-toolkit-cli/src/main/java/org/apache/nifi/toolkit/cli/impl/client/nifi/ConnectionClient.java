@@ -52,4 +52,10 @@ public interface ConnectionClient {
     FlowFileEntity getFlowFile(String connectionId, String flowFileUuid, String nodeId) throws NiFiClientException, IOException;
 
     InputStream getFlowFileContent(String connectionId, String flowFileUuid, String nodeId) throws NiFiClientException, IOException;
+
+    /**
+     * Indicates that mutable requests should indicate that the client has acknowledged that the node is disconnected.
+     */
+    void acknowledgeDisconnectedNode();
+
 }

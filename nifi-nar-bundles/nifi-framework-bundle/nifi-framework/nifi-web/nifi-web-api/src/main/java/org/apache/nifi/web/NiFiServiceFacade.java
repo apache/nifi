@@ -21,17 +21,18 @@ import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
-import org.apache.nifi.registry.flow.ExternalControllerServiceReference;
+import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedParameterContext;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
@@ -41,6 +42,7 @@ import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
 import org.apache.nifi.web.api.dto.ComponentHistoryDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
+import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
 import org.apache.nifi.web.api.dto.ControllerDTO;
@@ -87,6 +89,7 @@ import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.BucketEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
+import org.apache.nifi.web.api.entity.ConfigurationAnalysisEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatisticsEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
@@ -128,6 +131,7 @@ import org.apache.nifi.web.api.entity.VersionControlComponentMappingEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
+import org.apache.nifi.web.api.request.FlowMetricsRegistry;
 
 import java.util.Collection;
 import java.util.Date;
@@ -322,6 +326,14 @@ public interface NiFiServiceFacade {
     Collection<CollectorRegistry> generateFlowMetrics();
 
     /**
+     * Generate metrics for the flow and return selected registries
+     *
+     * @param includeRegistries Set of Flow Metrics Registries to be returned
+     * @return Collector Registries
+     */
+    Collection<CollectorRegistry> generateFlowMetrics(Set<FlowMetricsRegistry> includeRegistries);
+
+    /**
      * Updates the configuration for this controller.
      *
      * @param revision Revision to compare with current base revision
@@ -402,6 +414,13 @@ public interface NiFiServiceFacade {
      * @return The list of available reporting task types matching specified criteria
      */
     Set<DocumentedTypeDTO> getReportingTaskTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter);
+
+    /**
+     * Returns the RuntimeManifest for this NiFi instance.
+     *
+     * @return the runtime manifest
+     */
+    RuntimeManifest getRuntimeManifest();
 
     /**
      * Returns the list of prioritizer types.
@@ -597,9 +616,10 @@ public interface NiFiServiceFacade {
      *
      * @param id id
      * @param property property
+     * @param sensitive requested sensitive status
      * @return descriptor
      */
-    PropertyDescriptorDTO getProcessorPropertyDescriptor(String id, String property);
+    PropertyDescriptorDTO getProcessorPropertyDescriptor(String id, String property, boolean sensitive);
 
     /**
      * Gets all the Processor transfer objects for this controller.
@@ -632,6 +652,23 @@ public interface NiFiServiceFacade {
      * @return The updated processor
      */
     ProcessorEntity updateProcessor(Revision revision, ProcessorDTO processorDTO);
+
+    /**
+     * Performs verification of the given Processor Configuration for the Processor with the given ID
+     * @param processorId the id of the processor
+     * @param properties the configured properties to verify
+     * @param attributes a map of values that can be used for resolving FlowFile attributes for Expression Language
+     * @return verification results
+     */
+    List<ConfigVerificationResultDTO> performProcessorConfigVerification(String processorId, Map<String, String> properties, Map<String, String> attributes);
+
+    /**
+     * Performs analysis of the given properties, determining which attributes are referenced by properties
+     * @param processorId the ID of the processor
+     * @param properties the properties
+     * @return analysis results
+     */
+    ConfigurationAnalysisEntity analyzeProcessorConfiguration(String processorId, Map<String, String> properties);
 
     /**
      * Verifies the specified processor can be removed.
@@ -990,9 +1027,10 @@ public interface NiFiServiceFacade {
      * Returns the flow.
      *
      * @param groupId group
+     * @param uiOnly whether or not the entity should be populated only with UI-related fields
      * @return the flow
      */
-    ProcessGroupFlowEntity getProcessGroupFlow(String groupId);
+    ProcessGroupFlowEntity getProcessGroupFlow(String groupId, boolean uiOnly);
 
     // ----------------------------------------
     // ProcessGroup methods
@@ -1092,10 +1130,11 @@ public interface NiFiServiceFacade {
     /**
      * Returns the ParameterContextEntity for the ParameterContext with the given ID
      * @param parameterContextId the ID of the Parameter Context
+     * @param includeInheritedParameters Whether to include inherited parameters (and thus overridden values)
      * @param user the user on whose behalf the Parameter Context is being retrieved
      * @return the ParameterContextEntity
      */
-    ParameterContextEntity getParameterContext(String parameterContextId, NiFiUser user);
+    ParameterContextEntity getParameterContext(String parameterContextId, boolean includeInheritedParameters, NiFiUser user);
 
     /**
      * Creates a new Parameter Context
@@ -1309,6 +1348,14 @@ public interface NiFiServiceFacade {
      * @return history
      */
     StatusHistoryEntity getRemoteProcessGroupStatusHistory(String id);
+
+
+    /**
+     * Verifies that transmission state of all remote process groups within the specified process group can be updated.
+     * @param processGroupId The process group in which to verify remote process groups
+     * @param shouldTransmit The transmission state to verify for
+     */
+    void verifyUpdateRemoteProcessGroups(String processGroupId, boolean shouldTransmit);
 
     /**
      * Verifies the specified remote process group can be updated.
@@ -1579,6 +1626,16 @@ public interface NiFiServiceFacade {
     VersionedFlowSnapshot getCurrentFlowSnapshotByGroupId(String processGroupId);
 
     /**
+     * Get the current state of the Process Group with the given ID, converted to a Versioned Flow Snapshot. Controller
+     * Services referenced by the Components contained by the Process Group but are part of the parent Process Group(s)
+     * will be included and will be considered as part of the requested Process Group.
+     *
+     * @param processGroupId the ID of the Process Group
+     * @return the current Process Group converted to a Versioned Flow Snapshot for download
+     */
+    VersionedFlowSnapshot getCurrentFlowSnapshotByGroupIdWithReferencedControllerServices(String processGroupId);
+
+    /**
      * Returns the name of the Flow Registry that is registered with the given ID. If no Flow Registry exists with the given ID, will return
      * the ID itself as the name
      *
@@ -1608,6 +1665,25 @@ public interface NiFiServiceFacade {
      *            throw an IllegalStateException
      */
     void verifyCanUpdate(String groupId, VersionedFlowSnapshot proposedFlow, boolean verifyConnectionRemoval, boolean verifyNotDirty);
+
+    /**
+     * Verifies that the Processor with the given identifier is in a state where its configuration can be verified
+     * @param processorId the ID of the processor
+     */
+    void verifyCanVerifyProcessorConfig(String processorId);
+
+    /**
+     * Verifies that the Controller Service with the given identifier is in a state where its configuration can be verified
+     * @param controllerServiceId the ID of the service
+     */
+    void verifyCanVerifyControllerServiceConfig(String controllerServiceId);
+
+
+    /**
+     * Verifies that the Reporting Task with the given identifier is in a state where its configuration can be verified
+     * @param reportingTaskId the ID of the service
+     */
+    void verifyCanVerifyReportingTaskConfig(String reportingTaskId);
 
     /**
      * Verifies that the Process Group with the given identifier can be saved to the flow registry
@@ -1971,9 +2047,10 @@ public interface NiFiServiceFacade {
      *
      * @param id id
      * @param property property
+     * @param sensitive requested sensitive status
      * @return property
      */
-    PropertyDescriptorDTO getControllerServicePropertyDescriptor(String id, String property);
+    PropertyDescriptorDTO getControllerServicePropertyDescriptor(String id, String property, boolean sensitive);
 
     /**
      * Gets the references for specified controller service.
@@ -2003,6 +2080,23 @@ public interface NiFiServiceFacade {
      * @return The controller service DTO
      */
     ControllerServiceEntity updateControllerService(Revision revision, ControllerServiceDTO controllerServiceDTO);
+
+    /**
+     * Performs verification of the given Configuration for the Controller Service with the given ID
+     * @param controllerServiceId the id of the controller service
+     * @param properties the configured properties to verify
+     * @param variables a map of values that can be used for resolving FlowFile attributes for Expression Language
+     * @return verification results
+     */
+    List<ConfigVerificationResultDTO> performControllerServiceConfigVerification(String controllerServiceId, Map<String, String> properties, Map<String, String> variables);
+
+    /**
+     * Performs analysis of the given properties, determining which attributes are referenced by properties
+     * @param controllerServiceId the ID of the Controller Service
+     * @param properties the properties
+     * @return analysis results
+     */
+    ConfigurationAnalysisEntity analyzeControllerServiceConfiguration(String controllerServiceId, Map<String, String> properties);
 
     /**
      * Deletes the specified label.
@@ -2076,9 +2170,10 @@ public interface NiFiServiceFacade {
      *
      * @param id id
      * @param property property
+     * @param sensitive requested sensitive status
      * @return descriptor
      */
-    PropertyDescriptorDTO getReportingTaskPropertyDescriptor(String id, String property);
+    PropertyDescriptorDTO getReportingTaskPropertyDescriptor(String id, String property, boolean sensitive);
 
     /**
      * Updates the specified reporting task.
@@ -2088,6 +2183,22 @@ public interface NiFiServiceFacade {
      * @return The reporting task DTO
      */
     ReportingTaskEntity updateReportingTask(Revision revision, ReportingTaskDTO reportingTaskDTO);
+
+    /**
+     * Performs verification of the given Configuration for the Reporting Task with the given ID
+     * @param reportingTaskId the id of the reporting task
+     * @param properties the configured properties to verify
+     * @return verification results
+     */
+    List<ConfigVerificationResultDTO> performReportingTaskConfigVerification(String reportingTaskId, Map<String, String> properties);
+
+    /**
+     * Performs analysis of the given properties, determining which attributes are referenced by properties
+     * @param reportingTaskId the ID of the Reporting Task
+     * @param properties the properties
+     * @return analysis results
+     */
+    ConfigurationAnalysisEntity analyzeReportingTaskConfiguration(String reportingTaskId, Map<String, String> properties);
 
     /**
      * Deletes the specified reporting task.

@@ -18,12 +18,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-web</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-web-ui</artifactId>
     <packaging>war</packaging>
     <properties>
-        <node.version>v12.7.0</node.version>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
         <staging.dir>${project.build.directory}/tmp</staging.dir>
@@ -41,10 +40,6 @@
         <frontend.dependency.configs>${basedir}/src/main/frontend</frontend.dependency.configs>
         <frontend.working.dir>${project.build.directory}/frontend-working-directory</frontend.working.dir>
         <frontend.assets>${project.build.directory}/${project.build.finalName}/assets</frontend.assets>
-        <!--
-            This property can be set on the command line and allows any bower cli options to be set.
-        -->
-        <bower.options />
     </properties>
     <build>
         <!--
@@ -73,7 +68,7 @@
         <plugins>
             <!--
                 Precompile jsp's and add entries into the web.xml - the web.xml
-                is automatically places in ${project.build.directory}. Do not
+                is automatically placed in ${project.build.directory}. Do not
                 precompile canvas.jsp, summary.jsp, history.jsp, etc.
                 These jsp's need to have the artifacts version filtered in to
                 eliminate broswer caching issues and set up the proper includes.
@@ -239,8 +234,8 @@
                                         <include>url-search-params/README.md</include>
                                         <include>url-search-params/LICENSE.txt</include>
 
-                                        <include>lodash-core/distrib/lodash-core.min.js</include>
-                                        <include>lodash-core/distrib/README.md</include>
+                                        <include>lodash/lodash.min.js</include>
+                                        <include>lodash/README.md</include>
 
                                         <include>moment/min/moment.min.js</include>
                                         <include>moment/README.md</include>
@@ -379,7 +374,7 @@
             <plugin>
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
-                <version>1.4</version>
+                <version>${frontend.mvn.plugin.version}</version>
                 <configuration>
                     <installDirectory>${frontend.working.dir}</installDirectory>
                 </configuration>
@@ -400,7 +395,7 @@
                             <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>--silent ci</arguments>
+                            <arguments>run ci</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
@@ -491,6 +486,7 @@
                                                 <include>${staging.dir}/js/nf/nf-ng-bridge.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ng-service-provider.js</include>
                                                 <include>${staging.dir}/js/nf/nf-cluster-summary.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
                                                 <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
@@ -505,6 +501,7 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-canvas-utils.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-go-to.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-snippet.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-verify.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-connection.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-funnel.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-label.js</include>
@@ -573,6 +570,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/history/nf-history-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -589,6 +587,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/provenance/nf-provenance-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -607,6 +606,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/summary/nf-summary-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -634,6 +634,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/counters/nf-counters-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -649,6 +650,7 @@
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-client.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -663,6 +665,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/templates/nf-templates-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -677,6 +680,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/cluster/nf-cluster-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -691,6 +695,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/bulletin-board/nf-bulletin-board-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -708,6 +713,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/login/nf-login-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -882,7 +888,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-war-plugin</artifactId>
-                        <version>2.5</version>
+                        <version>3.3.2</version>
                         <configuration>
                             <packagingIncludes>
                                 assets/**/*,
@@ -930,6 +936,8 @@
                                 js/nf/canvas/nf-ng-canvas-namespace.js.gz,
                                 js/nf/nf-universal-capture.js,
                                 js/nf/nf-universal-capture.js.gz,
+                                js/nf/nf-authorization-storage.js,
+                                js/nf/nf-authorization-storage.js.gz,
                                 js/nf/nf-storage.js,
                                 js/nf/nf-storage.js.gz,
                                 js/nf/nf-ajax-setup.js,

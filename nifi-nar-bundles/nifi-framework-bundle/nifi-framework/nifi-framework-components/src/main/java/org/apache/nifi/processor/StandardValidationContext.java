@@ -17,7 +17,6 @@
  */
 package org.apache.nifi.processor;
 
-import org.apache.nifi.components.validation.AbstractValidationContext;
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
@@ -26,6 +25,10 @@ import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.resource.ResourceContext;
+import org.apache.nifi.components.resource.StandardResourceContext;
+import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
+import org.apache.nifi.components.validation.AbstractValidationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.PropertyConfiguration;
@@ -61,7 +64,7 @@ public class StandardValidationContext extends AbstractValidationContext impleme
     private final String componentId;
     private final ParameterContext parameterContext;
     private final AtomicReference<Map<PropertyDescriptor, String>> effectiveValuesRef = new AtomicReference<>();
-
+    private final boolean validateConnections;
 
     public StandardValidationContext(
             final ControllerServiceProvider controllerServiceProvider,
@@ -70,7 +73,8 @@ public class StandardValidationContext extends AbstractValidationContext impleme
             final String groupId,
             final String componentId,
             final VariableRegistry variableRegistry,
-            final ParameterContext parameterContext) {
+            final ParameterContext parameterContext,
+            final boolean validateConnections) {
         super(parameterContext, properties);
 
         this.controllerServiceProvider = controllerServiceProvider;
@@ -80,6 +84,7 @@ public class StandardValidationContext extends AbstractValidationContext impleme
         this.groupId = groupId;
         this.componentId = componentId;
         this.parameterContext = parameterContext;
+        this.validateConnections = validateConnections;
 
         preparedQueries = new HashMap<>(properties.size());
         for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : properties.entrySet()) {
@@ -103,7 +108,8 @@ public class StandardValidationContext extends AbstractValidationContext impleme
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
-        return new StandardPropertyValue(rawValue, controllerServiceProvider, parameterContext, Query.prepareWithParametersPreEvaluated(rawValue), variableRegistry);
+        final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), null);
+        return new StandardPropertyValue(resourceContext, rawValue, controllerServiceProvider, parameterContext, Query.prepareWithParametersPreEvaluated(rawValue), variableRegistry);
     }
 
     @Override
@@ -117,14 +123,15 @@ public class StandardValidationContext extends AbstractValidationContext impleme
         final ProcessGroup serviceGroup = serviceNode.getProcessGroup();
         final String serviceGroupId = serviceGroup == null ? null : serviceGroup.getIdentifier();
         return new StandardValidationContext(controllerServiceProvider, serviceNode.getProperties(), serviceNode.getAnnotationData(), serviceGroupId,
-            serviceNode.getIdentifier(), variableRegistry, serviceNode.getProcessGroup().getParameterContext());
+            serviceNode.getIdentifier(), variableRegistry, serviceNode.getProcessGroup().getParameterContext(), validateConnections);
     }
 
     @Override
     public PropertyValue getProperty(final PropertyDescriptor property) {
         final PropertyConfiguration configuredValue = properties.get(property);
         final String effectiveValue = configuredValue == null ? property.getDefaultValue() : configuredValue.getEffectiveValue(parameterContext);
-        return new StandardPropertyValue(effectiveValue, controllerServiceProvider, parameterContext, preparedQueries.get(property), variableRegistry);
+        final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), property);
+        return new StandardPropertyValue(resourceContext, effectiveValue, controllerServiceProvider, parameterContext, preparedQueries.get(property), variableRegistry);
     }
 
     @Override
@@ -236,6 +243,10 @@ public class StandardValidationContext extends AbstractValidationContext impleme
         return value != null;
     }
 
+    @Override
+    public boolean isValidateConnections() {
+        return validateConnections;
+    }
 
     @Override
     public String toString() {

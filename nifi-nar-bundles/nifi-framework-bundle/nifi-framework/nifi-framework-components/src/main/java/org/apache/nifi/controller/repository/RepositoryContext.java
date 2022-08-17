@@ -21,6 +21,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.repository.claim.ContentClaimWriteCache;
+import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.InternalProvenanceReporter;
@@ -48,7 +49,7 @@ public interface RepositoryContext {
 
     boolean isRelationshipAvailabilitySatisfied(int requiredNumber);
 
-    ContentClaimWriteCache createContentClaimWriteCache();
+    ContentClaimWriteCache createContentClaimWriteCache(PerformanceTracker performanceTracker);
 
     InternalProvenanceReporter createProvenanceReporter(Predicate<FlowFile> flowfileKnownCheck, ProvenanceEventEnricher eventEnricher);
 

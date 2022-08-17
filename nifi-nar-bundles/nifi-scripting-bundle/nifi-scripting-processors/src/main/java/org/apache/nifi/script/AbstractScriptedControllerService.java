@@ -17,6 +17,7 @@
 package org.apache.nifi.script;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -25,8 +26,8 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.script.ScriptRunner;
 
-import javax.script.ScriptEngine;
 import java.io.FileInputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -46,7 +47,7 @@ public abstract class AbstractScriptedControllerService extends AbstractControll
 
     protected final AtomicBoolean scriptNeedsReload = new AtomicBoolean(true);
 
-    protected volatile ScriptEngine scriptEngine = null;
+    protected volatile ScriptRunner scriptRunner = null;
     protected volatile ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
     protected volatile ConfigurationContext configurationContext = null;
 
@@ -65,8 +66,7 @@ public abstract class AbstractScriptedControllerService extends AbstractControll
                 scriptingComponentHelper.createResources();
             }
         }
-        List<PropertyDescriptor> supportedPropertyDescriptors = new ArrayList<>();
-        supportedPropertyDescriptors.addAll(scriptingComponentHelper.getDescriptors());
+        List<PropertyDescriptor> supportedPropertyDescriptors = new ArrayList<>(scriptingComponentHelper.getDescriptors());
 
         return Collections.unmodifiableList(supportedPropertyDescriptors);
     }
@@ -112,15 +112,21 @@ public abstract class AbstractScriptedControllerService extends AbstractControll
             scriptNeedsReload.set(true);
             // Need to reset scriptEngine if the value has changed
             if (scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor) || ScriptingComponentUtils.MODULES.equals(descriptor)) {
-                scriptEngine = null;
+                scriptRunner = null;
             }
         }
+    }
+
+    @OnConfigurationRestored
+    public void onConfigurationRestored(final ConfigurationContext context) {
+        scriptingComponentHelper.setupVariables(context);
+        setup();
     }
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
 
-        Collection<ValidationResult> commonValidationResults = super.customValidate(validationContext);
+        Collection<ValidationResult> commonValidationResults = new ArrayList<>(super.customValidate(validationContext));
         commonValidationResults.addAll(scriptingComponentHelper.customValidate(validationContext));
 
         if (!commonValidationResults.isEmpty()) {
@@ -174,7 +180,7 @@ public abstract class AbstractScriptedControllerService extends AbstractControll
         validationResults.set(results);
 
         // return whether there was any issues loading the configured script
-        return results.isEmpty();
+        return !results.isEmpty();
     }
 
     /**

@@ -17,42 +17,6 @@
 
 package org.apache.nifi.controller.queue.clustered;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyCollection;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import javax.net.ssl.SSLContext;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.ClusterTopologyEventListener;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
@@ -92,16 +56,52 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.provenance.ProvenanceRepository;
-import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import javax.net.ssl.SSLContext;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.security.GeneralSecurityException;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class LoadBalancedQueueIT {
     private final LoadBalanceAuthorizer ALWAYS_AUTHORIZED = (sslSocket) -> sslSocket == null ? null : "authorized.mydomain.com";
@@ -140,7 +140,7 @@ public class LoadBalancedQueueIT {
     private final AtomicReference<LoadBalanceCompression> compressionReference = new AtomicReference<>();
 
     @Before
-    public void setup() throws IOException, UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, TlsException {
+    public void setup() throws IOException, GeneralSecurityException {
         compressionReference.set(LoadBalanceCompression.DO_NOT_COMPRESS);
 
         nodeIdentifiers = new HashSet<>();
@@ -148,6 +148,8 @@ public class LoadBalancedQueueIT {
         clusterCoordinator = mock(ClusterCoordinator.class);
         when(clusterCoordinator.getNodeIdentifiers()).thenAnswer(invocation -> new HashSet<>(nodeIdentifiers));
         when(clusterCoordinator.getLocalNodeIdentifier()).thenAnswer(invocation -> localNodeId);
+        when(clusterCoordinator.getConnectionStatus(any(NodeIdentifier.class))).thenAnswer(invocation ->
+            new NodeConnectionStatus(invocation.getArgument(0, NodeIdentifier.class), NodeConnectionState.CONNECTED));
 
         clusterEventListeners.clear();
         doAnswer(new Answer() {
@@ -187,13 +189,7 @@ public class LoadBalancedQueueIT {
         clientRepoRecords = Collections.synchronizedList(new ArrayList<>());
         clientFlowFileRepo = createFlowFileRepository(clientRepoRecords);
 
-        final String keystore = "src/test/resources/localhost-ks.jks";
-        final String keystorePass = "OI7kMpWzzVNVx/JGhTL/0uO4+PWpGJ46uZ/pfepbkwI";
-        final String keyPass = keystorePass;
-        final String truststore = "src/test/resources/localhost-ts.jks";
-        final String truststorePass = "wAOR0nQJ2EXvOP0JZ2EaqA/n7W69ILS4sWAHghmIWCc";
-        TlsConfiguration tlsConfiguration = new StandardTlsConfiguration(keystore, keystorePass, keyPass, KeystoreType.JKS,
-                truststore, truststorePass, KeystoreType.JKS, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
+        final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
         sslContext = SslContextFactory.createSslContext(tlsConfiguration);
     }
 
@@ -217,7 +213,7 @@ public class LoadBalancedQueueIT {
 
     private NioAsyncLoadBalanceClientFactory createClientFactory(final SSLContext sslContext) {
         final FlowFileContentAccess flowFileContentAccess = flowFile -> clientContentRepo.read(flowFile.getContentClaim());
-        return new NioAsyncLoadBalanceClientFactory(sslContext, 30000, flowFileContentAccess, eventReporter, new StandardLoadBalanceFlowFileCodec());
+        return new NioAsyncLoadBalanceClientFactory(sslContext, 30000, flowFileContentAccess, eventReporter, new StandardLoadBalanceFlowFileCodec(), clusterCoordinator);
     }
 
     @Test(timeout = 20_000)

@@ -21,8 +21,8 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.zip.GZIPInputStream;
-import javax.xml.parsers.DocumentBuilder;
-import org.apache.nifi.security.xml.XmlUtils;
+import org.apache.nifi.xml.processing.parsers.DocumentProvider;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -71,8 +71,8 @@ public class FlowAnalyzerDriver {
         System.out.println("Using flow=" + input);
 
         try {
-            DocumentBuilder documentBuilder = XmlUtils.createSafeDocumentBuilder(false);
-            Document document = documentBuilder.parse(gzipStream);
+            final DocumentProvider documentProvider = new StandardDocumentProvider();
+            Document document = documentProvider.parse(gzipStream);
             NodeList connectionNode = document.getElementsByTagName(CONST_XMLNODE_CONNECTION);
 
             for (int x = 0; x < connectionNode.getLength(); x++) {

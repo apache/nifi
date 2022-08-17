@@ -20,14 +20,14 @@ import org.apache.commons.io.FileUtils;
 import org.apache.nifi.script.ScriptingComponentHelper;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.BeforeAll;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * An abstract class with common methods, variables, etc. used by scripting processor unit tests
@@ -44,7 +44,7 @@ public abstract class BaseScriptTest {
      *
      * @throws Exception Any error encountered while testing
      */
-    @BeforeClass
+    @BeforeAll
     public static void setupBeforeClass() throws Exception {
         FileUtils.copyDirectory(new File("src/test/resources"), new File("target/test/resources"));
     }

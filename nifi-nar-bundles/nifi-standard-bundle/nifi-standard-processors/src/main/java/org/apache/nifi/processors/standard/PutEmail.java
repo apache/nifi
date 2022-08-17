@@ -17,9 +17,9 @@
 package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -31,29 +31,32 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.activation.DataHandler;
-import javax.mail.Authenticator;
-import javax.mail.Message;
-import javax.mail.Message.RecipientType;
-import javax.mail.MessagingException;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
-import javax.mail.internet.MimeUtility;
-import javax.mail.internet.PreencodedMimeBodyPart;
-import javax.mail.util.ByteArrayDataSource;
+import jakarta.activation.DataHandler;
+import jakarta.mail.Authenticator;
+import jakarta.mail.Message;
+import jakarta.mail.Message.RecipientType;
+import jakarta.mail.MessagingException;
+import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.internet.MimeUtility;
+import jakarta.mail.internet.PreencodedMimeBodyPart;
+import jakarta.mail.util.ByteArrayDataSource;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -62,6 +65,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -72,7 +76,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
 
@@ -80,9 +83,17 @@ import org.apache.nifi.stream.io.StreamUtils;
 @Tags({"email", "put", "notify", "smtp"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Sends an e-mail to configured recipients for each incoming FlowFile")
+@SupportsSensitiveDynamicProperties
+@DynamicProperty(name = "mail.propertyName",
+        value = "Value for a specific property to be set in the JavaMail Session object",
+        description = "Dynamic property names that will be passed to the Mail session. " +
+                "Possible properties can be found in: https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html.",
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The entirety of the FlowFile's content (as a String object) "
         + "will be read into memory in case the property to use the flow file content as the email body is set to true.")
 public class PutEmail extends AbstractProcessor {
+
+    private static final Pattern MAIL_PROPERTY_PATTERN = Pattern.compile("^mail\\.smtps?\\.([a-z0-9\\.]+)$");
 
     public static final PropertyDescriptor SMTP_HOSTNAME = new PropertyDescriptor.Builder()
             .name("SMTP Hostname")
@@ -124,7 +135,8 @@ public class PutEmail extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor SMTP_TLS = new PropertyDescriptor.Builder()
             .name("SMTP TLS")
-            .description("Flag indicating whether TLS should be enabled")
+            .displayName("SMTP STARTTLS")
+            .description("Flag indicating whether Opportunistic TLS should be enabled using STARTTLS command")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -150,8 +162,8 @@ public class PutEmail extends AbstractProcessor {
             .name("attribute-name-regex")
             .displayName("Attributes to Send as Headers (Regex)")
             .description("A Regular Expression that is matched against all FlowFile attribute names. "
-                + "Any attribute whose name matches the regex will be added to the Email messages as a Header. "
-                + "If not specified, no FlowFile attributes will be added as headers.")
+                    + "Any attribute whose name matches the regex will be added to the Email messages as a Header. "
+                    + "If not specified, no FlowFile attributes will be added as headers.")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .required(false)
             .build();
@@ -243,7 +255,10 @@ public class PutEmail extends AbstractProcessor {
             .description("FlowFiles that fail to send will be routed to this relationship")
             .build();
 
+    private static final Charset CONTENT_CHARSET = StandardCharsets.UTF_8;
+
     private List<PropertyDescriptor> properties;
+
     private Set<Relationship> relationships;
 
     /**
@@ -303,6 +318,18 @@ public class PutEmail extends AbstractProcessor {
     }
 
     @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .description("SMTP property passed to the Mail Session")
+                .required(false)
+                .dynamic(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                .addValidator(new DynamicMailPropertyValidator())
+                .build();
+    }
+
+    @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final List<ValidationResult> errors = new ArrayList<>(super.customValidate(context));
 
@@ -329,7 +356,7 @@ public class PutEmail extends AbstractProcessor {
         try {
             message.setHeader(header, MimeUtility.encodeText(value));
         } catch (UnsupportedEncodingException e){
-            logger.warn("Unable to add header {} with value {} due to encoding exception", new Object[]{header, value});
+            logger.warn("Unable to add header {} with value {} due to encoding exception", header, value);
         }
     }
 
@@ -341,11 +368,8 @@ public class PutEmail extends AbstractProcessor {
         }
 
         final Properties properties = this.getMailPropertiesFromFlowFile(context, flowFile);
-
         final Session mailSession = this.createMailSession(properties);
-
         final Message message = new MimeMessage(mailSession);
-        final ComponentLog logger = getLogger();
 
         try {
             message.addFrom(toInetAddresses(context, flowFile, FROM));
@@ -363,30 +387,27 @@ public class PutEmail extends AbstractProcessor {
             this.setMessageHeader("X-Mailer", context.getProperty(HEADER_XMAILER).evaluateAttributeExpressions(flowFile).getValue(), message);
             message.setSubject(context.getProperty(SUBJECT).evaluateAttributeExpressions(flowFile).getValue());
 
-            String messageText = getMessage(flowFile, context, session);
+            final String messageText = getMessage(flowFile, context, session);
 
-            String contentType = context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(flowFile).getValue();
+            final String contentType = context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(flowFile).getValue();
             message.setContent(messageText, contentType);
             message.setSentDate(new Date());
 
             if (context.getProperty(ATTACH_FILE).asBoolean()) {
                 final MimeBodyPart mimeText = new PreencodedMimeBodyPart("base64");
                 mimeText.setDataHandler(new DataHandler(new ByteArrayDataSource(
-                        Base64.encodeBase64(messageText.getBytes("UTF-8")), contentType + "; charset=\"utf-8\"")));
+                        Base64.encodeBase64(messageText.getBytes(CONTENT_CHARSET)), contentType + "; charset=\"utf-8\"")));
                 final MimeBodyPart mimeFile = new MimeBodyPart();
-                session.read(flowFile, new InputStreamCallback() {
-                    @Override
-                    public void process(final InputStream stream) throws IOException {
-                        try {
-                            mimeFile.setDataHandler(new DataHandler(new ByteArrayDataSource(stream, "application/octet-stream")));
-                        } catch (final Exception e) {
-                            throw new IOException(e);
-                        }
+                session.read(flowFile, stream -> {
+                    try {
+                        mimeFile.setDataHandler(new DataHandler(new ByteArrayDataSource(stream, "application/octet-stream")));
+                    } catch (final Exception e) {
+                        throw new IOException(e);
                     }
                 });
 
-                mimeFile.setFileName(MimeUtility.encodeText(flowFile.getAttribute(CoreAttributes.FILENAME.key())));
-                MimeMultipart multipart = new MimeMultipart();
+                mimeFile.setFileName(MimeUtility.encodeText(flowFile.getAttribute(CoreAttributes.FILENAME.key()), CONTENT_CHARSET.name(), null));
+                final MimeMultipart multipart = new MimeMultipart();
                 multipart.addBodyPart(mimeText);
                 multipart.addBodyPart(mimeFile);
                 message.setContent(multipart);
@@ -396,10 +417,10 @@ public class PutEmail extends AbstractProcessor {
 
             session.getProvenanceReporter().send(flowFile, "mailto:" + message.getAllRecipients()[0].toString());
             session.transfer(flowFile, REL_SUCCESS);
-            logger.info("Sent email as a result of receiving {}", new Object[]{flowFile});
+            getLogger().debug("Sent email as a result of receiving {}", flowFile);
         } catch (final ProcessException | MessagingException | IOException e) {
             context.yield();
-            logger.error("Failed to send email for {}: {}; routing to failure", new Object[]{flowFile, e.getMessage()}, e);
+            getLogger().error("Failed to send email for {}: {}; routing to failure", flowFile, e.getMessage(), e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
@@ -410,14 +431,9 @@ public class PutEmail extends AbstractProcessor {
         if(context.getProperty(CONTENT_AS_MESSAGE).evaluateAttributeExpressions(flowFile).asBoolean()) {
             // reading all the content of the input flow file
             final byte[] byteBuffer = new byte[(int) flowFile.getSize()];
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(InputStream in) throws IOException {
-                    StreamUtils.fillBuffer(in, byteBuffer, false);
-                }
-            });
+            session.read(flowFile, in -> StreamUtils.fillBuffer(in, byteBuffer, false));
 
-            messageText = new String(byteBuffer, 0, byteBuffer.length, Charset.forName("UTF-8"));
+            messageText = new String(byteBuffer, 0, byteBuffer.length, CONTENT_CHARSET);
         } else if (context.getProperty(MESSAGE).isSet()) {
             messageText = context.getProperty(MESSAGE).evaluateAttributeExpressions(flowFile).getValue();
         }
@@ -436,20 +452,19 @@ public class PutEmail extends AbstractProcessor {
      * @return session
      */
     private Session createMailSession(final Properties properties) {
-        String authValue = properties.getProperty("mail.smtp.auth");
-        Boolean auth = Boolean.valueOf(authValue);
+        final boolean auth = Boolean.parseBoolean(properties.getProperty("mail.smtp.auth"));
 
         /*
          * Conditionally create a password authenticator if the 'auth' parameter is set.
          */
-        final Session mailSession = auth ? Session.getInstance(properties, new Authenticator() {
+        return auth ? Session.getInstance(properties, new Authenticator() {
             @Override
             public PasswordAuthentication getPasswordAuthentication() {
-                String username = properties.getProperty("mail.smtp.user"), password = properties.getProperty("mail.smtp.password");
+                final String username = properties.getProperty("mail.smtp.user");
+                final String password = properties.getProperty("mail.smtp.password");
                 return new PasswordAuthentication(username, password);
             }
         }) : Session.getInstance(properties); // without auth
-        return mailSession;
     }
 
     /**
@@ -460,25 +475,27 @@ public class PutEmail extends AbstractProcessor {
      * @return mail properties
      */
     private Properties getMailPropertiesFromFlowFile(final ProcessContext context, final FlowFile flowFile) {
-
         final Properties properties = new Properties();
 
-        final ComponentLog logger = this.getLogger();
-
-        for (Entry<String, PropertyDescriptor> entry : propertyToContext.entrySet()) {
-
+        for (final Entry<String, PropertyDescriptor> entry : propertyToContext.entrySet()) {
             // Evaluate the property descriptor against the flow file
-            String flowFileValue = context.getProperty(entry.getValue()).evaluateAttributeExpressions(flowFile).getValue();
-
-            String property = entry.getKey();
-
-            logger.debug("Evaluated Mail Property: {} with Value: {}", new Object[]{property, flowFileValue});
+            final String flowFileValue = context.getProperty(entry.getValue()).evaluateAttributeExpressions(flowFile).getValue();
+            final String property = entry.getKey();
 
             // Nullable values are not allowed, so filter out
             if (null != flowFileValue) {
                 properties.setProperty(property, flowFileValue);
             }
+        }
 
+        for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
+            if (descriptor.isDynamic()) {
+                final String mailPropertyValue = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue();
+                // Nullable values are not allowed, so filter out
+                if (null != mailPropertyValue) {
+                    properties.setProperty(descriptor.getName(), mailPropertyValue);
+                }
+            }
         }
 
         return properties;
@@ -488,14 +505,14 @@ public class PutEmail extends AbstractProcessor {
     public static final String BODY_SEPARATOR = "\n\n--------------------------------------------------\n";
 
     private static String formatAttributes(final FlowFile flowFile, final String messagePrepend) {
-        StringBuilder message = new StringBuilder(messagePrepend);
+        final StringBuilder message = new StringBuilder(messagePrepend);
         message.append(BODY_SEPARATOR);
         message.append("\nStandard FlowFile Metadata:");
         message.append(String.format("\n\t%1$s = '%2$s'", "id", flowFile.getAttribute(CoreAttributes.UUID.key())));
         message.append(String.format("\n\t%1$s = '%2$s'", "entryDate", new Date(flowFile.getEntryDate())));
         message.append(String.format("\n\t%1$s = '%2$s'", "fileSize", flowFile.getSize()));
         message.append("\nFlowFile Attributes:");
-        for (Entry<String, String> attribute : flowFile.getAttributes().entrySet()) {
+        for (final Entry<String, String> attribute : flowFile.getAttributes().entrySet()) {
             message.append(String.format("\n\t%1$s = '%2$s'", attribute.getKey(), attribute.getValue()));
         }
         message.append("\n");
@@ -510,9 +527,9 @@ public class PutEmail extends AbstractProcessor {
      * @throws AddressException if the property cannot be parsed to a valid InternetAddress[]
      */
     private InternetAddress[] toInetAddresses(final ProcessContext context, final FlowFile flowFile,
-            PropertyDescriptor propertyDescriptor) throws AddressException {
+                                              PropertyDescriptor propertyDescriptor) throws AddressException {
         InternetAddress[] parse;
-        String value = context.getProperty(propertyDescriptor).evaluateAttributeExpressions(flowFile).getValue();
+        final String value = context.getProperty(propertyDescriptor).evaluateAttributeExpressions(flowFile).getValue();
         if (value == null || value.isEmpty()){
             if (propertyDescriptor.isRequired()) {
                 final String exceptionMsg = "Required property '" + propertyDescriptor.getDisplayName() + "' evaluates to an empty string.";
@@ -541,4 +558,34 @@ public class PutEmail extends AbstractProcessor {
         Transport.send(msg);
     }
 
+    private static class DynamicMailPropertyValidator implements Validator {
+        @Override
+        public ValidationResult validate(String subject, String input, ValidationContext context) {
+            final Matcher matcher = MAIL_PROPERTY_PATTERN.matcher(subject);
+            if (!matcher.matches()) {
+                return new ValidationResult.Builder()
+                        .input(input)
+                        .subject(subject)
+                        .valid(false)
+                        .explanation(String.format("[%s] does not start with mail.smtp", subject))
+                        .build();
+            }
+
+            if (propertyToContext.containsKey(subject)) {
+                return new ValidationResult.Builder()
+                        .input(input)
+                        .subject(subject)
+                        .valid(false)
+                        .explanation(String.format("[%s] overwrites standard properties", subject))
+                        .build();
+            }
+
+            return new ValidationResult.Builder()
+                    .subject(subject)
+                    .input(input)
+                    .valid(true)
+                    .explanation("Valid mail.smtp property found")
+                    .build();
+        }
+    }
 }

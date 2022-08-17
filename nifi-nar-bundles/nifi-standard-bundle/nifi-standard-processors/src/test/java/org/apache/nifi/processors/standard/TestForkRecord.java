@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.json.JsonRecordSetWriter;
@@ -39,9 +38,9 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.File;
 import java.io.IOException;
@@ -52,6 +51,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@DisabledOnOs(value = OS.WINDOWS, disabledReason = "Pretty printing is not portable as these fail on windows")
 public class TestForkRecord {
 
     private final String dateFormat = RecordFieldType.DATE.getDefaultFormat();
@@ -94,12 +94,6 @@ public class TestForkRecord {
         transactionFields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         transactionFields.add(new RecordField("amount", RecordFieldType.DOUBLE.getDataType()));
         return new SimpleRecordSchema(transactionFields);
-    }
-
-    //Pretty printing is not portable as these fail on windows
-    @BeforeClass
-    public static void setUpSuite() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
     }
 
     @Test
@@ -172,7 +166,7 @@ public class TestForkRecord {
 
         final MockFlowFile mff = runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0);
         mff.assertAttributeEquals("record.count", "2");
-        mff.assertContentEquals("header\n42,4750.89,John Doe,123 My Street,My City,MS,11111,USA\n43,48212.38,John Doe,123 My Street,My City,MS,11111,USA\n");
+        mff.assertContentEquals("header\n42,John Doe,123 My Street,My City,MS,11111,USA,4750.89\n43,John Doe,123 My Street,My City,MS,11111,USA,48212.38\n");
     }
 
     @Test
@@ -288,8 +282,8 @@ public class TestForkRecord {
 
         final MockFlowFile mff = runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0);
         mff.assertAttributeEquals("record.count", "4");
-        mff.assertContentEquals("header\n5,150.31,John Doe,123 My Street,My City,MS,11111,USA,4750.89\n6,-15.31,John Doe,123 My Street,My City,MS,11111,USA,4750.89\n"
-                + "7,36.78,John Doe,123 My Street,My City,MS,11111,USA,48212.38\n8,-21.34,John Doe,123 My Street,My City,MS,11111,USA,48212.38\n");
+        mff.assertContentEquals("header\n5,John Doe,123 My Street,My City,MS,11111,USA,4750.89,150.31\n6,John Doe,123 My Street,My City,MS,11111,USA,4750.89,-15.31\n"
+                + "7,John Doe,123 My Street,My City,MS,11111,USA,48212.38,36.78\n8,John Doe,123 My Street,My City,MS,11111,USA,48212.38,-21.34\n");
     }
 
     @Test
@@ -369,8 +363,8 @@ public class TestForkRecord {
 
         final MockFlowFile mff = runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0);
         mff.assertAttributeEquals("record.count", "4");
-        mff.assertContentEquals("header\n5,150.31,John Doe,123 My Street,My City,MS,11111,USA,4750.89\n6,-15.31,John Doe,123 My Street,My City,MS,11111,USA,4750.89\n"
-                + "7,36.78,John Doe,123 My Street,My City,MS,11111,USA,48212.38\n8,-21.34,John Doe,123 My Street,My City,MS,11111,USA,48212.38\n");
+        mff.assertContentEquals("header\n5,John Doe,123 My Street,My City,MS,11111,USA,4750.89,150.31\n6,John Doe,123 My Street,My City,MS,11111,USA,4750.89,-15.31\n"
+                + "7,John Doe,123 My Street,My City,MS,11111,USA,48212.38,36.78\n8,John Doe,123 My Street,My City,MS,11111,USA,48212.38,-21.34\n");
     }
 
     @Test

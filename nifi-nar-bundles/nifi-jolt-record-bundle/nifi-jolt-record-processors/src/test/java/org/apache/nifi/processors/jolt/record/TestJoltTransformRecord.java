@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.jolt.record;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.processor.Relationship;
@@ -33,24 +32,27 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@DisabledOnOs(OS.WINDOWS) //The pretty printed json comparisons dont work on windows
 public class TestJoltTransformRecord {
 
     private TestRunner runner;
@@ -58,13 +60,7 @@ public class TestJoltTransformRecord {
     private MockRecordParser parser;
     private JsonRecordSetWriter writer;
 
-    //The pretty printed json comparisons dont work on windows
-    @BeforeClass
-    public static void setUpSuite() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
-    }
-
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         processor = new JoltTransformRecord();
         runner = TestRunners.newTestRunner(processor);
@@ -308,6 +304,66 @@ runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/shiftrOutput.json"))),
                 new String(transformed.toByteArray()));
+    }
+
+    @Test
+    public void testTransformInputWithShiftrMultipleOutputRecords() throws IOException {
+        RecordField aField = new RecordField("a", RecordFieldType.INT.getDataType());
+        RecordField bField = new RecordField("b", RecordFieldType.INT.getDataType());
+        RecordField cField = new RecordField("c", RecordFieldType.INT.getDataType());
+        List<RecordField> abcFields = Arrays.asList(aField, bField, cField);
+        RecordSchema xSchema = new SimpleRecordSchema(abcFields);
+        RecordField xRecord = new RecordField("x", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(xSchema)));
+        parser.addSchemaField(xRecord);
+
+        final Record record1 = new MapRecord(xSchema, new HashMap<String, Object>() {{
+            put("a", 1);
+            put("b", 2);
+            put("c", 3);
+        }});
+        final Record record2 = new MapRecord(xSchema, new HashMap<String, Object>() {{
+            put("a", 11);
+            put("b", 21);
+            put("c", 31);
+        }});
+        final Record record3 = new MapRecord(xSchema, new HashMap<String, Object>() {{
+            put("a", 21);
+            put("b", 2);
+            put("c", 3);
+        }});
+        final Object[] recordArray1 = new Object[] {record1, record2, record3};
+        parser.addRecord((Object) recordArray1);
+
+        final Record record4 = new MapRecord(xSchema, new HashMap<String, Object>() {{
+            put("a", 100);
+            put("b", 200);
+            put("c", 300);
+        }});
+        final Record record5 = new MapRecord(xSchema, new HashMap<String, Object>() {{
+            put("a", 101);
+            put("b", 201);
+            put("c", 301);
+        }});
+        final Object[] recordArray2 = new Object[] {record4, record5};
+        parser.addRecord((Object) recordArray2);
+
+        final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/shiftrOutputSchemaMultipleOutputRecords.avsc")));
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
+        runner.setProperty(writer, "Pretty Print JSON", "true");
+        runner.enableControllerService(writer);
+        final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/shiftrSpecMultipleOutputRecords.json")));
+        runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
+        runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.SHIFTR);
+        runner.enqueue(new byte[0]);
+        runner.run();
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
+        transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
+        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
+        assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/shiftrOutputMultipleOutputRecords.json"))),
+                new String(transformed.toByteArray()));
 
     }
 
@@ -519,6 +575,33 @@ runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/defaultrOutput.json"))),
                 new String(transformed.toByteArray()));
+    }
+
+    @Test
+    public void testExpressionLanguageJarFile() throws IOException {
+        generateTestData(1, null);
+        final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/defaultrOutputSchema.avsc")));
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
+        runner.setProperty(writer, "Pretty Print JSON", "true");
+        runner.enableControllerService(writer);
+        URL t = getClass().getResource("/TestJoltTransformRecord/TestCustomJoltTransform.jar");
+        assert t != null;
+        final String customJarPath = t.getPath();
+        final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/customChainrSpec.json")));
+        final String customJoltTransform = "TestCustomJoltTransform";
+        final String customClass = "TestCustomJoltTransform";
+        runner.setProperty(JoltTransformRecord.JOLT_SPEC, "${JOLT_SPEC}");
+        runner.setProperty(JoltTransformRecord.MODULES, customJarPath);
+        runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, "${CUSTOM_CLASS}");
+        runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.CUSTOMR);
+        runner.setVariable("CUSTOM_JAR", customJarPath);
+        Map<String, String> customSpecs = new HashMap<>();
+        customSpecs.put("JOLT_SPEC", spec);
+        customSpecs.put("CUSTOM_JOLT_CLASS", customJoltTransform);
+        customSpecs.put("CUSTOM_CLASS", customClass);
+        runner.enqueue(new byte[0], customSpecs);
+        runner.assertValid();
     }
 
     @Test

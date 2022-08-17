@@ -53,7 +53,7 @@ public class VersionControlInformationDTO {
         this.registryId = registryId;
     }
 
-    @ApiModelProperty(value = "The name of the registry that the flow is stored in", readOnly = true)
+    @ApiModelProperty(value = "The name of the registry that the flow is stored in", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public String getRegistryName() {
         return registryName;
     }
@@ -71,7 +71,7 @@ public class VersionControlInformationDTO {
         this.bucketId = bucketId;
     }
 
-    @ApiModelProperty(value = "The name of the bucket that the flow is stored in", readOnly = true)
+    @ApiModelProperty(value = "The name of the bucket that the flow is stored in", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public String getBucketName() {
         return bucketName;
     }
@@ -116,7 +116,7 @@ public class VersionControlInformationDTO {
         this.version = version;
     }
 
-    @ApiModelProperty(readOnly = true,
+    @ApiModelProperty(accessMode = ApiModelProperty.AccessMode.READ_ONLY,
         value = "The current state of the Process Group, as it relates to the Versioned Flow",
         allowableValues = "LOCALLY_MODIFIED, STALE, LOCALLY_MODIFIED_AND_STALE, UP_TO_DATE, SYNC_FAILURE")
     public String getState() {
@@ -127,7 +127,7 @@ public class VersionControlInformationDTO {
         this.state = state;
     }
 
-    @ApiModelProperty(readOnly = true, value = "Explanation of why the group is in the specified state")
+    @ApiModelProperty(accessMode = ApiModelProperty.AccessMode.READ_ONLY, value = "Explanation of why the group is in the specified state")
     public String getStateExplanation() {
         return stateExplanation;
     }

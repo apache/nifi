@@ -16,28 +16,32 @@
  */
 package org.apache.nifi.processors.mongodb;
 
-import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientOptions.Builder;
-import javax.net.ssl.SSLContext;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import javax.net.ssl.SSLContext;
+
+import java.util.List;
+
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class AbstractMongoProcessorTest {
 
     MockAbstractMongoProcessor processor;
     private TestRunner testRunner;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         processor = new MockAbstractMongoProcessor();
         testRunner = TestRunners.newTestRunner(processor);
@@ -68,6 +72,11 @@ public class AbstractMongoProcessorTest {
         @Override
         public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
             // nothing to do
+        }
+
+        @Override
+        protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+            return descriptors;
         }
 
         @Override

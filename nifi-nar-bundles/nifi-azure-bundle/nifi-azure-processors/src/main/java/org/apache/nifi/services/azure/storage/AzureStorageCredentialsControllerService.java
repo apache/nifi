@@ -49,7 +49,7 @@ public class AzureStorageCredentialsControllerService extends AbstractController
     public static final PropertyDescriptor ACCOUNT_NAME = new PropertyDescriptor.Builder()
             .name(AzureStorageUtils.ACCOUNT_NAME.getName())
             .displayName(AzureStorageUtils.ACCOUNT_NAME.getDisplayName())
-            .description(AzureStorageUtils.ACCOUNT_NAME_BASE_DESCRIPTION)
+            .description(AzureStorageUtils.ACCOUNT_NAME_BASE_DESCRIPTION + AzureStorageUtils.ACCOUNT_NAME_SECURITY_DESCRIPTION)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)

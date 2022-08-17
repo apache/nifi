@@ -51,13 +51,13 @@ public class BlockingSwappablePriorityQueue extends SwappablePriorityQueue {
         }
     }
 
-    public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords, final long expirationMillis, final long waitMillis) throws InterruptedException {
+    public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords, final long expirationMillis, final long waitMillis, final PollStrategy pollStrategy) throws InterruptedException {
         final long maxTimestamp = System.currentTimeMillis() + waitMillis;
 
         synchronized (monitor) {
             FlowFileRecord flowFile = null;
             do {
-                flowFile = super.poll(expiredRecords, expirationMillis);
+                flowFile = super.poll(expiredRecords, expirationMillis, pollStrategy);
                 if (flowFile != null) {
                     return flowFile;
                 }

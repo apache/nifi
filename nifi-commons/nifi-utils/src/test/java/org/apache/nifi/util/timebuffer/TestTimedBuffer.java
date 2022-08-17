@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.util.timebuffer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 public class TestTimedBuffer {
 

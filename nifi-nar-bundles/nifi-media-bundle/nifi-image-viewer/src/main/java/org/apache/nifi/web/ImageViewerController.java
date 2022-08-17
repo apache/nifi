@@ -38,7 +38,8 @@ public class ImageViewerController extends HttpServlet {
         final ViewableContent content = (ViewableContent) request.getAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE);
 
         // handle images
-        if ("image/png".equals(content.getContentType()) || "image/jpeg".equals(content.getContentType()) || "image/gif".equals(content.getContentType())) {
+        if ("image/png".equals(content.getContentType()) || "image/jpeg".equals(content.getContentType())
+                || "image/gif".equals(content.getContentType()) || "image/webp".equals(content.getContentType())) {
             // defer to the jsp
             request.getRequestDispatcher("/WEB-INF/jsp/image.jsp").include(request, response);
         } else {

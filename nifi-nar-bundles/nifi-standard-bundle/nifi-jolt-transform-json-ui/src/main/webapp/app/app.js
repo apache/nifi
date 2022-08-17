@@ -19,10 +19,9 @@
 
 var AppRun =  function($rootScope,$state,$http){
 
-    if (nf.Storage.hasItem('jwt')) {
-        var token = nf.Storage.getItem('jwt');
-        $http.defaults.headers.common.Authorization = 'Bearer ' + token;
-    }
+    // Set CSRF Cookie and Header names to match Spring Security configuration in StandardCookieCsrfTokenRepository
+    $http.defaults.xsrfCookieName = '__Secure-Request-Token';
+    $http.defaults.xsrfHeaderName = 'Request-Token';
 
     $rootScope.$on('$stateChangeError', function(event, toState, toParams, fromState, fromParams, error){
         event.preventDefault();

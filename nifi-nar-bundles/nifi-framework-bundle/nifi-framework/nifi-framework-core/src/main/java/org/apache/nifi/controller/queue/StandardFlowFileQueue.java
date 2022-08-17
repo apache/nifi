@@ -22,6 +22,7 @@ import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.FlowFileFilter;
@@ -53,9 +54,10 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
 
     public StandardFlowFileQueue(final String identifier, final ConnectionEventListener eventListener, final FlowFileRepository flowFileRepo, final ProvenanceEventRepository provRepo,
                                  final ResourceClaimManager resourceClaimManager, final ProcessScheduler scheduler, final FlowFileSwapManager swapManager, final EventReporter eventReporter,
-                                 final int swapThreshold, final long defaultBackPressureObjectThreshold, final String defaultBackPressureDataSizeThreshold) {
+                                 final int swapThreshold, final String expirationPeriod, final long defaultBackPressureObjectThreshold, final String defaultBackPressureDataSizeThreshold) {
 
         super(identifier, scheduler, flowFileRepo, provRepo, resourceClaimManager);
+        super.setFlowFileExpiration(expirationPeriod);
         this.swapManager = swapManager;
         this.queue = new SwappablePriorityQueue(swapManager, swapThreshold, eventReporter, this, this::drop, null);
         this.eventListener = eventListener;
@@ -123,16 +125,16 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
 
 
     @Override
-    public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords) {
+    public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
         // First check if we have any records Pre-Fetched.
         final long expirationMillis = getFlowFileExpiration(TimeUnit.MILLISECONDS);
-        return queue.poll(expiredRecords, expirationMillis);
+        return queue.poll(expiredRecords, expirationMillis, pollStrategy);
     }
 
 
     @Override
-    public List<FlowFileRecord> poll(int maxResults, final Set<FlowFileRecord> expiredRecords) {
-        return queue.poll(maxResults, expiredRecords, getFlowFileExpiration(TimeUnit.MILLISECONDS));
+    public List<FlowFileRecord> poll(int maxResults, final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
+        return queue.poll(maxResults, expiredRecords, getFlowFileExpiration(TimeUnit.MILLISECONDS), pollStrategy);
     }
 
 
@@ -162,8 +164,23 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
     }
 
     @Override
+    public long getTotalQueuedDuration(long fromTimestamp) {
+        return queue.getTotalQueuedDuration(fromTimestamp);
+    }
+
+    @Override
+    public long getMinLastQueueDate() {
+        return queue.getMinLastQueueDate();
+    }
+
+    @Override
     public boolean isEmpty() {
-        return queue.getFlowFileQueueSize().isEmpty();
+        return queue.isEmpty();
+    }
+
+    @Override
+    public FlowFileAvailability getFlowFileAvailability() {
+        return queue.getFlowFileAvailability();
     }
 
     @Override
@@ -173,8 +190,8 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
     }
 
     @Override
-    public List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords) {
-        return queue.poll(filter, expiredRecords, getFlowFileExpiration(TimeUnit.MILLISECONDS));
+    public List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
+        return queue.poll(filter, expiredRecords, getFlowFileExpiration(TimeUnit.MILLISECONDS), pollStrategy);
     }
 
     @Override

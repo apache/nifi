@@ -62,6 +62,7 @@ public abstract class AbstractPort implements Port {
             .build();
 
     private static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
+    private static final String DEFAULT_MAX_BACKOFF_PERIOD = "10 mins";
 
     private final List<Relationship> relationships;
 
@@ -242,11 +243,12 @@ public abstract class AbstractPort implements Port {
 
         try {
             onTrigger(context, session);
-            session.commit();
         } catch (final Throwable t) {
             session.rollback();
             throw t;
         }
+
+        session.commitAsync();
     }
 
     public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
@@ -463,7 +465,7 @@ public abstract class AbstractPort implements Port {
     }
 
     @Override
-    public void setScheduldingPeriod(final String schedulingPeriod) {
+    public void setSchedulingPeriod(final String schedulingPeriod) {
         final long schedulingNanos = FormatUtils.getTimeDuration(requireNonNull(schedulingPeriod), TimeUnit.NANOSECONDS);
         if (schedulingNanos < 0) {
             throw new IllegalArgumentException("Scheduling Period must be positive");
@@ -658,4 +660,52 @@ public abstract class AbstractPort implements Port {
             }
         }
     }
+
+    @Override
+    public int getRetryCount() {
+        return 0;
+    }
+
+    @Override
+    public void setRetryCount(Integer retryCount) {
+    }
+
+    @Override
+    public Set<String> getRetriedRelationships() {
+        return Collections.EMPTY_SET;
+    }
+
+    @Override
+    public void setRetriedRelationships(Set<String> retriedRelationships) {
+    }
+
+    @Override
+    public boolean isRelationshipRetried(Relationship relationship) {
+        return false;
+    }
+
+    @Override
+    public BackoffMechanism getBackoffMechanism() {
+        return BackoffMechanism.PENALIZE_FLOWFILE;
+    }
+
+    @Override
+    public void setBackoffMechanism(BackoffMechanism backoffMechanism) {
+    }
+
+    @Override
+    public String getMaxBackoffPeriod() {
+        return DEFAULT_MAX_BACKOFF_PERIOD;
+    }
+
+    @Override
+    public void setMaxBackoffPeriod(String maxBackoffPeriod) {
+    }
+
+    @Override
+    public String evaluateParameters(String value) {
+        return value;
+    }
+
+
 }

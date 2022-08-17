@@ -27,34 +27,35 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processors.hadoop.util.SequenceFileReader;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockProcessContext;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.io.File;
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
+import java.util.List;
 
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class GetHDFSSequenceFileTest {
-    private AbstractHadoopProcessor.HdfsResources hdfsResources;
+    private HdfsResources hdfsResources;
     private GetHDFSSequenceFile getHDFSSequenceFile;
     private Configuration configuration;
     private FileSystem fileSystem;
     private UserGroupInformation userGroupInformation;
     private boolean reloginTried;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         configuration = mock(Configuration.class);
         fileSystem = mock(FileSystem.class);
         userGroupInformation = mock(UserGroupInformation.class);
-        hdfsResources = new AbstractHadoopProcessor.HdfsResources(configuration, fileSystem, userGroupInformation, null);
+        hdfsResources = new HdfsResources(configuration, fileSystem, userGroupInformation, null);
         getHDFSSequenceFile = new TestableGetHDFSSequenceFile();
         getHDFSSequenceFile.kerberosProperties = mock(KerberosProperties.class);
         reloginTried = false;
@@ -85,7 +86,7 @@ public class GetHDFSSequenceFileTest {
 
     @Test
     public void testGetFlowFilesNoUgiShouldntCallDoAs() throws Exception {
-        hdfsResources = new AbstractHadoopProcessor.HdfsResources(configuration, fileSystem, null, null);
+        hdfsResources = new HdfsResources(configuration, fileSystem, null, null);
         init();
         SequenceFileReader reader = mock(SequenceFileReader.class);
         Path file = mock(Path.class);
@@ -95,7 +96,7 @@ public class GetHDFSSequenceFileTest {
 
     public class TestableGetHDFSSequenceFile extends GetHDFSSequenceFile {
         @Override
-        HdfsResources resetHDFSResources(String configResources, ProcessContext context) throws IOException {
+        HdfsResources resetHDFSResources(final List<String> resourceLocations, ProcessContext context) throws IOException {
             return hdfsResources;
         }
 

@@ -20,20 +20,24 @@ import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
+import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,11 +47,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ParameterContextIT extends NiFiSystemIT {
     @Test
@@ -61,7 +65,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         assertSingleFooCreation(returned);
 
         final String contextId = returned.getId();
-        final ParameterContextEntity fetched = paramContextClient.getParamContext(contextId);
+        final ParameterContextEntity fetched = paramContextClient.getParamContext(contextId, false);
         assertSingleFooCreation(fetched);
     }
 
@@ -89,7 +93,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         assertSensitiveParametersNotReturned(returned);
 
         final String contextId = returned.getId();
-        final ParameterContextEntity fetched = paramContextClient.getParamContext(contextId);
+        final ParameterContextEntity fetched = paramContextClient.getParamContext(contextId, false);
         assertSensitiveParametersNotReturned(fetched);
     }
 
@@ -154,7 +158,32 @@ public class ParameterContextIT extends NiFiSystemIT {
         waitForValidProcessor(processorId);
     }
 
-    @Test(timeout=30000)
+    @Test
+    public void testValidationWithNestedParameterContexts() throws NiFiClientException, IOException, InterruptedException {
+        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
+        getClientUtil().updateProcessorProperties(generate, Collections.singletonMap("File Size", "#{foo}"));
+        getClientUtil().setAutoTerminatedRelationships(generate, "success");
+
+        final String processorId = generate.getId();
+
+        waitForInvalidProcessor(processorId);
+
+        final ParameterEntity fooKB = createParameterEntity("foo", null, false, "1 KB");
+        final Set<ParameterEntity> parameters = new HashSet<>();
+        parameters.add(fooKB);
+        final ParameterContextEntity contextEntity = createParameterContextEntity(getTestName(), null, parameters);
+        final ParameterContextEntity createdContextEntity = getNifiClient().getParamContextClient().createParamContext(contextEntity);
+
+        final ParameterContextEntity parentContextEntity = createParameterContextEntity(getTestName() + " Parent", null,
+                null, Arrays.asList(createdContextEntity));
+        final ParameterContextEntity createdParentContextEntity = getNifiClient().getParamContextClient().createParamContext(parentContextEntity);
+
+        setParameterContext("root", createdParentContextEntity);
+        waitForValidProcessor(processorId);
+    }
+
+    @Timeout(30)
+    @Test
     public void testValidationWithRequiredPropertiesAndNoDefault() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity generate = getClientUtil().createProcessor("DependOnProperties");
         final Map<String, String> properties = new HashMap<>();
@@ -343,7 +372,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         waitForValidProcessor(processorId);
 
         // Start Processors
-        getNifiClient().getProcessorClient().startProcessor(processorId, processorEntity.getRevision().getClientId(), 1);
+        getClientUtil().startProcessor(processorEntity);
 
         try {
             // Update Parameter Context to a long validation time.
@@ -359,9 +388,7 @@ public class ParameterContextIT extends NiFiSystemIT {
             waitForRunningProcessor(processorId);
         } finally {
             // Ensure that we stop the processor so that other tests are allowed to change the Parameter Context, etc.
-            getNifiClient().getProcessorClient().stopProcessor(processorId, processorEntity.getRevision().getClientId(), 2);
-            waitForStoppedProcessor(processorId);
-
+            getClientUtil().stopProcessor(processorEntity);
             getNifiClient().getProcessorClient().deleteProcessor(processorId, processorEntity.getRevision().getClientId(), 3);
         }
     }
@@ -390,7 +417,7 @@ public class ParameterContextIT extends NiFiSystemIT {
             processorEntity.getComponent().getConfig().setAutoTerminatedRelationships(Collections.singleton("success"));
 
             getNifiClient().getProcessorClient().updateProcessor(processorEntity);
-            getNifiClient().getProcessorClient().startProcessor(processorId, processorEntity.getRevision().getClientId(), 1L);
+            getClientUtil().startProcessor(processorEntity);
 
             try {
                 final ParameterContextUpdateRequestEntity requestEntity = updateParameterContext(createdContextEntity, "sleep", "6 secs");
@@ -406,8 +433,7 @@ public class ParameterContextIT extends NiFiSystemIT {
 
                 waitForRunningProcessor(processorId);
             } finally {
-                getNifiClient().getProcessorClient().stopProcessor(processorId, processorEntity.getRevision().getClientId(), 1L);
-                waitForStoppedProcessor(processorId);
+                getClientUtil().stopProcessor(processorEntity);
                 getNifiClient().getProcessorClient().deleteProcessor(processorId, processorEntity.getRevision().getClientId(), 3);
             }
         } finally {
@@ -416,6 +442,103 @@ public class ParameterContextIT extends NiFiSystemIT {
         }
     }
 
+    @Test
+    public void testParamChangeWhileReferencingControllerServiceEnabling() throws NiFiClientException, IOException, InterruptedException {
+        final ParameterContextEntity createdContextEntity = createParameterContext("sleep", "7 sec");
+
+        // Set the Parameter Context on the root Process Group
+        setParameterContext("root", createdContextEntity);
+
+        final ControllerServiceEntity serviceEntity = createControllerService(TEST_CS_PACKAGE + ".StandardSleepService", "root", NIFI_GROUP_ID, TEST_EXTENSIONS_ARTIFACT_ID, getNiFiVersion());
+
+        // Set service's sleep time to the parameter.
+        serviceEntity.getComponent().setProperties(Collections.singletonMap("@OnEnabled Sleep Time", "#{sleep}"));
+        getNifiClient().getControllerServicesClient().updateControllerService(serviceEntity);
+
+        // Enable the service. It should take 7 seconds for the service to fully enable.
+        getClientUtil().enableControllerService(serviceEntity);
+
+        // Wait for the service to reach of state of ENABLING but not enabled. We want to change the parameter that it references while it's enabling.
+        getClientUtil().waitForControllerServiceState(serviceEntity.getParentGroupId(), "ENABLING", Collections.emptyList());
+
+        // While the service is enabling, change the parameter
+        final ParameterContextUpdateRequestEntity paramUpdateRequestEntity = updateParameterContext(createdContextEntity, "sleep", "1 sec");
+
+        // Wait for the update to complete
+        getClientUtil().waitForParameterContextRequestToComplete(createdContextEntity.getId(), paramUpdateRequestEntity.getRequest().getRequestId());
+    }
+
+    @Test
+    public void testParamChangeWhileReferencingControllerServiceDisabling() throws NiFiClientException, IOException, InterruptedException {
+        testParamChangeWhileReferencingControllerServiceDisabling(true);
+    }
+
+    @Test
+    public void testParamChangeWhileReferencingControllerServiceEnabled() throws NiFiClientException, IOException, InterruptedException {
+        testParamChangeWhileReferencingControllerServiceDisabling(false);
+    }
+
+    private void testParamChangeWhileReferencingControllerServiceDisabling(final boolean disableServiceBeforeUpdate) throws NiFiClientException, IOException, InterruptedException {
+        final ParameterContextEntity createdContextEntity = createParameterContext("sleep", "7 sec");
+
+        // Set the Parameter Context on the root Process Group
+        final ProcessGroupEntity childGroup = getClientUtil().createProcessGroup("child", "root");
+        setParameterContext(childGroup.getId(), createdContextEntity);
+
+        final ControllerServiceEntity serviceEntity = createControllerService(TEST_CS_PACKAGE + ".StandardSleepService", childGroup.getId(),
+            NIFI_GROUP_ID, TEST_EXTENSIONS_ARTIFACT_ID, getNiFiVersion());
+
+        // Set service's sleep time to the parameter.
+        serviceEntity.getComponent().setProperties(Collections.singletonMap("@OnDisabled Sleep Time", "#{sleep}"));
+        getNifiClient().getControllerServicesClient().updateControllerService(serviceEntity);
+
+        // Enable the service.
+        getClientUtil().enableControllerService(serviceEntity);
+
+        // Wait for the service to reach of state of ENABLED.
+        getClientUtil().waitForControllerServiceState(serviceEntity.getParentGroupId(), "ENABLED", Collections.emptyList());
+
+        if (disableServiceBeforeUpdate) {
+            // Disable the service.
+            getClientUtil().disableControllerService(serviceEntity);
+
+            // Wait for service to reach state of DISABLING but not DISABLED. We want to change the parameter that it references while it's disabling.
+            getClientUtil().waitForControllerServiceState(serviceEntity.getParentGroupId(), "DISABLING", Collections.emptyList());
+        }
+
+        // Change the parameter
+        final ParameterContextUpdateRequestEntity paramUpdateRequestEntity = updateParameterContext(createdContextEntity, "sleep", "1 sec");
+
+        // Wait for the update to complete
+        getClientUtil().waitForParameterContextRequestToComplete(createdContextEntity.getId(), paramUpdateRequestEntity.getRequest().getRequestId());
+    }
+
+    @Test
+    public void testParamChangeWhileReferencingProcessorStartingButInvalid() throws NiFiClientException, IOException, InterruptedException {
+        final ParameterContextEntity contextEntity = createParameterContext("clone", "true");
+
+        // Set the Parameter Context on the root Process Group
+        setParameterContext("root", contextEntity);
+
+        // Create simple dataflow: GenerateFlowFile -> SplitByLine -> <auto-terminate>
+        // Set SplitByLine to use a parameter for the "Use Clone" property such that it's valid.
+        ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
+        ProcessorEntity splitByLine = getClientUtil().createProcessor("SplitByLine");
+
+        getClientUtil().updateProcessorProperties(splitByLine, Collections.singletonMap("Use Clone", "#{clone}"));
+        getClientUtil().setAutoTerminatedRelationships(splitByLine, Collections.singleton("success"));
+        getClientUtil().createConnection(generate, splitByLine, "success");
+
+        getClientUtil().startProcessor(splitByLine);
+
+        // Change parameter to an invalid value. This will result in the processor being stopped, becoming invalid, and then being transitioned to a 'starting' state while invalid.
+        final ParameterContextUpdateRequestEntity updateToInvalidRequestEntity = updateParameterContext(contextEntity, "clone", "invalid");
+        getClientUtil().waitForParameterContextRequestToComplete(contextEntity.getId(), updateToInvalidRequestEntity.getRequest().getRequestId());
+
+        // Change back to a valid value and wait for the update to complete
+        final ParameterContextUpdateRequestEntity updateToValidRequestEntity = updateParameterContext(contextEntity, "clone", "true");
+        getClientUtil().waitForParameterContextRequestToComplete(contextEntity.getId(), updateToValidRequestEntity.getRequest().getRequestId());
+    }
 
     @Test
     public void testProcessorRestartedWhenParameterChanged() throws NiFiClientException, IOException, InterruptedException {
@@ -449,8 +572,8 @@ public class ParameterContextIT extends NiFiSystemIT {
         final ProcessorEntity secondProcessorEntity = createProcessor(TEST_PROCESSORS_PACKAGE + ".CountEvents", NIFI_GROUP_ID, TEST_EXTENSIONS_ARTIFACT_ID, getNiFiVersion());
 
         // Start Processors
-        getNifiClient().getProcessorClient().startProcessor(processorEntity.getId(), processorEntity.getRevision().getClientId(), 1L);
-        getNifiClient().getProcessorClient().startProcessor(secondProcessorEntity.getId(), secondProcessorEntity.getRevision().getClientId(), 1L);
+        getClientUtil().startProcessor(processorEntity);
+        getClientUtil().startProcessor(secondProcessorEntity);
 
         Map<String, Long> counterValues = waitForCounter(processorEntity.getId(), "Scheduled", getNumberOfNodes());
         assertFalse(counterValues.containsKey("Stopped"));
@@ -512,8 +635,25 @@ public class ParameterContextIT extends NiFiSystemIT {
         return getClientUtil().createParameterEntity(name, description, sensitive, value);
     }
 
+    public ParameterContextEntity createParameterContextEntity(final String name, final String description, final Set<ParameterEntity> parameters,
+                                                               final List<ParameterContextEntity> parameterContextRefs) {
+        final List<ParameterContextReferenceEntity> refs = new ArrayList<>();
+        if (parameterContextRefs != null) {
+            refs.addAll(parameterContextRefs.stream().map(pce -> {
+                ParameterContextReferenceEntity ref = new ParameterContextReferenceEntity();
+                ref.setId(pce.getId());
+                ParameterContextReferenceDTO refDto = new ParameterContextReferenceDTO();
+                refDto.setId(pce.getComponent().getId());
+                refDto.setName(pce.getComponent().getName());
+                ref.setComponent(refDto);
+                return ref;
+            }).collect(Collectors.toList()));
+        }
+        return getClientUtil().createParameterContextEntity(name, description, parameters, refs);
+    }
+
     public ParameterContextEntity createParameterContextEntity(final String name, final String description, final Set<ParameterEntity> parameters) {
-        return getClientUtil().createParameterContextEntity(name, description, parameters);
+        return createParameterContextEntity(name, description, parameters, Collections.emptyList());
     }
 
     private ProcessGroupEntity setParameterContext(final String groupId, final ParameterContextEntity parameterContext) throws NiFiClientException, IOException {

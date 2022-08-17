@@ -30,10 +30,9 @@ import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bson.Document;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -43,6 +42,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class MongoDBLookupServiceIT {
     private static final String DB_NAME = String.format("nifi_test-%d", Calendar.getInstance().getTimeInMillis());
@@ -54,7 +60,7 @@ public class MongoDBLookupServiceIT {
     private MongoDatabase db;
     private MongoCollection col;
 
-    @Before
+    @BeforeEach
     public void before() throws Exception {
         runner = TestRunners.newTestRunner(TestLookupServiceProcessor.class);
         service = new MongoDBLookupService();
@@ -79,7 +85,7 @@ public class MongoDBLookupServiceIT {
         col = db.getCollection(COL_NAME);
     }
 
-    @After
+    @AfterEach
     public void after() {
         db.drop();
         controllerService.onDisable();
@@ -103,8 +109,8 @@ public class MongoDBLookupServiceIT {
         criteria.put("uuid", "x-y-z");
         Optional result = service.lookup(criteria);
 
-        Assert.assertNotNull("The value was null.", result.get());
-        Assert.assertEquals("The value was wrong.", "Hello, world", result.get());
+        assertNotNull(result.get(), "The value was null.");
+        assertEquals("Hello, world", result.get(), "The value was wrong.");
 
         Map<String, Object> clean = new HashMap<>();
         clean.putAll(criteria);
@@ -113,10 +119,10 @@ public class MongoDBLookupServiceIT {
         try {
             result = service.lookup(criteria);
         } catch (LookupFailureException ex) {
-            Assert.fail();
+            fail();
         }
 
-        Assert.assertTrue(!result.isPresent());
+        assertTrue(!result.isPresent());
     }
 
     @Test
@@ -133,23 +139,23 @@ public class MongoDBLookupServiceIT {
         Map<String, String> context = new HashMap<>();
         context.put("schema.name", "user");
         Optional result = service.lookup(criteria, context);
-        Assert.assertTrue(result.isPresent());
-        Assert.assertNotNull(result.get());
+        assertTrue(result.isPresent());
+        assertNotNull(result.get());
         MapRecord record = (MapRecord)result.get();
 
-        Assert.assertEquals("john.smith", record.getAsString("username"));
-        Assert.assertEquals("testing1234", record.getAsString("password"));
+        assertEquals("john.smith", record.getAsString("username"));
+        assertEquals("testing1234", record.getAsString("password"));
 
         /*
          * Test falling back on schema detection if a user doesn't specify the context argument
          */
         result = service.lookup(criteria);
-        Assert.assertTrue(result.isPresent());
-        Assert.assertNotNull(result.get());
+        assertTrue(result.isPresent());
+        assertNotNull(result.get());
         record = (MapRecord)result.get();
 
-        Assert.assertEquals("john.smith", record.getAsString("username"));
-        Assert.assertEquals("testing1234", record.getAsString("password"));
+        assertEquals("john.smith", record.getAsString("username"));
+        assertEquals("testing1234", record.getAsString("password"));
     }
 
     @Test
@@ -172,8 +178,8 @@ public class MongoDBLookupServiceIT {
         attrs.put("schema.text", new String(contents));
 
         Optional results = service.lookup(criteria, attrs);
-        Assert.assertNotNull(results);
-        Assert.assertTrue(results.isPresent());
+        assertNotNull(results);
+        assertTrue(results.isPresent());
     }
 
     @Test
@@ -204,23 +210,23 @@ public class MongoDBLookupServiceIT {
         criteria.put("uuid", "x-y-z");
         Optional result = service.lookup(criteria);
 
-        Assert.assertNotNull("The value was null.", result.get());
-        Assert.assertTrue("The value was wrong.", result.get() instanceof MapRecord);
+        assertNotNull(result.get(), "The value was null.");
+        assertTrue(result.get() instanceof MapRecord, "The value was wrong.");
         MapRecord record = (MapRecord)result.get();
         RecordSchema subSchema = ((RecordDataType)record.getSchema().getField("subrecordField").get().getDataType()).getChildSchema();
 
-        Assert.assertEquals("The value was wrong.", "Hello, world", record.getValue("stringField"));
-        Assert.assertEquals("The value was wrong.", "x-y-z", record.getValue("uuid"));
-        Assert.assertEquals(new Long(10000), record.getValue("longField"));
-        Assert.assertEquals((Double.MAX_VALUE / 2.0), record.getValue("decimalField"));
-        Assert.assertEquals(d, record.getValue("dateField"));
-        Assert.assertEquals(ts.getTime(), ((Date)record.getValue("timestampField")).getTime());
+        assertEquals("Hello, world", record.getValue("stringField"), "The value was wrong.");
+        assertEquals("x-y-z", record.getValue("uuid"), "The value was wrong.");
+        assertEquals(new Long(10000), record.getValue("longField"));
+        assertEquals((Double.MAX_VALUE / 2.0), record.getValue("decimalField"));
+        assertEquals(d, record.getValue("dateField"));
+        assertEquals(ts.getTime(), ((Date)record.getValue("timestampField")).getTime());
 
         Record subRecord = record.getAsRecord("subrecordField", subSchema);
-        Assert.assertNotNull(subRecord);
-        Assert.assertEquals("test", subRecord.getValue("nestedString"));
-        Assert.assertEquals(new Long(1000), subRecord.getValue("nestedLong"));
-        Assert.assertEquals(list, record.getValue("arrayField"));
+        assertNotNull(subRecord);
+        assertEquals("test", subRecord.getValue("nestedString"));
+        assertEquals(new Long(1000), subRecord.getValue("nestedLong"));
+        assertEquals(list, record.getValue("arrayField"));
 
         Map<String, Object> clean = new HashMap<>();
         clean.putAll(criteria);
@@ -229,10 +235,10 @@ public class MongoDBLookupServiceIT {
         try {
             result = service.lookup(criteria);
         } catch (LookupFailureException ex) {
-            Assert.fail();
+            fail();
         }
 
-        Assert.assertTrue(!result.isPresent());
+        assertTrue(!result.isPresent());
     }
 
     @Test
@@ -243,23 +249,8 @@ public class MongoDBLookupServiceIT {
         Map<String, Object> criteria = new HashMap<>();
         criteria.put("uuid", "x-y-z");
 
-        boolean error = false;
-        try {
-            service.lookup(criteria);
-        } catch(Exception ex) {
-            error = true;
-        }
+        assertDoesNotThrow(() -> service.lookup(criteria));
 
-        Assert.assertFalse("An error was thrown when no error should have been thrown.", error);
-        error = false;
-
-        try {
-            service.lookup(new HashMap());
-        } catch (Exception ex) {
-            error = true;
-            Assert.assertTrue("The exception was the wrong type", ex instanceof LookupFailureException);
-        }
-
-        Assert.assertTrue("An error was not thrown when the input was empty", error);
+        assertThrows(LookupFailureException.class, () -> service.lookup(new HashMap<>()));
     }
 }

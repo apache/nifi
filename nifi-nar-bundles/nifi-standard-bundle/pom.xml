@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-bundle</artifactId>
     <packaging>pom</packaging>
@@ -30,41 +30,39 @@
         <module>nifi-standard-nar</module>
         <module>nifi-jolt-transform-json-ui</module>
         <module>nifi-standard-utils</module>
-        <module>nifi-standard-web-test-utils</module>
     </modules>
     <properties>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
         <jolt.version>0.1.1</jolt.version>
-        <jersey.version>2.26</jersey.version>
     </properties>
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-processors</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-expression-language</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-reporting-tasks</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-content-viewer</artifactId>
                 <type>war</type>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-jolt-transform-json-ui</artifactId>
                 <type>war</type>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>com.bazaarvoice.jolt</groupId>
@@ -102,69 +100,9 @@
                 <version>2.1</version>
             </dependency>
             <dependency>
-                <groupId>org.glassfish.jersey.containers</groupId>
-                <artifactId>jersey-container-servlet-core</artifactId>
-                <version>${jersey.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.jersey.media</groupId>
-                <artifactId>jersey-media-json-jackson</artifactId>
-                <version>${jersey.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.fasterxml.jackson.module</groupId>
-                        <artifactId>jackson-module-jaxb-annotations</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.fasterxml.jackson.core</groupId>
-                        <artifactId>jackson-databind</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.fasterxml.jackson.core</groupId>
-                        <artifactId>jackson-annotations</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.module</groupId>
-                <artifactId>jackson-module-jaxb-annotations</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.jersey.inject</groupId>
-                <artifactId>jersey-hk2</artifactId>
-                <version>${jersey.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.jersey.test-framework.providers</groupId>
-                <artifactId>jersey-test-framework-provider-inmemory</artifactId>
-                <version>${jersey.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson-databind.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-annotations</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>com.yammer.metrics</groupId>
                 <artifactId>metrics-ganglia</artifactId>
                 <version>${yammer.metrics.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>commons-io</groupId>
-                <artifactId>commons-io</artifactId>
-                <version>2.6</version>
             </dependency>
             <dependency>
                 <groupId>commons-net</groupId>
@@ -174,37 +112,36 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
-                <version>1.20</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-lang3</artifactId>
-                <version>3.9</version>
+                <version>1.21</version>
             </dependency>
             <dependency>
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
-                <version>1.14</version>
             </dependency>
             <dependency>
                 <groupId>com.hierynomus</groupId>
                 <artifactId>sshj</artifactId>
-                <version>0.30.0</version>
+                <version>0.33.0</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.httpcomponents</groupId>
-                <artifactId>httpclient</artifactId>
-                <version>4.5.5</version>
+                <groupId>jakarta.activation</groupId>
+                <artifactId>jakarta.activation-api</artifactId>
+                <version>2.0.1</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.httpcomponents</groupId>
-                <artifactId>httpcore</artifactId>
-                <version>4.4.9</version>
+                <groupId>com.sun.activation</groupId>
+                <artifactId>jakarta.activation</artifactId>
+                <version>2.0.1</version>
             </dependency>
             <dependency>
-                <groupId>javax.mail</groupId>
-                <artifactId>mail</artifactId>
-                <version>1.4.7</version>
+                <groupId>jakarta.mail</groupId>
+                <artifactId>jakarta.mail-api</artifactId>
+                <version>2.0.1</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sun.mail</groupId>
+                <artifactId>jakarta.mail</artifactId>
+                <version>2.0.1</version>
             </dependency>
             <dependency>
                 <groupId>com.github.jponge</groupId>
@@ -219,7 +156,7 @@
             <dependency>
                 <groupId>net.sf.saxon</groupId>
                 <artifactId>Saxon-HE</artifactId>
-                <version>9.6.0-5</version>
+                <version>10.6</version>
             </dependency>
             <dependency>
                 <groupId>joda-time</groupId>
@@ -234,39 +171,33 @@
             <dependency>
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-client</artifactId>
-                <version>5.15.11</version>
+                <version>5.15.15</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-broker</artifactId>
-                <version>5.15.11</version>
+                <version>5.15.14</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.derby</groupId>
                 <artifactId>derby</artifactId>
-                <version>10.11.1.1</version>
+                <version>10.14.2.0</version>
             </dependency>
             <dependency>
                 <groupId>com.jayway.jsonpath</groupId>
                 <artifactId>json-path</artifactId>
-                <version>2.4.0</version>
+                <version>2.6.0</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.tika</groupId>
                 <artifactId>tika-core</artifactId>
-                <version>1.24</version>
+                <version>2.4.1</version>
             </dependency>
             <dependency>
-                <groupId>com.squareup.okhttp3</groupId>
-                <artifactId>okhttp</artifactId>
-                <version>4.9.1</version>
-            </dependency>
-            <dependency>
-                <groupId>com.burgstaller</groupId>
+                <groupId>io.github.rburgst</groupId>
                 <artifactId>okhttp-digest</artifactId>
-                <version>2.1</version>
-                <type>jar</type>
+                <version>2.5</version>
             </dependency>
             <dependency>
                 <groupId>at.favre.lib</groupId>
@@ -274,19 +205,9 @@
                 <version>0.9.0</version>
             </dependency>
             <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>28.0-jre</version>
-            </dependency>
-            <dependency>
-                <groupId>org.xerial.snappy</groupId>
-                <artifactId>snappy-java</artifactId>
-                <version>1.1.7.3</version>
-            </dependency>
-            <dependency>
                 <groupId>com.h2database</groupId>
                 <artifactId>h2</artifactId>
-                <version>1.4.187</version>
+                <version>${h2.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -302,19 +223,13 @@
             </dependency>
             <dependency>
                 <groupId>com.fluenda</groupId>
-                <artifactId>ParCEFone</artifactId>
-                <version>1.2.6</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-log4j12</artifactId>
-                    </exclusion>
-                </exclusions>
+                <artifactId>parcefone</artifactId>
+                <version>2.1.0</version>
             </dependency>
             <dependency>
-                <groupId>com.github.wnameless</groupId>
+                <groupId>com.github.wnameless.json</groupId>
                 <artifactId>json-flattener</artifactId>
-                <version>0.7.1</version>
+                <version>0.13.0</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.bval</groupId>
@@ -357,12 +272,37 @@
             <dependency>
                 <groupId>org.apache.calcite</groupId>
                 <artifactId>calcite-core</artifactId>
-                <version>1.26.0</version>
+                <version>1.31.0</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-logging</groupId>
+                        <artifactId>commons-logging</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
-                <groupId>org.apache.avro</groupId>
-                <artifactId>avro</artifactId>
-                <version>1.8.1</version>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>1.29</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.sshd</groupId>
+                <artifactId>sshd-core</artifactId>
+                <version>2.8.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.sshd</groupId>
+                <artifactId>sshd-sftp</artifactId>
+                <version>2.8.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>31.0.1-jre</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

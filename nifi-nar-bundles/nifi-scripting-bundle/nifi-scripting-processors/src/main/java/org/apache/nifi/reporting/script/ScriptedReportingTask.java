@@ -20,6 +20,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
+import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -33,7 +34,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.script.ScriptEngineConfigurator;
+import org.apache.nifi.processors.script.ScriptRunner;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.script.ScriptingComponentHelper;
@@ -54,6 +55,7 @@ import java.util.Map;
 /**
  * A Reporting task whose body is provided by a script (via supported JSR-223 script engines)
  */
+@SupportsSensitiveDynamicProperties
 @Tags({"reporting", "script", "execute", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj"})
 @CapabilityDescription("Provides reporting and status information to a script. ReportingContext, ComponentLog, and VirtualMachineMetrics objects are made available "
         + "as variables (context, log, and vmMetrics, respectively) to the script for further processing. The context makes various information available such "
@@ -128,8 +130,7 @@ public class ScriptedReportingTask extends AbstractReportingTask {
     public void setup(final ConfigurationContext context) {
         scriptingComponentHelper.setupVariables(context);
 
-        // Create a script engine for each possible task
-        scriptingComponentHelper.setup(1, getLogger());
+        // Create a script runner
         scriptToRun = scriptingComponentHelper.getScriptBody();
 
         try {
@@ -142,6 +143,7 @@ public class ScriptedReportingTask extends AbstractReportingTask {
         } catch (IOException ioe) {
             throw new ProcessException(ioe);
         }
+        scriptingComponentHelper.setupScriptRunners(1, scriptToRun, getLogger());
 
         vmMetrics = JmxJvmMetrics.getInstance();
     }
@@ -153,15 +155,15 @@ public class ScriptedReportingTask extends AbstractReportingTask {
                 scriptingComponentHelper.createResources();
             }
         }
-        ScriptEngine scriptEngine = scriptingComponentHelper.engineQ.poll();
+        ScriptRunner scriptRunner = scriptingComponentHelper.scriptRunnerQ.poll();
         ComponentLog log = getLogger();
-        if (scriptEngine == null) {
+        if (scriptRunner == null) {
             // No engine available so nothing more to do here
             return;
         }
 
         try {
-
+            ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
             try {
                 Bindings bindings = scriptEngine.getBindings(ScriptContext.ENGINE_SCOPE);
                 if (bindings == null) {
@@ -180,30 +182,19 @@ public class ScriptedReportingTask extends AbstractReportingTask {
                         }
                     }
                 }
+                scriptRunner.run(bindings);
+                scriptingComponentHelper.scriptRunnerQ.offer(scriptRunner);
 
-                scriptEngine.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
-
-                // Execute any engine-specific configuration before the script is evaluated
-                ScriptEngineConfigurator configurator =
-                        scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.getScriptEngineName().toLowerCase());
-
-                // Evaluate the script with the configurator (if it exists) or the engine
-                if (configurator != null) {
-                    configurator.init(scriptEngine, scriptToRun, scriptingComponentHelper.getModules());
-                    configurator.eval(scriptEngine, scriptToRun, scriptingComponentHelper.getModules());
-                } else {
-                    scriptEngine.eval(scriptToRun);
-                }
             } catch (ScriptException e) {
+                // Create a new ScriptRunner to replace the one that caused an exception
+                scriptingComponentHelper.setupScriptRunners(1, scriptToRun, getLogger());
+
                 throw new ProcessException(e);
             }
         } catch (final Throwable t) {
             // Mimic AbstractProcessor behavior here
-            getLogger().error("{} failed to process due to {}; rolling back session", new Object[]{this, t});
+            getLogger().error("{} failed to process due to {}; rolling back session", this, t);
             throw t;
-        } finally {
-            scriptingComponentHelper.engineQ.offer(scriptEngine);
         }
-
     }
 }

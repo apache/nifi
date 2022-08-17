@@ -20,6 +20,7 @@ package org.apache.nifi.csv;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import java.text.DateFormat;
@@ -30,6 +31,7 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
     protected final ComponentLog logger;
     protected final boolean hasHeader;
     protected final boolean ignoreHeader;
+    private final boolean trimDoubleQuote;
 
     protected final Supplier<DateFormat> LAZY_DATE_FORMAT;
     protected final Supplier<DateFormat> LAZY_TIME_FORMAT;
@@ -42,11 +44,12 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
     protected final RecordSchema schema;
 
     AbstractCSVRecordReader(final ComponentLog logger, final RecordSchema schema, final boolean hasHeader, final boolean ignoreHeader,
-                            final String dateFormat, final String timeFormat, final String timestampFormat) {
+                            final String dateFormat, final String timeFormat, final String timestampFormat, final boolean trimDoubleQuote) {
         this.logger = logger;
         this.schema = schema;
         this.hasHeader = hasHeader;
         this.ignoreHeader = ignoreHeader;
+        this.trimDoubleQuote = trimDoubleQuote;
 
         if (dateFormat == null || dateFormat.isEmpty()) {
             this.dateFormat = null;
@@ -78,7 +81,15 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
             return value;
         }
 
-        final String trimmed = trim(value);
+        final String trimmed;
+        final RecordFieldType type = dataType.getFieldType();
+
+        if (!trimDoubleQuote && (type.equals(RecordFieldType.STRING) || type.equals(RecordFieldType.CHOICE))) {
+            trimmed = value;
+        } else {
+            trimmed = trim(value);
+        }
+
         if (trimmed.isEmpty()) {
             return null;
         }
@@ -91,7 +102,14 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
             return value;
         }
 
-        final String trimmed = trim(value);
+        final String trimmed;
+
+        if (!trimDoubleQuote && dataType.getFieldType().equals(RecordFieldType.STRING)) {
+            trimmed = value;
+        } else {
+            trimmed = trim(value);
+        }
+
         if (trimmed.isEmpty()) {
             return null;
         }

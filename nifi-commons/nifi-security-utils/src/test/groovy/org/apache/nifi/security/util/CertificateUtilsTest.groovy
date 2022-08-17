@@ -20,22 +20,14 @@ import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.asn1.x500.style.BCStyle
 import org.bouncycastle.asn1.x500.style.IETFUtils
-import org.bouncycastle.asn1.x509.Extension
-import org.bouncycastle.asn1.x509.Extensions
-import org.bouncycastle.asn1.x509.ExtensionsGenerator
-import org.bouncycastle.asn1.x509.GeneralName
-import org.bouncycastle.asn1.x509.GeneralNames
+import org.bouncycastle.asn1.x509.*
 import org.bouncycastle.operator.OperatorCreationException
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder
 import org.bouncycastle.util.IPAddress
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -43,27 +35,15 @@ import javax.net.ssl.SSLException
 import javax.net.ssl.SSLPeerUnverifiedException
 import javax.net.ssl.SSLSession
 import javax.net.ssl.SSLSocket
-import java.security.InvalidKeyException
-import java.security.KeyPair
-import java.security.KeyPairGenerator
-import java.security.NoSuchAlgorithmException
-import java.security.NoSuchProviderException
-import java.security.SignatureException
+import java.security.*
 import java.security.cert.Certificate
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
-import java.util.concurrent.Callable
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.Executors
-import java.util.concurrent.Future
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicBoolean
 
-import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
 
-@RunWith(JUnit4.class)
 class CertificateUtilsTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(CertificateUtilsTest.class)
 
@@ -80,22 +60,11 @@ class CertificateUtilsTest extends GroovyTestCase {
     private static final String ISSUER_DN = "CN=NiFi Test CA,OU=Security,O=Apache,ST=CA,C=US"
     private static final List<String> SUBJECT_ALT_NAMES = ["127.0.0.1", "nifi.nifi.apache.org"]
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() {
-        super.setUp()
-
-    }
-
-    @After
-    void tearDown() {
-
     }
 
     /**
@@ -157,25 +126,6 @@ class CertificateUtilsTest extends GroovyTestCase {
 
     private static Date inFuture(int days) {
         return new Date(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(days))
-    }
-
-    @Test
-    void testShouldConvertLegacyX509Certificate() {
-        // Arrange
-        final X509Certificate EXPECTED_NEW_CERTIFICATE = generateCertificate(SUBJECT_DN)
-        logger.info("Expected certificate: ${EXPECTED_NEW_CERTIFICATE.class.canonicalName} ${EXPECTED_NEW_CERTIFICATE.subjectDN.toString()} (${EXPECTED_NEW_CERTIFICATE.getSerialNumber()})")
-
-        // Form the legacy certificate
-        final javax.security.cert.X509Certificate LEGACY_CERTIFICATE = generateLegacyCertificate(EXPECTED_NEW_CERTIFICATE)
-        logger.info("Legacy certificate: ${LEGACY_CERTIFICATE.class.canonicalName} ${LEGACY_CERTIFICATE.subjectDN.toString()} (${LEGACY_CERTIFICATE.getSerialNumber()})")
-
-        // Act
-        X509Certificate convertedCertificate = CertificateUtils.convertLegacyX509Certificate(LEGACY_CERTIFICATE)
-        logger.info("Converted certificate: ${convertedCertificate.class.canonicalName} ${convertedCertificate.subjectDN.toString()} (${convertedCertificate.getSerialNumber()})")
-
-        // Assert
-        assert convertedCertificate instanceof X509Certificate
-        assert convertedCertificate == EXPECTED_NEW_CERTIFICATE
     }
 
     @Test

@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.nar;
 
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.FileUtils;
+import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,31 +34,30 @@ import java.util.Objects;
  * Starts a thread to monitor the auto-load directory for new NARs.
  */
 public class NarAutoLoader {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(NarAutoLoader.class);
 
     private static final long POLL_INTERVAL_MS = 5000;
 
-    private final File autoLoadDir;
+    private final NiFiProperties properties;
     private final NarLoader narLoader;
 
     private volatile NarAutoLoaderTask narAutoLoaderTask;
     private volatile boolean started = false;
 
-    public NarAutoLoader(final File autoLoadDir, final NarLoader narLoader) {
-        this.autoLoadDir = Objects.requireNonNull(autoLoadDir);
+    public NarAutoLoader(final NiFiProperties properties, final NarLoader narLoader) {
+        this.properties = Objects.requireNonNull(properties);
         this.narLoader = Objects.requireNonNull(narLoader);
     }
 
-    public synchronized void start() throws IOException {
+    public synchronized void start() throws IllegalAccessException, InstantiationException, ClassNotFoundException, IOException, TlsException {
         if (started) {
             return;
         }
 
+        final File autoLoadDir = properties.getNarAutoLoadDirectory();
         FileUtils.ensureDirectoryExistAndCanRead(autoLoadDir);
 
         final WatchService watcher = FileSystems.getDefault().newWatchService();
-
         final Path autoLoadPath = autoLoadDir.toPath();
         autoLoadPath.register(watcher, StandardWatchEventKinds.ENTRY_CREATE);
 
@@ -69,19 +70,19 @@ public class NarAutoLoader {
 
         LOGGER.info("Starting NAR Auto-Loader for directory {} ...", new Object[]{autoLoadPath});
 
-        final Thread thread = new Thread(narAutoLoaderTask);
-        thread.setName("NAR Auto-Loader");
-        thread.setDaemon(true);
-        thread.start();
-
-        LOGGER.info("NAR Auto-Loader started");
-        started = true;
+        final Thread autoLoaderThread = new Thread(narAutoLoaderTask);
+        autoLoaderThread.setName("NAR Auto-Loader");
+        autoLoaderThread.setDaemon(true);
+        autoLoaderThread.start();
     }
 
     public synchronized void stop() {
         started = false;
-        narAutoLoaderTask.stop();
+        if (narAutoLoaderTask != null) {
+            narAutoLoaderTask.stop();
+            narAutoLoaderTask = null;
+        }
+
         LOGGER.info("NAR Auto-Loader stopped");
     }
-
 }

@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.provenance;
 
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.provenance.serialization.RecordReaders;
@@ -27,17 +25,16 @@ import org.apache.nifi.provenance.store.RecordWriterFactory;
 import org.apache.nifi.provenance.toc.StandardTocWriter;
 import org.apache.nifi.provenance.toc.TocUtil;
 import org.apache.nifi.provenance.toc.TocWriter;
-import org.apache.nifi.security.kms.CryptoUtils;
+import org.apache.nifi.repository.encryption.AesGcmByteArrayRepositoryEncryptor;
+import org.apache.nifi.repository.encryption.RepositoryEncryptor;
+import org.apache.nifi.repository.encryption.configuration.EncryptedRepositoryType;
+import org.apache.nifi.repository.encryption.configuration.EncryptionMetadataHeader;
+import org.apache.nifi.repository.encryption.configuration.kms.RepositoryKeyProviderFactory;
+import org.apache.nifi.repository.encryption.configuration.kms.StandardRepositoryKeyProviderFactory;
 import org.apache.nifi.security.kms.KeyProvider;
-import org.apache.nifi.security.kms.KeyProviderFactory;
 import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
-import java.security.KeyManagementException;
 
 /**
  * This class is an implementation of the {@link WriteAheadProvenanceRepository} provenance repository which provides transparent
@@ -49,7 +46,9 @@ import java.security.KeyManagementException;
  * Repository Properties</a>.
  */
 public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanceRepository {
-    private static final Logger logger = LoggerFactory.getLogger(EncryptedWriteAheadProvenanceRepository.class);
+    private NiFiProperties niFiProperties;
+
+    private RepositoryEncryptor<byte[], byte[]> repositoryEncryptor;
 
     /**
      * This constructor exists solely for the use of the Java Service Loader mechanism and should not be used.
@@ -59,14 +58,17 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
         super();
     }
 
-    // Created via reflection from FlowController
-    @SuppressWarnings("unused")
-    public EncryptedWriteAheadProvenanceRepository(final NiFiProperties nifiProperties) {
-        super(RepositoryConfiguration.create(nifiProperties));
-    }
-
-    public EncryptedWriteAheadProvenanceRepository(final RepositoryConfiguration config) {
-        super(config);
+    /**
+     * Encrypted Write Ahead Provenance Repository initialized using NiFi Properties
+     *
+     * @param niFiProperties NiFi Properties
+     */
+    public EncryptedWriteAheadProvenanceRepository(final NiFiProperties niFiProperties) {
+        super(RepositoryConfiguration.create(niFiProperties));
+        this.niFiProperties = niFiProperties;
+        final RepositoryKeyProviderFactory repositoryKeyProviderFactory = new StandardRepositoryKeyProviderFactory();
+        final KeyProvider keyProvider = repositoryKeyProviderFactory.getKeyProvider(EncryptedRepositoryType.PROVENANCE, niFiProperties);
+        this.repositoryEncryptor = new AesGcmByteArrayRepositoryEncryptor(keyProvider, EncryptionMetadataHeader.PROVENANCE);
     }
 
     /**
@@ -83,37 +85,11 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
     @Override
     public synchronized void initialize(final EventReporter eventReporter, final Authorizer authorizer, final ProvenanceAuthorizableFactory resourceFactory,
                                         final IdentifierLookup idLookup) throws IOException {
-        // Initialize the encryption-specific fields
-        ProvenanceEventEncryptor provenanceEventEncryptor;
-        if (getConfig().supportsEncryption()) {
-            try {
-                KeyProvider keyProvider;
-                if (KeyProviderFactory.requiresRootKey(getConfig().getKeyProviderImplementation())) {
-                    SecretKey rootKey = getRootKey();
-                    keyProvider = buildKeyProvider(rootKey);
-                } else {
-                    keyProvider = buildKeyProvider();
-                }
-                provenanceEventEncryptor = new AESProvenanceEventEncryptor();
-                provenanceEventEncryptor.initialize(keyProvider);
-            } catch (KeyManagementException e) {
-                String msg = "Encountered an error building the key provider";
-                logger.error(msg, e);
-                throw new IOException(msg, e);
-            }
-        } else {
-            throw new IOException("The provided configuration does not support a encrypted repository");
-        }
-
         // Build a factory using lambda which injects the encryptor
         final RecordWriterFactory recordWriterFactory = (file, idGenerator, compressed, createToc) -> {
-            try {
-                final TocWriter tocWriter = createToc ? new StandardTocWriter(TocUtil.getTocFile(file), false, false) : null;
-                return new EncryptedSchemaRecordWriter(file, idGenerator, tocWriter, compressed, BLOCK_SIZE, idLookup, provenanceEventEncryptor, getConfig().getDebugFrequency());
-            } catch (EncryptionException e) {
-                logger.error("Encountered an error building the schema record writer factory: ", e);
-                throw new IOException(e);
-            }
+            final TocWriter tocWriter = createToc ? new StandardTocWriter(TocUtil.getTocFile(file), false, false) : null;
+            final String keyId = niFiProperties.getProvenanceRepoEncryptionKeyId();
+            return new EncryptedSchemaRecordWriter(file, idGenerator, tocWriter, compressed, BLOCK_SIZE, idLookup, repositoryEncryptor, keyId);
         };
 
         // Build a factory using lambda which injects the encryptor
@@ -122,7 +98,7 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
             fileManager.obtainReadLock(file);
             try {
                 EncryptedSchemaRecordReader tempReader = (EncryptedSchemaRecordReader) RecordReaders.newRecordReader(file, logs, maxChars);
-                tempReader.setProvenanceEventEncryptor(provenanceEventEncryptor);
+                tempReader.setRepositoryEncryptor(repositoryEncryptor);
                 return tempReader;
             } finally {
                 fileManager.releaseReadLock(file);
@@ -131,35 +107,5 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
 
         // Delegate the init to the parent impl
         super.init(recordWriterFactory, recordReaderFactory, eventReporter, authorizer, resourceFactory);
-    }
-
-    private KeyProvider buildKeyProvider() throws KeyManagementException {
-        return buildKeyProvider(null);
-    }
-
-    private KeyProvider buildKeyProvider(SecretKey rootKey) throws KeyManagementException {
-        RepositoryConfiguration config = super.getConfig();
-        if (config == null) {
-            throw new KeyManagementException("The repository configuration is missing");
-        }
-
-        final String implementationClassName = config.getKeyProviderImplementation();
-        if (implementationClassName == null) {
-            throw new KeyManagementException("Cannot create Key Provider because the NiFi Properties is missing the following property: "
-                    + NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS);
-        }
-
-        return KeyProviderFactory.buildKeyProvider(implementationClassName, config.getKeyProviderLocation(), config.getKeyId(), config.getEncryptionKeys(), rootKey);
-    }
-
-    private static SecretKey getRootKey() throws KeyManagementException {
-        try {
-            // Get the root encryption key from bootstrap.conf
-            String rootKeyHex = CryptoUtils.extractKeyFromBootstrapFile();
-            return new SecretKeySpec(Hex.decodeHex(rootKeyHex.toCharArray()), "AES");
-        } catch (IOException | DecoderException e) {
-            logger.error("Encountered an error: ", e);
-            throw new KeyManagementException(e);
-        }
     }
 }

@@ -66,13 +66,13 @@ public class MyProcessor extends AbstractProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors = new ArrayList<>();
         descriptors.add(MY_PROPERTY);
-        this.descriptors = Collections.unmodifiableList(descriptors);
+        descriptors = Collections.unmodifiableList(descriptors);
 
-        final Set<Relationship> relationships = new HashSet<>();
+        relationships = new HashSet<>();
         relationships.add(MY_RELATIONSHIP);
-        this.relationships = Collections.unmodifiableSet(relationships);
+        relationships = Collections.unmodifiableSet(relationships);
     }
 
     @Override
@@ -91,7 +91,7 @@ public class MyProcessor extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) {
         FlowFile flowFile = session.get();
         if ( flowFile == null ) {
             return;

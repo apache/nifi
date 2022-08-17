@@ -16,44 +16,21 @@
  */
 package org.apache.nifi.security.util.crypto
 
-import org.apache.kerby.util.Hex
-import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.*
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import org.bouncycastle.util.encoders.Hex
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 
 import java.nio.charset.StandardCharsets
-import java.security.Security
 
-@RunWith(JUnit4.class)
-class PBKDF2SecureHasherTest extends GroovyTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(PBKDF2SecureHasherTest)
+import static org.junit.jupiter.api.Assertions.assertThrows
 
-    @BeforeClass
-    static void setupOnce() throws Exception {
-        Security.addProvider(new BouncyCastleProvider())
-
-        logger.metaClass.methodMissing = { String name, args ->
-            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
-        }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
-    }
+class PBKDF2SecureHasherTest {
 
     @Test
     void testShouldBeDeterministicWithStaticSalt() {
         // Arrange
         int cost = 10_000
         int dkLength = 32
-        logger.info("Generating PBKDF2 hash for iterations: ${cost}, desired key length: ${dkLength} bytes (${dkLength * 8} bits)")
 
         int testIterations = 10
         byte[] inputBytes = "This is a sensitive value".bytes
@@ -67,8 +44,7 @@ class PBKDF2SecureHasherTest extends GroovyTestCase {
         // Act
         testIterations.times { int i ->
             byte[] hash = pbkdf2SecureHasher.hashRaw(inputBytes)
-            String hashHex = Hex.encode(hash)
-            logger.info("Generated hash: ${hashHex}")
+            String hashHex = new String(Hex.encode(hash))
             results << hashHex
         }
 
@@ -83,7 +59,6 @@ class PBKDF2SecureHasherTest extends GroovyTestCase {
         int cost = 10_000
         int saltLength = 16
         int dkLength = 32
-        logger.info("Generating PBKDF2 hash for prf: ${prf}, iterations: ${cost}, salt length: ${saltLength} bytes, desired key length: ${dkLength} bytes (${dkLength * 8} bits)")
 
         int testIterations = 10
         byte[] inputBytes = "This is a sensitive value".bytes
@@ -98,7 +73,6 @@ class PBKDF2SecureHasherTest extends GroovyTestCase {
         testIterations.times { int i ->
             byte[] hash = pbkdf2SecureHasher.hashRaw(inputBytes)
             String hashHex = Hex.encode(hash)
-            logger.info("Generated hash: ${hashHex}")
             results << hashHex
         }
 
@@ -114,7 +88,6 @@ class PBKDF2SecureHasherTest extends GroovyTestCase {
         int cost = 10_000
         int saltLength = 16
         int dkLength = 32
-        logger.info("Generating PBKDF2 hash for prf: ${prf}, iterations: ${cost}, salt length: ${saltLength} bytes, desired key length: ${dkLength} bytes (${dkLength * 8} bits)")
 
         def input = "This is a sensitive value"
         byte[] inputBytes = input.bytes
@@ -169,7 +142,6 @@ class PBKDF2SecureHasherTest extends GroovyTestCase {
         int cost = 10_000
         int saltLength = 16
         int dkLength = 32
-        logger.info("Generating PBKDF2 hash for prf: ${prf}, iterations: ${cost}, salt length: ${saltLength} bytes, desired key length: ${dkLength} bytes (${dkLength * 8} bits)")
 
         def input = "This is a sensitive value"
         byte[] inputBytes = input.bytes
@@ -178,28 +150,10 @@ class PBKDF2SecureHasherTest extends GroovyTestCase {
         PBKDF2SecureHasher secureHasher = new PBKDF2SecureHasher(prf, cost, saltLength, dkLength)
         byte[] STATIC_SALT = "bad_sal".bytes
 
-        // Act
-        def initializeMsg = shouldFail(IllegalArgumentException) {
-            PBKDF2SecureHasher invalidSaltLengthHasher = new PBKDF2SecureHasher(prf, cost, 7, dkLength)
-        }
-        logger.expected(initializeMsg)
-
-        def arbitrarySaltRawMsg = shouldFail {
-            byte[] arbitrarySaltRaw = secureHasher.hashRaw(inputBytes, STATIC_SALT)
-        }
-
-        def arbitrarySaltHexMsg = shouldFail {
-            byte[] arbitrarySaltHex = secureHasher.hashHex(input, new String(STATIC_SALT, StandardCharsets.UTF_8))
-        }
-
-        def arbitrarySaltBase64Msg = shouldFail {
-            byte[] arbitrarySaltBase64 = secureHasher.hashBase64(input, new String(STATIC_SALT, StandardCharsets.UTF_8))
-        }
-
-        def results = [arbitrarySaltRawMsg, arbitrarySaltHexMsg, arbitrarySaltBase64Msg]
-
-        // Assert
-        assert results.every { it =~ /The salt length \(7 bytes\) is invalid/ }
+        assertThrows(IllegalArgumentException.class, { -> new PBKDF2SecureHasher(prf, cost, 7, dkLength) })
+        assertThrows(RuntimeException.class, { -> secureHasher.hashRaw(inputBytes, STATIC_SALT) })
+        assertThrows(RuntimeException.class, { -> secureHasher.hashHex(input, new String(STATIC_SALT, StandardCharsets.UTF_8)) })
+        assertThrows(RuntimeException.class, { -> secureHasher.hashBase64(input, new String(STATIC_SALT, StandardCharsets.UTF_8)) })
     }
 
     @Test
@@ -213,7 +167,6 @@ class PBKDF2SecureHasherTest extends GroovyTestCase {
 
         // Act
         String hashHex = pbkdf2SecureHasher.hashHex(input)
-        logger.info("Generated hash: ${hashHex}")
 
         // Assert
         assert hashHex == EXPECTED_HASH_HEX
@@ -230,7 +183,6 @@ class PBKDF2SecureHasherTest extends GroovyTestCase {
 
         // Act
         String hashB64 = pbkdf2SecureHasher.hashBase64(input)
-        logger.info("Generated hash: ${hashB64}")
 
         // Assert
         assert hashB64 == EXPECTED_HASH_BASE64
@@ -252,11 +204,9 @@ class PBKDF2SecureHasherTest extends GroovyTestCase {
         // Act
         inputs.each { String input ->
             String hashHex = pbkdf2SecureHasher.hashHex(input)
-            logger.info("Generated hex-encoded hash: ${hashHex}")
             hexResults << hashHex
 
             String hashB64 = pbkdf2SecureHasher.hashBase64(input)
-            logger.info("Generated B64-encoded hash: ${hashB64}")
             B64Results << hashB64
         }
 
@@ -269,7 +219,7 @@ class PBKDF2SecureHasherTest extends GroovyTestCase {
      * This test can have the minimum time threshold updated to determine if the performance
      * is still sufficient compared to the existing threat model.
      */
-    @Ignore("Long running test")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
     @Test
     void testDefaultCostParamsShouldBeSufficient() {
         // Arrange
@@ -289,7 +239,6 @@ class PBKDF2SecureHasherTest extends GroovyTestCase {
             long durationNanos = endNanos - startNanos
 
             String hashHex = Hex.encode(hash)
-            logger.info("Generated hash: ${hashHex} in ${durationNanos} ns")
 
             results << hashHex
             resultDurations << durationNanos
@@ -309,7 +258,6 @@ class PBKDF2SecureHasherTest extends GroovyTestCase {
         // Act
         def results = validIterationCounts.collect { int i ->
             boolean valid = PBKDF2SecureHasher.isIterationCountValid(i)
-            logger.info("Iteration count ${i} is valid: ${valid}")
             valid
         }
 
@@ -325,7 +273,6 @@ class PBKDF2SecureHasherTest extends GroovyTestCase {
         // Act
         def results = invalidIterationCounts.collect { i ->
             boolean valid = PBKDF2SecureHasher.isIterationCountValid(i)
-            logger.info("Iteration count ${i} is valid: ${valid}")
             valid
         }
 
@@ -347,7 +294,6 @@ class PBKDF2SecureHasherTest extends GroovyTestCase {
         def results = validHLengths.collectEntries { int hLen ->
             def dkResults = validDKLengths.collect { int dkLength ->
                 boolean valid = PBKDF2SecureHasher.isDKLengthValid(hLen, dkLength)
-                logger.info("Derived key length ${dkLength} bytes (${dkLength * 8} bits) with hLen ${hLen} bytes (${hLen * 8} bits) is valid: ${valid}")
                 valid
             }
             [hLen, dkResults]
@@ -371,7 +317,6 @@ class PBKDF2SecureHasherTest extends GroovyTestCase {
         def results = validHLengths.collectEntries { int hLen ->
             def dkResults = invalidDKLengths.collect { int dkLength ->
                 boolean valid = PBKDF2SecureHasher.isDKLengthValid(hLen, dkLength)
-                logger.info("Derived key length ${dkLength} bytes (${dkLength * 8} bits) with hLen ${hLen} bytes (${hLen * 8} bits) is valid: ${valid}")
                 valid
             }
             [hLen, dkResults]
@@ -391,7 +336,6 @@ class PBKDF2SecureHasherTest extends GroovyTestCase {
         // Act
         def results = saltLengths.collect { saltLength ->
             def isValid = new PBKDF2SecureHasher().isSaltLengthValid(saltLength)
-            logger.info("Salt length ${saltLength} bytes is valid: ${isValid}")
             isValid
         }
 
@@ -407,7 +351,6 @@ class PBKDF2SecureHasherTest extends GroovyTestCase {
         // Act
         def results = saltLengths.collect { saltLength ->
             def isValid = new PBKDF2SecureHasher().isSaltLengthValid(saltLength)
-            logger.info("Salt length ${saltLength} bytes is valid: ${isValid}")
             isValid
         }
 

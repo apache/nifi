@@ -16,70 +16,29 @@
  */
 package org.apache.nifi.security.util.crypto
 
-import org.apache.kerby.util.Hex
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Ignore
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.bouncycastle.util.encoders.Hex
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import java.nio.charset.StandardCharsets
 import java.security.Security
 
-@RunWith(JUnit4.class)
-class Argon2SecureHasherTest extends GroovyTestCase {
+import static org.junit.jupiter.api.Assertions.assertThrows
+
+class Argon2SecureHasherTest {
     private static final Logger logger = LoggerFactory.getLogger(Argon2SecureHasherTest.class)
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
-    }
-
-    private static byte[] decodeHex(String hex) {
-        Hex.decode(hex?.replaceAll("[^0-9a-fA-F]", ""))
-    }
-
-    @Ignore("Cannot override static salt")
-    @Test
-    void testShouldMatchReferenceVectors() {
-        // Arrange
-        int hashLength = 32
-        int memory = 32
-        int parallelism = 4
-        int iterations = 3
-        logger.info("Generating Argon2 hash for hash length: ${hashLength} B, mem: ${memory} KiB, parallelism: ${parallelism}, iterations: ${iterations}")
-
-        Argon2SecureHasher a2sh = new Argon2SecureHasher(hashLength, memory, parallelism, iterations)
-        // Override the static salt for the published test vector
-//        a2sh.staticSalt = [0x02] * 16
-
-        // Act
-        byte[] hash = a2sh.hashRaw([0x01] * 32 as byte[])
-        logger.info("Generated hash: ${Hex.encode(hash)}")
-
-        // Assert
-        assert hash == decodeHex("0d 64 0d f5 8d 78 76 6c 08 c0 37 a3 4a 8b 53 c9 d0 " +
-                "1e f0 45 2d 75 b6 5e b5 25 20 e9 6b 01 e6 59")
-
-        // Clean up
-//        Argon2SecureHasher.staticSalt = "NiFi Static Salt".bytes
     }
 
     @Test
@@ -103,7 +62,7 @@ class Argon2SecureHasherTest extends GroovyTestCase {
         // Act
         testIterations.times { int i ->
             byte[] hash = a2sh.hashRaw(inputBytes)
-            String hashHex = Hex.encode(hash)
+            String hashHex = new String(Hex.encode(hash))
             logger.info("Generated hash: ${hashHex}")
             results << hashHex
         }
@@ -217,27 +176,12 @@ class Argon2SecureHasherTest extends GroovyTestCase {
         final byte[] STATIC_SALT = "bad_sal".bytes
 
         // Act
-        def initializeMsg = shouldFail(IllegalArgumentException) {
-            Argon2SecureHasher invalidSaltLengthHasher = new Argon2SecureHasher(hashLength, memory, parallelism, iterations, 7)
-        }
-        logger.expected(initializeMsg)
+        assertThrows(IllegalArgumentException.class, { ->
+            new Argon2SecureHasher(hashLength, memory, parallelism, iterations, 7) })
 
-        def arbitrarySaltRawMsg = shouldFail {
-            byte[] arbitrarySaltRaw = secureHasher.hashRaw(inputBytes, STATIC_SALT)
-        }
-
-        def arbitrarySaltHexMsg = shouldFail {
-            byte[] arbitrarySaltHex = secureHasher.hashHex(input, new String(STATIC_SALT, StandardCharsets.UTF_8))
-        }
-
-        def arbitrarySaltBase64Msg = shouldFail {
-            byte[] arbitraySaltBase64 = secureHasher.hashBase64(input, new String(STATIC_SALT, StandardCharsets.UTF_8))
-        }
-
-        def results = [arbitrarySaltRawMsg, arbitrarySaltHexMsg, arbitrarySaltBase64Msg]
-
-        // Assert
-        assert results.every { it =~ /The salt length \(7 bytes\) is invalid/ }
+        assertThrows(RuntimeException.class, { -> secureHasher.hashRaw(inputBytes, STATIC_SALT) })
+        assertThrows(RuntimeException.class, { -> secureHasher.hashHex(input, new String(STATIC_SALT, StandardCharsets.UTF_8)) })
+        assertThrows(RuntimeException.class, { -> secureHasher.hashBase64(input, new String(STATIC_SALT, StandardCharsets.UTF_8)) })
     }
 
     @Test
@@ -307,7 +251,7 @@ class Argon2SecureHasherTest extends GroovyTestCase {
      * This test can have the minimum time threshold updated to determine if the performance
      * is still sufficient compared to the existing threat model.
      */
-    @Ignore("Long running test")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
     @Test
     void testDefaultCostParamsShouldBeSufficient() {
         // Arrange

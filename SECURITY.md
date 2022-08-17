@@ -39,10 +39,10 @@ While researching, we'd like to ask you to refrain from:
 
 ## Reporting Methods
 
-NiFi accepts reports in multiple ways:
-
-* Send an email to [security@nifi.apache.org](mailto:security@nifi.apache.org). This is a private list monitored by the [PMC](https://nifi.apache.org/people.html). For sensitive disclosures, the GPG key fingerprint is *1230 3BB8 1F22 E11C 8725 926A AFF2 B368 23B9 44E9*.
-* NiFi has a [HackerOne](https://hackerone.com/apache_nifi) project page. HackerOne provides a triaged process for researchers and organizations to collaboratively report and resolve security vulnerabilities.
+* NiFi Security Mailing List: [security@nifi.apache.org](mailto:security@nifi.apache.org)
+  * Members of the [Project Management Committee](https://nifi.apache.org/people.html) monitor this private mailing list and respond to disclosures
+* NiFi [HackerOne](https://hackerone.com/apache_nifi) project page
+  * HackerOne provides a triaged process for researchers and organizations to collaboratively report and resolve security vulnerabilities
 
 ## Publishing
 

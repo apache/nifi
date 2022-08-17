@@ -34,6 +34,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.dao.ProcessorDAO;
+import org.apache.nifi.xml.processing.parsers.DocumentProvider;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -43,11 +45,9 @@ import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.StringReader;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -80,6 +80,10 @@ public class ProcessorAuditor extends NiFiAuditor {
     private static final String SCHEDULING_STRATEGY = "Scheduling Strategy";
     private static final String EXECUTION_NODE = "Execution Node";
     private static final String EXTENSION_VERSION = "Extension Version";
+    private static final String RETRY_COUNT = "Retry Count";
+    private static final String RETRIED_RELATIONSHIPS = "Retried Relationships";
+    private static final String BACKOFF_MECHANISM = "Backoff Mechanism";
+    private static final String MAX_BACKOFF_PERIOD = "Max Backoff Period";
 
     /**
      * Audits the creation of processors via createProcessor().
@@ -138,6 +142,8 @@ public class ProcessorAuditor extends NiFiAuditor {
 
         // ensure the user was found
         if (user != null) {
+            final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(processorDTO);
+
             // determine the updated values
             Map<String, String> updatedValues = extractConfiguredPropertyValues(processor, processorDTO);
 
@@ -163,29 +169,26 @@ public class ProcessorAuditor extends NiFiAuditor {
                 // create a configuration action accordingly
                 if (operation != null) {
                     // clear the value if this property is sensitive
-                    final PropertyDescriptor propertyDescriptor = processor.getProcessor().getPropertyDescriptor(property);
-                    if (propertyDescriptor != null && propertyDescriptor.isSensitive()) {
+                    final PropertyDescriptor propertyDescriptor = processor.getPropertyDescriptor(property);
+                    // Evaluate both Property Descriptor status and whether the client requested a new Sensitive Dynamic Property
+                    if (propertyDescriptor != null && (propertyDescriptor.isSensitive() || sensitiveDynamicPropertyNames.contains(property))) {
                         if (newValue != null) {
-                            newValue = "********";
+                            newValue = SENSITIVE_VALUE_PLACEHOLDER;
                         }
                         if (oldValue != null) {
-                            oldValue = "********";
+                            oldValue = SENSITIVE_VALUE_PLACEHOLDER;
                         }
                     } else if (ANNOTATION_DATA.equals(property)) {
                         if (newValue != null && oldValue != null) {
 
                             try {
 
-                                InputSource is = new InputSource();
-                                is.setCharacterStream(new StringReader(newValue));
-                                DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-                                DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-                                Document doc = dBuilder.parse(is);
+                                final DocumentProvider documentProvider = new StandardDocumentProvider();
+                                Document doc = documentProvider.parse(new ByteArrayInputStream(newValue.getBytes(StandardCharsets.UTF_8)));
                                 NodeList nList = doc.getChildNodes();
                                 final Map<String, Node> xmlDumpNew = new HashMap<>();
                                 getItemPaths(nList, ""+doc.getNodeName(), xmlDumpNew);
-                                is.setCharacterStream(new StringReader(oldValue));
-                                doc = dBuilder.parse(is);
+                                doc = documentProvider.parse(new ByteArrayInputStream(oldValue.getBytes(StandardCharsets.UTF_8)));
                                 nList = doc.getChildNodes();
                                 final Map<String, Node> xmlDumpOld = new HashMap<>();
                                 getItemPaths(nList, ""+doc.getNodeName(), xmlDumpOld);
@@ -259,6 +262,8 @@ public class ProcessorAuditor extends NiFiAuditor {
                         processorAction.setOperation(Operation.Stop);
                     } else if (ScheduledState.DISABLED.equals(scheduledState)) {
                         processorAction.setOperation(Operation.Enable);
+                    } else if (ScheduledState.STOPPED.equals(scheduledState)) {
+                        processorAction.setOperation(Operation.RunOnce);
                     }
                 }
                 actions.add(processorAction);
@@ -352,6 +357,14 @@ public class ProcessorAuditor extends NiFiAuditor {
         return action;
     }
 
+    private Set<String> getSensitiveDynamicPropertyNames(final ProcessorDTO processorDTO) {
+        final ProcessorConfigDTO config = processorDTO.getConfig();
+        if (config == null) {
+            return Collections.emptySet();
+        }
+        return config.getSensitiveDynamicPropertyNames() == null ? Collections.emptySet() : config.getSensitiveDynamicPropertyNames();
+    }
+
     /**
      * Extracts the values for the configured properties from the specified Processor.
      */
@@ -422,6 +435,24 @@ public class ProcessorAuditor extends NiFiAuditor {
             }
             if (newConfig.getExecutionNode() != null) {
                 values.put(EXECUTION_NODE, processor.getExecutionNode().name());
+            }
+
+            if (newConfig.getRetryCount() != null) {
+                values.put(RETRY_COUNT, String.valueOf(processor.getRetryCount()));
+            }
+
+            if (newConfig.getRetriedRelationships() != null) {
+                final List<String> retriedRelationships = new ArrayList<>(processor.getRetriedRelationships());
+                Collections.sort(retriedRelationships, Collator.getInstance(Locale.US));
+                values.put(RETRIED_RELATIONSHIPS, StringUtils.join(retriedRelationships, ", "));
+            }
+
+            if (newConfig.getBackoffMechanism() != null) {
+                values.put(BACKOFF_MECHANISM, processor.getBackoffMechanism().name());
+            }
+
+            if (newConfig.getMaxBackoffPeriod() != null) {
+                values.put(MAX_BACKOFF_PERIOD, processor.getMaxBackoffPeriod());
             }
         }
 

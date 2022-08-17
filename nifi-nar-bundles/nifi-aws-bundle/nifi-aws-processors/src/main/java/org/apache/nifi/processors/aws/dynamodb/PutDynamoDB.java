@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.aws.dynamodb;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,7 +52,7 @@ import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.WriteRequest;
 
 @SupportsBatching
-@SeeAlso({DeleteDynamoDB.class, GetDynamoDB.class})
+@SeeAlso({DeleteDynamoDB.class, GetDynamoDB.class, PutDynamoDBRecord.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "DynamoDB", "AWS", "Put", "Insert"})
 @CapabilityDescription("Puts a document from DynamoDB based on hash and range key.  The table can have either hash and range or hash key alone."
@@ -61,17 +60,17 @@ import com.amazonaws.services.dynamodbv2.model.WriteRequest;
     + "In case of hash and range keys both key are required for the operation."
     + " The FlowFile content must be JSON. FlowFile content is mapped to the specified Json Document attribute in the DynamoDB item.")
 @WritesAttributes({
-    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED, description = "Dynamo db unprocessed keys"),
-    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR, description = "Dynamod db range key error"),
-    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND, description = "Dynamo db key not found"),
-    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE, description = "Dynamo db exception message"),
-    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_CODE, description = "Dynamo db error code"),
-    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_MESSAGE, description = "Dynamo db error message"),
-    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_TYPE, description = "Dynamo db error type"),
-    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_SERVICE, description = "Dynamo db error service"),
-    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_RETRYABLE, description = "Dynamo db error is retryable"),
-    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_REQUEST_ID, description = "Dynamo db error request id"),
-    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_STATUS_CODE, description = "Dynamo db error status code"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED, description = "DynamoDB unprocessed keys"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR, description = "DynamoDB range key error"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND, description = "DynamoDB key not found"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE, description = "DynamoDB exception message"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_CODE, description = "DynamoDB error code"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_MESSAGE, description = "DynamoDB error message"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_TYPE, description = "DynamoDB error type"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_SERVICE, description = "DynamoDB error service"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_RETRYABLE, description = "DynamoDB error is retryable"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_REQUEST_ID, description = "DynamoDB error request id"),
+    @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_STATUS_CODE, description = "DynamoDB error status code"),
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_IO_ERROR, description = "IO exception message on creating item")
 })
 @ReadsAttributes({
@@ -118,8 +117,8 @@ public class PutDynamoDB extends AbstractWriteDynamoDBProcessor {
         TableWriteItems tableWriteItems = new TableWriteItems(table);
 
         for (FlowFile flowFile : flowFiles) {
-            final Object hashKeyValue = getValue(context, HASH_KEY_VALUE_TYPE, HASH_KEY_VALUE, flowFile);
-            final Object rangeKeyValue = getValue(context, RANGE_KEY_VALUE_TYPE, RANGE_KEY_VALUE, flowFile);
+            final Object hashKeyValue = getValue(context, HASH_KEY_VALUE_TYPE, HASH_KEY_VALUE, flowFile.getAttributes());
+            final Object rangeKeyValue = getValue(context, RANGE_KEY_VALUE_TYPE, RANGE_KEY_VALUE, flowFile.getAttributes());
 
             if (!isHashKeyValueConsistent(hashKeyName, hashKeyValue, session, flowFile)) {
                 continue;
@@ -138,19 +137,13 @@ public class PutDynamoDB extends AbstractWriteDynamoDBProcessor {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             session.exportTo(flowFile, baos);
 
-            try {
-                if (rangeKeyValue == null || StringUtils.isBlank(rangeKeyValue.toString())) {
-                    tableWriteItems.addItemToPut(new Item().withKeyComponent(hashKeyName, hashKeyValue)
-                        .withJSON(jsonDocument, IOUtils.toString(baos.toByteArray(), charset)));
-                } else {
-                    tableWriteItems.addItemToPut(new Item().withKeyComponent(hashKeyName, hashKeyValue)
-                        .withKeyComponent(rangeKeyName, rangeKeyValue)
-                        .withJSON(jsonDocument, IOUtils.toString(baos.toByteArray(), charset)));
-                }
-            } catch (IOException ioe) {
-                getLogger().error("IOException while creating put item : " + ioe.getMessage());
-                flowFile = session.putAttribute(flowFile, DYNAMODB_ITEM_IO_ERROR, ioe.getMessage());
-                session.transfer(flowFile, REL_FAILURE);
+            if (rangeKeyValue == null || StringUtils.isBlank(rangeKeyValue.toString())) {
+                tableWriteItems.addItemToPut(new Item().withKeyComponent(hashKeyName, hashKeyValue)
+                    .withJSON(jsonDocument, IOUtils.toString(baos.toByteArray(), charset)));
+            } else {
+                tableWriteItems.addItemToPut(new Item().withKeyComponent(hashKeyName, hashKeyValue)
+                    .withKeyComponent(rangeKeyName, rangeKeyValue)
+                    .withJSON(jsonDocument, IOUtils.toString(baos.toByteArray(), charset)));
             }
             keysToFlowFileMap.put(new ItemKeys(hashKeyValue, rangeKeyValue), flowFile);
         }

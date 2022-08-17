@@ -16,17 +16,16 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream;
 
-import static com.amazonaws.SDKGlobalConfiguration.AWS_CBOR_DISABLE_SYSTEM_PROPERTY;
-
-import java.util.List;
-
-import org.apache.nifi.processors.aws.kinesis.stream.PutKinesisStream;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static com.amazonaws.SDKGlobalConfiguration.AWS_CBOR_DISABLE_SYSTEM_PROPERTY;
 
 // This integration test can be run against a mock Kenesis such as
 // https://github.com/mhart/kinesalite or https://github.com/localstack/localstack
@@ -34,7 +33,7 @@ public class ITPutKinesisStreamWithEndpointOverride {
 
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         System.setProperty(AWS_CBOR_DISABLE_SYSTEM_PROPERTY, "true");
 
@@ -46,7 +45,7 @@ public class ITPutKinesisStreamWithEndpointOverride {
         runner.assertValid();
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         runner = null;
 

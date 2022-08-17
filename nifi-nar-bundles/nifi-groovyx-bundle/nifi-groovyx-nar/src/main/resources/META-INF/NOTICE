@@ -1,5 +1,5 @@
 nifi-groovyx-nar
-Copyright 2014-2021 The Apache Software Foundation
+Copyright 2014-2022 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -29,9 +29,6 @@ The following binary components are provided under the Apache Software License v
         groovy-sql
         groovy-swing
         groovy-templates
-        groovy-test
-        groovy-test-junit5
-        groovy-testng
         groovy-xml
     The following NOTICE information applies:
       Groovy Language

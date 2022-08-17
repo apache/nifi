@@ -46,7 +46,7 @@ public class KerberosUserLogin implements Login {
     }
 
     @Override
-    public LoginContext login() throws LoginException {
+    public LoginContext login() {
         kerberosUser.login();
 
         // the KerberosUser doesn't expose the LoginContext, but SchemaRegistryClient doesn't use

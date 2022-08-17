@@ -43,7 +43,7 @@ import static org.testng.Assert.assertNull;
 
 public class TestFlowConfigurationArchiveManager {
 
-    private final File flowFile = new File("./target/flow-archive/flow.xml.gz");
+    private final File flowXmlFile = new File("./target/flow-archive/flow.xml.gz");
     private final File archiveDir = new File("./target/flow-archive");
 
     @Before
@@ -61,8 +61,8 @@ public class TestFlowConfigurationArchiveManager {
         }
 
         // Create original flow.xml.gz
-        Files.createDirectories(flowFile.getParentFile().toPath());
-        try (OutputStream os = Files.newOutputStream(flowFile.toPath(),
+        Files.createDirectories(flowXmlFile.getParentFile().toPath());
+        try (OutputStream os = Files.newOutputStream(flowXmlFile.toPath(),
                 StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
             // 10 bytes.
             os.write("0123456789".getBytes());
@@ -81,11 +81,12 @@ public class TestFlowConfigurationArchiveManager {
     public void testNiFiPropertiesDefault() throws Exception {
 
         final NiFiProperties defaultProperties = mock(NiFiProperties.class);
+        when(defaultProperties.getFlowConfigurationFile()).thenReturn(flowXmlFile);
         when(defaultProperties.getFlowConfigurationArchiveMaxCount()).thenReturn(null);
         when(defaultProperties.getFlowConfigurationArchiveMaxTime()).thenReturn(null);
         when(defaultProperties.getFlowConfigurationArchiveMaxStorage()).thenReturn(null);
 
-        final FlowConfigurationArchiveManager archiveManager = new FlowConfigurationArchiveManager(flowFile.toPath(), defaultProperties);
+        final FlowConfigurationArchiveManager archiveManager = new FlowConfigurationArchiveManager(defaultProperties);
 
         assertNull(getPrivateFieldValue(archiveManager, "maxCount"));
         assertEquals(60L * 60L * 24L * 30L * 1000L, getPrivateFieldValue(archiveManager, "maxTimeMillis"));
@@ -96,11 +97,12 @@ public class TestFlowConfigurationArchiveManager {
     public void testNiFiPropertiesMaxTime() throws Exception {
 
         final NiFiProperties withMaxTime = mock(NiFiProperties.class);
+        when(withMaxTime.getFlowConfigurationFile()).thenReturn(flowXmlFile);
         when(withMaxTime.getFlowConfigurationArchiveMaxCount()).thenReturn(null);
         when(withMaxTime.getFlowConfigurationArchiveMaxTime()).thenReturn("10 days");
         when(withMaxTime.getFlowConfigurationArchiveMaxStorage()).thenReturn(null);
 
-        final FlowConfigurationArchiveManager archiveManager = new FlowConfigurationArchiveManager(flowFile.toPath(), withMaxTime);
+        final FlowConfigurationArchiveManager archiveManager = new FlowConfigurationArchiveManager(withMaxTime);
 
         assertNull(getPrivateFieldValue(archiveManager, "maxCount"));
         assertEquals(60L * 60L * 24L * 10L * 1000L, getPrivateFieldValue(archiveManager, "maxTimeMillis"));
@@ -111,11 +113,12 @@ public class TestFlowConfigurationArchiveManager {
     public void testNiFiPropertiesMaxStorage() throws Exception {
 
         final NiFiProperties withMaxTime = mock(NiFiProperties.class);
+        when(withMaxTime.getFlowConfigurationFile()).thenReturn(flowXmlFile);
         when(withMaxTime.getFlowConfigurationArchiveMaxCount()).thenReturn(null);
         when(withMaxTime.getFlowConfigurationArchiveMaxTime()).thenReturn(null);
         when(withMaxTime.getFlowConfigurationArchiveMaxStorage()).thenReturn("10 MB");
 
-        final FlowConfigurationArchiveManager archiveManager = new FlowConfigurationArchiveManager(flowFile.toPath(), withMaxTime);
+        final FlowConfigurationArchiveManager archiveManager = new FlowConfigurationArchiveManager(withMaxTime);
 
         assertNull(getPrivateFieldValue(archiveManager, "maxCount"));
         assertNull(getPrivateFieldValue(archiveManager, "maxTimeMillis"));
@@ -126,11 +129,12 @@ public class TestFlowConfigurationArchiveManager {
     public void testNiFiPropertiesCount() throws Exception {
 
         final NiFiProperties onlyCount = mock(NiFiProperties.class);
+        when(onlyCount.getFlowConfigurationFile()).thenReturn(flowXmlFile);
         when(onlyCount.getFlowConfigurationArchiveMaxCount()).thenReturn(10);
         when(onlyCount.getFlowConfigurationArchiveMaxTime()).thenReturn(null);
         when(onlyCount.getFlowConfigurationArchiveMaxStorage()).thenReturn(null);
 
-        final FlowConfigurationArchiveManager archiveManager = new FlowConfigurationArchiveManager(flowFile.toPath(), onlyCount);
+        final FlowConfigurationArchiveManager archiveManager = new FlowConfigurationArchiveManager(onlyCount);
 
         assertEquals(10, getPrivateFieldValue(archiveManager, "maxCount"));
         assertNull(getPrivateFieldValue(archiveManager, "maxTimeMillis"));
@@ -141,12 +145,13 @@ public class TestFlowConfigurationArchiveManager {
     public void testArchiveWithoutOriginalFile() throws Exception {
         final NiFiProperties properties = mock(NiFiProperties.class);
         when(properties.getFlowConfigurationArchiveDir()).thenReturn(archiveDir.getPath());
+        when(properties.getFlowConfigurationFile()).thenReturn(flowXmlFile);
 
-        final File flowFile = new File("does-not-exist");
-        final FlowConfigurationArchiveManager archiveManager =
-                new FlowConfigurationArchiveManager(flowFile.toPath(), properties);
 
-        archiveManager.archive();
+        final File flowXmlFile = new File("does-not-exist");
+        final FlowConfigurationArchiveManager archiveManager = new FlowConfigurationArchiveManager(properties);
+
+        archiveManager.archive(flowXmlFile);
     }
 
     private void createSimulatedOldArchives(final File[] oldArchives, final long intervalMillis) throws Exception {
@@ -161,7 +166,7 @@ public class TestFlowConfigurationArchiveManager {
             final Date date = new Date(now - (intervalMillis * i));
             final String hhmmss = dateFormat.format(date);
 
-            final File archiveFile = archiveManager.archive();
+            final File archiveFile = archiveManager.archive(flowXmlFile);
             final String renamedArchiveName = archiveFile.getName().replaceFirst("T[\\d]{6}", "T" + hhmmss);
             final File renamedArchive = archiveFile.getParentFile().toPath().resolve(renamedArchiveName).toFile();
             archiveFile.renameTo(renamedArchive);
@@ -178,7 +183,8 @@ public class TestFlowConfigurationArchiveManager {
         when(properties.getFlowConfigurationArchiveMaxCount()).thenReturn(maxCount);
         when(properties.getFlowConfigurationArchiveMaxTime()).thenReturn(maxTime);
         when(properties.getFlowConfigurationArchiveMaxStorage()).thenReturn(maxStorage);
-        return new FlowConfigurationArchiveManager(flowFile.toPath(), properties);
+        when(properties.getFlowConfigurationFile()).thenReturn(flowXmlFile);
+        return new FlowConfigurationArchiveManager(properties);
     }
 
     @Test
@@ -194,7 +200,7 @@ public class TestFlowConfigurationArchiveManager {
 
         final FlowConfigurationArchiveManager archiveManager = createArchiveManager(null, maxTimeForExpirationTest + "ms", null);
 
-        final File archive = archiveManager.archive();
+        final File archive = archiveManager.archive(flowXmlFile);
 
         assertTrue(!oldArchives[0].exists()); // -5 min
         assertTrue(!oldArchives[1].exists()); // -4 min
@@ -203,7 +209,7 @@ public class TestFlowConfigurationArchiveManager {
         assertTrue(oldArchives[4].isFile()); // -1 min
         assertTrue(archive.exists()); // new archive
 
-        assertTrue("Original file should remain intact", flowFile.isFile());
+        assertTrue("Original file should remain intact", flowXmlFile.isFile());
     }
 
     @Test
@@ -217,7 +223,7 @@ public class TestFlowConfigurationArchiveManager {
         // -5 min, -4 min, -3min, -2min, -1min, each of those have 10 bytes.
         final FlowConfigurationArchiveManager archiveManager = createArchiveManager(null,null, "20b");
 
-        final File archive = archiveManager.archive();
+        final File archive = archiveManager.archive(flowXmlFile);
 
         assertTrue(!oldArchives[0].exists()); // -5 min
         assertTrue(!oldArchives[1].exists()); // -4 min
@@ -226,7 +232,7 @@ public class TestFlowConfigurationArchiveManager {
         assertTrue(oldArchives[4].exists()); // -1 min
         assertTrue(archive.exists()); // new archive
 
-        assertTrue("Original file should remain intact", flowFile.isFile());
+        assertTrue("Original file should remain intact", flowXmlFile.isFile());
     }
 
     @Test
@@ -240,7 +246,7 @@ public class TestFlowConfigurationArchiveManager {
         // -5 min, -4 min, -3min, -2min, -1min, each of those have 10 bytes.
         final FlowConfigurationArchiveManager archiveManager = createArchiveManager(2,null, null);
 
-        final File archive = archiveManager.archive();
+        final File archive = archiveManager.archive(flowXmlFile);
 
         assertTrue(!oldArchives[0].exists()); // -5 min
         assertTrue(!oldArchives[1].exists()); // -4 min
@@ -249,7 +255,7 @@ public class TestFlowConfigurationArchiveManager {
         assertTrue(oldArchives[4].exists()); // -1 min
         assertTrue(archive.exists()); // new archive
 
-        assertTrue("Original file should remain intact", flowFile.isFile());
+        assertTrue("Original file should remain intact", flowXmlFile.isFile());
     }
 
     @Test
@@ -262,7 +268,7 @@ public class TestFlowConfigurationArchiveManager {
         // -5 min, -4 min, -3min, -2min, -1min, each of those have 10 bytes.
         final FlowConfigurationArchiveManager archiveManager = createArchiveManager(null,null, "3b");
 
-        final File archive = archiveManager.archive();
+        final File archive = archiveManager.archive(flowXmlFile);
 
         assertTrue(!oldArchives[0].exists()); // -5 min
         assertTrue(!oldArchives[1].exists()); // -4 min
@@ -271,7 +277,7 @@ public class TestFlowConfigurationArchiveManager {
         assertTrue(!oldArchives[4].exists()); // -1 min
         assertTrue("Even if flow config file is larger than maxStorage file, it can be archived", archive.exists()); // new archive
 
-        assertTrue("Original file should remain intact", flowFile.isFile());
+        assertTrue("Original file should remain intact", flowXmlFile.isFile());
     }
 
 }

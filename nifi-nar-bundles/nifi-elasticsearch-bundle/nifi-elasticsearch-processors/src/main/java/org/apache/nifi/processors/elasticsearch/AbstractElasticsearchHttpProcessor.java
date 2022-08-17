@@ -46,14 +46,16 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
-import org.apache.nifi.security.util.OkHttpClientUtils;
-import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509TrustManager;
 
 /**
  * A base class for Elasticsearch processors that use the HTTP API
  */
+@Deprecated
 public abstract class AbstractElasticsearchHttpProcessor extends AbstractElasticsearchProcessor {
     static final String SOURCE_QUERY_PARAM = "_source";
     static final String QUERY_QUERY_PARAM = "q";
@@ -127,6 +129,8 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             .build();
 
     private final AtomicReference<OkHttpClient> okHttpClientAtomicReference = new AtomicReference<>();
+
+    final ObjectMapper mapper = new ObjectMapper();
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
@@ -208,8 +212,9 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
         // Apply the TLS configuration if present
         final SSLContextService sslService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslService != null) {
-            final TlsConfiguration tlsConfiguration = sslService.createTlsConfiguration();
-            OkHttpClientUtils.applyTlsToOkHttpClientBuilder(tlsConfiguration, okHttpClient);
+            final SSLContext sslContext = sslService.createContext();
+            final X509TrustManager trustManager = sslService.createTrustManager();
+            okHttpClient.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
         }
 
         okHttpClientAtomicReference.set(okHttpClient.build());
@@ -276,7 +281,6 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
     }
 
     protected JsonNode parseJsonResponse(InputStream in) throws IOException {
-        final ObjectMapper mapper = new ObjectMapper();
         return mapper.readTree(in);
     }
 

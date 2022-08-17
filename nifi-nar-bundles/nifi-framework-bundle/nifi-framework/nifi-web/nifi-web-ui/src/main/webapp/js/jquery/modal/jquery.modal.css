@@ -72,17 +72,25 @@
     height: 56px;
     background-color: #728E9B;
     overflow: hidden;
-}
-
-.dialog-header-text {
     color: #fff;
     font-size: 18px;
     font-family: 'Roboto Slab';
     font-style: normal;
     font-weight: bold;
-    line-height: 56px;
-    padding-left: 20px;
     text-overflow: ellipsis;
+    line-height: 56px;
+    padding: 0 20px;
+    white-space: nowrap;
+}
+
+.dialog-header-subtitle {
+    font-size: 12px;
+    font-weight: normal;
+    padding-left: 10px;
+    margin-left: 10px;
+}
+.dialog-header-subtitle:not(:empty) {
+    border-left: 1px solid white;
 }
 
 .dialog-content {

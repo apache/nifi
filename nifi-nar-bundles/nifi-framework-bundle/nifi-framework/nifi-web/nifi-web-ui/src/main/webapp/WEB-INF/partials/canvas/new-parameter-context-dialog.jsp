@@ -20,7 +20,7 @@
     <div class="parameter-context-tab-container dialog-content">
         <div id="parameter-context-tabs" class="tab-container"></div>
         <div id="parameter-context-tabs-content">
-            <div id="parameter-context-standard-settings-tab-content" class="configuration-tab">
+            <div id="parameter-context-standard-settings-tab-content" class="split-65-35 configuration-tab">
                 <div class="settings-left">
                     <div id="parameter-context-id-setting" class="setting hidden">
                         <div class="setting-name">Id</div>
@@ -46,9 +46,18 @@
                 </div>
                 <div class="spacer">&nbsp;</div>
                 <div class="settings-right">
+                    <div class="setting">
+                        <div class="setting-name">
+                            Referencing Components
+                            <div class="fa fa-question-circle" alt="Info" title="Other components referencing this parameter context."></div>
+                        </div>
+                        <div class="setting-field">
+                            <div id="parameter-context-referencing-components"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div id="parameter-context-parameters-tab-content" class="configuration-tab">
+            <div id="parameter-context-parameters-tab-content" class="split-65-35 configuration-tab">
                 <div class="settings-left">
                     <div class="edit-mode">
                         <div id="add-parameter"><button class="button fa fa-plus"></button></div>
@@ -71,6 +80,7 @@
                     <div class="setting">
                         <div class="setting-name">
                             Parameter
+                            <div class="referencing-components-loading"></div>
                         </div>
                         <div class="setting-field">
                             <div id="parameter-referencing-components-context" class="ellipsis"></div>
@@ -86,7 +96,50 @@
                     </div>
                 </div>
             </div>
+            <div id="parameter-context-inheritance-tab-content" class="configuration-tab">
+                <div id="parameter-context-inheritance-container">
+                    <div class="settings-left">
+                        <div class="setting">
+                            <div class="setting-name">
+                                Available Parameter Contexts
+                                <div class="fa fa-question-circle" alt="Info" title="Available Parameter Contexts that could be inherited from."></div>
+                            </div>
+                            <div class="setting-field">
+                                <ol id="parameter-context-available"></ol>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="spacer">&nbsp;</div>
+                    <div class="settings-right">
+                        <div class="setting">
+                            <div class="setting-name">
+                                Selected Parameter Context
+                                <div class="fa fa-question-circle" alt="Info" title="Parameter Contexts selected for inheritance."></div>
+                            </div>
+                            <div class="setting-field">
+                                <ol id="parameter-context-selected"></ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="parameter-context-inheritance-container-read-only" style="display: none;">
+                    <div class="settings-left">
+                        <div class="setting">
+                            <div class="setting-name">
+                                Selected Parameter Context
+                                <div class="fa fa-question-circle" alt="Info" title="Parameter Contexts selected for inheritance."></div>
+                            </div>
+                            <div class="setting-field">
+                                <ol id="parameter-context-selected-read-only"></ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+    </div>
+    <div id="inherited-parameter-contexts-message" class="ellipsis hidden">
+        Inherited Parameter Contexts have been modified. Updated listing of Parameters is pending apply.
     </div>
 </div>
 <div id="parameter-dialog" class="dialog cancellable hidden">

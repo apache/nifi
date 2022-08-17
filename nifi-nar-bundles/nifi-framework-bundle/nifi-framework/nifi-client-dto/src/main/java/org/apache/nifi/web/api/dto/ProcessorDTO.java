@@ -42,6 +42,7 @@ public class ProcessorDTO extends ComponentDTO {
     private Boolean supportsParallelProcessing;
     private Boolean supportsEventDriven;
     private Boolean supportsBatching;
+    private Boolean supportsSensitiveDynamicProperties;
     private Boolean persistsState;
     private Boolean restricted;
     private Boolean deprecated;
@@ -148,6 +149,20 @@ public class ProcessorDTO extends ComponentDTO {
 
     public void setSupportsParallelProcessing(Boolean supportsParallelProcessing) {
         this.supportsParallelProcessing = supportsParallelProcessing;
+    }
+
+    /**
+     * @return whether this processor supports sensitive dynamic properties
+     */
+    @ApiModelProperty(
+            value = "Whether the processor supports sensitive dynamic properties."
+    )
+    public Boolean getSupportsSensitiveDynamicProperties() {
+        return supportsSensitiveDynamicProperties;
+    }
+
+    public void setSupportsSensitiveDynamicProperties(final Boolean supportsSensitiveDynamicProperties) {
+        this.supportsSensitiveDynamicProperties = supportsSensitiveDynamicProperties;
     }
 
     /**
@@ -269,7 +284,7 @@ public class ProcessorDTO extends ComponentDTO {
      */
     @ApiModelProperty(
             value = "The available relationships that the processor currently supports.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public List<RelationshipDTO> getRelationships() {
         return relationships;
@@ -312,7 +327,7 @@ public class ProcessorDTO extends ComponentDTO {
     }
 
     @ApiModelProperty(value = "Indicates whether the Processor is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Processor is valid)",
-        readOnly = true,
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY,
         allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
     public String getValidationStatus() {
         return validationStatus;

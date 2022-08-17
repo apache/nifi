@@ -24,7 +24,7 @@ import org.apache.nifi.tests.system.NiFiInstanceFactory;
  */
 public class ClusteredParameterContextIT extends ParameterContextIT {
     @Override
-    protected NiFiInstanceFactory getInstanceFactory() {
+    public NiFiInstanceFactory getInstanceFactory() {
         return new SpawnedClusterNiFiInstanceFactory(
             "src/test/resources/conf/clustered/node1/bootstrap.conf",
             "src/test/resources/conf/clustered/node2/bootstrap.conf");

@@ -33,10 +33,11 @@ import java.util.Map;
 
 public class MockRecordSinkService extends AbstractConfigurableComponent implements RecordSinkService {
 
-    private List<Map<String, Object>> rows = new ArrayList<>();;
+    private List<Map<String, Object>> rows = new ArrayList<>();
 
     @Override
     public WriteResult sendData(RecordSet recordSet, Map<String,String> attributes, boolean sendZeroResults) throws IOException {
+        rows = new ArrayList<>();
         int numRecordsWritten = 0;
         RecordSchema recordSchema = recordSet.getSchema();
         Record record;

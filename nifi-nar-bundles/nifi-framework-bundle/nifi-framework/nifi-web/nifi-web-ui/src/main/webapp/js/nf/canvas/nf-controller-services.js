@@ -94,7 +94,7 @@
     };
 
     var gridOptions = {
-        forceFitColumns: true,
+        autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
         enableTextSelectionOnCells: true,
         enableCellNavigation: true,
         enableColumnReorder: false,
@@ -595,7 +595,7 @@
 
                 // add the documented type
                 controllerServiceTypesData.addItem({
-                    id: id++,
+                    id: id++ + '',
                     label: nfCommon.substringAfterLast(documentedType.type, '.'),
                     type: documentedType.type,
                     bundle: documentedType.bundle,
@@ -1037,8 +1037,8 @@
                 resizable: false,
                 formatter: controllerServiceActionFormatter,
                 sortable: false,
-                width: 90,
-                maxWidth: 90
+                width: 115,
+                maxWidth: 115
             });
 
         // initialize the dataview
@@ -1228,7 +1228,10 @@
         return $.ajax({
             type: 'GET',
             url: controllerServicesUri,
-            dataType: 'json'
+            dataType: 'json',
+            data: {
+                uiOnly: true
+            }
         }).done(function (response) {
             var services = [];
             $.each(response.controllerServices, function (_, service) {

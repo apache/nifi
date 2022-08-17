@@ -24,19 +24,24 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
-import org.junit.Before;
-import org.junit.Test;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_ATTR;
@@ -60,9 +65,9 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.OWNER_ATT
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.OWNER_TYPE_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.UPDATE_TIME_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_ATTR;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -72,6 +77,7 @@ import static org.mockito.Mockito.when;
 /**
  * Unit tests for {@link FetchGCSObject}.
  */
+@ExtendWith(MockitoExtension.class)
 public class FetchGCSObjectTest extends AbstractGCSTest {
     private final static String KEY = "test-key";
     private final static Long GENERATION = 5L;
@@ -100,11 +106,10 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
     private static final Long CREATE_TIME = 1234L;
     private static final Long UPDATE_TIME = 4567L;
 
-
     @Mock
     Storage storage;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         MockitoAnnotations.initMocks(this);
     }
@@ -114,6 +119,11 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         return new FetchGCSObject() {
             @Override
             protected Storage getCloudService() {
+                return storage;
+            }
+
+            @Override
+            protected Storage getCloudService(final ProcessContext context) {
                 return storage;
             }
         };
@@ -214,6 +224,8 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         when(blob.getContentDisposition()).thenReturn(CONTENT_DISPOSITION);
         when(blob.getCreateTime()).thenReturn(CREATE_TIME);
         when(blob.getUpdateTime()).thenReturn(UPDATE_TIME);
+        final BlobId blobId = mock(BlobId.class);
+        when(blob.getBlobId()).thenReturn(blobId);
 
         when(storage.get(any(BlobId.class))).thenReturn(blob);
         when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption.class))).thenReturn(new MockReadChannel(CONTENT));
@@ -345,6 +357,8 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         final Acl.User mockUser = mock(Acl.User.class);
         when(mockUser.getEmail()).thenReturn(OWNER_USER_EMAIL);
         when(blob.getOwner()).thenReturn(mockUser);
+        final BlobId blobId = mock(BlobId.class);
+        when(blob.getBlobId()).thenReturn(blobId);
 
         when(storage.get(any(BlobId.class))).thenReturn(blob);
         when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption.class))).thenReturn(new MockReadChannel(CONTENT));
@@ -383,6 +397,8 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         final Acl.Group mockGroup = mock(Acl.Group.class);
         when(mockGroup.getEmail()).thenReturn(OWNER_GROUP_EMAIL);
         when(blob.getOwner()).thenReturn(mockGroup);
+        final BlobId blobId = mock(BlobId.class);
+        when(blob.getBlobId()).thenReturn(blobId);
 
         when(storage.get(any(BlobId.class))).thenReturn(blob);
         when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption.class))).thenReturn(new MockReadChannel(CONTENT));
@@ -423,6 +439,8 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         final Acl.Domain mockDomain = mock(Acl.Domain.class);
         when(mockDomain.getDomain()).thenReturn(OWNER_DOMAIN);
         when(blob.getOwner()).thenReturn(mockDomain);
+        final BlobId blobId = mock(BlobId.class);
+        when(blob.getBlobId()).thenReturn(blobId);
 
         when(storage.get(any(BlobId.class))).thenReturn(blob);
         when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption.class))).thenReturn(new MockReadChannel(CONTENT));
@@ -460,8 +478,10 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
 
         final Blob blob = mock(Blob.class);
         final Acl.Project mockProject = mock(Acl.Project.class);
+        final BlobId blobId = mock(BlobId.class);
         when(mockProject.getProjectId()).thenReturn(OWNER_PROJECT_ID);
         when(blob.getOwner()).thenReturn(mockProject);
+        when(blob.getBlobId()).thenReturn(blobId);
 
         when(storage.get(any(BlobId.class))).thenReturn(blob);
         when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption.class))).thenReturn(new MockReadChannel(CONTENT));
@@ -501,13 +521,15 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         runner.assertValid();
 
         final Blob blob = mock(Blob.class);
+        final BlobId blobId = mock(BlobId.class);
+        when(blob.getBlobId()).thenReturn(blobId);
         when(storage.get(any(BlobId.class))).thenReturn(blob);
         when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption.class))).thenReturn(new MockReadChannel(CONTENT));
 
-        runner.enqueue("", ImmutableMap.of(
-                BUCKET_ATTR, BUCKET,
-                CoreAttributes.FILENAME.key(), KEY
-        ));
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(BUCKET_ATTR, BUCKET);
+        attributes.put(CoreAttributes.FILENAME.key(), KEY);
+        runner.enqueue("", attributes);
 
         runner.run();
 
@@ -516,25 +538,25 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         verify(storage).get(blobIdArgumentCaptor.capture());
         verify(storage).reader(any(BlobId.class), blobSourceOptionArgumentCaptor.capture());
 
-        final BlobId blobId = blobIdArgumentCaptor.getValue();
+        final BlobId capturedBlobId = blobIdArgumentCaptor.getValue();
 
         assertEquals(
                 BUCKET,
-                blobId.getBucket()
+                capturedBlobId.getBucket()
         );
 
         assertEquals(
                 KEY,
-                blobId.getName()
+                capturedBlobId.getName()
         );
 
         assertEquals(
                 GENERATION,
-                blobId.getGeneration()
+                capturedBlobId.getGeneration()
         );
 
 
-        final Set<Storage.BlobSourceOption> blobSourceOptions = ImmutableSet.copyOf(blobSourceOptionArgumentCaptor.getAllValues());
+        final Set<Storage.BlobSourceOption> blobSourceOptions = new LinkedHashSet<>(blobSourceOptionArgumentCaptor.getAllValues());
         assertTrue(blobSourceOptions.contains(Storage.BlobSourceOption.generationMatch()));
         assertEquals(
                 1,
@@ -554,6 +576,8 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         runner.assertValid();
 
         final Blob blob = mock(Blob.class);
+        final BlobId blobId = mock(BlobId.class);
+        when(blob.getBlobId()).thenReturn(blobId);
         when(storage.get(any(BlobId.class))).thenReturn(blob);
         when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption.class))).thenReturn(new MockReadChannel(CONTENT));
 
@@ -566,21 +590,21 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         verify(storage).get(blobIdArgumentCaptor.capture());
         verify(storage).reader(any(BlobId.class), blobSourceOptionArgumentCaptor.capture());
 
-        final BlobId blobId = blobIdArgumentCaptor.getValue();
+        final BlobId capturedBlobId = blobIdArgumentCaptor.getValue();
 
         assertEquals(
                 BUCKET,
-                blobId.getBucket()
+                capturedBlobId.getBucket()
         );
 
         assertEquals(
                 KEY,
-                blobId.getName()
+                capturedBlobId.getName()
         );
 
-        assertNull(blobId.getGeneration());
+        assertNull(capturedBlobId.getGeneration());
 
-        final Set<Storage.BlobSourceOption> blobSourceOptions = ImmutableSet.copyOf(blobSourceOptionArgumentCaptor.getAllValues());
+        final Set<Storage.BlobSourceOption> blobSourceOptions = new LinkedHashSet<>(blobSourceOptionArgumentCaptor.getAllValues());
 
         assertTrue(blobSourceOptions.contains(Storage.BlobSourceOption.decryptionKey(ENCRYPTION_SHA256)));
         assertEquals(
@@ -597,7 +621,6 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         runner.assertValid();
 
         when(storage.get(any(BlobId.class))).thenThrow(new StorageException(400, "test-exception"));
-        when(storage.reader(any(BlobId.class), any(Storage.BlobSourceOption.class))).thenReturn(new MockReadChannel(CONTENT));
 
         runner.enqueue("");
 

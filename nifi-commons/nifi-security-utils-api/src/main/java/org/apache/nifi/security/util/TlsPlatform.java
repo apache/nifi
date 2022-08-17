@@ -81,10 +81,10 @@ public class TlsPlatform {
 
     private static SortedMap<Float, String> getDefaultSslContextProtocols() {
         final SSLContext defaultContext = getDefaultSslContext();
-        final SSLParameters defaultParameters = defaultContext.getDefaultSSLParameters();
+        final SSLParameters sslParameters = defaultContext.getSupportedSSLParameters();
+        final String[] protocols = sslParameters.getProtocols();
 
         final SortedMap<Float, String> sslContextProtocols = new TreeMap<>();
-        final String[] protocols = defaultParameters.getProtocols();
         for (final String protocol : protocols) {
             final Matcher protocolVersionMatcher = PROTOCOL_VERSION.matcher(protocol);
             if (protocolVersionMatcher.matches()) {

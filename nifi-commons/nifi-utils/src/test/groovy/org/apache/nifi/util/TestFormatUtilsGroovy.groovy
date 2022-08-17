@@ -16,37 +16,21 @@
  */
 package org.apache.nifi.util
 
-
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.TimeUnit
 
-@RunWith(JUnit4.class)
 class TestFormatUtilsGroovy extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(TestFormatUtilsGroovy.class)
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() throws Exception {
-
-    }
-
-    @After
-    void tearDown() throws Exception {
-
     }
 
     /**

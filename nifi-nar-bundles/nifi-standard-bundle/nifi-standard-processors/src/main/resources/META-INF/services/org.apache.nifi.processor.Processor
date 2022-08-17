@@ -26,6 +26,7 @@ org.apache.nifi.processors.standard.CryptographicHashAttribute
 org.apache.nifi.processors.standard.CryptographicHashContent
 org.apache.nifi.processors.standard.DebugFlow
 org.apache.nifi.processors.standard.DetectDuplicate
+org.apache.nifi.processors.standard.DeduplicateRecord
 org.apache.nifi.processors.standard.DistributeLoad
 org.apache.nifi.processors.standard.DuplicateFlowFile
 org.apache.nifi.processors.standard.EncryptContent
@@ -45,6 +46,7 @@ org.apache.nifi.processors.standard.FetchFTP
 org.apache.nifi.processors.standard.FetchSFTP
 org.apache.nifi.processors.standard.FlattenJson
 org.apache.nifi.processors.standard.ForkRecord
+org.apache.nifi.processors.standard.ForkEnrichment
 org.apache.nifi.processors.standard.GenerateFlowFile
 org.apache.nifi.processors.standard.GenerateTableFetch
 org.apache.nifi.processors.standard.GetFile
@@ -60,6 +62,7 @@ org.apache.nifi.processors.standard.HashContent
 org.apache.nifi.processors.standard.IdentifyMimeType
 org.apache.nifi.processors.standard.InvokeHTTP
 org.apache.nifi.processors.standard.JoltTransformJSON
+org.apache.nifi.processors.standard.JoinEnrichment
 org.apache.nifi.processors.standard.ListDatabaseTables
 org.apache.nifi.processors.standard.ListenFTP
 org.apache.nifi.processors.standard.ListenHTTP

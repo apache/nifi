@@ -23,16 +23,25 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Position;
+import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.exception.ValidationException;
+import org.apache.nifi.documentation.init.NopStateManager;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.logging.LogRepository;
+import org.apache.nifi.logging.repository.NopLogRepository;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.BundleUtils;
@@ -40,6 +49,7 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.BundleDTO;
+import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
@@ -51,6 +61,7 @@ import org.slf4j.LoggerFactory;
 import java.net.URL;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +69,7 @@ import java.util.Set;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 
 public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
@@ -115,6 +127,11 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
             // configure the processor
             configureProcessor(processor, processorDTO);
 
+            // Notify the processor node that the configuration (properties, e.g.) has been restored
+            final StandardProcessContext processContext = new StandardProcessContext(processor, flowController.getControllerServiceProvider(), flowController.getEncryptor(),
+                    flowController.getStateManagerProvider().getStateManager(processor.getProcessor().getIdentifier()), () -> false, flowController);
+            processor.onConfigurationRestored(processContext);
+
             return processor;
         } catch (IllegalStateException | ComponentLifeCycleException ise) {
             throw new NiFiCoreException(ise.getMessage(), ise);
@@ -139,6 +156,10 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
             final Long runDurationMillis = config.getRunDurationMillis();
             final String bulletinLevel = config.getBulletinLevel();
             final Set<String> undefinedRelationshipsToTerminate = config.getAutoTerminatedRelationships();
+            final Integer retryCount = config.getRetryCount();
+            final Set<String> retriedRelationships = config.getRetriedRelationships();
+            final String backoffMechanism = config.getBackoffMechanism();
+            final String maxBackoffPeriod = config.getMaxBackoffPeriod();
 
             processor.pauseValidationTrigger(); // ensure that we don't trigger many validations to occur
             try {
@@ -160,7 +181,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     processor.setMaxConcurrentTasks(maxTasks);
                 }
                 if (isNotNull(schedulingPeriod)) {
-                    processor.setScheduldingPeriod(schedulingPeriod);
+                    processor.setSchedulingPeriod(schedulingPeriod);
                 }
                 if (isNotNull(penaltyDuration)) {
                     processor.setPenalizationPeriod(penaltyDuration);
@@ -178,7 +199,24 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     processor.setLossTolerant(config.isLossTolerant());
                 }
                 if (isNotNull(configProperties)) {
-                    processor.setProperties(configProperties);
+                    final Set<String> sensitiveDynamicPropertyNames = config.getSensitiveDynamicPropertyNames();
+                    processor.setProperties(configProperties, false,sensitiveDynamicPropertyNames == null ? Collections.emptySet() : sensitiveDynamicPropertyNames);
+                }
+
+                if (isNotNull(retryCount)) {
+                    processor.setRetryCount(retryCount);
+                }
+
+                if (isNotNull(retriedRelationships)) {
+                    processor.setRetriedRelationships(retriedRelationships);
+                }
+
+                if (isNotNull(backoffMechanism)) {
+                    processor.setBackoffMechanism(BackoffMechanism.valueOf(backoffMechanism));
+                }
+
+                if (isNotNull(maxBackoffPeriod)) {
+                    processor.setMaxBackoffPeriod(maxBackoffPeriod);
                 }
 
                 if (isNotNull(undefinedRelationshipsToTerminate)) {
@@ -270,22 +308,25 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         }
 
         // validate the scheduling period based on the scheduling strategy
-        if (isNotNull(config.getSchedulingPeriod())) {
+        final String schedulingPeriod = config.getSchedulingPeriod();
+        final String evaluatedSchedulingPeriod = processorNode.evaluateParameters(schedulingPeriod);
+
+        if (isNotNull(schedulingPeriod) && isNotNull(evaluatedSchedulingPeriod)) {
             switch (schedulingStrategy) {
                 case TIMER_DRIVEN:
                 case PRIMARY_NODE_ONLY:
-                    final Matcher schedulingMatcher = FormatUtils.TIME_DURATION_PATTERN.matcher(config.getSchedulingPeriod());
+                    final Matcher schedulingMatcher = FormatUtils.TIME_DURATION_PATTERN.matcher(evaluatedSchedulingPeriod);
                     if (!schedulingMatcher.matches()) {
                         validationErrors.add("Scheduling period is not a valid time duration (ie 30 sec, 5 min)");
                     }
                     break;
                 case CRON_DRIVEN:
                     try {
-                        new CronExpression(config.getSchedulingPeriod());
+                        new CronExpression(evaluatedSchedulingPeriod);
                     } catch (final ParseException pe) {
-                        throw new IllegalArgumentException(String.format("Scheduling Period '%s' is not a valid cron expression: %s", config.getSchedulingPeriod(), pe.getMessage()));
+                        throw new IllegalArgumentException(String.format("Scheduling Period '%s' is not a valid cron expression: %s", schedulingPeriod, pe.getMessage()));
                     } catch (final Exception e) {
-                        throw new IllegalArgumentException("Scheduling Period is not a valid cron expression: " + config.getSchedulingPeriod());
+                        throw new IllegalArgumentException("Scheduling Period is not a valid cron expression: " + schedulingPeriod);
                     }
                     break;
             }
@@ -341,6 +382,11 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         processor.getProcessGroup().terminateProcessor(processor);
     }
 
+    @Override
+    public void verifyConfigVerification(final String processorId) {
+        final ProcessorNode processor = locateProcessor(processorId);
+        processor.verifyCanPerformVerification();
+    }
 
     @Override
     public void verifyUpdate(final ProcessorDTO processorDTO) {
@@ -407,7 +453,11 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     configDTO.getSchedulingPeriod(),
                     configDTO.getSchedulingStrategy(),
                     configDTO.getExecutionNode(),
-                    configDTO.getYieldDuration())) {
+                    configDTO.getYieldDuration(),
+                    configDTO.getRetryCount(),
+                    configDTO.getBackoffMechanism(),
+                    configDTO.getMaxBackoffPeriod(),
+                    configDTO.getRetriedRelationships())) {
 
                 modificationRequest = true;
             }
@@ -424,6 +474,34 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         if (modificationRequest) {
             processor.verifyCanUpdate();
         }
+    }
+
+    @Override
+    public List<ConfigVerificationResultDTO> verifyProcessorConfiguration(final String processorId, final Map<String, String> properties, final Map<String, String> attributes) {
+        final ProcessorNode processor = locateProcessor(processorId);
+
+        final ProcessContext processContext = new StandardProcessContext(processor, properties, processor.getAnnotationData(),
+            processor.getProcessGroup().getParameterContext(), flowController.getControllerServiceProvider(),  flowController.getEncryptor(),
+            new NopStateManager(), () -> false, flowController);
+
+        final LogRepository logRepository = new NopLogRepository();
+        final ComponentLog configVerificationLog = new SimpleProcessLogger(processor, logRepository);
+        final ExtensionManager extensionManager = flowController.getExtensionManager();
+        final List<ConfigVerificationResult> verificationResults = processor.verifyConfiguration(processContext, configVerificationLog, attributes, extensionManager);
+
+        final List<ConfigVerificationResultDTO> resultsDtos = verificationResults.stream()
+            .map(this::createConfigVerificationResultDto)
+            .collect(Collectors.toList());
+
+        return resultsDtos;
+    }
+
+    private ConfigVerificationResultDTO createConfigVerificationResultDto(final ConfigVerificationResult result) {
+        final ConfigVerificationResultDTO dto = new ConfigVerificationResultDTO();
+        dto.setExplanation(result.getExplanation());
+        dto.setOutcome(result.getOutcome().name());
+        dto.setVerificationStepName(result.getVerificationStepName());
+        return dto;
     }
 
     @Override

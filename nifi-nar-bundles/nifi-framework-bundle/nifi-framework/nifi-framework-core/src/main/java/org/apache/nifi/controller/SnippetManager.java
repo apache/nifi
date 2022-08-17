@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -29,13 +27,16 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.nifi.persistence.StandardSnippetDeserializer;
 import org.apache.nifi.persistence.StandardSnippetSerializer;
 import org.apache.nifi.stream.io.StreamUtils;
 
 public class SnippetManager {
 
-    private final Cache<String, StandardSnippet> snippetMap = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
+    private final Cache<String, StandardSnippet> snippetMap = Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
 
     public synchronized void addSnippet(final StandardSnippet snippet) {
         if (snippetMap.getIfPresent(snippet.getId()) != null) {

@@ -17,12 +17,15 @@
  */
 package org.apache.nifi.accumulo.processors;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.nifi.accumulo.controllerservices.BaseAccumuloService;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.util.StandardValidators;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Base Accumulo class that provides connector services, table name, and thread
@@ -65,12 +68,19 @@ public abstract class BaseAccumuloProcessor extends AbstractProcessor {
             .defaultValue("10")
             .build();
 
+    protected static final PropertyDescriptor ACCUMULO_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("accumulo-timeout")
+            .displayName("Accumulo Timeout")
+            .description("Max amount of time to wait for an unresponsive server. Set to 0 sec for no timeout. Entered value less than 1 second may be converted to 0 sec.")
+            .required(false)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("30 sec")
+            .build();
+
     /**
      * Implementations can decide to include all base properties or individually include them. List is immutable
      * so that implementations must constructor their own lists knowingly
      */
 
-    protected static final ImmutableList<PropertyDescriptor> baseProperties = ImmutableList.of(ACCUMULO_CONNECTOR_SERVICE,TABLE_NAME,CREATE_TABLE,THREADS);
-
-
+    protected static final List<PropertyDescriptor> baseProperties = Collections.unmodifiableList(Arrays.asList(ACCUMULO_CONNECTOR_SERVICE, TABLE_NAME, CREATE_TABLE, THREADS, ACCUMULO_TIMEOUT));
 }

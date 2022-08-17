@@ -72,6 +72,34 @@
                             <span id="read-only-process-group-outbound-policy" class="unset"></span>
                         </div>
                     </div>
+                    <div class="setting">
+                        <div class="setting-name">Default FlowFile Expiration</div>
+                        <div class="editable setting-field">
+                            <input type="text" id="process-group-default-flowfile-expiration" class="setting-input"/>
+                        </div>
+                        <div class="read-only setting-field">
+                            <span id="read-only-process-group-default-flowfile-expiration" class="unset"></span>
+                        </div>
+                    </div>
+                    <div class="setting">
+                        <div class="setting-name">Default Back Pressure Object Threshold</div>
+                        <div class="editable setting-field">
+                            <input type="text" id="process-group-default-back-pressure-object-threshold" class="setting-input"/>
+                        </div>
+                        <div class="read-only setting-field">
+                            <span id="read-only-process-group-default-back-pressure-object-threshold" class="unset"></span>
+                        </div>
+                    </div>
+                    <div class="setting">
+                        <div class="setting-name">Default Back Pressure Data Size Threshold</div>
+                        <div class="editable setting-field">
+                            <input type="text" id="process-group-default-back-pressure-data-size-threshold" class="setting-input"/>
+                        </div>
+                        <div class="read-only setting-field">
+                            <span id="read-only-process-group-default-back-pressure-data-size-threshold" class="unset"></span>
+                        </div>
+                    </div>
+
                     <div class="editable settings-buttons">
                         <div id="process-group-configuration-save" class="button">Apply</div>
                         <div class="clear"></div>

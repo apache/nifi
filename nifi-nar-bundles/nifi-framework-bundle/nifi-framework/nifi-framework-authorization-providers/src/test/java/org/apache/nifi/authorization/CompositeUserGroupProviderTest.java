@@ -19,31 +19,34 @@ package org.apache.nifi.authorization;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.nifi.authorization.CompositeUserGroupProvider.PROP_USER_GROUP_PROVIDER_PREFIX;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class CompositeUserGroupProviderTest extends CompositeUserGroupProviderTestBase {
 
-    @Test(expected = AuthorizerCreationException.class)
-    public void testNoConfiguredProviders() throws Exception {
-        initCompositeUserGroupProvider(new CompositeUserGroupProvider(), null, null);
+    @Test
+    public void testNoConfiguredProviders() {
+        assertThrows(AuthorizerCreationException.class, () -> {
+            initCompositeUserGroupProvider(new CompositeUserGroupProvider(), null, null);
+        });
     }
 
     @Test
-    public void testNoConfiguredProvidersAllowed() throws Exception {
+    public void testNoConfiguredProvidersAllowed() {
         initCompositeUserGroupProvider(new CompositeUserGroupProvider(true), null, null);
     }
 
-    @Test(expected = AuthorizerCreationException.class)
-    public void testUnknownProvider() throws Exception {
+    @Test
+    public void testUnknownProvider() {
         // initialization
         final UserGroupProviderInitializationContext initializationContext = mock(UserGroupProviderInitializationContext.class);
         when(initializationContext.getUserGroupProviderLookup()).thenReturn(new UserGroupProviderLookup() {
@@ -58,24 +61,28 @@ public class CompositeUserGroupProviderTest extends CompositeUserGroupProviderTe
         when(configurationContext.getProperty(eq(PROP_USER_GROUP_PROVIDER_PREFIX + "1"))).thenReturn(new StandardPropertyValue(String.valueOf("1"), null, ParameterLookup.EMPTY));
         mockProperties(configurationContext);
 
-        final CompositeUserGroupProvider compositeUserGroupProvider = new CompositeUserGroupProvider();
-        compositeUserGroupProvider.initialize(initializationContext);
-        compositeUserGroupProvider.onConfigured(configurationContext);
-    }
-
-    @Test(expected = AuthorizerCreationException.class)
-    public void testDuplicateProviders() throws Exception {
-        UserGroupProvider duplicatedUserGroupProvider = getUserGroupProviderOne();
-        initCompositeUserGroupProvider(new CompositeUserGroupProvider(), null, null, duplicatedUserGroupProvider, duplicatedUserGroupProvider);
+        assertThrows(AuthorizerCreationException.class, () -> {
+            final CompositeUserGroupProvider compositeUserGroupProvider = new CompositeUserGroupProvider();
+            compositeUserGroupProvider.initialize(initializationContext);
+            compositeUserGroupProvider.onConfigured(configurationContext);
+        });
     }
 
     @Test
-    public void testOneProvider() throws Exception {
+    public void testDuplicateProviders() {
+        UserGroupProvider duplicatedUserGroupProvider = getUserGroupProviderOne();
+        assertThrows(AuthorizerCreationException.class, () -> {
+            initCompositeUserGroupProvider(new CompositeUserGroupProvider(), null, null, duplicatedUserGroupProvider, duplicatedUserGroupProvider);
+        });
+    }
+
+    @Test
+    public void testOneProvider() {
         final UserGroupProvider userGroupProvider = initCompositeUserGroupProvider(new CompositeUserGroupProvider(), null, null, getUserGroupProviderOne());
 
         // users and groups
-        Assert.assertEquals(2, userGroupProvider.getUsers().size());
-        Assert.assertEquals(1, userGroupProvider.getGroups().size());
+        assertEquals(2, userGroupProvider.getUsers().size());
+        assertEquals(1, userGroupProvider.getGroups().size());
 
         // unknown
         assertNull(userGroupProvider.getUser(NOT_A_REAL_USER_IDENTIFIER));
@@ -91,13 +98,13 @@ public class CompositeUserGroupProviderTest extends CompositeUserGroupProviderTe
     }
 
     @Test
-    public void testMultipleProviders() throws Exception {
+    public void testMultipleProviders() {
         final UserGroupProvider userGroupProvider = initCompositeUserGroupProvider(new CompositeUserGroupProvider(), null, null,
                 getUserGroupProviderOne(), getUserGroupProviderTwo());
 
         // users and groups
-        Assert.assertEquals(3, userGroupProvider.getUsers().size());
-        Assert.assertEquals(2, userGroupProvider.getGroups().size());
+        assertEquals(3, userGroupProvider.getUsers().size());
+        assertEquals(2, userGroupProvider.getGroups().size());
 
         // unknown
         assertNull(userGroupProvider.getUser(NOT_A_REAL_USER_IDENTIFIER));
@@ -114,13 +121,13 @@ public class CompositeUserGroupProviderTest extends CompositeUserGroupProviderTe
     }
 
     @Test
-    public void testMultipleProvidersWithConflictingUsers() throws Exception {
+    public void testMultipleProvidersWithConflictingUsers() {
         final UserGroupProvider userGroupProvider = initCompositeUserGroupProvider(new CompositeUserGroupProvider(), null, null,
                 getUserGroupProviderOne(), getUserGroupProviderTwo(), getConflictingUserGroupProvider());
 
         // users and groups
-        Assert.assertEquals(4, userGroupProvider.getUsers().size());
-        Assert.assertEquals(2, userGroupProvider.getGroups().size());
+        assertEquals(4, userGroupProvider.getUsers().size());
+        assertEquals(2, userGroupProvider.getGroups().size());
 
         // unknown
         assertNull(userGroupProvider.getUser(NOT_A_REAL_USER_IDENTIFIER));
@@ -134,31 +141,25 @@ public class CompositeUserGroupProviderTest extends CompositeUserGroupProviderTe
         // providers
         testUserGroupProviderTwo(userGroupProvider);
 
-        try {
+        Exception exception = assertThrows(IllegalStateException.class, () -> {
             testUserGroupProviderOne(userGroupProvider);
-            assertTrue("Should never get here as we expect the line above to throw an exception", false);
-        } catch (Exception e) {
-            assertTrue(e instanceof IllegalStateException);
-            assertTrue(e.getMessage().contains(USER_1_IDENTITY));
-        }
+        });
+        assertTrue(exception.getMessage().contains(USER_1_IDENTITY));
 
-        try {
-            testConflictingUserGroupProvider(userGroupProvider);
-            assertTrue("Should never get here as we expect the line above to throw an exception", false);
-        } catch (Exception e) {
-            assertTrue(e instanceof IllegalStateException);
-            assertTrue(e.getMessage().contains(USER_1_IDENTITY));
-        }
+        exception = assertThrows(IllegalStateException.class, () -> {
+           testConflictingUserGroupProvider(userGroupProvider);
+        });
+        assertTrue(exception.getMessage().contains(USER_1_IDENTITY));
     }
 
     @Test
-    public void testMultipleProvidersWithCollaboratingUserGroupProvider() throws Exception {
+    public void testMultipleProvidersWithCollaboratingUserGroupProvider() {
         final UserGroupProvider userGroupProvider = initCompositeUserGroupProvider(new CompositeUserGroupProvider(), null, null,
                 getUserGroupProviderOne(), getUserGroupProviderTwo(), getCollaboratingUserGroupProvider());
 
         // users and groups
-        Assert.assertEquals(4, userGroupProvider.getUsers().size());
-        Assert.assertEquals(2, userGroupProvider.getGroups().size());
+        assertEquals(4, userGroupProvider.getUsers().size());
+        assertEquals(2, userGroupProvider.getGroups().size());
 
         // unknown
         assertNull(userGroupProvider.getUser(NOT_A_REAL_USER_IDENTIFIER));
@@ -175,6 +176,6 @@ public class CompositeUserGroupProviderTest extends CompositeUserGroupProviderTe
         final UserAndGroups user1AndGroups = userGroupProvider.getUserAndGroups(USER_1_IDENTITY);
         assertNotNull(user1AndGroups);
         assertNotNull(user1AndGroups.getUser());
-        Assert.assertEquals(2, user1AndGroups.getGroups().size()); // from UGP1 and CollaboratingUGP
+        assertEquals(2, user1AndGroups.getGroups().size()); // from UGP1 and CollaboratingUGP
     }
 }

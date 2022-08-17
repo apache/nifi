@@ -24,10 +24,12 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
+                <include>nifi-bootstrap-utils</include>
                 <include>nifi-bootstrap</include>
                 <include>slf4j-api</include>
                 <include>logback-classic</include>
                 <include>nifi-api</include>
+                <include>nifi-property-protection-api</include>
             </includes>
         </dependencySet>
 
@@ -41,11 +43,11 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-                <include>javax.xml.bind:jaxb-api</include>
-                <include>com.sun.xml.bind:jaxb-impl</include>
-                <include>com.sun.xml.bind:jaxb-core</include>
-                <include>javax.activation:javax.activation-api</include>
+                <include>org.glassfish.jaxb:jaxb-runtime</include>
+                <include>jakarta.xml.bind:jakarta.xml.bind-api</include>
                 <include>javax.annotation:javax.annotation-api</include>
+                <include>com.sun.activation:jakarta.activation</include>
+                <include>jakarta.activation:jakarta.activation-api</include>
             </includes>
         </dependencySet>
 
@@ -60,6 +62,19 @@
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
                 <include>org.aspectj:aspectjweaver</include>
+            </includes>
+        </dependencySet>
+
+        <!-- Write Property Protection implementation libraries to isolated directory-->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>lib/properties</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>nifi-property-protection-factory</include>
             </includes>
         </dependencySet>
 

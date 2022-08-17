@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.processor;
 
-import java.util.Set;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.processor.exception.ProcessException;
+
+import java.util.Set;
 
 /**
  * <p>
@@ -87,4 +89,14 @@ public interface Processor extends ConfigurableComponent {
      */
     void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException;
 
+    /**
+     * Indicates whether this processor, configured with the given {@link ProcessContext}, stores state.
+     * @param context provides access to convenience methods for obtaining
+     * property values, delaying the scheduling of the processor, provides
+     * access to Controller Services, etc.
+     * @return True if this processor stores state
+     */
+    default boolean isStateful(ProcessContext context) {
+        return this.getClass().isAnnotationPresent(Stateful.class);
+    }
 }

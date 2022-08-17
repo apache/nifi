@@ -32,12 +32,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class RingBufferGarbageCollectionLog implements GarbageCollectionLog, NotificationListener {
     private static final Logger logger = LoggerFactory.getLogger(RingBufferGarbageCollectionLog.class);
     private final RingBuffer<GarbageCollectionEvent> events;
     private final long minDurationThreshold;
     private final long jvmStartTime;
+    private final AtomicLong totalGcMillis = new AtomicLong(0L);
 
     // guarded by synchronizing on this
     private GarbageCollectionEvent maxDurationEvent;
@@ -52,6 +54,11 @@ public class RingBufferGarbageCollectionLog implements GarbageCollectionLog, Not
     @Override
     public long getMinDurationThreshold() {
         return minDurationThreshold;
+    }
+
+    @Override
+    public long getTotalGarbageCollectionMillis() {
+        return totalGcMillis.get();
     }
 
     @Override
@@ -87,6 +94,8 @@ public class RingBufferGarbageCollectionLog implements GarbageCollectionLog, Not
         final CompositeData compositeData = (CompositeData) notification.getUserData();
         final GarbageCollectionNotificationInfo gcNotification = GarbageCollectionNotificationInfo.from(compositeData);
         final GcInfo gcInfo = gcNotification.getGcInfo();
+
+        totalGcMillis.addAndGet(gcInfo.getDuration());
 
         final String gcName = gcNotification.getGcName();
         final String action = gcNotification.getGcAction();

@@ -19,25 +19,30 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-azure-bundle</artifactId>
     <packaging>pom</packaging>
 
     <properties>
-        <azure-storage.version>8.4.0</azure-storage.version>
-        <azure.core.version>1.6.0</azure.core.version>
-        <jackson.version>2.10.3</jackson.version>
-        <azure-cosmos.version>4.2.0</azure-cosmos.version>
+        <azure-storage.version>8.6.6</azure-storage.version>
+        <azure.core.version>1.26.0</azure.core.version>
+        <azure.identity.version>1.4.5</azure.identity.version>
+        <!-- azure-identity depends on msal4j transitively, keep these versions consistent -->
+        <msal4j.version>1.11.0</msal4j.version>
+        <azure-cosmos.version>4.26.0</azure-cosmos.version>
     </properties>
 
     <modules>
         <module>nifi-azure-processors</module>
         <module>nifi-azure-reporting-task</module>
+        <module>nifi-azure-graph-authorizer</module>
         <module>nifi-azure-nar</module>
         <module>nifi-azure-services-api</module>
         <module>nifi-azure-services-api-nar</module>
+        <module>nifi-azure-record-sink</module>
+        <module>nifi-azure-record-sink-nar</module>
     </modules>
 
     <dependencyManagement>
@@ -46,53 +51,16 @@
                 <groupId>com.microsoft.azure</groupId>
                 <artifactId>azure-storage</artifactId>
                 <version>${azure-storage.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.fasterxml.jackson.core</groupId>
-                        <artifactId>jackson-core</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <!-- dependency convergency resolution -->
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-annotations</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.dataformat</groupId>
-                <artifactId>jackson-dataformat-xml</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.module</groupId>
-                <artifactId>jackson-module-jaxb-annotations</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.datatype</groupId>
-                <artifactId>jackson-datatype-jsr310</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-lang3</artifactId>
-                <version>3.9</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-text</artifactId>
                 <version>1.8</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>31.0.1-jre</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

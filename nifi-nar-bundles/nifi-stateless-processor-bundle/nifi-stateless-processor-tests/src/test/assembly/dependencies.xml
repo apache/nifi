@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<assembly>
+    <id>bin</id>
+    <includeBaseDirectory>false</includeBaseDirectory>
+    <baseDirectory>nifi-execute-stateless-processor-assembly-${project.version}</baseDirectory>
+
+    <dependencySets>
+        <!-- Write out all dependency artifacts to directory -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>.</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>nifi-stateless-bootstrap</include>
+                <include>nifi-stateless-nar</include>
+                <include>nifi-standard-nar</include>
+                <include>nifi-standard-services-api-nar</include>
+                <include>nifi-jetty-bundle</include>
+                <include>nifi-update-attribute-nar</include>
+                <include>nifi-api</include>
+                <include>nifi-framework-api</include>
+                <include>nifi-server-api</include>
+                <include>nifi-runtime</include>
+                <include>nifi-nar-utils</include>
+                <include>nifi-stateless-api</include>
+                <include>slf4j-api</include>
+            </includes>
+        </dependencySet>
+
+        <!-- Write out the bootstrap libs for java11 to its own dir -->
+        <!-- TODO: remove this dependency set once minimum Java version is 11 -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>./java11</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>org.glassfish.jaxb:jaxb-runtime</include>
+                <include>jakarta.xml.bind:jakarta.xml.bind-api</include>
+                <include>javax.annotation:javax.annotation-api</include>
+            </includes>
+        </dependencySet>
+    </dependencySets>
+
+</assembly>

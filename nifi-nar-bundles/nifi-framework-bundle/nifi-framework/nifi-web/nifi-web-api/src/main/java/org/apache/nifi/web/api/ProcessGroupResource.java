@@ -78,6 +78,8 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.stream.StreamSource;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
@@ -108,12 +110,11 @@ import org.apache.nifi.registry.flow.FlowRegistryUtils;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowState;
-import org.apache.nifi.registry.flow.VersionedParameterContext;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedParameterContext;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateRequest;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateStep;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
-import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
@@ -173,6 +174,8 @@ import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.apache.nifi.web.util.Pause;
+import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
+import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -346,7 +349,18 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         @ApiResponse(code = 404, message = "The specified resource could not be found."),
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
-    public Response exportProcessGroup(@ApiParam(value = "The process group id.", required = true) @PathParam("id") final String groupId) {
+    public Response exportProcessGroup(
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId,
+            @ApiParam(
+                    value = "If referenced services from outside the target group should be included",
+                    required = false
+            )
+            @QueryParam("includeReferencedServices")
+            @DefaultValue("false") boolean includeReferencedServices) {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             // ensure access to process groups (nested), encapsulated controller services and referenced parameter contexts
@@ -356,7 +370,9 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         });
 
         // get the versioned flow
-        final VersionedFlowSnapshot currentVersionedFlowSnapshot = serviceFacade.getCurrentFlowSnapshotByGroupId(groupId);
+        final VersionedFlowSnapshot currentVersionedFlowSnapshot = includeReferencedServices
+            ? serviceFacade.getCurrentFlowSnapshotByGroupIdWithReferencedControllerServices(groupId)
+            : serviceFacade.getCurrentFlowSnapshotByGroupId(groupId);
 
         // determine the name of the attachment - possible issues with spaces in file names
         final VersionedProcessGroup currentVersionedProcessGroup = currentVersionedFlowSnapshot.getFlowContents();
@@ -1158,7 +1174,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         URI groupUri;
         try {
             groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
-                originalUri.getPort(), "/nifi-api/flow/process-groups/" + groupId + "/controller-services", "includeAncestorGroups=false,includeDescendantGroups=true", originalUri.getFragment());
+                originalUri.getPort(), "/nifi-api/flow/process-groups/" + groupId + "/controller-services", "includeAncestorGroups=false&includeDescendantGroups=true", originalUri.getFragment());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
@@ -1620,7 +1636,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     @Path("{id}/empty-all-connections-requests")
     @ApiOperation(
         value = "Creates a request to drop all flowfiles of all connection queues in this process group.",
-        response = ProcessGroupEntity.class,
+        response = DropRequestEntity.class,
         authorizations = {
             @Authorization(value = "Read - /process-groups/{uuid} - For this and all encapsulated process groups"),
             @Authorization(value = "Write Source Data - /data/{component-type}/{uuid} - For all encapsulated connections")
@@ -3814,7 +3830,8 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             // TODO: Potentially refactor the template parsing to a service layer outside of the resource for web request handling
             JAXBContext context = JAXBContext.newInstance(TemplateDTO.class);
             Unmarshaller unmarshaller = context.createUnmarshaller();
-            XMLStreamReader xsr = XmlUtils.createSafeReader(in);
+            final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
+            XMLStreamReader xsr = provider.getStreamReader(new StreamSource(in));
             JAXBElement<TemplateDTO> templateElement = unmarshaller.unmarshal(xsr, TemplateDTO.class);
             template = templateElement.getValue();
         } catch (JAXBException jaxbe) {

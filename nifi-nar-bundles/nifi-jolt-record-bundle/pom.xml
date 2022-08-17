@@ -19,11 +19,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-jolt-record-bundle</artifactId>
-    <version>1.14.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -33,7 +32,6 @@
 
     <properties>
         <jolt.version>0.1.1</jolt.version>
-        <jersey.version>2.26</jersey.version>
     </properties>
 
     <dependencyManagement>
@@ -41,17 +39,17 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-jolt-record-processors</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-record-serialization-service-api</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>com.bazaarvoice.jolt</groupId>
@@ -65,5 +63,4 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-
 </project>

@@ -24,16 +24,20 @@ import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.AuthorizerConfigurationContext;
 import org.apache.nifi.authorization.AuthorizerInitializationContext;
-import org.apache.nifi.authorization.FlowParser;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.c2.client.api.C2Client;
+import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.FlowSerializationStrategy;
 import org.apache.nifi.controller.StandardFlowService;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
+import org.apache.nifi.controller.status.history.StatusHistoryDumpFactory;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.diagnostics.DiagnosticsDump;
 import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.DiagnosticsFactory;
@@ -45,33 +49,41 @@ import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.ExtensionManagerHolder;
 import org.apache.nifi.nar.ExtensionMapping;
+import org.apache.nifi.nar.NarAutoLoader;
+import org.apache.nifi.nar.NarClassLoadersHolder;
+import org.apache.nifi.nar.NarLoader;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
+import org.apache.nifi.nar.StandardNarLoader;
+import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.StandardFlowRegistryClient;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.services.FlowService;
+import org.apache.nifi.spring.StatusHistoryRepositoryFactoryBean;
+import org.apache.nifi.util.FlowParser;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.List;
 import java.util.Set;
 
 /**
+ *
  */
 public class HeadlessNiFiServer implements NiFiServer {
 
     private static final Logger logger = LoggerFactory.getLogger(HeadlessNiFiServer.class);
-    private NiFiProperties props;
-    private Bundle systemBundle;
-    private Set<Bundle> bundles;
-    private FlowService flowService;
-    private DiagnosticsFactory diagnosticsFactory;
+    protected NiFiProperties props;
+    protected Bundle systemBundle;
+    protected Set<Bundle> bundles;
+    protected FlowController flowController;
+    protected FlowService flowService;
+    protected DiagnosticsFactory diagnosticsFactory;
+    protected NarAutoLoader narAutoLoader;
 
     /**
      * Default constructor
@@ -92,8 +104,6 @@ public class HeadlessNiFiServer implements NiFiServer {
 
             // Enrich the flow xml using the Extension Manager mapping
             final FlowParser flowParser = new FlowParser();
-            final FlowEnricher flowEnricher = new FlowEnricher(this, flowParser, props);
-            flowEnricher.enrichFlowWithBundleInformation();
             logger.info("Loading Flow...");
 
             FlowFileEventRepository flowFileEventRepository = new RingBufferEventRepository(5);
@@ -126,7 +136,12 @@ public class HeadlessNiFiServer implements NiFiServer {
             StandardFlowRegistryClient flowRegistryClient = new StandardFlowRegistryClient();
             flowRegistryClient.setProperties(props);
 
-            FlowController flowController = FlowController.createStandaloneInstance(
+            final StatusHistoryRepositoryFactoryBean statusHistoryRepositoryFactoryBean = new StatusHistoryRepositoryFactoryBean();
+            statusHistoryRepositoryFactoryBean.setNifiProperties(props);
+            statusHistoryRepositoryFactoryBean.setExtensionManager(extensionManager);
+            StatusHistoryRepository statusHistoryRepository = statusHistoryRepositoryFactoryBean.getObject();
+
+            flowController = FlowController.createStandaloneInstance(
                     flowFileEventRepository,
                     props,
                     authorizer,
@@ -135,14 +150,15 @@ public class HeadlessNiFiServer implements NiFiServer {
                     bulletinRepository,
                     variableRegistry,
                     flowRegistryClient,
-                    extensionManager);
+                    extensionManager,
+                    statusHistoryRepository);
 
             flowService = StandardFlowService.createStandaloneInstance(
                     flowController,
                     props,
-                    encryptor,
                     null, // revision manager
-                    authorizer);
+                    authorizer,
+                    FlowSerializationStrategy.WRITE_XML_ONLY);
 
             diagnosticsFactory = new BootstrapDiagnosticsFactory();
             ((BootstrapDiagnosticsFactory) diagnosticsFactory).setFlowController(flowController);
@@ -155,7 +171,20 @@ public class HeadlessNiFiServer implements NiFiServer {
             FlowManager flowManager = flowController.getFlowManager();
             flowManager.getGroup(flowManager.getRootGroupId()).startProcessing();
 
+            final NarUnpackMode unpackMode = props.isUnpackNarsToUberJar() ? NarUnpackMode.UNPACK_TO_UBER_JAR : NarUnpackMode.UNPACK_INDIVIDUAL_JARS;
+            final NarLoader narLoader = new StandardNarLoader(
+                    props.getExtensionsWorkingDirectory(),
+                    props.getComponentDocumentationWorkingDirectory(),
+                    NarClassLoadersHolder.getInstance(),
+                    extensionManager,
+                    new ExtensionMapping(), // Mapping is for documentation which is for the UI, not headless
+                    null,
+                    unpackMode); // UI Loader is for documentation which is for the UI, not headless
+
+            narAutoLoader = new NarAutoLoader(props, narLoader);
+            narAutoLoader.start();
             logger.info("Flow loaded successfully.");
+
         } catch (Exception e) {
             // ensure the flow service is terminated
             if (flowService != null && flowService.isRunning()) {
@@ -192,9 +221,32 @@ public class HeadlessNiFiServer implements NiFiServer {
         return new ThreadDumpDiagnosticsFactory();
     }
 
+    @Override
+    public DecommissionTask getDecommissionTask() {
+        return null;
+    }
+
+    @Override
+    public StatusHistoryDumpFactory getStatusHistoryDumpFactory() {
+        return null;
+    }
+
+    protected C2Client getC2Client() {
+        return null;
+    }
+
     public void stop() {
         try {
             flowService.stop(false);
+
+            try {
+                if (narAutoLoader != null) {
+                    narAutoLoader.stop();
+                    narAutoLoader = null;
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to stop NAR auto-loader", e);
+            }
         } catch (Exception e) {
             String msg = "Problem occurred ensuring flow controller or repository was properly terminated due to " + e;
             if (logger.isDebugEnabled()) {
@@ -212,18 +264,15 @@ public class HeadlessNiFiServer implements NiFiServer {
     private static class ThreadDumpDiagnosticsFactory implements DiagnosticsFactory {
         @Override
         public DiagnosticsDump create(final boolean verbose) {
-            return new DiagnosticsDump() {
-                @Override
-                public void writeTo(final OutputStream out) throws IOException {
-                    final DiagnosticsDumpElement threadDumpElement = new ThreadDumpTask().captureDump(verbose);
-                    final BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));
-                    for (final String detail : threadDumpElement.getDetails()) {
-                        writer.write(detail);
-                        writer.write("\n");
-                    }
-
-                    writer.flush();
+            return out -> {
+                final DiagnosticsDumpElement threadDumpElement = new ThreadDumpTask().captureDump(verbose);
+                final BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));
+                for (final String detail : threadDumpElement.getDetails()) {
+                    writer.write(detail);
+                    writer.write("\n");
                 }
+
+                writer.flush();
             };
         }
     }

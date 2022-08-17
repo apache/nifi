@@ -15,20 +15,35 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-docker</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>dockerhub</artifactId>
 
+    <properties>
+        <docker.image.name>openjdk</docker.image.name>
+        <docker.image.tag>8-jre</docker.image.tag>
+        <docker.maintainer><![CDATA[Apache NiFi <dev@nifi.apache.org>]]></docker.maintainer>
+        <!-- files need to exist at https://archive.apache.org/dist/nifi/${docker.nifi.version}/nifi-[toolkit-]${docker.nifi.version}-bin.zip
+            so this version needs to be *before* the current ${project.version} -->
+        <docker.nifi.version>1.14.0</docker.nifi.version>
+    </properties>
+
     <profiles>
         <profile>
             <id>docker</id>
+            <dependencies>
+                <dependency>
+                    <groupId>javax.activation</groupId>
+                    <artifactId>activation</artifactId>
+                    <version>1.1.1</version>
+                </dependency>
+            </dependencies>
             <build>
                 <plugins>
                     <plugin>
                         <groupId>com.spotify</groupId>
                         <artifactId>dockerfile-maven-plugin</artifactId>
-                        <version>1.3.5</version>
                         <executions>
                             <execution>
                                 <id>default</id>
@@ -37,9 +52,12 @@
                                 </goals>
                                 <configuration>
                                     <buildArgs>
+                                        <IMAGE_NAME>${docker.image.name}</IMAGE_NAME>
+                                        <IMAGE_TAG>${docker.image.tag}</IMAGE_TAG>
+                                        <MAINTAINER>${docker.maintainer}</MAINTAINER>
                                         <UID>1000</UID>
                                         <GID>1000</GID>
-                                        <NIFI_VERSION>1.7.0</NIFI_VERSION>
+                                        <NIFI_VERSION>${docker.nifi.version}</NIFI_VERSION>
                                     </buildArgs>
                                     <repository>apache/nifi</repository>
                                     <!-- Right now we can only test against the latest released NiFi version to check our Dockerfile -->
@@ -61,7 +79,7 @@
                                 <configuration>
                                     <arguments>
                                         <argument>${project.version}-dockerhub</argument>
-                                        <argument>1.7.0</argument>
+                                        <argument>${docker.nifi.version}</argument>
                                     </arguments>
                                     <executable>${project.basedir}/../dockermaven/integration-test.sh</executable>
                                 </configuration>
@@ -117,5 +135,4 @@
             </build>
         </profile>
     </profiles>
-
 </project>

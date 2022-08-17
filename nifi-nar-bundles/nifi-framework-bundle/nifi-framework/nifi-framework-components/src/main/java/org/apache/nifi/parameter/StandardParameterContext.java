@@ -16,10 +16,15 @@
  */
 package org.apache.nifi.parameter;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
@@ -30,14 +35,19 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Stack;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 public class StandardParameterContext implements ParameterContext {
     private static final Logger logger = LoggerFactory.getLogger(StandardParameterContext.class);
@@ -49,14 +59,15 @@ public class StandardParameterContext implements ParameterContext {
     private String name;
     private long version = 0L;
     private final Map<ParameterDescriptor, Parameter> parameters = new LinkedHashMap<>();
+    private final List<ParameterContext> inheritedParameterContexts = new ArrayList<>();
     private volatile String description;
 
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
 
-
-    public StandardParameterContext(final String id, final String name, final ParameterReferenceManager parameterReferenceManager, final Authorizable parentAuthorizable) {
+    public StandardParameterContext(final String id, final String name, final ParameterReferenceManager parameterReferenceManager,
+                                    final Authorizable parentAuthorizable) {
         this.id = Objects.requireNonNull(id);
         this.name = Objects.requireNonNull(name);
         this.parameterReferenceManager = parameterReferenceManager;
@@ -102,43 +113,57 @@ public class StandardParameterContext implements ParameterContext {
         return description;
     }
 
+    @Override
     public void setParameters(final Map<String, Parameter> updatedParameters) {
         final Map<String, ParameterUpdate> parameterUpdates = new HashMap<>();
-        boolean changeAffectingComponents = false;
 
         writeLock.lock();
         try {
             this.version++;
-            verifyCanSetParameters(updatedParameters);
+            final Map<ParameterDescriptor, Parameter> currentEffectiveParameters = getEffectiveParameters();
+            final Map<ParameterDescriptor, Parameter> effectiveProposedParameters = getEffectiveParameters(getProposedParameters(updatedParameters));
 
-            for (final Map.Entry<String, Parameter> entry : updatedParameters.entrySet()) {
-                final String parameterName = entry.getKey();
-                final Parameter parameter = entry.getValue();
+            final Map<String, Parameter> effectiveParameterUpdates = getEffectiveParameterUpdates(currentEffectiveParameters, effectiveProposedParameters);
 
-                if (parameter == null) {
-                    changeAffectingComponents = true;
+            verifyCanSetParameters(effectiveParameterUpdates, true);
 
-                    final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(parameterName).build();
-                    final Parameter oldParameter = parameters.remove(parameterDescriptor);
+            // Update the actual parameters
+            updateParameters(parameters, updatedParameters, true);
 
-                    parameterUpdates.put(parameterName, new StandardParameterUpdate(parameterName, oldParameter.getValue(), null, parameterDescriptor.isSensitive()));
-                } else {
-                    final Parameter updatedParameter = createFullyPopulatedParameter(parameter);
-
-                    final Parameter oldParameter = parameters.put(updatedParameter.getDescriptor(), updatedParameter);
-                    if (oldParameter == null || !Objects.equals(oldParameter.getValue(), updatedParameter.getValue())) {
-                        changeAffectingComponents = true;
-
-                        final String previousValue = oldParameter == null ? null : oldParameter.getValue();
-                        parameterUpdates.put(parameterName, new StandardParameterUpdate(parameterName, previousValue, updatedParameter.getValue(), updatedParameter.getDescriptor().isSensitive()));
-                    }
-                }
-            }
+            // Get a list of all effective updates in order to alert referencing components
+            parameterUpdates.putAll(updateParameters(currentEffectiveParameters, effectiveParameterUpdates, false));
         } finally {
             writeLock.unlock();
         }
 
-        if (changeAffectingComponents) {
+        alertReferencingComponents(parameterUpdates);
+    }
+
+    private Map<ParameterDescriptor, Parameter> getProposedParameters(final Map<String, Parameter> proposedParameterUpdates) {
+        final Map<ParameterDescriptor, Parameter> proposedParameters = new HashMap<>(this.parameters);
+        for(final Map.Entry<String, Parameter> entry : proposedParameterUpdates.entrySet()) {
+            final String parameterName = entry.getKey();
+            final Parameter parameter = entry.getValue();
+            if (parameter == null) {
+                final Optional<Parameter> existingParameter = getParameter(parameterName);
+                if (existingParameter.isPresent()) {
+                    proposedParameters.remove(existingParameter.get().getDescriptor());
+                }
+            } else {
+                // Remove is necessary first in case sensitivity changes
+                proposedParameters.remove(parameter.getDescriptor());
+                proposedParameters.put(parameter.getDescriptor(), parameter);
+            }
+        }
+        return proposedParameters;
+    }
+
+    /**
+     * Alerts all referencing components of any relevant updates.
+     * @param parameterUpdates A map from parameter name to ParameterUpdate (empty if none are applicable)
+     */
+    private void alertReferencingComponents(final Map<String, ParameterUpdate> parameterUpdates) {
+        if (!parameterUpdates.isEmpty()) {
             logger.debug("Parameter Context {} was updated. {} parameters changed ({}). Notifying all affected components.", this, parameterUpdates.size(), parameterUpdates);
 
             for (final ProcessGroup processGroup : parameterReferenceManager.getProcessGroupsBound(this)) {
@@ -151,6 +176,42 @@ public class StandardParameterContext implements ParameterContext {
         } else {
             logger.debug("Parameter Context {} was updated. {} parameters changed ({}). No existing components are affected.", this, parameterUpdates.size(), parameterUpdates);
         }
+    }
+
+    /**
+     * Returns a map from parameter name to ParameterUpdate for any actual updates to parameters.
+     * @param currentParameters The current parameters
+     * @param updatedParameters An updated parameters map
+     * @param performUpdate If true, this will actually perform the updates on the currentParameters map.  Otherwise,
+     *                      the updates are simply collected and returned.
+     * @return A map from parameter name to ParameterUpdate for any actual parameters
+     */
+    private Map<String, ParameterUpdate> updateParameters(final Map<ParameterDescriptor, Parameter> currentParameters,
+                                                          final Map<String, Parameter> updatedParameters, final boolean performUpdate) {
+        final Map<String, ParameterUpdate> parameterUpdates = new HashMap<>();
+
+        for (final Map.Entry<String, Parameter> entry : updatedParameters.entrySet()) {
+            final String parameterName = entry.getKey();
+            final Parameter parameter = entry.getValue();
+
+            if (parameter == null) {
+                final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(parameterName).build();
+                final Parameter oldParameter = performUpdate ? currentParameters.remove(parameterDescriptor)
+                        : currentParameters.get(parameterDescriptor);
+
+                parameterUpdates.put(parameterName, new StandardParameterUpdate(parameterName, oldParameter.getValue(), null, parameterDescriptor.isSensitive()));
+            } else {
+                final Parameter updatedParameter = createFullyPopulatedParameter(parameter);
+
+                final Parameter oldParameter = performUpdate ? currentParameters.put(updatedParameter.getDescriptor(), updatedParameter)
+                        : currentParameters.get(updatedParameter.getDescriptor());
+                if (oldParameter == null || !Objects.equals(oldParameter.getValue(), updatedParameter.getValue())) {
+                    final String previousValue = oldParameter == null ? null : oldParameter.getValue();
+                    parameterUpdates.put(parameterName, new StandardParameterUpdate(parameterName, previousValue, updatedParameter.getValue(), updatedParameter.getDescriptor().isSensitive()));
+                }
+            }
+        }
+        return parameterUpdates;
     }
 
     /**
@@ -212,7 +273,7 @@ public class StandardParameterContext implements ParameterContext {
     public boolean isEmpty() {
         readLock.lock();
         try {
-            return parameters.isEmpty();
+            return getEffectiveParameters().isEmpty();
         } finally {
             readLock.unlock();
         }
@@ -221,10 +282,43 @@ public class StandardParameterContext implements ParameterContext {
     public Optional<Parameter> getParameter(final ParameterDescriptor parameterDescriptor) {
         readLock.lock();
         try {
-            return Optional.ofNullable(parameters.get(parameterDescriptor));
+            // When Expression Language is used, the Parameter may require being escaped.
+            // This is the case, for instance, if a Parameter name has a space in it.
+            // Because of this, we may have a case where we attempt to get a Parameter by name
+            // and that Parameter name is enclosed within single tick marks, as a way of escaping
+            // the name via the Expression Language. In this case, we want to strip out those
+            // escaping tick marks and use just the raw name for looking up the Parameter.
+            final ParameterDescriptor unescaped = unescape(parameterDescriptor);
+            // Short circuit getEffectiveParameters if we know there are no inherited ParameterContexts
+            return Optional.ofNullable((inheritedParameterContexts.isEmpty() ? parameters : getEffectiveParameters())
+                    .get(unescaped));
         } finally {
             readLock.unlock();
         }
+    }
+
+    @Override
+    public boolean hasEffectiveValueIfRemoved(final ParameterDescriptor parameterDescriptor) {
+        final Map<ParameterDescriptor, List<Parameter>> allOverrides = getAllParametersIncludingOverrides();
+        final List<Parameter> parameters = allOverrides.get(parameterDescriptor);
+        if (parameters == null) {
+            return false;
+        }
+
+        return parameters.size() > 1;
+    }
+
+    private ParameterDescriptor unescape(final ParameterDescriptor descriptor) {
+        final String parameterName = descriptor.getName().trim();
+        if ((parameterName.startsWith("'") && parameterName.endsWith("'")) || (parameterName.startsWith("\"") && parameterName.endsWith("\""))) {
+            final String stripped = parameterName.substring(1, parameterName.length() - 1);
+            return new ParameterDescriptor.Builder()
+                .from(descriptor)
+                .name(stripped)
+                .build();
+        }
+
+        return descriptor;
     }
 
     @Override
@@ -238,19 +332,307 @@ public class StandardParameterContext implements ParameterContext {
     }
 
     @Override
+    public Map<ParameterDescriptor, Parameter> getEffectiveParameters() {
+        readLock.lock();
+        try {
+            return this.getEffectiveParameters(inheritedParameterContexts);
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public Map<String, Parameter> getEffectiveParameterUpdates(final Map<String, Parameter> parameterUpdates, final List<ParameterContext> inheritedParameterContexts) {
+        Objects.requireNonNull(parameterUpdates, "Parameter Updates must be specified");
+        Objects.requireNonNull(inheritedParameterContexts, "Inherited parameter contexts must be specified");
+
+        final Map<ParameterDescriptor, Parameter> currentEffectiveParameters = getEffectiveParameters();
+        final Map<ParameterDescriptor, Parameter> effectiveProposedParameters = getEffectiveParameters(inheritedParameterContexts, getProposedParameters(parameterUpdates), new HashMap<>());
+
+        return getEffectiveParameterUpdates(currentEffectiveParameters, effectiveProposedParameters);
+    }
+
+    /**
+     * Constructs an effective view of the parameters, including nested parameters, assuming the given map of parameters.
+     * This allows an inspection of what parameters would be available if the given parameters were set in this ParameterContext.
+     * @param proposedParameters A Map of proposed parameters that should be used in place of the current parameters
+     * @return The view of the parameters with all overriding applied
+     */
+    private Map<ParameterDescriptor, Parameter> getEffectiveParameters(final Map<ParameterDescriptor, Parameter> proposedParameters) {
+        return getEffectiveParameters(this.inheritedParameterContexts, proposedParameters, new HashMap<>());
+    }
+
+    /**
+     * Constructs an effective view of the parameters, including nested parameters, assuming the given list of ParameterContexts.
+     * This allows an inspection of what parameters would be available if the given list were set in this ParameterContext.
+     * @param parameterContexts An ordered list of ParameterContexts from which to inherit
+     * @return The view of the parameters with all overriding applied
+     */
+    private Map<ParameterDescriptor, Parameter> getEffectiveParameters(final List<ParameterContext> parameterContexts) {
+        return getEffectiveParameters(parameterContexts, this.parameters, new HashMap<>());
+    }
+
+    private Map<ParameterDescriptor, List<Parameter>> getAllParametersIncludingOverrides() {
+        final Map<ParameterDescriptor, List<Parameter>> allOverrides = new HashMap<>();
+        getEffectiveParameters(this.inheritedParameterContexts, this.parameters, allOverrides);
+        return allOverrides;
+    }
+
+    private Map<ParameterDescriptor, Parameter> getEffectiveParameters(final List<ParameterContext> parameterContexts,
+                                                                       final Map<ParameterDescriptor, Parameter> proposedParameters,
+                                                                       final Map<ParameterDescriptor, List<Parameter>> allOverrides) {
+        final Map<ParameterDescriptor, Parameter> effectiveParameters = new LinkedHashMap<>();
+
+        // Loop backwards so that the first ParameterContext in the list will override any parameters later in the list
+        for(int i = parameterContexts.size() - 1; i >= 0; i--) {
+            ParameterContext parameterContext = parameterContexts.get(i);
+            combineOverrides(allOverrides, overrideParameters(effectiveParameters, parameterContext.getEffectiveParameters(), parameterContext));
+        }
+
+        // Finally, override all child parameters with our own
+        combineOverrides(allOverrides, overrideParameters(effectiveParameters, proposedParameters, this));
+
+        return effectiveParameters;
+    }
+
+    private void combineOverrides(final Map<ParameterDescriptor, List<Parameter>> existingOverrides, final Map<ParameterDescriptor, List<Parameter>> newOverrides) {
+        for (final Map.Entry<ParameterDescriptor, List<Parameter>> entry : newOverrides.entrySet()) {
+            final ParameterDescriptor key = entry.getKey();
+            final List<Parameter> existingOverrideList = existingOverrides.computeIfAbsent(key, k -> new ArrayList<>());
+            existingOverrideList.addAll(entry.getValue());
+        }
+    }
+
+    private Map<ParameterDescriptor, List<Parameter>> overrideParameters(final Map<ParameterDescriptor, Parameter> existingParameters,
+                                    final Map<ParameterDescriptor, Parameter> overridingParameters,
+                                    final ParameterContext overridingContext) {
+        final Map<ParameterDescriptor, List<Parameter>> allOverrides = new HashMap<>();
+        for(final Map.Entry<ParameterDescriptor, Parameter> entry : existingParameters.entrySet()) {
+            final List<Parameter> parameters = new ArrayList<>();
+            parameters.add(entry.getValue());
+            allOverrides.put(entry.getKey(), parameters);
+        }
+
+        for(final Map.Entry<ParameterDescriptor, Parameter> entry : overridingParameters.entrySet()) {
+            final ParameterDescriptor overridingParameterDescriptor = entry.getKey();
+            Parameter overridingParameter = entry.getValue();
+
+            if (existingParameters.containsKey(overridingParameterDescriptor)) {
+                final Parameter existingParameter = existingParameters.get(overridingParameterDescriptor);
+                final ParameterDescriptor existingParameterDescriptor = existingParameter.getDescriptor();
+
+                if (existingParameterDescriptor.isSensitive() && !overridingParameterDescriptor.isSensitive()) {
+                    throw new IllegalStateException(String.format("Cannot add ParameterContext because Sensitive Parameter [%s] would be overridden by " +
+                            "a Non Sensitive Parameter with the same name", existingParameterDescriptor.getName()));
+                }
+
+                if (!existingParameterDescriptor.isSensitive() && overridingParameterDescriptor.isSensitive()) {
+                    throw new IllegalStateException(String.format("Cannot add ParameterContext because Non Sensitive Parameter [%s] would be overridden by " +
+                            "a Sensitive Parameter with the same name", existingParameterDescriptor.getName()));
+                }
+            }
+            if (overridingParameter.getParameterContextId() == null) {
+                overridingParameter = new Parameter(overridingParameter, overridingContext.getIdentifier());
+            }
+            allOverrides.computeIfAbsent(overridingParameterDescriptor, p -> new ArrayList<>()).add(overridingParameter);
+
+            existingParameters.put(overridingParameterDescriptor, overridingParameter);
+        }
+        return allOverrides;
+    }
+
+    @Override
     public ParameterReferenceManager getParameterReferenceManager() {
         return parameterReferenceManager;
     }
 
+    /**
+     * Verifies that no cycles would exist in the ParameterContext reference graph, if this ParameterContext were
+     * to inherit from the given list of ParameterContexts.
+     * @param parameterContexts A list of proposed ParameterContexts
+     */
+    private void verifyNoCycles(final List<ParameterContext> parameterContexts) {
+        final Stack<String> traversedIds = new Stack<>();
+        traversedIds.push(id);
+        verifyNoCycles(traversedIds, parameterContexts);
+    }
+
+    /**
+     * A helper method for performing a depth first search to verify there are no cycles in the proposed
+     * list of ParameterContexts.
+     * @param traversedIds A collection of already traversed ids in the graph
+     * @param parameterContexts The ParameterContexts for which to check for cycles
+     * @throws IllegalStateException If a cycle was detected
+     */
+    private void verifyNoCycles(final Stack<String> traversedIds, final List<ParameterContext> parameterContexts) {
+        for (final ParameterContext parameterContext : parameterContexts) {
+            final String id = parameterContext.getIdentifier();
+            if (traversedIds.contains(id)) {
+                throw new IllegalStateException(String.format("Circular references in Parameter Contexts not allowed. [%s] was detected in a cycle.", parameterContext.getName()));
+            }
+
+            traversedIds.push(id);
+            verifyNoCycles(traversedIds, parameterContext.getInheritedParameterContexts());
+            traversedIds.pop();
+        }
+    }
+
+    @Override
+    public void verifyCanUpdateParameterContext(final Map<String, Parameter> parameterUpdates, final List<ParameterContext> inheritedParameterContexts) {
+        verifyCanUpdateParameterContext(parameterUpdates, inheritedParameterContexts, false);
+    }
+
+    private void verifyCanUpdateParameterContext(final Map<String, Parameter> parameterUpdates, final List<ParameterContext> inheritedParameterContexts, final boolean duringUpdate) {
+        if (inheritedParameterContexts == null) {
+            return;
+        }
+        verifyNoCycles(inheritedParameterContexts);
+
+        final Map<ParameterDescriptor, Parameter> currentEffectiveParameters = getEffectiveParameters();
+        final Map<ParameterDescriptor, Parameter> effectiveProposedParameters = getEffectiveParameters(inheritedParameterContexts, getProposedParameters(parameterUpdates), new HashMap<>());
+        final Map<String, Parameter> effectiveParameterUpdates = getEffectiveParameterUpdates(currentEffectiveParameters, effectiveProposedParameters);
+
+        try {
+            verifyCanSetParameters(currentEffectiveParameters, effectiveParameterUpdates, duringUpdate);
+        } catch (final IllegalStateException e) {
+            // Wrap with a more accurate message
+            throw new IllegalStateException(String.format("Could not update inherited Parameter Contexts for Parameter Context [%s] because: %s",
+                    name, e.getMessage()), e);
+        }
+    }
+
+    @Override
+    public void setInheritedParameterContexts(final List<ParameterContext> inheritedParameterContexts) {
+        if (inheritedParameterContexts == null || inheritedParameterContexts.equals(this.inheritedParameterContexts)) {
+            // No changes
+            return;
+        }
+
+        verifyCanUpdateParameterContext(Collections.emptyMap(), inheritedParameterContexts, true);
+
+        final Map<String, ParameterUpdate> parameterUpdates = new HashMap<>();
+
+        writeLock.lock();
+        try {
+            this.version++;
+
+            final Map<ParameterDescriptor, Parameter> currentEffectiveParameters = getEffectiveParameters();
+            final Map<ParameterDescriptor, Parameter> effectiveProposedParameters = getEffectiveParameters(inheritedParameterContexts);
+            final Map<String, Parameter> effectiveParameterUpdates = getEffectiveParameterUpdates(currentEffectiveParameters, effectiveProposedParameters);
+
+            this.inheritedParameterContexts.clear();
+
+            this.inheritedParameterContexts.addAll(inheritedParameterContexts);
+
+            parameterUpdates.putAll(updateParameters(currentEffectiveParameters, effectiveParameterUpdates, false));
+        } finally {
+            writeLock.unlock();
+        }
+
+        alertReferencingComponents(parameterUpdates);
+    }
+
+    /**
+     * Returns a map that can be used to indicate all effective parameters updates, including removed parameters.
+     * @param currentEffectiveParameters A current map of effective parameters
+     * @param effectiveProposedParameters A map of effective parameters that would result if a proposed update were applied
+     * @return a map that can be used to indicate all effective parameters updates, including removed parameters
+     */
+    private static Map<String, Parameter> getEffectiveParameterUpdates(final Map<ParameterDescriptor, Parameter> currentEffectiveParameters,
+                                                                       final Map<ParameterDescriptor, Parameter> effectiveProposedParameters) {
+        final Map<String, Parameter> effectiveParameterUpdates = new HashMap<>();
+        for (final Map.Entry<ParameterDescriptor, Parameter> entry : effectiveProposedParameters.entrySet()) {
+            final ParameterDescriptor proposedParameterDescriptor = entry.getKey();
+            final Parameter proposedParameter = entry.getValue();
+            if (currentEffectiveParameters.containsKey(proposedParameterDescriptor)) {
+                final Parameter currentParameter = currentEffectiveParameters.get(proposedParameterDescriptor);
+                if (!currentParameter.equals(proposedParameter) || currentParameter.getDescriptor().isSensitive() != proposedParameter.getDescriptor().isSensitive()
+                        || !StringUtils.equals(currentParameter.getDescriptor().getDescription(), proposedParameter.getDescriptor().getDescription())) {
+                    // The parameter has been updated in some way
+                    effectiveParameterUpdates.put(proposedParameterDescriptor.getName(), proposedParameter);
+                }
+            } else {
+                // It's a new parameter
+                effectiveParameterUpdates.put(proposedParameterDescriptor.getName(), proposedParameter);
+            }
+        }
+        for (final Map.Entry<ParameterDescriptor, Parameter> entry : currentEffectiveParameters.entrySet()) {
+            final ParameterDescriptor currentParameterDescriptor = entry.getKey();
+            if (!effectiveProposedParameters.containsKey(currentParameterDescriptor)) {
+                // If a current parameter is not in the proposed parameters, it was effectively removed
+                effectiveParameterUpdates.put(currentParameterDescriptor.getName(), null);
+            }
+        }
+        return effectiveParameterUpdates;
+    }
+
+    @Override
+    public List<ParameterContext> getInheritedParameterContexts() {
+        readLock.lock();
+        try {
+            return new ArrayList<>(inheritedParameterContexts);
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public List<String> getInheritedParameterContextNames() {
+        readLock.lock();
+        try {
+            return inheritedParameterContexts.stream().map(ParameterContext::getName)
+                    .collect(Collectors.toList());
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public boolean inheritsFrom(final String parameterContextId) {
+        readLock.lock();
+        try {
+            if (!inheritedParameterContexts.isEmpty()) {
+                for(final ParameterContext inheritedParameterContext : inheritedParameterContexts) {
+                    if (inheritedParameterContext.getIdentifier().equals(parameterContextId)) {
+                        return true;
+                    }
+                    if (inheritedParameterContext.inheritsFrom(parameterContextId)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        } finally {
+            readLock.unlock();
+        }
+    }
+
     @Override
     public void verifyCanSetParameters(final Map<String, Parameter> updatedParameters) {
+        verifyCanSetParameters(updatedParameters, false);
+    }
+
+    /**
+     * Ensures that it is legal to update the Parameters for this Parameter Context to match the given set of Parameters
+     * @param updatedParameters the updated set of parameters, keyed by Parameter name
+     * @param duringUpdate If true, this check will be treated as if a ParameterContext update is imminent, meaning
+     *                     referencing components may not be active even for updated values.  If false, a parameter
+     *                     value update will be valid even if referencing components are active because it will be
+     *                     assumed that these will be stopped prior to the actual update.
+     * @throws IllegalStateException if setting the given set of Parameters is not legal
+     */
+    public void verifyCanSetParameters(final Map<String, Parameter> updatedParameters, final boolean duringUpdate) {
+        verifyCanSetParameters(parameters, updatedParameters, duringUpdate);
+    }
+
+    public void verifyCanSetParameters(final Map<ParameterDescriptor, Parameter> currentParameters, final Map<String, Parameter> updatedParameters, final boolean duringUpdate) {
         // Ensure that the updated parameters will not result in changing the sensitivity flag of any parameter.
         for (final Map.Entry<String, Parameter> entry : updatedParameters.entrySet()) {
             final String parameterName = entry.getKey();
             final Parameter parameter = entry.getValue();
             if (parameter == null) {
                 // parameter is being deleted.
-                validateReferencingComponents(parameterName, null,"remove");
+                validateReferencingComponents(parameterName, null, duringUpdate);
                 continue;
             }
 
@@ -258,14 +640,14 @@ public class StandardParameterContext implements ParameterContext {
                 throw new IllegalArgumentException("Parameter '" + parameterName + "' was specified with the wrong key in the Map");
             }
 
-            validateSensitiveFlag(parameter);
-            validateReferencingComponents(parameterName, parameter, "update");
+            validateSensitiveFlag(currentParameters, parameter);
+            validateReferencingComponents(parameterName, parameter, duringUpdate);
         }
     }
 
-    private void validateSensitiveFlag(final Parameter updatedParameter) {
+    private void validateSensitiveFlag(final Map<ParameterDescriptor, Parameter> currentParameters, final Parameter updatedParameter) {
         final ParameterDescriptor updatedDescriptor = updatedParameter.getDescriptor();
-        final Parameter existingParameter = parameters.get(updatedDescriptor);
+        final Parameter existingParameter = currentParameters.get(updatedDescriptor);
 
         if (existingParameter == null) {
             return;
@@ -281,11 +663,12 @@ public class StandardParameterContext implements ParameterContext {
         }
     }
 
-
-    private void validateReferencingComponents(final String parameterName, final Parameter parameter, final String parameterAction) {
+    private void validateReferencingComponents(final String parameterName, final Parameter parameter, final boolean duringUpdate) {
+        final boolean isDeletion = (parameter == null);
+        final String action = isDeletion ? "remove" : "update";
         for (final ProcessorNode procNode : parameterReferenceManager.getProcessorsReferencing(this, parameterName)) {
-            if (procNode.isRunning()) {
-                throw new IllegalStateException("Cannot " + parameterAction + " parameter '" + parameterName + "' because it is referenced by " + procNode + ", which is currently running");
+            if (procNode.isRunning() && (isDeletion || duringUpdate)) {
+                throw new IllegalStateException("Cannot " + action + " parameter '" + parameterName + "' because it is referenced by " + procNode + ", which is currently running");
             }
 
             if (parameter != null) {
@@ -295,9 +678,9 @@ public class StandardParameterContext implements ParameterContext {
 
         for (final ControllerServiceNode serviceNode : parameterReferenceManager.getControllerServicesReferencing(this, parameterName)) {
             final ControllerServiceState serviceState = serviceNode.getState();
-            if (serviceState != ControllerServiceState.DISABLED) {
-                throw new IllegalStateException("Cannot " + parameterAction + " parameter '" + parameterName + "' because it is referenced by "
-                    + serviceNode + ", which currently has a state of " + serviceState);
+            if (serviceState != ControllerServiceState.DISABLED && (isDeletion || duringUpdate)) {
+                throw new IllegalStateException("Cannot " + action + " parameter '" + parameterName + "' because it is referenced by "
+                        + serviceNode + ", which currently has a state of " + serviceState);
             }
 
             if (parameter != null) {
@@ -335,6 +718,33 @@ public class StandardParameterContext implements ParameterContext {
     @Override
     public String toString() {
         return "StandardParameterContext[name=" + name + "]";
+    }
+
+    @Override
+    public void authorize(final Authorizer authorizer, final RequestAction action, final NiFiUser user) throws AccessDeniedException {
+        ParameterContext.super.authorize(authorizer, action, user);
+
+        if (RequestAction.READ == action) {
+            for (final ParameterContext parameterContext : inheritedParameterContexts) {
+                parameterContext.authorize(authorizer, action, user);
+            }
+        }
+    }
+
+    @Override
+    public boolean isAuthorized(final Authorizer authorizer, final RequestAction action, final NiFiUser user) {
+        boolean isAuthorized = ParameterContext.super.isAuthorized(authorizer, action, user);
+
+        if (RequestAction.READ == action) {
+            for (final ParameterContext parameterContext : inheritedParameterContexts) {
+                isAuthorized &= parameterContext.isAuthorized(authorizer, action, user);
+                if (!isAuthorized) {
+                    break;
+                }
+            }
+        }
+
+        return isAuthorized;
     }
 
     @Override

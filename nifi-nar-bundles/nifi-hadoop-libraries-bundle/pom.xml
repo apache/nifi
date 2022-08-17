@@ -17,9 +17,8 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
-    <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-hadoop-libraries-bundle</artifactId>
     <packaging>pom</packaging>
     <description>A bundle which provides the Hadoop libraries</description>
@@ -29,10 +28,15 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <!-- Explicitly force Netty to 3.7.1 due to CVE-2014-0193 -->
                 <groupId>io.netty</groupId>
                 <artifactId>netty</artifactId>
-                <version>3.7.1.Final</version>
+                <version>${netty.3.version}</version>
+            </dependency>
+            <!-- Override commons-compress -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.21</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

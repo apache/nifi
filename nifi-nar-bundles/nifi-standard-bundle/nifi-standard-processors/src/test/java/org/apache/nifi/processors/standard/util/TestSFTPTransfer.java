@@ -24,16 +24,14 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -44,20 +42,18 @@ import static org.mockito.Mockito.when;
 
 public class TestSFTPTransfer {
 
-    private static final Logger logger = LoggerFactory.getLogger(TestSFTPTransfer.class);
-
     private SFTPTransfer createSftpTransfer(ProcessContext processContext, SFTPClient sftpClient) {
         final ComponentLog componentLog = mock(ComponentLog.class);
         return new SFTPTransfer(processContext, componentLog) {
             @Override
-            protected SFTPClient getSFTPClient(FlowFile flowFile) throws IOException {
+            protected SFTPClient getSFTPClient(FlowFile flowFile) {
                 return sftpClient;
             }
         };
     }
 
     @Test
-    public void testEnsureDirectoryExistsAlreadyExisted() throws IOException, SFTPException {
+    public void testEnsureDirectoryExistsAlreadyExisted() throws IOException {
         final ProcessContext processContext = mock(ProcessContext.class);
         final SFTPClient sftpClient = mock(SFTPClient.class);
         final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, sftpClient);
@@ -70,7 +66,7 @@ public class TestSFTPTransfer {
     }
 
     @Test
-    public void testEnsureDirectoryExistsFailedToStat() throws IOException, SFTPException {
+    public void testEnsureDirectoryExistsFailedToStat() throws IOException {
         final ProcessContext processContext = mock(ProcessContext.class);
         final SFTPClient sftpClient = mock(SFTPClient.class);
         // stat for the parent was successful, simulating that dir2 exists, but no dir3.
@@ -79,19 +75,17 @@ public class TestSFTPTransfer {
         final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, sftpClient);
         final MockFlowFile flowFile = new MockFlowFile(0);
         final File remoteDir = new File("/dir1/dir2/dir3");
-        try {
+        final IOException e = assertThrows(IOException.class, () -> {
             sftpTransfer.ensureDirectoryExists(flowFile, remoteDir);
-            fail("Should fail");
-        } catch (IOException e) {
-            assertEquals("Failed to determine if remote directory exists at /dir1/dir2/dir3 due to 4: Failure", e.getMessage());
-        }
+        });
+        assertEquals("Failed to determine if remote directory exists at /dir1/dir2/dir3 due to 4: Failure", e.getMessage());
 
         // Dir existence check should be done by stat
         verify(sftpClient).stat(eq("/dir1/dir2/dir3"));
     }
 
     @Test
-    public void testEnsureDirectoryExistsNotExisted() throws IOException, SFTPException {
+    public void testEnsureDirectoryExistsNotExisted() throws IOException {
         final ProcessContext processContext = mock(ProcessContext.class);
         final SFTPClient sftpClient = mock(SFTPClient.class);
         // stat for the parent was successful, simulating that dir2 exists, but no dir3.
@@ -109,7 +103,7 @@ public class TestSFTPTransfer {
     }
 
     @Test
-    public void testEnsureDirectoryExistsParentNotExisted() throws IOException, SFTPException {
+    public void testEnsureDirectoryExistsParentNotExisted() throws IOException {
         final ProcessContext processContext = mock(ProcessContext.class);
         final SFTPClient sftpClient = mock(SFTPClient.class);
 
@@ -131,7 +125,7 @@ public class TestSFTPTransfer {
     }
 
     @Test
-    public void testEnsureDirectoryExistsNotExistedFailedToCreate() throws IOException, SFTPException {
+    public void testEnsureDirectoryExistsNotExistedFailedToCreate() throws IOException {
         final ProcessContext processContext = mock(ProcessContext.class);
         final SFTPClient sftpClient = mock(SFTPClient.class);
 
@@ -143,12 +137,10 @@ public class TestSFTPTransfer {
         final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, sftpClient);
         final MockFlowFile flowFile = new MockFlowFile(0);
         final File remoteDir = new File("/dir1/dir2/dir3");
-        try {
+        final IOException e = assertThrows(IOException.class, () -> {
             sftpTransfer.ensureDirectoryExists(flowFile, remoteDir);
-            fail("Should fail");
-        } catch (IOException e) {
-            assertEquals("Failed to create remote directory /dir1/dir2/dir3 due to 4: Failed", e.getMessage());
-        }
+        });
+        assertEquals("Failed to create remote directory /dir1/dir2/dir3 due to 4: Failed", e.getMessage());
 
         // Dir existence check should be done by stat
         verify(sftpClient).stat(eq("/dir1/dir2/dir3")); // dir3 was not found
@@ -157,7 +149,7 @@ public class TestSFTPTransfer {
     }
 
     @Test
-    public void testEnsureDirectoryExistsBlindlyNotExisted() throws IOException, SFTPException {
+    public void testEnsureDirectoryExistsBlindlyNotExisted() throws IOException {
         final ProcessContext processContext = mock(ProcessContext.class);
         when(processContext.getProperty(SFTPTransfer.DISABLE_DIRECTORY_LISTING)).thenReturn(new MockPropertyValue("true"));
 
@@ -173,7 +165,7 @@ public class TestSFTPTransfer {
     }
 
     @Test
-    public void testEnsureDirectoryExistsBlindlyParentNotExisted() throws IOException, SFTPException {
+    public void testEnsureDirectoryExistsBlindlyParentNotExisted() throws IOException {
         final ProcessContext processContext = mock(ProcessContext.class);
         when(processContext.getProperty(SFTPTransfer.DISABLE_DIRECTORY_LISTING)).thenReturn(new MockPropertyValue("true"));
 
@@ -184,8 +176,6 @@ public class TestSFTPTransfer {
             if (cnt == 0) {
                 // If the parent dir does not exist, no such file exception is thrown.
                 throw new SFTPException(Response.StatusCode.NO_SUCH_FILE, "Failure");
-            } else {
-                logger.info("Created the dir successfully for the 2nd time");
             }
             return true;
         }).when(sftpClient).mkdir(eq("/dir1/dir2/dir3"));
@@ -203,7 +193,7 @@ public class TestSFTPTransfer {
     }
 
     @Test
-    public void testEnsureDirectoryExistsBlindlyAlreadyExisted() throws IOException, SFTPException {
+    public void testEnsureDirectoryExistsBlindlyAlreadyExisted() throws IOException {
         final ProcessContext processContext = mock(ProcessContext.class);
         when(processContext.getProperty(SFTPTransfer.DISABLE_DIRECTORY_LISTING)).thenReturn(new MockPropertyValue("true"));
 
@@ -222,7 +212,7 @@ public class TestSFTPTransfer {
     }
 
     @Test
-    public void testEnsureDirectoryExistsBlindlyFailed() throws IOException, SFTPException {
+    public void testEnsureDirectoryExistsBlindlyFailed() throws IOException {
         final ProcessContext processContext = mock(ProcessContext.class);
         when(processContext.getProperty(SFTPTransfer.DISABLE_DIRECTORY_LISTING)).thenReturn(new MockPropertyValue("true"));
 
@@ -232,16 +222,13 @@ public class TestSFTPTransfer {
         final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, sftpClient);
         final MockFlowFile flowFile = new MockFlowFile(0);
         final File remoteDir = new File("/dir1/dir2/dir3");
-        try {
+        final IOException e = assertThrows(IOException.class, () -> {
             sftpTransfer.ensureDirectoryExists(flowFile, remoteDir);
-            fail("Should fail");
-        } catch (IOException e) {
-            assertEquals("Could not blindly create remote directory due to Permission denied", e.getMessage());
-        }
+        });
+        assertEquals("Could not blindly create remote directory due to Permission denied", e.getMessage());
 
         // stat should not be called.
         verify(sftpClient, times(0)).stat(eq("/dir1/dir2/dir3"));
         verify(sftpClient).mkdir(eq("/dir1/dir2/dir3")); // dir3 was created blindly.
     }
-
 }

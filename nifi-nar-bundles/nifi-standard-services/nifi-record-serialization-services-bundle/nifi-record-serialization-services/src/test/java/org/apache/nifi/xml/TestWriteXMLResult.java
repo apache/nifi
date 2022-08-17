@@ -26,8 +26,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.xmlunit.diff.DefaultNodeMatcher;
 import org.xmlunit.diff.ElementSelectors;
 import org.xmlunit.matchers.CompareMatcher;
@@ -46,7 +45,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 
 import static org.apache.nifi.record.NullSuppression.ALWAYS_SUPPRESS;
 import static org.apache.nifi.record.NullSuppression.NEVER_SUPPRESS;
@@ -71,7 +69,8 @@ import static org.apache.nifi.xml.TestWriteXMLResultUtils.getSimpleRecordsWithCh
 import static org.apache.nifi.xml.TestWriteXMLResultUtils.getSimpleRecordsWithNullValues;
 import static org.apache.nifi.xml.TestWriteXMLResultUtils.getSimpleRecordsWithoutIdentifierInSchema;
 import static org.apache.nifi.xml.TestWriteXMLResultUtils.getSingleRecord;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestWriteXMLResult {
 
@@ -90,7 +89,7 @@ public class TestWriteXMLResult {
         } catch (IOException e) {
             actualMessage.append(e.getMessage());
         }
-        Assert.assertEquals(expectedMessage, actualMessage.toString());
+        assertEquals(expectedMessage, actualMessage.toString());
 
     }
 
@@ -128,7 +127,7 @@ public class TestWriteXMLResult {
         } catch (IOException e) {
             actualMessage.append(e.getMessage());
         }
-        Assert.assertEquals(expectedMessage, actualMessage.toString());
+        assertEquals(expectedMessage, actualMessage.toString());
     }
 
     @Test
@@ -171,8 +170,8 @@ public class TestWriteXMLResult {
         final RecordSchema schema = new SimpleRecordSchema(fields, SCHEMA_IDENTIFIER_RECORD);
 
         final DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
-        df.setTimeZone(TimeZone.getTimeZone("gmt"));
         final long time = df.parse("2017/01/01 17:00:00.000").getTime();
+        final String date = "2017-01-01";
 
         final Map<String, Object> map = new LinkedHashMap<>();
         map.put("height", 48);
@@ -190,7 +189,7 @@ public class TestWriteXMLResult {
         valueMap.put("float", 8.0F);
         valueMap.put("double", 8.0D);
         valueMap.put("decimal", 8.1D);
-        valueMap.put("date", new Date(time));
+        valueMap.put("date", Date.valueOf(date));
         valueMap.put("time", new Time(time));
         valueMap.put("timestamp", new Timestamp(time));
         valueMap.put("record", null);
@@ -198,6 +197,7 @@ public class TestWriteXMLResult {
         valueMap.put("enum", null);
         valueMap.put("choice", 48L);
         valueMap.put("map", map);
+        valueMap.put("uuid", "8bb20bf2-ec41-4b94-80a4-922f4dba009c");
 
         final Record record = new MapRecord(schema, valueMap);
         final RecordSet rs = RecordSet.of(schema, record);
@@ -208,7 +208,7 @@ public class TestWriteXMLResult {
         writer.write(rs);
         writer.flush();
 
-        String xmlResult = "<ROOT><RECORD><string>string</string><boolean>true</boolean><byte>1</byte><char>c</char><enum /><short>8</short>" +
+        String xmlResult = "<ROOT><RECORD><string>string</string><boolean>true</boolean><byte>1</byte><uuid>8bb20bf2-ec41-4b94-80a4-922f4dba009c</uuid><char>c</char><enum /><short>8</short>" +
                 "<int>9</int><bigint>8</bigint><long>8</long><float>8.0</float><double>8.0</double><decimal>8.1</decimal>" +
                 "<date>2017-01-01</date><time>17:00:00</time><timestamp>2017-01-01 17:00:00</timestamp><record /><choice>48</choice><array />" +
                 "<map><height>48</height><width>96</width></map></RECORD></ROOT>";
@@ -293,7 +293,7 @@ public class TestWriteXMLResult {
         String xmlResult = "<?xml version=\"1.0\" ?><ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
-        Assert.assertEquals(xmlResult, out.toString().trim());
+        assertEquals(xmlResult, out.toString().trim());
     }
 
     @Test
@@ -309,7 +309,7 @@ public class TestWriteXMLResult {
         String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
-        Assert.assertEquals(xmlResult, out.toString().trim());
+        assertEquals(xmlResult, out.toString().trim());
     }
 
     @Test

@@ -16,7 +16,7 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <title>NiFi</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
@@ -61,7 +61,7 @@
         <script type="text/javascript" src="js/jquery/combo/jquery.combo.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/modal/jquery.modal.js?${project.version}"></script>
         <script type="text/javascript" src="assets/jquery-minicolors/jquery.minicolors.min.js"></script>
-        <script type="text/javascript" src="assets/lodash-core/distrib/lodash-core.min.js"></script>
+        <script type="text/javascript" src="assets/lodash/lodash.min.js"></script>
         <script type="text/javascript" src="assets/moment/min/moment.min.js"></script>
         <script type="text/javascript" src="assets/qtip2/dist/jquery.qtip.min.js"></script>
         <script type="text/javascript" src="assets/slickgrid/lib/jquery.event.drag-2.3.0.js"></script>
@@ -158,6 +158,8 @@
         <jsp:include page="/WEB-INF/partials/canvas/drop-request-status-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/flowfile-details-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/listing-request-status-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/verification-request-status-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/referenced-attributes-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/queue-listing.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/component-state-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/component-version-dialog.jsp"/>

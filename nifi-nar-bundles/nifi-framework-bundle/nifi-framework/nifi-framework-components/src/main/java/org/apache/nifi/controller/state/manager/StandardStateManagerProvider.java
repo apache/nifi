@@ -18,12 +18,18 @@
 package org.apache.nifi.controller.state.manager;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceContext;
+import org.apache.nifi.components.resource.ResourceReferenceFactory;
+import org.apache.nifi.components.resource.StandardResourceContext;
+import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
@@ -49,6 +55,7 @@ import org.apache.nifi.processor.StandardValidationContext;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -207,7 +214,7 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         }
 
         final SSLContext sslContext;
-        StandardTlsConfiguration standardTlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
+        TlsConfiguration standardTlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
         try {
             sslContext = SslContextFactory.createSslContext(standardTlsConfiguration);
         } catch (TlsException e) {
@@ -219,12 +226,16 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         final ParameterParser parser = new ExpressionLanguageAwareParameterParser();
         final Map<PropertyDescriptor, PropertyValue> propertyMap = new HashMap<>();
         final Map<PropertyDescriptor, PropertyConfiguration> propertyStringMap = new HashMap<>();
+
+        final ResourceReferenceFactory resourceReferenceFactory = new StandardResourceReferenceFactory();
         //set default configuration
         for (final PropertyDescriptor descriptor : provider.getPropertyDescriptors()) {
-            propertyMap.put(descriptor, new StandardPropertyValue(descriptor.getDefaultValue(),null, parameterLookup, variableRegistry));
+            final ResourceContext resourceContext = new StandardResourceContext(resourceReferenceFactory, descriptor);
+            propertyMap.put(descriptor, new StandardPropertyValue(resourceContext, descriptor.getDefaultValue(),null, parameterLookup, variableRegistry));
 
             final ParameterTokenList references = parser.parseTokens(descriptor.getDefaultValue());
-            final PropertyConfiguration configuration = new PropertyConfiguration(descriptor.getDefaultValue(), references, references.toReferenceList());
+            final VariableImpact variableImpact = Query.prepare(descriptor.getDefaultValue()).getVariableImpact();
+            final PropertyConfiguration configuration = new PropertyConfiguration(descriptor.getDefaultValue(), references, references.toReferenceList(), variableImpact);
 
             propertyStringMap.put(descriptor, configuration);
         }
@@ -234,10 +245,12 @@ public class StandardStateManagerProvider implements StateManagerProvider {
             final PropertyDescriptor descriptor = provider.getPropertyDescriptor(entry.getKey());
 
             final ParameterTokenList references = parser.parseTokens(entry.getValue());
-            final PropertyConfiguration configuration = new PropertyConfiguration(entry.getValue(), references, references.toReferenceList());
+            final VariableImpact variableImpact = Query.prepare(entry.getValue()).getVariableImpact();
+            final PropertyConfiguration configuration = new PropertyConfiguration(entry.getValue(), references, references.toReferenceList(), variableImpact);
 
             propertyStringMap.put(descriptor, configuration);
-            propertyMap.put(descriptor, new StandardPropertyValue(entry.getValue(),null, parameterLookup, variableRegistry));
+            final ResourceContext resourceContext = new StandardResourceContext(resourceReferenceFactory, descriptor);
+            propertyMap.put(descriptor, new StandardPropertyValue(resourceContext, entry.getValue(),null, parameterLookup, variableRegistry));
         }
 
         final ComponentLog logger = new SimpleProcessLogger(providerId, provider);
@@ -247,7 +260,7 @@ public class StandardStateManagerProvider implements StateManagerProvider {
             provider.initialize(initContext);
         }
 
-        final ValidationContext validationContext = new StandardValidationContext(null, propertyStringMap, null, null, null, variableRegistry, null);
+        final ValidationContext validationContext = new StandardValidationContext(null, propertyStringMap, null, null, null, variableRegistry, null, true);
         final Collection<ValidationResult> results = provider.validate(validationContext);
         final StringBuilder validationFailures = new StringBuilder();
 

@@ -18,8 +18,8 @@ package org.apache.nifi.xml;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.inference.InferSchemaAccessStrategy;
-import org.apache.nifi.schema.inference.SchemaInferenceEngine;
 import org.apache.nifi.schema.inference.RecordSourceFactory;
+import org.apache.nifi.schema.inference.SchemaInferenceEngine;
 import org.apache.nifi.schema.inference.TimeValueInference;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -28,7 +28,7 @@ import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.xml.inference.XmlNode;
 import org.apache.nifi.xml.inference.XmlRecordSource;
 import org.apache.nifi.xml.inference.XmlSchemaInference;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.BufferedInputStream;
@@ -38,9 +38,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestInferXmlSchema {
 
@@ -48,8 +48,11 @@ public class TestInferXmlSchema {
 
     @Test
     public void testFlatXml() throws IOException {
-        final RecordSchema schema = inferSchema("src/test/resources/xml/person.xml", false);
+        final RecordSchema schema = inferSchema("src/test/resources/xml/person.xml", false, true);
 
+        assertEquals(7, schema.getFieldCount());
+
+        assertSame(RecordFieldType.STRING, schema.getDataType("ID").get().getFieldType());
         assertSame(RecordFieldType.STRING, schema.getDataType("NAME").get().getFieldType());
         assertSame(RecordFieldType.INT, schema.getDataType("AGE").get().getFieldType());
         assertSame(RecordFieldType.STRING, schema.getDataType("COUNTRY").get().getFieldType());
@@ -61,7 +64,9 @@ public class TestInferXmlSchema {
 
     @Test
     public void testFieldsFromAllRecordsIncluded() throws IOException {
-        final RecordSchema schema = inferSchema("src/test/resources/xml/people_nested.xml", true);
+        final RecordSchema schema = inferSchema("src/test/resources/xml/people_nested.xml", true, true);
+
+        assertEquals(8, schema.getFieldCount());
 
         assertSame(RecordFieldType.STRING, schema.getDataType("ID").get().getFieldType());
         assertSame(RecordFieldType.STRING, schema.getDataType("NAME").get().getFieldType());
@@ -88,7 +93,11 @@ public class TestInferXmlSchema {
 
     @Test
     public void testStringFieldWithAttributes() throws IOException {
-        final RecordSchema schema = inferSchema("src/test/resources/xml/TextNodeWithAttribute.xml", true);
+        final String contentFieldName = "contentfield";
+        final RecordSchema schema = inferSchema("src/test/resources/xml/TextNodeWithAttribute.xml", contentFieldName, true, true);
+
+        assertEquals(3, schema.getFieldCount());
+
         assertSame(RecordFieldType.INT, schema.getDataType("num").get().getFieldType());
         assertSame(RecordFieldType.STRING, schema.getDataType("name").get().getFieldType());
 
@@ -98,12 +107,27 @@ public class TestInferXmlSchema {
 
         final RecordSchema childSchema = ((RecordDataType) softwareDataType).getChildSchema();
         assertSame(RecordFieldType.BOOLEAN, childSchema.getDataType("favorite").get().getFieldType());
-        assertSame(RecordFieldType.STRING, childSchema.getDataType("value").get().getFieldType());
+        assertSame(RecordFieldType.STRING, childSchema.getDataType(contentFieldName).get().getFieldType());
     }
 
-    private RecordSchema inferSchema(final String filename, final boolean ignoreWrapper) throws IOException {
+    @Test
+    public void testStringFieldWithAttributesIgnored() throws IOException {
+        final RecordSchema schema = inferSchema("src/test/resources/xml/TextNodeWithAttribute.xml", true, false);
+
+        assertEquals(3, schema.getFieldCount());
+
+        assertSame(RecordFieldType.INT, schema.getDataType("num").get().getFieldType());
+        assertSame(RecordFieldType.STRING, schema.getDataType("name").get().getFieldType());
+        assertSame(RecordFieldType.STRING, schema.getDataType("software").get().getFieldType());
+    }
+
+    private RecordSchema inferSchema(final String filename, final boolean ignoreWrapper, final boolean parseXMLAttributes) throws IOException {
+        return inferSchema(filename, "contentfield", ignoreWrapper, parseXMLAttributes);
+    }
+
+    private RecordSchema inferSchema(final String filename, final String contentFieldName, final boolean ignoreWrapper, final boolean parseXMLAttributes) throws IOException {
         final File file = new File(filename);
-        final RecordSourceFactory<XmlNode> xmlSourceFactory = (var, in) ->  new XmlRecordSource(in, ignoreWrapper);
+        final RecordSourceFactory<XmlNode> xmlSourceFactory = (var, in) ->  new XmlRecordSource(in, contentFieldName, ignoreWrapper, parseXMLAttributes);
         final SchemaInferenceEngine<XmlNode> schemaInference = new XmlSchemaInference(timeValueInference);
         final InferSchemaAccessStrategy<XmlNode> inferStrategy = new InferSchemaAccessStrategy<>(xmlSourceFactory, schemaInference, Mockito.mock(ComponentLog.class));
 

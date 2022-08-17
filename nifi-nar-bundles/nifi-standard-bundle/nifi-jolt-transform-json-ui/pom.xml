@@ -13,7 +13,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <artifactId>nifi-standard-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -21,7 +21,6 @@ language governing permissions and limitations under the License. -->
 
     <packaging>war</packaging>
     <properties>
-        <node.version>v8.10.0</node.version>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
         <frontend.dependency.configs>${basedir}/src/main/frontend</frontend.dependency.configs>
@@ -33,37 +32,32 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-custom-ui-utilities</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-expression-language</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-processor-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>javax.servlet.jsp</groupId>
@@ -146,7 +140,8 @@ language governing permissions and limitations under the License. -->
                                     <directory>${frontend.working.dir}/node_modules</directory>
                                     <filtering>false</filtering>
                                     <includes>
-                                        <include>**/*</include>
+                                        <include>**/*.js</include>
+                                        <include>**/*.css</include>
                                     </includes>
                                 </resource>
                             </resources>
@@ -166,6 +161,7 @@ language governing permissions and limitations under the License. -->
                                     <filtering>false</filtering>
                                     <includes>
                                         <include>package.json</include>
+                                        <include>package-lock.json</include>
                                     </includes>
                                 </resource>
                             </resources>
@@ -242,16 +238,12 @@ language governing permissions and limitations under the License. -->
             </activation>
             <dependencies>
                 <dependency>
-                    <groupId>javax.xml.bind</groupId>
-                    <artifactId>jaxb-api</artifactId>
+                    <groupId>jakarta.xml.bind</groupId>
+                    <artifactId>jakarta.xml.bind-api</artifactId>
                 </dependency>
                 <dependency>
-                    <groupId>com.sun.xml.bind</groupId>
-                    <artifactId>jaxb-core</artifactId>
-                </dependency>
-                <dependency>
-                    <groupId>com.sun.xml.bind</groupId>
-                    <artifactId>jaxb-impl</artifactId>
+                    <groupId>org.glassfish.jaxb</groupId>
+                    <artifactId>jaxb-runtime</artifactId>
                 </dependency>
                 <dependency>
                     <groupId>com.sun.activation</groupId>

@@ -19,24 +19,22 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-gcp-bundle</artifactId>
-    <version>1.14.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>
-        <google.cloud.sdk.version>0.125.0</google.cloud.sdk.version>
+        <google.libraries.version>25.2.0</google.libraries.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
-            	<!-- https://github.com/googleapis/java-cloud-bom -->
                 <groupId>com.google.cloud</groupId>
-                <artifactId>google-cloud-bom</artifactId>
-                <version>${google.cloud.sdk.version}</version>
+                <artifactId>libraries-bom</artifactId>
+                <version>${google.libraries.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -49,5 +47,4 @@
         <module>nifi-gcp-processors</module>
         <module>nifi-gcp-nar</module>
     </modules>
-
 </project>

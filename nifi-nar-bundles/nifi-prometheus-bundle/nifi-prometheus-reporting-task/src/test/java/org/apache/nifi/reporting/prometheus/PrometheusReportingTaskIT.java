@@ -34,9 +34,8 @@ import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockReportingContext;
 import org.apache.nifi.util.MockReportingInitializationContext;
 import org.apache.nifi.util.MockVariableRegistry;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -45,7 +44,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class PrometheusReportingTaskIT {
     private static final String TEST_INIT_CONTEXT_ID = "test-init-context-id";
@@ -57,7 +59,7 @@ public class PrometheusReportingTaskIT {
     private PrometheusReportingTask testedReportingTask;
     private ProcessGroupStatus rootGroupStatus;
 
-    @Before
+    @BeforeEach
     public void setup() {
         testedReportingTask = new PrometheusReportingTask();
         rootGroupStatus = new ProcessGroupStatus();
@@ -123,30 +125,30 @@ public class PrometheusReportingTaskIT {
     }
 
     @Test
-    public void testOnTrigger() throws IOException, InterruptedException, InitializationException {
+    public void testOnTrigger() throws IOException, InitializationException {
         testedReportingTask.initialize(reportingInitContextStub);
         testedReportingTask.onScheduled(configurationContextStub);
         reportingContextStub.getEventAccess().setProcessGroupStatus(rootGroupStatus);
         testedReportingTask.onTrigger(reportingContextStub);
 
         String content = getMetrics();
-        Assert.assertTrue(content.contains(
+        assertTrue(content.contains(
                 "nifi_amount_flowfiles_received{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0"));
-        Assert.assertTrue(content.contains(
+        assertTrue(content.contains(
                 "nifi_amount_threads_active{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0"));
-        Assert.assertTrue(content.contains(
+        assertTrue(content.contains(
                 "nifi_amount_threads_active{instance=\"localhost\",component_type=\"ProcessGroup\",component_name=\"nestedPG\",component_id=\"3378\",parent_id=\"1234\",} 2.0"));
 
         // Rename the component
         rootGroupStatus.setName("rootroot");
         content = getMetrics();
-        Assert.assertFalse(content.contains(
+        assertFalse(content.contains(
                 "nifi_amount_flowfiles_received{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0"));
-        Assert.assertFalse(content.contains(
+        assertFalse(content.contains(
                 "nifi_amount_threads_active{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0"));
-        Assert.assertTrue(content.contains(
+        assertTrue(content.contains(
                 "nifi_amount_flowfiles_received{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"rootroot\",component_id=\"1234\",parent_id=\"\",} 5.0"));
-        Assert.assertTrue(content.contains(
+        assertTrue(content.contains(
                 "nifi_amount_threads_active{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"rootroot\",component_id=\"1234\",parent_id=\"\",} 5.0"));
         try {
             testedReportingTask.OnStopped();
@@ -160,7 +162,7 @@ public class PrometheusReportingTaskIT {
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
         con.setRequestMethod("GET");
         int status = con.getResponseCode();
-        Assert.assertEquals(HttpURLConnection.HTTP_OK, status);
+        assertEquals(HttpURLConnection.HTTP_OK, status);
 
         HttpClient client = HttpClientBuilder.create().build();
         HttpGet request = new HttpGet("http://localhost:9092/metrics");
@@ -178,7 +180,7 @@ public class PrometheusReportingTaskIT {
         testedReportingTask.onTrigger(reportingContextStub);
 
         String content = getMetrics();
-        Assert.assertTrue(content.contains("parent_id=\"\""));
+        assertTrue(content.contains("parent_id=\"\""));
 
         try {
             testedReportingTask.OnStopped();
@@ -188,7 +190,7 @@ public class PrometheusReportingTaskIT {
     }
 
     @Test
-    public void testTwoInstances() throws IOException, InterruptedException, InitializationException {
+    public void testTwoInstances() throws InitializationException {
         testedReportingTask.initialize(reportingInitContextStub);
         testedReportingTask.onScheduled(configurationContextStub);
         PrometheusReportingTask testedReportingTask2 = new PrometheusReportingTask();

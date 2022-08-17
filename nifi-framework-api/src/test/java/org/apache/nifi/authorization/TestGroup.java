@@ -16,14 +16,15 @@
  */
 package org.apache.nifi.authorization;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestGroup {
 
@@ -50,22 +51,22 @@ public class TestGroup {
         assertTrue(group.getUsers().contains(user2));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testMissingId() {
-        new Group.Builder()
+        assertThrows(IllegalArgumentException.class, () -> new Group.Builder()
                 .name("group1")
                 .addUser("user1")
                 .addUser("user2")
-                .build();
+                .build());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testMissingName() {
-        new Group.Builder()
+        assertThrows(IllegalArgumentException.class, () -> new Group.Builder()
                 .identifier("1")
                 .addUser("user1")
                 .addUser("user2")
-                .build();
+                .build());
     }
 
     @Test
@@ -113,7 +114,7 @@ public class TestGroup {
         assertEquals(group1.getUsers(), group2.getUsers());
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testFromGroupAndChangeIdentifier() {
         final Group group1 = new Group.Builder()
                 .identifier("1")
@@ -121,7 +122,7 @@ public class TestGroup {
                 .addUser("user1")
                 .build();
 
-        new Group.Builder(group1).identifier("2").build();
+        assertThrows(IllegalStateException.class, () -> new Group.Builder(group1).identifier("2").build());
     }
 
     @Test

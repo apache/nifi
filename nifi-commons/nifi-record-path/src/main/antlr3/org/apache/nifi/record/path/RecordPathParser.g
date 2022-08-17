@@ -128,9 +128,9 @@ operator : LESS_THAN | LESS_THAN_EQUAL | GREATER_THAN | GREATER_THAN_EQUAL | EQU
 
 literal : NUMBER | STRING_LITERAL;
 
-expression : path | literal | function;
+expression : path | literal | standaloneFunction;
 
-operation : expression operator^ expression;
+operation : expression (operator^ expression)?;
 
 filter : filterFunction | operation;
 
@@ -149,7 +149,7 @@ optionalArgument : argument?;
 argumentList : optionalArgument (COMMA argument)* ->
 	^(ARGUMENTS optionalArgument argument*);
 
-function : IDENTIFIER LPAREN argumentList RPAREN ->
+standaloneFunction : IDENTIFIER LPAREN argumentList RPAREN ->
 	^(FUNCTION IDENTIFIER argumentList);
 
 
@@ -176,6 +176,7 @@ notFilterFunction : NOT LPAREN notFunctionArgList RPAREN ->
 filterFunction : simpleFilterFunction | notFilterFunction;
 
 
+anyFunction : standaloneFunction | filterFunction;
 
 //
 // References
@@ -233,7 +234,7 @@ relativePath : currentOrParent relativePathSegment? ->
 
 path : absolutePath | relativePath;
 
-pathOrFunction : path | function;
+pathOrFunction : filter;
 
 pathExpression : pathOrFunction EOF ->
 	^(PATH_EXPRESSION pathOrFunction);

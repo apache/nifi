@@ -17,15 +17,34 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-services</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-hwx-schema-registry-bundle</artifactId>
     <packaging>pom</packaging>
 
+    <properties>
+        <hwx.registry.version>0.9.1</hwx.registry.version>
+    </properties>
+    <dependencyManagement>
+        <dependencies>
+            <!-- Override commons-compress -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.21</version>
+            </dependency>
+            <!-- Override Guava from schema-registry-client -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>31.0.1-jre</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <modules>
         <module>nifi-hwx-schema-registry-service</module>
         <module>nifi-hwx-schema-registry-nar</module>
     </modules>
-    
 </project>

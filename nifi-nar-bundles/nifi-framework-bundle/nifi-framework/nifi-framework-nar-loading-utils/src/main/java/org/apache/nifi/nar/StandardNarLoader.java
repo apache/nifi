@@ -51,6 +51,7 @@ public class StandardNarLoader implements NarLoader {
     private final ExtensionDiscoveringManager extensionManager;
     private final ExtensionMapping extensionMapping;
     private final ExtensionUiLoader extensionUiLoader;
+    private final NarUnpackMode narUnpackMode;
 
     private Set<BundleDetails> previouslySkippedBundles;
 
@@ -59,13 +60,15 @@ public class StandardNarLoader implements NarLoader {
                              final NarClassLoaders narClassLoaders,
                              final ExtensionDiscoveringManager extensionManager,
                              final ExtensionMapping extensionMapping,
-                             final ExtensionUiLoader extensionUiLoader) {
+                             final ExtensionUiLoader extensionUiLoader,
+                             final NarUnpackMode narUnpackMode) {
         this.extensionsWorkingDir = extensionsWorkingDir;
         this.docsWorkingDir = docsWorkingDir;
         this.narClassLoaders = narClassLoaders;
         this.extensionManager = extensionManager;
         this.extensionMapping = extensionMapping;
         this.extensionUiLoader = extensionUiLoader;
+        this.narUnpackMode = narUnpackMode;
     }
 
     @Override
@@ -112,14 +115,14 @@ public class StandardNarLoader implements NarLoader {
             // Call the DocGenerator for the classes that were loaded from each Bundle
             for (final Bundle bundle : loadedBundles) {
                 final BundleCoordinate bundleCoordinate = bundle.getBundleDetails().getCoordinate();
-                final Set<Class> extensions = extensionManager.getTypes(bundleCoordinate);
-                if (extensions.isEmpty()) {
+                final Set<ExtensionDefinition> extensionDefinitions = extensionManager.getTypes(bundleCoordinate);
+                if (extensionDefinitions.isEmpty()) {
                     LOGGER.debug("No documentation to generate for {} because no extensions were found",
                             new Object[]{bundleCoordinate.getCoordinate()});
                 } else {
                     LOGGER.debug("Generating documentation for {} extensions in {}",
-                            new Object[]{extensions.size(), bundleCoordinate.getCoordinate()});
-                    DocGenerator.documentConfigurableComponent(extensions, docsWorkingDir, extensionManager);
+                            new Object[]{extensionDefinitions.size(), bundleCoordinate.getCoordinate()});
+                    DocGenerator.documentConfigurableComponent(extensionDefinitions, docsWorkingDir, extensionManager);
                 }
             }
 
@@ -161,7 +164,7 @@ public class StandardNarLoader implements NarLoader {
                 return null;
             }
 
-            final File unpackedExtension = NarUnpacker.unpackNar(narFile, extensionsWorkingDir);
+            final File unpackedExtension = NarUnpacker.unpackNar(narFile, extensionsWorkingDir, true, narUnpackMode);
             NarUnpacker.mapExtension(unpackedExtension, coordinate, docsWorkingDir, extensionMapping);
             return unpackedExtension;
 

@@ -31,14 +31,16 @@ import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.xml.processing.stream.StandardXMLEventReaderProvider;
+import org.apache.nifi.xml.processing.stream.XMLEventReaderProvider;
 
 import javax.xml.stream.XMLEventReader;
-import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.Attribute;
 import javax.xml.stream.events.Characters;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
+import javax.xml.transform.stream.StreamSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.DateFormat;
@@ -55,6 +57,7 @@ public class XMLRecordReader implements RecordReader {
 
     private final ComponentLog logger;
     private final RecordSchema schema;
+    private final boolean parseXmlAttributes;
     private final String attributePrefix;
     private final String contentFieldName;
 
@@ -66,9 +69,11 @@ public class XMLRecordReader implements RecordReader {
     private final Supplier<DateFormat> LAZY_TIME_FORMAT;
     private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
 
-    public XMLRecordReader(InputStream in, RecordSchema schema, boolean isArray, String attributePrefix, String contentFieldName,
+    public XMLRecordReader(final InputStream in, final RecordSchema schema, final boolean isArray,
+                           final boolean parseXmlAttributes, final String attributePrefix, final String contentFieldName,
                            final String dateFormat, final String timeFormat, final String timestampFormat, final ComponentLog logger) throws MalformedRecordException {
         this.schema = schema;
+        this.parseXmlAttributes = parseXmlAttributes;
         this.attributePrefix = attributePrefix;
         this.contentFieldName = contentFieldName;
         this.logger = logger;
@@ -82,13 +87,8 @@ public class XMLRecordReader implements RecordReader {
         LAZY_TIMESTAMP_FORMAT = () -> tsf;
 
         try {
-            final XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
-
-            // Avoid XXE Vulnerabilities
-            xmlInputFactory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
-            xmlInputFactory.setProperty("javax.xml.stream.isSupportingExternalEntities", false);
-
-            xmlEventReader = xmlInputFactory.createXMLEventReader(in);
+            final XMLEventReaderProvider provider = new StandardXMLEventReaderProvider();
+            xmlEventReader = provider.getEventReader(new StreamSource(in));
 
             if (isArray) {
                 skipNextStartTag();
@@ -154,6 +154,7 @@ public class XMLRecordReader implements RecordReader {
             case STRING:
             case DATE:
             case TIME:
+            case UUID:
             case TIMESTAMP: {
 
                 StringBuilder content = new StringBuilder();
@@ -251,23 +252,10 @@ public class XMLRecordReader implements RecordReader {
     }
 
     private Object parseUnknownField(StartElement startElement, boolean dropUnknown, RecordSchema schema) throws XMLStreamException {
-        // parse attributes
         final Map<String, Object> recordValues = new HashMap<>();
-        final Iterator iterator = startElement.getAttributes();
-        while (iterator.hasNext()) {
-            final Attribute attribute = (Attribute) iterator.next();
-            final String attributeName = attribute.getName().toString();
 
-            if (dropUnknown) {
-                if (schema != null) {
-                    final Optional<RecordField> field = schema.getField(attributeName);
-                    if (field.isPresent()){
-                        recordValues.put(attributePrefix == null ? attributeName : attributePrefix + attributeName, attribute.getValue());
-                    }
-                }
-            } else {
-                recordValues.put(attributePrefix == null ? attributeName : attributePrefix + attributeName, attribute.getValue());
-            }
+        if (parseXmlAttributes) {
+            parseAttributesForUnknownField(startElement, schema, dropUnknown, recordValues);
         }
 
         // parse fields
@@ -339,8 +327,8 @@ public class XMLRecordReader implements RecordReader {
                 if (contentFieldName != null) {
                     recordValues.put(contentFieldName, content.toString());
                 } else {
-                    logger.debug("Found content for field that has to be parsed as record but property \"Field Name for Content\" is not set. " +
-                            "The content will not be added to the record.");
+                    logger.debug("Found content for a field that was supposed to be named with the value of the \"Field Name for Content\" property but " +
+                            "the property was not set. The content was not added to the record.");
                 }
 
                 return new MapRecord(new SimpleRecordSchema(Collections.emptyList()), recordValues);
@@ -354,53 +342,32 @@ public class XMLRecordReader implements RecordReader {
         }
     }
 
-    private Record parseRecord(StartElement startElement, RecordSchema schema, boolean coerceTypes, boolean dropUnknown) throws XMLStreamException, MalformedRecordException {
-        final Map<String, Object> recordValues = new HashMap<>();
-
-        // parse attributes
+    private void parseAttributesForUnknownField(StartElement startElement, RecordSchema schema, boolean dropUnknown, Map<String, Object> recordValues) {
         final Iterator iterator = startElement.getAttributes();
         while (iterator.hasNext()) {
             final Attribute attribute = (Attribute) iterator.next();
             final String attributeName = attribute.getName().toString();
-
-            final String targetFieldName = attributePrefix == null ? attributeName : attributePrefix + attributeName;
+            final String fieldName = ((attributePrefix == null) ? attributeName : (attributePrefix + attributeName));
 
             if (dropUnknown) {
-                final Optional<RecordField> field = schema.getField(attributeName);
-                if (field.isPresent()){
-
-                    // dropUnknown == true && coerceTypes == true
-                    if (coerceTypes) {
-                        final Object value;
-                        final DataType dataType = field.get().getDataType();
-                        if ((value = parseStringForType(attribute.getValue(), attributeName, dataType)) != null) {
-                            recordValues.put(targetFieldName, value);
-                        }
-
-                    // dropUnknown == true && coerceTypes == false
-                    } else {
-                        recordValues.put(targetFieldName, attribute.getValue());
+                if (schema != null) {
+                    final Optional<RecordField> field = schema.getField(attributeName);
+                    if (field.isPresent()){
+                        recordValues.put(fieldName, attribute.getValue());
                     }
                 }
             } else {
-
-                // dropUnknown == false && coerceTypes == true
-                if (coerceTypes) {
-                    final Object value;
-                    final Optional<RecordField> field = schema.getField(attributeName);
-                    if (field.isPresent()){
-                        if ((value = parseStringForType(attribute.getValue(), attributeName, field.get().getDataType())) != null) {
-                            recordValues.put(targetFieldName, value);
-                        }
-                    } else {
-                        recordValues.put(targetFieldName, attribute.getValue());
-                    }
-
-                    // dropUnknown == false && coerceTypes == false
-                } else {
-                    recordValues.put(targetFieldName, attribute.getValue());
-                }
+                recordValues.put(fieldName, attribute.getValue());
             }
+        }
+    }
+
+    private Record parseRecord(StartElement startElement, RecordSchema schema, boolean coerceTypes, boolean dropUnknown) throws XMLStreamException, MalformedRecordException {
+        final Map<String, Object> recordValues = new HashMap<>();
+
+        // parse attributes
+        if (parseXmlAttributes) {
+            parseAttributesForRecord(startElement, schema, coerceTypes, dropUnknown, recordValues);
         }
 
         // parse fields
@@ -486,10 +453,13 @@ public class XMLRecordReader implements RecordReader {
                 if (field.isPresent()) {
                     Object value = parseStringForType(content.toString(), contentFieldName, field.get().getDataType());
                     recordValues.put(contentFieldName, value);
+                } else {
+                    logger.debug("Found content for a field that was supposed to be named with the value of the \"Field Name for Content\" property " +
+                            "but no such field was present in the schema. The content was not added to the record.");
                 }
             } else {
-                logger.debug("Found content for field that is defined as record but property \"Field Name for Content\" is not set. " +
-                        "The content will not be added to record.");
+                logger.debug("Found content for a field that was supposed to be named with the value of the \"Field Name for Content\" property but " +
+                        "the property was not set. The content was not added to the record.");
             }
         }
 
@@ -503,6 +473,53 @@ public class XMLRecordReader implements RecordReader {
             return new MapRecord(schema, recordValues);
         } else {
             return null;
+        }
+    }
+
+    private void parseAttributesForRecord(StartElement startElement, RecordSchema schema, boolean coerceTypes, boolean dropUnknown, Map<String, Object> recordValues) {
+        final Iterator iterator = startElement.getAttributes();
+        while (iterator.hasNext()) {
+            final Attribute attribute = (Attribute) iterator.next();
+            final String attributeName = attribute.getName().toString();
+
+            final String targetFieldName = attributePrefix == null ? attributeName : attributePrefix + attributeName;
+
+            if (dropUnknown) {
+                final Optional<RecordField> field = schema.getField(attributeName);
+                if (field.isPresent()){
+
+                    // dropUnknown == true && coerceTypes == true
+                    if (coerceTypes) {
+                        final Object value;
+                        final DataType dataType = field.get().getDataType();
+                        if ((value = parseStringForType(attribute.getValue(), attributeName, dataType)) != null) {
+                            recordValues.put(targetFieldName, value);
+                        }
+
+                    // dropUnknown == true && coerceTypes == false
+                    } else {
+                        recordValues.put(targetFieldName, attribute.getValue());
+                    }
+                }
+            } else {
+
+                // dropUnknown == false && coerceTypes == true
+                if (coerceTypes) {
+                    final Object value;
+                    final Optional<RecordField> field = schema.getField(attributeName);
+                    if (field.isPresent()){
+                        if ((value = parseStringForType(attribute.getValue(), attributeName, field.get().getDataType())) != null) {
+                            recordValues.put(targetFieldName, value);
+                        }
+                    } else {
+                        recordValues.put(targetFieldName, attribute.getValue());
+                    }
+
+                    // dropUnknown == false && coerceTypes == false
+                } else {
+                    recordValues.put(targetFieldName, attribute.getValue());
+                }
+            }
         }
     }
 

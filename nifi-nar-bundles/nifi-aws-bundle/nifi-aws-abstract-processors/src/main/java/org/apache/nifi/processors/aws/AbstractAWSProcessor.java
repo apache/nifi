@@ -27,6 +27,30 @@ import com.amazonaws.auth.PropertiesCredentials;
 import com.amazonaws.http.conn.ssl.SdkTLSSocketFactory;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.conn.ssl.DefaultHostnameVerifier;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxyConfigurationService;
+import org.apache.nifi.proxy.ProxySpec;
+import org.apache.nifi.ssl.SSLContextService;
+
+import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.net.Proxy;
@@ -40,25 +64,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.net.ssl.SSLContext;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.http.conn.ssl.DefaultHostnameVerifier;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnShutdown;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
-import org.apache.nifi.proxy.ProxyConfiguration;
-import org.apache.nifi.proxy.ProxySpec;
-import org.apache.nifi.ssl.SSLContextService;
 
 /**
  * Abstract base class for aws processors.  This class uses aws credentials for creating aws clients
@@ -68,7 +73,7 @@ import org.apache.nifi.ssl.SSLContextService;
  *
  */
 @Deprecated
-public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceClient> extends AbstractProcessor {
+public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceClient> extends AbstractSessionFactoryProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("FlowFiles are routed to success relationship").build();
@@ -151,6 +156,9 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     protected volatile ClientType client;
     protected volatile Region region;
 
+    protected static final String VPCE_ENDPOINT_SUFFIX = ".vpce.amazonaws.com";
+    protected static final Pattern VPCE_ENDPOINT_PATTERN = Pattern.compile("^(?:.+[vpce-][a-z0-9-]+\\.)?([a-z0-9-]+)$");
+
     // If protocol is changed to be a property, ensure other uses are also changed
     protected static final Protocol DEFAULT_PROTOCOL = Protocol.HTTPS;
     protected static final String DEFAULT_USER_AGENT = "NiFi";
@@ -167,7 +175,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         for (final Regions region : Regions.values()) {
             values.add(createAllowableValue(region));
         }
-        return values.toArray(new AllowableValue[values.size()]);
+        return values.toArray(new AllowableValue[0]);
     }
 
     @Override
@@ -177,44 +185,55 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final List<ValidationResult> problems = new ArrayList<>(super.customValidate(validationContext));
+        final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
 
         final boolean accessKeySet = validationContext.getProperty(ACCESS_KEY).isSet();
         final boolean secretKeySet = validationContext.getProperty(SECRET_KEY).isSet();
         if ((accessKeySet && !secretKeySet) || (secretKeySet && !accessKeySet)) {
-            problems.add(new ValidationResult.Builder().input("Access Key").valid(false).explanation("If setting Secret Key or Access Key, must set both").build());
+            validationResults.add(new ValidationResult.Builder().input("Access Key").valid(false).explanation("If setting Secret Key or Access Key, must set both").build());
         }
 
         final boolean credentialsFileSet = validationContext.getProperty(CREDENTIALS_FILE).isSet();
         if ((secretKeySet || accessKeySet) && credentialsFileSet) {
-            problems.add(new ValidationResult.Builder().input("Access Key").valid(false).explanation("Cannot set both Credentials File and Secret Key/Access Key").build());
+            validationResults.add(new ValidationResult.Builder().input("Access Key").valid(false).explanation("Cannot set both Credentials File and Secret Key/Access Key").build());
         }
 
         final boolean proxyHostSet = validationContext.getProperty(PROXY_HOST).isSet();
         final boolean proxyPortSet = validationContext.getProperty(PROXY_HOST_PORT).isSet();
+        final boolean proxyConfigServiceSet = validationContext.getProperty(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE).isSet();
 
         if ((proxyHostSet && !proxyPortSet) || (!proxyHostSet && proxyPortSet)) {
-            problems.add(new ValidationResult.Builder().subject("Proxy Host and Port").valid(false).explanation("If Proxy Host or Proxy Port is set, both must be set").build());
+            validationResults.add(new ValidationResult.Builder().subject("Proxy Host and Port").valid(false).explanation("If Proxy Host or Proxy Port is set, both must be set").build());
         }
 
         final boolean proxyUserSet = validationContext.getProperty(PROXY_USERNAME).isSet();
         final boolean proxyPwdSet = validationContext.getProperty(PROXY_PASSWORD).isSet();
 
         if ((proxyUserSet && !proxyPwdSet) || (!proxyUserSet && proxyPwdSet)) {
-            problems.add(new ValidationResult.Builder().subject("Proxy User and Password").valid(false).explanation("If Proxy Username or Proxy Password is set, both must be set").build());
+            validationResults.add(new ValidationResult.Builder().subject("Proxy User and Password").valid(false).explanation("If Proxy Username or Proxy Password is set, both must be set").build());
         }
+
         if (proxyUserSet && !proxyHostSet) {
-            problems.add(new ValidationResult.Builder().subject("Proxy").valid(false).explanation("If Proxy username is set, proxy host must be set").build());
+            validationResults.add(new ValidationResult.Builder().subject("Proxy").valid(false).explanation("If Proxy Username or Proxy Password").build());
         }
 
-        ProxyConfiguration.validateProxySpec(validationContext, problems, PROXY_SPECS);
+        ProxyConfiguration.validateProxySpec(validationContext, validationResults, PROXY_SPECS);
 
-        return problems;
+        if (proxyHostSet && proxyConfigServiceSet) {
+            validationResults.add(new ValidationResult.Builder().subject("Proxy Configuration Service").valid(false)
+                    .explanation("Either Proxy Username and Proxy Password must be set or Proxy Configuration Service but not both").build());
+        }
+
+        return validationResults;
     }
 
     protected ClientConfiguration createConfiguration(final ProcessContext context) {
+        return createConfiguration(context, context.getMaxConcurrentTasks());
+    }
+
+    protected ClientConfiguration createConfiguration(final PropertyContext context, final int maxConcurrentTasks) {
         final ClientConfiguration config = new ClientConfiguration();
-        config.setMaxConnections(context.getMaxConcurrentTasks());
+        config.setMaxConnections(maxConcurrentTasks);
         config.setMaxErrorRetry(0);
         config.setUserAgent(DEFAULT_USER_AGENT);
         // If this is changed to be a property, ensure other uses are also changed
@@ -246,6 +265,9 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
                 componentProxyConfig.setProxyUserName(proxyUsername);
                 componentProxyConfig.setProxyUserPassword(proxyPassword);
                 return componentProxyConfig;
+            } else if (context.getProperty(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE).isSet()) {
+                final ProxyConfigurationService configurationService = context.getProperty(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE).asControllerService(ProxyConfigurationService.class);
+                return configurationService.getConfiguration();
             }
             return ProxyConfiguration.DIRECT_CONFIGURATION;
         });
@@ -265,39 +287,70 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        final ClientType awsClient = createClient(context, getCredentials(context), createConfiguration(context));
-        this.client = awsClient;
-        initializeRegionAndEndpoint(context);
+        setClientAndRegion(context);
     }
 
-    protected void initializeRegionAndEndpoint(ProcessContext context) {
+    /*
+     * Allow optional override of onTrigger with the ProcessSessionFactory where required for AWS processors (e.g. ConsumeKinesisStream)
+     *
+     * @see AbstractProcessor
+     */
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
+        final ProcessSession session = sessionFactory.createSession();
+        try {
+            onTrigger(context, session);
+            session.commitAsync();
+        } catch (final Throwable t) {
+            session.rollback(true);
+            throw t;
+        }
+    }
+
+    /*
+     * Default to requiring the "standard" onTrigger with a single ProcessSession
+     */
+    public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
+
+    protected Region getRegionAndInitializeEndpoint(final ProcessContext context, final AmazonWebServiceClient client) {
+        final Region region;
         // if the processor supports REGION, get the configured region.
         if (getSupportedPropertyDescriptors().contains(REGION)) {
-            final String region = context.getProperty(REGION).getValue();
-            if (region != null) {
-                this.region = Region.getRegion(Regions.fromName(region));
-                client.setRegion(this.region);
+            final String regionValue = context.getProperty(REGION).getValue();
+            if (regionValue != null) {
+                region = Region.getRegion(Regions.fromName(regionValue));
+                if (client != null) {
+                    client.setRegion(region);
+                }
             } else {
-                this.region = null;
+                region = null;
             }
+        } else {
+            region = null;
         }
 
         // if the endpoint override has been configured, set the endpoint.
         // (per Amazon docs this should only be configured at client creation)
-        if (getSupportedPropertyDescriptors().contains(ENDPOINT_OVERRIDE)) {
+        if (client != null && getSupportedPropertyDescriptors().contains(ENDPOINT_OVERRIDE)) {
             final String urlstr = StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue());
 
             if (!urlstr.isEmpty()) {
-                getLogger().info("Overriding endpoint with {}", new Object[]{urlstr});
+                getLogger().info("Overriding endpoint with {}", urlstr);
 
-                if (urlstr.endsWith(".vpce.amazonaws.com")) {
-                    String region = parseRegionForVPCE(urlstr);
-                    this.client.setEndpoint(urlstr, this.client.getServiceName(), region);
+                if (urlstr.endsWith(VPCE_ENDPOINT_SUFFIX)) {
+                    // handling vpce endpoints
+                    // falling back to the configured region if the parse fails
+                    // e.g. in case of https://vpce-***-***.sqs.{region}.vpce.amazonaws.com
+                    String regionValue = parseRegionForVPCE(urlstr, region.getName());
+                    client.setEndpoint(urlstr, client.getServiceName(), regionValue);
                 } else {
-                    this.client.setEndpoint(urlstr);
+                    // handling non-vpce custom endpoints where the AWS library can parse the region out
+                    // e.g. https://sqs.{region}.***.***.***.gov
+                    client.setEndpoint(urlstr);
                 }
             }
         }
+        return region;
     }
 
     /*
@@ -307,19 +360,18 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         is an AWS PrivateLink so this method does the job of parsing the region name and
         returning it.
 
-        Refer NIFI-5456 & NIFI-5893
+        Refer NIFI-5456, NIFI-5893 & NIFI-8662
      */
-    private String parseRegionForVPCE(String url) {
-        int index = url.length() - ".vpce.amazonaws.com".length();
+    private String parseRegionForVPCE(String url, String configuredRegion) {
+        int index = url.length() - VPCE_ENDPOINT_SUFFIX.length();
 
-        Pattern VPCE_ENDPOINT_PATTERN = Pattern.compile("^(?:.+[vpce-][a-z0-9-]+\\.)?([a-z0-9-]+)$");
         Matcher matcher = VPCE_ENDPOINT_PATTERN.matcher(url.substring(0, index));
 
         if (matcher.matches()) {
             return matcher.group(1);
         } else {
-            getLogger().warn("Unable to get a match with the VPCE endpoint pattern; defaulting the region to us-east-1...");
-            return "us-east-1";
+            getLogger().info("Unable to get a match with the VPCE endpoint pattern; using the configured region: " + configuredRegion);
+            return configuredRegion;
         }
     }
 
@@ -343,7 +395,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         return region;
     }
 
-    protected AWSCredentials getCredentials(final ProcessContext context) {
+    protected AWSCredentials getCredentials(final PropertyContext context) {
         final String accessKey = context.getProperty(ACCESS_KEY).evaluateAttributeExpressions().getValue();
         final String secretKey = context.getProperty(SECRET_KEY).evaluateAttributeExpressions().getValue();
 
@@ -362,13 +414,57 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         }
 
         return new AnonymousAWSCredentials();
-
     }
 
     @OnShutdown
     public void onShutdown() {
         if ( getClient() != null ) {
             getClient().shutdown();
+        }
+    }
+
+    protected void setClientAndRegion(final ProcessContext context) {
+        final AWSConfiguration awsConfiguration = getConfiguration(context);
+        this.client = awsConfiguration.getClient();
+        this.region = awsConfiguration.getRegion();
+    }
+
+    /**
+     * Creates an AWS service client from the context.
+     * @param context The process context
+     * @return The created client
+     */
+    protected ClientType createClient(final ProcessContext context) {
+        return createClient(context, getCredentials(context), createConfiguration(context));
+    }
+
+    /**
+     * Parses and configures the client and region from the context.
+     * @param context The process context
+     * @return The parsed configuration
+     */
+    protected AWSConfiguration getConfiguration(final ProcessContext context) {
+        final ClientType client = createClient(context);
+        final Region region = getRegionAndInitializeEndpoint(context, client);
+
+        return new AWSConfiguration(client, region);
+    }
+
+    public class AWSConfiguration {
+        final ClientType client;
+        final Region region;
+
+        public AWSConfiguration(final ClientType client, final Region region) {
+            this.client = client;
+            this.region = region;
+        }
+
+        public ClientType getClient() {
+            return client;
+        }
+
+        public Region getRegion() {
+            return region;
         }
     }
 }

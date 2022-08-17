@@ -16,27 +16,24 @@
  */
 package org.apache.nifi.reporting;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
-import javax.json.JsonArray;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonValue;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.remote.Transaction;
+import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -57,18 +54,29 @@ import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.JsonToken;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.node.ArrayNode;
+
+import javax.json.JsonArray;
+import javax.json.JsonObjectBuilder;
+import javax.json.JsonValue;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * Base class for ReportingTasks that send data over site-to-site.
  */
-public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingTask {
+public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingTask implements VerifiableReportingTask {
+    private static final String ESTABLISH_COMMUNICATION = "Establish Site-to-Site Connection";
 
     protected static final String LAST_EVENT_ID_KEY = "last_event_id";
     protected static final String DESTINATION_URL_PATH = "/nifi";
@@ -114,7 +122,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         return properties;
     }
 
-    public void setup(final ReportingContext reportContext) throws IOException {
+    public void setup(final PropertyContext reportContext) throws IOException {
         if (siteToSiteClient == null) {
             siteToSiteClient = SiteToSiteUtils.getClient(reportContext, getLogger(), null);
         }
@@ -216,7 +224,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         public JsonRecordReader(final InputStream in, RecordSchema recordSchema) throws IOException, MalformedRecordException {
             this.recordSchema = recordSchema;
             try {
-                jsonParser = new JsonFactory().createJsonParser(in);
+                jsonParser = new JsonFactory().createParser(in);
                 jsonParser.setCodec(new ObjectMapper());
                 JsonToken token = jsonParser.nextToken();
                 if (token == JsonToken.START_ARRAY) {
@@ -317,7 +325,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
                     values.put(fieldName, value);
                 }
             } else {
-                final Iterator<String> fieldNames = jsonNode.getFieldNames();
+                final Iterator<String> fieldNames = jsonNode.fieldNames();
                 while (fieldNames.hasNext()) {
                     final String fieldName = fieldNames.next();
                     final JsonNode childNode = jsonNode.get(fieldName);
@@ -380,7 +388,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
                     final DataType valueType = ((MapDataType) desiredType).getValueType();
 
                     final Map<String, Object> map = new HashMap<>();
-                    final Iterator<String> fieldNameItr = fieldNode.getFieldNames();
+                    final Iterator<String> fieldNameItr = fieldNode.fieldNames();
                     while (fieldNameItr.hasNext()) {
                         final String childName = fieldNameItr.next();
                         final JsonNode childNode = fieldNode.get(childName);
@@ -414,7 +422,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
 
                         if (childSchema == null) {
                             final List<RecordField> fields = new ArrayList<>();
-                            final Iterator<String> fieldNameItr = fieldNode.getFieldNames();
+                            final Iterator<String> fieldNameItr = fieldNode.fieldNames();
                             while (fieldNameItr.hasNext()) {
                                 fields.add(new RecordField(fieldNameItr.next(), RecordFieldType.STRING.getDataType()));
                             }
@@ -441,19 +449,19 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             }
 
             if (fieldNode.isNumber()) {
-                return fieldNode.getNumberValue();
+                return fieldNode.numberValue();
             }
 
             if (fieldNode.isBinary()) {
-                return fieldNode.getBinaryValue();
+                return fieldNode.binaryValue();
             }
 
             if (fieldNode.isBoolean()) {
-                return fieldNode.getBooleanValue();
+                return fieldNode.booleanValue();
             }
 
             if (fieldNode.isTextual()) {
-                return fieldNode.getTextValue();
+                return fieldNode.textValue();
             }
 
             if (fieldNode.isArray()) {
@@ -491,7 +499,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
                     childSchema = new SimpleRecordSchema(Collections.emptyList());
                 }
 
-                final Iterator<String> fieldNames = fieldNode.getFieldNames();
+                final Iterator<String> fieldNames = fieldNode.fieldNames();
                 final Map<String, Object> childValues = new HashMap<>();
                 while (fieldNames.hasNext()) {
                     final String childFieldName = fieldNames.next();
@@ -506,5 +514,42 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             return null;
         }
 
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(final ConfigurationContext context, final ComponentLog verificationLogger) {
+        final List<ConfigVerificationResult> verificationResults = new ArrayList<>();
+
+        try (final SiteToSiteClient client = SiteToSiteUtils.getClient(context, verificationLogger, null)) {
+            final Transaction transaction = client.createTransaction(TransferDirection.SEND);
+
+            // If transaction is null, indicates that all nodes are penalized
+            if (transaction == null) {
+                verificationResults.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName(ESTABLISH_COMMUNICATION)
+                    .outcome(Outcome.SKIPPED)
+                    .explanation("All nodes in destination NiFi are currently 'penalized', meaning that there have been recent failures communicating with the destination NiFi, or that" +
+                        " the NiFi instance is applying backpressure")
+                    .build());
+            } else {
+                transaction.cancel("Just verifying configuration");
+
+                verificationResults.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName(ESTABLISH_COMMUNICATION)
+                    .outcome(Outcome.SUCCESSFUL)
+                    .explanation("Established connection to destination NiFi instance and Received indication that it is ready to ready to receive data")
+                    .build());
+            }
+        } catch (final Exception e) {
+            verificationLogger.error("Failed to establish site-to-site connection", e);
+
+            verificationResults.add(new ConfigVerificationResult.Builder()
+                .verificationStepName(ESTABLISH_COMMUNICATION)
+                .outcome(Outcome.FAILED)
+                .explanation("Failed to establish Site-to-Site Connection: " + e)
+                .build());
+        }
+
+        return verificationResults;
     }
 }

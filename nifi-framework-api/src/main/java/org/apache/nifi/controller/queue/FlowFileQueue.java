@@ -18,6 +18,7 @@ package org.apache.nifi.controller.queue;
 
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.SwapSummary;
+import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.FlowFileFilter;
 
@@ -94,9 +95,25 @@ public interface FlowFileQueue {
     QueueSize size();
 
     /**
+     * @param fromTimestamp The timestamp in milliseconds from which to calculate durations. This will typically be the current timestamp.
+     * @return the sum in milliseconds of how long all FlowFiles within this queue have currently been in this queue.
+     */
+    long getTotalQueuedDuration(long fromTimestamp);
+
+    /**
+     * @return The minimum lastQueueDate in milliseconds of all FlowFiles currently enqueued. If no FlowFile is enqueued, this returns 0.
+     */
+    long getMinLastQueueDate();
+
+    /**
      * @return true if no items queue; false otherwise
      */
     boolean isEmpty();
+
+    /**
+     * @return the FlowFile Availability for this queue
+     */
+    FlowFileAvailability getFlowFileAvailability();
 
     /**
      * @return <code>true</code> if the queue is empty or contains only FlowFiles that already are being processed
@@ -136,17 +153,25 @@ public interface FlowFileQueue {
 
     /**
      * @param expiredRecords expired records
+     * @param pollStrategy strategy of polling
      * @return the next flow file on the queue; null if empty
      */
+    FlowFileRecord poll(Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy);
+
     FlowFileRecord poll(Set<FlowFileRecord> expiredRecords);
 
     /**
      * @param maxResults limits how many results can be polled
      * @param expiredRecords for expired records
+     * @param pollStrategy strategy of polling
      * @return the next flow files on the queue up to the max results; null if
      *         empty
      */
+    List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy);
+
     List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords);
+
+    List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy);
 
     List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords);
 

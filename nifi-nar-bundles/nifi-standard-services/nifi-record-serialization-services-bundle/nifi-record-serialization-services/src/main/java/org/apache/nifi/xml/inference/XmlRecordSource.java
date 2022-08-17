@@ -17,14 +17,17 @@
 package org.apache.nifi.xml.inference;
 
 import org.apache.nifi.schema.inference.RecordSource;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.stream.StandardXMLEventReaderProvider;
+import org.apache.nifi.xml.processing.stream.XMLEventReaderProvider;
 
 import javax.xml.stream.XMLEventReader;
-import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.Attribute;
 import javax.xml.stream.events.Characters;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
+import javax.xml.transform.stream.StreamSource;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,21 +38,20 @@ import java.util.Map;
 public class XmlRecordSource implements RecordSource<XmlNode> {
 
     private final XMLEventReader xmlEventReader;
+    private final String contentFieldName;
+    private final boolean parseXmlAttributes;
 
-    public XmlRecordSource(final InputStream in, final boolean ignoreWrapper) throws IOException {
+    public XmlRecordSource(final InputStream in, final String contentFieldName, final boolean ignoreWrapper, final boolean parseXmlAttributes) throws IOException {
+        this.contentFieldName = contentFieldName;
+        this.parseXmlAttributes = parseXmlAttributes;
         try {
-            final XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
-
-            // Avoid XXE Vulnerabilities
-            xmlInputFactory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
-            xmlInputFactory.setProperty("javax.xml.stream.isSupportingExternalEntities", false);
-
-            xmlEventReader = xmlInputFactory.createXMLEventReader(in);
+            final XMLEventReaderProvider provider = new StandardXMLEventReaderProvider();
+            xmlEventReader = provider.getEventReader(new StreamSource(in));
 
             if (ignoreWrapper) {
                 readStartElement();
             }
-        } catch (XMLStreamException e) {
+        } catch (final ProcessingException|XMLStreamException e) {
             throw new IOException("Could not parse XML", e);
         }
     }
@@ -75,11 +77,8 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
         final StringBuilder content = new StringBuilder();
         final Map<String, XmlNode> childNodes = new LinkedHashMap<>();
 
-        final Iterator<?> attributeIterator = startElement.getAttributes();
-        while (attributeIterator.hasNext()) {
-            final Attribute attribute = (Attribute) attributeIterator.next();
-            final String attributeName = attribute.getName().getLocalPart();
-            childNodes.put(attributeName, new XmlTextNode(attributeName, attribute.getValue()));
+        if (parseXmlAttributes) {
+            addXmlAttributesToChildNodes(startElement, childNodes);
         }
 
         while (xmlEventReader.hasNext()) {
@@ -116,13 +115,6 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
                     arrayNode.addElement(childNode);
                     childNodes.put(childName, arrayNode);
                 }
-
-                final Iterator<?> childAttributeIterator = childStartElement.getAttributes();
-                while (childAttributeIterator.hasNext()) {
-                    final Attribute attribute = (Attribute) childAttributeIterator.next();
-                    final String attributeName = attribute.getName().getLocalPart();
-                    childNodes.put(attributeName, new XmlTextNode(attributeName, attribute.getValue()));
-                }
             }
         }
 
@@ -132,7 +124,7 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
         } else {
             final String textContent = content.toString().trim();
             if (!textContent.equals("")) {
-                childNodes.put("value", new XmlTextNode("value", textContent));
+                childNodes.put(contentFieldName, new XmlTextNode(contentFieldName, textContent));
             }
 
             return new XmlContainerNode(nodeName, childNodes);
@@ -150,5 +142,14 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
         }
 
         return null;
+    }
+
+    private void addXmlAttributesToChildNodes(StartElement startElement, Map<String, XmlNode> childNodes) {
+        final Iterator<?> attributeIterator = startElement.getAttributes();
+        while (attributeIterator.hasNext()) {
+            final Attribute attribute = (Attribute) attributeIterator.next();
+            final String attributeName = attribute.getName().getLocalPart();
+            childNodes.put(attributeName, new XmlTextNode(attributeName, attribute.getValue()));
+        }
     }
 }

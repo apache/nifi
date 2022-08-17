@@ -1,0 +1,168 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.web.security.jwt.provider;
+
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.RSASSASigner;
+import com.nimbusds.jose.crypto.RSASSAVerifier;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
+import org.apache.nifi.web.security.jwt.jws.JwsSignerContainer;
+import org.apache.nifi.web.security.jwt.jws.JwsSignerProvider;
+import org.apache.nifi.web.security.token.LoginAuthenticationToken;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.RSAPublicKey;
+import java.text.ParseException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Collections;
+import java.util.Date;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+public class StandardBearerTokenProviderTest {
+    private static final String USERNAME = "USERNAME";
+
+    private static final String IDENTITY = "IDENTITY";
+
+    private static final Duration EXPIRATION = Duration.ofHours(1);
+
+    private static final Duration MAXIMUM_DURATION_EXCEEDED = Duration.parse("PT12H5M");
+
+    private static final Duration MINIMUM_DURATION_EXCEEDED = Duration.parse("PT30S");
+
+    private static final String ISSUER = "ISSUER";
+
+    private static final String KEY_ALGORITHM = "RSA";
+
+    private static final int KEY_SIZE = 4096;
+
+    private static final JWSAlgorithm JWS_ALGORITHM = JWSAlgorithm.PS512;
+
+    @Mock
+    private JwsSignerProvider jwsSignerProvider;
+
+    private StandardBearerTokenProvider provider;
+
+    private JWSVerifier jwsVerifier;
+
+    private JWSSigner jwsSigner;
+
+    @BeforeEach
+    public void setProvider() throws NoSuchAlgorithmException {
+        provider = new StandardBearerTokenProvider(jwsSignerProvider);
+
+        final KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(KEY_ALGORITHM);
+        keyPairGenerator.initialize(KEY_SIZE);
+        final KeyPair keyPair = keyPairGenerator.generateKeyPair();
+        jwsVerifier = new RSASSAVerifier((RSAPublicKey) keyPair.getPublic());
+        jwsSigner = new RSASSASigner(keyPair.getPrivate());
+    }
+
+    @Test
+    public void testGetBearerToken() throws ParseException, JOSEException {
+        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(IDENTITY, USERNAME, EXPIRATION.toMillis(), ISSUER);
+        setSignerProvider();
+
+        final String bearerToken = provider.getBearerToken(loginAuthenticationToken);
+
+        final SignedJWT signedJwt = assertTokenVerified(bearerToken);
+        final JWTClaimsSet claims = signedJwt.getJWTClaimsSet();
+        assertNotNull(claims.getIssueTime(), "Issue Time not found");
+        assertNotNull(claims.getNotBeforeTime(), "Not Before Time not found");
+
+        final Date claimExpirationTime = claims.getExpirationTime();
+        assertNotNull(claimExpirationTime, "Expiration Time not found");
+
+        final Date loginExpirationTime = new Date(loginAuthenticationToken.getExpiration());
+        assertEquals(loginExpirationTime.toString(), claimExpirationTime.toString(), "Expiration Time not matched");
+
+        assertEquals(ISSUER, claims.getIssuer());
+        assertEquals(Collections.singletonList(ISSUER), claims.getAudience());
+        assertEquals(IDENTITY, claims.getSubject());
+        assertEquals(USERNAME, claims.getClaim(SupportedClaim.PREFERRED_USERNAME.getClaim()));
+        assertNotNull("JSON Web Token Identifier not found", claims.getJWTID());
+    }
+
+    @Test
+    public void testGetBearerTokenExpirationMaximum() throws ParseException, JOSEException {
+        final long expiration = MAXIMUM_DURATION_EXCEEDED.toMillis();
+        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(IDENTITY, USERNAME, expiration, ISSUER);
+        setSignerProvider();
+
+        final String bearerToken = provider.getBearerToken(loginAuthenticationToken);
+
+        final SignedJWT signedJwt = assertTokenVerified(bearerToken);
+        final JWTClaimsSet claims = signedJwt.getJWTClaimsSet();
+        final Date claimExpirationTime = claims.getExpirationTime();
+        assertNotNull(claimExpirationTime, "Expiration Time not found");
+
+        final Date loginExpirationTime = new Date(loginAuthenticationToken.getExpiration());
+        assertNotSame(loginExpirationTime.toString(), claimExpirationTime.toString(), "Expiration Time matched");
+
+        assertTrue(claimExpirationTime.toInstant().isBefore(loginExpirationTime.toInstant()), "Claim Expiration after Login Expiration");
+    }
+
+    @Test
+    public void testGetBearerTokenExpirationMinimum() throws ParseException, JOSEException {
+        final long expiration = MINIMUM_DURATION_EXCEEDED.toMillis();
+        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(IDENTITY, USERNAME, expiration, ISSUER);
+        setSignerProvider();
+
+        final String bearerToken = provider.getBearerToken(loginAuthenticationToken);
+
+        final SignedJWT signedJwt = assertTokenVerified(bearerToken);
+        final JWTClaimsSet claims = signedJwt.getJWTClaimsSet();
+        final Date claimExpirationTime = claims.getExpirationTime();
+        assertNotNull(claimExpirationTime, "Expiration Time not found");
+
+        final Date loginExpirationTime = new Date(loginAuthenticationToken.getExpiration());
+        assertNotSame(loginExpirationTime.toString(), claimExpirationTime.toString(), "Expiration Time matched");
+
+        assertTrue(claimExpirationTime.toInstant().isAfter(loginExpirationTime.toInstant()), "Claim Expiration before Login Expiration");
+    }
+
+    private void setSignerProvider() {
+        final String keyIdentifier = UUID.randomUUID().toString();
+        final JwsSignerContainer jwsSignerContainer = new JwsSignerContainer(keyIdentifier, JWS_ALGORITHM, jwsSigner);
+        when(jwsSignerProvider.getJwsSignerContainer(isA(Instant.class))).thenReturn(jwsSignerContainer);
+    }
+
+    private SignedJWT assertTokenVerified(final String bearerToken) throws ParseException, JOSEException {
+        final SignedJWT signedJwt = SignedJWT.parse(bearerToken);
+        assertTrue(signedJwt.verify(jwsVerifier), "Verification Failed");
+        return signedJwt;
+    }
+}

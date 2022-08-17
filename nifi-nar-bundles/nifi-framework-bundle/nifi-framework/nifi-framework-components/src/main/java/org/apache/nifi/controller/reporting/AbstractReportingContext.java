@@ -22,8 +22,12 @@ import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.resource.ResourceContext;
+import org.apache.nifi.components.resource.StandardResourceContext;
+import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.events.BulletinFactory;
@@ -41,7 +45,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public abstract class AbstractReportingContext implements ReportingContext {
-    private final ReportingTask reportingTask;
+    private final ReportingTaskNode reportingTaskNode;
     private final BulletinRepository bulletinRepository;
     private final ControllerServiceProvider serviceProvider;
     private final Map<PropertyDescriptor, String> properties;
@@ -49,14 +53,14 @@ public abstract class AbstractReportingContext implements ReportingContext {
     private final ParameterLookup parameterLookup;
     private final VariableRegistry variableRegistry;
 
-    public AbstractReportingContext(final ReportingTask reportingTask, final BulletinRepository bulletinRepository,
+    public AbstractReportingContext(final ReportingTaskNode reportingTaskNode, final BulletinRepository bulletinRepository,
                                     final Map<PropertyDescriptor, String> properties, final ControllerServiceProvider controllerServiceProvider,
                                     final ParameterLookup parameterLookup, final VariableRegistry variableRegistry) {
 
         this.bulletinRepository = bulletinRepository;
         this.properties = Collections.unmodifiableMap(properties);
         this.serviceProvider = controllerServiceProvider;
-        this.reportingTask = reportingTask;
+        this.reportingTaskNode = reportingTaskNode;
         this.parameterLookup = parameterLookup;
         this.variableRegistry = variableRegistry;
         this.preparedQueries = new HashMap<>();
@@ -74,7 +78,7 @@ public abstract class AbstractReportingContext implements ReportingContext {
     }
 
     protected ReportingTask getReportingTask() {
-        return reportingTask;
+        return reportingTaskNode.getReportingTask();
     }
 
     @Override
@@ -98,13 +102,15 @@ public abstract class AbstractReportingContext implements ReportingContext {
 
     @Override
     public PropertyValue getProperty(final PropertyDescriptor property) {
-        final PropertyDescriptor descriptor = reportingTask.getPropertyDescriptor(property.getName());
+        final PropertyDescriptor descriptor = reportingTaskNode.getPropertyDescriptor(property.getName());
         if (descriptor == null) {
             return null;
         }
 
         final String configuredValue = properties.get(property);
-        return new StandardPropertyValue(configuredValue == null ? descriptor.getDefaultValue() : configuredValue, serviceProvider, parameterLookup, preparedQueries.get(property), variableRegistry);
+        final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), descriptor);
+        return new StandardPropertyValue(resourceContext, configuredValue == null ? descriptor.getDefaultValue() : configuredValue, serviceProvider, parameterLookup, preparedQueries.get(property),
+            variableRegistry);
     }
 
     @Override

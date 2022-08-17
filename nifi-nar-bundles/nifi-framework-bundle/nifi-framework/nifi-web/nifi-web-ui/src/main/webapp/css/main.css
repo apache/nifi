@@ -53,6 +53,20 @@ div.context-menu-provenance {
     overflow: hidden;
 }
 
+.ellipsis-white-space-pre {
+    white-space: pre;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* max 1 line text with ellipsis - works in Chrome and Firefox */
+.multi-line-clamp-ellipsis {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    overflow: hidden;
+}
+
 .ellipsis.multiline {
     white-space: normal;
 }

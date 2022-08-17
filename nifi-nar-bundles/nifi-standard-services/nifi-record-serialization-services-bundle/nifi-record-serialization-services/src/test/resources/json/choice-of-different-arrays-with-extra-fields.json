@@ -1,0 +1,28 @@
+{
+  "dataCollection":[
+    {
+      "record": [{
+        "integer": 11,
+        "boolean": true,
+        "extraString" : "extraStringValue11"
+      },
+      {
+        "integer": 12,
+        "boolean": false,
+        "extraString" : "extraStringValue12"
+      }]
+    },
+    {
+      "record": [{
+        "integer": 21,
+        "string": "stringValue21",
+        "extraString" : "extraStringValue21"
+      },
+      {
+        "integer": 22,
+        "string": "stringValue22",
+        "extraString" : "extraStringValue22"
+      }]
+    }
+  ]
+}

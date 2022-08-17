@@ -21,14 +21,9 @@ import at.favre.lib.crypto.bcrypt.Radix64Encoder
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Assume
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Ignore
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -41,10 +36,12 @@ import java.security.Security
 
 import static groovy.test.GroovyAssert.shouldFail
 import static org.junit.Assert.assertTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 
-@RunWith(JUnit4.class)
 class BcryptCipherProviderGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(BcryptCipherProviderGroovyTest.class)
+
+    private static final String PLAINTEXT = "ExactBlockSizeRequiredForProcess"
 
     private static List<EncryptionMethod> strongKDFEncryptionMethods
 
@@ -52,7 +49,7 @@ class BcryptCipherProviderGroovyTest {
     public static final String MICROBENCHMARK = "microbenchmark"
     private static ArrayList<Integer> AES_KEY_LENGTHS
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
@@ -62,20 +59,7 @@ class BcryptCipherProviderGroovyTest {
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
 
-        if (CipherUtility.isUnlimitedStrengthCryptoSupported()) {
-            AES_KEY_LENGTHS = [128, 192, 256]
-        } else {
-            AES_KEY_LENGTHS = [128]
-        }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
-
+        AES_KEY_LENGTHS = [128, 192, 256]
     }
 
     @Test
@@ -86,8 +70,6 @@ class BcryptCipherProviderGroovyTest {
         final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
 
-        final String plaintext = "This is a plaintext message."
-
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
             logger.info("Using algorithm: ${em.getAlgorithm()}")
@@ -97,7 +79,7 @@ class BcryptCipherProviderGroovyTest {
             byte[] iv = cipher.getIV()
             logger.info("IV: ${Hex.encodeHexString(iv)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             cipher = cipherProvider.getCipher(em, PASSWORD, SALT, iv, DEFAULT_KEY_LENGTH, false)
@@ -106,7 +88,7 @@ class BcryptCipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
@@ -119,8 +101,6 @@ class BcryptCipherProviderGroovyTest {
         final byte[] SALT = cipherProvider.generateSalt()
         final byte[] IV = Hex.decodeHex("01" * 16 as char[])
 
-        final String plaintext = "This is a plaintext message."
-
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
             logger.info("Using algorithm: ${em.getAlgorithm()}")
@@ -129,7 +109,7 @@ class BcryptCipherProviderGroovyTest {
             Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true)
             logger.info("IV: ${Hex.encodeHexString(IV)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false)
@@ -138,24 +118,19 @@ class BcryptCipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
     @Test
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         // Arrange
-        Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.",
-                CipherUtility.isUnlimitedStrengthCryptoSupported())
-
         RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(4)
 
         final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
 
         final int LONG_KEY_LENGTH = 256
-
-        final String plaintext = "This is a plaintext message."
 
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
@@ -166,7 +141,7 @@ class BcryptCipherProviderGroovyTest {
             byte[] iv = cipher.getIV()
             logger.info("IV: ${Hex.encodeHexString(iv)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             cipher = cipherProvider.getCipher(em, PASSWORD, SALT, iv, LONG_KEY_LENGTH, false)
@@ -175,7 +150,7 @@ class BcryptCipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
@@ -389,8 +364,6 @@ class BcryptCipherProviderGroovyTest {
         final byte[] SALT = cipherProvider.generateSalt()
         final byte[] IV = Hex.decodeHex("00" * 16 as char[])
 
-        final String plaintext = "This is a plaintext message."
-
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
             logger.info("Using algorithm: ${em.getAlgorithm()}")
@@ -399,7 +372,7 @@ class BcryptCipherProviderGroovyTest {
             Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true)
             logger.info("IV: ${Hex.encodeHexString(IV)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             def msg = shouldFail(IllegalArgumentException) {
@@ -419,8 +392,6 @@ class BcryptCipherProviderGroovyTest {
         final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
         final byte[] IV = Hex.decodeHex("01" * 16 as char[])
-
-        final String PLAINTEXT = "This is a plaintext message."
 
         // Currently only AES ciphers are compatible with Bcrypt, so redundant to test all algorithms
         final def VALID_KEY_LENGTHS = AES_KEY_LENGTHS
@@ -455,8 +426,6 @@ class BcryptCipherProviderGroovyTest {
         final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
         final byte[] IV = Hex.decodeHex("00" * 16 as char[])
-
-        final String PLAINTEXT = "This is a plaintext message."
 
         // Currently only AES ciphers are compatible with Bcrypt, so redundant to test all algorithms
         final def INVALID_KEY_LENGTHS = [-1, 40, 64, 112, 512]
@@ -520,8 +489,6 @@ class BcryptCipherProviderGroovyTest {
         byte[] keyDigestBytes = sha512.digest(hashOutputBytes[-31..-1] as byte[])
         logger.info("Key digest (${keyDigestBytes.length}): ${Hex.encodeHexString(keyDigestBytes)}")
 
-        final String plaintext = "This is a plaintext message."
-
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
             logger.info("Using algorithm: ${em.getAlgorithm()}")
@@ -531,7 +498,7 @@ class BcryptCipherProviderGroovyTest {
             byte[] iv = cipher.getIV()
             logger.info("IV: ${Hex.encodeHexString(iv)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             cipher = cipherProvider.getCipher(em, PASSWORD, SALT, iv, DEFAULT_KEY_LENGTH, false)
@@ -551,8 +518,8 @@ class BcryptCipherProviderGroovyTest {
             logger.info("Verified: ${verificationRecovered}")
 
             // Assert
-            assert plaintext == recovered
-            assert plaintext == verificationRecovered
+            assert PLAINTEXT == recovered
+            assert PLAINTEXT == verificationRecovered
         }
     }
 
@@ -564,8 +531,6 @@ class BcryptCipherProviderGroovyTest {
         final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
 
-        final String plaintext = "This is a plaintext message."
-
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
             logger.info("Using algorithm: ${em.getAlgorithm()}")
@@ -575,7 +540,7 @@ class BcryptCipherProviderGroovyTest {
             byte[] iv = cipher.getIV()
             logger.info("IV: ${Hex.encodeHexString(iv)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             cipher = cipherProvider.getLegacyDecryptCipher(em, PASSWORD, SALT, iv, DEFAULT_KEY_LENGTH)
@@ -584,7 +549,7 @@ class BcryptCipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert plaintext == recovered
+            assert PLAINTEXT == recovered
         }
     }
 
@@ -597,8 +562,6 @@ class BcryptCipherProviderGroovyTest {
         final byte[] SALT = null
         final EncryptionMethod em = EncryptionMethod.AES_CBC
 
-        final String plaintext = "This is a plaintext message."
-
         // Act
         logger.info("Using algorithm: ${em.getAlgorithm()}")
 
@@ -610,7 +573,7 @@ class BcryptCipherProviderGroovyTest {
         }
         logger.expected("Encrypt error: ${encryptMsg}")
 
-        byte[] cipherBytes = plaintext.reverse().getBytes(StandardCharsets.UTF_8)
+        byte[] cipherBytes = PLAINTEXT.reverse().getBytes(StandardCharsets.UTF_8)
         logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
         def decryptMsg = shouldFail(IllegalArgumentException) {
@@ -626,7 +589,7 @@ class BcryptCipherProviderGroovyTest {
         assert decryptMsg =~ "The salt must be of the format"
     }
 
-    @Ignore("This test can be run on a specific machine to evaluate if the default work factor is sufficient")
+    @Disabled("This test can be run on a specific machine to evaluate if the default work factor is sufficient")
     @Test
     void testDefaultConstructorShouldProvideStrongWorkFactor() {
         // Arrange

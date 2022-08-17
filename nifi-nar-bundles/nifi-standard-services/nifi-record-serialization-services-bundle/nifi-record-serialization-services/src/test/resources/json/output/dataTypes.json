@@ -11,6 +11,7 @@
   "timestamp" : "2017-01-01 17:00:00",
   "date" : "2017-01-01",
   "time" : "17:00:00",
+  "uuid": "8bb20bf2-ec41-4b94-80a4-922f4dba009c",
   "char" : "c",
   "enum" : null,
   "string" : "string",

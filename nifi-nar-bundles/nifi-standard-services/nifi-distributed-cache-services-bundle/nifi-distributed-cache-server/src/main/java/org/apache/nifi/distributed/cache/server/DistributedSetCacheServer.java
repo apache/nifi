@@ -21,6 +21,8 @@ import javax.net.ssl.SSLContext;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.distributed.cache.server.set.StandardSetCacheServer;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.ssl.SSLContextService;
 
 @Tags({"distributed", "set", "distinct", "cache", "server"})
@@ -35,13 +37,9 @@ public class DistributedSetCacheServer extends DistributedCacheServer {
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         final int maxSize = context.getProperty(MAX_CACHE_ENTRIES).asInteger();
         final String evictionPolicyName = context.getProperty(EVICTION_POLICY).getValue();
+        final int maxReadSize = context.getProperty(MAX_READ_SIZE).asDataSize(DataUnit.B).intValue();
 
-        final SSLContext sslContext;
-        if (sslContextService == null) {
-            sslContext = null;
-        } else {
-            sslContext = sslContextService.createContext();
-        }
+        final SSLContext sslContext = sslContextService == null ? null : sslContextService.createContext();
 
         final EvictionPolicy evictionPolicy;
         switch (evictionPolicyName) {
@@ -61,7 +59,7 @@ public class DistributedSetCacheServer extends DistributedCacheServer {
         try {
             final File persistenceDir = persistencePath == null ? null : new File(persistencePath);
 
-            return new SetCacheServer(getIdentifier(), sslContext, port, maxSize, evictionPolicy, persistenceDir);
+            return new StandardSetCacheServer(getLogger(), getIdentifier(), sslContext, port, maxSize, evictionPolicy, persistenceDir, maxReadSize);
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }

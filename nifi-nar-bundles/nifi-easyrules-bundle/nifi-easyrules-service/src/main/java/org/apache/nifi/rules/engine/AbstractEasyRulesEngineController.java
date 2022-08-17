@@ -22,11 +22,12 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.rules.Rule;
 import org.apache.nifi.rules.RulesFactory;
@@ -53,7 +54,7 @@ public abstract class AbstractEasyRulesEngineController extends AbstractControll
             .displayName("Rules File Path")
             .description("Path to location of rules file. Only one of Rules File or Rules Body may be used")
             .required(false)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 

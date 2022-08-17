@@ -16,6 +16,51 @@
  */
 package org.apache.nifi.authorization;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.annotation.AuthorizerContext;
+import org.apache.nifi.authorization.exception.AuthorizationAccessException;
+import org.apache.nifi.authorization.exception.AuthorizerCreationException;
+import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
+import org.apache.nifi.authorization.exception.UninheritableAuthorizationsException;
+import org.apache.nifi.authorization.file.generated.Authorizations;
+import org.apache.nifi.authorization.file.generated.Policies;
+import org.apache.nifi.authorization.file.generated.Policy;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.authorization.util.IdentityMapping;
+import org.apache.nifi.authorization.util.IdentityMappingUtil;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.user.generated.Users;
+import org.apache.nifi.util.FlowInfo;
+import org.apache.nifi.util.FlowParser;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.file.FileUtils;
+import org.apache.nifi.web.api.dto.PortDTO;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
+import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
+import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+
+import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.stream.XMLStreamWriter;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -35,47 +80,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.xml.XMLConstants;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
-import javax.xml.stream.XMLStreamWriter;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.annotation.AuthorizerContext;
-import org.apache.nifi.authorization.exception.AuthorizationAccessException;
-import org.apache.nifi.authorization.exception.AuthorizerCreationException;
-import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
-import org.apache.nifi.authorization.exception.UninheritableAuthorizationsException;
-import org.apache.nifi.authorization.file.generated.Authorizations;
-import org.apache.nifi.authorization.file.generated.Policies;
-import org.apache.nifi.authorization.file.generated.Policy;
-import org.apache.nifi.authorization.resource.ResourceFactory;
-import org.apache.nifi.authorization.resource.ResourceType;
-import org.apache.nifi.authorization.util.IdentityMapping;
-import org.apache.nifi.authorization.util.IdentityMappingUtil;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.security.xml.XmlUtils;
-import org.apache.nifi.user.generated.Users;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.file.FileUtils;
-import org.apache.nifi.web.api.dto.PortDTO;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
 public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvider {
 
@@ -498,8 +502,8 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
 
         final byte[] fingerprintBytes = fingerprint.getBytes(StandardCharsets.UTF_8);
         try (final ByteArrayInputStream in = new ByteArrayInputStream(fingerprintBytes)) {
-            final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(false);
-            final Document document = docBuilder.parse(in);
+            final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
+            final Document document = documentProvider.parse(in);
             final Element rootElement = document.getDocumentElement();
 
             // parse all the policies and add them to the current access policy provider
@@ -508,7 +512,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
                 Node policyNode = policyNodes.item(i);
                 policies.add(parsePolicy((Element) policyNode));
             }
-        } catch (SAXException | ParserConfigurationException | IOException e) {
+        } catch (final ProcessingException | IOException e) {
             throw new AuthorizationAccessException("Unable to parse fingerprint", e);
         }
 
@@ -628,13 +632,14 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
 
     private Authorizations unmarshallAuthorizations() throws JAXBException {
         try {
-            final XMLStreamReader xsr = XmlUtils.createSafeReader(new StreamSource(authorizationsFile));
+            final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
+            final XMLStreamReader xsr = provider.getStreamReader(new StreamSource(authorizationsFile));
             final Unmarshaller unmarshaller = JAXB_AUTHORIZATIONS_CONTEXT.createUnmarshaller();
             unmarshaller.setSchema(authorizationsSchema);
 
             final JAXBElement<Authorizations> element = unmarshaller.unmarshal(xsr, Authorizations.class);
             return element.getValue();
-        } catch (XMLStreamException e) {
+        } catch (final ProcessingException e) {
             logger.error("Encountered an error reading authorizations file: ", e);
             throw new JAXBException("Error reading authorizations file", e);
         }
@@ -647,7 +652,16 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
      */
     private void parseFlow() throws SAXException {
         final FlowParser flowParser = new FlowParser();
-        final FlowInfo flowInfo = flowParser.parse(properties.getFlowConfigurationFile());
+
+        final File flowConfigurationFile;
+        final File jsonFile = properties.getFlowConfigurationJsonFile();
+        if (jsonFile.exists()) {
+            flowConfigurationFile = jsonFile;
+        } else {
+            flowConfigurationFile = properties.getFlowConfigurationFile();
+        }
+
+        final FlowInfo flowInfo = flowParser.parse(flowConfigurationFile);
 
         if (flowInfo != null) {
             rootGroupId = flowInfo.getRootGroupId();
@@ -745,8 +759,9 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
 
         final XMLStreamReader xsr;
         try {
-            xsr = XmlUtils.createSafeReader(new StreamSource(authorizedUsersFile));
-        } catch (XMLStreamException e) {
+            final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
+            xsr = provider.getStreamReader(new StreamSource(authorizedUsersFile));
+        } catch (final ProcessingException e) {
             logger.error("Encountered an error reading authorized users file: ", e);
             throw new JAXBException("Error reading authorized users file", e);
         }

@@ -35,11 +35,11 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.db.JdbcProperties;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -57,10 +57,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for the QueryDatabaseTableRecord processor
@@ -76,7 +77,7 @@ public class QueryDatabaseTableRecordTest {
     private final static String MAX_ROWS_KEY = "maxRows";
 
 
-    @BeforeClass
+    @BeforeAll
     public static void setupBeforeClass() {
         System.setProperty("derby.stream.error.file", "target/derby.log");
 
@@ -89,7 +90,7 @@ public class QueryDatabaseTableRecordTest {
         }
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanUpAfterClass() throws Exception {
         try {
             DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
@@ -103,10 +104,11 @@ public class QueryDatabaseTableRecordTest {
         } catch (IOException ioe) {
             // Do nothing, may not have existed
         }
+        System.clearProperty("derby.stream.error.file");
     }
 
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException, IOException {
         final DBCPService dbcp = new DBCPServiceSimpleImpl();
         final Map<String, String> dbcpProperties = new HashMap<>();
@@ -128,7 +130,7 @@ public class QueryDatabaseTableRecordTest {
         runner.enableControllerService(recordWriter);
     }
 
-    @After
+    @AfterEach
     public void teardown() throws IOException {
         runner.getStateManager().clear(Scope.CLUSTER);
         runner = null;
@@ -222,9 +224,11 @@ public class QueryDatabaseTableRecordTest {
         assertEquals("SELECT * FROM myTable WHERE id > 509 AND DATE_CREATED >= '2016-03-07 12:34:56' AND TIME_CREATED >= '12:34:57' AND (type = \"CUSTOMER\")", query);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testGetQueryNoTable() {
-        processor.getQuery(dbAdapter, null, null, null, null, null);
+        assertThrows(IllegalArgumentException.class, () -> {
+            processor.getQuery(dbAdapter, null, null, null, null, null);
+        });
     }
 
     @Test
@@ -949,6 +953,108 @@ public class QueryDatabaseTableRecordTest {
     }
 
     @Test
+    public void testInitialLoadStrategyStartAtBeginning() throws SQLException {
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
+
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        cal.setTimeInMillis(0);
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+        int rowCount = 0;
+        //create larger row set
+        for (int batch = 0; batch < 10; batch++) {
+            stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '" + dateFormat.format(cal.getTime().getTime()) + "')");
+
+            rowCount++;
+            cal.add(Calendar.MINUTE, 1);
+        }
+
+        runner.setProperty(QueryDatabaseTableRecord.TABLE_NAME, "${" + TABLE_NAME_KEY + "}");
+        runner.setVariable(TABLE_NAME_KEY, "TEST_QUERY_DB_TABLE");
+        runner.setIncomingConnection(false);
+        runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "created_on");
+        runner.setProperty(QueryDatabaseTableRecord.INITIAL_LOAD_STRATEGY, QueryDatabaseTableRecord.INITIAL_LOAD_STRATEGY_ALL_ROWS.getValue());
+
+        // Initial run with no previous state. Should get all 10 records
+        runner.run();
+        runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals("record.count", "10");
+        runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
+        runner.clearTransferState();
+
+        // Run again, this time no flowfiles/rows should be transferred
+        // Validate Max Value doesn't change also
+        runner.run();
+        runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
+        runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
+        runner.clearTransferState();
+    }
+
+    @Test
+    public void testInitialLoadStrategyStartAtCurrentMaximumValues() throws SQLException {
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
+
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        cal.setTimeInMillis(0);
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+        int rowCount = 0;
+        //create larger row set
+        for (int batch = 0; batch < 10; batch++) {
+            stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '" + dateFormat.format(cal.getTime().getTime()) + "')");
+
+            rowCount++;
+            cal.add(Calendar.MINUTE, 1);
+        }
+
+        runner.setProperty(QueryDatabaseTableRecord.TABLE_NAME, "${" + TABLE_NAME_KEY + "}");
+        runner.setVariable(TABLE_NAME_KEY, "TEST_QUERY_DB_TABLE");
+        runner.setIncomingConnection(false);
+        runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "created_on");
+        runner.setProperty(QueryDatabaseTableRecord.INITIAL_LOAD_STRATEGY, QueryDatabaseTableRecord.INITIAL_LOAD_STRATEGY_NEW_ROWS.getValue());
+
+        // Initial run with no previous state. Should not get any records but store Max Value in the state
+        runner.run();
+        runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
+        runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
+        runner.clearTransferState();
+
+        // Run again, this time no flowfiles/rows should be transferred
+        // Validate Max Value doesn't change also
+        runner.run();
+        runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
+        runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
+        runner.clearTransferState();
+    }
+
+    @Test
     public void testAddedRowsCustomWhereClause() throws SQLException, IOException {
 
         // load test data to database
@@ -1221,7 +1327,7 @@ public class QueryDatabaseTableRecordTest {
         runner.clearTransferState();
     }
 
-    @Test(expected = AssertionError.class)
+    @Test
     public void testMissingColumn() throws ProcessException, SQLException {
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -1256,7 +1362,9 @@ public class QueryDatabaseTableRecordTest {
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "ID");
         runner.setProperty(QueryDatabaseTableRecord.MAX_ROWS_PER_FLOW_FILE, "2");
 
-        runner.run();
+        assertThrows(AssertionError.class, () -> {
+            runner.run();
+        });
     }
 
     @Test

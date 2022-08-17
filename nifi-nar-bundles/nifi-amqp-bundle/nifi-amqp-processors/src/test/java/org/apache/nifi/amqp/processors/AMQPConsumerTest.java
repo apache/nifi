@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
@@ -32,18 +33,18 @@ import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.nifi.logging.ComponentLog;
-import org.junit.Before;
-import org.junit.Test;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.GetResponse;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AMQPConsumerTest {
 
     private ComponentLog processorLog;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         processorLog = mock(ComponentLog.class);
     }
@@ -77,29 +78,35 @@ public class AMQPConsumerTest {
         assertTrue(consumer.closed);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void failOnNullConnection() throws IOException {
-        new AMQPConsumer(null, null, true, processorLog);
+    @Test
+    public void failOnNullConnection() {
+        assertThrows(IllegalArgumentException.class, () -> new AMQPConsumer(null, null, true, processorLog));
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void failOnNullQueueName() throws Exception {
-        Connection conn = new TestConnection(null, null);
-        new AMQPConsumer(conn, null, true, processorLog);
+    @Test
+    public void failOnNullQueueName() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            Connection conn = new TestConnection(null, null);
+            new AMQPConsumer(conn, null, true, processorLog);
+        });
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void failOnEmptyQueueName() throws Exception {
-        Connection conn = new TestConnection(null, null);
-        new AMQPConsumer(conn, " ", true, processorLog);
+    @Test
+    public void failOnEmptyQueueName() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            Connection conn = new TestConnection(null, null);
+            new AMQPConsumer(conn, " ", true, processorLog);
+        });
     }
 
-    @Test(expected = IOException.class)
-    public void failOnNonExistingQueue() throws Exception {
-        Connection conn = new TestConnection(null, null);
-        try (AMQPConsumer consumer = new AMQPConsumer(conn, "hello", true, processorLog)) {
-            consumer.consume();
-        }
+    @Test
+    public void failOnNonExistingQueue() {
+        assertThrows(IOException.class, () -> {
+            Connection conn = new TestConnection(null, null);
+            try (AMQPConsumer consumer = new AMQPConsumer(conn, "hello", true, processorLog)) {
+                consumer.consume();
+            }
+        });
     }
 
     @Test

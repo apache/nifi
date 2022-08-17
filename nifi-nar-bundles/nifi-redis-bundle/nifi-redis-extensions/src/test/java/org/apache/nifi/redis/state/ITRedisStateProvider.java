@@ -25,9 +25,9 @@ import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.redis.util.RedisUtils;
 import org.apache.nifi.util.MockComponentLog;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import redis.embedded.RedisServer;
 
 import javax.net.ssl.SSLContext;
@@ -40,10 +40,10 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * NOTE: These test cases should be kept in-sync with AbstractTestStateProvider which is in the framework
@@ -56,7 +56,7 @@ public class ITRedisStateProvider {
     private RedisServer redisServer;
     private RedisStateProvider provider;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         final int redisPort = getAvailablePort();
 
@@ -68,7 +68,7 @@ public class ITRedisStateProvider {
         this.provider = createProvider(properties);
     }
 
-    @After
+    @AfterEach
     public void teardown() throws IOException {
         if (provider != null) {
             try {

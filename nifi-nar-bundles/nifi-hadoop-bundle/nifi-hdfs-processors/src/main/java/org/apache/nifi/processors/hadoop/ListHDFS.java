@@ -402,8 +402,6 @@ public class ListHDFS extends AbstractHadoopProcessor {
         }
         lastRunTimestamp = now;
 
-        final String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
-
         // Ensure that we are using the latest listing information before we try to perform a listing of HDFS files.
         try {
             final StateMap stateMap = session.getState(Scope.CLUSTER);
@@ -443,7 +441,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
         final Set<FileStatus> statuses;
         try {
-            final Path rootPath = new Path(directory);
+            final Path rootPath = getNormalizedPath(context, DIRECTORY);
             statuses = getStatuses(rootPath, recursive, hdfs, createPathFilter(context), fileFilterMode);
             getLogger().debug("Found a total of {} files in HDFS", new Object[] {statuses.size()});
         } catch (final IOException | IllegalArgumentException e) {
@@ -479,15 +477,6 @@ public class ListHDFS extends AbstractHadoopProcessor {
             }
         }
 
-        final int listCount = listable.size();
-        if ( listCount > 0 ) {
-            getLogger().info("Successfully created listing with {} new files from HDFS", new Object[] {listCount});
-            session.commit();
-        } else {
-            getLogger().debug("There is no data to list. Yielding.");
-            context.yield();
-        }
-
         final Map<String, String> updatedState = new HashMap<>(1);
         updatedState.put(LISTING_TIMESTAMP_KEY, String.valueOf(latestTimestampListed));
         updatedState.put(EMITTED_TIMESTAMP_KEY, String.valueOf(latestTimestampEmitted));
@@ -498,6 +487,15 @@ public class ListHDFS extends AbstractHadoopProcessor {
         } catch (final IOException ioe) {
             getLogger().warn("Failed to save cluster-wide state. If NiFi is restarted, data duplication may occur", ioe);
         }
+
+        final int listCount = listable.size();
+        if ( listCount > 0 ) {
+            getLogger().info("Successfully created listing with {} new files from HDFS", new Object[] {listCount});
+            session.commitAsync();
+        } else {
+            getLogger().debug("There is no data to list. Yielding.");
+            context.yield();
+        }
     }
 
     private void createFlowFiles(final Set<FileStatus> fileStatuses, final ProcessSession session) {
@@ -505,7 +503,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
             final Map<String, String> attributes = createAttributes(status);
             FlowFile flowFile = session.create();
             flowFile = session.putAllAttributes(flowFile, attributes);
-            session.transfer(flowFile, REL_SUCCESS);
+            session.transfer(flowFile, getSuccessRelationship());
         }
     }
 
@@ -530,7 +528,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
         attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
         flowFile = session.putAllAttributes(flowFile, attributes);
 
-        session.transfer(flowFile, REL_SUCCESS);
+        session.transfer(flowFile, getSuccessRelationship());
     }
 
     private Record createRecord(final FileStatus fileStatus) {
@@ -622,15 +620,15 @@ public class ListHDFS extends AbstractHadoopProcessor {
         attributes.put(CoreAttributes.FILENAME.key(), status.getPath().getName());
         attributes.put(CoreAttributes.PATH.key(), getAbsolutePath(status.getPath().getParent()));
 
-        attributes.put("hdfs.owner", status.getOwner());
-        attributes.put("hdfs.group", status.getGroup());
-        attributes.put("hdfs.lastModified", String.valueOf(status.getModificationTime()));
-        attributes.put("hdfs.length", String.valueOf(status.getLen()));
-        attributes.put("hdfs.replication", String.valueOf(status.getReplication()));
+        attributes.put(getAttributePrefix() + ".owner", status.getOwner());
+        attributes.put(getAttributePrefix() + ".group", status.getGroup());
+        attributes.put(getAttributePrefix() + ".lastModified", String.valueOf(status.getModificationTime()));
+        attributes.put(getAttributePrefix() + ".length", String.valueOf(status.getLen()));
+        attributes.put(getAttributePrefix() + ".replication", String.valueOf(status.getReplication()));
 
         final FsPermission permission = status.getPermission();
         final String perms = getPerms(permission.getUserAction()) + getPerms(permission.getGroupAction()) + getPerms(permission.getOtherAction());
-        attributes.put("hdfs.permissions", perms);
+        attributes.put(getAttributePrefix() + ".permissions", perms);
         return attributes;
     }
 
@@ -671,4 +669,11 @@ public class ListHDFS extends AbstractHadoopProcessor {
         };
     }
 
+    protected Relationship getSuccessRelationship() {
+        return REL_SUCCESS;
+    }
+
+    protected String getAttributePrefix() {
+        return "hdfs";
+    }
 }

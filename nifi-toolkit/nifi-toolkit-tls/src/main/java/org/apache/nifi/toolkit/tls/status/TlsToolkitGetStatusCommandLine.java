@@ -56,7 +56,7 @@ public class TlsToolkitGetStatusCommandLine extends BaseCommandLine {
 
     public TlsToolkitGetStatusCommandLine() {
         super(DESCRIPTION);
-        addOptionWithArg("u", URL_ARG, "The full url to connect to, for example: https://localhost:8443/v1/api");
+        addOptionWithArg("u", URL_ARG, "The full url to connect to, for example: https://localhost:9443/v1/api");
         addOptionWithArg("ks", KEYSTORE_ARG, "The key store to use");
         addOptionWithArg("kst", KEYSTORE_TYPE_ARG, "The type of key store being used (PKCS12 or JKS)", DEFAULT_KEYSTORE_TYPE);
         addOptionWithArg("ksp", KEYSTORE_PASSWORD_ARG, "The password of the key store being used");

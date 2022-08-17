@@ -337,14 +337,6 @@ The following binary components are provided under the Apache Software License v
       * HOMEPAGE:
         * http://www.slf4j.org/
 
-    This product optionally depends on 'Apache Commons Logging', a logging
-    framework, which can be obtained at:
-
-      * LICENSE:
-        * license/LICENSE.commons-logging.txt (Apache License 2.0)
-      * HOMEPAGE:
-        * http://commons.apache.org/logging/
-
     This product optionally depends on 'Apache Log4J', a logging framework,
     which can be obtained at:
 
@@ -373,16 +365,6 @@ The following binary components are provided under the Apache Software License v
       The following NOTICE information applies:
       The code for the t-digest was originally authored by Ted Dunning
       A number of small but very helpful changes have been contributed by Adrien Grand (https://github.com/jpountz)
-
-  (ASLv2) Apache Commons Logging
-    The following NOTICE information applies:
-
-      Apache Commons Logging
-      Copyright 2003-2016 The Apache Software Foundation
-
-      This product includes software developed at
-      The Apache Software Foundation (http://www.apache.org/).
-
 
   (ASLv2) Apache Commons Codec
     The following NOTICE information applies:

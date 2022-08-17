@@ -26,7 +26,7 @@ import org.apache.nifi.authentication.exception.IdentityAccessException;
 import org.apache.nifi.authentication.exception.InvalidLoginCredentialsException;
 import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.authentication.exception.ProviderDestructionException;
-import org.apache.nifi.security.util.krb.KerberosPrincipalParser;
+import org.apache.nifi.kerberos.parser.KerberosPrincipalParser;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

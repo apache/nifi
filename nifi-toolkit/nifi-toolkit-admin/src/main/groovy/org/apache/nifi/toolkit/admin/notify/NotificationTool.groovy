@@ -29,6 +29,7 @@ import org.apache.nifi.toolkit.admin.client.ClientFactory
 import org.apache.nifi.toolkit.admin.client.NiFiClientFactory
 import org.apache.nifi.toolkit.admin.client.NiFiClientUtil
 import org.apache.nifi.toolkit.admin.util.AdminUtil
+import org.apache.nifi.util.NiFiBootstrapUtils
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.web.api.dto.BulletinDTO
 import org.apache.nifi.web.api.entity.BulletinEntity
@@ -88,7 +89,7 @@ public class NotificationTool extends AbstractAdminTool {
             logger.info("Loading nifi properties for host information")
         }
 
-        final String key = NiFiPropertiesLoader.extractKeyFromBootstrapFile(bootstrapConfFile)
+        final String key = NiFiBootstrapUtils.extractKeyFromBootstrapFile(bootstrapConfFile)
         final NiFiProperties niFiProperties = NiFiPropertiesLoader.withKey(key).load(nifiPropertiesFile)
         final Client client =  clientFactory.getClient(niFiProperties,nifiInstallDir)
         final String url = NiFiClientUtil.getUrl(niFiProperties,NOTIFICATION_ENDPOINT)

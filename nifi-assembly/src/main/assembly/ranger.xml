@@ -37,17 +37,18 @@
             <fileMode>0660</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <excludes>
+                <exclude>nifi-bootstrap-utils</exclude>
                 <exclude>nifi-bootstrap</exclude>
+                <exclude>nifi-property-protection-api</exclude>
+                <exclude>nifi-property-protection-factory</exclude>
                 <exclude>nifi-resources</exclude>
                 <exclude>nifi-docs</exclude>
                 <exclude>org.apache.nifi:nifi-ranger-resources:jar</exclude>
 
                 <!-- exclude jaxb/activation/annotation libs from lib, they'll be included in the java11 subdir -->
                 <!-- TODO: remove these once minimum Java version is 11 -->
-                <exclude>javax.xml.bind:jaxb-api</exclude>
-                <exclude>com.sun.xml.bind:jaxb-impl</exclude>
-                <exclude>com.sun.xml.bind:jaxb-core</exclude>
-                <exclude>javax.activation:javax.activation-api</exclude>
+                <exclude>org.glassfish.jaxb:jaxb-runtime</exclude>
+                <exclude>jakarta.xml.bind:jakarta.xml.bind-api</exclude>
                 <exclude>javax.annotation:javax.annotation-api</exclude>
             </excludes>
         </dependencySet>
@@ -62,6 +63,7 @@
             <includes>
                 <include>org.apache.nifi:nifi-ranger-resources:jar</include>
                 <include>org.slf4j:slf4j-api</include>
+                <include>org.slf4j:jcl-over-slf4j</include>
             </includes>
         </dependencySet>
         <!-- Write out scripts from nifi-ranger-resources to ext/ranger/scripts -->

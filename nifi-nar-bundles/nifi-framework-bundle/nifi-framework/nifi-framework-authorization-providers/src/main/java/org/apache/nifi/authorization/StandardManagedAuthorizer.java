@@ -22,15 +22,13 @@ import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.authorization.exception.UninheritableAuthorizationsException;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.security.xml.XmlUtils;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
@@ -239,12 +237,13 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
         }
     }
 
-    private final FingerprintHolder parseFingerprint(final String fingerprint) throws AuthorizationAccessException {
+    private FingerprintHolder parseFingerprint(final String fingerprint) throws AuthorizationAccessException {
         final byte[] fingerprintBytes = fingerprint.getBytes(StandardCharsets.UTF_8);
 
         try (final ByteArrayInputStream in = new ByteArrayInputStream(fingerprintBytes)) {
-            final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(true);
-            final Document document = docBuilder.parse(in);
+            final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
+            documentProvider.setNamespaceAware(true);
+            final Document document = documentProvider.parse(in);
             final Element rootElement = document.getDocumentElement();
 
             final NodeList accessPolicyProviderList = rootElement.getElementsByTagName(ACCESS_POLICY_PROVIDER_ELEMENT);
@@ -260,7 +259,7 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
             final Node accessPolicyProvider = accessPolicyProviderList.item(0);
             final Node userGroupProvider = userGroupProviderList.item(0);
             return new FingerprintHolder(accessPolicyProvider.getTextContent(), userGroupProvider.getTextContent());
-        } catch (SAXException | ParserConfigurationException | IOException e) {
+        } catch (final ProcessingException | IOException e) {
             throw new AuthorizationAccessException("Unable to parse fingerprint", e);
         }
     }

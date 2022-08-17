@@ -36,11 +36,11 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryUsage;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * Reporting task used to monitor usage of memory after Garbage Collection has
@@ -90,15 +90,23 @@ import java.util.stream.Collectors;
         + " that the memory pool is exceeding this threshold.")
 public class MonitorMemory extends AbstractReportingTask {
 
+    private static final List<String> GC_OLD_GEN_POOLS = Collections.unmodifiableList(Arrays.asList("Tenured Gen", "PS Old Gen", "G1 Old Gen", "CMS Old Gen", "ZHeap"));
     private static final AllowableValue[] memPoolAllowableValues;
+    private static String defaultMemoryPool;
 
     static {
         // Only allow memory pool beans that support usage thresholds, otherwise we wouldn't report anything anyway
-        List<MemoryPoolMXBean> memoryPoolBeans = ManagementFactory.getMemoryPoolMXBeans().stream().filter(MemoryPoolMXBean::isUsageThresholdSupported).collect(Collectors.toList());
-        memPoolAllowableValues = new AllowableValue[memoryPoolBeans.size()];
-        for (int i = 0; i < memPoolAllowableValues.length; i++) {
-            memPoolAllowableValues[i] = new AllowableValue(memoryPoolBeans.get(i).getName());
-        }
+        memPoolAllowableValues = ManagementFactory.getMemoryPoolMXBeans()
+                .stream()
+                .filter(MemoryPoolMXBean::isCollectionUsageThresholdSupported)
+                .map(MemoryPoolMXBean::getName)
+                .map(AllowableValue::new)
+                .toArray(AllowableValue[]::new);
+        defaultMemoryPool = Arrays.stream(memPoolAllowableValues)
+                .map(AllowableValue::getValue)
+                .filter(GC_OLD_GEN_POOLS::contains)
+                .findFirst()
+                .orElse(null);
     }
 
     public static final PropertyDescriptor MEMORY_POOL_PROPERTY = new PropertyDescriptor.Builder()
@@ -110,6 +118,7 @@ public class MonitorMemory extends AbstractReportingTask {
                     + " running host platform and JVM")
             .required(true)
             .allowableValues(memPoolAllowableValues)
+            .defaultValue(defaultMemoryPool)
             .build();
     public static final PropertyDescriptor THRESHOLD_PROPERTY = new PropertyDescriptor.Builder()
             .name("Usage Threshold")
@@ -179,10 +188,11 @@ public class MonitorMemory extends AbstractReportingTask {
                     } else {
                         final String percentage = thresholdValue.substring(0, thresholdValue.length() - 1);
                         final double pct = Double.parseDouble(percentage) / 100D;
-                        calculatedThreshold = (long) (monitoredBean.getUsage().getMax() * pct);
+                        calculatedThreshold = (long) (monitoredBean.getCollectionUsage().getMax() * pct);
                     }
-                    if (monitoredBean.isUsageThresholdSupported()) {
-                        monitoredBean.setUsageThreshold(calculatedThreshold);
+
+                    if (monitoredBean.isCollectionUsageThresholdSupported()) {
+                        monitoredBean.setCollectionUsageThreshold(calculatedThreshold);
                     }
                 }
             }
@@ -200,7 +210,7 @@ public class MonitorMemory extends AbstractReportingTask {
             return;
         }
 
-        final MemoryUsage usage = bean.getUsage();
+        final MemoryUsage usage = bean.getCollectionUsage();
         if (usage == null) {
             getLogger().warn("{} could not determine memory usage for pool with name {}", new Object[] {this,
                     context.getProperty(MEMORY_POOL_PROPERTY)});
@@ -208,7 +218,7 @@ public class MonitorMemory extends AbstractReportingTask {
         }
 
         final double percentageUsed = (double) usage.getUsed() / (double) usage.getMax() * 100D;
-        if (bean.isUsageThresholdSupported() && bean.isUsageThresholdExceeded()) {
+        if (bean.isCollectionUsageThresholdSupported() && bean.isCollectionUsageThresholdExceeded()) {
             if (System.currentTimeMillis() < reportingIntervalMillis + lastReportTime && lastReportTime > 0L) {
                 return;
             }

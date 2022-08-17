@@ -25,15 +25,14 @@ import org.apache.nifi.controller.status.history.questdb.QuestDbContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
-import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * QuestDB does not provide the possibility for deleting individual lines. Instead there is the option to drop older
@@ -42,22 +41,28 @@ import java.util.Set;
  */
 public class EmbeddedQuestDbRolloverHandler implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(EmbeddedQuestDbRolloverHandler.class);
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneOffset.UTC);
 
     // Drop keyword is intentionally not uppercase as the query parser only recognizes it in this way
     private static final String DELETION_QUERY = "ALTER TABLE %s drop PARTITION '%s'";
     // Distinct keyword is not recognized if the date mapping is not within an inner query
     static final String SELECTION_QUERY = "SELECT DISTINCT * FROM (SELECT (to_str(capturedAt, 'yyyy-MM-dd')) AS partitionName FROM %s)";
 
-    static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneId.systemDefault());
 
-    private final QuestDbContext dbContext;
+    private final Supplier<ZonedDateTime> timeSource;
     private final List<String> tables = new ArrayList<>();
     private final int daysToKeepData;
+    private final QuestDbContext dbContext;
+
+    EmbeddedQuestDbRolloverHandler(final Supplier<ZonedDateTime> timeSource, final Collection<String> tables, final int daysToKeepData, final QuestDbContext dbContext) {
+        this.timeSource = timeSource;
+        this.tables.addAll(tables);
+        this.daysToKeepData = daysToKeepData;
+        this.dbContext = dbContext;
+    }
 
     public EmbeddedQuestDbRolloverHandler(final Collection<String> tables, final int daysToKeepData, final QuestDbContext dbContext) {
-        this.tables.addAll(tables);
-        this.dbContext = dbContext;
-        this.daysToKeepData = daysToKeepData;
+        this(() -> ZonedDateTime.now(), tables, daysToKeepData, dbContext);
     }
 
     @Override
@@ -69,11 +74,13 @@ public class EmbeddedQuestDbRolloverHandler implements Runnable {
 
     private void rolloverTable(final CharSequence tableName) {
         try {
-            final Set<String> partitions = getPartitions(tableName);
-            final Set<String> partitionToKeep = getPartitionsToKeep();
+            final List<String> partitions = getPartitions(tableName);
+            final String oldestPartitionToKeep = getOldestPartitionToKeep();
 
-            for (final String partition : partitions) {
-                if (!partitionToKeep.contains(partition)) {
+            // The last partition if exists, it is considered as "active partition" and cannot be deleted.
+            for (int i = 0; i < partitions.size() - 1; i++) {
+                final String partition = partitions.get(i);
+                if (oldestPartitionToKeep.compareTo(partition) > 0) {
                     deletePartition(tableName, partition);
                 }
             }
@@ -90,9 +97,9 @@ public class EmbeddedQuestDbRolloverHandler implements Runnable {
         }
     }
 
-    private Set<String> getPartitions(final CharSequence tableName) throws Exception {
+    private List<String> getPartitions(final CharSequence tableName) throws Exception {
         final SqlExecutionContext executionContext = dbContext.getSqlExecutionContext();
-        final Set<String> result = new HashSet<>();
+        final List<String> result = new ArrayList<>(daysToKeepData + 1);
 
         try (
             final SqlCompiler compiler = dbContext.getCompiler();
@@ -105,19 +112,13 @@ public class EmbeddedQuestDbRolloverHandler implements Runnable {
             }
         }
 
+        Collections.sort(result);
         return result;
     }
 
-    private Set<String> getPartitionsToKeep() {
-        final Instant now = Instant.now();
-
-        // Note: as only full partitions might be deleted and the status history repository works with day based partitions,
-        // a partition must remain until any part of it might be the subject of request.
-        final Set<String> result = new HashSet<>();
-        for (int i = 0; i < daysToKeepData + 1; i++) {
-            result.add(DATE_FORMATTER.format(now.minus(i, ChronoUnit.DAYS)));
-        }
-
-        return result;
+    private String getOldestPartitionToKeep() {
+        final ZonedDateTime now = timeSource.get();
+        final ZonedDateTime utc = now.minusDays(daysToKeepData).withZoneSameInstant(ZoneOffset.UTC);
+        return utc.format(DATE_FORMATTER);
     }
 }

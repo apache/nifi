@@ -49,20 +49,16 @@ import org.apache.nifi.provenance.serialization.RecordWriters;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.rules.TestName;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -88,27 +84,23 @@ import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
 
 import static org.apache.nifi.provenance.TestUtil.createFlowFile;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
+@Timeout(value = 10)
 public class ITestPersistentProvenanceRepository {
-
-    @Rule
-    public TestName name = new TestName();
-
-    @ClassRule
-    public static TemporaryFolder tempFolder = new TemporaryFolder();
 
     private PersistentProvenanceRepository repo;
     private static RepositoryConfiguration config;
 
     public static final int DEFAULT_ROLLOVER_MILLIS = 2000;
     private EventReporter eventReporter;
-    private List<ReportedEvent> reportedEvents = Collections.synchronizedList(new ArrayList<ReportedEvent>());
+    private final List<ReportedEvent> reportedEvents = Collections.synchronizedList(new ArrayList<>());
 
     private static int headerSize;
     private static int recordSize;
@@ -116,19 +108,14 @@ public class ITestPersistentProvenanceRepository {
 
     private static RepositoryConfiguration createConfiguration() {
         config = new RepositoryConfiguration();
-        config.addStorageDirectory("1", new File("target/storage/" + UUID.randomUUID().toString()));
+        config.addStorageDirectory("1", new File("target/storage/" + UUID.randomUUID()));
         config.setCompressOnRollover(true);
         config.setMaxEventFileLife(2000L, TimeUnit.SECONDS);
         config.setCompressionBlockBytes(100);
         return config;
     }
 
-    @BeforeClass
-    public static void setLogLevel() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.provenance", "DEBUG");
-    }
-
-    @BeforeClass
+    @BeforeAll
     public static void findJournalSizes() throws IOException {
         // determine header and record size
 
@@ -145,7 +132,8 @@ public class ITestPersistentProvenanceRepository {
         builder.setComponentId("2345");
         final ProvenanceEventRecord record2 = builder.build();
 
-        final File tempRecordFile = tempFolder.newFile("record.tmp");
+        final File tempRecordFile = File.createTempFile("ProvenanceRepository", ".record");
+        tempRecordFile.deleteOnExit();
         System.out.println("findJournalSizes position 0 = " + tempRecordFile.length());
 
         final AtomicLong idGenerator = new AtomicLong(0L);
@@ -166,10 +154,8 @@ public class ITestPersistentProvenanceRepository {
         System.out.println("recordSize2=" + recordSize2);
     }
 
-    @Before
+    @BeforeEach
     public void printTestName() {
-        System.out.println("\n\n\n***********************  " + name.getMethodName() + "  *****************************");
-
         reportedEvents.clear();
         eventReporter = new EventReporter() {
             private static final long serialVersionUID = 1L;
@@ -182,7 +168,7 @@ public class ITestPersistentProvenanceRepository {
         };
     }
 
-    @After
+    @AfterEach
     public void closeRepo() throws IOException {
         if (repo == null) {
             return;
@@ -210,7 +196,7 @@ public class ITestPersistentProvenanceRepository {
                             throw ioe;
                         } else {
                             try {
-                                System.out.println("file: " + storageDir.toString() + " exists=" + storageDir.exists());
+                                System.out.println("file: " + storageDir + " exists=" + storageDir.exists());
                                 FileUtils.deleteFile(storageDir, true);
                                 break;
                             } catch (final IOException ioe2) {
@@ -237,7 +223,7 @@ public class ITestPersistentProvenanceRepository {
     }
 
     @Test
-    @Ignore("For local testing of performance only")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
     public void testPerformance() throws IOException, InterruptedException {
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileCapacity(1024 * 1024 * 1024L);
@@ -352,7 +338,6 @@ public class ITestPersistentProvenanceRepository {
 
     @Test
     public void testAddAndRecover() throws IOException, InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileCapacity(1L);
         config.setMaxEventFileLife(1, TimeUnit.SECONDS);
@@ -399,7 +384,6 @@ public class ITestPersistentProvenanceRepository {
 
     @Test
     public void testAddToMultipleLogsAndRecover() throws IOException, InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final List<SearchableField> searchableFields = new ArrayList<>();
         searchableFields.add(SearchableFields.ComponentID);
 
@@ -458,7 +442,6 @@ public class ITestPersistentProvenanceRepository {
 
     @Test
     public void testIndexOnRolloverWithImmenseAttribute() throws IOException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(500, TimeUnit.MILLISECONDS);
         config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
@@ -504,7 +487,6 @@ public class ITestPersistentProvenanceRepository {
 
     @Test
     public void testIndexOnRolloverAndSubsequentSearch() throws IOException, InterruptedException, ParseException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(500, TimeUnit.MILLISECONDS);
         config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
@@ -549,7 +531,6 @@ public class ITestPersistentProvenanceRepository {
 
     @Test
     public void testCompressOnRollover() throws IOException, InterruptedException, ParseException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(500, TimeUnit.MILLISECONDS);
         config.setCompressOnRollover(true);
@@ -584,7 +565,6 @@ public class ITestPersistentProvenanceRepository {
 
     @Test
     public void testIndexAndCompressOnRolloverAndSubsequentSearch() throws IOException, InterruptedException, ParseException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxRecordLife(30, TimeUnit.SECONDS);
         config.setMaxStorageCapacity(1024L * 1024L * 10);
@@ -645,9 +625,8 @@ public class ITestPersistentProvenanceRepository {
 
     @Test
     public void testIndexAndCompressOnRolloverAndSubsequentSearchMultipleStorageDirs() throws IOException, InterruptedException, ParseException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
-        config.addStorageDirectory("2", new File("target/storage/" + UUID.randomUUID().toString()));
+        config.addStorageDirectory("2", new File("target/storage/" + UUID.randomUUID()));
         config.setMaxRecordLife(30, TimeUnit.SECONDS);
         config.setMaxStorageCapacity(1024L * 1024L);
         config.setMaxEventFileLife(1, TimeUnit.SECONDS);
@@ -734,7 +713,6 @@ public class ITestPersistentProvenanceRepository {
 
     @Test
     public void testIndexAndCompressOnRolloverAndSubsequentEmptySearch() throws IOException, InterruptedException, ParseException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxRecordLife(30, TimeUnit.SECONDS);
         config.setMaxStorageCapacity(1024L * 1024L);
@@ -791,7 +769,6 @@ public class ITestPersistentProvenanceRepository {
 
     @Test
     public void testLineageReceiveDrop() throws IOException, InterruptedException, ParseException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxRecordLife(3, TimeUnit.SECONDS);
         config.setMaxStorageCapacity(1024L * 1024L);
@@ -836,18 +813,17 @@ public class ITestPersistentProvenanceRepository {
 
         for (final LineageEdge edge : edges) {
             if (edge.getSource().getNodeType() == LineageNodeType.FLOWFILE_NODE) {
-                assertTrue(edge.getDestination().getNodeType() == LineageNodeType.PROVENANCE_EVENT_NODE);
-                assertTrue(((EventNode) edge.getDestination()).getEventType() == ProvenanceEventType.DROP);
+                assertSame(edge.getDestination().getNodeType(), LineageNodeType.PROVENANCE_EVENT_NODE);
+                assertSame(((EventNode) edge.getDestination()).getEventType(), ProvenanceEventType.DROP);
             } else {
-                assertTrue(((EventNode) edge.getSource()).getEventType() == ProvenanceEventType.RECEIVE);
-                assertTrue(edge.getDestination().getNodeType() == LineageNodeType.FLOWFILE_NODE);
+                assertSame(((EventNode) edge.getSource()).getEventType(), ProvenanceEventType.RECEIVE);
+                assertSame(edge.getDestination().getNodeType(), LineageNodeType.FLOWFILE_NODE);
             }
         }
     }
 
     @Test
     public void testLineageReceiveDropAsync() throws IOException, InterruptedException, ParseException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxRecordLife(3, TimeUnit.SECONDS);
         config.setMaxStorageCapacity(1024L * 1024L);
@@ -896,18 +872,17 @@ public class ITestPersistentProvenanceRepository {
 
         for (final LineageEdge edge : edges) {
             if (edge.getSource().getNodeType() == LineageNodeType.FLOWFILE_NODE) {
-                assertTrue(edge.getDestination().getNodeType() == LineageNodeType.PROVENANCE_EVENT_NODE);
-                assertTrue(((EventNode) edge.getDestination()).getEventType() == ProvenanceEventType.DROP);
+                assertSame(edge.getDestination().getNodeType(), LineageNodeType.PROVENANCE_EVENT_NODE);
+                assertSame(((EventNode) edge.getDestination()).getEventType(), ProvenanceEventType.DROP);
             } else {
-                assertTrue(((EventNode) edge.getSource()).getEventType() == ProvenanceEventType.RECEIVE);
-                assertTrue(edge.getDestination().getNodeType() == LineageNodeType.FLOWFILE_NODE);
+                assertSame(((EventNode) edge.getSource()).getEventType(), ProvenanceEventType.RECEIVE);
+                assertSame(edge.getDestination().getNodeType(), LineageNodeType.FLOWFILE_NODE);
             }
         }
     }
 
     @Test
     public void testLineageManyToOneSpawn() throws IOException, InterruptedException, ParseException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxRecordLife(3, TimeUnit.SECONDS);
         config.setMaxStorageCapacity(1024L * 1024L);
@@ -958,7 +933,6 @@ public class ITestPersistentProvenanceRepository {
 
     @Test
     public void testLineageManyToOneSpawnAsync() throws IOException, InterruptedException, ParseException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxRecordLife(3, TimeUnit.SECONDS);
         config.setMaxStorageCapacity(1024L * 1024L);
@@ -1011,7 +985,6 @@ public class ITestPersistentProvenanceRepository {
 
     @Test
     public void testCorrectProvenanceEventIdOnRestore() throws IOException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(1, TimeUnit.SECONDS);
         repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
@@ -1061,7 +1034,6 @@ public class ITestPersistentProvenanceRepository {
      */
     @Test
     public void testWithWithEventFileMissingRecord() throws Exception {
-        assumeFalse(isWindowsEnvironment());
         File eventFile = this.prepCorruptedEventFileTests();
 
         final Query query = new Query(UUID.randomUUID().toString());
@@ -1083,7 +1055,6 @@ public class ITestPersistentProvenanceRepository {
      */
     @Test
     public void testWithWithEventFileCorrupted() throws Exception {
-        assumeFalse(isWindowsEnvironment());
         File eventFile = this.prepCorruptedEventFileTests();
 
         final Query query = new Query(UUID.randomUUID().toString());
@@ -1124,91 +1095,7 @@ public class ITestPersistentProvenanceRepository {
     }
 
     @Test
-    @Ignore("This test relies too much on timing of background events by using Thread.sleep().")
-    public void testIndexDirectoryRemoved() throws InterruptedException, IOException, ParseException {
-        final RepositoryConfiguration config = createConfiguration();
-        config.setMaxRecordLife(5, TimeUnit.MINUTES);
-        config.setMaxStorageCapacity(1024L * 1024L);
-        config.setMaxEventFileLife(500, TimeUnit.MILLISECONDS);
-        config.setMaxEventFileCapacity(1024L * 1024L);
-        config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
-        config.setDesiredIndexSize(10); // force new index to be created for each rollover
-
-        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        repo.initialize(getEventReporter(), null, null, IdentifierLookup.EMPTY);
-
-        final String uuid = "00000000-0000-0000-0000-000000000000";
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("abc", "xyz");
-        attributes.put("xyz", "abc");
-        attributes.put("filename", "file-" + uuid);
-
-        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
-        builder.setEventTime(System.currentTimeMillis());
-        builder.setEventType(ProvenanceEventType.RECEIVE);
-        builder.setTransitUri("nifi://unit-test");
-        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
-        builder.setComponentId("1234");
-        builder.setComponentType("dummy processor");
-
-        for (int i = 0; i < 10; i++) {
-            attributes.put("uuid", "00000000-0000-0000-0000-00000000000" + i);
-            builder.fromFlowFile(createFlowFile(i, 3000L, attributes));
-            builder.setEventTime(10L); // make sure the events are destroyed when we call purge
-            repo.registerEvent(builder.build());
-        }
-
-        repo.waitForRollover();
-
-        Thread.sleep(2000L);
-
-        final FileFilter indexFileFilter = file -> file.getName().startsWith("index");
-        final int numIndexDirs = config.getStorageDirectories().values().iterator().next().listFiles(indexFileFilter).length;
-        assertEquals(1, numIndexDirs);
-
-        // add more records so that we will create a new index
-        final long secondBatchStartTime = System.currentTimeMillis();
-        for (int i = 0; i < 10; i++) {
-            attributes.put("uuid", "00000000-0000-0000-0000-00000000001" + i);
-            builder.fromFlowFile(createFlowFile(i, 3000L, attributes));
-            builder.setEventTime(System.currentTimeMillis());
-            repo.registerEvent(builder.build());
-        }
-
-        // wait for indexing to happen
-        repo.waitForRollover();
-
-        // verify we get the results expected
-        final Query query = new Query(UUID.randomUUID().toString());
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.Filename, "file-*", null));
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "12?4", null));
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.TransitURI, "nifi://*", null));
-        query.setMaxResults(100);
-
-        final QueryResult result = repo.queryEvents(query, createUser());
-        assertEquals(20, result.getMatchingEvents().size());
-
-        // Ensure index directories exists
-        File[] indexDirs = config.getStorageDirectories().values().iterator().next().listFiles(indexFileFilter);
-        assertEquals(2, indexDirs.length);
-
-        // expire old events and indexes
-        final long timeSinceSecondBatch = System.currentTimeMillis() - secondBatchStartTime;
-        config.setMaxRecordLife(timeSinceSecondBatch + 1000L, TimeUnit.MILLISECONDS);
-        repo.purgeOldEvents();
-        Thread.sleep(2000L);
-
-        final QueryResult newRecordSet = repo.queryEvents(query, createUser());
-        assertEquals(10, newRecordSet.getMatchingEvents().size());
-
-        // Ensure that one index directory is gone
-        indexDirs = config.getStorageDirectories().values().iterator().next().listFiles(indexFileFilter);
-        assertEquals(1, indexDirs.length);
-    }
-
-    @Test
     public void testNotAuthorizedGetSpecificEvent() throws IOException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxRecordLife(5, TimeUnit.MINUTES);
         config.setMaxStorageCapacity(1024L * 1024L);
@@ -1250,17 +1137,11 @@ public class ITestPersistentProvenanceRepository {
 
         repo.waitForRollover();
 
-        try {
-            repo.getEvent(0L, null);
-            Assert.fail("getEvent() did not throw an Exception");
-        } catch (final Exception e) {
-            Assert.assertSame(expectedException, e);
-        }
+        assertThrows(expectedException.getClass(), () -> repo.getEvent(0, null));
     }
 
     @Test
     public void testNotAuthorizedGetEventRange() throws IOException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxRecordLife(5, TimeUnit.MINUTES);
         config.setMaxStorageCapacity(1024L * 1024L);
@@ -1307,13 +1188,12 @@ public class ITestPersistentProvenanceRepository {
         assertEquals(7, events.size());
         final List<Long> eventIds = events.stream().map(event -> event.getEventId()).sorted().collect(Collectors.toList());
         for (int i = 0; i < 7; i++) {
-            Assert.assertEquals(i + 3, eventIds.get(i).intValue());
+            assertEquals(i + 3, eventIds.get(i).intValue());
         }
     }
 
-    @Test(timeout = 10000)
+    @Test
     public void testNotAuthorizedQuery() throws IOException, InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxRecordLife(5, TimeUnit.MINUTES);
         config.setMaxStorageCapacity(1024L * 1024L);
@@ -1368,13 +1248,12 @@ public class ITestPersistentProvenanceRepository {
         assertEquals(7, events.size());
         final List<Long> eventIds = events.stream().map(event -> event.getEventId()).sorted().collect(Collectors.toList());
         for (int i = 0; i < 7; i++) {
-            Assert.assertEquals(i + 3, eventIds.get(i).intValue());
+            assertEquals(i + 3, eventIds.get(i).intValue());
         }
     }
 
-    @Test(timeout = 1000000)
+    @Test
     public void testNotAuthorizedLineage() throws IOException, InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxRecordLife(5, TimeUnit.MINUTES);
         config.setMaxStorageCapacity(1024L * 1024L);
@@ -1495,7 +1374,6 @@ public class ITestPersistentProvenanceRepository {
 
     @Test
     public void testBackPressure() throws IOException, InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileCapacity(1L); // force rollover on each record.
         config.setJournalCount(1);
@@ -1560,7 +1438,6 @@ public class ITestPersistentProvenanceRepository {
 
     @Test
     public void testTextualQuery() throws InterruptedException, IOException, ParseException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(500, TimeUnit.MILLISECONDS);
         config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
@@ -1606,7 +1483,6 @@ public class ITestPersistentProvenanceRepository {
     }
 
     private List<Document> runQuery(final File indexDirectory, final List<File> storageDirs, final String query) throws IOException, ParseException {
-        assumeFalse(isWindowsEnvironment());
         try (final DirectoryReader directoryReader = DirectoryReader.open(FSDirectory.open(indexDirectory.toPath()))) {
             final IndexSearcher searcher = new IndexSearcher(directoryReader);
 
@@ -1639,7 +1515,7 @@ public class ITestPersistentProvenanceRepository {
                     ProvenanceEventRecord last = null;
                     while ((r = reader.nextRecord()) != null) {
                         if (exact) {
-                            assertTrue(counter++ == r.getEventId());
+                            assertEquals(counter++, r.getEventId());
                         } else {
                             assertTrue(counter++ <= r.getEventId());
                         }
@@ -1652,7 +1528,6 @@ public class ITestPersistentProvenanceRepository {
 
     @Test
     public void testMergeJournals() throws IOException, InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(3, TimeUnit.SECONDS);
         repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
@@ -1720,7 +1595,6 @@ public class ITestPersistentProvenanceRepository {
 
     @Test
     public void testMergeJournalsBadFirstRecord() throws IOException, InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(3, TimeUnit.SECONDS);
         TestablePersistentProvenanceRepository testRepo = new TestablePersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
@@ -1767,7 +1641,6 @@ public class ITestPersistentProvenanceRepository {
 
     @Test
     public void testMergeJournalsBadRecordAfterFirst() throws IOException, InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(3, TimeUnit.SECONDS);
         TestablePersistentProvenanceRepository testRepo = new TestablePersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
@@ -1818,7 +1691,6 @@ public class ITestPersistentProvenanceRepository {
 
     @Test
     public void testMergeJournalsEmptyJournal() throws IOException, InterruptedException {
-        assumeFalse(isWindowsEnvironment());//skip on window
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(3, TimeUnit.SECONDS);
         TestablePersistentProvenanceRepository testRepo = new TestablePersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
@@ -1857,7 +1729,7 @@ public class ITestPersistentProvenanceRepository {
 
         testRepo.recoverJournalFiles();
 
-        assertEquals("mergeJournals() should not error on empty journal", 0, reportedEvents.size());
+        assertEquals(0, reportedEvents.size(),"mergeJournals() should not error on empty journal");
 
         final File storageDir = config.getStorageDirectories().values().iterator().next();
         assertEquals(config.getJournalCount() - 1, checkJournalRecords(storageDir, true));
@@ -1865,7 +1737,6 @@ public class ITestPersistentProvenanceRepository {
 
     @Test
     public void testRolloverRetry() throws IOException, InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final AtomicInteger retryAmount = new AtomicInteger(0);
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(3, TimeUnit.SECONDS);
@@ -1920,8 +1791,7 @@ public class ITestPersistentProvenanceRepository {
     }
 
     @Test
-    public void testTruncateAttributes() throws IOException, InterruptedException {
-        assumeFalse(isWindowsEnvironment());
+    public void testTruncateAttributes() throws IOException {
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxAttributeChars(50);
         config.setMaxEventFileLife(3, TimeUnit.SECONDS);
@@ -1958,9 +1828,8 @@ public class ITestPersistentProvenanceRepository {
         assertEquals(maxLengthChars.substring(0, 49), retrieved.getAttributes().get("49chars"));
     }
 
-    @Test(timeout = 15000)
+    @Test
     public void testExceptionOnIndex() throws IOException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxAttributeChars(50);
         config.setMaxEventFileLife(3, TimeUnit.SECONDS);
@@ -2012,8 +1881,7 @@ public class ITestPersistentProvenanceRepository {
     }
 
     @Test
-    public void testFailureToCreateWriterDoesNotPreventSubsequentRollover() throws IOException, InterruptedException {
-        assumeFalse(isWindowsEnvironment());
+    public void testFailureToCreateWriterDoesNotPreventSubsequentRollover() throws IOException {
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxAttributeChars(50);
         config.setMaxEventFileLife(3, TimeUnit.SECONDS);
@@ -2055,12 +1923,7 @@ public class ITestPersistentProvenanceRepository {
         }
 
         // Attempt to rollover but fail to create new writers.
-        try {
-            repo.rolloverWithLock(true);
-            Assert.fail("Expected to get IOException when calling rolloverWithLock");
-        } catch (final IOException ioe) {
-            assertTrue(ioe == failure);
-        }
+        assertThrows(IOException.class, () -> repo.rolloverWithLock(true));
 
         // Wait for the first rollover to succeed.
         repo.waitForRollover();

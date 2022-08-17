@@ -1590,7 +1590,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
                 // we have all "partial" files and there is already a merged file. Delete the data from the index
                 // because the merge file may not be fully merged. We will re-merge.
                 logger.warn("Merged Journal File {} already exists; however, all partial journal files also exist "
-                        + "so assuming that the merge did not finish. Repeating procedure in order to ensure consistency.");
+                        + "so assuming that the merge did not finish. Repeating procedure in order to ensure consistency.", suggestedMergeFile);
 
                 final DeleteIndexAction deleteAction = new DeleteIndexAction(this, indexConfig, getIndexManager());
                 try {

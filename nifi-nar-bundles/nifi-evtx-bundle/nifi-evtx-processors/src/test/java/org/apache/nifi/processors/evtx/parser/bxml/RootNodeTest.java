@@ -19,7 +19,8 @@ package org.apache.nifi.processors.evtx.parser.bxml;
 
 import org.apache.nifi.processors.evtx.parser.BxmlNodeVisitor;
 import org.apache.nifi.processors.evtx.parser.bxml.value.VariantTypeNode;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.List;
@@ -36,6 +37,7 @@ public class RootNodeTest extends BxmlNodeTestBase {
     private RootNode rootNode;
 
     @Override
+    @BeforeEach
     public void setup() throws IOException {
         super.setup();
         testBinaryReaderBuilder.put((byte) BxmlNode.END_OF_STREAM_TOKEN);

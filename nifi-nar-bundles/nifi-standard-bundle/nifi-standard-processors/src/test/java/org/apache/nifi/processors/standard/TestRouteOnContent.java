@@ -16,15 +16,14 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
+
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
-import org.junit.Test;
 
 public class TestRouteOnContent {
 

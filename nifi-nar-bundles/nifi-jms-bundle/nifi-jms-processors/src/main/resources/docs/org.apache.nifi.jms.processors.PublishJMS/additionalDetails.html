@@ -28,7 +28,7 @@
 <p>
     This processor does two things. It constructs JMS Message by extracting FlowFile contents (both body and attributes). 
     Once message is constructed it is sent to a pre-configured JMS Destination.
-    Standard <a href="http://docs.spring.io/spring-integration/docs/4.2.0.RELEASE/api/org/springframework/integration/jms/JmsHeaders.html">JMS Headers</a>
+    Standard JMS Headers
     will be extracted from the FlowFile and set on <i>javax.jms.Message</i> as JMS headers while other 
     FlowFile attributes will be set as properties of <i>javax.jms.Message</i>. Upon success the incoming FlowFile is transferred
     to the <i>success</i> Relationship and upon failure FlowFile is

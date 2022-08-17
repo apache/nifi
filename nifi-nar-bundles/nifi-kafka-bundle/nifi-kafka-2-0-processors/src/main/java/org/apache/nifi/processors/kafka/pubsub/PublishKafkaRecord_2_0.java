@@ -79,6 +79,8 @@ import java.util.regex.Pattern;
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILURE_STRATEGY;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK;
 
 @Tags({"Apache", "Kafka", "Record", "csv", "json", "avro", "logs", "Put", "Send", "Message", "PubSub", "2.0"})
 @CapabilityDescription("Sends the contents of a FlowFile as individual records to Apache Kafka using the Kafka 2.0 Producer API. "
@@ -104,8 +106,8 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
             + "whether or not it is replicated. This is faster than <Guarantee Replicated Delivery> "
             + "but can result in data loss if a Kafka node crashes");
     static final AllowableValue DELIVERY_BEST_EFFORT = new AllowableValue("0", "Best Effort",
-        "FlowFile will be routed to success after successfully writing the content to a Kafka node, "
-            + "without waiting for a response. This provides the best performance but may result in data loss.");
+        "FlowFile will be routed to success after successfully sending the content to a Kafka node, "
+            + "without waiting for any acknowledgment from the node at all. This provides the best performance but may result in data loss.");
 
     static final AllowableValue ROUND_ROBIN_PARTITIONING = new AllowableValue(Partitioners.RoundRobinPartitioner.class.getName(),
         Partitioners.RoundRobinPartitioner.class.getSimpleName(),
@@ -164,7 +166,7 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
         .required(true)
         .expressionLanguageSupported(NONE)
         .allowableValues(DELIVERY_BEST_EFFORT, DELIVERY_ONE_NODE, DELIVERY_REPLICATED)
-        .defaultValue(DELIVERY_BEST_EFFORT.getValue())
+        .defaultValue(DELIVERY_REPLICATED.getValue())
         .build();
 
     static final PropertyDescriptor METADATA_WAIT_TIME = new Builder()
@@ -289,6 +291,7 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
         properties.add(RECORD_READER);
         properties.add(RECORD_WRITER);
         properties.add(USE_TRANSACTIONS);
+        properties.add(KafkaProcessorUtils.FAILURE_STRATEGY);
         properties.add(TRANSACTIONAL_ID_PREFIX);
         properties.add(DELIVERY_GUARANTEE);
         properties.add(ATTRIBUTE_NAME_REGEX);
@@ -445,6 +448,7 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final boolean useTransactions = context.getProperty(USE_TRANSACTIONS).asBoolean();
+        final PublishFailureStrategy failureStrategy = getFailureStrategy(context);
 
         final long startTime = System.nanoTime();
         try (final PublisherLease lease = pool.obtainPublisher()) {
@@ -502,8 +506,8 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
                 final PublishResult publishResult = lease.complete();
 
                 if (publishResult.isFailure()) {
-                    getLogger().info("Failed to send FlowFile to kafka; transferring to failure");
-                    session.transfer(flowFiles, REL_FAILURE);
+                    getLogger().info("Failed to send FlowFile to kafka; transferring to specified failure strategy");
+                    failureStrategy.routeFlowFiles(session, flowFiles);
                     return;
                 }
 
@@ -522,8 +526,8 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
                 }
             } catch (final ProducerFencedException | OutOfOrderSequenceException | AuthorizationException e) {
                 lease.poison();
-                getLogger().error("Failed to send messages to Kafka; will yield Processor and transfer FlowFiles to failure");
-                session.transfer(flowFiles, REL_FAILURE);
+                getLogger().error("Failed to send messages to Kafka; will yield Processor and transfer FlowFiles to specified failure strategy");
+                failureStrategy.routeFlowFiles(session, flowFiles);
                 context.yield();
             }
         }
@@ -556,5 +560,14 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
         });
 
         return accumulator.intValue();
+    }
+
+    private PublishFailureStrategy getFailureStrategy(final ProcessContext context) {
+        final String strategy = context.getProperty(FAILURE_STRATEGY).getValue();
+        if (FAILURE_STRATEGY_ROLLBACK.getValue().equals(strategy)) {
+            return (session, flowFiles) -> session.rollback();
+        } else {
+            return (session, flowFiles) -> session.transfer(flowFiles, REL_FAILURE);
+        }
     }
 }

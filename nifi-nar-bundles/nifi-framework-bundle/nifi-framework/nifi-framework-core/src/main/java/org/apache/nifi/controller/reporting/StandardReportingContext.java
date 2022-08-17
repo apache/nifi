@@ -20,13 +20,13 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.ReportingTask;
 
 import java.util.Map;
 
@@ -37,9 +37,9 @@ public class StandardReportingContext extends AbstractReportingContext implement
     private final boolean analyticsEnabled;
 
     public StandardReportingContext(final FlowController flowController, final BulletinRepository bulletinRepository,
-                                    final Map<PropertyDescriptor, String> properties, final ReportingTask reportingTask,
+                                    final Map<PropertyDescriptor, String> properties, final ReportingTaskNode reportingTaskNode,
                                     final VariableRegistry variableRegistry, final ParameterLookup parameterLookup) {
-        super(reportingTask, bulletinRepository, properties, flowController.getControllerServiceProvider(), parameterLookup, variableRegistry);
+        super(reportingTaskNode, bulletinRepository, properties, flowController.getControllerServiceProvider(), parameterLookup, variableRegistry);
         this.flowController = flowController;
         this.eventAccess = flowController.getEventAccess();
         this.analyticsEnabled = flowController.getStatusAnalyticsEngine() != null;

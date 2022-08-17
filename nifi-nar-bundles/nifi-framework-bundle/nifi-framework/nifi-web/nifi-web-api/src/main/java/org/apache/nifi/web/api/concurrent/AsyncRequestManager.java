@@ -56,8 +56,8 @@ public class AsyncRequestManager<R, T> implements RequestManager<R, T> {
         this.requestExpirationMillis = requestExpirationMillis;
         this.maxConcurrentRequests = maxConcurrentRequests;
 
-        this.threadPool = new ThreadPoolExecutor(1, 50, 5L, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(maxConcurrentRequests),
+        this.threadPool = new ThreadPoolExecutor(1, maxConcurrentRequests, 5L, TimeUnit.SECONDS,
+            new ArrayBlockingQueue<>(1),
             new ThreadFactory() {
                 private final AtomicLong counter = new AtomicLong(0L);
 

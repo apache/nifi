@@ -23,6 +23,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
@@ -34,9 +35,13 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDependency;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceDefinition;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.DocumentationWriter;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
@@ -511,7 +516,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                 }
 
                 xmlStreamWriter.writeEndElement();
-                writeSimpleElement(xmlStreamWriter, "td", property.getDefaultValue(), false, "default-value");
+                writeSimpleElement(xmlStreamWriter, "td", getDefaultValue(property), false, "default-value");
                 xmlStreamWriter.writeStartElement("td");
                 xmlStreamWriter.writeAttribute("id", "allowable-values");
                 writeValidValues(xmlStreamWriter, property);
@@ -527,6 +532,35 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                 if (property.isSensitive()) {
                     xmlStreamWriter.writeEmptyElement("br");
                     writeSimpleElement(xmlStreamWriter, "strong", "Sensitive Property: true");
+                }
+
+                final ResourceDefinition resourceDefinition = property.getResourceDefinition();
+                if (resourceDefinition != null) {
+                    xmlStreamWriter.writeEmptyElement("br");
+                    xmlStreamWriter.writeEmptyElement("br");
+                    xmlStreamWriter.writeStartElement("strong");
+
+                    final ResourceCardinality cardinality = resourceDefinition.getCardinality();
+                    final Set<ResourceType> resourceTypes = resourceDefinition.getResourceTypes();
+                    if (cardinality == ResourceCardinality.MULTIPLE) {
+                        if (resourceTypes.size() == 1) {
+                            xmlStreamWriter.writeCharacters("This property expects a comma-separated list of " + resourceTypes.iterator().next() + " resources");
+                        } else {
+                            xmlStreamWriter.writeCharacters("This property expects a comma-separated list of resources. Each of the resources may be of any of the following types: " +
+                                StringUtils.join(resourceDefinition.getResourceTypes(), ", "));
+                        }
+                    } else {
+                        if (resourceTypes.size() == 1) {
+                            xmlStreamWriter.writeCharacters("This property requires exactly one " + resourceTypes.iterator().next() + " to be provided.");
+                        } else {
+                            xmlStreamWriter.writeCharacters("This property requires exactly one resource to be provided. That resource may be any of the following types: " +
+                                StringUtils.join(resourceDefinition.getResourceTypes(), ", "));
+                        }
+                    }
+
+                    xmlStreamWriter.writeCharacters(".");
+                    xmlStreamWriter.writeEndElement();
+                    xmlStreamWriter.writeEmptyElement("br");
                 }
 
                 if (property.isExpressionLanguageSupported()) {
@@ -574,27 +608,58 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
                     for (final PropertyDependency dependency : dependencies) {
                         final Set<String> dependentValues = dependency.getDependentValues();
-                        final String prefix = (capitalizeThe ? "The" : "the") + " <" + dependency.getPropertyDisplayName() + "> Property ";
-                        final String suffix;
+                        final String prefix = (capitalizeThe ? "The" : "the") + " [" + dependency.getPropertyDisplayName() + "] Property ";
+                        String suffix = "";
                         if (dependentValues == null) {
                             suffix = "has a value specified.";
-                        } else if (dependentValues.size() == 1) {
-                            final String requiredValue = dependentValues.iterator().next();
-                            suffix = "has a value of \"" + requiredValue + "\".";
                         } else {
-                            final StringBuilder sb = new StringBuilder("is set to one of the following values: ");
-
-                            for (final String dependentValue : dependentValues) {
-                                sb.append("\"").append(dependentValue).append("\", ");
+                            PropertyDescriptor dependencyProperty = null;
+                            for (PropertyDescriptor prop : properties) {
+                                if (prop.getName().equals(dependency.getPropertyName())) {
+                                    dependencyProperty = prop;
+                                    break;
+                                }
                             }
+                            if (null == dependencyProperty) {
+                                throw new XMLStreamException("No property was found matching the name '" + dependency.getPropertyName() + "'");
+                            }
+                            if (dependentValues.size() == 1) {
+                                final String requiredValue = dependentValues.iterator().next();
+                                final List<AllowableValue> allowableValues = dependencyProperty.getAllowableValues();
+                                if (allowableValues != null) {
+                                    for (AllowableValue av : allowableValues) {
+                                        if (requiredValue.equals(av.getValue())) {
+                                            suffix = "has a value of \"" + av.getDisplayName() + "\".";
+                                            break;
+                                        }
+                                    }
+                                }
+                            } else {
+                                final StringBuilder sb = new StringBuilder("is set to one of the following values: ");
 
-                            // Delete the trailing ", "
-                            sb.setLength(sb.length() - 2);
+                                for (final String dependentValue : dependentValues) {
+                                    final List<AllowableValue> allowableValues = dependencyProperty.getAllowableValues();
+                                    if (allowableValues == null) {
+                                        sb.append("[").append(dependentValue).append("], ");
+                                    } else {
+                                        for (AllowableValue av : allowableValues) {
+                                            if (dependentValue.equals(av.getValue())) {
+                                                sb.append("[").append(av.getDisplayName()).append("], ");
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
 
-                            suffix = sb.toString();
+                                // Delete the trailing ", "
+                                sb.setLength(sb.length() - 2);
+
+                                suffix = sb.toString();
+                            }
                         }
 
-                        writeSimpleElement(xmlStreamWriter, "strong", prefix + suffix);
+                        final String elementName = dependencies.size() > 1 ? "li" : "strong";
+                        writeSimpleElement(xmlStreamWriter, elementName, prefix + suffix);
                     }
 
                     if (dependencies.size() > 1) { // write </ul>
@@ -612,6 +677,25 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         } else {
             writeSimpleElement(xmlStreamWriter, "p", "This component has no required or optional properties.");
         }
+    }
+
+    private String getDefaultValue(final PropertyDescriptor propertyDescriptor) {
+        final String defaultValue;
+
+        final String descriptorDefaultValue = propertyDescriptor.getDefaultValue();
+
+        final List<AllowableValue> allowableValues = propertyDescriptor.getAllowableValues();
+        if (allowableValues != null) {
+            defaultValue = allowableValues.stream()
+                    .filter(allowableValue -> allowableValue.getValue().equals(descriptorDefaultValue))
+                    .findFirst()
+                    .map(AllowableValue::getDisplayName)
+                    .orElse(descriptorDefaultValue);
+        } else {
+            defaultValue = descriptorDefaultValue;
+        }
+
+        return defaultValue;
     }
 
     /**
@@ -651,6 +735,9 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
         if (dynamicProperties != null && dynamicProperties.size() > 0) {
             writeSimpleElement(xmlStreamWriter, "h3", "Dynamic Properties: ");
+
+            writeSupportsSensitiveDynamicProperties(configurableComponent, xmlStreamWriter);
+
             xmlStreamWriter.writeStartElement("p");
             xmlStreamWriter
                     .writeCharacters("Dynamic Properties allow the user to specify both the name and value of a property.");
@@ -700,6 +787,18 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             xmlStreamWriter.writeEndElement();
             xmlStreamWriter.writeEndElement();
         }
+    }
+
+    private void writeSupportsSensitiveDynamicProperties(final ConfigurableComponent configurableComponent, final XMLStreamWriter writer) throws XMLStreamException {
+        final boolean supportsSensitiveDynamicProperties = configurableComponent.getClass().isAnnotationPresent(SupportsSensitiveDynamicProperties.class);
+        final String sensitiveDynamicPropertiesLabel = supportsSensitiveDynamicProperties ? "Yes" : "No";
+
+        writer.writeStartElement("p");
+
+        writer.writeCharacters("Supports Sensitive Dynamic Properties: ");
+        writeSimpleElement(writer, "strong", sensitiveDynamicPropertiesLabel);
+
+        writer.writeEndElement();
     }
 
     private List<DynamicProperty> getDynamicProperties(ConfigurableComponent configurableComponent) {
@@ -809,16 +908,20 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
     protected final static void writeSimpleElement(final XMLStreamWriter writer, final String elementName,
             final String characters, boolean strong, String id) throws XMLStreamException {
         writer.writeStartElement(elementName);
-        if (id != null) {
-            writer.writeAttribute("id", id);
+
+        if (characters != null) {
+            if (id != null) {
+                writer.writeAttribute("id", id);
+            }
+            if (strong) {
+                writer.writeStartElement("strong");
+            }
+            writer.writeCharacters(characters);
+            if (strong) {
+                writer.writeEndElement();
+            }
         }
-        if (strong) {
-            writer.writeStartElement("strong");
-        }
-        writer.writeCharacters(characters);
-        if (strong) {
-            writer.writeEndElement();
-        }
+
         writer.writeEndElement();
     }
 
@@ -901,11 +1004,12 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         final List<Class<? extends ControllerService>> implementations = new ArrayList<>();
 
         // first get all ControllerService implementations
-        final Set<Class> controllerServices = extensionManager.getExtensions(ControllerService.class);
+        final Set<ExtensionDefinition> controllerServices = extensionManager.getExtensions(ControllerService.class);
 
         // then iterate over all controller services looking for any that is a child of the parent
         // ControllerService API that was passed in as a parameter
-        for (final Class<? extends ControllerService> controllerServiceClass : controllerServices) {
+        for (final ExtensionDefinition extensionDefinition : controllerServices) {
+            final Class controllerServiceClass = extensionManager.getClass(extensionDefinition);
             if (parent.isAssignableFrom(controllerServiceClass)) {
                 implementations.add(controllerServiceClass);
             }

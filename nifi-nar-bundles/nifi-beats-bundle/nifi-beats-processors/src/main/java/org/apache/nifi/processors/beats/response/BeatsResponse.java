@@ -59,5 +59,4 @@ public class BeatsResponse {
     public static BeatsResponse ok(final int seqNumber) {
         return new BeatsResponse(seqNumber);
     }
-
 }

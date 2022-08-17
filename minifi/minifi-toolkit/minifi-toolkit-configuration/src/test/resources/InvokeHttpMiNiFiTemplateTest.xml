@@ -1,0 +1,650 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+   http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+ -->
+<template encoding-version="1.0">
+  <description/>
+  <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+  <name>InvokeHttpMiNiFiTemplateTest2</name>
+  <snippet>
+    <connections>
+      <id>7299c143-46f6-4a94-aa24-ec47db16f73e</id>
+      <parentGroupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</parentGroupId>
+      <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+      <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+      <destination>
+        <groupId>d41d8cd9-8f00-3204-a980-0998ecf8427e</groupId>
+        <id>b23a4621-cf19-42e6-967c-ffd3716e6a24</id>
+        <type>REMOTE_INPUT_PORT</type>
+      </destination>
+      <flowFileExpiration>0 sec</flowFileExpiration>
+      <labelIndex>1</labelIndex>
+      <name/>
+      <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+      <selectedRelationships>unmatched</selectedRelationships>
+      <source>
+        <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+        <id>dcff217a-a25c-424f-b9f1-d82c55bfa61b</id>
+        <type>PROCESSOR</type>
+      </source>
+      <zIndex>0</zIndex>
+    </connections>
+    <connections>
+      <id>451b153a-8a4e-4bed-99ab-5159e499bcf1</id>
+      <parentGroupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</parentGroupId>
+      <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+      <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+      <destination>
+        <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+        <id>dcff217a-a25c-424f-b9f1-d82c55bfa61b</id>
+        <type>PROCESSOR</type>
+      </destination>
+      <flowFileExpiration>0 sec</flowFileExpiration>
+      <labelIndex>1</labelIndex>
+      <name/>
+      <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+      <selectedRelationships>Failure</selectedRelationships>
+      <source>
+        <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+        <id>66649998-3b08-4b41-9f07-a51d999743f6</id>
+        <type>PROCESSOR</type>
+      </source>
+      <zIndex>0</zIndex>
+    </connections>
+    <connections>
+      <id>b97044aa-3401-49df-86ab-bc440cd8f6c8</id>
+      <parentGroupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</parentGroupId>
+      <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+      <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+      <bends>
+        <x>1483.6325842428985</x>
+        <y>1391.8157446098328</y>
+      </bends>
+      <destination>
+        <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+        <id>dcff217a-a25c-424f-b9f1-d82c55bfa61b</id>
+        <type>PROCESSOR</type>
+      </destination>
+      <flowFileExpiration>0 sec</flowFileExpiration>
+      <labelIndex>1</labelIndex>
+      <name/>
+      <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+      <selectedRelationships>Original</selectedRelationships>
+      <source>
+        <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+        <id>66649998-3b08-4b41-9f07-a51d999743f6</id>
+        <type>PROCESSOR</type>
+      </source>
+      <zIndex>0</zIndex>
+    </connections>
+    <connections>
+      <id>9f948a25-afb4-4598-9a01-cfb7e3aa5920</id>
+      <parentGroupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</parentGroupId>
+      <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+      <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+      <destination>
+        <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+        <id>0bda7282-7a4f-4d39-83e5-ea86aa63f1dc</id>
+        <type>PROCESSOR</type>
+      </destination>
+      <flowFileExpiration>0 sec</flowFileExpiration>
+      <labelIndex>1</labelIndex>
+      <name/>
+      <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+      <selectedRelationships>unmatched</selectedRelationships>
+      <source>
+        <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+        <id>dcff217a-a25c-424f-b9f1-d82c55bfa61b</id>
+        <type>PROCESSOR</type>
+      </source>
+      <zIndex>0</zIndex>
+    </connections>
+    <connections>
+      <id>2ef71cd8-eb24-4653-8526-34ab84e79328</id>
+      <parentGroupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</parentGroupId>
+      <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+      <backPressureObjectThreshold>0</backPressureObjectThreshold>
+      <destination>
+        <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+        <id>6638cd15-0aaf-4bba-a18a-722cf85038b6</id>
+        <type>PROCESSOR</type>
+      </destination>
+      <flowFileExpiration>0 sec</flowFileExpiration>
+      <labelIndex>1</labelIndex>
+      <name/>
+      <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+      <selectedRelationships>success</selectedRelationships>
+      <source>
+        <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+        <id>fcb378d7-6438-41d3-8485-7da85e870ca4</id>
+        <type>PROCESSOR</type>
+      </source>
+      <zIndex>0</zIndex>
+    </connections>
+    <connections>
+      <id>ee5ee5bf-a552-43cf-9514-c14d40350bff</id>
+      <parentGroupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</parentGroupId>
+      <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+      <backPressureObjectThreshold>0</backPressureObjectThreshold>
+      <destination>
+        <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+        <id>66649998-3b08-4b41-9f07-a51d999743f6</id>
+        <type>PROCESSOR</type>
+      </destination>
+      <flowFileExpiration>0 sec</flowFileExpiration>
+      <labelIndex>1</labelIndex>
+      <name/>
+      <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+      <selectedRelationships>success</selectedRelationships>
+      <source>
+        <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+        <id>6638cd15-0aaf-4bba-a18a-722cf85038b6</id>
+        <type>PROCESSOR</type>
+      </source>
+      <zIndex>0</zIndex>
+    </connections>
+    <connections>
+      <id>3172a4b6-c35b-4d2f-a7c1-68eb16cc1b37</id>
+      <parentGroupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</parentGroupId>
+      <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+      <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+      <bends>
+        <x>1683.6325842428985</x>
+        <y>1391.8157446098328</y>
+      </bends>
+      <destination>
+        <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+        <id>dcff217a-a25c-424f-b9f1-d82c55bfa61b</id>
+        <type>PROCESSOR</type>
+      </destination>
+      <flowFileExpiration>0 sec</flowFileExpiration>
+      <labelIndex>1</labelIndex>
+      <name/>
+      <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+      <selectedRelationships>Retry</selectedRelationships>
+      <source>
+        <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+        <id>66649998-3b08-4b41-9f07-a51d999743f6</id>
+        <type>PROCESSOR</type>
+      </source>
+      <zIndex>0</zIndex>
+    </connections>
+    <connections>
+      <id>c6a06d31-51fb-488f-bcde-495102f8c93f</id>
+      <parentGroupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</parentGroupId>
+      <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+      <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+      <bends>
+        <x>883.6325842428985</x>
+        <y>1391.8157446098328</y>
+      </bends>
+      <destination>
+        <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+        <id>dcff217a-a25c-424f-b9f1-d82c55bfa61b</id>
+        <type>PROCESSOR</type>
+      </destination>
+      <flowFileExpiration>0 sec</flowFileExpiration>
+      <labelIndex>1</labelIndex>
+      <name/>
+      <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+      <selectedRelationships>Response</selectedRelationships>
+      <source>
+        <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+        <id>66649998-3b08-4b41-9f07-a51d999743f6</id>
+        <type>PROCESSOR</type>
+      </source>
+      <zIndex>0</zIndex>
+    </connections>
+    <connections>
+      <id>4a7bdaf1-eba0-4317-92f2-93cef6240c28</id>
+      <parentGroupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</parentGroupId>
+      <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+      <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+      <bends>
+        <x>1049.063644721547</x>
+        <y>1567.7883365880348</y>
+      </bends>
+      <destination>
+        <groupId>d41d8cd9-8f00-3204-a980-0998ecf8427e</groupId>
+        <id>b23a4621-cf19-42e6-967c-ffd3716e6a24</id>
+        <type>REMOTE_INPUT_PORT</type>
+      </destination>
+      <flowFileExpiration>0 sec</flowFileExpiration>
+      <labelIndex>1</labelIndex>
+      <name/>
+      <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+      <selectedRelationships>200</selectedRelationships>
+      <source>
+        <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+        <id>dcff217a-a25c-424f-b9f1-d82c55bfa61b</id>
+        <type>PROCESSOR</type>
+      </source>
+      <zIndex>0</zIndex>
+    </connections>
+    <connections>
+      <id>3039718a-bb40-4811-9b74-ecbe926daae8</id>
+      <parentGroupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</parentGroupId>
+      <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+      <backPressureObjectThreshold>0</backPressureObjectThreshold>
+      <destination>
+        <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+        <id>0a73c5e4-7216-4cdf-9008-ace353478d55</id>
+        <type>PROCESSOR</type>
+      </destination>
+      <flowFileExpiration>0 sec</flowFileExpiration>
+      <labelIndex>1</labelIndex>
+      <name/>
+      <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+      <selectedRelationships>200</selectedRelationships>
+      <source>
+        <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+        <id>dcff217a-a25c-424f-b9f1-d82c55bfa61b</id>
+        <type>PROCESSOR</type>
+      </source>
+      <zIndex>0</zIndex>
+    </connections>
+    <connections>
+      <id>ddbc1711-8cda-4418-b6ee-895763ef1a97</id>
+      <parentGroupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</parentGroupId>
+      <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+      <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+      <bends>
+        <x>1083.6325842428985</x>
+        <y>1391.8157446098328</y>
+      </bends>
+      <destination>
+        <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+        <id>dcff217a-a25c-424f-b9f1-d82c55bfa61b</id>
+        <type>PROCESSOR</type>
+      </destination>
+      <flowFileExpiration>0 sec</flowFileExpiration>
+      <labelIndex>1</labelIndex>
+      <name/>
+      <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+      <selectedRelationships>No Retry</selectedRelationships>
+      <source>
+        <groupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</groupId>
+        <id>66649998-3b08-4b41-9f07-a51d999743f6</id>
+        <type>PROCESSOR</type>
+      </source>
+      <zIndex>0</zIndex>
+    </connections>
+    <processors>
+      <id>dcff217a-a25c-424f-b9f1-d82c55bfa61b</id>
+      <parentGroupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</parentGroupId>
+      <position>
+        <x>1097.1272894430938</x>
+        <y>1444.3013229179383</y>
+      </position>
+      <config>
+        <bulletinLevel>WARN</bulletinLevel>
+        <comments/>
+        <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+        <lossTolerant>false</lossTolerant>
+        <penaltyDuration>30 sec</penaltyDuration>
+        <properties>
+          <entry>
+            <key>Routing Strategy</key>
+            <value>Route to Property name</value>
+          </entry>
+          <entry>
+            <key>200</key>
+            <value>${invokehttp.status.code:equals(200)}</value>
+          </entry>
+        </properties>
+        <runDurationMillis>0</runDurationMillis>
+        <schedulingPeriod>0 sec</schedulingPeriod>
+        <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+        <yieldDuration>1 sec</yieldDuration>
+      </config>
+      <name>Route On Status Code</name>
+      <relationships>
+        <autoTerminate>false</autoTerminate>
+        <name>200</name>
+      </relationships>
+      <relationships>
+        <autoTerminate>false</autoTerminate>
+        <name>unmatched</name>
+      </relationships>
+      <style/>
+      <type>org.apache.nifi.processors.standard.RouteOnAttribute</type>
+    </processors>
+    <processors>
+      <id>6638cd15-0aaf-4bba-a18a-722cf85038b6</id>
+      <parentGroupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</parentGroupId>
+      <position>
+        <x>1117.1462103415313</x>
+        <y>953.2932741355896</y>
+      </position>
+      <config>
+        <bulletinLevel>WARN</bulletinLevel>
+        <comments/>
+        <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+        <lossTolerant>false</lossTolerant>
+        <penaltyDuration>30 sec</penaltyDuration>
+        <properties>
+          <entry>
+            <key>Delete Attributes Expression</key>
+          </entry>
+          <entry>
+            <key>q</key>
+            <value>nifi</value>
+          </entry>
+        </properties>
+        <runDurationMillis>0</runDurationMillis>
+        <schedulingPeriod>0 sec</schedulingPeriod>
+        <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+        <yieldDuration>1 sec</yieldDuration>
+      </config>
+      <name>q=nifi</name>
+      <relationships>
+        <autoTerminate>false</autoTerminate>
+        <name>success</name>
+      </relationships>
+      <style/>
+      <type>org.apache.nifi.processors.attributes.UpdateAttribute</type>
+    </processors>
+    <processors>
+      <id>0a73c5e4-7216-4cdf-9008-ace353478d55</id>
+      <parentGroupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</parentGroupId>
+      <position>
+        <x>1125.2444807420861</x>
+        <y>1708.2670907078802</y>
+      </position>
+      <config>
+        <bulletinLevel>WARN</bulletinLevel>
+        <comments/>
+        <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+        <lossTolerant>false</lossTolerant>
+        <penaltyDuration>30 sec</penaltyDuration>
+        <properties>
+          <entry>
+            <key>Log Level</key>
+            <value>info</value>
+          </entry>
+          <entry>
+            <key>Log Payload</key>
+            <value>false</value>
+          </entry>
+          <entry>
+            <key>Attributes to Log</key>
+          </entry>
+          <entry>
+            <key>Attributes to Ignore</key>
+          </entry>
+          <entry>
+            <key>Log prefix</key>
+          </entry>
+        </properties>
+        <runDurationMillis>0</runDurationMillis>
+        <schedulingPeriod>0 sec</schedulingPeriod>
+        <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+        <yieldDuration>1 sec</yieldDuration>
+      </config>
+      <name>LogAttribute</name>
+      <relationships>
+        <autoTerminate>true</autoTerminate>
+        <name>success</name>
+      </relationships>
+      <style/>
+      <type>org.apache.nifi.processors.standard.LogAttribute</type>
+    </processors>
+    <processors>
+      <id>fcb378d7-6438-41d3-8485-7da85e870ca4</id>
+      <parentGroupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</parentGroupId>
+      <position>
+        <x>1132.7004400778594</x>
+        <y>704.0</y>
+      </position>
+      <config>
+        <bulletinLevel>WARN</bulletinLevel>
+        <comments/>
+        <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+        <lossTolerant>false</lossTolerant>
+        <penaltyDuration>30 sec</penaltyDuration>
+        <properties>
+          <entry>
+            <key>File Size</key>
+            <value>10 b</value>
+          </entry>
+          <entry>
+            <key>Batch Size</key>
+            <value>1</value>
+          </entry>
+          <entry>
+            <key>Data Format</key>
+            <value>Binary</value>
+          </entry>
+          <entry>
+            <key>Unique FlowFiles</key>
+            <value>false</value>
+          </entry>
+        </properties>
+        <runDurationMillis>0</runDurationMillis>
+        <schedulingPeriod>30 sec</schedulingPeriod>
+        <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+        <yieldDuration>1 sec</yieldDuration>
+      </config>
+      <name>Source</name>
+      <relationships>
+        <autoTerminate>false</autoTerminate>
+        <name>success</name>
+      </relationships>
+      <style/>
+      <type>org.apache.nifi.processors.standard.GenerateFlowFile</type>
+    </processors>
+    <processors>
+      <id>0bda7282-7a4f-4d39-83e5-ea86aa63f1dc</id>
+      <parentGroupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</parentGroupId>
+      <position>
+        <x>1610.4458967577111</x>
+        <y>1678.8347176610052</y>
+      </position>
+      <config>
+        <bulletinLevel>WARN</bulletinLevel>
+        <comments/>
+        <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+        <lossTolerant>false</lossTolerant>
+        <penaltyDuration>30 sec</penaltyDuration>
+        <properties>
+          <entry>
+            <key>Log Level</key>
+            <value>info</value>
+          </entry>
+          <entry>
+            <key>Log Payload</key>
+            <value>false</value>
+          </entry>
+          <entry>
+            <key>Attributes to Log</key>
+          </entry>
+          <entry>
+            <key>Attributes to Ignore</key>
+          </entry>
+          <entry>
+            <key>Log prefix</key>
+          </entry>
+        </properties>
+        <runDurationMillis>0</runDurationMillis>
+        <schedulingPeriod>0 sec</schedulingPeriod>
+        <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+        <yieldDuration>1 sec</yieldDuration>
+      </config>
+      <name>LogAttribute2</name>
+      <relationships>
+        <autoTerminate>true</autoTerminate>
+        <name>success</name>
+      </relationships>
+      <style/>
+      <type>org.apache.nifi.processors.standard.LogAttribute</type>
+    </processors>
+    <processors>
+      <id>66649998-3b08-4b41-9f07-a51d999743f6</id>
+      <parentGroupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</parentGroupId>
+      <position>
+        <x>1120.1378790427032</x>
+        <y>1209.3301663017273</y>
+      </position>
+      <config>
+        <bulletinLevel>WARN</bulletinLevel>
+        <comments/>
+        <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+        <lossTolerant>false</lossTolerant>
+        <penaltyDuration>30 sec</penaltyDuration>
+        <properties>
+          <entry>
+            <key>HTTP Method</key>
+            <value>GET</value>
+          </entry>
+          <entry>
+            <key>Remote URL</key>
+            <value>http://www.google.com/search?q=${q}&amp;rct=j</value>
+          </entry>
+          <entry>
+            <key>SSL Context Service</key>
+          </entry>
+          <entry>
+            <key>Connection Timeout</key>
+            <value>5 secs</value>
+          </entry>
+          <entry>
+            <key>Read Timeout</key>
+            <value>15 secs</value>
+          </entry>
+          <entry>
+            <key>Include Date Header</key>
+            <value>True</value>
+          </entry>
+          <entry>
+            <key>Follow Redirects</key>
+            <value>True</value>
+          </entry>
+          <entry>
+            <key>Attributes to Send</key>
+          </entry>
+          <entry>
+            <key>Basic Authentication Username</key>
+          </entry>
+          <entry>
+            <key>Basic Authentication Password</key>
+          </entry>
+          <entry>
+            <key>Proxy Host</key>
+          </entry>
+          <entry>
+            <key>Proxy Port</key>
+          </entry>
+          <entry>
+            <key>invokehttp-proxy-user</key>
+          </entry>
+          <entry>
+            <key>invokehttp-proxy-password</key>
+          </entry>
+          <entry>
+            <key>Put Response Body In Attribute</key>
+          </entry>
+          <entry>
+            <key>Max Length To Put In Attribute</key>
+            <value>256</value>
+          </entry>
+          <entry>
+            <key>Digest Authentication</key>
+            <value>false</value>
+          </entry>
+          <entry>
+            <key>Always Output Response</key>
+            <value>false</value>
+          </entry>
+          <entry>
+            <key>Trusted Hostname</key>
+          </entry>
+          <entry>
+            <key>Add Response Headers to Request</key>
+            <value>false</value>
+          </entry>
+          <entry>
+            <key>Content-Type</key>
+            <value>${mime.type}</value>
+          </entry>
+          <entry>
+            <key>send-message-body</key>
+            <value>true</value>
+          </entry>
+          <entry>
+            <key>Use Chunked Encoding</key>
+            <value>false</value>
+          </entry>
+          <entry>
+            <key>Penalize on "No Retry"</key>
+            <value>false</value>
+          </entry>
+        </properties>
+        <runDurationMillis>0</runDurationMillis>
+        <schedulingPeriod>0 sec</schedulingPeriod>
+        <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+        <yieldDuration>1 sec</yieldDuration>
+      </config>
+      <name>Search Google</name>
+      <relationships>
+        <autoTerminate>false</autoTerminate>
+        <name>Failure</name>
+      </relationships>
+      <relationships>
+        <autoTerminate>false</autoTerminate>
+        <name>No Retry</name>
+      </relationships>
+      <relationships>
+        <autoTerminate>false</autoTerminate>
+        <name>Original</name>
+      </relationships>
+      <relationships>
+        <autoTerminate>false</autoTerminate>
+        <name>Response</name>
+      </relationships>
+      <relationships>
+        <autoTerminate>false</autoTerminate>
+        <name>Retry</name>
+      </relationships>
+      <style/>
+      <type>org.apache.nifi.processors.standard.InvokeHTTP</type>
+    </processors>
+    <remoteProcessGroups>
+      <id>d41d8cd9-8f00-3204-a980-0998ecf8427e</id>
+      <parentGroupId>ee27ad42-d125-4d09-a9f5-c42da132ab6b</parentGroupId>
+      <position>
+        <x>636.0</x>
+        <y>1697.275350258131</y>
+      </position>
+      <comments/>
+      <communicationsTimeout>30 sec</communicationsTimeout>
+      <contents>
+        <inputPorts>
+          <comments/>
+          <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+          <id>b23a4621-cf19-42e6-967c-ffd3716e6a24</id>
+          <name>response</name>
+          <useCompression>false</useCompression>
+        </inputPorts>
+      </contents>
+      <proxyHost>proxy.server</proxyHost>
+      <proxyPort>8675</proxyPort>
+      <proxyUser>username</proxyUser>
+      <targetUri>http://nifi:8080/nifi</targetUri>
+      <transportProtocol>HTTP</transportProtocol>
+      <yieldDuration>10 sec</yieldDuration>
+      <networkInterface></networkInterface>
+    </remoteProcessGroups>
+  </snippet>
+  <timestamp>07/04/2016 21:37:51 UTC</timestamp>
+</template>

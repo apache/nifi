@@ -16,12 +16,15 @@
  */
 package org.apache.nifi.web.controller;
 
-import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.resource.ResourceContext;
+import org.apache.nifi.components.resource.StandardResourceContext;
+import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.search.SearchContext;
 
@@ -55,9 +58,10 @@ public class StandardSearchContext implements SearchContext {
     }
 
     @Override
-    public PropertyValue getProperty(PropertyDescriptor property) {
+    public PropertyValue getProperty(final PropertyDescriptor property) {
         final String configuredValue = processorNode.getRawPropertyValue(property);
-        return new StandardPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, controllerServiceLookup, ParameterLookup.EMPTY, variableRegistry);
+        final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), property);
+        return new StandardPropertyValue(resourceContext, configuredValue == null ? property.getDefaultValue() : configuredValue, controllerServiceLookup, ParameterLookup.EMPTY, variableRegistry);
     }
 
     @Override

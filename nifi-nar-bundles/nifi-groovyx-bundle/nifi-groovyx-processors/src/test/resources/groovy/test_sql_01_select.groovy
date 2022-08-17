@@ -25,7 +25,7 @@ def flowFile = session.create()
 
 flowFile.write("UTF-8"){wout -> 
   //assume SQL.mydb property is linked to desired database connection pool
-  SQL.mydb.eachRow('select * from mytable'){ row->
+  SQL.mydb.eachRow('select * from mytable where name like \'%J%\''){ row->
     wout << row.name << '\n'
   }
 }

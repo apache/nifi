@@ -43,6 +43,7 @@ import org.apache.zookeeper.client.ZKClientConfig;
 import org.apache.zookeeper.common.ClientX509Util;
 import org.apache.zookeeper.common.PathUtils;
 import org.apache.zookeeper.common.X509Util;
+import org.apache.zookeeper.common.ZKConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,10 +64,10 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
     private volatile boolean stopped = true;
 
-    private final Map<String, LeaderRole> leaderRoles = new HashMap<>();
-    private final Map<String, RegisteredRole> registeredRoles = new HashMap<>();
+    private final ConcurrentMap<String, LeaderRole> leaderRoles = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, RegisteredRole> registeredRoles = new ConcurrentHashMap<>();
 
-    private final Map<String, TimedBuffer<TimestampedLong>> leaderChanges = new HashMap<>();
+    private final ConcurrentMap<String, TimedBuffer<TimestampedLong>> leaderChanges = new ConcurrentHashMap<>();
     private final TimedBuffer<TimestampedLongAggregation> pollTimes = new TimedBuffer<>(TimeUnit.SECONDS, 300, new CountSumMinMaxAccess());
     private final ConcurrentMap<String, String> lastKnownLeader = new ConcurrentHashMap<>();
 
@@ -220,16 +221,16 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         return "CuratorLeaderElectionManager[stopped=" + isStopped() + "]";
     }
 
-    private synchronized LeaderRole getLeaderRole(final String roleName) {
+    private LeaderRole getLeaderRole(final String roleName) {
         return leaderRoles.get(roleName);
     }
 
-    private synchronized void onLeaderChanged(final String roleName) {
+    private void onLeaderChanged(final String roleName) {
         final TimedBuffer<TimestampedLong> buffer = leaderChanges.computeIfAbsent(roleName, key -> new TimedBuffer<>(TimeUnit.HOURS, 24, new LongEntityAccess()));
         buffer.add(new TimestampedLong(1L));
     }
 
-    public synchronized Map<String, Integer> getLeadershipChangeCount(final long duration, final TimeUnit unit) {
+    public Map<String, Integer> getLeadershipChangeCount(final long duration, final TimeUnit unit) {
         final Map<String, Integer> leadershipChangesPerRole = new HashMap<>();
 
         for (final Map.Entry<String, TimedBuffer<TimestampedLong>> entry : leaderChanges.entrySet()) {
@@ -273,75 +274,89 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         }
 
         final long startNanos = System.nanoTime();
-        Participant participant;
         try {
-            participant = role.getLeaderSelector().getLeader();
-        } catch (Exception e) {
-            logger.debug("Unable to determine leader for role '{}'; returning null", roleName);
-            return null;
+
+            Participant participant;
+            try {
+                participant = role.getLeaderSelector().getLeader();
+            } catch (Exception e) {
+                logger.warn("Unable to determine leader for role '{}'; returning null", roleName, e);
+                return null;
+            }
+
+            if (participant == null) {
+                logger.debug("There is currently no elected leader for the {} role", roleName);
+                return null;
+            }
+
+            final String participantId = participant.getId();
+            if (StringUtils.isEmpty(participantId)) {
+                logger.debug("Found leader participant for role {} but the participantId was empty", roleName);
+                return null;
+            }
+
+            final String previousLeader = lastKnownLeader.put(roleName, participantId);
+            if (previousLeader != null && !previousLeader.equals(participantId)) {
+                onLeaderChanged(roleName);
+            }
+
+            return participantId;
+        } finally {
+            registerPollTime(System.nanoTime() - startNanos);
         }
-
-        if (participant == null) {
-            return null;
-        }
-
-        final String participantId = participant.getId();
-        if (StringUtils.isEmpty(participantId)) {
-            return null;
-        }
-
-        registerPollTime(System.nanoTime() - startNanos);
-
-        final String previousLeader = lastKnownLeader.put(roleName, participantId);
-        if (previousLeader != null && !previousLeader.equals(participantId)) {
-            onLeaderChanged(roleName);
-        }
-
-        return participantId;
     }
 
-    private synchronized void registerPollTime(final long nanos) {
-        pollTimes.add(TimestampedLongAggregation.newValue(nanos));
+    private void registerPollTime(final long nanos) {
+        synchronized (pollTimes) {
+            pollTimes.add(TimestampedLongAggregation.newValue(nanos));
+        }
     }
 
-    public synchronized long getAveragePollTime(final TimeUnit timeUnit) {
-        final TimestampedLongAggregation.TimestampedAggregation aggregation = pollTimes.getAggregateValue(0L).getAggregation();
-        if (aggregation == null || aggregation.getCount() == 0) {
-            return 0L;
+    public long getAveragePollTime(final TimeUnit timeUnit) {
+        final long averageNanos;
+        synchronized (pollTimes) {
+            final TimestampedLongAggregation.TimestampedAggregation aggregation = pollTimes.getAggregateValue(0L).getAggregation();
+            if (aggregation == null || aggregation.getCount() == 0) {
+                return 0L;
+            }
+            averageNanos = aggregation.getSum() / aggregation.getCount();
         }
-
-        final long averageNanos = aggregation.getSum() / aggregation.getCount();
         return timeUnit.convert(averageNanos, TimeUnit.NANOSECONDS);
     }
 
-    public synchronized long getMinPollTime(final TimeUnit timeUnit) {
-        final TimestampedLongAggregation.TimestampedAggregation aggregation = pollTimes.getAggregateValue(0L).getAggregation();
-        if (aggregation == null) {
-            return 0L;
+    public long getMinPollTime(final TimeUnit timeUnit) {
+        final long minNanos;
+        synchronized (pollTimes) {
+            final TimestampedLongAggregation.TimestampedAggregation aggregation = pollTimes.getAggregateValue(0L).getAggregation();
+            if (aggregation == null) {
+                return 0L;
+            }
+            minNanos = aggregation.getMin();
         }
-
-        final long minNanos = aggregation.getMin();
         return timeUnit.convert(minNanos, TimeUnit.NANOSECONDS);
     }
 
-    public synchronized long getMaxPollTime(final TimeUnit timeUnit) {
-        final TimestampedLongAggregation.TimestampedAggregation aggregation = pollTimes.getAggregateValue(0L).getAggregation();
-        if (aggregation == null) {
-            return 0L;
+    public long getMaxPollTime(final TimeUnit timeUnit) {
+        final long maxNanos;
+        synchronized (pollTimes) {
+            final TimestampedLongAggregation.TimestampedAggregation aggregation = pollTimes.getAggregateValue(0L).getAggregation();
+            if (aggregation == null) {
+                return 0L;
+            }
+            maxNanos = aggregation.getMax();
         }
-
-        final long minNanos = aggregation.getMin();
-        return timeUnit.convert(minNanos, TimeUnit.NANOSECONDS);
+        return timeUnit.convert(maxNanos, TimeUnit.NANOSECONDS);
     }
 
     @Override
-    public synchronized long getPollCount() {
-        final TimestampedLongAggregation.TimestampedAggregation aggregation = pollTimes.getAggregateValue(0L).getAggregation();
-        if (aggregation == null) {
-            return 0L;
+    public long getPollCount() {
+        synchronized (pollTimes) {
+            final TimestampedLongAggregation.TimestampedAggregation aggregation = pollTimes.getAggregateValue(0L).getAggregation();
+            if (aggregation == null) {
+                return 0L;
+            }
+            return aggregation.getCount();
         }
-
-        return aggregation.getCount();
     }
 
     /**
@@ -374,7 +389,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
                 }
 
                 @Override
-                public void takeLeadership(CuratorFramework client) throws Exception {
+                public void takeLeadership(CuratorFramework client) {
                 }
             };
 
@@ -578,7 +593,6 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
                     listener.onLeaderElection();
                 } catch (final Exception e) {
                     logger.error("This node was elected Leader for Role '{}' but failed to take leadership. Will relinquish leadership role. Failure was due to: {}", roleName, e);
-                    logger.error("", e);
                     setLeader(false);
                     Thread.sleep(1000L);
                     return;
@@ -646,7 +660,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         public static final String NETTY_CLIENT_CNXN_SOCKET =
             org.apache.zookeeper.ClientCnxnSocketNetty.class.getName();
 
-        private ZKClientConfig zkSecureClientConfig;
+        private final ZKClientConfig zkSecureClientConfig;
 
         public SecureClientZooKeeperFactory(final ZooKeeperClientConfig zkConfig) {
             this.zkSecureClientConfig = new ZKClientConfig();
@@ -654,7 +668,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             // Netty is required for the secure client config.
             final String cnxnSocket = zkConfig.getConnectionSocket();
             if (!NETTY_CLIENT_CNXN_SOCKET.equals(cnxnSocket)) {
-                throw new IllegalArgumentException(String.format("connection factory set to '%s', %s required", String.valueOf(cnxnSocket), NETTY_CLIENT_CNXN_SOCKET));
+                throw new IllegalArgumentException(String.format("connection factory set to '%s', %s required", cnxnSocket, NETTY_CLIENT_CNXN_SOCKET));
             }
             zkSecureClientConfig.setProperty(ZKClientConfig.ZOOKEEPER_CLIENT_CNXN_SOCKET, cnxnSocket);
 
@@ -672,6 +686,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             zkSecureClientConfig.setProperty(clientX509util.getSslTruststoreLocationProperty(), zkConfig.getTrustStore());
             zkSecureClientConfig.setProperty(clientX509util.getSslTruststoreTypeProperty(), zkConfig.getTrustStoreType());
             zkSecureClientConfig.setProperty(clientX509util.getSslTruststorePasswdProperty(), zkConfig.getTrustStorePassword());
+            zkSecureClientConfig.setProperty(ZKConfig.JUTE_MAXBUFFER, Integer.toString(zkConfig.getJuteMaxbuffer()));
         }
 
         @Override

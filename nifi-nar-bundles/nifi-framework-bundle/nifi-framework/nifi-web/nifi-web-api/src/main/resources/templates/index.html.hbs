@@ -13,7 +13,7 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 -->
-<html>
+<html lang="en">
     <head>
         <title>{{info.title}}-{{info.version}}</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
@@ -447,6 +447,7 @@
                 organizeEndpoints('/labels', $('#label-endpoints'));
                 organizeEndpoints('/access', $('#access-endpoints'));
                 organizeEndpoints('/flow', $('#flow-endpoints'));
+                organizeEndpoints('/parameter-contexts', $('#parameter-context-endpoints'));
                 organizeEndpoints('/provenance-events', $('#provenance-event-endpoints'));
                 organizeEndpoints('/provenance', $('#provenance-endpoints'));
                 organizeEndpoints('/tenants', $('#tenant-endpoints'));
@@ -523,6 +524,14 @@
                 <div class="clear"></div>
             </div>
             <div id="flow-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Parameter Contexts</div>
+                <div class="sub-title section-description">Manage Parameter Contexts and associated validation</div>
+                <div class="clear"></div>
+            </div>
+            <div id="parameter-context-endpoints" class="section-endpoints hidden"></div>
         </div>
         <div class="section">
             <div class="section-header">

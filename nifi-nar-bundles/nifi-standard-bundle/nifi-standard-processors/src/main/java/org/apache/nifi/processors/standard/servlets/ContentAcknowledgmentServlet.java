@@ -16,11 +16,13 @@
  */
 package org.apache.nifi.processors.standard.servlets;
 
-import java.io.IOException;
-import java.security.cert.X509Certificate;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-import java.util.regex.Pattern;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processors.standard.ListenHTTP;
+import org.apache.nifi.processors.standard.ListenHTTP.FlowFileEntryTimeWrapper;
+import org.apache.nifi.util.FormatUtils;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
@@ -29,14 +31,11 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Path;
-
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processors.standard.ListenHTTP;
-import org.apache.nifi.processors.standard.ListenHTTP.FlowFileEntryTimeWrapper;
-import org.apache.nifi.util.FormatUtils;
+import java.io.IOException;
+import java.security.cert.X509Certificate;
+import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import java.util.regex.Pattern;
 
 @Path("/holds/*")
 public class ContentAcknowledgmentServlet extends HttpServlet {
@@ -120,15 +119,21 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
                     + "transferring to 'success': {}",
                     new Object[]{flowFiles.size(), totalFlowFileSize, request.getRemoteHost(), request.getRemotePort(), foundSubject, transferTime, transferRate, flowFiles});
 
+            final String sendingSubject = foundSubject;
             final ProcessSession session = timeWrapper.getSession();
             session.transfer(flowFiles, ListenHTTP.RELATIONSHIP_SUCCESS);
-            session.commit();
-
-            response.setStatus(HttpServletResponse.SC_OK);
-            response.flushBuffer();
+            session.commitAsync(() -> {
+                try {
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    response.flushBuffer();
+                } catch (final Exception e) {
+                    logger.error("Received DELETE for HOLD with ID {} from Remote Host: [{}] Port [{}] SubjectDN [{}]. FlowFiles were released but failed to acknowledge them.",
+                        new Object[]{uuid, request.getRemoteHost(), request.getRemotePort(), sendingSubject, e.toString()});
+                }
+            });
         } catch (final Throwable t) {
             timeWrapper.getSession().rollback();
-            logger.error("received DELETE for HOLD with ID {} from Remote Host: [{}] Port [{}] SubjectDN [{}], but failed to process the request due to {}",
+            logger.error("Received DELETE for HOLD with ID {} from Remote Host: [{}] Port [{}] SubjectDN [{}], but failed to process the request due to {}",
                     new Object[]{uuid, request.getRemoteHost(), request.getRemotePort(), foundSubject, t.toString()});
             if (logger.isDebugEnabled()) {
                 logger.error("", t);

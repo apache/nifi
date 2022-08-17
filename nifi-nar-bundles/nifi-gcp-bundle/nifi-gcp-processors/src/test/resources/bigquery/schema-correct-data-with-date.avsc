@@ -1,0 +1,92 @@
+{
+    "namespace": "nifi.example",
+    "name": "streaming_correct_data_with_schema",
+    "type": "record",
+    "fields": [
+        {
+            "name": "id",
+            "type": "int"
+        },
+        {
+            "name": "name",
+            "type": ["null", "string"]
+        },
+        {
+            "name": "alias",
+            "type": {
+                "type": "array",
+                "items": "string"
+            }
+        },
+        {
+            "name": "addresses",
+            "type": {
+                "type": "array",
+                "items": {
+                    "namespace": "nifi.example.address",
+                    "name": "address",
+                    "type": "record",
+                    "fields": [
+                        {
+                            "name": "zip",
+                            "type": ["null", "string"]
+                        },
+                        {
+                            "name": "city",
+                            "type": ["null", "string"]
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "name": "job",
+            "type": ["null", {
+                "namespace": "nifi.example.job",
+                "name": "job",
+                "type": "record",
+                "fields": [
+                    {
+                        "name": "position",
+                        "type": ["null", "string"]
+                    },
+                    {
+                        "name": "company",
+                        "type": ["null", "string"]
+                    }
+                ]
+            } ]
+        },
+        {
+            "name": "birth",
+            "type": {
+                "namespace": "nifi.example.birth",
+                "name": "job",
+                "type": "record",
+                "fields": [
+                    {
+                        "name": "date",
+                        "type": ["null", {
+                            "type": "int",
+                            "logicalType": "date"
+                        } ]
+                    },
+                    {
+                        "name": "time",
+                        "type": ["null", {
+                            "type": "int",
+                            "logicalType": "time-millis"
+                        } ]
+                    },
+                    {
+                        "name": "full",
+                        "type": ["null", {
+                            "type": "long",
+                            "logicalType": "timestamp-millis"
+                        } ]
+                    }
+                ]
+            }
+        }
+    ]
+}

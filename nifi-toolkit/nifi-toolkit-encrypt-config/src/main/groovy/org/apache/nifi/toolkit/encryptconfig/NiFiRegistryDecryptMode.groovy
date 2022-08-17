@@ -17,7 +17,9 @@
 package org.apache.nifi.toolkit.encryptconfig
 
 import groovy.cli.commons.CliBuilder
-import org.apache.nifi.properties.AESSensitivePropertyProvider
+import org.apache.nifi.properties.scheme.ProtectionSchemeResolver
+import org.apache.nifi.properties.scheme.StandardProtectionSchemeResolver
+import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.toolkit.encryptconfig.util.ToolUtilities
 import org.slf4j.Logger
@@ -29,6 +31,8 @@ import org.slf4j.LoggerFactory
 class NiFiRegistryDecryptMode extends DecryptMode {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiRegistryDecryptMode.class)
+
+    private static final ProtectionSchemeResolver PROTECTION_SCHEME_RESOLVER = new StandardProtectionSchemeResolver()
 
     CliBuilder cli
     boolean verboseEnabled
@@ -51,7 +55,6 @@ class NiFiRegistryDecryptMode extends DecryptMode {
             if (options.v) {
                 verboseEnabled = true
             }
-            EncryptConfigLogger.configureLogger(verboseEnabled)
 
             DecryptConfiguration config = new DecryptConfiguration()
 
@@ -71,6 +74,10 @@ class NiFiRegistryDecryptMode extends DecryptMode {
             }
             config.inputFilePath = options.r
             config.fileType = FileType.properties  // disables auto-detection, which is still experimental
+
+            if (options.S) {
+                config.protectionScheme = PROTECTION_SCHEME_RESOLVER.getProtectionScheme((String) options.S)
+            }
 
             // one of [-p, -k, -b]
             String keyHex = null
@@ -110,7 +117,9 @@ class NiFiRegistryDecryptMode extends DecryptMode {
                 }
             }
 
-            config.decryptionProvider = new AESSensitivePropertyProvider(config.key)
+            config.decryptionProvider = StandardSensitivePropertyProviderFactory
+                    .withKeyAndBootstrapSupplier(config.key, NiFiRegistryMode.getBootstrapSupplier(config.inputBootstrapPath))
+                    .getProvider(config.protectionScheme)
 
             run(config)
 

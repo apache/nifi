@@ -16,13 +16,16 @@
  */
 package org.apache.nifi.processors.standard.relp.frame;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestRELPDecoder {
 
@@ -36,7 +39,7 @@ public class TestRELPDecoder {
 
     private RELPDecoder decoder;
 
-    @Before
+    @BeforeEach
     public void setup() {
         this.decoder = new RELPDecoder(StandardCharsets.UTF_8);
     }
@@ -53,13 +56,13 @@ public class TestRELPDecoder {
             }
         }
 
-        Assert.assertNotNull(frame);
-        Assert.assertEquals(1, frame.getTxnr());
-        Assert.assertEquals("open", frame.getCommand());
-        Assert.assertEquals(85, frame.getDataLength());
+        assertNotNull(frame);
+        assertEquals(1, frame.getTxnr());
+        assertEquals("open", frame.getCommand());
+        assertEquals(85, frame.getDataLength());
 
-        Assert.assertNotNull(frame.getData());
-        Assert.assertEquals(OPEN_FRAME_DATA, new String(frame.getData(), StandardCharsets.UTF_8));
+        assertNotNull(frame.getData());
+        assertEquals(OPEN_FRAME_DATA, new String(frame.getData(), StandardCharsets.UTF_8));
     }
 
     @Test
@@ -73,31 +76,31 @@ public class TestRELPDecoder {
             }
         }
 
-        Assert.assertEquals(3, frames.size());
+        assertEquals(3, frames.size());
 
         final RELPFrame frame1 = frames.get(0);
-        Assert.assertNotNull(frame1);
-        Assert.assertEquals(1, frame1.getTxnr());
-        Assert.assertEquals("open", frame1.getCommand());
-        Assert.assertEquals(85, frame1.getDataLength());
+        assertNotNull(frame1);
+        assertEquals(1, frame1.getTxnr());
+        assertEquals("open", frame1.getCommand());
+        assertEquals(85, frame1.getDataLength());
 
-        Assert.assertNotNull(frame1.getData());
-        Assert.assertEquals(OPEN_FRAME_DATA, new String(frame1.getData(), StandardCharsets.UTF_8));
+        assertNotNull(frame1.getData());
+        assertEquals(OPEN_FRAME_DATA, new String(frame1.getData(), StandardCharsets.UTF_8));
 
         final RELPFrame frame2 = frames.get(1);
-        Assert.assertNotNull(frame2);
-        Assert.assertEquals(2, frame2.getTxnr());
-        Assert.assertEquals("syslog", frame2.getCommand());
-        Assert.assertEquals(29, frame2.getDataLength());
+        assertNotNull(frame2);
+        assertEquals(2, frame2.getTxnr());
+        assertEquals("syslog", frame2.getCommand());
+        assertEquals(29, frame2.getDataLength());
 
-        Assert.assertNotNull(frame2.getData());
-        Assert.assertEquals(SYSLOG_FRAME_DATA, new String(frame2.getData(), StandardCharsets.UTF_8));
+        assertNotNull(frame2.getData());
+        assertEquals(SYSLOG_FRAME_DATA, new String(frame2.getData(), StandardCharsets.UTF_8));
 
         final RELPFrame frame3 = frames.get(2);
-        Assert.assertNotNull(frame3);
-        Assert.assertEquals(3, frame3.getTxnr());
-        Assert.assertEquals("close", frame3.getCommand());
-        Assert.assertEquals(0, frame3.getDataLength());
+        assertNotNull(frame3);
+        assertEquals(3, frame3.getTxnr());
+        assertEquals("close", frame3.getCommand());
+        assertEquals(0, frame3.getDataLength());
     }
 
     @Test
@@ -117,22 +120,22 @@ public class TestRELPDecoder {
             }
         }
 
-        Assert.assertEquals(3, frames.size());
+        assertEquals(3, frames.size());
     }
 
-    @Test(expected = RELPFrameException.class)
-    public void testBadDataShouldThrowException() throws RELPFrameException {
-        final String msg = "NAN syslog 20 this is message 1234\n";
-        final byte[] input = msg.getBytes(StandardCharsets.UTF_8);
+    @Test
+    public void testBadDataShouldThrowException() {
+        assertThrows(RELPFrameException.class, () -> {
+            final String msg = "NAN syslog 20 this is message 1234\n";
+            final byte[] input = msg.getBytes(StandardCharsets.UTF_8);
 
-        List<RELPFrame> frames = new ArrayList<>();
+            List<RELPFrame> frames = new ArrayList<>();
 
-        for (byte b : input) {
-            if (decoder.process(b)) {
-                frames.add(decoder.getFrame());
+            for (byte b : input) {
+                if (decoder.process(b)) {
+                    frames.add(decoder.getFrame());
+                }
             }
-        }
-
-        Assert.fail("Should have thrown exception");
+        });
     }
 }

@@ -16,7 +16,7 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <title>NiFi Summary</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
@@ -50,7 +50,7 @@
         <script type="text/javascript" src="js/jquery/modal/jquery.modal.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/jquery.ellipsis.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.each.js"></script>
-        <script type="text/javascript" src="assets/lodash-core/distrib/lodash-core.min.js"></script>
+        <script type="text/javascript" src="assets/lodash/lodash.min.js"></script>
         <script type="text/javascript" src="assets/moment/min/moment.min.js"></script>
         <script type="text/javascript" src="assets/qtip2/dist/jquery.qtip.min.js"></script>
         <script type="text/javascript" src="assets/slickgrid/lib/jquery.event.drag-2.3.0.js"></script>

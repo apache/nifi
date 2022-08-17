@@ -14,7 +14,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-bundle</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-processors</artifactId>
     <packaging>jar</packaging>
@@ -22,7 +22,7 @@
         <dependency>
             <groupId>org.apache.ftpserver</groupId>
             <artifactId>ftpserver-core</artifactId>
-            <version>1.1.1</version>
+            <version>1.2.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -36,23 +36,48 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-processor-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <artifactId>nifi-put-pattern</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-bin-manager</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-listed-entity</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-event-put</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-event-listen</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-event-transport</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-syslog-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-path</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -65,7 +90,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-flowfile-packager</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-jetty-configuration</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -126,15 +156,26 @@
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
+            <version>1.15</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-xml-processing</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.hierynomus</groupId>
             <artifactId>sshj</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.exceptionfactory.socketbroker</groupId>
+            <artifactId>socketbroker</artifactId>
+            <version>1.0.2</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
@@ -145,6 +186,14 @@
             <artifactId>jetty-servlet</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-alpn-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty.http2</groupId>
+            <artifactId>http2-server</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
         </dependency>
@@ -153,8 +202,20 @@
             <artifactId>httpcore</artifactId>
         </dependency>
         <dependency>
-            <groupId>javax.mail</groupId>
-            <artifactId>mail</artifactId>
+            <groupId>jakarta.activation</groupId>
+            <artifactId>jakarta.activation-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.activation</groupId>
+            <artifactId>jakarta.activation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.mail</groupId>
+            <artifactId>jakarta.mail-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>jakarta.mail</artifactId>
         </dependency>
         <dependency>
             <groupId>com.github.jponge</groupId>
@@ -171,16 +232,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-socket-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-load-distribution-service-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>joda-time</groupId>
-            <artifactId>joda-time</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>javax.jms</groupId>
@@ -205,12 +262,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-avro-record-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -218,9 +275,12 @@
             <artifactId>okhttp</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.burgstaller</groupId>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp-urlconnection</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.rburgst</groupId>
             <artifactId>okhttp-digest</artifactId>
-            <type>jar</type>
         </dependency>
         <dependency>
             <groupId>at.favre.lib</groupId>
@@ -228,25 +288,19 @@
             <version>0.9.0</version>
         </dependency>
         <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-distributed-cache-client-service</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.google.http-client</groupId>
-            <artifactId>google-http-client</artifactId>
-            <version>1.28.0</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -262,25 +316,25 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-prioritizers</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock-record-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-serialization-services</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-lookup-services</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -295,7 +349,7 @@
         <dependency>
             <groupId>net.lingala.zip4j</groupId>
             <artifactId>zip4j</artifactId>
-            <version>2.6.3</version>
+            <version>2.10.0</version>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
@@ -305,12 +359,6 @@
         <dependency>
             <groupId>org.mockftpserver</groupId>
             <artifactId>MockFtpServer</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.sshd</groupId>
-            <artifactId>sshd-core</artifactId>
-            <version>1.7.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -324,7 +372,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>net.sf.supercsv</groupId>
@@ -332,10 +380,10 @@
         </dependency>
         <dependency>
             <groupId>com.fluenda</groupId>
-            <artifactId>ParCEFone</artifactId>
+            <artifactId>parcefone</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.github.wnameless</groupId>
+            <groupId>com.github.wnameless.json</groupId>
             <artifactId>json-flattener</artifactId>
         </dependency>
         <dependency>
@@ -357,24 +405,27 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-database-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-web-test-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <artifactId>nifi-oauth2-provider-api</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.sshd</groupId>
+            <artifactId>sshd-core</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.github.stefanbirkner</groupId>
-            <artifactId>fake-sftp-server-rule</artifactId>
-            <version>2.0.1</version>
+            <groupId>org.apache.sshd</groupId>
+            <artifactId>sshd-sftp</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-database-test-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -390,15 +441,20 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-web-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest-all</artifactId>
             <version>1.3</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>mockwebserver</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-inline</artifactId>
+            <version>3.12.4</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -605,9 +661,19 @@
                         <exclude>src/test/resources/TestValidateRecord/timestamp.avsc</exclude>
                         <exclude>src/test/resources/TestValidateRecord/timestamp.json</exclude>
                         <exclude>src/test/resources/TestLookupRecord/lookup-array-input.json</exclude>
+                        <exclude>src/test/resources/TestLookupRecord/lookup-array-input-unmatched.json</exclude>
                         <exclude>src/test/resources/TestLookupRecord/lookup-array-output.json</exclude>
+                        <exclude>src/test/resources/TestLookupRecord/lookup-array-output-unmatched.json</exclude>
                         <exclude>src/test/resources/TestValidateRecord/int-maps-schema.avsc</exclude>
                         <exclude>src/test/resources/TestValidateRecord/int-maps-data.json</exclude>
+                        <exclude>src/test/resources/TestValidateRecord/array-and-map-with-null-element.avro</exclude>
+                        <exclude>src/test/resources/TestJoinEnrichment/insert-enrichment.json</exclude>
+                        <exclude>src/test/resources/TestJoinEnrichment/insert-enrichment-first-value-null.json</exclude>
+                        <exclude>src/test/resources/TestJoinEnrichment/insert-original.json</exclude>
+                        <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-enrichment.csv</exclude>
+                        <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-expected.csv</exclude>
+                        <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-original.csv</exclude>
+                        <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-rename-expected.csv</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -656,16 +722,12 @@
             </activation>
             <dependencies>
                 <dependency>
-                    <groupId>javax.xml.bind</groupId>
-                    <artifactId>jaxb-api</artifactId>
+                    <groupId>jakarta.xml.bind</groupId>
+                    <artifactId>jakarta.xml.bind-api</artifactId>
                 </dependency>
                 <dependency>
-                    <groupId>com.sun.xml.bind</groupId>
-                    <artifactId>jaxb-core</artifactId>
-                </dependency>
-                <dependency>
-                    <groupId>com.sun.xml.bind</groupId>
-                    <artifactId>jaxb-impl</artifactId>
+                    <groupId>org.glassfish.jaxb</groupId>
+                    <artifactId>jaxb-runtime</artifactId>
                 </dependency>
             </dependencies>
         </profile>

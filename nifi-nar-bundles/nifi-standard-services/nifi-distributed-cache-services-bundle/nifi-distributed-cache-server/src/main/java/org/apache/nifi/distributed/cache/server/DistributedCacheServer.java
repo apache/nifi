@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -68,6 +69,14 @@ public abstract class DistributedCacheServer extends AbstractControllerService {
         .required(false)
         .addValidator(StandardValidators.createDirectoryExistsValidator(true, true))
         .build();
+    public static final PropertyDescriptor MAX_READ_SIZE = new PropertyDescriptor.Builder()
+        .name("maximum-read-size")
+        .displayName("Maximum Read Size")
+        .description("The maximum number of network bytes to read for a single cache item")
+        .required(false)
+        .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+        .defaultValue("1 MB")
+        .build();
 
     private volatile CacheServer cacheServer;
 
@@ -79,6 +88,7 @@ public abstract class DistributedCacheServer extends AbstractControllerService {
         properties.add(EVICTION_POLICY);
         properties.add(PERSISTENCE_PATH);
         properties.add(SSL_CONTEXT_SERVICE);
+        properties.add(MAX_READ_SIZE);
         return properties;
     }
 
@@ -90,6 +100,7 @@ public abstract class DistributedCacheServer extends AbstractControllerService {
         }
     }
 
+    @OnShutdown
     @OnDisabled
     public void shutdownServer() throws IOException {
         if (cacheServer != null) {

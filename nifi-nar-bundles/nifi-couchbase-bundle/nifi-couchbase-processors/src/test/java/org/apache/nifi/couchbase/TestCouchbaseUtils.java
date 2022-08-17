@@ -33,18 +33,18 @@ import com.couchbase.client.java.document.StringDocument;
 import com.couchbase.client.java.document.json.JsonArray;
 import com.couchbase.client.java.document.json.JsonObject;
 import com.couchbase.client.java.error.TranscodingException;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestCouchbaseUtils {
 
-    @Ignore("This test method requires a live Couchbase Server instance")
+    @Disabled("This test method requires a live Couchbase Server instance")
     @Test
     public void testDocumentTypesAndStringConversion() {
         final CouchbaseCluster cluster = CouchbaseCluster.fromConnectionString("couchbase://192.168.99.100:8091");
@@ -86,12 +86,7 @@ public class TestCouchbaseUtils {
         final String stringFromByteBuff = CouchbaseUtils.getStringContent(binaryDocument.content());
         assertEquals("value", stringFromByteBuff);
 
-        try {
-            bucket.get(BinaryDocument.create("JsonDocument"));
-            fail("Getting a JSON document as a BinaryDocument fails");
-        } catch (TranscodingException e) {
-            assertTrue(e.getMessage().contains("Flags (0x2000000) indicate non-binary document for id JsonDocument"));
-        }
-
+        TranscodingException e = assertThrows(TranscodingException.class, () -> bucket.get(BinaryDocument.create("JsonDocument")));
+        assertTrue(e.getMessage().contains("Flags (0x2000000) indicate non-binary document for id JsonDocument"));
     }
 }

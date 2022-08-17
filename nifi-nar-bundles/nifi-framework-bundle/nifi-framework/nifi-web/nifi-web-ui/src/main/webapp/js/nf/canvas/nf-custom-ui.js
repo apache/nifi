@@ -55,35 +55,22 @@
          */
         showCustomUi: function (entity, uri, editable) {
             return $.Deferred(function (deferred) {
-                nfCommon.getAccessToken('../nifi-api/access/ui-extension-token').done(function (uiExtensionToken) {
-                    // record the processor id
-                    $('#shell-close-button');
+                // record the processor id
+                $('#shell-close-button');
 
-                    var revision = nfClient.getRevision(entity);
+                var revision = nfClient.getRevision(entity);
 
-                    // build the customer ui params
-                    var customUiParams = {
-                        'id': entity.id,
-                        'revision': revision.version,
-                        'clientId': revision.clientId,
-                        'editable': editable,
-                        'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
-                    };
+                // build the customer ui params
+                var customUiParams = {
+                    'id': entity.id,
+                    'revision': revision.version,
+                    'clientId': revision.clientId,
+                    'editable': editable,
+                    'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
+                };
 
-                    // conditionally include the ui extension token
-                    if (!nfCommon.isBlank(uiExtensionToken)) {
-                        customUiParams['access_token'] = uiExtensionToken;
-                    }
-
-                    // show the shell
-                    nfShell.showPage('..' + uri + '?' + $.param(customUiParams), false).done(function () {
-                        deferred.resolve();
-                    });
-                }).fail(function () {
-                    nfDialog.showOkDialog({
-                        headerText: 'Advanced Configuration',
-                        dialogContent: 'Unable to generate access token for accessing the advanced configuration dialog.'
-                    });
+                // show the shell
+                nfShell.showPage('..' + uri + '?' + $.param(customUiParams), false).done(function () {
                     deferred.resolve();
                 });
             }).promise();

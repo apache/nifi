@@ -18,10 +18,10 @@ package org.apache.nifi.rules;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.jeasy.rules.support.JsonRuleDefinitionReader;
+import org.jeasy.rules.support.reader.JsonRuleDefinitionReader;
 import org.jeasy.rules.support.RuleDefinition;
-import org.jeasy.rules.support.RuleDefinitionReader;
-import org.jeasy.rules.support.YamlRuleDefinitionReader;
+import org.jeasy.rules.support.reader.RuleDefinitionReader;
+import org.jeasy.rules.support.reader.YamlRuleDefinitionReader;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
@@ -51,13 +51,15 @@ public class RulesFactory {
     }
 
     public static List<Rule> createRulesFromFile(String ruleFile, String ruleFileType, String rulesFileFormat) throws Exception {
-        InputStream rulesInputStream = new FileInputStream(ruleFile);
-        return createRules(rulesInputStream, ruleFileType, rulesFileFormat);
+        try (final InputStream rulesInputStream = new FileInputStream(ruleFile)) {
+            return createRules(rulesInputStream, ruleFileType, rulesFileFormat);
+        }
     }
 
     public static List<Rule> createRulesFromString(String rulesBody, String ruleFileType, String rulesFileFormat) throws Exception {
-        InputStream rulesInputStream = new ByteArrayInputStream(rulesBody.getBytes());
-        return createRules(rulesInputStream, ruleFileType, rulesFileFormat);
+        try (final InputStream rulesInputStream = new ByteArrayInputStream(rulesBody.getBytes())) {
+            return createRules(rulesInputStream, ruleFileType, rulesFileFormat);
+        }
     }
 
     private static List<Rule> createRules(InputStream rulesInputStream, String ruleFileType, String rulesFileFormat) throws Exception {
@@ -71,11 +73,9 @@ public class RulesFactory {
             default:
                 return null;
         }
-
     }
 
     private static List<Rule> createRulesFromEasyRulesFormat(InputStream rulesInputStream, String ruleFileType, String ruleFileFormat) throws Exception {
-
         RuleDefinitionReader reader = FileType.valueOf(ruleFileType).equals(FileType.YAML)
                 ? new YamlRuleDefinitionReader() : new JsonRuleDefinitionReader();
 

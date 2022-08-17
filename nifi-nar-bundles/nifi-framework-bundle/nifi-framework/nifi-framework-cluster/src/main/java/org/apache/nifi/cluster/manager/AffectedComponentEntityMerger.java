@@ -21,8 +21,11 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.BulletinEntity;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -33,6 +36,7 @@ public class AffectedComponentEntityMerger {
         final Map<String, Integer> activeThreadCounts = new HashMap<>();
         final Map<String, String> states = new HashMap<>();
         final Map<String, PermissionsDTO> canReads = new HashMap<>();
+        final Map<String, List<BulletinEntity>> bulletins = new HashMap<>();
 
         for (final Map.Entry<NodeIdentifier, Set<AffectedComponentEntity>> nodeEntry : affectedComponentMap.entrySet()) {
             final Set<AffectedComponentEntity> nodeAffectedComponents = nodeEntry.getValue();
@@ -61,6 +65,13 @@ public class AffectedComponentEntityMerger {
                             } else if (ControllerServiceState.ENABLING.name().equals(nodeAffectedComponent.getState())) {
                                 states.put(nodeAffectedComponent.getId(), ControllerServiceState.ENABLING.name());
                             }
+                        }
+
+                        // Merged bulletins into above bulletins map
+                        final List<BulletinEntity> bulletinsForComponent = bulletins.computeIfAbsent(nodeAffectedComponentEntity.getId(), k -> new ArrayList<>());
+                        final List<BulletinEntity> nodeComponentBulletins = nodeAffectedComponentEntity.getBulletins();
+                        if (nodeComponentBulletins != null) {
+                            bulletinsForComponent.addAll(nodeComponentBulletins);
                         }
                     }
 
@@ -92,6 +103,8 @@ public class AffectedComponentEntityMerger {
                     if (state != null) {
                         affectedComponent.getComponent().setState(state);
                     }
+
+                    affectedComponent.setBulletins(bulletins.get(affectedComponent.getId()));
                 } else {
                     affectedComponent.setPermissions(permissions);
                     affectedComponent.setComponent(null);
@@ -99,6 +112,8 @@ public class AffectedComponentEntityMerger {
                     if (affectedComponent.getProcessGroup() != null) {
                         affectedComponent.getProcessGroup().setName(affectedComponent.getProcessGroup().getId());
                     }
+
+                    affectedComponent.setBulletins(null);
                 }
             }
         }

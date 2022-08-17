@@ -1,0 +1,16 @@
+{
+  "fields": [
+    {
+      "defaultValue": null,
+      "name": "ExampleAddress",
+      "nillable": true,
+      "soapType": "urn:address"
+    },
+    {
+      "defaultValue": null,
+      "name": "ExampleLocation",
+      "nillable": true,
+      "soapType": "tns:location"
+    }
+  ]
+}

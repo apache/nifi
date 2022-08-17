@@ -30,7 +30,7 @@ import org.apache.nifi.provenance.toc.StandardTocWriter;
 import org.apache.nifi.provenance.toc.TocUtil;
 import org.apache.nifi.provenance.toc.TocWriter;
 import org.apache.nifi.provenance.util.DirectoryUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -47,13 +47,12 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestWriteAheadStorePartition {
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testReindex() throws IOException {
         final RepositoryConfiguration repoConfig = createConfig(1, "testReindex");
         repoConfig.setMaxEventFileCount(5);
@@ -79,7 +78,7 @@ public class TestWriteAheadStorePartition {
         final EventIndex eventIndex = Mockito.mock(EventIndex.class);
         Mockito.doAnswer(new Answer<Object>() {
             @Override
-            public Object answer(final InvocationOnMock invocation) throws Throwable {
+            public Object answer(final InvocationOnMock invocation) {
                 final Map<ProvenanceEventRecord, StorageSummary> events = invocation.getArgument(0);
                 reindexedEvents.putAll(events);
                 return null;
@@ -142,7 +141,7 @@ public class TestWriteAheadStorePartition {
 
     private RepositoryConfiguration createConfig(final int numStorageDirs, final String testName) {
         final RepositoryConfiguration config = new RepositoryConfiguration();
-        final File storageDir = new File("target/storage/" + testName + "/" + UUID.randomUUID().toString());
+        final File storageDir = new File("target/storage/" + testName + "/" + UUID.randomUUID());
 
         for (int i = 1; i <= numStorageDirs; i++) {
             config.addStorageDirectory(String.valueOf(1), new File(storageDir, String.valueOf(i)));

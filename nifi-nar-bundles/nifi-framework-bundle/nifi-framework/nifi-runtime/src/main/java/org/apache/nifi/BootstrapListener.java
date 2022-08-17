@@ -16,6 +16,8 @@
  */
 package org.apache.nifi;
 
+import org.apache.nifi.controller.DecommissionTask;
+import org.apache.nifi.controller.status.history.StatusHistoryDump;
 import org.apache.nifi.diagnostics.DiagnosticsDump;
 import org.apache.nifi.util.LimitingInputStream;
 import org.slf4j.Logger;
@@ -54,11 +56,11 @@ public class BootstrapListener {
         secretKey = UUID.randomUUID().toString();
     }
 
-    public void start() throws IOException {
+    public void start(final int listenPort) throws IOException {
         logger.debug("Starting Bootstrap Listener to communicate with Bootstrap Port {}", bootstrapPort);
 
         serverSocket = new ServerSocket();
-        serverSocket.bind(new InetSocketAddress("localhost", 0));
+        serverSocket.bind(new InetSocketAddress("localhost", listenPort));
         serverSocket.setSoTimeout(2000);
 
         final int localPort = serverSocket.getLocalPort();
@@ -71,7 +73,7 @@ public class BootstrapListener {
         listenThread.start();
 
         logger.debug("Notifying Bootstrap that local port is {}", localPort);
-        sendCommand("PORT", new String[] { String.valueOf(localPort), secretKey});
+        sendCommand("PORT", new String[]{String.valueOf(localPort), secretKey});
     }
 
     public void reload() throws IOException {
@@ -93,7 +95,7 @@ public class BootstrapListener {
 
     public void sendStartedStatus(boolean status) throws IOException {
         logger.debug("Notifying Bootstrap that the status of starting NiFi is {}", status);
-        sendCommand("STARTED", new String[]{ String.valueOf(status) });
+        sendCommand("STARTED", new String[]{String.valueOf(status)});
     }
 
     private void sendCommand(final String command, final String[] args) throws IOException {
@@ -203,6 +205,23 @@ public class BootstrapListener {
                                         logger.info("Received DUMP request from Bootstrap");
                                         writeDump(socket.getOutputStream());
                                         break;
+                                    case DECOMMISSION:
+                                        logger.info("Received DECOMMISSION request from Bootstrap");
+
+                                        try {
+                                            decommission();
+                                            sendAnswer(socket.getOutputStream(), "DECOMMISSION");
+                                            nifi.shutdownHook(false);
+                                        } catch (final Exception e) {
+                                            final OutputStream out = socket.getOutputStream();
+
+                                            out.write(("Failed to decommission node: " + e + "; see app-log for additional details").getBytes(StandardCharsets.UTF_8));
+                                            out.flush();
+                                        } finally {
+                                            socket.close();
+                                        }
+
+                                        break;
                                     case DIAGNOSTICS:
                                         logger.info("Received DIAGNOSTICS request from Bootstrap");
                                         final String[] args = request.getArgs();
@@ -219,6 +238,12 @@ public class BootstrapListener {
                                         }
 
                                         writeDiagnostics(socket.getOutputStream(), verbose);
+                                        break;
+                                    case STATUS_HISTORY:
+                                        logger.info("Received STATUS_HISTORY request from Bootstrap");
+                                        final String[] statusHistoryArgs = request.getArgs();
+                                        final int days = Integer.parseInt(statusHistoryArgs[0]);
+                                        writeNodeStatusHistory(socket.getOutputStream(), days);
                                         break;
                                     case IS_LOADED:
                                         logger.debug("Received IS_LOADED request from Bootstrap");
@@ -250,9 +275,23 @@ public class BootstrapListener {
         diagnosticsDump.writeTo(out);
     }
 
+    private void decommission() throws InterruptedException {
+        final DecommissionTask decommissionTask = nifi.getServer().getDecommissionTask();
+        if (decommissionTask == null) {
+            throw new IllegalArgumentException("This NiFi instance does not support decommissioning");
+        }
+
+        decommissionTask.decommission();
+    }
+
     private void writeDiagnostics(final OutputStream out, final boolean verbose) throws IOException {
         final DiagnosticsDump diagnosticsDump = nifi.getServer().getDiagnosticsFactory().create(verbose);
         diagnosticsDump.writeTo(out);
+    }
+
+    private void writeNodeStatusHistory(final OutputStream out, final int days) throws IOException {
+        final StatusHistoryDump statusHistoryDump = nifi.getServer().getStatusHistoryDumpFactory().create(days);
+        statusHistoryDump.writeTo(out);
     }
 
     private void sendAnswer(final OutputStream out, final String answer) throws IOException {
@@ -304,8 +343,10 @@ public class BootstrapListener {
             SHUTDOWN,
             DUMP,
             DIAGNOSTICS,
+            DECOMMISSION,
             PING,
-            IS_LOADED
+            IS_LOADED,
+            STATUS_HISTORY
         }
 
         private final RequestType requestType;

@@ -16,14 +16,15 @@
  */
 package org.apache.nifi.processors.flume;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.flume.Event;
 import org.apache.flume.channel.BasicTransactionSemantics;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.flume.util.FlowFileEvent;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 class NifiSinkTransaction extends BasicTransactionSemantics {
@@ -58,13 +59,13 @@ class NifiSinkTransaction extends BasicTransactionSemantics {
   @Override
   protected void doCommit() throws InterruptedException {
       session.transfer(flowFiles, success);
-      session.commit();
+      session.commitAsync();
   }
 
   @Override
   protected void doRollback() throws InterruptedException {
       session.transfer(flowFiles, failure);
-      session.commit();
+      session.commitAsync();
   }
 
 

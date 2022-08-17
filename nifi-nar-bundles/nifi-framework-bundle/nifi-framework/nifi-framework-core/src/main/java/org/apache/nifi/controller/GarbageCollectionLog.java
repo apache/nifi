@@ -29,4 +29,6 @@ public interface GarbageCollectionLog {
     Map<String, Long> getAverageGarbageCollectionDurations();
 
     GarbageCollectionEvent getLongestGarbageCollectionEvent();
+
+    long getTotalGarbageCollectionMillis();
 }

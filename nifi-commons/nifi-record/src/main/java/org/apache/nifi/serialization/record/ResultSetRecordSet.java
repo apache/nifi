@@ -18,6 +18,7 @@
 package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,7 @@ import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Date;
@@ -37,10 +39,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static org.apache.nifi.serialization.record.RecordFieldType.TIMESTAMP;
 
 public class ResultSetRecordSet implements RecordSet, Closeable {
     private static final Logger logger = LoggerFactory.getLogger(ResultSetRecordSet.class);
@@ -67,18 +72,22 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
     }
 
     public ResultSetRecordSet(final ResultSet rs, final RecordSchema readerSchema, final int defaultPrecision, final int defaultScale) throws SQLException {
+        this(rs, readerSchema, defaultPrecision, defaultScale, true);
+    }
+
+    public ResultSetRecordSet(final ResultSet rs, final RecordSchema readerSchema, final int defaultPrecision, final int defaultScale, final boolean useLogicalTypes) throws SQLException {
         this.defaultPrecision = defaultPrecision;
         this.defaultScale = defaultScale;
         this.rs = rs;
         this.rsColumnNames = new HashSet<>();
         RecordSchema tempSchema;
         try {
-            tempSchema = createSchema(rs, readerSchema);
+            tempSchema = createSchema(rs, readerSchema, useLogicalTypes);
             moreRows = rs.next();
-        } catch(SQLException se) {
+        } catch (SQLException se) {
             // Tried to create the schema with a ResultSet without calling next() first (probably for DB2), now try the other way around
             moreRows = rs.next();
-            tempSchema = createSchema(rs, readerSchema);
+            tempSchema = createSchema(rs, readerSchema, useLogicalTypes);
         }
         this.schema = tempSchema;
     }
@@ -130,13 +139,12 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
 
         for (final RecordField field : schema.getFields()) {
             final String fieldName = field.getFieldName();
-
+            RecordFieldType fieldType = field.getDataType().getFieldType();
             final Object value;
-            if (rsColumnNames.contains(fieldName)) {
-                value = normalizeValue(rs.getObject(fieldName));
-            } else {
-                value = null;
-            }
+
+            value = rsColumnNames.contains(fieldName)
+                    ? normalizeValue((fieldType == TIMESTAMP) ? rs.getTimestamp(fieldName) : rs.getObject(fieldName))
+                    : null;
 
             values.put(fieldName, value);
         }
@@ -167,7 +175,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         return value;
     }
 
-    private RecordSchema createSchema(final ResultSet rs, final RecordSchema readerSchema) throws SQLException {
+    private RecordSchema createSchema(final ResultSet rs, final RecordSchema readerSchema, final boolean useLogicalTypes) throws SQLException {
         final ResultSetMetaData metadata = rs.getMetaData();
         final int numCols = metadata.getColumnCount();
         final List<RecordField> fields = new ArrayList<>(numCols);
@@ -176,16 +184,11 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             final int column = i + 1;
             final int sqlType = metadata.getColumnType(column);
 
-            final DataType dataType = getDataType(sqlType, rs, column, readerSchema);
+            final DataType dataType = getDataType(sqlType, rs, column, readerSchema, useLogicalTypes);
             final String fieldName = metadata.getColumnLabel(column);
 
             final int nullableFlag = metadata.isNullable(column);
-            final boolean nullable;
-            if (nullableFlag == ResultSetMetaData.columnNoNulls) {
-                nullable = false;
-            } else {
-                nullable = true;
-            }
+            final boolean nullable = nullableFlag != ResultSetMetaData.columnNoNulls;
 
             final RecordField field = new RecordField(fieldName, dataType, nullable);
             fields.add(field);
@@ -195,51 +198,22 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         return new SimpleRecordSchema(fields);
     }
 
-    private DataType getDataType(final int sqlType, final ResultSet rs, final int columnIndex, final RecordSchema readerSchema) throws SQLException {
+    private DataType getDataType(final int sqlType, final ResultSet rs, final int columnIndex, final RecordSchema readerSchema, final boolean useLogicalTypes)
+            throws SQLException {
         switch (sqlType) {
             case Types.ARRAY:
-                // The JDBC API does not allow us to know what the base type of an array is through the metadata.
-                // As a result, we have to obtain the actual Array for this record. Once we have this, we can determine
-                // the base type. However, if the base type is, itself, an array, we will simply return a base type of
-                // String because otherwise, we need the ResultSet for the array itself, and many JDBC Drivers do not
-                // support calling Array.getResultSet() and will throw an Exception if that is not supported.
-                if (rs.isAfterLast()) {
-                    return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType());
-                }
-
-                final Array array = rs.getArray(columnIndex);
-                if (array == null) {
-                    return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType());
-                }
-
-                final DataType baseType = getArrayBaseType(array);
-                return RecordFieldType.ARRAY.getArrayDataType(baseType);
+                return getArrayDataType(rs, readerSchema, columnIndex, useLogicalTypes);
             case Types.BINARY:
             case Types.LONGVARBINARY:
             case Types.VARBINARY:
                 return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
             case Types.NUMERIC:
             case Types.DECIMAL:
-                final int decimalPrecision;
-                final int decimalScale;
-                final int resultSetPrecision = rs.getMetaData().getPrecision(columnIndex);
-                final int resultSetScale = rs.getMetaData().getScale(columnIndex);
-                if (rs.getMetaData().getPrecision(columnIndex) > 0) {
-                    // When database returns a certain precision, we can rely on that.
-                    decimalPrecision = resultSetPrecision;
-                    //For the float data type Oracle return decimalScale < 0 which cause is not expected to org.apache.avro.LogicalTypes
-                    //Hence falling back to default scale if decimalScale < 0
-                    decimalScale = resultSetScale > 0 ? resultSetScale : defaultScale;
+                if (useLogicalTypes) {
+                    return getDecimalDataType(rs, columnIndex);
                 } else {
-                    // If not, use default precision.
-                    decimalPrecision = defaultPrecision;
-                    // Oracle returns precision=0, scale=-127 for variable scale value such as ROWNUM or function result.
-                    // Specifying 'oracle.jdbc.J2EE13Compliant' SystemProperty makes it to return scale=0 instead.
-                    // Queries for example, 'SELECT 1.23 as v from DUAL' can be problematic because it can't be mapped with decimal with scale=0.
-                    // Default scale is used to preserve decimals in such case.
-                    decimalScale = resultSetScale > 0 ? resultSetScale : defaultScale;
+                    return RecordFieldType.STRING.getDataType();
                 }
-                return RecordFieldType.DECIMAL.getDecimalDataType(decimalPrecision, decimalScale);
             case Types.OTHER: {
                 // If we have no records to inspect, we can't really know its schema so we simply use the default data type.
                 if (rs.isAfterLast()) {
@@ -251,15 +225,19 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 if (readerSchema != null) {
                     Optional<DataType> dataType = readerSchema.getDataType(columnName);
                     if (dataType.isPresent()) {
-                        return dataType.get();
+                        return determineDataTypeToReturn(dataType.get(), useLogicalTypes);
                     }
+                }
+
+                if (!useLogicalTypes) {
+                    return RecordFieldType.STRING.getDataType();
                 }
 
                 final Object obj = rs.getObject(columnIndex);
                 if (!(obj instanceof Record)) {
                     final List<DataType> dataTypes = Stream.of(RecordFieldType.BIGINT, RecordFieldType.BOOLEAN, RecordFieldType.BYTE, RecordFieldType.CHAR, RecordFieldType.DATE,
                         RecordFieldType.DECIMAL, RecordFieldType.DOUBLE, RecordFieldType.FLOAT, RecordFieldType.INT, RecordFieldType.LONG, RecordFieldType.SHORT, RecordFieldType.STRING,
-                            RecordFieldType.TIME, RecordFieldType.TIMESTAMP)
+                            RecordFieldType.TIME, TIMESTAMP)
                     .map(RecordFieldType::getDataType)
                     .collect(Collectors.toList());
 
@@ -276,11 +254,11 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 if (readerSchema != null) {
                     Optional<DataType> dataType = readerSchema.getDataType(columnName);
                     if (dataType.isPresent()) {
-                        return dataType.get();
+                        return determineDataTypeToReturn(dataType.get(), useLogicalTypes);
                     }
                 }
 
-                final RecordFieldType fieldType = getFieldType(sqlType, rs.getMetaData().getColumnClassName(columnIndex));
+                final RecordFieldType fieldType = getFieldType(sqlType, rs.getMetaData().getColumnClassName(columnIndex), useLogicalTypes);
 
                 if (RecordFieldType.DECIMAL.equals(fieldType)) {
                     final BigDecimal bigDecimalValue = rs.getBigDecimal(columnIndex);
@@ -292,7 +270,87 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         }
     }
 
-    private static DataType getArrayBaseType(final Array array) throws SQLException {
+    private DataType determineDataTypeToReturn(final DataType dataType, final boolean useLogicalTypes) {
+        RecordFieldType fieldType = dataType.getFieldType();
+        if (!useLogicalTypes
+                && (fieldType == RecordFieldType.DECIMAL
+                || fieldType == RecordFieldType.DATE
+                || fieldType == RecordFieldType.TIME
+                || fieldType == TIMESTAMP)) {
+            return RecordFieldType.STRING.getDataType();
+        } else {
+            return dataType;
+        }
+    }
+
+    private DataType getArrayDataType(final ResultSet rs, final RecordSchema readerSchema, final int columnIndex, final boolean useLogicalTypes) throws SQLException {
+        // We first want to check if the Reader Schema can tell us what the type of the array is.
+        final String columnName = rs.getMetaData().getColumnName(columnIndex);
+        final Optional<RecordField> optionalRecordField = readerSchema.getField(columnName);
+        if (optionalRecordField.isPresent()) {
+            final RecordField recordField = optionalRecordField.get();
+            final DataType dataType = recordField.getDataType();
+            if (dataType.getFieldType() == RecordFieldType.ARRAY) {
+                final ArrayDataType arrayDataType = (ArrayDataType) dataType;
+                if (arrayDataType.getElementType() != null) {
+                    return dataType;
+                }
+            }
+        }
+
+        // The JDBC API does not allow us to know what the base type of an array is through the metadata.
+        // As a result, we have to obtain the actual Array for this record. Once we have this, we can determine
+        // the base type. However, if the base type is, itself, an array, we will simply return a base type of
+        // String because otherwise, we need the ResultSet for the array itself, and many JDBC Drivers do not
+        // support calling Array.getResultSet() and will throw an Exception if that is not supported.
+        try {
+            final Array array = rs.getArray(columnIndex);
+
+            if (array == null) {
+                return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType());
+            }
+            final DataType baseType = getArrayBaseType(array, useLogicalTypes);
+            return RecordFieldType.ARRAY.getArrayDataType(baseType);
+        } catch (SQLFeatureNotSupportedException sfnse) {
+            return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType());
+        } catch (SQLException sqle) {
+            if (sqle.getCause() instanceof NoSuchElementException) {
+                return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType());
+            } else {
+                throw sqle;
+            }
+        }
+    }
+
+    private DataType getDecimalDataType(final ResultSet rs, final int columnIndex) throws SQLException {
+        int decimalPrecision;
+        final int decimalScale;
+        final int resultSetPrecision = rs.getMetaData().getPrecision(columnIndex);
+        final int resultSetScale = rs.getMetaData().getScale(columnIndex);
+        if (resultSetPrecision > 0) {
+            // When database returns a certain precision, we can rely on that.
+            decimalPrecision = resultSetPrecision;
+            //For the float data type Oracle return decimalScale < 0 which cause is not expected to org.apache.avro.LogicalTypes
+            //Hence falling back to default scale if decimalScale < 0
+            decimalScale = resultSetScale > 0 ? resultSetScale : defaultScale;
+        } else {
+            // If not, use default precision.
+            decimalPrecision = defaultPrecision;
+            // Oracle returns precision=0, scale=-127 for variable scale value such as ROWNUM or function result.
+            // Specifying 'oracle.jdbc.J2EE13Compliant' SystemProperty makes it to return scale=0 instead.
+            // Queries for example, 'SELECT 1.23 as v from DUAL' can be problematic because it can't be mapped with decimal with scale=0.
+            // Default scale is used to preserve decimals in such case.
+            decimalScale = resultSetScale > 0 ? resultSetScale : defaultScale;
+        }
+        // Scale can be bigger than precision in some cases (Oracle, e.g.) If this is the case, assume precision refers to the number of
+        // decimal digits and thus precision = scale
+        if (decimalScale > decimalPrecision) {
+            decimalPrecision = decimalScale;
+        }
+        return RecordFieldType.DECIMAL.getDecimalDataType(decimalPrecision, decimalScale);
+    }
+
+    private static DataType getArrayBaseType(final Array array, final boolean useLogicalTypes) throws SQLException {
         final Object arrayValue = array.getArray();
         if (arrayValue == null) {
             return RecordFieldType.STRING.getDataType();
@@ -312,9 +370,6 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         }
         if (arrayValue instanceof short[]) {
             return RecordFieldType.SHORT.getDataType();
-        }
-        if (arrayValue instanceof byte[]) {
-            return RecordFieldType.BYTE.getDataType();
         }
         if (arrayValue instanceof float[]) {
             return RecordFieldType.FLOAT.getDataType();
@@ -364,8 +419,12 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 return RecordFieldType.DOUBLE.getDataType();
             }
             if (valueToLookAt instanceof BigDecimal) {
-                final BigDecimal bigDecimal = (BigDecimal) valueToLookAt;
-                return RecordFieldType.DECIMAL.getDecimalDataType(bigDecimal.precision(), bigDecimal.scale());
+                if (useLogicalTypes) {
+                    final BigDecimal bigDecimal = (BigDecimal) valueToLookAt;
+                    return RecordFieldType.DECIMAL.getDecimalDataType(bigDecimal.precision(), bigDecimal.scale());
+                } else {
+                    return RecordFieldType.STRING.getDataType();
+                }
             }
             if (valueToLookAt instanceof Boolean) {
                 return RecordFieldType.BOOLEAN.getDataType();
@@ -376,17 +435,14 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             if (valueToLookAt instanceof BigInteger) {
                 return RecordFieldType.BIGINT.getDataType();
             }
-            if (valueToLookAt instanceof Integer) {
-                return RecordFieldType.INT.getDataType();
-            }
             if (valueToLookAt instanceof java.sql.Time) {
-                return RecordFieldType.TIME.getDataType();
+                return getDataType(RecordFieldType.TIME, useLogicalTypes);
             }
             if (valueToLookAt instanceof java.sql.Date) {
-                return RecordFieldType.DATE.getDataType();
+                return getDataType(RecordFieldType.DATE, useLogicalTypes);
             }
             if (valueToLookAt instanceof java.sql.Timestamp) {
-                return RecordFieldType.TIMESTAMP.getDataType();
+                return getDataType(TIMESTAMP, useLogicalTypes);
             }
             if (valueToLookAt instanceof Record) {
                 final Record record = (Record) valueToLookAt;
@@ -397,8 +453,15 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         return RecordFieldType.STRING.getDataType();
     }
 
+    private static DataType getDataType(final RecordFieldType recordFieldType, final boolean useLogicalTypes) {
+        if (useLogicalTypes) {
+            return recordFieldType.getDataType();
+        } else {
+            return RecordFieldType.STRING.getDataType();
+        }
+    }
 
-    private static RecordFieldType getFieldType(final int sqlType, final String valueClassName) {
+    private static RecordFieldType getFieldType(final int sqlType, final String valueClassName, final boolean useLogicalTypes) {
         switch (sqlType) {
             case Types.BIGINT:
             case Types.ROWID:
@@ -407,12 +470,12 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             case Types.BOOLEAN:
                 return RecordFieldType.BOOLEAN;
             case Types.CHAR:
-                return RecordFieldType.CHAR;
+                return RecordFieldType.STRING;
             case Types.DATE:
-                return RecordFieldType.DATE;
+                return getRecordFieldType(RecordFieldType.DATE, useLogicalTypes);
             case Types.NUMERIC:
             case Types.DECIMAL:
-                return RecordFieldType.DECIMAL;
+                return getRecordFieldType(RecordFieldType.DECIMAL, useLogicalTypes);
             case Types.DOUBLE:
             case Types.REAL:
                 return RecordFieldType.DOUBLE;
@@ -443,7 +506,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                     return RecordFieldType.LONG;
                 }
                 if (DATE_CLASS_NAME.equals(valueClassName)) {
-                    return RecordFieldType.DATE;
+                    return getRecordFieldType(RecordFieldType.DATE, useLogicalTypes);
                 }
                 if (FLOAT_CLASS_NAME.equals(valueClassName)) {
                     return RecordFieldType.FLOAT;
@@ -452,20 +515,29 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                     return RecordFieldType.DOUBLE;
                 }
                 if (BIGDECIMAL_CLASS_NAME.equals(valueClassName)) {
-                    return RecordFieldType.DECIMAL;
+                    return getRecordFieldType(RecordFieldType.DECIMAL, useLogicalTypes);
                 }
 
                 return RecordFieldType.RECORD;
             case Types.TIME:
             case Types.TIME_WITH_TIMEZONE:
-                return RecordFieldType.TIME;
+                return getRecordFieldType(RecordFieldType.TIME, useLogicalTypes);
             case Types.TIMESTAMP:
             case Types.TIMESTAMP_WITH_TIMEZONE:
             case -101: // Oracle's TIMESTAMP WITH TIME ZONE
             case -102: // Oracle's TIMESTAMP WITH LOCAL TIME ZONE
-                return RecordFieldType.TIMESTAMP;
+            case -155: // SQL Server's DATETIMEOFFSET
+                return getRecordFieldType(TIMESTAMP, useLogicalTypes);
         }
 
         return RecordFieldType.STRING;
+    }
+
+    private static RecordFieldType getRecordFieldType(final RecordFieldType recordFieldType, final boolean useLogicalTypes) {
+        if (useLogicalTypes) {
+            return recordFieldType;
+        } else {
+            return RecordFieldType.STRING;
+        }
     }
 }

@@ -145,7 +145,8 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
     public static final PropertyDescriptor PROP_QOS = new PropertyDescriptor.Builder()
             .name("Quality of Service(QoS)")
-            .description("The Quality of Service(QoS) to receive the message with. Accepts values '0', '1' or '2'; '0' for 'at most once', '1' for 'at least once', '2' for 'exactly once'.")
+            .displayName("Quality of Service (QoS)")
+            .description("The Quality of Service (QoS) to receive the message with. Accepts values '0', '1' or '2'; '0' for 'at most once', '1' for 'at least once', '2' for 'exactly once'.")
             .required(true)
             .defaultValue(ALLOWABLE_VALUE_QOS_0.getValue())
             .allowableValues(
@@ -387,7 +388,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
             return;
         }
 
-        if(context.getProperty(RECORD_READER).isSet()) {
+        if (context.getProperty(RECORD_READER).isSet()) {
             transferQueueRecord(context, session);
         } else if (context.getProperty(MESSAGE_DEMARCATOR).isSet()) {
             transferQueueDemarcator(context, session);
@@ -440,15 +441,8 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
             session.getProvenanceReporter().receive(messageFlowfile, getTransitUri(mqttMessage.getTopic()));
             session.transfer(messageFlowfile, REL_MESSAGE);
-            session.commit();
-            if (!mqttQueue.remove(mqttMessage) && logger.isWarnEnabled()) {
-                logger.warn(new StringBuilder("FlowFile ")
-                        .append(messageFlowfile.getAttribute(CoreAttributes.UUID.key()))
-                        .append(" for MQTT message ")
-                        .append(mqttMessage)
-                        .append(" had already been removed from queue, possible duplication of flow files")
-                        .toString());
-            }
+            session.commitAsync();
+            mqttQueue.remove(mqttMessage);
         }
     }
 
@@ -472,7 +466,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
         session.getProvenanceReporter().receive(messageFlowfile, getTransitUri(topicPrefix, topicFilter));
         session.transfer(messageFlowfile, REL_MESSAGE);
-        session.commit();
+        session.commitAsync();
     }
 
     private void transferFailure(final ProcessSession session, final MQTTQueueMessage mqttMessage) {
@@ -638,7 +632,6 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
         session.putAllAttributes(flowFile, attributes);
         session.getProvenanceReporter().receive(flowFile, getTransitUri(topicPrefix, topicFilter));
         session.transfer(flowFile, REL_MESSAGE);
-        session.commit();
 
         final int count = recordCount.get();
         session.adjustCounter(COUNTER_RECORDS_PROCESSED, count, false);

@@ -29,7 +29,7 @@ import java.security.NoSuchAlgorithmException;
 public final class FileDigestUtils {
     private static final String DIGEST_ALGORITHM = "SHA-256";
 
-    private static final int BUFFER_LENGTH = 1024;
+    private static final int BUFFER_LENGTH = 4096;
 
     private static final int START_READ_INDEX = 0;
 

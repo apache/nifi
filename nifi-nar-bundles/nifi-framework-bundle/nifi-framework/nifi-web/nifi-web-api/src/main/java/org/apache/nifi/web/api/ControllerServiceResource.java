@@ -30,25 +30,38 @@ import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.OperationAuthorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
+import org.apache.nifi.web.api.concurrent.AsyncRequestManager;
+import org.apache.nifi.web.api.concurrent.AsynchronousWebRequest;
+import org.apache.nifi.web.api.concurrent.RequestManager;
+import org.apache.nifi.web.api.concurrent.StandardAsynchronousWebRequest;
+import org.apache.nifi.web.api.concurrent.StandardUpdateStep;
+import org.apache.nifi.web.api.concurrent.UpdateStep;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
+import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
+import org.apache.nifi.web.api.dto.ConfigurationAnalysisDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.VerifyConfigRequestDTO;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
+import org.apache.nifi.web.api.entity.ConfigurationAnalysisEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceRunStatusEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.UpdateControllerServiceReferenceRequestEntity;
+import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.slf4j.Logger;
@@ -70,10 +83,13 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -87,6 +103,9 @@ import java.util.stream.Collectors;
 public class ControllerServiceResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(ControllerServiceResource.class);
+    private static final String VERIFICATION_REQUEST_TYPE = "verification-request";
+    private RequestManager<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> updateRequestManager =
+        new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Verify Controller Service Config Thread");
 
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
@@ -159,7 +178,9 @@ public class ControllerServiceResource extends ApplicationResource {
             response = ControllerServiceEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /controller-services/{uuid}")
-            }
+            },
+            notes = "If the uiOnly query parameter is provided with a value of true, the returned entity may only contain fields that are necessary for rendering the NiFi User Interface. As such, " +
+                "the selected fields may change at any time, even during incremental releases, without warning. As a result, this parameter should not be provided by any client other than the UI."
     )
     @ApiResponses(
             value = {
@@ -175,7 +196,8 @@ public class ControllerServiceResource extends ApplicationResource {
                     value = "The controller service id.",
                     required = true
             )
-            @PathParam("id") final String id) {
+            @PathParam("id") final String id,
+            @QueryParam("uiOnly") @DefaultValue("false") final boolean uiOnly) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -189,10 +211,14 @@ public class ControllerServiceResource extends ApplicationResource {
 
         // get the controller service
         final ControllerServiceEntity entity = serviceFacade.getControllerService(id);
+        if (uiOnly) {
+            stripNonUiRelevantFields(entity);
+        }
         populateRemainingControllerServiceEntityContent(entity);
 
         return generateOkResponse(entity).build();
     }
+
 
     /**
      * Returns the descriptor for the specified property.
@@ -231,7 +257,13 @@ public class ControllerServiceResource extends ApplicationResource {
                     value = "The property name to return the descriptor for.",
                     required = true
             )
-            @QueryParam("propertyName") final String propertyName) {
+            @QueryParam("propertyName") final String propertyName,
+            @ApiParam(
+                    value = "Property Descriptor requested sensitive status",
+                    defaultValue = "false"
+            )
+            @QueryParam("sensitive") final boolean sensitive
+    ) {
 
         // ensure the property name is specified
         if (propertyName == null) {
@@ -249,7 +281,7 @@ public class ControllerServiceResource extends ApplicationResource {
         });
 
         // get the property descriptor
-        final PropertyDescriptorDTO descriptor = serviceFacade.getControllerServicePropertyDescriptor(id, propertyName);
+        final PropertyDescriptorDTO descriptor = serviceFacade.getControllerServicePropertyDescriptor(id, propertyName, sensitive);
 
         // generate the response entity
         final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();
@@ -556,6 +588,10 @@ public class ControllerServiceResource extends ApplicationResource {
                     final ControllerServiceReferencingComponentsEntity entity = serviceFacade.updateControllerServiceReferencingComponents(
                             referencingRevisions, updateReferenceRequest.getId(), scheduledState, controllerServiceState);
 
+                    if (updateReferenceRequest.getUiOnly() == Boolean.TRUE) {
+                        entity.getControllerServiceReferencingComponents().forEach(this::stripNonUiRelevantFields);
+                    }
+
                     return generateOkResponse(entity).build();
                 }
         );
@@ -819,9 +855,295 @@ public class ControllerServiceResource extends ApplicationResource {
                     final ControllerServiceEntity entity = serviceFacade.updateControllerService(revision, createDTOWithDesiredRunStatus(id, runStatusEntity.getState()));
                     populateRemainingControllerServiceEntityContent(entity);
 
+                    if (runStatusEntity.getUiOnly() == Boolean.TRUE) {
+                        stripNonUiRelevantFields(entity);
+                    }
+
                     return generateOkResponse(entity).build();
                 }
         );
+    }
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/config/analysis")
+    @ApiOperation(
+        value = "Performs analysis of the component's configuration, providing information about which attributes are referenced.",
+        response = ConfigurationAnalysisEntity.class,
+        authorizations = {
+            @Authorization(value = "Read - /controller-services/{uuid}")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response analyzeConfiguration(
+        @ApiParam(value = "The controller service id.", required = true) @PathParam("id") final String controllerServiceId,
+        @ApiParam(value = "The configuration analysis request.", required = true) final ConfigurationAnalysisEntity configurationAnalysis) {
+
+        if (configurationAnalysis == null || configurationAnalysis.getConfigurationAnalysis() == null) {
+            throw new IllegalArgumentException("Controller Service's configuration must be specified");
+        }
+
+        final ConfigurationAnalysisDTO dto = configurationAnalysis.getConfigurationAnalysis();
+        if (dto.getComponentId() == null) {
+            throw new IllegalArgumentException("Controller Service's identifier must be specified in the request");
+        }
+
+        if (!dto.getComponentId().equals(controllerServiceId)) {
+            throw new IllegalArgumentException("Controller Service's identifier in the request must match the identifier provided in the URL");
+        }
+
+        if (dto.getProperties() == null) {
+            throw new IllegalArgumentException("Controller Service's properties must be specified in the request");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, configurationAnalysis);
+        }
+
+        return withWriteLock(
+            serviceFacade,
+            configurationAnalysis,
+            lookup -> {
+                final ComponentAuthorizable controllerService = lookup.getControllerService(controllerServiceId);
+                controllerService.getAuthorizable().authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            },
+            () -> { },
+            entity -> {
+                final ConfigurationAnalysisDTO analysis = entity.getConfigurationAnalysis();
+                final ConfigurationAnalysisEntity resultsEntity = serviceFacade.analyzeControllerServiceConfiguration(analysis.getComponentId(), analysis.getProperties());
+                return generateOkResponse(resultsEntity).build();
+            }
+        );
+    }
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/config/verification-requests")
+    @ApiOperation(
+        value = "Performs verification of the Controller Service's configuration",
+        response = VerifyConfigRequestEntity.class,
+        notes = "This will initiate the process of verifying a given Controller Service configuration. This may be a long-running task. As a result, this endpoint will immediately return a " +
+            "ControllerServiceConfigVerificationRequestEntity, and the process of performing the verification will occur asynchronously in the background. " +
+            "The client may then periodically poll the status of the request by " +
+            "issuing a GET request to /controller-services/{serviceId}/verification-requests/{requestId}. Once the request is completed, the client is expected to issue a DELETE request to " +
+            "/controller-services/{serviceId}/verification-requests/{requestId}.",
+        authorizations = {
+            @Authorization(value = "Read - /controller-services/{uuid}")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response submitConfigVerificationRequest(
+        @ApiParam(value = "The controller service id.", required = true) @PathParam("id") final String controllerServiceId,
+        @ApiParam(value = "The controller service configuration verification request.", required = true) final VerifyConfigRequestEntity controllerServiceConfigRequest) {
+
+        if (controllerServiceConfigRequest == null) {
+            throw new IllegalArgumentException("Controller Service's configuration must be specified");
+        }
+
+        final VerifyConfigRequestDTO requestDto = controllerServiceConfigRequest.getRequest();
+        if (requestDto == null || requestDto.getProperties() == null) {
+            throw new IllegalArgumentException("Controller Service properties must be specified");
+        }
+
+        if (requestDto.getComponentId() == null) {
+            throw new IllegalArgumentException("Controller Service's identifier must be specified in the request");
+        }
+
+        if (!requestDto.getComponentId().equals(controllerServiceId)) {
+            throw new IllegalArgumentException("Controller Service's identifier in the request must match the identifier provided in the URL");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, controllerServiceConfigRequest);
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        return withWriteLock(
+            serviceFacade,
+            controllerServiceConfigRequest,
+            lookup -> {
+                final ComponentAuthorizable controllerService = lookup.getControllerService(controllerServiceId);
+                controllerService.getAuthorizable().authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            },
+            () -> {
+                serviceFacade.verifyCanVerifyControllerServiceConfig(controllerServiceId);
+            },
+            entity -> performAsyncConfigVerification(entity, user)
+        );
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/config/verification-requests/{requestId}")
+    @ApiOperation(
+        value = "Returns the Verification Request with the given ID",
+        response = VerifyConfigRequestEntity.class,
+        notes = "Returns the Verification Request with the given ID. Once an Verification Request has been created, "
+            + "that request can subsequently be retrieved via this endpoint, and the request that is fetched will contain the updated state, such as percent complete, the "
+            + "current state of the request, and any failures. ",
+        authorizations = {
+            @Authorization(value = "Only the user that submitted the request can get it")
+        })
+    @ApiResponses(value = {
+        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+        @ApiResponse(code = 401, message = "Client could not be authenticated."),
+        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+        @ApiResponse(code = 404, message = "The specified resource could not be found."),
+        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response getVerificationRequest(
+        @ApiParam("The ID of the Controller Service") @PathParam("id") final String controllerServiceId,
+        @ApiParam("The ID of the Verification Request") @PathParam("requestId") final String requestId) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        // request manager will ensure that the current is the user that submitted this request
+        final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest =
+            updateRequestManager.getRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+
+        final VerifyConfigRequestEntity updateRequestEntity = createVerifyControllerServiceConfigRequestEntity(asyncRequest, requestId);
+        return generateOkResponse(updateRequestEntity).build();
+    }
+
+
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/config/verification-requests/{requestId}")
+    @ApiOperation(
+        value = "Deletes the Verification Request with the given ID",
+        response = VerifyConfigRequestEntity.class,
+        notes = "Deletes the Verification Request with the given ID. After a request is created, it is expected "
+            + "that the client will properly clean up the request by DELETE'ing it, once the Verification process has completed. If the request is deleted before the request "
+            + "completes, then the Verification request will finish the step that it is currently performing and then will cancel any subsequent steps.",
+        authorizations = {
+            @Authorization(value = "Only the user that submitted the request can remove it")
+        })
+    @ApiResponses(value = {
+        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+        @ApiResponse(code = 401, message = "Client could not be authenticated."),
+        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+        @ApiResponse(code = 404, message = "The specified resource could not be found."),
+        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response deleteValidationRequest(
+        @ApiParam("The ID of the Controller Service") @PathParam("id") final String controllerServiceId,
+        @ApiParam("The ID of the Verification Request") @PathParam("requestId") final String requestId) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final boolean twoPhaseRequest = isTwoPhaseRequest(httpServletRequest);
+        final boolean executionPhase = isExecutionPhase(httpServletRequest);
+
+        // If this is a standalone node, or if this is the execution phase of the request, perform the actual request.
+        if (!twoPhaseRequest || executionPhase) {
+            // request manager will ensure that the current is the user that submitted this request
+            final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest =
+                updateRequestManager.removeRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+
+            if (asyncRequest == null) {
+                throw new ResourceNotFoundException("Could not find request of type " + VERIFICATION_REQUEST_TYPE + " with ID " + requestId);
+            }
+
+            if (!asyncRequest.isComplete()) {
+                asyncRequest.cancel();
+            }
+
+            final VerifyConfigRequestEntity updateRequestEntity = createVerifyControllerServiceConfigRequestEntity(asyncRequest, requestId);
+            return generateOkResponse(updateRequestEntity).build();
+        }
+
+        if (isValidationPhase(httpServletRequest)) {
+            // Perform authorization by attempting to get the request
+            updateRequestManager.getRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+            return generateContinueResponse().build();
+        } else if (isCancellationPhase(httpServletRequest)) {
+            return generateOkResponse().build();
+        } else {
+            throw new IllegalStateException("This request does not appear to be part of the two phase commit.");
+        }
+    }
+
+
+    public Response performAsyncConfigVerification(final VerifyConfigRequestEntity configRequest, final NiFiUser user) {
+        // Create an asynchronous request that will occur in the background, because this request may take an indeterminate amount of time.
+        final String requestId = generateUuid();
+
+        final VerifyConfigRequestDTO requestDto = configRequest.getRequest();
+        final String serviceId = requestDto.getComponentId();
+        final List<UpdateStep> updateSteps = Collections.singletonList(new StandardUpdateStep("Verify Controller Service Configuration"));
+
+        final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> request =
+            new StandardAsynchronousWebRequest<>(requestId, configRequest, serviceId, user, updateSteps);
+
+        // Submit the request to be performed in the background
+        final Consumer<AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>>> updateTask = asyncRequest -> {
+            try {
+                final Map<String, String> attributes = requestDto.getAttributes() == null ? Collections.emptyMap() : requestDto.getAttributes();
+                final List<ConfigVerificationResultDTO> results = serviceFacade.performControllerServiceConfigVerification(serviceId, requestDto.getProperties(), attributes);
+                asyncRequest.markStepComplete(results);
+            } catch (final Exception e) {
+                logger.error("Failed to verify Controller Service configuration", e);
+                asyncRequest.fail("Failed to verify Controller Service configuration due to " + e);
+            }
+        };
+
+        updateRequestManager.submitRequest(VERIFICATION_REQUEST_TYPE, requestId, request, updateTask);
+
+        // Generate the response
+        final VerifyConfigRequestEntity resultsEntity = createVerifyControllerServiceConfigRequestEntity(request, requestId);
+        return generateOkResponse(resultsEntity).build();
+    }
+
+    private VerifyConfigRequestEntity createVerifyControllerServiceConfigRequestEntity(
+                        final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest, final String requestId) {
+
+        final VerifyConfigRequestDTO requestDto = asyncRequest.getRequest().getRequest();
+        final List<ConfigVerificationResultDTO> resultsList = asyncRequest.getResults();
+
+        final VerifyConfigRequestDTO dto = new VerifyConfigRequestDTO();
+        dto.setComponentId(requestDto.getComponentId());
+        dto.setProperties(requestDto.getProperties());
+        dto.setResults(resultsList);
+
+        dto.setComplete(asyncRequest.isComplete());
+        dto.setFailureReason(asyncRequest.getFailureReason());
+        dto.setLastUpdated(asyncRequest.getLastUpdated());
+        dto.setPercentCompleted(asyncRequest.getPercentComplete());
+        dto.setRequestId(requestId);
+        dto.setState(asyncRequest.getState());
+        dto.setUri(generateResourceUri("controller-services", requestDto.getComponentId(), "config", "verification-requests", requestId));
+
+        final VerifyConfigRequestEntity entity = new VerifyConfigRequestEntity();
+        entity.setRequest(dto);
+        return entity;
     }
 
     private ControllerServiceDTO createDTOWithDesiredRunStatus(final String id, final String runStatus) {

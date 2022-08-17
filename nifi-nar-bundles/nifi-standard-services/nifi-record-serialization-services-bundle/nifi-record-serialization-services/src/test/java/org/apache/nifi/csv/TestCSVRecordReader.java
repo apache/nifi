@@ -27,8 +27,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
@@ -37,22 +36,20 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
-import java.util.TimeZone;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestCSVRecordReader {
     private final DataType doubleDataType = RecordFieldType.DOUBLE.getDataType();
@@ -68,7 +65,12 @@ public class TestCSVRecordReader {
 
     private CSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format) throws IOException {
         return new CSVRecordReader(in, Mockito.mock(ComponentLog.class), schema, format, true, false,
-            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII");
+                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII");
+    }
+
+    private CSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format, final boolean trimDoubleQuote) throws IOException {
+        return new CSVRecordReader(in, Mockito.mock(ComponentLog.class), schema, format, true, false,
+            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII", trimDoubleQuote);
     }
 
     @Test
@@ -92,6 +94,7 @@ public class TestCSVRecordReader {
 
     @Test
     public void testDate() throws IOException, MalformedRecordException {
+        final String dateValue = "1983-11-30";
         final String text = "date\n11/30/1983";
 
         final List<RecordField> fields = new ArrayList<>();
@@ -104,13 +107,8 @@ public class TestCSVRecordReader {
                      "MM/dd/yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
                 final Record record = reader.nextRecord(coerceTypes, false);
-                final java.sql.Date date = (Date) record.getValue("date");
-                final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("gmt"));
-                calendar.setTimeInMillis(date.getTime());
-
-                assertEquals(1983, calendar.get(Calendar.YEAR));
-                assertEquals(10, calendar.get(Calendar.MONTH));
-                assertEquals(30, calendar.get(Calendar.DAY_OF_MONTH));
+                final Object date = record.getValue("date");
+                assertEquals(java.sql.Date.valueOf(dateValue), date);
             }
         }
     }
@@ -137,6 +135,7 @@ public class TestCSVRecordReader {
 
     @Test
     public void testDateNoCoersionExpectedFormat() throws IOException, MalformedRecordException {
+        final String dateValue = "1983-11-30";
         final String text = "date\n11/30/1983";
 
         final List<RecordField> fields = new ArrayList<>();
@@ -148,13 +147,8 @@ public class TestCSVRecordReader {
                      "MM/dd/yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord(false, false);
-            final java.sql.Date date = (Date) record.getValue("date");
-            final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("gmt"));
-            calendar.setTimeInMillis(date.getTime());
-
-            assertEquals(1983, calendar.get(Calendar.YEAR));
-            assertEquals(10, calendar.get(Calendar.MONTH));
-            assertEquals(30, calendar.get(Calendar.DAY_OF_MONTH));
+            final Object date = record.getValue("date");
+            assertEquals(java.sql.Date.valueOf(dateValue), date);
         }
     }
 
@@ -214,7 +208,6 @@ public class TestCSVRecordReader {
     public void testTimeNoCoersionExpectedFormat() throws IOException, MalformedRecordException, ParseException {
         final String timeFormat = "HH!mm!ss";
         DateFormat dateFmt = new SimpleDateFormat(timeFormat);
-        dateFmt.setTimeZone(TimeZone.getTimeZone("gmt"));
         final String timeVal = "19!02!03";
         final String text = "time\n" + timeVal;
 
@@ -288,7 +281,6 @@ public class TestCSVRecordReader {
     public void testTimestampNoCoersionExpectedFormat() throws IOException, MalformedRecordException, ParseException {
         final String timeFormat = "HH!mm!ss";
         DateFormat dateFmt = new SimpleDateFormat(timeFormat);
-        dateFmt.setTimeZone(TimeZone.getTimeZone("gmt"));
         final String timeVal = "19!02!03";
         final String text = "timestamp\n" + timeVal;
 
@@ -324,7 +316,6 @@ public class TestCSVRecordReader {
         }
     }
 
-
     @Test
     public void testSimpleParse() throws IOException, MalformedRecordException {
         final List<RecordField> fields = getDefaultFields();
@@ -337,7 +328,25 @@ public class TestCSVRecordReader {
 
             final Object[] record = reader.nextRecord().getValues();
             final Object[] expectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
-            Assert.assertArrayEquals(expectedValues, record);
+            assertArrayEquals(expectedValues, record);
+
+            assertNull(reader.nextRecord());
+        }
+    }
+
+    @Test
+    public void testSimpleParse_withoutDoubleQuoteTrimming() throws IOException, MalformedRecordException {
+        final List<RecordField> fields = getDefaultFields();
+        fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream fis = new FileInputStream("src/test/resources/csv/single-bank-account.csv");
+             final CSVRecordReader reader = createReader(fis, schema, CSVFormat.RFC4180.withTrim(), false)) {
+
+            final Object[] record = reader.nextRecord().getValues();
+            final Object[] expectedValues = new Object[] {"1", "John Doe", 4750.89D, "\"123 My Street\"", "My City", "MS", "11111", "USA"};
+            assertArrayEquals(expectedValues, record);
 
             assertNull(reader.nextRecord());
         }
@@ -360,7 +369,7 @@ public class TestCSVRecordReader {
 
             final Object[] record = reader.nextRecord().getValues();
             final Object[] expectedValues = new Object[] {"valueA", "valueB"};
-            Assert.assertArrayEquals(expectedValues, record);
+            assertArrayEquals(expectedValues, record);
 
             assertNull(reader.nextRecord());
         }
@@ -378,11 +387,33 @@ public class TestCSVRecordReader {
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
-            Assert.assertArrayEquals(firstExpectedValues, firstRecord);
+            assertArrayEquals(firstExpectedValues, firstRecord);
 
             final Object[] secondRecord = reader.nextRecord().getValues();
             final Object[] secondExpectedValues = new Object[] {"2", "Jane Doe", 4820.09D, "321 Your Street", "Your City", "NY", "33333", "USA"};
-            Assert.assertArrayEquals(secondExpectedValues, secondRecord);
+            assertArrayEquals(secondExpectedValues, secondRecord);
+
+            assertNull(reader.nextRecord());
+        }
+    }
+
+    @Test
+    public void testMultipleRecords_withoutDoubleQuoteTrimming() throws IOException, MalformedRecordException {
+        final List<RecordField> fields = getDefaultFields();
+        fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account.csv");
+             final CSVRecordReader reader = createReader(fis, schema, CSVFormat.RFC4180.withTrim(), false)) {
+
+            final Object[] firstRecord = reader.nextRecord().getValues();
+            final Object[] firstExpectedValues = new Object[] {"1", "John Doe", 4750.89D, "\"123 My Street\"", "My City", "MS", "11111", "USA"};
+            assertArrayEquals(firstExpectedValues, firstRecord);
+
+            final Object[] secondRecord = reader.nextRecord().getValues();
+            final Object[] secondExpectedValues = new Object[] {"2", "Jane Doe", 4820.09D, "321 Your Street", "Your City", "NY", "33333", "USA"};
+            assertArrayEquals(secondExpectedValues, secondRecord);
 
             assertNull(reader.nextRecord());
         }
@@ -400,11 +431,11 @@ public class TestCSVRecordReader {
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
-            Assert.assertArrayEquals(firstExpectedValues, firstRecord);
+            assertArrayEquals(firstExpectedValues, firstRecord);
 
             final Object[] secondRecord = reader.nextRecord().getValues();
             final Object[] secondExpectedValues = new Object[] {"2", "Jane Doe", 4820.09D, "321 Your Street", "Your City", "NY", "33333", "USA"};
-            Assert.assertArrayEquals(secondExpectedValues, secondRecord);
+            assertArrayEquals(secondExpectedValues, secondRecord);
 
             assertNull(reader.nextRecord());
         }
@@ -418,7 +449,7 @@ public class TestCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         final String headerLine = "id, name, balance, address, city, state, zipCode, country";
-        final String inputRecord = "1, John, 40.80, 123 My Street, My City, MS, 11111";
+        final String inputRecord = "1, John, 40.80, \"123 My Street\", My City, MS, 11111";
         final String csvData = headerLine + "\n" + inputRecord;
         final byte[] inputData = csvData.getBytes();
 
@@ -442,12 +473,43 @@ public class TestCSVRecordReader {
     }
 
     @Test
+    public void testMissingField_withoutDoubleQuoteTrimming() throws IOException, MalformedRecordException {
+        final List<RecordField> fields = getDefaultFields();
+        fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final String headerLine = "id, name, balance, address, city, state, zipCode, country";
+        final String inputRecord = "1, John, 40.80, \"123 My Street\", My City, MS, 11111";
+        final String csvData = headerLine + "\n" + inputRecord;
+        final byte[] inputData = csvData.getBytes();
+
+        try (final InputStream bais = new ByteArrayInputStream(inputData);
+             final CSVRecordReader reader = createReader(bais, schema, CSVFormat.RFC4180.withTrim(), false)) {
+
+            final Record record = reader.nextRecord();
+            assertNotNull(record);
+
+            assertEquals("1", record.getValue("id"));
+            assertEquals("John", record.getValue("name"));
+            assertEquals(40.8D, record.getValue("balance"));
+            assertEquals("\"123 My Street\"", record.getValue("address"));
+            assertEquals("My City", record.getValue("city"));
+            assertEquals("MS", record.getValue("state"));
+            assertEquals("11111", record.getValue("zipCode"));
+            assertNull(record.getValue("country"));
+
+            assertNull(reader.nextRecord());
+        }
+    }
+
+    @Test
     public void testReadRawWithDifferentFieldName() throws IOException, MalformedRecordException {
         final List<RecordField> fields = getDefaultFields();
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         final String headerLine = "id, name, balance, address, city, state, zipCode, continent";
-        final String inputRecord = "1, John, 40.80, 123 My Street, My City, MS, 11111, North America";
+        final String inputRecord = "1, John, 40.80, \"123 My Street\", My City, MS, 11111, North America";
         final String csvData = headerLine + "\n" + inputRecord;
         final byte[] inputData = csvData.getBytes();
 
@@ -481,7 +543,58 @@ public class TestCSVRecordReader {
             assertEquals("1", record.getValue("id"));
             assertEquals("John", record.getValue("name"));
             assertEquals("40.80", record.getValue("balance"));
-            assertEquals("123 My Street", record.getValue("address"));
+            assertEquals("\"123 My Street\"", record.getValue("address"));
+            assertEquals("My City", record.getValue("city"));
+            assertEquals("MS", record.getValue("state"));
+            assertEquals("11111", record.getValue("zipCode"));
+            assertNull(record.getValue("country"));
+            assertEquals("North America", record.getValue("continent"));
+
+            assertNull(reader.nextRecord(false, false));
+        }
+    }
+
+    @Test
+    public void testReadRawWithDifferentFieldName_withoutDoubleQuoteTrimming() throws IOException, MalformedRecordException {
+        final List<RecordField> fields = getDefaultFields();
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final String headerLine = "id, name, balance, address, city, state, zipCode, continent";
+        final String inputRecord = "1, John, 40.80, \"123 My Street\", My City, MS, 11111, North America";
+        final String csvData = headerLine + "\n" + inputRecord;
+        final byte[] inputData = csvData.getBytes();
+
+        // test nextRecord does not contain a 'continent' field
+        try (final InputStream bais = new ByteArrayInputStream(inputData);
+             final CSVRecordReader reader = createReader(bais, schema, CSVFormat.RFC4180.withTrim(), false)) {
+
+            final Record record = reader.nextRecord(true, true);
+            assertNotNull(record);
+
+            assertEquals("1", record.getValue("id"));
+            assertEquals("John", record.getValue("name"));
+            assertEquals("40.80", record.getValue("balance"));
+            assertEquals("\"123 My Street\"", record.getValue("address"));
+            assertEquals("My City", record.getValue("city"));
+            assertEquals("MS", record.getValue("state"));
+            assertEquals("11111", record.getValue("zipCode"));
+            assertNull(record.getValue("country"));
+            assertNull(record.getValue("continent"));
+
+            assertNull(reader.nextRecord());
+        }
+
+        // test nextRawRecord does contain 'continent' field
+        try (final InputStream bais = new ByteArrayInputStream(inputData);
+             final CSVRecordReader reader = createReader(bais, schema, CSVFormat.RFC4180.withTrim(), false)) {
+
+            final Record record = reader.nextRecord(false, false);
+            assertNotNull(record);
+
+            assertEquals("1", record.getValue("id"));
+            assertEquals("John", record.getValue("name"));
+            assertEquals("40.80", record.getValue("balance"));
+            assertEquals("\"123 My Street\"", record.getValue("address"));
             assertEquals("My City", record.getValue("city"));
             assertEquals("MS", record.getValue("state"));
             assertEquals("11111", record.getValue("zipCode"));
@@ -499,7 +612,7 @@ public class TestCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         final String headerLine = "id, name, balance, address, city, state, zipCode";
-        final String inputRecord = "1, John, 40.80, 123 My Street, My City, MS, 11111, USA";
+        final String inputRecord = "1, John, 40.80, \"123 My Street\", My City, MS, 11111, USA";
         final String csvData = headerLine + "\n" + inputRecord;
         final byte[] inputData = csvData.getBytes();
 
@@ -555,12 +668,73 @@ public class TestCSVRecordReader {
     }
 
     @Test
+    public void testFieldInSchemaButNotHeader_withoutDoubleQuoteTrimming() throws IOException, MalformedRecordException {
+        final List<RecordField> fields = getDefaultFields();
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final String headerLine = "id, name, balance, address, city, state, zipCode";
+        final String inputRecord = "1, John, 40.80, \"123 My Street\", My City, MS, 11111, USA";
+        final String csvData = headerLine + "\n" + inputRecord;
+        final byte[] inputData = csvData.getBytes();
+
+        try (final InputStream bais = new ByteArrayInputStream(inputData);
+             final CSVRecordReader reader = createReader(bais, schema, CSVFormat.RFC4180.withTrim(), false)) {
+
+            final Record record = reader.nextRecord();
+            assertNotNull(record);
+
+            assertEquals("1", record.getValue("id"));
+            assertEquals("John", record.getValue("name"));
+            assertEquals("40.80", record.getValue("balance"));
+            assertEquals("\"123 My Street\"", record.getValue("address"));
+            assertEquals("My City", record.getValue("city"));
+            assertEquals("MS", record.getValue("state"));
+            assertEquals("11111", record.getValue("zipCode"));
+
+            // If schema says that there are fields a, b, c
+            // and the CSV has a header line that says field names are a, b
+            // and then the data has values 1,2,3
+            // then a=1, b=2, c=null
+            assertNull(record.getValue("country"));
+
+            assertNull(reader.nextRecord());
+        }
+
+        // Create another Record Reader that indicates that the header line is present but should be ignored. This should cause
+        // our schema to be the definitive list of what fields exist.
+        try (final InputStream bais = new ByteArrayInputStream(inputData);
+             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, CSVFormat.RFC4180.withTrim(), true, true,
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", false)) {
+
+            final Record record = reader.nextRecord();
+            assertNotNull(record);
+
+            assertEquals("1", record.getValue("id"));
+            assertEquals("John", record.getValue("name"));
+            assertEquals("40.80", record.getValue("balance"));
+            assertEquals("\"123 My Street\"", record.getValue("address"));
+            assertEquals("My City", record.getValue("city"));
+            assertEquals("MS", record.getValue("state"));
+            assertEquals("11111", record.getValue("zipCode"));
+
+            // If schema says that there are fields a, b, c
+            // and the CSV has a header line that says field names are a, b
+            // and then the data has values 1,2,3
+            // then a=1, b=2, c=null
+            // But if we configure the reader to Ignore the header, then this will not occur!
+            assertEquals("USA", record.getValue("country"));
+
+            assertNull(reader.nextRecord());
+        }
+    }
+
+    @Test
     public void testExtraFieldNotInHeader() throws IOException, MalformedRecordException {
         final List<RecordField> fields = getDefaultFields();
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         final String headerLine = "id, name, balance, address, city, state, zipCode, country";
-        final String inputRecord = "1, John, 40.80, 123 My Street, My City, MS, 11111, USA, North America";
+        final String inputRecord = "1, John, 40.80, \"123 My Street\", My City, MS, 11111, USA, North America";
         final String csvData = headerLine + "\n" + inputRecord;
         final byte[] inputData = csvData.getBytes();
 
@@ -574,7 +748,38 @@ public class TestCSVRecordReader {
             assertEquals("1", record.getValue("id"));
             assertEquals("John", record.getValue("name"));
             assertEquals("40.80", record.getValue("balance"));
-            assertEquals("123 My Street", record.getValue("address"));
+            assertEquals("\"123 My Street\"", record.getValue("address"));
+            assertEquals("My City", record.getValue("city"));
+            assertEquals("MS", record.getValue("state"));
+            assertEquals("11111", record.getValue("zipCode"));
+            assertEquals("USA", record.getValue("country"));
+            assertEquals("North America", record.getValue("unknown_field_index_8"));
+
+            assertNull(reader.nextRecord(false, false));
+        }
+    }
+
+    @Test
+    public void testExtraFieldNotInHeader_withoutDoubleQuoteTrimming() throws IOException, MalformedRecordException {
+        final List<RecordField> fields = getDefaultFields();
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final String headerLine = "id, name, balance, address, city, state, zipCode, country";
+        final String inputRecord = "1, John, 40.80, \"123 My Street\", My City, MS, 11111, USA, North America";
+        final String csvData = headerLine + "\n" + inputRecord;
+        final byte[] inputData = csvData.getBytes();
+
+        // test nextRecord does not contain a 'continent' field
+        try (final InputStream bais = new ByteArrayInputStream(inputData);
+             final CSVRecordReader reader = createReader(bais, schema, CSVFormat.RFC4180.withTrim(), false)) {
+
+            final Record record = reader.nextRecord(false, false);
+            assertNotNull(record);
+
+            assertEquals("1", record.getValue("id"));
+            assertEquals("John", record.getValue("name"));
+            assertEquals("40.80", record.getValue("balance"));
+            assertEquals("\"123 My Street\"", record.getValue("address"));
             assertEquals("My City", record.getValue("city"));
             assertEquals("MS", record.getValue("state"));
             assertEquals("11111", record.getValue("zipCode"));
@@ -591,7 +796,7 @@ public class TestCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         final String headerLine = "id, id, name, name, balance, BALANCE, address, city, state, zipCode, country";
-        final String inputRecord = "1, Another ID, John, Smith, 40.80, 10.20, 123 My Street, My City, MS, 11111, USA";
+        final String inputRecord = "1, Another ID, John, Smith, 40.80, 10.20, \"123 My Street\", My City, MS, 11111, USA";
         final String csvData = headerLine + "\n" + inputRecord;
         final byte[] inputData = csvData.getBytes();
 
@@ -608,7 +813,7 @@ public class TestCSVRecordReader {
             assertEquals("Smith", record.getValue("BALANCE"));
             assertEquals("40.80", record.getValue("address"));
             assertEquals("10.20", record.getValue("city"));
-            assertEquals("123 My Street", record.getValue("state"));
+            assertEquals("\"123 My Street\"", record.getValue("state"));
             assertEquals("My City", record.getValue("zipCode"));
             assertEquals("MS", record.getValue("country"));
             assertEquals("11111", record.getValue("unknown_field_index_9"));
@@ -630,7 +835,51 @@ public class TestCSVRecordReader {
     }
 
     @Test
-    public void testMultipleRecordsEscapedWithSpecialChar() throws IOException, MalformedRecordException {
+    public void testDuplicateHeaderNames_withoutDoubleQuoteTrimming() throws IOException, MalformedRecordException {
+        final List<RecordField> fields = getDefaultFields();
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final String headerLine = "id, id, name, name, balance, BALANCE, address, city, state, zipCode, country";
+        final String inputRecord = "1, Another ID, John, Smith, 40.80, 10.20, \"123 My Street\", My City, MS, 11111, USA";
+        final String csvData = headerLine + "\n" + inputRecord;
+        final byte[] inputData = csvData.getBytes();
+
+        // test nextRecord has shifted data columns right by 1 after the duplicate "id" & "name" header names
+        try (final InputStream bais = new ByteArrayInputStream(inputData);
+             final CSVRecordReader reader = createReader(bais, schema, CSVFormat.RFC4180.withTrim(), false)) {
+
+            final Record record = reader.nextRecord(false, false);
+            assertNotNull(record);
+
+            assertEquals("1", record.getValue("id"));
+            assertEquals("Another ID", record.getValue("name"));
+            assertEquals("John", record.getValue("balance"));
+            assertEquals("Smith", record.getValue("BALANCE"));
+            assertEquals("40.80", record.getValue("address"));
+            assertEquals("10.20", record.getValue("city"));
+            assertEquals("\"123 My Street\"", record.getValue("state"));
+            assertEquals("My City", record.getValue("zipCode"));
+            assertEquals("MS", record.getValue("country"));
+            assertEquals("11111", record.getValue("unknown_field_index_9"));
+            assertEquals("USA", record.getValue("unknown_field_index_10"));
+
+            assertNull(reader.nextRecord(false, false));
+        }
+
+        // confirm duplicate headers cause an exception when requested
+        final CSVFormat disallowDuplicateHeadersFormat = CSVFormat.RFC4180.withTrim().withAllowDuplicateHeaderNames(false);
+        try (final InputStream bais = new ByteArrayInputStream(inputData)) {
+            final IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> createReader(bais, schema, disallowDuplicateHeadersFormat, false));
+            assertEquals(
+                    "The header contains a duplicate name: \"id\" in [id, id, name, name, balance, BALANCE, address, city, state, zipCode, country]. " +
+                            "If this is valid then use CSVFormat.withAllowDuplicateHeaderNames().",
+                    iae.getMessage()
+            );
+        }
+    }
+
+    @Test
+    public void testMultipleRecordsDelimitedWithSpecialChar() throws IOException, MalformedRecordException {
 
         char delimiter = StringEscapeUtils.unescapeJava("\u0001").charAt(0);
 
@@ -640,16 +889,80 @@ public class TestCSVRecordReader {
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_escapedchar.csv");
+        try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_spec_delimiter.csv");
             final CSVRecordReader reader = createReader(fis, schema, format)) {
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
-            Assert.assertArrayEquals(firstExpectedValues, firstRecord);
+            assertArrayEquals(firstExpectedValues, firstRecord);
 
             final Object[] secondRecord = reader.nextRecord().getValues();
             final Object[] secondExpectedValues = new Object[] {"2", "Jane Doe", 4820.09D, "321 Your Street", "Your City", "NY", "33333", "USA"};
-            Assert.assertArrayEquals(secondExpectedValues, secondRecord);
+            assertArrayEquals(secondExpectedValues, secondRecord);
+
+            assertNull(reader.nextRecord());
+        }
+    }
+
+    @Test
+    public void testMultipleRecordsEscapedWithChar() throws IOException {
+
+        final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withDelimiter(",".charAt(0)).withEscape("\\".charAt(0));
+        final List<RecordField> fields = getDefaultFields();
+        fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_escapechar.csv");
+             final CSVRecordReader reader = createReader(fis, schema, format)) {
+
+            assertThrows(MalformedRecordException.class, () -> reader.nextRecord());
+        }
+    }
+
+    @Test
+    public void testMultipleRecordsEscapedWithNull() throws IOException, MalformedRecordException {
+
+        final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withDelimiter(",".charAt(0)).withEscape(null);
+        final List<RecordField> fields = getDefaultFields();
+        fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_escapechar.csv");
+             final CSVRecordReader reader = createReader(fis, schema, format)) {
+
+            final Object[] firstRecord = reader.nextRecord().getValues();
+            final Object[] firstExpectedValues = new Object[] {"1", "John Doe\\", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
+            assertArrayEquals(firstExpectedValues, firstRecord);
+
+            final Object[] secondRecord = reader.nextRecord().getValues();
+            final Object[] secondExpectedValues = new Object[] {"2", "Jane Doe", 4820.09D, "321 Your Street", "Your City", "NY", "33333", "USA"};
+            assertArrayEquals(secondExpectedValues, secondRecord);
+
+            assertNull(reader.nextRecord());
+        }
+    }
+
+    @Test
+    public void testMultipleRecordsEscapedWithNull_withoutDoubleQuoteTrimming() throws IOException, MalformedRecordException {
+
+        final CSVFormat format = CSVFormat.RFC4180.withTrim();
+        final List<RecordField> fields = getDefaultFields();
+        fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_escapechar.csv");
+             final CSVRecordReader reader = createReader(fis, schema, format, false)) {
+
+            final Object[] firstRecord = reader.nextRecord().getValues();
+            final Object[] firstExpectedValues = new Object[] {"1", "John Doe\\", 4750.89D, "\"123 My Street\"", "My City", "MS", "11111", "USA"};
+            assertArrayEquals(firstExpectedValues, firstRecord);
+
+            final Object[] secondRecord = reader.nextRecord().getValues();
+            final Object[] secondExpectedValues = new Object[] {"2", "Jane Doe", 4820.09D, "321 Your Street", "Your City", "NY", "33333", "USA"};
+            assertArrayEquals(secondExpectedValues, secondRecord);
 
             assertNull(reader.nextRecord());
         }
@@ -658,7 +971,7 @@ public class TestCSVRecordReader {
     @Test
     public void testQuote() throws IOException, MalformedRecordException {
         final CSVFormat format = CSVFormat.RFC4180.withFirstRecordAsHeader().withTrim().withQuote('"');
-        final String text = "\"name\"\n\"\"\"\"\n\"\"\"\"";
+        final String text = "\"name\"\n\"\"\"\"\"\"\"\"\n\"\"\"\"\"\"\"\"";
 
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
@@ -674,8 +987,30 @@ public class TestCSVRecordReader {
 
             record = reader.nextRecord(false, false);
             name = (String)record.getValue("name");
-            assertEquals("\"", name);
+            assertEquals("\"\"\"", name);
         }
     }
 
+    @Test
+    public void testQuote_withoutDoubleQuoteTrimming() throws IOException, MalformedRecordException {
+        final CSVFormat format = CSVFormat.RFC4180.withFirstRecordAsHeader().withTrim().withQuote('"');
+        final String text = "\"name\"\n\"\"\"\"\"\"\"\"\n\"\"\"\"\"\"\"\"";
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream bais = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
+             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), StandardCharsets.UTF_8.name(), false)) {
+
+            Record record = reader.nextRecord();
+            String name = (String)record.getValue("name");
+            assertEquals("\"\"\"", name);
+
+            record = reader.nextRecord(false, false);
+            name = (String)record.getValue("name");
+            assertEquals("\"\"\"", name);
+        }
+    }
 }

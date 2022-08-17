@@ -21,9 +21,10 @@ import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -36,8 +37,8 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILE_PATH;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LAST_MODIFIED;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LENGTH;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
@@ -48,7 +49,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         return ListAzureDataLakeStorage.class;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         testFiles = new HashMap<>();
 
@@ -72,7 +73,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         createDirectoryAndUploadFile(testFile111);
         testFiles.put(testFile111.getFilePath(), testFile111);
 
-        TestFile testFile21 = new TestFile("dir 2", "file 21");
+        TestFile testFile21 = new TestFile("dir 2", "file 21", "Test");
         createDirectoryAndUploadFile(testFile21);
         testFiles.put(testFile21.getFilePath(), testFile21);
 
@@ -82,6 +83,16 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     @Test
     public void testListRootRecursive() throws Exception {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
+
+        runProcessor();
+
+        assertSuccess("file1", "file2", "dir1/file11", "dir1/file12", "dir1/dir11/file111", "dir 2/file 21");
+    }
+
+    @Test
+    public void testListRootRecursiveUsingProxyConfigurationService() throws Exception {
+        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
+        configureProxyService();
 
         runProcessor();
 
@@ -225,6 +236,46 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         flowFile.assertAttributeEquals("record.count", "3");
     }
 
+    @Test
+    public void testListWithMinAge() throws Exception {
+        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
+        runner.setProperty(ListAzureDataLakeStorage.MIN_AGE, "1 hour");
+
+        runProcessor();
+
+        runner.assertTransferCount(ListAzureDataLakeStorage.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testListWithMaxAge() throws Exception {
+        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
+        runner.setProperty(ListAzureDataLakeStorage.MAX_AGE, "1 hour");
+
+        runProcessor();
+
+        assertSuccess("file1", "file2", "dir1/file11", "dir1/file12", "dir1/dir11/file111", "dir 2/file 21");
+    }
+
+    @Test
+    public void testListWithMinSize() throws Exception {
+        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
+        runner.setProperty(ListAzureDataLakeStorage.MIN_SIZE, "5 B");
+
+        runProcessor();
+
+        assertSuccess("file1", "file2", "dir1/file11", "dir1/file12", "dir1/dir11/file111");
+    }
+
+    @Test
+    public void testListWithMaxSize() throws Exception {
+        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
+        runner.setProperty(ListAzureDataLakeStorage.MAX_SIZE, "5 B");
+
+        runProcessor();
+
+        assertSuccess("dir 2/file 21");
+    }
+
     private void runProcessor() {
         runner.assertValid();
         runner.run();
@@ -241,17 +292,17 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         for (MockFlowFile flowFile : flowFiles) {
             String filePath = flowFile.getAttribute("azure.filePath");
             TestFile testFile = expectedFiles.remove(filePath);
-            assertNotNull("File path not found in the expected map", testFile);
+            assertNotNull(testFile, "File path not found in the expected map");
             assertFlowFile(testFile, flowFile);
         }
     }
 
-    private void assertFlowFile(TestFile testFile, MockFlowFile flowFile) throws Exception {
+    private void assertFlowFile(TestFile testFile, MockFlowFile flowFile) {
         flowFile.assertAttributeEquals(ATTR_NAME_FILESYSTEM, fileSystemName);
         flowFile.assertAttributeEquals(ATTR_NAME_FILE_PATH, testFile.getFilePath());
         flowFile.assertAttributeEquals(ATTR_NAME_DIRECTORY, testFile.getDirectory());
         flowFile.assertAttributeEquals(ATTR_NAME_FILENAME, testFile.getFilename());
-        flowFile.assertAttributeEquals(ATTR_NAME_LENGTH, String.valueOf(testFile.getFileContent().length()));
+        flowFile.assertAttributeEquals(ATTR_NAME_LENGTH, String.valueOf(testFile.getFileContent().getBytes(StandardCharsets.UTF_8).length));
 
         flowFile.assertAttributeExists(ATTR_NAME_LAST_MODIFIED);
         flowFile.assertAttributeExists(ATTR_NAME_ETAG);
@@ -263,5 +314,4 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertFalse(runner.getLogger().getErrorMessages().isEmpty());
         runner.assertTransferCount(ListAzureDataLakeStorage.REL_SUCCESS, 0);
     }
-
 }

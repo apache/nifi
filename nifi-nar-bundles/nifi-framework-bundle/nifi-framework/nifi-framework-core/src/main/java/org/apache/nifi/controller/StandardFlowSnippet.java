@@ -37,10 +37,12 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.PublicPort;
@@ -113,22 +115,23 @@ public class StandardFlowSnippet implements FlowSnippet {
 
     public void verifyComponentTypesInSnippet() {
         final Map<String, Set<BundleCoordinate>> processorClasses = new HashMap<>();
-        for (final Class<?> c : extensionManager.getExtensions(Processor.class)) {
-            final String name = c.getName();
+        for (final ExtensionDefinition extensionDefinition : extensionManager.getExtensions(Processor.class)) {
+            final String name = extensionDefinition.getImplementationClassName();
             processorClasses.put(name, extensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
         }
         verifyProcessorsInSnippet(dto, processorClasses);
 
         final Map<String, Set<BundleCoordinate>> controllerServiceClasses = new HashMap<>();
-        for (final Class<?> c : extensionManager.getExtensions(ControllerService.class)) {
-            final String name = c.getName();
+        for (final ExtensionDefinition extensionDefinition : extensionManager.getExtensions(ControllerService.class)) {
+            final String name = extensionDefinition.getImplementationClassName();
             controllerServiceClasses.put(name, extensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
         }
         verifyControllerServicesInSnippet(dto, controllerServiceClasses);
 
         final Set<String> prioritizerClasses = new HashSet<>();
-        for (final Class<?> c : extensionManager.getExtensions(FlowFilePrioritizer.class)) {
-            prioritizerClasses.add(c.getName());
+        for (final ExtensionDefinition extensionDefinition : extensionManager.getExtensions(FlowFilePrioritizer.class)) {
+            final String name = extensionDefinition.getImplementationClassName();
+            prioritizerClasses.add(name);
         }
 
         final Set<ConnectionDTO> allConns = new HashSet<>();
@@ -149,8 +152,8 @@ public class StandardFlowSnippet implements FlowSnippet {
         }
     }
 
-    public void instantiate(final FlowManager flowManager, final ProcessGroup group) throws ProcessorInstantiationException {
-        instantiate(flowManager, group, true);
+    public void instantiate(final FlowManager flowManager, final FlowController flowController, final ProcessGroup group) throws ProcessorInstantiationException {
+        instantiate(flowManager, flowController, group, true);
     }
 
 
@@ -219,7 +222,7 @@ public class StandardFlowSnippet implements FlowSnippet {
     }
 
 
-    public void instantiate(final FlowManager flowManager, final ProcessGroup group, final boolean topLevel) {
+    public void instantiate(final FlowManager flowManager, final FlowController flowController, final ProcessGroup group, final boolean topLevel) {
         //
         // Instantiate Controller Services
         //
@@ -228,7 +231,7 @@ public class StandardFlowSnippet implements FlowSnippet {
             for (final ControllerServiceDTO controllerServiceDTO : dto.getControllerServices()) {
                 final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(extensionManager, controllerServiceDTO.getType(), controllerServiceDTO.getBundle());
                 final ControllerServiceNode serviceNode = flowManager.createControllerService(controllerServiceDTO.getType(), controllerServiceDTO.getId(),
-                    bundleCoordinate, Collections.emptySet(), true,true);
+                    bundleCoordinate, Collections.emptySet(), true,true, null);
 
                 serviceNode.pauseValidationTrigger();
                 serviceNodes.add(serviceNode);
@@ -236,6 +239,15 @@ public class StandardFlowSnippet implements FlowSnippet {
                 serviceNode.setAnnotationData(controllerServiceDTO.getAnnotationData());
                 serviceNode.setComments(controllerServiceDTO.getComments());
                 serviceNode.setName(controllerServiceDTO.getName());
+
+                if (controllerServiceDTO.getBulletinLevel() != null) {
+                    serviceNode.setBulletinLevel(LogLevel.valueOf(controllerServiceDTO.getBulletinLevel()));
+                } else {
+                    // this situation exists for backward compatibility with nifi 1.16 and earlier where controller services do not have bulletinLevels set in flow.xml/flow.json
+                    // and bulletinLevels are at the WARN level by default
+                    serviceNode.setBulletinLevel(LogLevel.WARN);
+                }
+
                 if (!topLevel) {
                     serviceNode.setVersionedComponentId(controllerServiceDTO.getVersionedComponentId());
                 }
@@ -248,7 +260,8 @@ public class StandardFlowSnippet implements FlowSnippet {
             for (final ControllerServiceDTO controllerServiceDTO : dto.getControllerServices()) {
                 final String serviceId = controllerServiceDTO.getId();
                 final ControllerServiceNode serviceNode = flowManager.getControllerServiceNode(serviceId);
-                serviceNode.setProperties(controllerServiceDTO.getProperties());
+                final Set<String> sensitiveDynamicPropertyNames = controllerServiceDTO.getSensitiveDynamicPropertyNames();
+                serviceNode.setProperties(controllerServiceDTO.getProperties(), false, sensitiveDynamicPropertyNames == null ? Collections.emptySet() : sensitiveDynamicPropertyNames);
             }
         } finally {
             serviceNodes.forEach(ControllerServiceNode::resumeValidationTrigger);
@@ -265,6 +278,10 @@ public class StandardFlowSnippet implements FlowSnippet {
             }
 
             label.setStyle(labelDTO.getStyle());
+            if (labelDTO.getzIndex() != null) {
+                label.setZIndex(label.getZIndex());
+            }
+
             if (!topLevel) {
                 label.setVersionedComponentId(labelDTO.getVersionedComponentId());
             }
@@ -368,6 +385,12 @@ public class StandardFlowSnippet implements FlowSnippet {
                 procNode.setPenalizationPeriod(config.getPenaltyDuration());
                 procNode.setBulletinLevel(LogLevel.valueOf(config.getBulletinLevel()));
                 procNode.setAnnotationData(config.getAnnotationData());
+                procNode.setRetryCount(config.getRetryCount());
+                procNode.setRetriedRelationships(config.getRetriedRelationships());
+                if (config.getBackoffMechanism() != null) {
+                    procNode.setBackoffMechanism(BackoffMechanism.valueOf(config.getBackoffMechanism()));
+                }
+                procNode.setMaxBackoffPeriod(config.getMaxBackoffPeriod());
                 procNode.setStyle(processorDTO.getStyle());
 
                 if (config.getRunDurationMillis() != null) {
@@ -388,7 +411,7 @@ public class StandardFlowSnippet implements FlowSnippet {
 
                 // ensure that the scheduling strategy is set prior to these values
                 procNode.setMaxConcurrentTasks(config.getConcurrentlySchedulableTaskCount());
-                procNode.setScheduldingPeriod(config.getSchedulingPeriod());
+                procNode.setSchedulingPeriod(config.getSchedulingPeriod());
 
                 final Set<Relationship> relationships = new HashSet<>();
                 if (processorDTO.getRelationships() != null) {
@@ -400,11 +423,21 @@ public class StandardFlowSnippet implements FlowSnippet {
                     procNode.setAutoTerminatedRelationships(relationships);
                 }
 
+                // We need to add the processor to the ProcessGroup before calling ProcessorNode.setProperties. This will notify the FlowManager that the Processor
+                // has been added to the flow, which is important before calling ProcessorNode.setProperties, since #setProperties may call methods that result in looking
+                // up a Controller Service (such as #getClassloaderIsolationKey). The Processor must be registered with the FlowManager and its parent Process Group
+                // before that can happen, in order to ensure that it has access to any referenced Controller Service.
+                group.addProcessor(procNode);
+
                 if (config.getProperties() != null) {
-                    procNode.setProperties(config.getProperties());
+                    final Set<String> sensitiveDynamicPropertyNames = config.getSensitiveDynamicPropertyNames();
+                    procNode.setProperties(config.getProperties(), false, sensitiveDynamicPropertyNames == null ? Collections.emptySet() : sensitiveDynamicPropertyNames);
                 }
 
-                group.addProcessor(procNode);
+                // Notify the processor node that the configuration (properties, e.g.) has been restored
+                final StandardProcessContext processContext = new StandardProcessContext(procNode, flowController.getControllerServiceProvider(), flowController.getEncryptor(),
+                        flowController.getStateManagerProvider().getStateManager(procNode.getProcessor().getIdentifier()), () -> false, flowController);
+                procNode.onConfigurationRestored(processContext);
             } finally {
                 procNode.resumeValidationTrigger();
             }
@@ -485,6 +518,21 @@ public class StandardFlowSnippet implements FlowSnippet {
                 }
             }
 
+            final String defaultFlowFileExpiration = groupDTO.getDefaultFlowFileExpiration();
+            if (defaultFlowFileExpiration != null) {
+                childGroup.setDefaultFlowFileExpiration(defaultFlowFileExpiration);
+            }
+
+            final Long defaultBackPressureObjectThreshold = groupDTO.getDefaultBackPressureObjectThreshold();
+            if (defaultBackPressureObjectThreshold != null) {
+                childGroup.setDefaultBackPressureObjectThreshold(defaultBackPressureObjectThreshold);
+            }
+
+            final String defaultBackPressureDataSizeThreshold = groupDTO.getDefaultBackPressureDataSizeThreshold();
+            if (defaultBackPressureDataSizeThreshold != null) {
+                childGroup.setDefaultBackPressureDataSizeThreshold(defaultBackPressureDataSizeThreshold);
+            }
+
             // If this Process Group is 'top level' then we do not set versioned component ID's.
             // We do this only if this component is the child of a Versioned Component.
             if (!topLevel) {
@@ -509,7 +557,7 @@ public class StandardFlowSnippet implements FlowSnippet {
             childTemplateDTO.setControllerServices(contents.getControllerServices());
 
             final StandardFlowSnippet childSnippet = new StandardFlowSnippet(childTemplateDTO, extensionManager);
-            childSnippet.instantiate(flowManager, childGroup, false);
+            childSnippet.instantiate(flowManager, flowController, childGroup, false);
 
             if (groupDTO.getVersionControlInformation() != null) {
                 final VersionControlInformation vci = StandardVersionControlInformation.Builder
@@ -561,6 +609,10 @@ public class StandardFlowSnippet implements FlowSnippet {
             final Connection connection = flowManager.createConnection(connectionDTO.getId(), connectionDTO.getName(), source, destination, relationships);
             if (!topLevel) {
                 connection.setVersionedComponentId(connectionDTO.getVersionedComponentId());
+            }
+
+            if (connectionDTO.getzIndex() != null) {
+                connection.setZIndex(connection.getZIndex());
             }
 
             if (connectionDTO.getBends() != null) {

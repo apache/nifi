@@ -17,16 +17,15 @@
 
 package org.apache.nifi.processors.azure.cosmos.document;
 
-import static org.mockito.Mockito.mock;
-
-import java.util.Random;
-
 import com.azure.cosmos.ConsistencyLevel;
 import com.azure.cosmos.CosmosClient;
-
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.services.azure.cosmos.document.AzureCosmosDBClientService;
 import org.apache.nifi.util.TestRunner;
+
+import java.util.Random;
+
+import static org.mockito.Mockito.mock;
 
 public class MockTestBase {
 

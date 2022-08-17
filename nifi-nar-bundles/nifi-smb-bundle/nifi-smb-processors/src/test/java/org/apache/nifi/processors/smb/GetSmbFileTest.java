@@ -32,12 +32,11 @@ import com.hierynomus.smbj.share.File;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -47,11 +46,11 @@ import java.util.stream.Collectors;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.times;
 
 public class GetSmbFileTest {
     private TestRunner testRunner;
@@ -60,7 +59,6 @@ public class GetSmbFileTest {
     private Connection connection;
     private Session session;
     private DiskShare diskShare;
-    private ByteArrayOutputStream baOutputStream;
 
     private final static String HOSTNAME = "host";
     private final static String SHARE = "share";
@@ -74,8 +72,6 @@ public class GetSmbFileTest {
         connection = mock(Connection.class);
         session = mock(Session.class);
         diskShare = mock(DiskShare.class);
-
-        baOutputStream = new ByteArrayOutputStream();
 
         when(smbClient.connect(any(String.class))).thenReturn(connection);
         when(connection.authenticate(any(AuthenticationContext.class))).thenReturn(session);
@@ -159,7 +155,7 @@ public class GetSmbFileTest {
         return fdInfo;
     }
 
-    @Before
+    @BeforeEach
     public void init() throws IOException {
         testRunner = TestRunners.newTestRunner(GetSmbFile.class);
         MockitoAnnotations.initMocks(this);

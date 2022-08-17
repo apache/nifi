@@ -18,15 +18,14 @@ package org.apache.nifi.processors.script;
 
 import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestExecuteClojure extends BaseScriptTest {
 
@@ -34,7 +33,7 @@ public class TestExecuteClojure extends BaseScriptTest {
             + "female,miss,marlene,shaw\n"
             + "male,mr,todd,graham";
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         super.setupExecuteScript();
     }

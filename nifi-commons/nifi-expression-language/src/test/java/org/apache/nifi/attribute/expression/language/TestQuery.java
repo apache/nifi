@@ -29,9 +29,8 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.registry.VariableRegistry;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.BufferedInputStream;
@@ -39,6 +38,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
@@ -49,16 +52,18 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import static java.lang.Double.NEGATIVE_INFINITY;
 import static java.lang.Double.NaN;
 import static java.lang.Double.POSITIVE_INFINITY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestQuery {
 
@@ -123,23 +128,26 @@ public class TestQuery {
         final PreparedQuery mixedQuery = Query.prepare("${foo}$${foo}");
         final String mixedEvaluated = mixedQuery.evaluateExpressions(new StandardEvaluationContext(variables), null);
         assertEquals("bar${foo}", mixedEvaluated);
+
+        final PreparedQuery multipleEscapedQuery = Query.prepare("$${foo}$${bar}");
+        final String multipleEscapedEvaluated = multipleEscapedQuery.evaluateExpressions(new StandardEvaluationContext(variables), null);
+        assertEquals("${foo}${bar}", multipleEscapedEvaluated);
+
+        final PreparedQuery multipleEscapedWithTextQuery = Query.prepare("foo$${foo}bar$${bar}");
+        final String multipleEscapedWithTextEvaluated = multipleEscapedWithTextQuery.evaluateExpressions(new StandardEvaluationContext(variables), null);
+        assertEquals("foo${foo}bar${bar}", multipleEscapedWithTextEvaluated);
+
+        final PreparedQuery multipleMixedQuery = Query.prepare("foo${foo}$${foo}bar${bar}$${bar}");
+        final String multipleMixedEvaluated = multipleMixedQuery.evaluateExpressions(new StandardEvaluationContext(variables), null);
+        assertEquals("foobar${foo}bar${bar}", multipleMixedEvaluated);
     }
 
     private void assertValid(final String query) {
-        try {
-            Query.compile(query);
-        } catch (final Exception e) {
-            e.printStackTrace();
-            Assert.fail("Expected query to be valid, but it failed to compile due to " + e);
-        }
+        assertDoesNotThrow(() -> Query.compile(query));
     }
 
     private void assertInvalid(final String query) {
-        try {
-            Query.compile(query);
-            Assert.fail("Expected query to be invalid, but it did compile");
-        } catch (final Exception e) {
-        }
+        assertThrows(Exception.class, () -> Query.compile(query));
     }
 
     @Test
@@ -147,11 +155,7 @@ public class TestQuery {
         Query.validateExpression("${abc:substring(${xyz:length()})}", false);
         Query.isValidExpression("${now():format('yyyy-MM-dd')}");
 
-        try {
-            Query.validateExpression("$${attr}", false);
-            Assert.fail("invalid query validated");
-        } catch (final AttributeExpressionLanguageParsingException e) {
-        }
+        assertThrows(AttributeExpressionLanguageParsingException.class, () -> Query.validateExpression("$${attr}", false));
 
         Query.validateExpression("$${attr}", true);
 
@@ -290,6 +294,56 @@ public class TestQuery {
     }
 
     @Test
+    public void testInstantToNumber() {
+        final Query query = Query.compile("${dateTime:toInstant('yyyy/MM/dd HH:mm:ss.SSS', 'America/New_York'):toNumber()}");
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("dateTime", "2013/11/18 10:22:27.678");
+
+        final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attributes));
+        assertEquals(ResultType.WHOLE_NUMBER, result.getResultType());
+        assertEquals(1384788147678L, result.getValue());
+    }
+
+    @Test
+    public void testInstantToNanos() {
+        final String pattern = "yyyy/MM/dd HH:mm:ss.SSSSSSSSS";
+        final String dateTime = "2022/03/18 10:22:27.678234567";
+        final String zoneId = "America/New_York";
+
+        final Query query = Query.compile(String.format("${dateTime:toInstant('%s', '%s'):toNanos()}", pattern, zoneId));
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("dateTime", dateTime);
+
+        final Instant instant = DateTimeFormatter
+                .ofPattern(pattern)
+                .withZone(ZoneId.of(zoneId))
+                .parse(dateTime, Instant::from);
+
+        final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attributes));
+        assertEquals(ResultType.NUMBER, result.getResultType());
+        assertEquals(TimeUnit.SECONDS.toNanos(instant.getEpochSecond()) + instant.getNano(), result.getValue());
+    }
+
+    @Test
+    public void testInstantToMicros() {
+        final String pattern = "yyyy/MM/dd HH:mm:ss.SSSSSSSSS";
+        final String dateTime = "2022/03/18 10:22:27.678234567";
+        final String zoneId = "America/New_York";
+        final Query query = Query.compile(String.format("${dateTime:toInstant('%s', '%s'):toMicros()}", pattern, zoneId));
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("dateTime", dateTime);
+
+        final Instant instant = DateTimeFormatter
+                .ofPattern(pattern)
+                .withZone(ZoneId.of(zoneId))
+                .parse(dateTime, Instant::from);
+
+        final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attributes));
+        assertEquals(ResultType.NUMBER, result.getResultType());
+        assertEquals(ChronoUnit.MICROS.between(Instant.EPOCH, instant), result.getValue());
+    }
+
+    @Test
     public void testAddOneDayToDate() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("dateTime", "2013/11/18 10:22:27.678");
@@ -299,7 +353,18 @@ public class TestQuery {
     }
 
     @Test
-    @Ignore("Requires specific locale")
+    public void testAddOneDayToInstant() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("dateTime", "2013/11/18 10:22:27.678");
+
+        verifyEquals("${dateTime:toInstant('yyyy/MM/dd HH:mm:ss.SSS', 'America/New_York'):toNumber():plus(86400000)" +
+                ":toInstant('yyyy/MM/dd HH:mm:ss.SSS', 'America/New_York'):formatInstant('yyyy/MM/dd HH:mm:ss.SSS', 'America/New_York')}", attributes, "2013/11/19 10:22:27.678");
+        verifyEquals("${dateTime:toInstant('yyyy/MM/dd HH:mm:ss.SSS', 'America/New_York'):plus(86400000)" +
+                ":format('yyyy/MM/dd HH:mm:ss.SSS', 'America/New_York')}", attributes, "2013/11/19 10:22:27.678");
+    }
+
+    @Test
+    @Disabled("Requires specific locale")
     public void implicitDateConversion() {
         final Date date = new Date();
         final Query query = Query.compile("${dateTime:format('yyyy/MM/dd HH:mm:ss.SSS')}");
@@ -312,6 +377,23 @@ public class TestQuery {
         final long millis = date.getTime() % 1000L;
         final Date roundedToNearestSecond = new Date(date.getTime() - millis);
         final String formatted = sdf.format(roundedToNearestSecond);
+
+        final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attributes));
+        assertEquals(ResultType.STRING, result.getResultType());
+        assertEquals(formatted, result.getValue());
+    }
+
+    @Test
+    @Disabled("Requires specific locale")
+    public void implicitInstantConversion() {
+        final Instant instant = Instant.now();
+        final Query query = Query.compile("${dateTime:formatInstant('yyyy/MM/dd HH:mm:ss.SSS', 'America/New_York')}");
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("dateTime", instant.toString());
+
+        final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss.SSS", Locale.US)
+                .withZone(ZoneId.of("America/New_York"));
+        final String formatted = dtf.format(instant);
 
         final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attributes));
         assertEquals(ResultType.STRING, result.getResultType());
@@ -345,27 +427,34 @@ public class TestQuery {
     }
 
     @Test
+    public void testParameterReferenceWithSpace() {
+        final Map<String, String> attributes = Collections.emptyMap();
+        final Map<String, String> stateValues = Collections.emptyMap();
+        final Map<String, String> parameters = new HashMap<>();
+        parameters.put("test param", "unit");
+
+        final Query query = Query.compile("${'#{test param}'}");
+        verifyEquals("${#{'test param'}}", attributes, stateValues, parameters,"unit");
+        verifyEquals("${#{'test param'}:append(' - '):append(#{'test param'})}", attributes, stateValues, parameters,"unit - unit");
+
+        verifyEquals("${#{\"test param\"}}", attributes, stateValues, parameters,"unit");
+    }
+
+    @Test
     public void testJsonPath() throws IOException {
         Map<String,String> attributes = verifyJsonPathExpressions(
             ADDRESS_BOOK_JSON_PATH_EMPTY,
             "", "${json:jsonPathDelete('$.missingpath')}", "");
         verifyEquals("${json:jsonPath('$.missingpath')}", attributes, "");
-        try {
-            verifyEquals("${json:jsonPath('$..')}", attributes, "");
-            Assert.fail("Did not detect bad JSON path expression");
-        } catch (final AttributeExpressionLanguageException e) {
-        }
-        try {
-            verifyEquals("${missing:jsonPath('$.firstName')}", attributes, "");
-            Assert.fail("Did not detect empty JSON document");
-        } catch (AttributeExpressionLanguageException e) {
-        }
+
+        assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${json:jsonPath('$..')}", attributes, ""));
+        assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${missing:jsonPath('$.firstName')}", attributes, ""));
+
         attributes.put("invalid", "[}");
-        try {
-            verifyEquals("${invlaid:jsonPath('$.firstName')}", attributes, "John");
-            Assert.fail("Did not detect invalid JSON document");
-        } catch (AttributeExpressionLanguageException e) {
-        }
+        assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${invlaid:jsonPath('$.firstName')}", attributes, "John"));
     }
 
     private void verifyAddressBookAttributes(String originalAddressBook, Map<String,String> attributes, String updatedAttribute, Object updatedValue) {
@@ -500,13 +589,12 @@ public class TestQuery {
        verifyEquals("${json:jsonPath('$.missing-path')}", attributes, "");
     }
 
-    @Test(expected=IllegalArgumentException.class)
     public void testJsonPathAddNicknameJimmyAtNonArray() throws IOException {
-        Map<String,String> attributes = verifyJsonPathExpressions(
+        assertThrows(IllegalArgumentException.class, () -> verifyJsonPathExpressions(
                 ADDRESS_BOOK_JSON_PATH_EMPTY,
                 "",
                 "${json:jsonPathAdd('$.firstName', 'Jimmy')}",
-                "");
+                ""));
     }
 
     @Test
@@ -575,9 +663,9 @@ public class TestQuery {
         verifyEquals("${allAttributes( 'x', 'y' ):join(',')}", attributes, ",");
     }
 
-    @Test(expected = AttributeExpressionLanguageException.class)
+    @Test
     public void testCannotCombineWithNonReducingFunction() {
-        Query.compile("${allAttributes( 'a.1' ):plus(1)}");
+        assertThrows(AttributeExpressionLanguageException.class, () -> Query.compile("${allAttributes( 'a.1' ):plus(1)}"));
     }
 
     @Test
@@ -854,6 +942,26 @@ public class TestQuery {
     }
 
     @Test
+    public void testInstantEscapeQuotes() {
+        final long timestamp = 1403620278642L;
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("date", String.valueOf(timestamp));
+
+        final String format = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+
+        final String query = "startDateTime=\"${date:toNumber():toInstant('yyyy/MM/dd HH:mm:ss.SSS', 'America/New_York'):formatInstant(\"" + format + "\", 'America/New_York')}\"";
+        final String result = Query.evaluateExpressions(query, attributes, null);
+
+        final String expectedTime = DateTimeFormatter.ofPattern(format, Locale.US)
+                .withZone(ZoneId.of("America/New_York"))
+                .format(Instant.ofEpochMilli(timestamp));
+        assertEquals("startDateTime=\"" + expectedTime + "\"", result);
+
+        final List<Range> ranges = Query.extractExpressionRanges(query);
+        assertEquals(1, ranges.size());
+    }
+
+    @Test
     public void testDateConversion() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("date", "1403620278642");
@@ -864,6 +972,19 @@ public class TestQuery {
         verifyEquals("${date:toNumber():toDate():format('yyyy')}", attributes, "2014");
         verifyEquals("${date:toDate():toNumber():format('yyyy')}", attributes, "2014");
         verifyEquals("${date:toDate():toNumber():toDate():toNumber():toDate():toNumber():format('yyyy')}", attributes, "2014");
+    }
+
+    @Test
+    public void testInstantConversion() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("instant", "1403620278642");
+
+        verifyEquals("${instant:formatInstant('yyyy', 'America/New_York')}", attributes, "2014");
+        verifyEquals("${instant:toInstant():formatInstant('yyyy', 'America/New_York')}", attributes, "2014");
+        verifyEquals("${instant:toNumber():formatInstant('yyyy', 'America/New_York')}", attributes, "2014");
+        verifyEquals("${instant:toNumber():toInstant():formatInstant('yyyy', 'America/New_York')}", attributes, "2014");
+        verifyEquals("${instant:toInstant():toNumber():formatInstant('yyyy', 'America/New_York')}", attributes, "2014");
+        verifyEquals("${instant:toInstant():toNumber():toInstant():toNumber():toInstant():toNumber():formatInstant('yyyy', 'America/New_York')}", attributes, "2014");
     }
 
     @Test
@@ -1102,32 +1223,25 @@ public class TestQuery {
         attributes.put("negativeDecimal", "-64.1");
 
         // Test that errors relating to not finding methods are properly handled
-        try {
-            verifyEquals("${math('rand'):toNumber()}", attributes, 0L);
-            fail();
-        } catch (AttributeExpressionLanguageException expected) {
-            assertEquals("Cannot evaluate 'math' function because no subjectless method was found with the name:'rand'", expected.getMessage());
-        }
-        try {
-            verifyEquals("${negativeDecimal:math('absolute')}", attributes, 0L);
-            fail();
-        } catch (AttributeExpressionLanguageException expected) {
-            assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'absolute', one argument of type: 'double'", expected.getMessage());
-        }
-        try {
-            verifyEquals("${oneDecimal:math('power', ${two:toDecimal()})}", attributes, 0L);
-            fail();
-        } catch (AttributeExpressionLanguageException expected) {
-            assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'power', " +
-                    "first argument type: 'double', second argument type:  'double'", expected.getMessage());
-        }
-        try {
-            verifyEquals("${oneDecimal:math('power', ${two})}", attributes, 0L);
-            fail();
-        } catch (AttributeExpressionLanguageException expected) {
-            assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'power', " +
-                    "first argument type: 'double', second argument type:  'long'", expected.getMessage());
-        }
+
+        AttributeExpressionLanguageException expected = assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${math('rand'):toNumber()}", attributes, 0L));
+        assertEquals("Cannot evaluate 'math' function because no subjectless method was found with the name:'rand'", expected.getMessage());
+
+        expected = assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${negativeDecimal:math('absolute')}", attributes, 0L));
+        assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'absolute', one argument of type: 'double'", expected.getMessage());
+
+        expected = assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${oneDecimal:math('power', ${two:toDecimal()})}", attributes, 0L));
+        assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'power', " +
+                "first argument type: 'double', second argument type:  'double'", expected.getMessage());
+
+        expected = assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${oneDecimal:math('power', ${two})}", attributes, 0L));
+        assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'power', " +
+                "first argument type: 'double', second argument type:  'long'", expected.getMessage());
+
 
         // Can only verify that it runs. ToNumber() will verify that it produced a number greater than or equal to 0.0 and less than 1.0
         verifyEquals("${math('random'):toNumber()}", attributes, 0L);
@@ -1183,6 +1297,39 @@ public class TestQuery {
         assertEquals("63", Query.evaluateExpressions("${year:append('/'):append('${month}'):append('/'):append('${day}'):toDate('yyyy/MM/dd'):format('D')}", attributes, null));
 
         verifyEquals("${year:append('/'):append(${month}):append('/'):append(${day}):toDate('yyyy/MM/dd'):format('D')}", attributes, "63");
+    }
+
+    @Test
+    public void testInstant() {
+        final Calendar now = Calendar.getInstance();
+        final int year = now.get(Calendar.YEAR);
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("entryDate", String.valueOf(now.getTimeInMillis()));
+
+        verifyEquals("${entryDate:toNumber():toInstant():formatInstant('yyyy', 'America/New_York')}", attributes, String.valueOf(year));
+
+        // test for not existing attribute (NIFI-1962)
+        assertEquals("", Query.evaluateExpressions("${notExistingAtt:toInstant()}", attributes, null));
+
+        attributes.clear();
+        attributes.put("month", "3");
+        attributes.put("day", "4");
+        attributes.put("year", "2013");
+        attributes.put("hour", "16");
+        attributes.put("minute", "22");
+        attributes.put("second", "59");
+
+        assertEquals("63", Query.evaluateExpressions("${year:append('/'):append(${month}):append('/'):append(${day}):append(' ')" +
+                ":append(${hour}):append(':'):append(${minute}):append(':'):append(${second}):toInstant('yyyy/M/d HH:mm:ss', 'America/New_York')" +
+                ":formatInstant('D', 'America/New_York')}", attributes, null));
+
+        assertEquals("63", Query.evaluateExpressions("${year:append('/'):append('${month}'):append('/'):append('${day}'):append(' ')" +
+                ":append(${hour}):append(':'):append(${minute}):append(':'):append(${second}):toInstant('yyyy/M/d HH:mm:ss', 'America/New_York')" +
+                ":formatInstant('D', 'America/New_York')}", attributes, null));
+
+        verifyEquals("${year:append('/'):append(${month}):append('/'):append(${day}):append(' ')" +
+                ":append(${hour}):append(':'):append(${minute}):append(':'):append(${second}):toInstant('yyyy/M/d HH:mm:ss', 'America/New_York')" +
+                ":formatInstant('D', 'America/New_York')}", attributes, "63");
     }
 
     @Test
@@ -1337,12 +1484,7 @@ public class TestQuery {
         verifyEquals("${allAttributes('abc', 'xyz'):length():equals(4)}", attributes, true);
         verifyEquals("${allAttributes('abc', 'xyz', 'other'):isNull()}", attributes, false);
 
-        try {
-            Query.compile("${allAttributes('#ah'):equals('hello')");
-            Assert.fail("Was able to compile with allAttributes and an invalid attribute name");
-        } catch (final AttributeExpressionLanguageParsingException e) {
-            // expected behavior
-        }
+        assertThrows(AttributeExpressionLanguageParsingException.class, () -> Query.compile("${allAttributes('#ah'):equals('hello')"));
     }
 
     @Test
@@ -1701,6 +1843,15 @@ public class TestQuery {
     }
 
     @Test
+    public void testInstantFormatConversion() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("blue", "20130917162643");
+        verifyEquals("${blue:toInstant('yyyyMMddHHmmss', 'GMT'):formatInstant(\"yyyy/MM/dd HH:mm:ss.SSS'Z'\", 'GMT')}", attributes, "2013/09/17 16:26:43.000Z");
+        verifyEquals("${blue:toInstant('yyyyMMddHHmmss', 'GMT'):formatInstant(\"yyyy/MM/dd HH:mm:ss.SSS'Z'\", 'Europe/Paris')}", attributes, "2013/09/17 18:26:43.000Z");
+        verifyEquals("${blue:toInstant('yyyyMMddHHmmss', 'GMT'):formatInstant(\"yyyy/MM/dd HH:mm:ss.SSS'Z'\", 'America/Los_Angeles')}", attributes, "2013/09/17 09:26:43.000Z");
+    }
+
+    @Test
     public void testNot() {
         verifyEquals("${ab:notNull():not()}", new HashMap<String, String>(), true);
     }
@@ -1899,7 +2050,7 @@ public class TestQuery {
         for (int i = 0; i < results.size(); i++) {
             long result = (Long) getResult("${random()}", attrs).getValue();
             assertThat("random", result, greaterThan(negOne));
-            assertEquals("duplicate random", true, results.add(result));
+            assertEquals(true, results.add(result), "duplicate random");
         }
     }
 
@@ -2082,10 +2233,11 @@ public class TestQuery {
         verifyEquals("${nbr_attr:hash('MD5')}", attributes, "d3d9446802a44259755d38e6d163e820");
     }
 
-    @Test(expected = AttributeExpressionLanguageException.class)
+    @Test
     public void testHashFailure() {
         final Map<String, String> attributes = new HashMap<>();
-        verifyEquals("${literal('john'):hash('NOT_A_ALGO')}", attributes, "527bd5b5d689e2c32ae974c6229ff785");
+        assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${literal('john'):hash('NOT_A_ALGO')}", attributes, "527bd5b5d689e2c32ae974c6229ff785"));
     }
 
     @Test
@@ -2151,24 +2303,9 @@ public class TestQuery {
         assertTrue(multipleResultExpectedResults.contains(actualResult));
 
         verifyEquals("${str:repeat(4)}", attributes, "abcabcabcabc");
-        try {
-            verifyEquals("${str:repeat(-1)}", attributes, "");
-            fail("Should have failed on numRepeats < 0");
-        } catch(AttributeExpressionLanguageException aele) {
-            // Do nothing, it is expected
-        }
-        try {
-            verifyEquals("${str:repeat(0)}", attributes, "");
-            fail("Should have failed on numRepeats = 0");
-        } catch(AttributeExpressionLanguageException aele) {
-            // Do nothing, it is expected
-        }
-        try {
-            verifyEquals("${str:repeat(2,1)}", attributes, "");
-            fail("Should have failed on minRepeats > maxRepeats");
-        } catch(AttributeExpressionLanguageException aele) {
-            // Do nothing, it is expected
-        }
+        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${str:repeat(-1)}", attributes, ""));
+        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${str:repeat(0)}", attributes, ""));
+        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${str:repeat(2,1)}", attributes, ""));
     }
 
     @Test

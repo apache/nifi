@@ -16,7 +16,7 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <title>NiFi Logout</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
@@ -36,7 +36,7 @@
         <script type="text/javascript" src="assets/qtip2/dist/jquery.qtip.min.js"></script>
         <script type="text/javascript" src="assets/jquery-ui-dist/jquery-ui.min.js"></script>
         <script type="text/javascript" src="js/nf/nf-namespace.js?${project.version}"></script>
-        <script type="text/javascript" src="assets/lodash-core/distrib/lodash-core.min.js"></script>
+        <script type="text/javascript" src="assets/lodash/lodash.min.js"></script>
         ${nf.logout.script.tags}
     </head>
     <body class="logout-body">

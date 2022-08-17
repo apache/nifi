@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-kudu-bundle</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-kudu-processors</artifactId>
@@ -53,13 +53,13 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-processor-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <artifactId>nifi-kerberos-credentials-service-api</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-kerberos-credentials-service-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <artifactId>nifi-kerberos-user-service-api</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -73,7 +73,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -82,14 +82,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-path</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-security-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <artifactId>nifi-security-kerberos</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
-
         <dependency>
             <groupId>org.apache.kudu</groupId>
             <artifactId>kudu-test-utils</artifactId>
@@ -99,41 +98,29 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock-record-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
-            <version>${jackson.version}</version>
             <scope>test</scope>
         </dependency>
 
     </dependencies>
     <profiles>
         <profile>
-            <id>kudu-windows</id>
-            <activation>
-                <os>
-                    <family>Windows</family>
-                </os>
-            </activation>
-            <properties>
-                <!-- Kudu tests do not support Windows. -->
-                <exclude.tests>**/*.java</exclude.tests>
-            </properties>
-        </profile>
-        <profile>
-            <id>kudu-linux</id>
+            <id>kudu-linux-x86</id>
             <activation>
                 <os>
                     <family>Unix</family>
+                    <arch>x86_64</arch>
                 </os>
             </activation>
             <dependencies>
@@ -147,10 +134,29 @@
             </dependencies>
         </profile>
         <profile>
-            <id>kudu-mac</id>
+            <id>kudu-linux-amd64</id>
+            <activation>
+                <os>
+                    <family>Unix</family>
+                    <arch>amd64</arch>
+                </os>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.kudu</groupId>
+                    <artifactId>kudu-binary</artifactId>
+                    <version>${kudu.version}</version>
+                    <classifier>${os.detected.classifier}</classifier>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>kudu-mac-x86</id>
             <activation>
                 <os>
                     <family>mac</family>
+                    <arch>x86_64</arch>
                 </os>
             </activation>
             <dependencies>

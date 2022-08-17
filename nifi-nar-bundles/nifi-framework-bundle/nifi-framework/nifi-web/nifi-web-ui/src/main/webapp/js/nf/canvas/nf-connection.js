@@ -27,7 +27,7 @@
                 'nf.ErrorHandler',
                 'nf.Client',
                 'nf.CanvasUtils',
-                'lodash-core'],
+                'lodash'],
             function ($, d3, nfCommon, nfDialog, nfStorage, nfErrorHandler, nfClient, nfCanvasUtils, _) {
                 return (nf.Connection = factory($, d3, nfCommon, nfDialog, nfStorage, nfErrorHandler, nfClient, nfCanvasUtils, _));
             });
@@ -931,7 +931,7 @@
                                     connectionFromLabel.text(null).selectAll('title').remove();
 
                                     // apply ellipsis to the label as necessary
-                                    nfCanvasUtils.ellipsis(connectionFromLabel, d.component.source.name);
+                                    nfCanvasUtils.ellipsis(connectionFromLabel, d.component.source.name, 'connection-from');
                                 }).append('title').text(function () {
                                 return d.component.source.name;
                             });
@@ -1040,7 +1040,7 @@
                                     connectionToLabel.text(null).selectAll('title').remove();
 
                                     // apply ellipsis to the label as necessary
-                                    nfCanvasUtils.ellipsis(connectionToLabel, d.component.destination.name);
+                                    nfCanvasUtils.ellipsis(connectionToLabel, d.component.destination.name, 'connection-to');
                                 }).append('title').text(function (d) {
                                 return d.component.destination.name;
                             });
@@ -1145,7 +1145,7 @@
                                     connectionToLabel.text(null).selectAll('title').remove();
 
                                     // apply ellipsis to the label as necessary
-                                    nfCanvasUtils.ellipsis(connectionToLabel, connectionNameValue);
+                                    nfCanvasUtils.ellipsis(connectionToLabel, connectionNameValue, 'connection-name');
                                 }).append('title').text(function () {
                                 return connectionNameValue;
                             });
@@ -1636,6 +1636,41 @@
         if (updated.empty()) {
             return;
         }
+
+        // penalized icon
+        var connectionLabelContainer = updated.select('g.connection-label-container');
+        if (connectionLabelContainer.select('text.penalized-icon').empty()) {
+            connectionLabelContainer.select('g.queued-container')
+                .append('text')
+                .attrs({
+                    'class': 'penalized-icon',
+                    'y': 14
+                })
+                .text(function () {
+                    return '\uf252';
+                })
+                .append('title');
+        }
+
+        // determine whether or not to show the penalized icon
+        connectionLabelContainer.select('text.penalized-icon')
+            .classed('hidden', function (d) {
+                var flowFileAvailability = _.get(d, 'status.aggregateSnapshot.flowFileAvailability', null)
+                return flowFileAvailability !== 'HEAD_OF_QUEUE_PENALIZED';
+            })
+            .attr('x', function () {
+                var offset = 0;
+                if (!connectionLabelContainer.select('text.expiration-icon').classed('hidden')) {
+                    offset += 16;
+                }
+                if (!connectionLabelContainer.select('text.load-balance-icon').classed('hidden')) {
+                    offset += 16;
+                }
+                return 208 - offset;
+            })
+            .select('title').text(function () {
+                return 'A FlowFile is currently penalized and data cannot be processed at this time.';
+            });
 
         // update data size
         var dataSizeDeferred = $.Deferred(function (deferred) {

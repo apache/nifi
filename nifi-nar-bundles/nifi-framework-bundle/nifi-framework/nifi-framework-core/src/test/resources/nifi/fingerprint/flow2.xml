@@ -21,6 +21,8 @@
         <position x="0.0" y="0.0"/>
         <style/>
         <comment/>
+        <flowfileConcurrency>UNBOUNDED</flowfileConcurrency>
+        <flowfileOutboundPolicy>STREAM_WHEN_AVAILABLE</flowfileOutboundPolicy>
         <processor>
             <id>d89ada5d-35fb-44ff-83f1-4cc00b48b2dd</id>
             <name>GenerateFlowFile</name>
@@ -69,6 +71,8 @@
             <position x="0.0" y="0.0"/>
             <style>process-group</style>
             <comment/>
+            <flowfileConcurrency>UNBOUNDED</flowfileConcurrency>
+            <flowfileOutboundPolicy>STREAM_WHEN_AVAILABLE</flowfileOutboundPolicy>
             <processor>
                 <id>34caa1d6-cf14-4ec0-9f18-12859c37d55d</id>
                 <name>LogAttribute</name>

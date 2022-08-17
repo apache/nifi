@@ -17,14 +17,13 @@
 
 package org.apache.nifi.cluster.coordination.http.replication;
 
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.cluster.manager.exception.ConnectingNodeMutableRequestException;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+
 import java.net.URI;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.cluster.manager.exception.ConnectingNodeMutableRequestException;
-import org.apache.nifi.cluster.manager.exception.DisconnectedNodeMutableRequestException;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
 public interface RequestReplicator {
 
@@ -86,7 +85,6 @@ public interface RequestReplicator {
      * @param headers any HTTP headers
      * @return an AsyncClusterResponse that indicates the current status of the request and provides an identifier for obtaining an updated response later
      * @throws ConnectingNodeMutableRequestException   if the request attempts to modify the flow and there is a node that is in the CONNECTING state
-     * @throws DisconnectedNodeMutableRequestException if the request attempts to modify the flow and there is a node that is in the DISCONNECTED state
      */
     AsyncClusterResponse replicate(String method, URI uri, Object entity, Map<String, String> headers);
 
@@ -103,7 +101,6 @@ public interface RequestReplicator {
      * @param headers any HTTP headers
      * @return an AsyncClusterResponse that indicates the current status of the request and provides an identifier for obtaining an updated response later
      * @throws ConnectingNodeMutableRequestException if the request attempts to modify the flow and there is a node that is in the CONNECTING state
-     * @throws DisconnectedNodeMutableRequestException if the request attempts to modify the flow and there is a node that is in the DISCONNECTED state
      */
     AsyncClusterResponse replicate(NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers);
 

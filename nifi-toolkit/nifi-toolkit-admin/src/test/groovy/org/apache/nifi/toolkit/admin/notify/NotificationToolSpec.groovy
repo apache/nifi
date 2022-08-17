@@ -25,6 +25,7 @@ import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine
 import org.junit.Rule
 import org.junit.contrib.java.lang.system.ExpectedSystemExit
 import org.junit.contrib.java.lang.system.SystemOutRule
+import spock.lang.Ignore
 import spock.lang.Specification
 
 import javax.ws.rs.client.Client
@@ -37,24 +38,10 @@ import java.nio.file.attribute.PosixFilePermission
 class NotificationToolSpec extends Specification{
 
     @Rule
-    public final ExpectedSystemExit exit = ExpectedSystemExit.none()
+    public ExpectedSystemExit exit = ExpectedSystemExit.none()
 
     @Rule
-    public final SystemOutRule systemOutRule = new SystemOutRule().enableLog()
-
-
-    def "print help and usage info"() {
-
-        given:
-        def ClientFactory clientFactory = Mock ClientFactory
-        def config = new NotificationTool()
-
-        when:
-        config.parse(clientFactory,["-h"] as String[])
-
-        then:
-        systemOutRule.getLog().contains("usage: org.apache.nifi.toolkit.admin.notify.NotificationTool")
-    }
+    public SystemOutRule systemOutRule = new SystemOutRule().enableLog()
 
     def "throws exception missing bootstrap conf flag"() {
 

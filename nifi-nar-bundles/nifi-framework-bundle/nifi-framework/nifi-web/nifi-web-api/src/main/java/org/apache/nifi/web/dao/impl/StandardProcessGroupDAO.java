@@ -28,6 +28,8 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.FlowFileConcurrency;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.ProcessGroup;
@@ -36,8 +38,6 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -339,6 +339,10 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         final String outboundPolicyName = processGroupDTO.getFlowfileOutboundPolicy();
         final FlowFileOutboundPolicy flowFileOutboundPolicy = outboundPolicyName == null ? null : FlowFileOutboundPolicy.valueOf(outboundPolicyName);
 
+        final String defaultFlowFileExpiration = processGroupDTO.getDefaultFlowFileExpiration();
+        final Long defaultBackPressureObjectThreshold = processGroupDTO.getDefaultBackPressureObjectThreshold();
+        final String defaultBackPressureDataSizeThreshold = processGroupDTO.getDefaultBackPressureDataSizeThreshold();
+
         final ParameterContextReferenceEntity parameterContextReference = processGroupDTO.getParameterContext();
         if (parameterContextReference != null) {
             final String parameterContextId = parameterContextReference.getId();
@@ -373,6 +377,17 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         if (flowFileOutboundPolicy != null) {
             group.setFlowFileOutboundPolicy(flowFileOutboundPolicy);
         }
+
+        if (defaultFlowFileExpiration != null) {
+            group.setDefaultFlowFileExpiration(processGroupDTO.getDefaultFlowFileExpiration());
+        }
+        if (defaultBackPressureObjectThreshold != null) {
+            group.setDefaultBackPressureObjectThreshold(processGroupDTO.getDefaultBackPressureObjectThreshold());
+        }
+        if (defaultBackPressureDataSizeThreshold != null) {
+            group.setDefaultBackPressureDataSizeThreshold(processGroupDTO.getDefaultBackPressureDataSizeThreshold());
+        }
+
         group.onComponentModified();
         return group;
     }
@@ -409,7 +424,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public ProcessGroup updateProcessGroupFlow(final String groupId, final VersionedFlowSnapshot proposedSnapshot, final VersionControlInformationDTO versionControlInformation,
+    public ProcessGroup updateProcessGroupFlow(final String groupId, final VersionedExternalFlow proposedSnapshot, final VersionControlInformationDTO versionControlInformation,
                                                final String componentIdSeed, final boolean verifyNotModified, final boolean updateSettings, final boolean updateDescendantVersionedFlows) {
 
         final ProcessGroup group = locateProcessGroup(flowController, groupId);

@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.bootstrap.notification;
 
+import org.apache.nifi.components.resource.ResourceContext;
+import org.apache.nifi.components.resource.StandardResourceContext;
+import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
@@ -56,7 +59,8 @@ public class NotificationValidationContext implements ValidationContext {
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
-        return new StandardPropertyValue(rawValue, null, ParameterLookup.EMPTY, variableRegistry);
+        final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), null);
+        return new StandardPropertyValue(resourceContext, rawValue, null, ParameterLookup.EMPTY, variableRegistry);
     }
 
     @Override

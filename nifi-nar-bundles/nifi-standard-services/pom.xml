@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-services</artifactId>
     <packaging>pom</packaging>
@@ -52,5 +52,8 @@
         <module>nifi-record-sink-api</module>
         <module>nifi-record-sink-service-bundle</module>
         <module>nifi-hadoop-dbcp-service-bundle</module>
+        <module>nifi-kerberos-user-service-api</module>
+        <module>nifi-kerberos-user-service-bundle</module>
+        <module>nifi-web-client-provider-bundle</module>
     </modules>
 </project>

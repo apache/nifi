@@ -17,7 +17,7 @@
 
 package org.apache.nifi.registry.flow.mapping;
 
-import org.apache.nifi.registry.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedProcessor;
 
 public class InstantiatedVersionedProcessor extends VersionedProcessor implements InstantiatedVersionedComponent {
     private final String instanceId;
@@ -29,7 +29,7 @@ public class InstantiatedVersionedProcessor extends VersionedProcessor implement
     }
 
     @Override
-    public String getInstanceId() {
+    public String getInstanceIdentifier() {
         return instanceId;
     }
 

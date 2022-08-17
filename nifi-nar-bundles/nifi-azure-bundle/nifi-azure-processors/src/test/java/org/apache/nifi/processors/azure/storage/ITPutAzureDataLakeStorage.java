@@ -18,18 +18,16 @@ package org.apache.nifi.processors.azure.storage;
 
 import com.azure.storage.file.datalake.DataLakeDirectoryClient;
 import com.azure.storage.file.datalake.DataLakeFileClient;
-import com.google.common.collect.Sets;
-import com.google.common.net.UrlEscapers;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,9 +39,9 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILENAME;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILESYSTEM;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LENGTH;
-import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_PRIMARY_URI;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
@@ -54,7 +52,7 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
     private static final String DIRECTORY = "dir1";
     private static final String FILE_NAME = "file1";
-    private static final byte[] FILE_DATA = "0123456789".getBytes();
+    private static final byte[] FILE_DATA = "0123456789".getBytes(StandardCharsets.UTF_8);
 
     private static final String EL_FILESYSTEM = "az.filesystem";
     private static final String EL_DIRECTORY = "az.directory";
@@ -65,7 +63,7 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         return PutAzureDataLakeStorage.class;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         runner.setProperty(PutAzureDataLakeStorage.DIRECTORY, DIRECTORY);
         runner.setProperty(PutAzureDataLakeStorage.FILE, FILE_NAME);
@@ -74,6 +72,16 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     @Test
     public void testPutFileToExistingDirectory() throws Exception {
         fileSystemClient.createDirectory(DIRECTORY);
+
+        runProcessor(FILE_DATA);
+
+        assertSuccess(DIRECTORY, FILE_NAME, FILE_DATA);
+    }
+
+    @Test
+    public void testPutFileToExistingDirectoryUsingProxyConfigurationService() throws Exception {
+        fileSystemClient.createDirectory(DIRECTORY);
+        configureProxyService();
 
         runProcessor(FILE_DATA);
 
@@ -140,8 +148,6 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertSuccess(DIRECTORY, FILE_NAME, fileData);
     }
 
-    @Ignore
-    // ignore excessive test with larger file size
     @Test
     public void testPutBigFile() throws Exception {
         Random random = new Random();
@@ -212,7 +218,7 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
         runProcessor(FILE_DATA);
 
-        assertSuccessWithIgnoreResolution(DIRECTORY, FILE_NAME, FILE_DATA, azureFileContent.getBytes());
+        assertSuccessWithIgnoreResolution(DIRECTORY, FILE_NAME, FILE_DATA, azureFileContent.getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -247,15 +253,17 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertFailure();
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void testPutFileButFailedToAppend() {
         DataLakeFileClient fileClient = mock(DataLakeFileClient.class);
         InputStream stream = mock(InputStream.class);
         doThrow(NullPointerException.class).when(fileClient).append(any(InputStream.class), anyLong(), anyLong());
 
-        PutAzureDataLakeStorage.uploadContent(fileClient, stream, FILE_DATA.length);
+        assertThrows(NullPointerException.class, () -> {
+            PutAzureDataLakeStorage.uploadContent(fileClient, stream, FILE_DATA.length);
 
-        verify(fileClient).delete();
+            verify(fileClient).delete();
+        });
     }
 
     private Map<String, String> createAttributesMap() {
@@ -302,13 +310,6 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         flowFile.assertAttributeEquals(ATTR_NAME_DIRECTORY, directory);
         flowFile.assertAttributeEquals(ATTR_NAME_FILENAME, fileName);
 
-        String urlEscapedDirectory = UrlEscapers.urlPathSegmentEscaper().escape(directory);
-        String urlEscapedFileName = UrlEscapers.urlPathSegmentEscaper().escape(fileName);
-        String primaryUri = StringUtils.isNotEmpty(directory)
-                ? String.format("https://%s.dfs.core.windows.net/%s/%s/%s", getAccountName(), fileSystemName, urlEscapedDirectory, urlEscapedFileName)
-                : String.format("https://%s.dfs.core.windows.net/%s/%s", getAccountName(), fileSystemName, urlEscapedFileName);
-        flowFile.assertAttributeEquals(ATTR_NAME_PRIMARY_URI, primaryUri);
-
         flowFile.assertAttributeEquals(ATTR_NAME_LENGTH, Integer.toString(fileData.length));
     }
 
@@ -338,7 +339,7 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     private void assertProvenanceEvents() {
-        Set<ProvenanceEventType> expectedEventTypes = Sets.newHashSet(ProvenanceEventType.SEND);
+        Set<ProvenanceEventType> expectedEventTypes = Collections.singleton(ProvenanceEventType.SEND);
 
         Set<ProvenanceEventType> actualEventTypes = runner.getProvenanceEvents().stream()
                 .map(ProvenanceEventRecord::getEventType)

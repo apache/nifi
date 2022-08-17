@@ -17,6 +17,7 @@
 package org.apache.nifi.admin;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.h2.database.migration.H2DatabaseUpdater;
 import org.apache.nifi.util.NiFiProperties;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.slf4j.Logger;
@@ -31,7 +32,7 @@ import java.sql.Statement;
 
 public class IdpDataSourceFactoryBean implements FactoryBean<JdbcConnectionPool> {
 
-    private static final Logger logger = LoggerFactory.getLogger(KeyDataSourceFactoryBean.class);
+    private static final Logger logger = LoggerFactory.getLogger(IdpDataSourceFactoryBean.class);
     private static final String NF_USERNAME_PASSWORD = "nf";
     private static final int MAX_CONNECTIONS = 5;
 
@@ -41,17 +42,6 @@ public class IdpDataSourceFactoryBean implements FactoryBean<JdbcConnectionPool>
     // ----------
     // idp tables
     // ----------
-
-    private static final String IDP_CREDENTIAL_TABLE_NAME = "IDENTITY_PROVIDER_CREDENTIAL";
-
-    private static final String CREATE_IDP_CREDENTIAL_TABLE = "CREATE TABLE " + IDP_CREDENTIAL_TABLE_NAME + " ("
-            + "ID INT NOT NULL PRIMARY KEY AUTO_INCREMENT, "
-            + "IDENTITY VARCHAR2(4096) NOT NULL, "
-            + "IDP_TYPE VARCHAR2(200) NOT NULL, "
-            + "CREDENTIAL BLOB NOT NULL, "
-            + "CREATED TIMESTAMP NOT NULL, "
-            + "CONSTRAINT UK__IDENTITY UNIQUE (IDENTITY)"
-            + ")";
 
     private static final String IDP_USER_GROUP_TABLE_NAME = "IDENTITY_PROVIDER_USER_GROUP";
 
@@ -84,8 +74,12 @@ public class IdpDataSourceFactoryBean implements FactoryBean<JdbcConnectionPool>
             File repositoryDirectory = new File(repositoryDirectoryPath);
 
             // create a handle to the database directory and file
-            File databaseFile = new File(repositoryDirectory, IDP_DATABASE_FILE_NAME);
-            String databaseUrl = getDatabaseUrl(databaseFile);
+            File dbFileNoExtension = new File(repositoryDirectory, IDP_DATABASE_FILE_NAME);
+            String databaseUrl = getDatabaseUrl(dbFileNoExtension);
+
+            // Migrate an existing database if required
+            final String migrationDbUrl = H2DatabaseUpdater.H2_URL_PREFIX + dbFileNoExtension + ";LOCK_MODE=3";
+            H2DatabaseUpdater.checkAndPerformMigration(dbFileNoExtension.getAbsolutePath(), migrationDbUrl, NF_USERNAME_PASSWORD, NF_USERNAME_PASSWORD);
 
             // create the pool
             connectionPool = JdbcConnectionPool.create(databaseUrl, NF_USERNAME_PASSWORD, NF_USERNAME_PASSWORD);
@@ -103,9 +97,8 @@ public class IdpDataSourceFactoryBean implements FactoryBean<JdbcConnectionPool>
                 statement = connection.createStatement();
 
                 // determine if the idp tables need to be created
-                rs = connection.getMetaData().getTables(null, null, IDP_CREDENTIAL_TABLE_NAME, null);
+                rs = connection.getMetaData().getTables(null, null, IDP_USER_GROUP_TABLE_NAME, null);
                 if (!rs.next()) {
-                    statement.execute(CREATE_IDP_CREDENTIAL_TABLE);
                     statement.execute(CREATE_IDP_USER_GROUP_TABLE);
                 }
 
@@ -125,7 +118,7 @@ public class IdpDataSourceFactoryBean implements FactoryBean<JdbcConnectionPool>
     }
 
     private String getDatabaseUrl(File databaseFile) {
-        String databaseUrl = "jdbc:h2:" + databaseFile + ";AUTOCOMMIT=OFF;DB_CLOSE_ON_EXIT=FALSE;LOCK_MODE=3";
+        String databaseUrl = H2DatabaseUpdater.H2_URL_PREFIX + databaseFile + ";AUTOCOMMIT=OFF;DB_CLOSE_ON_EXIT=FALSE;LOCK_MODE=3";
         String databaseUrlAppend = properties.getProperty(NiFiProperties.H2_URL_APPEND);
         if (StringUtils.isNotBlank(databaseUrlAppend)) {
             databaseUrl += databaseUrlAppend;

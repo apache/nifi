@@ -115,6 +115,8 @@ public enum CommandOption {
     PARAM_CONTEXT_ID("pcid", "paramContextId", "The id of a parameter context", true),
     PARAM_CONTEXT_NAME("pcn", "paramContextName", "The name of a parameter context", true),
     PARAM_CONTEXT_DESC("pcd", "paramContextDescription", "The description of a parameter context", true),
+    PARAM_CONTEXT_INCLUDE_INHERITED("pcin", "paramContextIncludeInherited", "Indicates that all inherited parameters should be included", false),
+    PARAM_CONTEXT_INHERITED_IDS("pcii", "paramContextInheritedIds", "A comma-separated list of parameter context IDs to inherit", true),
 
     PARAM_NAME("pn", "paramName", "The name of the parameter", true),
     PARAM_DESC("pd", "paramDescription", "The description of the parameter", true),

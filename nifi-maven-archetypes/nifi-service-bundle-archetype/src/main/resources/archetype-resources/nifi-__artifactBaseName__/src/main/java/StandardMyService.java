@@ -73,7 +73,7 @@ public class StandardMyService extends AbstractControllerService implements MySe
     }
 
     @Override
-    public void execute() throws ProcessException {
+    public void execute() {
 
     }
 

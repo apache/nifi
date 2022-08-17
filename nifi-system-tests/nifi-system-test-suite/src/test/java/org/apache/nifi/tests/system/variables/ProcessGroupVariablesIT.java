@@ -22,12 +22,12 @@ import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.FlowFileEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collections;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ProcessGroupVariablesIT extends NiFiSystemIT {
 
@@ -50,7 +50,7 @@ public class ProcessGroupVariablesIT extends NiFiSystemIT {
         getClientUtil().waitForValidProcessor(generateFlowFile.getId());
 
         // Start Processor, wait for 1 FlowFile to be queued up, then stop processor
-        getNifiClient().getProcessorClient().startProcessor(generateFlowFile);
+        getClientUtil().startProcessor(generateFlowFile);
         waitForQueueCount(connection.getId(), 1);
 
         final FlowFileEntity flowFile = getClientUtil().getQueueFlowFile(connection.getId(), 0);
@@ -89,7 +89,7 @@ public class ProcessGroupVariablesIT extends NiFiSystemIT {
         getClientUtil().waitForValidProcessor(generateFlowFile.getId());
 
         // Start Processor, wait for 1 FlowFile to be queued up, then stop processor
-        getNifiClient().getProcessorClient().startProcessor(generateFlowFile);
+        getClientUtil().startProcessor(generateFlowFile);
         waitForQueueCount(connection.getId(), 1);
 
         final FlowFileEntity flowFile = getClientUtil().getQueueFlowFile(connection.getId(), 0);
@@ -129,7 +129,7 @@ public class ProcessGroupVariablesIT extends NiFiSystemIT {
         getClientUtil().waitForValidProcessor(generateFlowFile.getId());
 
         // Start Processor, wait for 1 FlowFile to be queued up, then stop processor
-        getNifiClient().getProcessorClient().startProcessor(generateFlowFile);
+        getClientUtil().startProcessor(generateFlowFile);
         waitForQueueCount(connection.getId(), 1);
 
         final FlowFileEntity flowFile = getClientUtil().getQueueFlowFile(connection.getId(), 0);

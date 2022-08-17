@@ -16,32 +16,6 @@
  */
 package org.apache.nifi.remote.protocol.http;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -51,7 +25,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.properties.StandardNiFiProperties;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
@@ -69,6 +42,7 @@ import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.HandshakeProperty;
 import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.util.StandardDataPacket;
+import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessSession;
@@ -76,6 +50,33 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.SharedSessionState;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestHttpFlowFileServerProtocol {
 
@@ -107,7 +108,7 @@ public class TestHttpFlowFileServerProtocol {
 
     private HttpFlowFileServerProtocol getDefaultHttpFlowFileServerProtocol() {
         final StandardVersionNegotiator versionNegotiator = new StandardVersionNegotiator(5, 4, 3, 2, 1);
-        return new StandardHttpFlowFileServerProtocol(versionNegotiator, new StandardNiFiProperties());
+        return new StandardHttpFlowFileServerProtocol(versionNegotiator, new NiFiProperties());
     }
 
     @Test
@@ -313,7 +314,8 @@ public class TestHttpFlowFileServerProtocol {
 
         // Assert provenance
         final List<ProvenanceEventRecord> provenanceEvents = sessionState.getProvenanceEvents();
-        assertEquals(1, provenanceEvents.size());
+        // Assert provenance (SEND and DROP)
+        assertEquals(2, provenanceEvents.size());
         final ProvenanceEventRecord provenanceEvent = provenanceEvents.get(0);
         assertEquals(ProvenanceEventType.SEND, provenanceEvent.getEventType());
         assertEquals(endpointUri, provenanceEvent.getTransitUri());
@@ -365,7 +367,7 @@ public class TestHttpFlowFileServerProtocol {
             sessionState.getFlowFileQueue().offer(flowFile);
         }
 
-        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(new StandardNiFiProperties());
+        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(new NiFiProperties());
 
         serverProtocol.handshake(peer);
         assertTrue(serverProtocol.isHandshakeSuccessful());
@@ -409,13 +411,16 @@ public class TestHttpFlowFileServerProtocol {
         final int flowFileSent = serverProtocol.commitTransferTransaction(peer, "3058746557");
         assertEquals(2, flowFileSent);
 
-        // Assert provenance
+        // Assert provenance (SEND and DROP)
         final List<ProvenanceEventRecord> provenanceEvents = sessionState.getProvenanceEvents();
-        assertEquals(2, provenanceEvents.size());
-        for (final ProvenanceEventRecord provenanceEvent : provenanceEvents) {
+        assertEquals(4, provenanceEvents.size());
+        for (int i = 0; i < provenanceEvents.size(); i += 2) {
+            ProvenanceEventRecord provenanceEvent = provenanceEvents.get(i);
             assertEquals(ProvenanceEventType.SEND, provenanceEvent.getEventType());
             assertEquals(endpointUri, provenanceEvent.getTransitUri());
             assertEquals("Remote Host=peer-host, Remote DN=unit-test", provenanceEvent.getDetails());
+            provenanceEvent = provenanceEvents.get(i + 1);
+            assertEquals(ProvenanceEventType.DROP, provenanceEvent.getEventType());
         }
 
     }
@@ -520,7 +525,7 @@ public class TestHttpFlowFileServerProtocol {
     }
 
     private void receiveFlowFiles(final HttpFlowFileServerProtocol serverProtocol, final String transactionId, final Peer peer, final DataPacket ... dataPackets) throws IOException {
-        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(new StandardNiFiProperties());
+        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(new NiFiProperties());
         final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
 
         serverProtocol.handshake(peer);
@@ -553,7 +558,7 @@ public class TestHttpFlowFileServerProtocol {
         when(rootGroupPort.getIdentifier()).thenReturn("root-group-port-id");
 
         sessionState = new SharedSessionState(rootGroupPort, new AtomicLong(0));
-        processSession = new MockProcessSession(sessionState, rootGroupPort);
+        processSession = new MockProcessSession(sessionState, rootGroupPort, true, new MockStateManager(rootGroupPort), true);
         processContext = new MockProcessContext(rootGroupPort);
     }
 

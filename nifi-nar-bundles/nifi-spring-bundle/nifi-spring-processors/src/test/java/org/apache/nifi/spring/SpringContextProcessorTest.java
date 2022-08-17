@@ -16,21 +16,6 @@
  */
 package org.apache.nifi.spring;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.lang.reflect.Field;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -38,8 +23,23 @@ import org.apache.nifi.spring.SpringDataExchanger.SpringResponse;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+
+import java.lang.reflect.Field;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class SpringContextProcessorTest {
 
@@ -59,7 +59,7 @@ public class SpringContextProcessorTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void validateOneWayFromNiFi() throws Exception {
+    public void validateOneWayFromNiFi() {
         TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         runner.setProperty(SpringContextProcessor.CTX_CONFIG_PATH, "toSpringOnly.xml");
         runner.setProperty(SpringContextProcessor.CTX_LIB_PATH, ".");
@@ -81,7 +81,7 @@ public class SpringContextProcessorTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void validateOneWayFromSpring() throws Exception {
+    public void validateOneWayFromSpring() {
         TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         runner.setProperty(SpringContextProcessor.CTX_CONFIG_PATH, "fromSpringOnly.xml");
         runner.setProperty(SpringContextProcessor.CTX_LIB_PATH, ".");
@@ -104,7 +104,7 @@ public class SpringContextProcessorTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void validateBiDirectional() throws Exception {
+    public void validateBiDirectional() {
         TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         runner.setProperty(SpringContextProcessor.CTX_CONFIG_PATH, "requestReply.xml");
         runner.setProperty(SpringContextProcessor.CTX_LIB_PATH, ".");

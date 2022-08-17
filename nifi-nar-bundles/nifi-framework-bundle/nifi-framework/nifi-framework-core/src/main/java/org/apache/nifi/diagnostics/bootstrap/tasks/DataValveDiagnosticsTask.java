@@ -37,6 +37,12 @@ public class DataValveDiagnosticsTask implements DiagnosticTask {
 
     @Override
     public DiagnosticsDumpElement captureDump(final boolean verbose) {
+        if (!verbose) {
+            // This task is very verbose and can make the diagnostics output difficult to read as a result.
+            // As such, it will not run at all if verbose output is disabled.
+            return null;
+        }
+
         final ProcessGroup rootGroup = flowManager.getRootGroup();
         final List<ProcessGroup> allGroups = rootGroup.findAllProcessGroups();
         allGroups.add(rootGroup);
@@ -47,18 +53,18 @@ public class DataValveDiagnosticsTask implements DiagnosticTask {
 
             details.add("Process Group " + group.getIdentifier() + ", Name = " + group.getName());
             details.add("Currently Have Data Flowing In: " + valveDiagnostics.getGroupsWithDataFlowingIn());
-            details.add("Currently Have Data Flowing out: " + valveDiagnostics.getGroupsWithDataFlowingOut());
+            details.add("Currently Have Data Flowing Out: " + valveDiagnostics.getGroupsWithDataFlowingOut());
             details.add("Reason for Not allowing data to flow in:");
 
             for (final Map.Entry<String, List<ProcessGroup>> entry : valveDiagnostics.getReasonForInputNotAllowed().entrySet()) {
                 details.add("    " + entry.getKey() + ":");
-                entry.getValue().forEach(gr -> details.add("        " + gr));
+                entry.getValue().forEach(pg -> details.add("        " + pg));
             }
 
             details.add("Reason for Not allowing data to flow out:");
             for (final Map.Entry<String, List<ProcessGroup>> entry : valveDiagnostics.getReasonForOutputNotAllowed().entrySet()) {
                 details.add("    " + entry.getKey() + ":");
-                entry.getValue().forEach(gr -> details.add("        " + gr));
+                entry.getValue().forEach(pg -> details.add("        " + pg));
             }
 
             details.add("");

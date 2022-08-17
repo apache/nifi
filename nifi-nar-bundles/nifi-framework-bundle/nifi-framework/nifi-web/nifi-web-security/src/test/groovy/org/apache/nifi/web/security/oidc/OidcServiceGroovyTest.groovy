@@ -21,13 +21,7 @@ import com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod
 import com.nimbusds.oauth2.sdk.id.Issuer
 import com.nimbusds.openid.connect.sdk.SubjectType
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata
-import io.jsonwebtoken.Jwts
-import io.jsonwebtoken.SignatureAlgorithm
-import org.apache.nifi.admin.service.KeyService
-import org.apache.nifi.key.Key
 import org.apache.nifi.util.NiFiProperties
-import org.apache.nifi.web.security.jwt.JwtService
-import org.apache.nifi.web.security.token.LoginAuthenticationToken
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
@@ -43,23 +37,20 @@ import java.util.concurrent.TimeUnit
 class OidcServiceGroovyTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(OidcServiceGroovyTest.class)
 
-    private static final Key SIGNING_KEY = new Key(id: 1, identity: "signingKey", key: "mock-signing-key-value")
     private static final Map<String, Object> DEFAULT_NIFI_PROPERTIES = [
-            isOidcEnabled                 : true,
-            getOidcDiscoveryUrl           : "https://localhost/oidc",
-            isLoginIdentityProviderEnabled: false,
-            isKnoxSsoEnabled              : false,
-            getOidcConnectTimeout         : "1000",
-            getOidcReadTimeout            : "1000",
-            getOidcClientId               : "expected_client_id",
-            getOidcClientSecret           : "expected_client_secret",
-            getOidcClaimIdentifyingUser   : "username",
-            getOidcPreferredJwsAlgorithm  : ""
+            "nifi.security.user.oidc.discovery.url"           : "https://localhost/oidc",
+            "nifi.security.user.login.identity.provider"      : "provider",
+            "nifi.security.user.knox.url"                     : "url",
+            "nifi.security.user.oidc.connect.timeout"         : "1000",
+            "nifi.security.user.oidc.read.timeout"            : "1000",
+            "nifi.security.user.oidc.client.id"               : "expected_client_id",
+            "nifi.security.user.oidc.client.secret"           : "expected_client_secret",
+            "nifi.security.user.oidc.claim.identifying.user"  : "username",
+            "nifi.security.user.oidc.preferred.jwsalgorithm"  : ""
     ]
 
     // Mock collaborators
     private static NiFiProperties mockNiFiProperties
-    private static JwtService mockJwtService = [:] as JwtService
     private static StandardOidcIdentityProvider soip
 
     private static final String MOCK_REQUEST_IDENTIFIER = "mock-request-identifier"
@@ -80,7 +71,7 @@ class OidcServiceGroovyTest extends GroovyTestCase {
     @Before
     void setUp() throws Exception {
         mockNiFiProperties = buildNiFiProperties()
-        soip = new StandardOidcIdentityProvider(mockJwtService, mockNiFiProperties)
+        soip = new StandardOidcIdentityProvider(mockNiFiProperties)
     }
 
     @After
@@ -89,38 +80,7 @@ class OidcServiceGroovyTest extends GroovyTestCase {
 
     private static NiFiProperties buildNiFiProperties(Map<String, Object> props = [:]) {
         def combinedProps = DEFAULT_NIFI_PROPERTIES + props
-        def mockNFP = combinedProps.collectEntries { String k, def v ->
-            [k, { -> return v }]
-        }
-        mockNFP as NiFiProperties
-    }
-
-    private static JwtService buildJwtService() {
-        def mockJS = new JwtService([:] as KeyService) {
-            @Override
-            String generateSignedToken(LoginAuthenticationToken lat) {
-                signNiFiToken(lat)
-            }
-        }
-        mockJS
-    }
-
-    private static String signNiFiToken(LoginAuthenticationToken lat) {
-        String identity = "mockUser"
-        String USERNAME_CLAIM = "username"
-        String KEY_ID_CLAIM = "keyId"
-        Calendar expiration = Calendar.getInstance()
-        expiration.setTimeInMillis(System.currentTimeMillis() + 10_000)
-        String username = lat.getName()
-
-        return Jwts.builder().setSubject(identity)
-                .setIssuer(lat.getIssuer())
-                .setAudience(lat.getIssuer())
-                .claim(USERNAME_CLAIM, username)
-                .claim(KEY_ID_CLAIM, SIGNING_KEY.getId())
-                .setExpiration(expiration.getTime())
-                .setIssuedAt(Calendar.getInstance().getTime())
-                .signWith(SignatureAlgorithm.HS256, SIGNING_KEY.key.getBytes("UTF-8")).compact()
+        new NiFiProperties(combinedProps)
     }
 
     @Test
@@ -193,7 +153,6 @@ class OidcServiceGroovyTest extends GroovyTestCase {
     }
 
     private static StandardOidcIdentityProvider buildIdentityProviderWithMockInitializedProvider(Map<String, String> additionalProperties = [:]) {
-        JwtService mockJS = buildJwtService()
         NiFiProperties mockNFP = buildNiFiProperties(additionalProperties)
 
         // Mock OIDC provider metadata
@@ -201,7 +160,7 @@ class OidcServiceGroovyTest extends GroovyTestCase {
         URI mockURI = new URI("https://localhost/oidc")
         OIDCProviderMetadata metadata = new OIDCProviderMetadata(mockIssuer, [SubjectType.PUBLIC], mockURI)
 
-        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJS, mockNFP) {
+        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockNFP) {
             @Override
             void initializeProvider() {
                 soip.oidcProviderMetadata = metadata

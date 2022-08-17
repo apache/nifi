@@ -31,6 +31,7 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.RequiredPermission;
@@ -61,11 +62,14 @@ import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.manifest.RuntimeManifestService;
+import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -79,7 +83,6 @@ import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.search.SearchTerm;
 import org.apache.nifi.provenance.search.SearchTerms;
 import org.apache.nifi.provenance.search.SearchableField;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.reporting.BulletinRepository;
@@ -101,8 +104,8 @@ import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceOptionsDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceRequestDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceResultsDTO;
-import org.apache.nifi.web.api.dto.provenance.ProvenanceSearchableFieldDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceSearchValueDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceSearchableFieldDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageRequestDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageRequestDTO.LineageRequestType;
@@ -152,6 +155,7 @@ public class ControllerFacade implements Authorizable {
     private DtoFactory dtoFactory;
     private SearchQueryParser searchQueryParser;
     private ControllerSearchService controllerSearchService;
+    private RuntimeManifestService runtimeManifestService;
 
     private ProcessGroup getRootGroup() {
         return flowController.getFlowManager().getRootGroup();
@@ -515,7 +519,7 @@ public class ControllerFacade implements Authorizable {
     public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType, final String serviceBundleGroup, final String serviceBundleArtifact, final String serviceBundleVersion,
                                                             final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
 
-        final Set<Class> serviceImplementations = getExtensionManager().getExtensions(ControllerService.class);
+        final Set<ExtensionDefinition> extensionDefinitions = getExtensionManager().getExtensions(ControllerService.class);
 
         // identify the controller services that implement the specified serviceType if applicable
         if (serviceType != null) {
@@ -538,7 +542,8 @@ public class ControllerFacade implements Authorizable {
             final Map<Class, Bundle> matchingServiceImplementations = new HashMap<>();
 
             // check each type and remove those that aren't in the specified ancestry
-            for (final Class csClass : serviceImplementations) {
+            for (final ExtensionDefinition extensionDefinition : extensionDefinitions) {
+                final Class csClass = getExtensionManager().getClass(extensionDefinition);
                 if (implementsServiceType(serviceClass, csClass)) {
                     matchingServiceImplementations.put(csClass, getExtensionManager().getBundle(csClass.getClassLoader()));
                 }
@@ -546,7 +551,7 @@ public class ControllerFacade implements Authorizable {
 
             return dtoFactory.fromDocumentedTypes(matchingServiceImplementations, bundleGroupFilter, bundleArtifactFilter, typeFilter);
         } else {
-            return dtoFactory.fromDocumentedTypes(serviceImplementations, bundleGroupFilter, bundleArtifactFilter, typeFilter);
+            return dtoFactory.fromDocumentedTypes(extensionDefinitions, bundleGroupFilter, bundleArtifactFilter, typeFilter);
         }
     }
 
@@ -560,6 +565,16 @@ public class ControllerFacade implements Authorizable {
      */
     public Set<DocumentedTypeDTO> getReportingTaskTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
         return dtoFactory.fromDocumentedTypes(getExtensionManager().getExtensions(ReportingTask.class), bundleGroupFilter, bundleArtifactFilter, typeFilter);
+    }
+
+
+    /**
+     * Gets the RuntimeManifest for this overall NiFi instance.
+     *
+     * @return the runtime manifest
+     */
+    public RuntimeManifest getRuntimeManifest() {
+        return runtimeManifestService.getManifest();
     }
 
     /**
@@ -1684,5 +1699,9 @@ public class ControllerFacade implements Authorizable {
 
     public void setControllerSearchService(ControllerSearchService controllerSearchService) {
         this.controllerSearchService = controllerSearchService;
+    }
+
+    public void setRuntimeManifestService(RuntimeManifestService runtimeManifestService) {
+        this.runtimeManifestService = runtimeManifestService;
     }
 }

@@ -27,6 +27,7 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.provenance.ProvenanceEventBuilder;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
@@ -40,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -56,7 +58,7 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
     private final ResourceClaimManager resourceClaimManager;
     private final ProcessScheduler scheduler;
 
-    private final AtomicReference<TimePeriod> expirationPeriod = new AtomicReference<>(new TimePeriod("0 mins", 0L));
+    private final AtomicReference<TimePeriod> expirationPeriod = new AtomicReference<>(new TimePeriod("0 sec", 0L));
     private final AtomicReference<MaxQueueSize> maxQueueSize = new AtomicReference<>(new MaxQueueSize("1 GB", 1024 * 1024 * 1024, 10000));
 
     private final ConcurrentMap<String, ListFlowFileRequest> listRequestMap = new ConcurrentHashMap<>();
@@ -482,5 +484,20 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
         } finally {
             loadBalanceReadLock.unlock();
         }
+    }
+
+    @Override
+    public FlowFileRecord poll(Set<FlowFileRecord> expiredRecords) {
+        return poll(expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
+    }
+
+    @Override
+    public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords) {
+        return poll(maxResults, expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
+    }
+
+    @Override
+    public List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords) {
+        return poll(filter, expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 }

@@ -25,8 +25,8 @@ import org.apache.kafka.connect.source.SourceTaskContext;
 import org.apache.kafka.connect.storage.OffsetStorageReader;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -34,20 +34,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StatelessNiFiSourceTaskIT {
 
     @Test
-    public void testSimpleFlow() throws InterruptedException {
+    public void testSimpleFlow(TestInfo testInfo) throws InterruptedException {
         final StatelessNiFiSourceTask sourceTask = new StatelessNiFiSourceTask();
         sourceTask.initialize(createContext());
 
-        final Map<String, String> properties = createDefaultProperties();
+        final Map<String, String> properties = createDefaultProperties(testInfo);
         sourceTask.start(properties);
 
         final List<SourceRecord> sourceRecords = sourceTask.poll();
@@ -62,11 +63,11 @@ public class StatelessNiFiSourceTaskIT {
     }
 
     @Test
-    public void testKeyAttribute() throws InterruptedException {
+    public void testKeyAttribute(TestInfo testInfo) throws InterruptedException {
         final StatelessNiFiSourceTask sourceTask = new StatelessNiFiSourceTask();
         sourceTask.initialize(createContext());
 
-        final Map<String, String> properties = createDefaultProperties();
+        final Map<String, String> properties = createDefaultProperties(testInfo);
         properties.put(StatelessNiFiSourceConnector.KEY_ATTRIBUTE, "greeting");
         sourceTask.start(properties);
 
@@ -82,11 +83,11 @@ public class StatelessNiFiSourceTaskIT {
     }
 
     @Test
-    public void testTopicNameAttribute() throws InterruptedException {
+    public void testTopicNameAttribute(TestInfo testInfo) throws InterruptedException {
         final StatelessNiFiSourceTask sourceTask = new StatelessNiFiSourceTask();
         sourceTask.initialize(createContext());
 
-        final Map<String, String> properties = createDefaultProperties();
+        final Map<String, String> properties = createDefaultProperties(testInfo);
         properties.put(StatelessNiFiSourceConnector.TOPIC_NAME_ATTRIBUTE, "greeting");
         sourceTask.start(properties);
 
@@ -100,11 +101,11 @@ public class StatelessNiFiSourceTaskIT {
     }
 
     @Test
-    public void testHeaders() throws InterruptedException {
+    public void testHeaders(TestInfo testInfo) throws InterruptedException {
         final StatelessNiFiSourceTask sourceTask = new StatelessNiFiSourceTask();
         sourceTask.initialize(createContext());
 
-        final Map<String, String> properties = createDefaultProperties();
+        final Map<String, String> properties = createDefaultProperties(testInfo);
         properties.put(StatelessNiFiSourceConnector.HEADER_REGEX, "uuid|greeting|num.*");
         sourceTask.start(properties);
 
@@ -128,24 +129,19 @@ public class StatelessNiFiSourceTaskIT {
     }
 
     @Test
-    public void testTransferToWrongPort() throws InterruptedException {
+    public void testTransferToWrongPort(TestInfo testInfo) {
         final StatelessNiFiSourceTask sourceTask = new StatelessNiFiSourceTask();
         sourceTask.initialize(createContext());
 
-        final Map<String, String> properties = createDefaultProperties();
+        final Map<String, String> properties = createDefaultProperties(testInfo);
         properties.put(StatelessNiFiSourceConnector.OUTPUT_PORT_NAME, "Another");
         sourceTask.start(properties);
 
-        try {
-            sourceTask.poll();
-            Assert.fail("Expected RetriableException to be thrown");
-        } catch (final RetriableException re) {
-            // Expected
-        }
+        assertThrows(RetriableException.class, () -> sourceTask.poll(), "Expected RetriableException to be thrown");
     }
 
     @Test
-    public void testStateRecovered() {
+    public void testStateRecovered(TestInfo testInfo) {
         final OffsetStorageReader offsetStorageReader = new OffsetStorageReader() {
             @Override
             public <T> Map<String, Object> offset(final Map<String, T> partition) {
@@ -166,7 +162,7 @@ public class StatelessNiFiSourceTaskIT {
         final StatelessNiFiSourceTask sourceTask = new StatelessNiFiSourceTask();
         sourceTask.initialize(createContext(offsetStorageReader));
 
-        final Map<String, String> properties = createDefaultProperties();
+        final Map<String, String> properties = createDefaultProperties(testInfo);
         properties.put(StatelessNiFiSourceConnector.OUTPUT_PORT_NAME, "Another");
         sourceTask.start(properties);
 
@@ -179,11 +175,11 @@ public class StatelessNiFiSourceTaskIT {
     }
 
     @Test
-    public void testStateProvidedAndRecovered() throws InterruptedException {
+    public void testStateProvidedAndRecovered(TestInfo testInfo) throws InterruptedException {
         final StatelessNiFiSourceTask sourceTask = new StatelessNiFiSourceTask();
         sourceTask.initialize(createContext());
 
-        final Map<String, String> properties = createDefaultProperties();
+        final Map<String, String> properties = createDefaultProperties(testInfo);
         sourceTask.start(properties);
 
         final List<SourceRecord> sourceRecords = sourceTask.poll();
@@ -241,7 +237,7 @@ public class StatelessNiFiSourceTaskIT {
     }
 
 
-    private Map<String, String> createDefaultProperties() {
+    private Map<String, String> createDefaultProperties(TestInfo testInfo) {
         final Map<String, String> properties = new HashMap<>();
         properties.put(StatelessKafkaConnectorUtil.DATAFLOW_TIMEOUT, "30 sec");
         properties.put(StatelessNiFiSourceConnector.OUTPUT_PORT_NAME, "Out");
@@ -250,6 +246,7 @@ public class StatelessNiFiSourceTaskIT {
         properties.put(StatelessKafkaConnectorUtil.FLOW_SNAPSHOT, "src/test/resources/flows/Generate_Data.json");
         properties.put(StatelessKafkaConnectorUtil.NAR_DIRECTORY, "target/nifi-kafka-connector-bin/nars");
         properties.put(StatelessKafkaConnectorUtil.WORKING_DIRECTORY, "target/nifi-kafka-connector-bin/working");
+        properties.put(StatelessKafkaConnectorUtil.DATAFLOW_NAME, testInfo.getTestMethod().get().getName());
         properties.put(StatelessNiFiSourceTask.STATE_MAP_KEY, "1");
 
         return properties;

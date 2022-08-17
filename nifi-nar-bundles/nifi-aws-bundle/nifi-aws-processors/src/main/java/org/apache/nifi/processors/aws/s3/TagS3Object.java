@@ -17,7 +17,7 @@
 package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
 import com.amazonaws.services.s3.model.GetObjectTaggingResult;
 import com.amazonaws.services.s3.model.ObjectTagging;
@@ -53,7 +53,12 @@ import java.util.stream.Collectors;
 @SupportsBatching
 @WritesAttributes({
         @WritesAttribute(attribute = "s3.tag.___", description = "The tags associated with the S3 object will be " +
-                "written as part of the FlowFile attributes")})
+                "written as part of the FlowFile attributes"),
+        @WritesAttribute(attribute = "s3.exception", description = "The class name of the exception thrown during processor execution"),
+        @WritesAttribute(attribute = "s3.additionalDetails", description = "The S3 supplied detail from the failed operation"),
+        @WritesAttribute(attribute = "s3.statusCode", description = "The HTTP error code (if available) from the failed operation"),
+        @WritesAttribute(attribute = "s3.errorCode", description = "The S3 moniker of the failed operation"),
+        @WritesAttribute(attribute = "s3.errorMessage", description = "The S3 exception message from the failed operation")})
 @SeeAlso({PutS3Object.class, FetchS3Object.class, ListS3.class})
 @Tags({"Amazon", "S3", "AWS", "Archive", "Tag"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -148,7 +153,7 @@ public class TagS3Object extends AbstractS3Processor {
 
         final String version = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
 
-        final AmazonS3 s3 = getClient();
+        final AmazonS3Client s3 = getClient();
 
         SetObjectTaggingRequest r;
         List<Tag> tags = new ArrayList<>();
@@ -171,7 +176,8 @@ public class TagS3Object extends AbstractS3Processor {
             }
             s3.setObjectTagging(r);
         } catch (final AmazonServiceException ase) {
-            getLogger().error("Failed to tag S3 Object for {}; routing to failure", new Object[]{flowFile, ase});
+            flowFile = extractExceptionDetails(ase, session, flowFile);
+            getLogger().error("Failed to tag S3 Object for {}; routing to failure", flowFile, ase);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
@@ -180,8 +186,10 @@ public class TagS3Object extends AbstractS3Processor {
         flowFile = setTagAttributes(session, flowFile, tags);
 
         session.transfer(flowFile, REL_SUCCESS);
+        final String url = s3.getResourceUrl(bucket, key);
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully tagged S3 Object for {} in {} millis; routing to success", new Object[]{flowFile, transferMillis});
+        session.getProvenanceReporter().invokeRemoteProcess(flowFile, url, "Object tagged");
     }
 
     private void failFlowWithBlankEvaluatedProperty(ProcessSession session, FlowFile flowFile, PropertyDescriptor pd) {

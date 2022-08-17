@@ -22,26 +22,35 @@ import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.text.DateFormat;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TimeZone;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.DoubleAdder;
 import java.util.function.Function;
@@ -49,13 +58,24 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestDataTypeUtils {
+    private static final ZoneId SYSTEM_DEFAULT_ZONE_ID = ZoneOffset.systemDefault();
+
+    private static final String ISO_8601_YEAR_MONTH_DAY = "2000-01-01";
+
+    private static final String CUSTOM_MONTH_DAY_YEAR = "01-01-2000";
+
+    private static final String CUSTOM_MONTH_DAY_YEAR_PATTERN = "MM-dd-yyyy";
+
+    private static final String DATE_FIELD = "date";
+
     /**
      * This is a unit test to verify conversion java Date objects to Timestamps. Support for this was
      * required in order to help the MongoDB packages handle date/time logical types in the Record API.
@@ -66,12 +86,12 @@ public class TestDataTypeUtils {
         Timestamp ts = DataTypeUtils.toTimestamp(date, null, null);
 
         assertNotNull(ts);
-        assertEquals("Times didn't match", ts.getTime(), date.getTime());
+        assertEquals(ts.getTime(), date.getTime(), "Times didn't match");
 
         java.sql.Date sDate = new java.sql.Date(date.getTime());
         ts = DataTypeUtils.toTimestamp(date, null, null);
         assertNotNull(ts);
-        assertEquals("Times didn't match", ts.getTime(), sDate.getTime());
+        assertEquals(ts.getTime(), sDate.getTime(), "Times didn't match");
     }
 
     /*
@@ -86,7 +106,7 @@ public class TestDataTypeUtils {
 
         java.sql.Date output = DataTypeUtils.toDate(ts, null, null);
         assertNotNull(output);
-        assertEquals("Timestamps didn't match", output.getTime(), ts.getTime());
+        assertEquals(output.getTime(), ts.getTime(), "Timestamps didn't match");
     }
 
     @Test
@@ -113,6 +133,57 @@ public class TestDataTypeUtils {
         assertTrue(resultMap.get("field3") instanceof int[]);
         assertNull(resultMap.get("field4"));
 
+    }
+
+    @Test
+    public void testUUIDStringToUUIDObject() {
+        UUID generated = UUID.randomUUID();
+        String uuidString = generated.toString();
+
+        Object result = DataTypeUtils.convertType(uuidString, RecordFieldType.UUID.getDataType(), "uuid_test");
+        assertTrue(result instanceof UUID);
+        assertEquals(generated, result);
+    }
+
+    @Test
+    public void testUUIDObjectToUUIDString() {
+        UUID generated = UUID.randomUUID();
+        String uuid = generated.toString();
+
+        Object result = DataTypeUtils.convertType(generated, RecordFieldType.STRING.getDataType(), "uuid_test");
+        assertTrue(result instanceof String);
+        assertEquals(uuid, result);
+    }
+
+    @Test
+    public void testUUIDToByteArray() {
+        UUID generated = UUID.randomUUID();
+        ByteBuffer buffer = ByteBuffer.allocate(16);
+        buffer.putLong(generated.getMostSignificantBits());
+        buffer.putLong(generated.getLeastSignificantBits());
+        byte[] expected = buffer.array();
+
+        Object result = DataTypeUtils.convertType(expected, RecordFieldType.UUID.getDataType(), "uuid_test");
+        assertTrue(result instanceof UUID);
+        assertEquals(generated, result);
+    }
+
+    @Test
+    public void testByteArrayToUUID() {
+        UUID generated = UUID.randomUUID();
+        ByteBuffer buffer = ByteBuffer.allocate(16);
+        buffer.putLong(generated.getMostSignificantBits());
+        buffer.putLong(generated.getLeastSignificantBits());
+        byte[] expected = buffer.array();
+
+        Object result = DataTypeUtils.convertType(expected, RecordFieldType.ARRAY.getDataType(), "uuid_test");
+        assertTrue(result instanceof Byte[]);
+        assertEquals( 16, ((Byte[]) result).length);
+        Byte[] bytes = (Byte[])result;
+        for (int x = 0; x < bytes.length; x++) {
+            byte current = bytes[x];
+            assertEquals(expected[x], current);
+        }
     }
 
     @Test
@@ -250,11 +321,11 @@ public class TestDataTypeUtils {
         assertTrue(bytes instanceof Byte[]);
         assertNotNull(bytes);
         Byte[] b = (Byte[]) bytes;
-        assertEquals("Conversion from String to byte[] failed", (long) 72, (long) b[0] );  // H
-        assertEquals("Conversion from String to byte[] failed", (long) 101, (long) b[1] ); // e
-        assertEquals("Conversion from String to byte[] failed", (long) 108, (long) b[2] ); // l
-        assertEquals("Conversion from String to byte[] failed", (long) 108, (long) b[3] ); // l
-        assertEquals("Conversion from String to byte[] failed", (long) 111, (long) b[4] ); // o
+        assertEquals((long) 72, (long) b[0], "Conversion from String to byte[] failed");  // H
+        assertEquals((long) 101, (long) b[1], "Conversion from String to byte[] failed" ); // e
+        assertEquals((long) 108, (long) b[2], "Conversion from String to byte[] failed" ); // l
+        assertEquals((long) 108, (long) b[3], "Conversion from String to byte[] failed" ); // l
+        assertEquals((long) 111, (long) b[4], "Conversion from String to byte[] failed" ); // o
     }
 
     @Test
@@ -262,7 +333,7 @@ public class TestDataTypeUtils {
         Object s = DataTypeUtils.convertType("Hello".getBytes(StandardCharsets.UTF_16), RecordFieldType.STRING.getDataType(),null, StandardCharsets.UTF_16);
         assertNotNull(s);
         assertTrue(s instanceof String);
-        assertEquals("Conversion from byte[] to String failed", "Hello", s);
+        assertEquals("Hello", s, "Conversion from byte[] to String failed");
     }
 
     @Test
@@ -270,7 +341,7 @@ public class TestDataTypeUtils {
         Object b = DataTypeUtils.convertType("Hello".getBytes(StandardCharsets.UTF_16), RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()),null, StandardCharsets.UTF_16);
         assertNotNull(b);
         assertTrue(b instanceof Byte[]);
-        assertEquals("Conversion from byte[] to String failed at char 0", (Object) "Hello".getBytes(StandardCharsets.UTF_16)[0], ((Byte[]) b)[0]);
+        assertEquals((Object) "Hello".getBytes(StandardCharsets.UTF_16)[0], ((Byte[]) b)[0], "Conversion from byte[] to String failed at char 0");
     }
 
     @Test
@@ -298,19 +369,22 @@ public class TestDataTypeUtils {
         assertNull(DataTypeUtils.convertType(null, RecordFieldType.DECIMAL.getDecimalDataType(30, 10), null, StandardCharsets.UTF_8));
     }
 
-    @Test(expected = IllegalTypeConversionException.class)
+    @Test
     public void testConvertToBigDecimalWhenInputStringIsInvalid() {
-        DataTypeUtils.convertType("test", RecordFieldType.DECIMAL.getDecimalDataType(30, 10), null, StandardCharsets.UTF_8);
+        assertThrows(IllegalTypeConversionException.class, () -> DataTypeUtils.convertType("test", RecordFieldType.DECIMAL.getDecimalDataType(30, 10),
+                null, StandardCharsets.UTF_8));
     }
 
-    @Test(expected = IllegalTypeConversionException.class)
+    @Test
     public void testConvertToBigDecimalWhenUnsupportedType() {
-        DataTypeUtils.convertType(new ArrayList<Double>(), RecordFieldType.DECIMAL.getDecimalDataType(30, 10), null, StandardCharsets.UTF_8);
+        assertThrows(IllegalTypeConversionException.class, () -> DataTypeUtils.convertType(new ArrayList<Double>(), RecordFieldType.DECIMAL.getDecimalDataType(30, 10),
+                null, StandardCharsets.UTF_8));
     }
 
-    @Test(expected = IllegalTypeConversionException.class)
+    @Test
     public void testConvertToBigDecimalWhenUnsupportedNumberType() {
-        DataTypeUtils.convertType(new DoubleAdder(), RecordFieldType.DECIMAL.getDecimalDataType(30, 10), null, StandardCharsets.UTF_8);
+        assertThrows(IllegalTypeConversionException.class, () -> DataTypeUtils.convertType(new DoubleAdder(), RecordFieldType.DECIMAL.getDecimalDataType(30, 10),
+                null, StandardCharsets.UTF_8));
     }
 
     @Test
@@ -363,6 +437,13 @@ public class TestDataTypeUtils {
     }
 
     @Test
+    public void testGetDataTypeFromSQLTypeValue() {
+        assertEquals(RecordFieldType.STRING.getDataType(), DataTypeUtils.getDataTypeFromSQLTypeValue(Types.CLOB));
+        assertEquals(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()), DataTypeUtils.getDataTypeFromSQLTypeValue(Types.BLOB));
+        assertEquals(RecordFieldType.STRING.getDataType(), DataTypeUtils.getDataTypeFromSQLTypeValue(Types.CHAR));
+    }
+
+    @Test
     public void testChooseDataTypeWhenExpectedIsBigDecimal() {
         // GIVEN
         final List<DataType> dataTypes = Arrays.asList(
@@ -390,16 +471,16 @@ public class TestDataTypeUtils {
             for (final String decimal : decimals) {
                 for (final String exp : exponents) {
                     String toTest = prefix + "100" + decimal + exp;
-                    assertTrue(toTest + " not valid float", DataTypeUtils.isFloatTypeCompatible(toTest));
-                    assertTrue(toTest + " not valid double", DataTypeUtils.isDoubleTypeCompatible(toTest));
+                    assertTrue(DataTypeUtils.isFloatTypeCompatible(toTest), toTest + " not valid float");
+                    assertTrue(DataTypeUtils.isDoubleTypeCompatible(toTest), toTest + " not valid double");
 
                     Double.parseDouble(toTest); // ensure we can actually parse it
                     Float.parseFloat(toTest);
 
                     if (decimal.length() > 1) {
                         toTest = prefix + decimal + exp;
-                        assertTrue(toTest + " not valid float", DataTypeUtils.isFloatTypeCompatible(toTest));
-                        assertTrue(toTest + " not valid double", DataTypeUtils.isDoubleTypeCompatible(toTest));
+                        assertTrue(DataTypeUtils.isFloatTypeCompatible(toTest), toTest + " not valid float");
+                        assertTrue(DataTypeUtils.isDoubleTypeCompatible(toTest), toTest + " not valid double");
                         Double.parseDouble(toTest); // ensure we can actually parse it
                         Float.parseFloat(toTest);
                     }
@@ -423,6 +504,22 @@ public class TestDataTypeUtils {
         assertTrue(DataTypeUtils.isCompatibleDataType(1, dataType));
         assertTrue(DataTypeUtils.isCompatibleDataType((short) 1, dataType));
         assertTrue(DataTypeUtils.isCompatibleDataType("12345678901234567890", dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(3.1f, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(3.0, dataType));
+        assertFalse(DataTypeUtils.isCompatibleDataType("1234567XYZ", dataType));
+        assertFalse(DataTypeUtils.isCompatibleDataType(new Long[]{1L, 2L}, dataType));
+    }
+
+    @Test
+    public void testIsCompatibleDataTypeInteger() {
+        final DataType dataType = RecordFieldType.INT.getDataType();
+        assertTrue(DataTypeUtils.isCompatibleDataType(new Integer("1234567"), dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType("1234567", dataType));
+        assertFalse(DataTypeUtils.isCompatibleDataType(new BigInteger("12345678901234567890"), dataType));
+        assertFalse(DataTypeUtils.isCompatibleDataType(1234567890123456789L, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(1, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType((short) 1, dataType));
+        assertFalse(DataTypeUtils.isCompatibleDataType("12345678901234567890", dataType));
         assertTrue(DataTypeUtils.isCompatibleDataType(3.1f, dataType));
         assertTrue(DataTypeUtils.isCompatibleDataType(3.0, dataType));
         assertFalse(DataTypeUtils.isCompatibleDataType("1234567XYZ", dataType));
@@ -493,7 +590,7 @@ public class TestDataTypeUtils {
         };
 
         Optional<String> actual = DataTypeUtils.findMostSuitableTypeByStringValue(valueAsString, types, dataTypeMapper);
-        assertTrue("Exception not thrown during test as intended.", exceptionThrown.get());
+        assertTrue(exceptionThrown.get(), "Exception not thrown during test as intended.");
         assertEquals(expected, actual);
     }
 
@@ -568,7 +665,7 @@ public class TestDataTypeUtils {
 
     @Test
     public void testInferTypeWithMapStringKeys() {
-        Map<String, String> map = new HashMap<>();
+        Map<String, String> map = new LinkedHashMap<>();
         map.put("a", "Hello");
         map.put("b", "World");
 
@@ -583,7 +680,7 @@ public class TestDataTypeUtils {
 
     @Test
     public void testInferTypeWithMapNonStringKeys() {
-        Map<Integer, String> map = new HashMap<>();
+        Map<Integer, String> map = new LinkedHashMap<>();
         map.put(1, "Hello");
         map.put(2, "World");
 
@@ -714,11 +811,11 @@ public class TestDataTypeUtils {
         final BigDecimal indirectResult = whenExpectingValidConversion(expectedValue, incomingValue, RecordFieldType.DECIMAL.getDecimalDataType(30, 10));
         // In some cases, direct equality check comes with false negative as the changing representation brings in
         // insignificant changes what might break the comparison. For example 12F will be represented as "12.0"
-        assertEquals(failureMessage + "indirect", 0, expectedValue.compareTo(indirectResult));
+        assertEquals(0, expectedValue.compareTo(indirectResult), failureMessage + "indirect");
 
         // Checking direct conversion
         final BigDecimal directResult = DataTypeUtils.toBigDecimal(incomingValue, "field");
-        assertEquals(failureMessage + "direct", 0, expectedValue.compareTo(directResult));
+        assertEquals(0, expectedValue.compareTo(directResult), failureMessage + "direct");
 
     }
 
@@ -900,23 +997,73 @@ public class TestDataTypeUtils {
         assertEquals(0, zdt.getNano());
     }
 
+    /**
+     * Convert String to java.sql.Date using implicit default DateFormat with GMT Time Zone
+     *
+     * Running this method on a system with a time zone other than GMT should return the same year-month-day
+     */
     @Test
-    public void testConvertDateToLocalTZ() {
-        int year = 2021;
-        int month = 1;
-        int dayOfMonth = 25;
+    public void testConvertTypeStringToDateDefaultTimeZoneFormat() {
+        final Object converted = DataTypeUtils.convertType(ISO_8601_YEAR_MONTH_DAY, RecordFieldType.DATE.getDataType(), DATE_FIELD);
+        assertTrue(converted instanceof java.sql.Date, "Converted value is not java.sql.Date");
+        assertEquals(ISO_8601_YEAR_MONTH_DAY, converted.toString());
+    }
 
-        Date dateUTC = new Date(ZonedDateTime.of(LocalDateTime.of(year, month, dayOfMonth,0,0,0), ZoneId.of("UTC")).toInstant().toEpochMilli());
+    /**
+     * Convert String to java.sql.Date using custom pattern DateFormat with configured GMT Time Zone
+     */
+    @Test
+    public void testConvertTypeStringToDateConfiguredTimeZoneFormat() {
+        final DateFormat dateFormat = DataTypeUtils.getDateFormat(CUSTOM_MONTH_DAY_YEAR_PATTERN, "GMT");
+        final Object converted = DataTypeUtils.convertType(CUSTOM_MONTH_DAY_YEAR, RecordFieldType.DATE.getDataType(), () -> dateFormat, null, null,"date");
+        assertTrue(converted instanceof java.sql.Date, "Converted value is not java.sql.Date");
+        assertEquals(ISO_8601_YEAR_MONTH_DAY, converted.toString());
+    }
 
-        Date dateLocalTZ = DataTypeUtils.convertDateToLocalTZ(dateUTC);
+    /**
+     * Convert String to java.sql.Date using custom pattern DateFormat with system default Time Zone
+     */
+    @Test
+    public void testConvertTypeStringToDateConfiguredSystemDefaultTimeZoneFormat() {
+        final DateFormat dateFormat = DataTypeUtils.getDateFormat(CUSTOM_MONTH_DAY_YEAR_PATTERN, TimeZone.getDefault().getID());
+        final Object converted = DataTypeUtils.convertType(CUSTOM_MONTH_DAY_YEAR, RecordFieldType.DATE.getDataType(), () -> dateFormat, null, null,"date");
+        assertTrue(converted instanceof java.sql.Date, "Converted value is not java.sql.Date");
+        assertEquals(ISO_8601_YEAR_MONTH_DAY, converted.toString());
+    }
 
-        ZonedDateTime zdt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(dateLocalTZ.getTime()), ZoneId.systemDefault());
-        assertEquals(year, zdt.getYear());
-        assertEquals(month, zdt.getMonthValue());
-        assertEquals(dayOfMonth, zdt.getDayOfMonth());
-        assertEquals(0, zdt.getHour());
-        assertEquals(0, zdt.getMinute());
-        assertEquals(0, zdt.getSecond());
-        assertEquals(0, zdt.getNano());
+    @Test
+    public void testToLocalDateFromString() {
+        assertToLocalDateEquals(ISO_8601_YEAR_MONTH_DAY, ISO_8601_YEAR_MONTH_DAY);
+    }
+
+    @Test
+    public void testToLocalDateFromSqlDate() {
+        assertToLocalDateEquals(ISO_8601_YEAR_MONTH_DAY, java.sql.Date.valueOf(ISO_8601_YEAR_MONTH_DAY));
+    }
+
+    @Test
+    public void testToLocalDateFromUtilDate() {
+        final LocalDate localDate = LocalDate.parse(ISO_8601_YEAR_MONTH_DAY);
+        final long epochMillis = toEpochMilliSystemDefaultZone(localDate);
+        assertToLocalDateEquals(ISO_8601_YEAR_MONTH_DAY, new java.util.Date(epochMillis));
+    }
+
+    @Test
+    public void testToLocalDateFromNumberEpochMillis() {
+        final LocalDate localDate = LocalDate.parse(ISO_8601_YEAR_MONTH_DAY);
+        final long epochMillis = toEpochMilliSystemDefaultZone(localDate);
+        assertToLocalDateEquals(ISO_8601_YEAR_MONTH_DAY, epochMillis);
+    }
+
+    private long toEpochMilliSystemDefaultZone(final LocalDate localDate) {
+        final LocalTime localTime = LocalTime.of(0, 0);
+        final Instant instantSystemDefaultZone = ZonedDateTime.of(localDate, localTime, SYSTEM_DEFAULT_ZONE_ID).toInstant();
+        return instantSystemDefaultZone.toEpochMilli();
+    }
+
+    private void assertToLocalDateEquals(final String expected, final Object value) {
+        final DateTimeFormatter systemDefaultZoneFormatter = DataTypeUtils.getDateTimeFormatter(RecordFieldType.DATE.getDefaultFormat(), SYSTEM_DEFAULT_ZONE_ID);
+        final LocalDate localDate = DataTypeUtils.toLocalDate(value, () -> systemDefaultZoneFormatter, DATE_FIELD);
+        assertEquals(expected, localDate.toString(), String.format("Value Class [%s] to LocalDate not matched", value.getClass()));
     }
 }

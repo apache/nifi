@@ -124,6 +124,8 @@ IS_EMPTY : 'isEmpty';
 NOT_NULL : 'notNull';
 TO_NUMBER : 'toNumber';
 TO_DECIMAL : 'toDecimal';
+TO_MICROS : 'toMicros';
+TO_NANOS : 'toNanos';
 URL_ENCODE : 'urlEncode';
 URL_DECODE : 'urlDecode';
 NOT : 'not';
@@ -167,7 +169,9 @@ LESS_THAN		: 'lt';
 GREATER_THAN_OR_EQUAL	: 'ge';
 LESS_THAN_OR_EQUAL		: 'le';
 FORMAT			: 'format'; // takes string date format; uses SimpleDateFormat
+FORMAT_INSTANT  : 'formatInstant';
 TO_DATE			: 'toDate'; // takes string date format; converts the subject to a Long based on the date format
+TO_INSTANT		: 'toInstant';
 MOD : 'mod';
 PLUS : 'plus';
 MINUS : 'minus';

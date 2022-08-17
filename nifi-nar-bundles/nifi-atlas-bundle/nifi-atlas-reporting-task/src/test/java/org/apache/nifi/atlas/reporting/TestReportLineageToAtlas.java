@@ -25,18 +25,26 @@ import org.apache.nifi.atlas.NiFiAtlasClient;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
+import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
+import org.apache.nifi.util.MockControllerServiceLookup;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.MockValidationContext;
-import org.junit.Before;
-import org.junit.Test;
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Node;
+import org.xmlunit.builder.Input;
+import org.xmlunit.xpath.JAXPXPathEngine;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -50,6 +58,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -63,10 +72,12 @@ import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_READ_TI
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_URLS;
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_USER;
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.KAFKA_BOOTSTRAP_SERVERS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.SSL_CONTEXT_SERVICE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -75,22 +86,44 @@ public class TestReportLineageToAtlas {
 
     private final Logger logger = LoggerFactory.getLogger(TestReportLineageToAtlas.class);
 
+    private static final String ATLAS_CONF_DIR_BASE = "target/atlasConfDir-";
+
     private ReportLineageToAtlas testSubject;
     private MockComponentLog componentLogger;
     private ReportingInitializationContext initializationContext;
     private ReportingContext reportingContext;
+    private String atlasConfDir;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         testSubject = new ReportLineageToAtlas();
         componentLogger = new MockComponentLog("reporting-task-id", testSubject);
 
         initializationContext = mock(ReportingInitializationContext.class);
         when(initializationContext.getLogger()).thenReturn(componentLogger);
+
+        atlasConfDir = createAtlasConfDir();
+    }
+
+    @AfterEach
+    public void tearDown() throws Exception {
+        cleanUpAtlasConfDir();
+    }
+
+    private String createAtlasConfDir() throws IOException {
+        String atlasConfDir = ATLAS_CONF_DIR_BASE + UUID.randomUUID();
+        FileUtils.ensureDirectoryExistAndCanAccess(new File(atlasConfDir));
+        return atlasConfDir;
+    }
+
+    private void cleanUpAtlasConfDir() throws IOException {
+        if (atlasConfDir != null) {
+            FileUtils.deleteFile(new File(atlasConfDir), true);
+        }
     }
 
     @Test
-    public void validateAtlasUrlsFromProperty() throws Exception {
+    public void validateAtlasUrlsFromProperty() {
         final MockProcessContext processContext = new MockProcessContext(testSubject);
         final MockValidationContext validationContext = new MockValidationContext(processContext);
 
@@ -118,7 +151,7 @@ public class TestReportLineageToAtlas {
         // Invalid URL.
         processContext.setProperty(ATLAS_URLS, "invalid");
         assertResults.accept(testSubject.validate(validationContext),
-                r -> assertTrue("Atlas URLs is invalid", !r.isValid()));
+                r -> assertTrue(!r.isValid(), "Atlas URLs is invalid"));
 
         // Valid URL
         processContext.setProperty(ATLAS_URLS, "http://atlas.example.com:21000");
@@ -135,7 +168,7 @@ public class TestReportLineageToAtlas {
         // Invalid and Valid URLs
         processContext.setProperty(ATLAS_URLS, "invalid, http://atlas2.example.com:21000");
         assertResults.accept(testSubject.validate(validationContext),
-                r -> assertTrue("Atlas URLs is invalid", !r.isValid()));
+                r -> assertTrue(!r.isValid(), "Atlas URLs is invalid"));
     }
 
     @Test
@@ -162,8 +195,8 @@ public class TestReportLineageToAtlas {
         atlasConf.setProperty("atlas.rest.address", atlasUrls);
 
         Consumer<Exception> assertion = e -> assertTrue(
-            "Expected " + MalformedURLException.class.getSimpleName() + " for " + atlasUrls + ", got " + e,
-            e.getCause() instanceof MalformedURLException
+            e.getCause() instanceof MalformedURLException,
+            "Expected " + MalformedURLException.class.getSimpleName() + " for " + atlasUrls + ", got " + e
         );
 
         // WHEN
@@ -185,7 +218,7 @@ public class TestReportLineageToAtlas {
             propertiesAdjustment,
             () -> fail(),
             e -> {
-                assertTrue("Expected a " + ProcessException.class.getSimpleName() + ", got " + e, e instanceof ProcessException);
+                assertTrue(e instanceof ProcessException, "Expected a " + ProcessException.class.getSimpleName() + ", got " + e);
                 exceptionConsumer.accept(e);
             }
         );
@@ -204,13 +237,7 @@ public class TestReportLineageToAtlas {
         };
 
         Runnable assertion = () -> {
-            Properties atlasProperties = new Properties();
-            final File atlasPropertiesFile = new File("target/atlasConfDir", "atlas-application.properties");
-            try (InputStream in = new FileInputStream(atlasPropertiesFile)) {
-                atlasProperties.load(in);
-            } catch (Exception e) {
-                throw new AssertionError(e);
-            }
+            Properties atlasProperties = loadGeneratedAtlasProperties();
 
             assertEquals(atlasUrls, atlasProperties.getProperty("atlas.rest.address"));
         };
@@ -241,13 +268,7 @@ public class TestReportLineageToAtlas {
         };
 
         Runnable assertion = () -> {
-            Properties atlasProperties = new Properties();
-            final File atlasPropertiesFile = new File("target/atlasConfDir", "atlas-application.properties");
-            try (InputStream in = new FileInputStream(atlasPropertiesFile)) {
-                atlasProperties.load(in);
-            } catch (Exception e) {
-                throw new AssertionError(e);
-            }
+            Properties atlasProperties = loadGeneratedAtlasProperties();
 
             assertEquals(atlasMetadataNamespace, atlasProperties.getProperty("atlas.metadata.namespace"));
         };
@@ -265,24 +286,112 @@ public class TestReportLineageToAtlas {
         );
     }
 
+    @Test
+    public void testAtlasSSLConfig() throws Exception {
+        // GIVEN
+        String atlasUrls = "https://atlasUrl1";
+
+        String sslContextServiceId = "ssl-context-service";
+        String truststoreLocation = "truststore-location";
+        String truststorePassword = "truststore-password";
+        String truststoreType = "truststore-type";
+
+        Properties atlasConf = new Properties();
+
+        Consumer<Map<PropertyDescriptor, String>> propertiesAdjustment = properties -> {
+            properties.put(ATLAS_CONF_CREATE, "true");
+            properties.put(ATLAS_URLS, atlasUrls);
+            properties.put(SSL_CONTEXT_SERVICE, sslContextServiceId);
+        };
+
+        SSLContextService sslContextService = mockSSLContextServiceWithTruststore(sslContextServiceId, truststoreLocation, truststorePassword, truststoreType);
+        MockControllerServiceLookup controllerServiceLookup = new MockControllerServiceLookup() {};
+        controllerServiceLookup.addControllerService(sslContextService);
+
+        Runnable assertion = () -> {
+            Properties atlasProperties = loadGeneratedAtlasProperties();
+
+            assertEquals("true", atlasProperties.getProperty("atlas.enableTLS"));
+
+            assertGeneratedSslClientXml(truststoreLocation, truststorePassword, truststoreType);
+        };
+
+        // WHEN
+        // THEN
+        testSetup(
+                atlasConf,
+                propertiesAdjustment,
+                controllerServiceLookup,
+                assertion,
+                e -> {
+                    throw new AssertionError(e);
+                }
+        );
+    }
+
+    private SSLContextService mockSSLContextServiceWithTruststore(String sslContextServiceId, String truststoreLocation, String truststorePassword, String truststoreType) {
+        SSLContextService sslContextService = mock(SSLContextService.class);
+
+        when(sslContextService.getIdentifier()).thenReturn(sslContextServiceId);
+        when(sslContextService.getTrustStoreFile()).thenReturn(truststoreLocation);
+        when(sslContextService.getTrustStorePassword()).thenReturn(truststorePassword);
+        when(sslContextService.getTrustStoreType()).thenReturn(truststoreType);
+        when(sslContextService.isTrustStoreConfigured()).thenReturn(true);
+
+        return sslContextService;
+    }
+
+    private void assertGeneratedSslClientXml(String truststoreLocation, String truststorePassword, String truststoreType) {
+        File sslClientXmlFile = new File(atlasConfDir, "ssl-client.xml");
+        assertTrue(sslClientXmlFile.exists());
+        assertTrue(sslClientXmlFile.isFile());
+
+        Map<String, String> sslClientXmlProperties = new HashMap<>();
+        JAXPXPathEngine xPathEngine = new JAXPXPathEngine();
+        Iterable<Node> propertyNodes = xPathEngine.selectNodes("/configuration/property", Input.fromFile(sslClientXmlFile).build());
+        for (Node propertyNode: propertyNodes) {
+            String propertyName = xPathEngine.evaluate("name", propertyNode);
+            String propertyValue = xPathEngine.evaluate("value", propertyNode);
+            sslClientXmlProperties.put(propertyName, propertyValue);
+        }
+
+        assertEquals(truststoreLocation, sslClientXmlProperties.get("ssl.client.truststore.location"));
+        assertEquals(truststorePassword, sslClientXmlProperties.get("ssl.client.truststore.password"));
+        assertEquals(truststoreType, sslClientXmlProperties.get("ssl.client.truststore.type"));
+    }
+
+    private Properties loadGeneratedAtlasProperties() {
+        Properties atlasProperties = new Properties();
+        File atlasPropertiesFile = new File(atlasConfDir, "atlas-application.properties");
+        try (InputStream in = new FileInputStream(atlasPropertiesFile)) {
+            atlasProperties.load(in);
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
+        return atlasProperties;
+    }
+
+    private void testSetup(
+            Properties atlasConf,
+            Consumer<Map<PropertyDescriptor, String>> propertiesAdjustment,
+            Runnable onSuccess, Consumer<Exception> onError
+    ) throws Exception {
+        testSetup(atlasConf, propertiesAdjustment, null, onSuccess, onError);
+    }
+
     private void testSetup(
         Properties atlasConf,
         Consumer<Map<PropertyDescriptor, String>> propertiesAdjustment,
-        Runnable onSuccess, Consumer<Exception> exceptionConsumer
+        ControllerServiceLookup controllerServiceLookup,
+        Runnable onSuccess, Consumer<Exception> onError
     ) throws Exception {
         // GIVEN
-        String atlasConfDir = createAtlasConfDir();
-
         Map<PropertyDescriptor, String> properties = initReportingTaskProperties(atlasConfDir);
         propertiesAdjustment.accept(properties);
 
-        saveAtlasConf(atlasConfDir, atlasConf);
+        saveAtlasConf(atlasConf);
 
-        reportingContext = mock(ReportingContext.class);
-        when(reportingContext.getProperties()).thenReturn(properties);
-        when(reportingContext.getProperty(any())).then(invocation -> new MockPropertyValue(properties.get(invocation.getArguments()[0])));
-
-        ConfigurationContext configurationContext = new MockConfigurationContext(properties, null);
+        ConfigurationContext configurationContext = new MockConfigurationContext(properties, controllerServiceLookup);
 
         testSubject.initialize(initializationContext);
 
@@ -293,15 +402,14 @@ public class TestReportLineageToAtlas {
 
             // THEN
         } catch (Exception e) {
-            exceptionConsumer.accept(e);
+            onError.accept(e);
         }
     }
+
 
     @Test
     public void testDefaultConnectAndReadTimeout() throws Exception {
         // GIVEN
-        String atlasConfDir = createAtlasConfDir();
-
         Map<PropertyDescriptor, String> properties = initReportingTaskProperties(atlasConfDir);
 
         // WHEN
@@ -314,8 +422,6 @@ public class TestReportLineageToAtlas {
         // GIVEN
         int expectedConnectTimeoutMs = 10000;
         int expectedReadTimeoutMs = 5000;
-
-        String atlasConfDir = createAtlasConfDir();
 
         Map<PropertyDescriptor, String> properties = initReportingTaskProperties(atlasConfDir);
         properties.put(ATLAS_CONNECT_TIMEOUT, (expectedConnectTimeoutMs / 1000) + " sec");
@@ -363,8 +469,6 @@ public class TestReportLineageToAtlas {
 
     @Test
     public void testNotificationSendingIsSynchronousWhenAtlasConfIsGenerated() throws Exception {
-        String atlasConfDir = createAtlasConfDir();
-
         Map<PropertyDescriptor, String> properties = initReportingTaskProperties(atlasConfDir);
 
         testNotificationSendingIsSynchronous(properties);
@@ -372,11 +476,9 @@ public class TestReportLineageToAtlas {
 
     @Test
     public void testNotificationSendingIsSynchronousWhenAtlasConfIsProvidedAndSynchronousModeHasBeenSet() throws Exception {
-        String atlasConfDir = createAtlasConfDir();
-
         Properties atlasConf = new Properties();
         atlasConf.setProperty(AtlasHook.ATLAS_NOTIFICATION_ASYNCHRONOUS, "false");
-        saveAtlasConf(atlasConfDir, atlasConf);
+        saveAtlasConf(atlasConf);
 
         Map<PropertyDescriptor, String> properties = initReportingTaskProperties(atlasConfDir);
         properties.put(ATLAS_CONF_CREATE, "false");
@@ -395,12 +497,10 @@ public class TestReportLineageToAtlas {
         assertFalse(isAsync);
     }
 
-    @Test(expected = ProcessException.class)
+    @Test
     public void testThrowExceptionWhenAtlasConfIsProvidedButSynchronousModeHasNotBeenSet() throws Exception {
-        String atlasConfDir = createAtlasConfDir();
-
         Properties atlasConf = new Properties();
-        saveAtlasConf(atlasConfDir, atlasConf);
+        saveAtlasConf(atlasConf);
 
         Map<PropertyDescriptor, String> properties = initReportingTaskProperties(atlasConfDir);
         properties.put(ATLAS_CONF_CREATE, "false");
@@ -408,21 +508,13 @@ public class TestReportLineageToAtlas {
         ConfigurationContext configurationContext = new MockConfigurationContext(properties, null);
 
         testSubject.initialize(initializationContext);
-        testSubject.setup(configurationContext);
+        assertThrows(ProcessException.class, () -> testSubject.setup(configurationContext));
     }
 
-    private String createAtlasConfDir() {
-        String atlasConfDir = "target/atlasConfDir";
-        File directory = new File(atlasConfDir);
-        if (!directory.exists()) {
-            directory.mkdirs();
+    private void saveAtlasConf(Properties atlasConf) throws IOException {
+        try (FileOutputStream fos = new FileOutputStream(atlasConfDir + File.separator + ApplicationProperties.APPLICATION_PROPERTIES)) {
+            atlasConf.store(fos, "Atlas test config");
         }
-        return atlasConfDir;
-    }
-
-    private void saveAtlasConf(String atlasConfDir, Properties atlasConf) throws IOException {
-        FileOutputStream fos = new FileOutputStream(atlasConfDir + File.separator + ApplicationProperties.APPLICATION_PROPERTIES);
-        atlasConf.store(fos, "Atlas test config");
     }
 
     private Map<PropertyDescriptor, String> initReportingTaskProperties(String atlasConfDir) {

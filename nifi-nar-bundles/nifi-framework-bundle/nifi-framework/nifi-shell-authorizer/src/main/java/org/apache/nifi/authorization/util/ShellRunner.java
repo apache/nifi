@@ -52,10 +52,6 @@ public class ShellRunner {
         });
     }
 
-    public List<String> runShell(String command) throws IOException {
-        return runShell(command, "<unknown>");
-    }
-
     public List<String> runShell(String command, String description) throws IOException {
         final ProcessBuilder builder = new ProcessBuilder(SHELL, OPTS, command);
         builder.redirectErrorStream(true);

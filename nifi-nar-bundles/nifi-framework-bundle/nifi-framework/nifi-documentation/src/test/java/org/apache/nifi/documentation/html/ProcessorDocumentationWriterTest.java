@@ -94,8 +94,14 @@ public class ProcessorDocumentationWriterTest {
         assertContains(results, "Supports Expression Language: true (will be evaluated using variable registry only)");
         assertContains(results, "Supports Expression Language: true (undefined scope)");
 
+        // Check Property Values
+        assertContains(results, "Enabled");
+        assertContains(results, "0 sec");
+
         // verify dynamic properties
         assertContains(results, "Routes FlowFiles to relationships based on XPath");
+
+        assertContains(results, "Supports Sensitive Dynamic Properties: <strong>No</strong>");
 
         // input requirement
         assertContains(results, "This component does not allow an incoming relationship.");

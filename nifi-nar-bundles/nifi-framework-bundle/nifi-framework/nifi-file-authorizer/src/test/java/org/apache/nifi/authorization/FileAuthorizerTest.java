@@ -156,6 +156,7 @@ public class FileAuthorizerTest {
     private File restoreAuthorizations;
     private File restoreTenants;
     private File flow;
+    private File flowJson;
     private File flowNoPorts;
     private File flowWithDns;
 
@@ -187,6 +188,8 @@ public class FileAuthorizerTest {
         flow = new File("src/test/resources/flow.xml.gz");
         FileUtils.ensureDirectoryExistAndCanAccess(flow.getParentFile());
 
+        flowJson = new File("src/test/resources/flow.json.gz");
+
         flowNoPorts = new File("src/test/resources/flow-no-ports.xml.gz");
         FileUtils.ensureDirectoryExistAndCanAccess(flowNoPorts.getParentFile());
 
@@ -196,6 +199,7 @@ public class FileAuthorizerTest {
         properties = mock(NiFiProperties.class);
         when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(flow);
+        when(properties.getFlowConfigurationJsonFile()).thenReturn(flowJson);
 
         configurationContext = mock(AuthorizerConfigurationContext.class);
         when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_AUTHORIZATIONS_FILE))).thenReturn(new StandardPropertyValue(primaryAuthorizations.getPath(), null,
@@ -460,6 +464,7 @@ public class FileAuthorizerTest {
         properties = getNiFiProperties(props);
         when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(flowWithDns);
+        when(properties.getFlowConfigurationJsonFile()).thenReturn(flowJson);
         authorizer.setNiFiProperties(properties);
 
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
@@ -586,6 +591,7 @@ public class FileAuthorizerTest {
         properties = mock(NiFiProperties.class);
         when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(new File("src/test/resources/does-not-exist.xml.gz"));
+        when(properties.getFlowConfigurationJsonFile()).thenReturn(flowJson);
         authorizer.setNiFiProperties(properties);
 
         final String adminIdentity = "admin-user";
@@ -624,6 +630,7 @@ public class FileAuthorizerTest {
         properties = mock(NiFiProperties.class);
         when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(null);
+        when(properties.getFlowConfigurationJsonFile()).thenReturn(flowJson);
         authorizer.setNiFiProperties(properties);
 
         final String adminIdentity = "admin-user";
@@ -665,6 +672,7 @@ public class FileAuthorizerTest {
         properties = getNiFiProperties(props);
         when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(flow);
+        when(properties.getFlowConfigurationJsonFile()).thenReturn(flowJson);
         authorizer.setNiFiProperties(properties);
 
         final String adminIdentity = "CN=localhost, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US";
@@ -759,6 +767,7 @@ public class FileAuthorizerTest {
         properties = getNiFiProperties(props);
         when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(flow);
+        when(properties.getFlowConfigurationJsonFile()).thenReturn(flowJson);
         authorizer.setNiFiProperties(properties);
 
         final String adminIdentity = "CN=user1, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US";

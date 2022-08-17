@@ -17,51 +17,50 @@
 package org.apache.nifi.processors.hadoop;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.net.NetUtils;
-import org.apache.hadoop.security.SaslPlainServer;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceReferences;
+import org.apache.nifi.components.resource.ResourceType;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
-import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
 
 import javax.net.SocketFactory;
-import javax.security.auth.login.LoginException;
 import java.io.File;
 import java.io.IOException;
-import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
 import java.security.PrivilegedExceptionAction;
-import java.security.Security;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
@@ -77,7 +76,7 @@ import java.util.regex.Pattern;
  * @see SecurityUtil#loginKerberos(Configuration, String, String)
  */
 @RequiresInstanceClassLoading(cloneAncestorResources = true)
-public abstract class AbstractHadoopProcessor extends AbstractProcessor {
+public abstract class AbstractHadoopProcessor extends AbstractProcessor implements ClassloaderIsolationKeyProvider {
     private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
 
     private static final String DENY_LFS_ACCESS = "NIFI_HDFS_DENY_LOCAL_FILE_SYSTEM_ACCESS";
@@ -86,6 +85,12 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     private static final Pattern LOCAL_FILE_SYSTEM_URI = Pattern.compile("^file:.*");
 
+    private static final String NORMALIZE_ERROR_WITH_PROPERTY = "The filesystem component of the URI configured in the '{}' property ({}) does not match " +
+            "the filesystem URI from the Hadoop configuration file ({}) and will be ignored.";
+
+    private static final String NORMALIZE_ERROR_WITHOUT_PROPERTY = "The filesystem component of the URI configured ({}) does not match the filesystem URI from " +
+            "the Hadoop configuration file ({}) and will be ignored.";
+
     // properties
     public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
             .name("Hadoop Configuration Resources")
@@ -93,7 +98,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                     + "will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration. "
                     + "To use swebhdfs, see 'Additional Details' section of PutHDFS's documentation.")
             .required(false)
-            .addValidator(HadoopValidators.ONE_OR_MORE_FILE_EXISTS_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -131,11 +136,11 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             .description("A comma-separated list of paths to files and/or directories that will be added to the classpath and used for loading native libraries. " +
                     "When specifying a directory, all files with in the directory will be added to the classpath, but further sub-directories will not be included.")
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
             .dynamicallyModifiesClasspath(true)
             .build();
 
-    static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
             .name("kerberos-credentials-service")
             .displayName("Kerberos Credentials Service")
             .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
@@ -143,7 +148,18 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             .required(false)
             .build();
 
+    static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
+            .name("kerberos-user-service")
+            .displayName("Kerberos User Service")
+            .description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos")
+            .identifiesControllerService(KerberosUserService.class)
+            .required(false)
+            .build();
+
+
     public static final String ABSOLUTE_HDFS_PATH_ATTRIBUTE = "absolute.hdfs.path";
+
+    protected static final String TARGET_HDFS_DIR_CREATED_ATTRIBUTE = "target.dir.created";
 
     private static final Object RESOURCES_LOCK = new Object();
     private static final HdfsResources EMPTY_HDFS_RESOURCES = new HdfsResources(null, null, null, null);
@@ -169,6 +185,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(HADOOP_CONFIGURATION_RESOURCES);
         props.add(KERBEROS_CREDENTIALS_SERVICE);
+        props.add(KERBEROS_USER_SERVICE);
         props.add(kerberosProperties.getKerberosPrincipal());
         props.add(kerberosProperties.getKerberosKeytab());
         props.add(kerberosProperties.getKerberosPassword());
@@ -187,12 +204,36 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     }
 
     @Override
+    public String getClassloaderIsolationKey(final PropertyContext context) {
+        final String explicitKerberosPrincipal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
+        if (explicitKerberosPrincipal != null) {
+            return explicitKerberosPrincipal;
+        }
+
+        final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        if (credentialsService != null) {
+            final String credentialsServicePrincipal = credentialsService.getPrincipal();
+            if (credentialsServicePrincipal != null) {
+                return credentialsServicePrincipal;
+            }
+        }
+
+        final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
+        if (kerberosUserService != null) {
+            final KerberosUser kerberosUser = kerberosUserService.createKerberosUser();
+            return kerberosUser.getPrincipal();
+        }
+
+        return null;
+    }
+
+    @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final String configResources = validationContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
         final String explicitPrincipal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
         final String explicitKeytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
         final String explicitPassword = validationContext.getProperty(kerberosProperties.getKerberosPassword()).getValue();
         final KerberosCredentialsService credentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        final KerberosUserService kerberosUserService = validationContext.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
 
         final String resolvedPrincipal;
         final String resolvedKeytab;
@@ -205,36 +246,25 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         }
 
         final List<ValidationResult> results = new ArrayList<>();
+        final List<String> locations = getConfigLocations(validationContext);
 
-        if (StringUtils.isBlank(configResources)) {
+        if (locations.isEmpty()) {
             return results;
         }
 
         try {
-            ValidationResources resources = validationResourceHolder.get();
-
-            // if no resources in the holder, or if the holder has different resources loaded,
-            // then load the Configuration and set the new resources in the holder
-            if (resources == null || !configResources.equals(resources.getConfigResources())) {
-                getLogger().debug("Reloading validation resources");
-                final Configuration config = new ExtendedConfiguration(getLogger());
-                config.setClassLoader(Thread.currentThread().getContextClassLoader());
-                resources = new ValidationResources(configResources, getConfigurationFromResources(config, configResources));
-                validationResourceHolder.set(resources);
+            final Configuration conf = getHadoopConfigurationForValidation(locations);
+            if (kerberosUserService == null) {
+                results.addAll(KerberosProperties.validatePrincipalWithKeytabOrPassword(
+                        this.getClass().getSimpleName(), conf, resolvedPrincipal, resolvedKeytab, explicitPassword, getLogger()));
+            } else {
+                final boolean securityEnabled = SecurityUtil.isSecurityEnabled(conf);
+                if (!securityEnabled) {
+                    getLogger().warn("Hadoop Configuration does not have security enabled, KerberosUserService will be ignored");
+                }
             }
 
-            final Configuration conf = resources.getConfiguration();
-            results.addAll(KerberosProperties.validatePrincipalWithKeytabOrPassword(
-                this.getClass().getSimpleName(), conf, resolvedPrincipal, resolvedKeytab, explicitPassword, getLogger()));
-
-            final URI fileSystemUri = FileSystem.getDefaultUri(conf);
-            if (isFileSystemAccessDenied(fileSystemUri)) {
-                results.add(new ValidationResult.Builder()
-                        .valid(false)
-                        .subject("Hadoop File System")
-                        .explanation(DENY_LFS_EXPLANATION)
-                        .build());
-            }
+            results.addAll(validateFileSystem(conf));
         } catch (final IOException e) {
             results.add(new ValidationResult.Builder()
                     .valid(false)
@@ -251,6 +281,22 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                 .build());
         }
 
+        if (kerberosUserService != null && (explicitPrincipal != null || explicitKeytab != null || explicitPassword != null)) {
+            results.add(new ValidationResult.Builder()
+                    .subject("Kerberos User")
+                    .valid(false)
+                    .explanation("Cannot specify a Kerberos User Service while also specifying a Kerberos Principal, Kerberos Keytab, or Kerberos Password")
+                    .build());
+        }
+
+        if (kerberosUserService != null && credentialsService != null) {
+            results.add(new ValidationResult.Builder()
+                    .subject("Kerberos User")
+                    .valid(false)
+                    .explanation("Cannot specify a Kerberos User Service while also specifying a Kerberos Credentials Service")
+                    .build());
+        }
+
         if (!isAllowExplicitKeytab() && explicitKeytab != null) {
             results.add(new ValidationResult.Builder()
                 .subject("Kerberos Credentials")
@@ -263,6 +309,36 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         return results;
     }
 
+    protected Collection<ValidationResult> validateFileSystem(final Configuration configuration) {
+        final List<ValidationResult> results = new ArrayList<>();
+
+        if (isFileSystemAccessDenied(FileSystem.getDefaultUri(configuration))) {
+            results.add(new ValidationResult.Builder()
+                    .valid(false)
+                    .subject("Hadoop File System")
+                    .explanation(DENY_LFS_EXPLANATION)
+                    .build());
+        }
+
+        return results;
+    }
+
+    protected Configuration getHadoopConfigurationForValidation(final List<String> locations) throws IOException {
+        ValidationResources resources = validationResourceHolder.get();
+
+        // if no resources in the holder, or if the holder has different resources loaded,
+        // then load the Configuration and set the new resources in the holder
+        if (resources == null || !locations.equals(resources.getConfigLocations())) {
+            getLogger().debug("Reloading validation resources");
+            final Configuration config = new ExtendedConfiguration(getLogger());
+            config.setClassLoader(Thread.currentThread().getContextClassLoader());
+            resources = new ValidationResources(locations, getConfigurationFromResources(config, locations));
+            validationResourceHolder.set(resources);
+        }
+
+        return resources.getConfiguration();
+    }
+
     /**
      * If your subclass also has an @OnScheduled annotated method and you need hdfsResources in that method, then be sure to call super.abstractOnScheduled(context)
      */
@@ -273,15 +349,20 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             // properties this processor sets. TODO: re-work ListHDFS to utilize Kerberos
             HdfsResources resources = hdfsResources.get();
             if (resources.getConfiguration() == null) {
-                final String configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
-                resources = resetHDFSResources(configResources, context);
+                resources = resetHDFSResources(getConfigLocations(context), context);
                 hdfsResources.set(resources);
             }
         } catch (Exception ex) {
-            getLogger().error("HDFS Configuration error - {}", new Object[] { ex });
+            getLogger().error("HDFS Configuration error - {}", new Object[]{ex});
             hdfsResources.set(EMPTY_HDFS_RESOURCES);
             throw ex;
         }
+    }
+
+    protected List<String> getConfigLocations(PropertyContext context) {
+            final ResourceReferences configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().asResources();
+            final List<String> locations = configResources.asLocations();
+            return locations;
     }
 
     @OnStopped
@@ -304,19 +385,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                     }
                 }
             }
-
-            // Clean-up the static reference to the Configuration instance
-            UserGroupInformation.setConfiguration(new Configuration());
-
-            // Clean-up the reference to the InstanceClassLoader that was put into Configuration
-            final Configuration configuration = resources.getConfiguration();
-            if (configuration != null) {
-                configuration.setClassLoader(null);
-            }
-
-            // Need to remove the Provider instance from the JVM's Providers class so that InstanceClassLoader can be GC'd eventually
-            final SaslPlainServer.SecurityProvider saslProvider = new SaslPlainServer.SecurityProvider();
-            Security.removeProvider(saslProvider.getName());
         }
 
         // Clear out the reference to the resources
@@ -328,14 +396,14 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         statsField.setAccessible(true);
 
         final Object statsObj = statsField.get(fileSystem);
-        if (statsObj != null && statsObj instanceof FileSystem.Statistics) {
+        if (statsObj instanceof FileSystem.Statistics) {
             final FileSystem.Statistics statistics = (FileSystem.Statistics) statsObj;
 
             final Field statsThreadField = statistics.getClass().getDeclaredField("STATS_DATA_CLEANER");
             statsThreadField.setAccessible(true);
 
             final Object statsThreadObj = statsThreadField.get(statistics);
-            if (statsThreadObj != null && statsThreadObj instanceof Thread) {
+            if (statsThreadObj instanceof Thread) {
                 final Thread statsThread = (Thread) statsThreadObj;
                 try {
                     statsThread.interrupt();
@@ -346,17 +414,14 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         }
     }
 
-    private static Configuration getConfigurationFromResources(final Configuration config, String configResources) throws IOException {
-        boolean foundResources = false;
-        if (null != configResources) {
-            String[] resources = configResources.split(",");
-            for (String resource : resources) {
-                config.addResource(new Path(resource.trim()));
-                foundResources = true;
-            }
-        }
+    private static Configuration getConfigurationFromResources(final Configuration config, final List<String> locations) throws IOException {
+        boolean foundResources = !locations.isEmpty();
 
-        if (!foundResources) {
+        if (foundResources) {
+            for (String resource : locations) {
+                config.addResource(new Path(resource.trim()));
+            }
+        } else {
             // check that at least 1 non-default resource is available on the classpath
             String configStr = config.toString();
             for (String resource : configStr.substring(configStr.indexOf(":") + 1).split(",")) {
@@ -376,11 +441,11 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     /*
      * Reset Hadoop Configuration and FileSystem based on the supplied configuration resources.
      */
-    HdfsResources resetHDFSResources(String configResources, ProcessContext context) throws IOException {
+    HdfsResources resetHDFSResources(final List<String> resourceLocations, final ProcessContext context) throws IOException {
         Configuration config = new ExtendedConfiguration(getLogger());
         config.setClassLoader(Thread.currentThread().getContextClassLoader());
 
-        getConfigurationFromResources(config, configResources);
+        getConfigurationFromResources(config, resourceLocations);
 
         // give sub-classes a chance to process configuration
         preProcessConfiguration(config, context);
@@ -400,25 +465,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         KerberosUser kerberosUser;
         synchronized (RESOURCES_LOCK) {
             if (SecurityUtil.isSecurityEnabled(config)) {
-                String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
-                String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
-                String password = context.getProperty(kerberosProperties.getKerberosPassword()).getValue();
-
-                // If the Kerberos Credentials Service is specified, we need to use its configuration, not the explicit properties for principal/keytab.
-                // The customValidate method ensures that only one can be set, so we know that the principal & keytab above are null.
-                final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
-                if (credentialsService != null) {
-                    principal = credentialsService.getPrincipal();
-                    keyTab = credentialsService.getKeytab();
-                }
-
-                if (keyTab != null) {
-                    kerberosUser = new KerberosKeytabUser(principal, keyTab);
-                } else if (password != null) {
-                    kerberosUser = new KerberosPasswordUser(principal, password);
-                } else {
-                    throw new IOException("Unable to authenticate with Kerberos, no keytab or password was provided");
-                }
+                kerberosUser = getKerberosUser(context);
                 ugi = SecurityUtil.getUgiForKerberosUser(config, kerberosUser);
             } else {
                 config.set("ipc.client.fallback-to-simple-auth-allowed", "true");
@@ -435,6 +482,36 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                 new Object[]{workingDir, fs.getDefaultBlockSize(workingDir), fs.getDefaultReplication(workingDir), config.toString()});
 
         return new HdfsResources(config, fs, ugi, kerberosUser);
+    }
+
+    private KerberosUser getKerberosUser(final ProcessContext context) {
+        // Check Kerberos User Service first, if present then get the KerberosUser from the service
+        // The customValidate method ensures that KerberosUserService can't be set at the same time as the credentials service or explicit properties
+        final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
+        if (kerberosUserService != null) {
+            return kerberosUserService.createKerberosUser();
+        }
+
+        // Kerberos User Service wasn't set, so create KerberosUser based on credentials service or explicit properties...
+        String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
+        String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
+        String password = context.getProperty(kerberosProperties.getKerberosPassword()).getValue();
+
+        // If the Kerberos Credentials Service is specified, we need to use its configuration, not the explicit properties for principal/keytab.
+        // The customValidate method ensures that only one can be set, so we know that the principal & keytab above are null.
+        final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        if (credentialsService != null) {
+            principal = credentialsService.getPrincipal();
+            keyTab = credentialsService.getKeytab();
+        }
+
+        if (keyTab != null) {
+            return new KerberosKeytabUser(principal, keyTab);
+        } else if (password != null) {
+            return new KerberosPasswordUser(principal, password);
+        } else {
+            throw new IllegalStateException("Unable to authenticate with Kerberos, no keytab or password was provided");
+        }
     }
 
     /**
@@ -527,7 +604,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     public static String getPathDifference(final Path root, final Path child) {
         final int depthDiff = child.depth() - root.depth();
         if (depthDiff <= 1) {
-            return "".intern();
+            return "";
         }
         String lastRoot = root.getName();
         Path childsParent = child.getParent();
@@ -554,19 +631,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     protected UserGroupInformation getUserGroupInformation() {
         getLogger().trace("getting UGI instance");
-        if (hdfsResources.get().getKerberosUser() != null) {
-            // if there's a KerberosUser associated with this UGI, check the TGT and relogin if it is close to expiring
-            KerberosUser kerberosUser = hdfsResources.get().getKerberosUser();
-            getLogger().debug("kerberosUser is " + kerberosUser);
-            try {
-                getLogger().debug("checking TGT on kerberosUser " + kerberosUser);
-                kerberosUser.checkTGTAndRelogin();
-            } catch (LoginException e) {
-                throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
-                }
-        } else {
-            getLogger().debug("kerberosUser was null, will not refresh TGT with KerberosUser");
-        }
+        // if there is a KerberosUser associated with UGI, call checkTGTAndRelogin to ensure UGI's underlying Subject has a valid ticket
+        SecurityUtil.checkTGTAndRelogin(getLogger(), hdfsResources.get().getKerberosUser());
         return hdfsResources.get().getUserGroupInformation();
     }
 
@@ -581,7 +647,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         return Boolean.parseBoolean(System.getenv(DENY_LFS_ACCESS));
     }
 
-    private boolean isFileSystemAccessDenied(final URI fileSystemUri) {
+    protected boolean isFileSystemAccessDenied(final URI fileSystemUri) {
         boolean accessDenied;
 
         if (isLocalFileSystemAccessDenied()) {
@@ -593,47 +659,17 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         return accessDenied;
     }
 
-    static protected class HdfsResources {
-        private final Configuration configuration;
-        private final FileSystem fileSystem;
-        private final UserGroupInformation userGroupInformation;
-        private final KerberosUser kerberosUser;
-
-        public HdfsResources(Configuration configuration, FileSystem fileSystem, UserGroupInformation userGroupInformation, KerberosUser kerberosUser) {
-            this.configuration = configuration;
-            this.fileSystem = fileSystem;
-            this.userGroupInformation = userGroupInformation;
-            this.kerberosUser = kerberosUser;
-        }
-
-        public Configuration getConfiguration() {
-            return configuration;
-        }
-
-        public FileSystem getFileSystem() {
-            return fileSystem;
-        }
-
-        public UserGroupInformation getUserGroupInformation() {
-            return userGroupInformation;
-        }
-
-        public KerberosUser getKerberosUser() {
-            return kerberosUser;
-        }
-    }
-
     static protected class ValidationResources {
-        private final String configResources;
+        private final List<String> configLocations;
         private final Configuration configuration;
 
-        public ValidationResources(String configResources, Configuration configuration) {
-            this.configResources = configResources;
+        public ValidationResources(final List<String> configLocations, final Configuration configuration) {
+            this.configLocations = configLocations;
             this.configuration = configuration;
         }
 
-        public String getConfigResources() {
-            return configResources;
+        public List<String> getConfigLocations() {
+            return configLocations;
         }
 
         public Configuration getConfiguration() {
@@ -641,57 +677,38 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         }
     }
 
-    /**
-     * Extending Hadoop Configuration to prevent it from caching classes that can't be found. Since users may be
-     * adding additional JARs to the classpath we don't want them to have to restart the JVM to be able to load
-     * something that was previously not found, but might now be available.
-     *
-     * Reference the original getClassByNameOrNull from Configuration.
-     */
-    static class ExtendedConfiguration extends Configuration {
-
-        private final ComponentLog logger;
-        private final Map<ClassLoader, Map<String, WeakReference<Class<?>>>> CACHE_CLASSES = new WeakHashMap<>();
-
-        public ExtendedConfiguration(final ComponentLog logger) {
-            this.logger = logger;
-        }
-
-        @Override
-        public Class<?> getClassByNameOrNull(String name) {
-            final ClassLoader classLoader = getClassLoader();
-
-            Map<String, WeakReference<Class<?>>> map;
-            synchronized (CACHE_CLASSES) {
-                map = CACHE_CLASSES.get(classLoader);
-                if (map == null) {
-                    map = Collections.synchronizedMap(new WeakHashMap<>());
-                    CACHE_CLASSES.put(classLoader, map);
-                }
-            }
-
-            Class<?> clazz = null;
-            WeakReference<Class<?>> ref = map.get(name);
-            if (ref != null) {
-                clazz = ref.get();
-            }
-
-            if (clazz == null) {
-                try {
-                    clazz = Class.forName(name, true, classLoader);
-                } catch (ClassNotFoundException e) {
-                    logger.error(e.getMessage(), e);
-                    return null;
-                }
-                // two putters can race here, but they'll put the same class
-                map.put(name, new WeakReference<>(clazz));
-                return clazz;
-            } else {
-                // cache hit
-                return clazz;
-            }
-        }
-
+    protected Path getNormalizedPath(ProcessContext context, PropertyDescriptor property) {
+        return getNormalizedPath(context, property, null);
     }
 
+    protected Path getNormalizedPath(final String rawPath) {
+       return getNormalizedPath(rawPath, Optional.empty());
+    }
+
+    protected Path getNormalizedPath(final ProcessContext context, final PropertyDescriptor property, final FlowFile flowFile) {
+        final String propertyValue = context.getProperty(property).evaluateAttributeExpressions(flowFile).getValue();
+        return getNormalizedPath(propertyValue, Optional.of(property.getDisplayName()));
+    }
+
+    private Path getNormalizedPath(final String rawPath, final Optional<String> propertyName) {
+        final URI uri = new Path(rawPath).toUri();
+        final URI fileSystemUri = getFileSystem().getUri();
+        final String path;
+
+        if (uri.getScheme() != null) {
+            if (!uri.getScheme().equals(fileSystemUri.getScheme()) || (uri.getAuthority() != null && !uri.getAuthority().equals(fileSystemUri.getAuthority()))) {
+                if (propertyName.isPresent()) {
+                    getLogger().warn(NORMALIZE_ERROR_WITH_PROPERTY, propertyName, uri, fileSystemUri);
+                } else {
+                    getLogger().warn(NORMALIZE_ERROR_WITHOUT_PROPERTY, uri, fileSystemUri);
+                }
+            }
+
+            path = uri.getPath();
+        } else {
+            path = rawPath;
+        }
+
+        return new Path(path.replaceAll("/+", "/"));
+    }
 }

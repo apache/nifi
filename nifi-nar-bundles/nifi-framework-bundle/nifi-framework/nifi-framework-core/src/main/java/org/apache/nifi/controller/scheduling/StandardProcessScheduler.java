@@ -40,7 +40,6 @@ import org.apache.nifi.controller.repository.scheduling.ConnectableProcessContex
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.NarCloseable;
@@ -91,13 +90,10 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     private final ScheduledExecutorService componentLifeCycleThreadPool;
     private final ScheduledExecutorService componentMonitoringThreadPool = new FlowEngine(2, "Monitor Processor Lifecycle", true);
 
-    private final PropertyEncryptor encryptor;
-
-    public StandardProcessScheduler(final FlowEngine componentLifecycleThreadPool, final FlowController flowController, final PropertyEncryptor encryptor,
-        final StateManagerProvider stateManagerProvider, final NiFiProperties nifiProperties) {
+    public StandardProcessScheduler(final FlowEngine componentLifecycleThreadPool, final FlowController flowController,
+                                    final StateManagerProvider stateManagerProvider, final NiFiProperties nifiProperties) {
         this.componentLifeCycleThreadPool = componentLifecycleThreadPool;
         this.flowController = flowController;
-        this.encryptor = encryptor;
         this.stateManagerProvider = stateManagerProvider;
 
         administrativeYieldDuration = nifiProperties.getAdministrativeYieldDuration();
@@ -269,16 +265,23 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     @Override
-    public void unschedule(final ReportingTaskNode taskNode) {
+    public Future<Void> unschedule(final ReportingTaskNode taskNode) {
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(taskNode), false);
         if (!lifecycleState.isScheduled()) {
-            return;
+            return CompletableFuture.completedFuture(null);
         }
 
         taskNode.verifyCanStop();
+
+        // Increment the Active Thread Count in order to ensure that we don't consider the Reporting Task completely stopped until we've run
+        // all lifecycle methods, such as @OnStopped
+        lifecycleState.incrementActiveThreadCount(null);
+
         final SchedulingAgent agent = getSchedulingAgent(taskNode.getSchedulingStrategy());
         final ReportingTask reportingTask = taskNode.getReportingTask();
         taskNode.setScheduledState(ScheduledState.STOPPED);
+
+        final CompletableFuture<Void> future = new CompletableFuture<>();
 
         final Runnable unscheduleReportingTaskRunnable = new Runnable() {
             @Override
@@ -302,14 +305,20 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
                     agent.unschedule(taskNode, lifecycleState);
 
-                    if (lifecycleState.getActiveThreadCount() == 0 && lifecycleState.mustCallOnStoppedMethods()) {
+                    // If active thread count == 1, that indicates that all execution threads have completed. We use 1 here instead of 0 because
+                    // when the Reporting Task is unscheduled, we immediately increment the thread count to 1 as an indicator that we've not completely finished.
+                    if (lifecycleState.getActiveThreadCount() == 1 && lifecycleState.mustCallOnStoppedMethods()) {
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, reportingTask, configurationContext);
+                        future.complete(null);
                     }
+
+                    lifecycleState.decrementActiveThreadCount();
                 }
             }
         };
 
         componentLifeCycleThreadPool.execute(unscheduleReportingTaskRunnable);
+        return future;
     }
 
     /**
@@ -324,7 +333,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(procNode), true);
 
         final Supplier<ProcessContext> processContextFactory = () -> new StandardProcessContext(procNode, getControllerServiceProvider(),
-            this.encryptor, getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
+            flowController.getEncryptor(), getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
         final SchedulingAgentCallback callback = new SchedulingAgentCallback() {
@@ -343,7 +352,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
             @Override
             public void onTaskComplete() {
-                lifecycleState.decrementActiveThreadCount(null);
+                lifecycleState.decrementActiveThreadCount();
             }
         };
 
@@ -364,7 +373,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(procNode), true);
 
         final Supplier<ProcessContext> processContextFactory = () -> new StandardProcessContext(procNode, getControllerServiceProvider(),
-            this.encryptor, getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
+            flowController.getEncryptor(), getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
         final SchedulingAgentCallback callback = new SchedulingAgentCallback() {
@@ -383,7 +392,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
             @Override
             public void onTaskComplete() {
-                lifecycleState.decrementActiveThreadCount(null);
+                lifecycleState.decrementActiveThreadCount();
             }
         };
 
@@ -405,7 +414,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         final LifecycleState lifecycleState = getLifecycleState(procNode, false);
 
         StandardProcessContext processContext = new StandardProcessContext(procNode, getControllerServiceProvider(),
-            this.encryptor, getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
+            flowController.getEncryptor(), getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
 
         LOG.info("Stopping {}", procNode);
         return procNode.stop(this, this.componentLifeCycleThreadPool, processContext, getSchedulingAgent(procNode), lifecycleState);
@@ -554,7 +563,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         getSchedulingAgent(connectable).unschedule(connectable, state);
 
         if (!state.isScheduled() && state.getActiveThreadCount() == 0 && state.mustCallOnStoppedMethods()) {
-            final ConnectableProcessContext processContext = new ConnectableProcessContext(connectable, encryptor, getStateManager(connectable.getIdentifier()));
+            final ConnectableProcessContext processContext = new ConnectableProcessContext(connectable, flowController.getEncryptor(), getStateManager(connectable.getIdentifier()));
             try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), connectable.getClass(), connectable.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, connectable, processContext);
             }

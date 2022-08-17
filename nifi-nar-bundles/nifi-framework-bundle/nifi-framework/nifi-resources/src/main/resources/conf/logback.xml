@@ -15,6 +15,8 @@
 -->
 
 <configuration scan="true" scanPeriod="30 seconds">
+    <shutdownHook class="ch.qos.logback.core.hook.DelayingShutdownHook" />
+
     <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
         <resetJUL>true</resetJUL>
     </contextListener>
@@ -57,12 +59,23 @@
         </encoder>
     </appender>
 
+    <appender name="REQUEST_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${org.apache.nifi.bootstrap.config.log.dir}/nifi-request.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${org.apache.nifi.bootstrap.config.log.dir}/nifi-request_%d.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
     <appender name="BOOTSTRAP_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${org.apache.nifi.bootstrap.config.log.dir}/nifi-bootstrap.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!--
-              For daily rollover, use 'user_%d.log'.
-              For hourly rollover, use 'user_%d{yyyy-MM-dd_HH}.log'.
+              For daily rollover, use 'bootstrap_%d.log'.
+              For hourly rollover, use 'bootstrap_%d{yyyy-MM-dd_HH}.log'.
               To GZIP rolled files, replace '.log' with '.log.gz'.
               To ZIP rolled files, replace '.log' with '.log.zip'.
             -->
@@ -97,6 +110,7 @@
     <logger name="org.apache.zookeeper.server.quorum" level="ERROR" />
     <logger name="org.apache.zookeeper.ZooKeeper" level="ERROR" />
     <logger name="org.apache.zookeeper.server.PrepRequestProcessor" level="ERROR" />
+    <logger name="org.apache.nifi.controller.reporting.LogComponentStatuses" level="ERROR" />
 
     <logger name="org.apache.calcite.runtime.CalciteException" level="OFF" />
 
@@ -114,6 +128,7 @@
 
     <!-- Suppress non-error messages due to excessive logging by class or library -->
     <logger name="org.springframework" level="ERROR"/>
+    <logger name="org.springframework.security" level="INFO"/>
 
     <!-- Suppress non-error messages due to known warning about redundant path annotation (NIFI-574) -->
     <logger name="org.glassfish.jersey.internal.Errors" level="ERROR"/>
@@ -127,6 +142,12 @@
 
     <!-- Suppress non-error messages from SMBJ which was emitting large amounts of INFO logs by default -->
     <logger name="com.hierynomus.smbj" level="WARN" />
+
+    <!-- Suppress non-error messages from AWS KCL which was emitting large amounts of INFO logs by default -->
+    <logger name="com.amazonaws.services.kinesis" level="WARN" />
+
+    <!-- Suppress non-error messages from Apache Atlas which was emitting large amounts of INFO logs by default -->
+    <logger name="org.apache.atlas" level="WARN"/>
 
     <!-- These log messages would normally go to the USER_FILE log, but they belong in the APP_FILE -->
     <logger name="org.apache.nifi.web.security.requests" level="INFO" additivity="false">
@@ -150,19 +171,17 @@
     <logger name="org.apache.nifi.cluster.authorization" level="INFO" additivity="false">
         <appender-ref ref="USER_FILE"/>
     </logger>
-    <logger name="org.apache.nifi.web.filter.RequestLogger" level="INFO" additivity="false">
-        <appender-ref ref="USER_FILE"/>
-    </logger>
     <logger name="org.apache.nifi.web.api.AccessResource" level="INFO" additivity="false">
-        <appender-ref ref="USER_FILE"/>
-    </logger>
-    <logger name="org.springframework.security.saml.log" level="WARN" additivity="false">
         <appender-ref ref="USER_FILE"/>
     </logger>
     <logger name="org.opensaml" level="WARN" additivity="false">
         <appender-ref ref="USER_FILE"/>
     </logger>
 
+    <!-- Web Server Request Log -->
+    <logger name="org.apache.nifi.web.server.RequestLog" level="INFO" additivity="false">
+        <appender-ref ref="REQUEST_FILE"/>
+    </logger>
 
     <!--
         Logger for capturing Bootstrap logs and NiFi's standard error and standard out.

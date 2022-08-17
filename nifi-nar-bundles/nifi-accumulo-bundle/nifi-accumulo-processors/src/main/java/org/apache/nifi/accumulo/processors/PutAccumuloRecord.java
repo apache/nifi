@@ -279,6 +279,7 @@ public class PutAccumuloRecord extends BaseAccumuloProcessor {
         BatchWriterConfig writerConfig = new BatchWriterConfig();
         writerConfig.setMaxWriteThreads(context.getProperty(THREADS).asInteger());
         writerConfig.setMaxMemory(maxBytes.longValue());
+        writerConfig.setTimeout(context.getProperty(ACCUMULO_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).longValue(), TimeUnit.SECONDS);
         tableWriter = client.createMultiTableBatchWriter(writerConfig);
         flushOnEveryFlow = context.getProperty(FLUSH_ON_FLOWFILE).asBoolean();
         if (!flushOnEveryFlow){
@@ -355,6 +356,8 @@ public class PutAccumuloRecord extends BaseAccumuloProcessor {
 
         final String tableName = processContext.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
 
+        accumuloConnectorService.renewTgtIfNecessary();
+
         // create the table if EL is present, create table is true and the table does not exist.
         if (processContext.getProperty(TABLE_NAME).isExpressionLanguagePresent() && processContext.getProperty(CREATE_TABLE).asBoolean()) {
             final TableOperations tableOps = this.client.tableOperations();
@@ -416,13 +419,11 @@ public class PutAccumuloRecord extends BaseAccumuloProcessor {
         }
 
 
-        if (!failed) {
-            processSession.transfer(flowFile, REL_SUCCESS);
-        } else {
+        if (failed) {
             processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);
+        } else {
+            processSession.transfer(flowFile, REL_SUCCESS);
         }
-
-        processSession.commit();
     }
 
     /**
@@ -431,7 +432,7 @@ public class PutAccumuloRecord extends BaseAccumuloProcessor {
      * @param columnQualifier column qualifier from which to extract the visibility or to execute an expression against
      * @param flowFile flow file being written
      * @param context process context
-     * @return
+     * @return Visibility
      */
     public static String produceVisibility(String columnFamily, String columnQualifier, FlowFile flowFile, ProcessContext context) {
         if (org.apache.commons.lang3.StringUtils.isNotEmpty(columnFamily)) {

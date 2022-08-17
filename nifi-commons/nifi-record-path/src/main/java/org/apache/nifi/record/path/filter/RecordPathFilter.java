@@ -17,13 +17,15 @@
 
 package org.apache.nifi.record.path.filter;
 
-import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
+
+import java.util.stream.Stream;
 
 public interface RecordPathFilter {
 
     Stream<FieldValue> filter(RecordPathEvaluationContext context, boolean invert);
+
+    Stream<FieldValue> mapToBoolean(RecordPathEvaluationContext context);
 
 }

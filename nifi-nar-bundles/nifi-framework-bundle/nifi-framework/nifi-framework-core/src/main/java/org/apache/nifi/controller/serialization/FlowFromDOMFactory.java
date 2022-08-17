@@ -115,12 +115,14 @@ public class FlowFromDOMFactory {
         dto.setVersionedComponentId(getString(element, "versionedComponentId"));
         dto.setName(getString(element, "name"));
         dto.setComments(getString(element, "comment"));
+        dto.setBulletinLevel(getString(element, "bulletinLevel"));
         dto.setType(getString(element, "class"));
         dto.setBundle(getBundle(DomUtils.getChild(element, "bundle")));
 
         final boolean enabled = getBoolean(element, "enabled");
         dto.setState(enabled ? ControllerServiceState.ENABLED.name() : ControllerServiceState.DISABLED.name());
 
+        dto.setSensitiveDynamicPropertyNames(getSensitivePropertyNames(element));
         dto.setProperties(getProperties(element, encryptor, flowEncodingVersion));
         dto.setAnnotationData(getString(element, "annotationData"));
 
@@ -139,6 +141,7 @@ public class FlowFromDOMFactory {
         dto.setState(getString(element, "scheduledState"));
         dto.setSchedulingStrategy(getString(element, "schedulingStrategy"));
 
+        dto.setSensitiveDynamicPropertyNames(getSensitivePropertyNames(element));
         dto.setProperties(getProperties(element, encryptor, flowEncodingVersion));
         dto.setAnnotationData(getString(element, "annotationData"));
 
@@ -168,6 +171,14 @@ public class FlowFromDOMFactory {
             parameterEntity.setParameter(parameterDto);
             parameterDtos.add(parameterEntity);
         }
+        final List<Element> inheritedParameterContextIds = FlowFromDOMFactory.getChildrenByTagName(element, "inheritedParameterContextId");
+        final List<ParameterContextReferenceEntity> parameterContexts = new ArrayList<>();
+        for (final Element inheritedParameterContextElement : inheritedParameterContextIds) {
+            final ParameterContextReferenceEntity parameterContextReference = new ParameterContextReferenceEntity();
+            parameterContextReference.setId(inheritedParameterContextElement.getTextContent());
+            parameterContexts.add(parameterContextReference);
+        }
+        dto.setInheritedParameterContexts(parameterContexts);
 
         dto.setParameters(parameterDtos);
 
@@ -185,6 +196,9 @@ public class FlowFromDOMFactory {
         dto.setComments(getString(element, "comment"));
         dto.setFlowfileConcurrency(getString(element, "flowfileConcurrency"));
         dto.setFlowfileOutboundPolicy(getString(element, "flowfileOutboundPolicy"));
+        dto.setDefaultFlowFileExpiration(getString(element, "defaultFlowFileExpiration"));
+        dto.setDefaultBackPressureObjectThreshold(getLong(element, "defaultBackPressureObjectThreshold"));
+        dto.setDefaultBackPressureDataSizeThreshold(getString(element, "defaultBackPressureDataSizeThreshold"));
 
         final Map<String, String> variables = new HashMap<>();
         final NodeList variableList = DomUtils.getChildNodesByTagName(element, "variable");
@@ -212,6 +226,7 @@ public class FlowFromDOMFactory {
         final Set<LabelDTO> labels = new HashSet<>();
         final Set<ProcessGroupDTO> processGroups = new HashSet<>();
         final Set<RemoteProcessGroupDTO> remoteProcessGroups = new HashSet<>();
+        final Set<ControllerServiceDTO> controllerServices = new HashSet<>();
 
         NodeList nodeList = DomUtils.getChildNodesByTagName(element, "processor");
         for (int i = 0; i < nodeList.getLength(); i++) {
@@ -253,6 +268,11 @@ public class FlowFromDOMFactory {
             connections.add(getConnection((Element) nodeList.item(i)));
         }
 
+        nodeList = DomUtils.getChildNodesByTagName(element, "controllerService");
+        for (int i=0; i < nodeList.getLength(); i++) {
+            controllerServices.add(getControllerService((Element) nodeList.item(i), encryptor, encodingVersion));
+        }
+
         final FlowSnippetDTO groupContents = new FlowSnippetDTO();
         groupContents.setConnections(connections);
         groupContents.setFunnels(funnels);
@@ -262,6 +282,7 @@ public class FlowFromDOMFactory {
         groupContents.setProcessGroups(processGroups);
         groupContents.setProcessors(processors);
         groupContents.setRemoteProcessGroups(remoteProcessGroups);
+        groupContents.setControllerServices(controllerServices);
 
         dto.setContents(groupContents);
         return dto;
@@ -381,6 +402,7 @@ public class FlowFromDOMFactory {
         final Size size = getSize(DomUtils.getChild(element, "size"));
         dto.setWidth(size.getWidth());
         dto.setHeight(size.getHeight());
+        dto.setzIndex(getLong(element, "zIndex"));
         dto.setStyle(getStyle(DomUtils.getChild(element, "styles")));
 
         return dto;
@@ -481,6 +503,21 @@ public class FlowFromDOMFactory {
         configDto.setYieldDuration(getString(element, "yieldPeriod"));
         configDto.setBulletinLevel(getString(element, "bulletinLevel"));
         configDto.setLossTolerant(getBoolean(element, "lossTolerant"));
+        if (getString(element, "retryCount") != null) {
+            configDto.setRetryCount(getInt(element, "retryCount"));
+        } else {
+            configDto.setRetryCount(10);
+        }
+        configDto.setMaxBackoffPeriod(getString(element, "maxBackoffPeriod"));
+        configDto.setBackoffMechanism(getString(element, "backoffMechanism"));
+
+        final Set<String> retriedRelationships = new HashSet<>();
+        final List<Element> retriedRelationshipList = getChildrenByTagName(element, "retriedRelationship");
+        for (final Element retriedRelationship : retriedRelationshipList) {
+            retriedRelationships.add(retriedRelationship.getTextContent());
+        }
+        configDto.setRetriedRelationships(retriedRelationships);
+
         final ScheduledState scheduledState = getScheduledState(element);
         dto.setState(scheduledState.toString());
 
@@ -505,6 +542,7 @@ public class FlowFromDOMFactory {
             configDto.setRunDurationMillis(TimeUnit.NANOSECONDS.toMillis(runDurationNanos));
         }
 
+        configDto.setSensitiveDynamicPropertyNames(getSensitivePropertyNames(element));
         configDto.setProperties(getProperties(element, encryptor, flowEncodingVersion));
         configDto.setAnnotationData(getString(element, "annotationData"));
 
@@ -516,6 +554,21 @@ public class FlowFromDOMFactory {
         configDto.setAutoTerminatedRelationships(autoTerminatedRelationships);
 
         return dto;
+    }
+
+    private static Set<String> getSensitivePropertyNames(final Element element) {
+        final Set<String> sensitivePropertyNames = new LinkedHashSet<>();
+
+        final List<Element> propertyElements = getChildrenByTagName(element, "property");
+        for (final Element propertyElement : propertyElements) {
+            final String rawPropertyValue = getString(propertyElement, "value");
+            if (isValueSensitive(rawPropertyValue)) {
+                final String name = getString(propertyElement, "name");
+                sensitivePropertyNames.add(name);
+            }
+        }
+
+        return sensitivePropertyNames;
     }
 
     private static LinkedHashMap<String, String> getProperties(final Element element, final PropertyEncryptor encryptor, final FlowEncodingVersion flowEncodingVersion) {
@@ -583,8 +636,10 @@ public class FlowFromDOMFactory {
         return Integer.parseInt(getString(element, childElementName));
     }
 
-    private static long getLong(final Element element, final String childElementName) {
-        return Long.parseLong(getString(element, childElementName));
+    private static Long getLong(final Element element, final String childElementName) {
+        // missing element must be handled gracefully, e.g. flow definition from a previous version without this element
+        String longString = getString(element, childElementName);
+        return longString == null ? null : Long.parseLong(longString);
     }
 
     private static boolean getBoolean(final Element element, final String childElementName) {
@@ -600,7 +655,7 @@ public class FlowFromDOMFactory {
     }
 
     private static String decrypt(final String value, final PropertyEncryptor encryptor) {
-        if (value != null && value.startsWith(FlowSerializer.ENC_PREFIX) && value.endsWith(FlowSerializer.ENC_SUFFIX)) {
+        if (isValueSensitive(value)) {
             try {
                 return encryptor.decrypt(value.substring(FlowSerializer.ENC_PREFIX.length(), value.length() - FlowSerializer.ENC_SUFFIX.length()));
             } catch (EncryptionException e) {
@@ -612,5 +667,9 @@ public class FlowFromDOMFactory {
         } else {
             return value;
         }
+    }
+
+    private static boolean isValueSensitive(final String value) {
+        return value != null && value.startsWith(FlowSerializer.ENC_PREFIX) && value.endsWith(FlowSerializer.ENC_SUFFIX);
     }
 }

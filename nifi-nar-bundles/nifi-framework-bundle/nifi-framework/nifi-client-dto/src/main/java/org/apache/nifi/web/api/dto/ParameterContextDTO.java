@@ -17,10 +17,12 @@
 package org.apache.nifi.web.api.dto;
 
 import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 
 import javax.xml.bind.annotation.XmlType;
+import java.util.List;
 import java.util.Set;
 
 @XmlType(name = "parameterContext")
@@ -30,12 +32,13 @@ public class ParameterContextDTO {
     private String description;
     private Set<ParameterEntity> parameters;
     private Set<ProcessGroupEntity> boundProcessGroups;
+    private List<ParameterContextReferenceEntity> inheritedParameterContexts;
 
     public void setId(String id) {
         this.identifier = id;
     }
 
-    @ApiModelProperty(value = "The ID the Parameter Context.", readOnly = true)
+    @ApiModelProperty(value = "The ID the Parameter Context.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public String getId() {
         return identifier;
     }
@@ -71,7 +74,16 @@ public class ParameterContextDTO {
         this.boundProcessGroups = boundProcessGroups;
     }
 
-    @ApiModelProperty(value = "The Process Groups that are bound to this Parameter Context", readOnly = true)
+    @ApiModelProperty("A list of references of Parameter Contexts from which this one inherits parameters")
+    public List<ParameterContextReferenceEntity> getInheritedParameterContexts() {
+        return inheritedParameterContexts;
+    }
+
+    public void setInheritedParameterContexts(final List<ParameterContextReferenceEntity> inheritedParameterContexts) {
+        this.inheritedParameterContexts = inheritedParameterContexts;
+    }
+
+    @ApiModelProperty(value = "The Process Groups that are bound to this Parameter Context", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Set<ProcessGroupEntity> getBoundProcessGroups() {
         return boundProcessGroups;
     }

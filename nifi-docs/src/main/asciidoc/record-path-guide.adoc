@@ -636,7 +636,8 @@ not the first value that is encountered in the Record itself.
 
 === format
 
-Converts a Date to a String in the given format with the given time zone(optional, default time zone is GMT).
+Converts a Date to a String in the given format with an optional time zone. The function defaults to the system local
+time zone when the second argument is not provided.
 
 The first argument to this function must be a Date or a Number, and the second argument must be a format String that
 follows the Java SimpleDateFormat, and the third argument, optional, must be a format String that
@@ -850,6 +851,96 @@ The following record path expression would decode the String using Base64:
 | RecordPath | Return value
 | `base64Decode(/name)` | John
 |==========================================================
+
+=== escapeJson
+
+JSON Stringifies a Record, Array or simple field (e.g. String), using the UTF-8 character set. For example, given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [{
+    "name": "person",
+    "type": "record",
+    "fields": [
+      { "name": "name", "type": "string" },
+      { "name": "age", "type": "int" }
+    ]
+  }]
+}
+----
+
+and a record such as:
+
+----
+{
+  "person": {
+    "name" : "John",
+    "age" : 30
+  }
+}
+----
+
+The following record path expression would convert the record into an escaped JSON String:
+
+|==========================================================
+| RecordPath | Return value
+| `escapeJson(/person)` | "{\"person\":{\"name\":\"John\",\"age\":30}}"
+| `escapeJson(/person/firstName)` | "\"John\""
+| `escapeJson(/person/age)` | "30"
+|==========================================================
+
+=== unescapeJson
+
+Converts a stringified JSON element to a Record, Array or simple field (e.g. String), using the UTF-8 character set. For example, given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [{
+    "name": "person",
+    "type": "record",
+    "fields": [
+      { "name": "name", "type": "string" },
+      { "name": "age", "type": "int" }
+    ]
+  }]
+}
+----
+
+and a record such as:
+
+----
+{
+  "json_str": "{\"person\":{\"name\":\"John\",\"age\":30}}"
+}
+----
+
+The following record path expression would populate the record with unescaped JSON fields:
+
+|==========================================================
+| RecordPath | Return value
+| `unescapeJson(/json_str)` | {"person": {"name": "John", "age": 30}}"
+|==========================================================
+
+Given a record such as:
+
+----
+{
+  "json_str": "\"John\""
+}
+----
+
+The following record path expression would return:
+
+|==========================================================
+| RecordPath | Return value
+| `unescapeJson(/json_str)` | "John"
+|==========================================================
+
+Note that the target schema must be pre-defined if the unescaped JSON is to be set in a Record's fields - Infer Schema will not currently do this automatically.
 
 === hash
 

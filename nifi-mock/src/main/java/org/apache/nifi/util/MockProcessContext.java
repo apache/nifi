@@ -16,18 +16,6 @@
  */
 package org.apache.nifi.util;
 
-import static java.util.Objects.requireNonNull;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
@@ -46,7 +34,20 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.state.MockStateManager;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 public class MockProcessContext extends MockControllerServiceLookup implements ProcessContext, ControllerServiceLookup, NodeTypeProvider {
 
@@ -144,6 +145,19 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         return getProperty(descriptor.getName());
     }
 
+    public PropertyValue getPropertyWithoutValidatingExpressions(final PropertyDescriptor propertyDescriptor) {
+        final PropertyDescriptor canonicalDescriptor = component.getPropertyDescriptor(propertyDescriptor.getName());
+        if (canonicalDescriptor == null) {
+            return null;
+        }
+
+        final String setPropertyValue = properties.get(canonicalDescriptor);
+        final String propValue = (setPropertyValue == null) ? canonicalDescriptor.getDefaultValue() : setPropertyValue;
+
+        final MockPropertyValue propertyValue = new MockPropertyValue(propValue, this, canonicalDescriptor, true, variableRegistry);
+        return propertyValue;
+    }
+
     @Override
     public PropertyValue getProperty(final String propertyName) {
         final PropertyDescriptor descriptor = component.getPropertyDescriptor(propertyName);
@@ -154,7 +168,8 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         final String setPropertyValue = properties.get(descriptor);
         final String propValue = (setPropertyValue == null) ? descriptor.getDefaultValue() : setPropertyValue;
 
-        final MockPropertyValue propertyValue = new MockPropertyValue(propValue, this, variableRegistry, (enableExpressionValidation && allowExpressionValidation) ? descriptor : null);
+        final boolean alreadyEvaluated = !this.allowExpressionValidation;
+        final MockPropertyValue propertyValue = new MockPropertyValue(propValue, this, descriptor, alreadyEvaluated, variableRegistry);
         return propertyValue;
     }
 
@@ -397,7 +412,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         }
 
         if (failureCount > 0) {
-            Assert.fail("Processor has " + failureCount + " validation failures:\n" + sb.toString());
+            Assertions.fail("Processor has " + failureCount + " validation failures:\n" + sb.toString());
         }
     }
 
@@ -563,5 +578,15 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     @Override
     public boolean isConnectedToCluster() {
         return isConnected;
+    }
+
+    @Override
+    public int getRetryCount() {
+        return 0;
+    }
+
+    @Override
+    public boolean isRelationshipRetried(Relationship relationship) {
+        return false;
     }
 }

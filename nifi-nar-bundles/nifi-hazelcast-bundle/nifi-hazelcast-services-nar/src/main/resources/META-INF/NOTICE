@@ -12,10 +12,5 @@ The following binary components are provided under the Apache Software License v
 
 (ASLv2) Hazelcast
     The following NOTICE information applies:
-      Core Hazelcast Module 4.0.1
-      Copyright (c) 2008-2020, Hazelcast, Inc. All Rights Reserved.
-
-(ASLv2) Guava
-    The following NOTICE information applies:
-      Guava
-      Copyright 2015 The Guava Authors
+      Core Hazelcast Module 4.2
+      Copyright (c) 2008-2021, Hazelcast, Inc. All Rights Reserved.

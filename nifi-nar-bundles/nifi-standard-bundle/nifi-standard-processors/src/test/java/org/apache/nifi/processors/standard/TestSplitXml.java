@@ -16,6 +16,18 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
+
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Paths;
@@ -23,43 +35,32 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
-
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-import org.xml.sax.helpers.DefaultHandler;
-
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_INDEX;
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.SEGMENT_ORIGINAL_FILENAME;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestSplitXml {
 
     SAXParserFactory factory;
     SAXParser saxParser;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         factory = SAXParserFactory.newInstance();
         saxParser = factory.newSAXParser();
     }
 
-    @Test(expected = java.lang.AssertionError.class)
+    @Test
     public void testDepthOf0() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new SplitXml());
         runner.setProperty(SplitXml.SPLIT_DEPTH, "0");
 
         runner.enqueue(Paths.get("src/test/resources/TestXml/xml-bundle-1"));
-        runner.run();
+        assertThrows(AssertionError.class, () -> {
+            runner.run();
+        });
     }
 
     @Test

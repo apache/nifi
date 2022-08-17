@@ -21,6 +21,7 @@ import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -138,8 +139,13 @@ public class CSVRecordLookupService extends AbstractCSVLookupService implements 
             return Optional.empty();
         }
 
-        final String key = (String)coordinates.get(KEY);
-        if (StringUtils.isBlank(key)) {
+        final Object key = coordinates.get(KEY);
+        if (key == null) {
+            return Optional.empty();
+        }
+
+        final String keyString = key.toString();
+        if (StringUtils.isBlank(keyString)) {
             return Optional.empty();
         }
 
@@ -151,12 +157,22 @@ public class CSVRecordLookupService extends AbstractCSVLookupService implements 
             throw new LookupFailureException(e.getMessage(), e);
         }
 
-        return Optional.ofNullable(cache.get(key));
+        return Optional.ofNullable(cache.get(keyString));
     }
 
     @Override
     public Set<String> getRequiredKeys() {
         return REQUIRED_KEYS;
+    }
+
+    @OnDisabled
+    public void onDisabled() {
+        cache = null;
+    }
+
+    // VisibleForTesting
+    boolean isCaching() {
+        return cache != null;
     }
 
 }

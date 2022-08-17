@@ -124,6 +124,31 @@ public class TestRingBufferEventRepository {
             }
 
             @Override
+            public long getCpuNanoseconds() {
+                return 0;
+            }
+
+            @Override
+            public long getContentReadNanoseconds() {
+                return 0;
+            }
+
+            @Override
+            public long getContentWriteNanoseconds() {
+                return 0;
+            }
+
+            @Override
+            public long getSessionCommitNanoseconds() {
+                return 0;
+            }
+
+            @Override
+            public long getGargeCollectionMillis() {
+                return 0;
+            }
+
+            @Override
             public int getInvocations() {
                 return 1;
             }

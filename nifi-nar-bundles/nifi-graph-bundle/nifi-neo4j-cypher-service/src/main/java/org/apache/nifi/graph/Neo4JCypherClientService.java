@@ -17,12 +17,10 @@
 
 package org.apache.nifi.graph;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -30,16 +28,16 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
+import org.neo4j.driver.AuthTokens;
+import org.neo4j.driver.Config;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.GraphDatabase;
+import org.neo4j.driver.Record;
+import org.neo4j.driver.Result;
+import org.neo4j.driver.Session;
 import org.neo4j.driver.internal.InternalNode;
-import org.neo4j.driver.v1.AuthTokens;
-import org.neo4j.driver.v1.Config;
-import org.neo4j.driver.v1.Driver;
-import org.neo4j.driver.v1.GraphDatabase;
-import org.neo4j.driver.v1.Record;
-import org.neo4j.driver.v1.Session;
-import org.neo4j.driver.v1.StatementResult;
-import org.neo4j.driver.v1.summary.ResultSummary;
-import org.neo4j.driver.v1.summary.SummaryCounters;
+import org.neo4j.driver.summary.ResultSummary;
+import org.neo4j.driver.summary.SummaryCounters;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -50,9 +48,11 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Tags({ "graph", "neo4j", "cypher" })
-@CapabilityDescription("Provides a client service for managing connections to a Neo4J database. Configuration information for " +
+@CapabilityDescription("Provides a client service for managing connections to a Neo4J 4.X or newer database. Configuration information for " +
         "the Neo4J driver that corresponds to most of the settings for this service can be found here: " +
-        "https://neo4j.com/docs/driver-manual/current/client-applications/#driver-configuration")
+        "https://neo4j.com/docs/driver-manual/current/client-applications/#driver-configuration. This service was created as a " +
+        "result of the break in driver compatibility between Neo4J 3.X and 4.X and might be renamed in the future if and when " +
+        "Neo4J should break driver compatibility between 4.X and a future release.")
 public class Neo4JCypherClientService extends AbstractControllerService implements GraphClientService {
     public static final PropertyDescriptor CONNECTION_URL = new PropertyDescriptor.Builder()
             .name("neo4j-connection-url")
@@ -80,18 +80,6 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .required(true)
             .sensitive(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .build();
-    public static AllowableValue LOAD_BALANCING_STRATEGY_ROUND_ROBIN = new AllowableValue(Config.LoadBalancingStrategy.ROUND_ROBIN.name(), "Round Robin", "Round Robin Strategy");
-
-    public static AllowableValue LOAD_BALANCING_STRATEGY_LEAST_CONNECTED = new AllowableValue(Config.LoadBalancingStrategy.LEAST_CONNECTED.name(), "Least Connected", "Least Connected Strategy");
-
-    protected static final PropertyDescriptor LOAD_BALANCING_STRATEGY = new PropertyDescriptor.Builder()
-            .name("neo4j-load-balancing-strategy")
-            .displayName("Load Balancing Strategy")
-            .description("Load Balancing Strategy (Round Robin or Least Connected)")
-            .required(false)
-            .defaultValue(LOAD_BALANCING_STRATEGY_ROUND_ROBIN.getValue())
-            .allowableValues(LOAD_BALANCING_STRATEGY_ROUND_ROBIN, LOAD_BALANCING_STRATEGY_LEAST_CONNECTED)
             .build();
 
     public static final PropertyDescriptor CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
@@ -153,7 +141,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .name("neo4j-driver-tls-encryption-enabled")
             .displayName("Neo4J Driver TLS Encryption")
             .description("Is the driver using TLS encryption ?")
-            .defaultValue("true")
+            .defaultValue("false")
             .required(true)
             .allowableValues("true","false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -179,7 +167,6 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
         _temp.add(CONNECTION_URL);
         _temp.add(USERNAME);
         _temp.add(PASSWORD);
-        _temp.add(LOAD_BALANCING_STRATEGY);
         _temp.add(CONNECTION_TIMEOUT);
         _temp.add(MAX_CONNECTION_POOL_SIZE);
         _temp.add(MAX_CONNECTION_ACQUISITION_TIMEOUT);
@@ -201,12 +188,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
         username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
         password = context.getProperty(PASSWORD).getValue();
 
-        Config.ConfigBuilder configBuilder = Config.build();
-        String loadBalancingStrategyValue = context.getProperty(LOAD_BALANCING_STRATEGY).getValue();
-        if ( ! StringUtils.isBlank(loadBalancingStrategyValue) ) {
-            configBuilder = configBuilder.withLoadBalancingStrategy(
-                    Config.LoadBalancingStrategy.valueOf(loadBalancingStrategyValue));
-        }
+        Config.ConfigBuilder configBuilder = Config.builder();
 
         configBuilder.withMaxConnectionPoolSize(context.getProperty(MAX_CONNECTION_POOL_SIZE).evaluateAttributeExpressions().asInteger());
 
@@ -235,7 +217,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
         }
 
         return GraphDatabase.driver( connectionUrl, AuthTokens.basic( username, password),
-                configBuilder.toConfig());
+                configBuilder.build());
     }
 
     /**
@@ -282,7 +264,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
     @Override
     public Map<String, String> executeQuery(String query, Map<String, Object> parameters, GraphQueryResultCallback handler) {
         try (Session session = neo4JDriver.session()) {
-            StatementResult result = session.run(query, parameters);
+            Result result = session.run(query, parameters);
             long count = 0;
             while (result.hasNext()) {
                 Record record = result.next();
@@ -291,7 +273,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
                 count++;
             }
 
-            ResultSummary summary = result.summary();
+            ResultSummary summary = result.consume();
             SummaryCounters counters = summary.counters();
 
             Map<String,String> resultAttributes = new HashMap<>();
@@ -305,13 +287,12 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
 
             return resultAttributes;
         } catch (Exception ex) {
-            getLogger().error("", ex);
-            throw new ProcessException(ex);
+            throw new ProcessException("Query execution failed", ex);
         }
     }
 
     @Override
     public String getTransitUrl() {
-        return null;
+        return connectionUrl;
     }
 }

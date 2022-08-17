@@ -275,7 +275,7 @@ public class QueryWhois extends AbstractEnrichProcessor {
                     }
                 } else {
                     // Otherwise call the multiline parser and get the row map;
-                    final Map<String, Map<String, String>> rowMap = parseBatchResponse(result, queryParser, queryRegex, keyLookup, "whois").rowMap();
+                    final Map<String, Map<String, String>> rowMap = parseBatchResponse(result, queryParser, queryRegex, keyLookup, "whois");
 
                     // Identify the flowfile Lookupvalue and search against the rowMap
                     String ffLookupValue = context.getProperty(QUERY_INPUT).evaluateAttributeExpressions(flowFile).getValue();

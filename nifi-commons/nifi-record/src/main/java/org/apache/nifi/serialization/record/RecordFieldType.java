@@ -96,6 +96,11 @@ public enum RecordFieldType {
     TIME("time", "HH:mm:ss"),
 
     /**
+     * A UUID data type. Fields of this type us a {@code java.util.UUID} value
+     */
+    UUID("uuid"),
+
+    /**
      * A char field type. Fields of this type use a {@code char} value.
      */
     CHAR("char"),

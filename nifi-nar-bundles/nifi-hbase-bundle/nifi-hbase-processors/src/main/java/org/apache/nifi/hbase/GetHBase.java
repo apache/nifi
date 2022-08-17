@@ -152,7 +152,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
             .description("All FlowFiles are routed to this relationship")
             .build();
 
-    private volatile ScanResult lastResult = null;
+    private final AtomicReference<ScanResult> lastResult = new AtomicReference<>();
     private volatile List<Column> columns = new ArrayList<>();
     private volatile boolean justElectedPrimaryNode = false;
     private volatile String previousTable = null;
@@ -197,7 +197,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         if (descriptor.equals(TABLE_NAME)) {
-            lastResult = null;
+            lastResult.set(null);
         }
     }
 
@@ -270,9 +270,9 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
             final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions().getValue());
             final RowSerializer serializer = new JsonRowSerializer(charset);
 
-            this.lastResult = getState(session);
+            this.lastResult.set(getState(session));
             final long defaultMinTime = (initialTimeRange.equals(NONE.getValue()) ? 0L : System.currentTimeMillis());
-            final long minTime = (lastResult == null ? defaultMinTime : lastResult.getTimestamp());
+            final long minTime = (lastResult.get() == null ? defaultMinTime : lastResult.get().getTimestamp());
 
             final Map<String, Set<String>> cellsMatchingTimestamp = new HashMap<>();
 
@@ -309,7 +309,8 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
                     boolean allSeen = true;
                     for (final ResultCell cell : resultCells) {
                         if (cell.getTimestamp() == latestCellTimestamp) {
-                            if (lastResult == null || !lastResult.contains(cell)) {
+                            final ScanResult latestResult = lastResult.get();
+                            if (latestResult == null || !latestResult.contains(cell)) {
                                 allSeen = false;
                                 break;
                             }
@@ -370,18 +371,17 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
                 rowsPulledHolder.set(++rowsPulled);
 
                 if (++rowsPulled % getBatchSize() == 0) {
-                    session.commit();
+                    session.commitAsync();
                 }
             });
 
             final ScanResult scanResults = new ScanResult(latestTimestampHolder.get(), cellsMatchingTimestamp);
 
-            if (lastResult == null || scanResults.getTimestamp() > lastResult.getTimestamp()) {
+            final ScanResult latestResult = lastResult.get();
+            if (latestResult == null || scanResults.getTimestamp() > latestResult.getTimestamp()) {
                 session.setState(scanResults.toFlatMap(), Scope.CLUSTER);
-                session.commit();
-
-                lastResult = scanResults;
-            } else if (scanResults.getTimestamp() == lastResult.getTimestamp()) {
+                session.commitAsync(() -> updateScanResultsIfNewer(scanResults));
+            } else if (scanResults.getTimestamp() == latestResult.getTimestamp()) {
                 final Map<String, Set<String>> combinedResults = new HashMap<>(scanResults.getMatchingCells());
 
                 // copy the results of result.getMatchingCells() to combinedResults.
@@ -391,7 +391,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
                 }
 
                 // combined the results from 'lastResult'
-                for (final Map.Entry<String, Set<String>> entry : lastResult.getMatchingCells().entrySet()) {
+                for (final Map.Entry<String, Set<String>> entry : latestResult.getMatchingCells().entrySet()) {
                     final Set<String> existing = combinedResults.get(entry.getKey());
                     if (existing == null) {
                         combinedResults.put(entry.getKey(), new HashSet<>(entry.getValue()));
@@ -402,9 +402,8 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
 
                 final ScanResult scanResult = new ScanResult(scanResults.getTimestamp(), combinedResults);
                 session.setState(scanResult.toFlatMap(), Scope.CLUSTER);
-                session.commit();
 
-                lastResult = scanResult;
+                session.commitAsync(() -> updateScanResultsIfNewer(scanResult));
             }
         } catch (final IOException e) {
             getLogger().error("Failed to receive data from HBase due to {}", e);
@@ -414,6 +413,10 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
             // pulled all of the records, so we want to wait a bit before hitting hbase again anyway.
             context.yield();
         }
+    }
+
+    private void updateScanResultsIfNewer(final ScanResult scanResult) {
+        lastResult.getAndUpdate(current -> (current == null || scanResult.getTimestamp() > current.getTimestamp()) ? scanResult : current);
     }
 
     // present for tests
@@ -466,7 +469,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
         final StringSerDe stringSerDe = new StringSerDe();
         final ObjectSerDe objectSerDe = new ObjectSerDe();
 
-        ScanResult scanResult = lastResult;
+        ScanResult scanResult = lastResult.get();
         // if we have no previous result, or we just became primary, pull from distributed cache
         if (scanResult == null || justElectedPrimaryNode) {
             if (client != null) {

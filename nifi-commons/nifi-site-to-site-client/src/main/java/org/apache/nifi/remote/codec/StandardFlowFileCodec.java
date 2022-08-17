@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.remote.codec;
 
+import org.apache.nifi.remote.StandardVersionNegotiator;
+import org.apache.nifi.remote.VersionNegotiator;
+import org.apache.nifi.remote.exception.ProtocolException;
+import org.apache.nifi.remote.protocol.DataPacket;
+import org.apache.nifi.remote.util.StandardDataPacket;
+import org.apache.nifi.stream.io.StreamUtils;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
@@ -25,13 +32,6 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.nifi.remote.StandardVersionNegotiator;
-import org.apache.nifi.remote.VersionNegotiator;
-import org.apache.nifi.remote.exception.ProtocolException;
-import org.apache.nifi.remote.protocol.DataPacket;
-import org.apache.nifi.remote.util.StandardDataPacket;
-import org.apache.nifi.stream.io.StreamUtils;
 
 public class StandardFlowFileCodec implements FlowFileCodec {
 
@@ -60,7 +60,6 @@ public class StandardFlowFileCodec implements FlowFileCodec {
 
         final InputStream in = dataPacket.getData();
         StreamUtils.copy(in, encodedOut);
-        encodedOut.flush();
     }
 
     @Override

@@ -26,27 +26,30 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bson.types.ObjectId;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FetchGridFSIT extends GridFSITTestBase {
     TestRunner runner;
 
     static final String BUCKET = "get_test_bucket";
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         runner = TestRunners.newTestRunner(FetchGridFS.class);
         super.setup(runner, BUCKET, false);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         super.tearDown();
     }
@@ -56,7 +59,7 @@ public class FetchGridFSIT extends GridFSITTestBase {
         final String fileName = "get_by_name.txt";
         final String content  = "Hello, world";
         ObjectId id = writeTestFile(fileName, content, BUCKET, new HashMap<>());
-        Assert.assertNotNull(id);
+        assertNotNull(id);
 
         String query = String.format("{\"filename\": \"%s\"}", fileName);
         runner.enqueue(query);
@@ -66,7 +69,7 @@ public class FetchGridFSIT extends GridFSITTestBase {
         runner.assertTransferCount(FetchGridFS.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(FetchGridFS.REL_SUCCESS);
         byte[] rawData = runner.getContentAsByteArray(flowFiles.get(0));
-        Assert.assertEquals("Data did not match for the file", new String(rawData), content);
+        assertEquals(new String(rawData), content, "Data did not match for the file");
 
         runner.clearTransferState();
         runner.setProperty(FetchGridFS.QUERY, query);
@@ -78,7 +81,7 @@ public class FetchGridFSIT extends GridFSITTestBase {
         runner.assertTransferCount(FetchGridFS.REL_SUCCESS, 1);
         flowFiles = runner.getFlowFilesForRelationship(FetchGridFS.REL_SUCCESS);
         rawData = runner.getContentAsByteArray(flowFiles.get(0));
-        Assert.assertEquals("Data did not match for the file", new String(rawData), content);
+        assertEquals(new String(rawData), content, "Data did not match for the file");
     }
 
     @Test
@@ -87,7 +90,7 @@ public class FetchGridFSIT extends GridFSITTestBase {
         String content  = "Hello, world take %d";
         for (int index = 0; index < 5; index++) {
             ObjectId id = writeTestFile(String.format(baseName, index), String.format(content, index), BUCKET, new HashMap<>());
-            Assert.assertNotNull(id);
+            assertNotNull(id);
         }
 
         AllowableValue[] values = new AllowableValue[] { QueryHelper.MODE_MANY_COMMITS, QueryHelper.MODE_ONE_COMMIT };
@@ -110,7 +113,7 @@ public class FetchGridFSIT extends GridFSITTestBase {
         final String fileName = "get_by_name.txt";
         final String content  = "Hello, world";
         ObjectId id = writeTestFile(fileName, content, BUCKET, new HashMap<>());
-        Assert.assertNotNull(id);
+        assertNotNull(id);
 
         final String queryAttr = "gridfs.query.used";
         final Map<String, String> attrs = new HashMap<>();
@@ -125,15 +128,15 @@ public class FetchGridFSIT extends GridFSITTestBase {
         runner.assertTransferCount(FetchGridFS.REL_SUCCESS, 1);
         MockFlowFile mff = runner.getFlowFilesForRelationship(FetchGridFS.REL_SUCCESS).get(0);
         String attr = mff.getAttribute(queryAttr);
-        Assert.assertNotNull("Query attribute was null.", attr);
-        Assert.assertTrue("Wrong content.", attr.contains("filename"));
+        assertNotNull("Query attribute was null.", attr);
+        assertTrue(attr.contains("filename"), "Wrong content.");
 
         runner.clearTransferState();
 
         id = writeTestFile(fileName, content, BUCKET, new HashMap<String, Object>(){{
             put("lookupKey", "xyz");
         }});
-        Assert.assertNotNull(id);
+        assertNotNull(id);
 
         String query = "{ \"metadata\": { \"lookupKey\": \"xyz\" }}";
 
@@ -146,8 +149,8 @@ public class FetchGridFSIT extends GridFSITTestBase {
         runner.assertTransferCount(FetchGridFS.REL_SUCCESS, 1);
         mff = runner.getFlowFilesForRelationship(FetchGridFS.REL_SUCCESS).get(0);
         attr = mff.getAttribute(queryAttr);
-        Assert.assertNotNull("Query attribute was null.", attr);
-        Assert.assertTrue("Wrong content.", attr.contains("metadata"));
+        assertNotNull("Query attribute was null.", attr);
+        assertTrue(attr.contains("metadata"), "Wrong content.");
     }
 
     @Test
@@ -176,7 +179,7 @@ public class FetchGridFSIT extends GridFSITTestBase {
         final String fileName = "get_by_name.txt";
         final String content  = "Hello, world";
         ObjectId id = writeTestFile(fileName, content, BUCKET, new HashMap<>());
-        Assert.assertNotNull(id);
+        assertNotNull(id);
 
         runner.run();
         runner.assertTransferCount(FetchGridFS.REL_FAILURE, failure);

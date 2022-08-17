@@ -16,19 +16,16 @@
  */
 package org.apache.nifi.web.dao;
 
+import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterContextLookup;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
-public interface ParameterContextDAO {
-    /**
-     * Determines if the specified parameter context exists.
-     *
-     * @param parameterContextId id
-     * @return true if parameter context exists
-     */
-    boolean hasParameterContext(String parameterContextId);
+public interface ParameterContextDAO extends ParameterContextLookup {
 
     /**
      * Determines whether this parameter context can be created.
@@ -46,12 +43,12 @@ public interface ParameterContextDAO {
     ParameterContext createParameterContext(ParameterContextDTO parameterContextDto);
 
     /**
-     * Gets the specified parameter context.
-     *
-     * @param parameterContextId the id of the parameter context
-     * @return the parameter context
+     * Returns a map from parameter name to intended parameter, given the DTO.
+     * @param parameterContextDto A parameter context DTO containing parameter updates
+     * @param context The existing parameter context
+     * @return The resulting parameter map containing updated parameters (or removals)
      */
-    ParameterContext getParameterContext(String parameterContextId);
+    Map<String, Parameter> getParameters(ParameterContextDTO parameterContextDto, ParameterContext context);
 
     /**
      * Gets all of the parameter contexts.
@@ -67,6 +64,13 @@ public interface ParameterContextDAO {
      * @return The parameter context
      */
     ParameterContext updateParameterContext(ParameterContextDTO parameterContextDto);
+
+    /**
+     * Returns a list of the inherited parameter contexts proposed by the DTO.
+     * @param parameterContextDto The parameter context DTO
+     * @return a list of the inherited parameter contexts proposed by the DTO
+     */
+    List<ParameterContext> getInheritedParameterContexts(ParameterContextDTO parameterContextDto);
 
     /**
      * Determines whether this parameter context can be updated.

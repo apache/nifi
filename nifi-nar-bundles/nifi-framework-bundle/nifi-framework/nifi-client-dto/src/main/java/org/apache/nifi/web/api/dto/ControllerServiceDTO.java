@@ -45,9 +45,11 @@ public class ControllerServiceDTO extends ComponentDTO {
     private Boolean deprecated;
     private Boolean isExtensionMissing;
     private Boolean multipleVersionsAvailable;
+    private Boolean supportsSensitiveDynamicProperties;
 
     private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
+    private Set<String> sensitiveDynamicPropertyNames;
 
     private String customUiUrl;
     private String annotationData;
@@ -56,6 +58,7 @@ public class ControllerServiceDTO extends ComponentDTO {
 
     private Collection<String> validationErrors;
     private String validationStatus;
+    private String bulletinLevel;
 
     /**
      * @return controller service name
@@ -132,6 +135,20 @@ public class ControllerServiceDTO extends ComponentDTO {
     }
 
     /**
+     * @return the level at which this controller service will report bulletins
+     */
+    @ApiModelProperty(
+            value = "The level at which the controller service will report bulletins."
+    )
+    public String getBulletinLevel() {
+        return bulletinLevel;
+    }
+
+    public void setBulletinLevel(String bulletinLevel) {
+        this.bulletinLevel = bulletinLevel;
+    }
+
+    /**
      * @return whether this controller service persists state
      */
     @ApiModelProperty(
@@ -202,6 +219,20 @@ public class ControllerServiceDTO extends ComponentDTO {
     }
 
     /**
+     * @return whether this controller service supports sensitive dynamic properties
+     */
+    @ApiModelProperty(
+            value = "Whether the controller service supports sensitive dynamic properties."
+    )
+    public Boolean getSupportsSensitiveDynamicProperties() {
+        return supportsSensitiveDynamicProperties;
+    }
+
+    public void setSupportsSensitiveDynamicProperties(final Boolean supportsSensitiveDynamicProperties) {
+        this.supportsSensitiveDynamicProperties = supportsSensitiveDynamicProperties;
+    }
+
+    /**
      * @return The state of this controller service. Possible values are ENABLED, ENABLING, DISABLED, DISABLING
      */
     @ApiModelProperty(
@@ -242,6 +273,20 @@ public class ControllerServiceDTO extends ComponentDTO {
 
     public void setDescriptors(Map<String, PropertyDescriptorDTO> descriptors) {
         this.descriptors = descriptors;
+    }
+
+    /**
+     * @return Set of sensitive dynamic property names
+     */
+    @ApiModelProperty(
+            value = "Set of sensitive dynamic property names"
+    )
+    public Set<String> getSensitiveDynamicPropertyNames() {
+        return sensitiveDynamicPropertyNames;
+    }
+
+    public void setSensitiveDynamicPropertyNames(final Set<String> sensitiveDynamicPropertyNames) {
+        this.sensitiveDynamicPropertyNames = sensitiveDynamicPropertyNames;
     }
 
     /**
@@ -303,7 +348,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     }
 
     @ApiModelProperty(value = "Indicates whether the ControllerService is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the ControllerService is valid)",
-        readOnly = true,
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY,
         allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
     public String getValidationStatus() {
         return validationStatus;

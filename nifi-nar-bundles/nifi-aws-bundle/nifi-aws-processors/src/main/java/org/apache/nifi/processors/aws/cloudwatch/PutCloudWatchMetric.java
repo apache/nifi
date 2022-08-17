@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -56,6 +57,7 @@ import com.amazonaws.services.cloudwatch.model.MetricDatum;
 import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
 import com.amazonaws.services.cloudwatch.model.PutMetricDataResult;
 import com.amazonaws.services.cloudwatch.model.StatisticSet;
+import com.amazonaws.services.cloudwatch.model.StandardUnit;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -69,6 +71,25 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
 
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
+
+    public static final Set<String> units = Arrays.stream(StandardUnit.values())
+            .map(StandardUnit::toString).collect(Collectors.toSet());
+
+    private static final Validator UNIT_VALIDATOR = new Validator() {
+        @Override
+        public ValidationResult validate(String subject, String input, ValidationContext context) {
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                return (new ValidationResult.Builder()).subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+            } else {
+                String reason = null;
+
+                if (!units.contains(input)) {
+                    reason = "not a valid Unit";
+                }
+                return (new ValidationResult.Builder()).subject(subject).input(input).explanation(reason).valid(reason == null).build();
+            }
+        }
+    };
 
     private static final Validator DOUBLE_VALIDATOR = new Validator() {
         @Override
@@ -131,7 +152,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             .description("The unit of the metric. (e.g Seconds, Bytes, Megabytes, Percent, Count,  Kilobytes/Second, Terabits/Second, Count/Second) For details see http://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_MetricDatum.html")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(UNIT_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor MAXIMUM = new PropertyDescriptor.Builder()

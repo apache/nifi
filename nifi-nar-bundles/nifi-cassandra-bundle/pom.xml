@@ -19,11 +19,12 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
 
     <properties>
-        <cassandra.sdk.version>3.3.0</cassandra.sdk.version>
+        <cassandra.sdk.version>3.10.2</cassandra.sdk.version>
+        <cassandra.guava.version>19.0</cassandra.guava.version>
     </properties>
 
     <artifactId>nifi-cassandra-bundle</artifactId>
@@ -44,9 +45,19 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-cassandra-processors</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
+            </dependency>
+            <!-- Override commons-compress -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.21</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${cassandra.guava.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
-
 </project>

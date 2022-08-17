@@ -18,8 +18,8 @@ package org.apache.nifi.processors.gcp.pubsub;
 
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunners;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.ACK_ID_ATTRIBUTE;
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MSG_ATTRIBUTES_COUNT_ATTRIBUTE;
@@ -27,7 +27,7 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MSG_PUBLISH
 
 public class ConsumeGCPubSubIT extends AbstractGCPubSubIT{
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(ConsumeGCPubSub.class);
     }

@@ -16,26 +16,26 @@
  */
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.net.URI;
 import java.util.UUID;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AccessPolicyEndpointMergerTest {
 
     @Test
-    public void testCanHandle() throws Exception {
+    public void testCanHandle() {
         final AccessPolicyEndpointMerger merger = new AccessPolicyEndpointMerger();
         assertTrue(merger.canHandle(URI.create("http://localhost:8080/nifi-api/policies"), "POST"));
         assertFalse(merger.canHandle(URI.create("http://localhost:8080/nifi-api/policies"), "GET"));
         assertFalse(merger.canHandle(URI.create("http://localhost:8080/nifi-api/policies"), "PUT"));
-        assertTrue(merger.canHandle(URI.create("http://localhost:8080/nifi-api/policies/" + UUID.randomUUID().toString()), "PUT"));
+        assertTrue(merger.canHandle(URI.create("http://localhost:8080/nifi-api/policies/" + UUID.randomUUID()), "PUT"));
         assertFalse(merger.canHandle(URI.create("http://localhost:8080/nifi-api/policies/Read/flow"), "GET"));
         assertTrue(merger.canHandle(URI.create("http://localhost:8080/nifi-api/policies/read/flow"), "GET"));
-        assertTrue(merger.canHandle(URI.create("http://localhost:8080/nifi-api/policies/read/processors/" + UUID.randomUUID().toString()), "GET"));
+        assertTrue(merger.canHandle(URI.create("http://localhost:8080/nifi-api/policies/read/processors/" + UUID.randomUUID()), "GET"));
     }
 
 }

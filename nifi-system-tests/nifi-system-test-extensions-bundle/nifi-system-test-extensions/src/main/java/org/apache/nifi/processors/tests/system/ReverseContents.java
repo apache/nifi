@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.tests.system;
 
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -31,6 +32,7 @@ import java.io.OutputStream;
 import java.util.Collections;
 import java.util.Set;
 
+@SupportsBatching
 public class ReverseContents extends AbstractProcessor {
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")

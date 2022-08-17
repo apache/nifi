@@ -58,6 +58,7 @@ import static java.util.Objects.requireNonNull;
 public class StandardFunnel implements Funnel {
 
     public static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
+    private static final String DEFAULT_MAX_BACKOFF_PERIOD = "10 mins";
 
     private final String identifier;
     private final Set<Connection> outgoingConnections;
@@ -358,7 +359,7 @@ public class StandardFunnel implements Funnel {
 
         try {
             onTrigger(context, session);
-            session.commit();
+            session.commitAsync();
         } catch (final ProcessException e) {
             session.rollback();
             throw e;
@@ -380,7 +381,7 @@ public class StandardFunnel implements Funnel {
                 }
 
                 session.transfer(flowFiles, Relationship.ANONYMOUS);
-                session.commit();
+                session.commitAsync();
 
                 // If there are fewer than 1,000 FlowFiles available to transfer, or if we
                 // have hit the configured FlowFile cap, we want to stop. This prevents us from
@@ -441,7 +442,7 @@ public class StandardFunnel implements Funnel {
     }
 
     @Override
-    public void setScheduldingPeriod(final String schedulingPeriod) {
+    public void setSchedulingPeriod(final String schedulingPeriod) {
         final long schedulingNanos = FormatUtils.getTimeDuration(requireNonNull(schedulingPeriod), TimeUnit.NANOSECONDS);
         if (schedulingNanos < 0) {
             throw new IllegalArgumentException("Scheduling Period must be positive");
@@ -575,6 +576,52 @@ public class StandardFunnel implements Funnel {
     @Override
     public String getComponentType() {
         return "Funnel";
+    }
+
+    @Override
+    public int getRetryCount() {
+        return 0;
+    }
+
+    @Override
+    public void setRetryCount(Integer retryCount) {
+    }
+
+    @Override
+    public Set<String> getRetriedRelationships() {
+        return Collections.EMPTY_SET;
+    }
+
+    @Override
+    public void setRetriedRelationships(Set<String> retriedRelationships) {
+    }
+
+    @Override
+    public boolean isRelationshipRetried(Relationship relationship) {
+        return false;
+    }
+
+    @Override
+    public BackoffMechanism getBackoffMechanism() {
+        return BackoffMechanism.PENALIZE_FLOWFILE;
+    }
+
+    @Override
+    public void setBackoffMechanism(BackoffMechanism backoffMechanism) {
+    }
+
+    @Override
+    public String getMaxBackoffPeriod() {
+        return DEFAULT_MAX_BACKOFF_PERIOD;
+    }
+
+    @Override
+    public void setMaxBackoffPeriod(String maxBackoffPeriod) {
+    }
+
+    @Override
+    public String evaluateParameters(String value) {
+        return value;
     }
 
     @Override

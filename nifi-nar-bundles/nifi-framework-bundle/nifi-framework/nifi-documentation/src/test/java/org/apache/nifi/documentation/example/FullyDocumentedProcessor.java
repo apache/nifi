@@ -89,8 +89,8 @@ public class FullyDocumentedProcessor extends AbstractProcessor {
             .description("Indicates whether or not to pull files from subdirectories")
             .required(true)
             .allowableValues(
-                    new AllowableValue("true", "true", "Should pull from sub directories"),
-                    new AllowableValue("false", "false", "Should not pull from sub directories")
+                    new AllowableValue("true", "Enabled", "Should pull from sub directories"),
+                    new AllowableValue("false", "Disabled", "Should not pull from sub directories")
             )
             .defaultValue("true")
             .build();

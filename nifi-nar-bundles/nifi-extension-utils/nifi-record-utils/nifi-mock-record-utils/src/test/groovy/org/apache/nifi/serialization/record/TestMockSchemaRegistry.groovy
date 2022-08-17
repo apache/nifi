@@ -19,9 +19,11 @@ package org.apache.nifi.serialization.record
 
 import org.apache.avro.Schema
 import org.apache.nifi.avro.AvroTypeUtil
-import org.junit.Assert
-import org.junit.Test
+import org.junit.jupiter.api.Test
+
 import static groovy.json.JsonOutput.*
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNotNull
 
 class TestMockSchemaRegistry {
     @Test
@@ -40,7 +42,7 @@ class TestMockSchemaRegistry {
         def identifier = SchemaIdentifier.builder().name("simple").build()
         def result = registry.retrieveSchemaByName(identifier)
 
-        Assert.assertNotNull("Failed to load schema.", result)
-        Assert.assertEquals(result.fieldNames, recordSchema.fieldNames)
+        assertNotNull(result, "Failed to load schema.")
+        assertEquals(result.fieldNames, recordSchema.fieldNames)
     }
 }

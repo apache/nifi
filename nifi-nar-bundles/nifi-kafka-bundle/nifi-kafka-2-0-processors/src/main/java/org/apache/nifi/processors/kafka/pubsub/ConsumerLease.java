@@ -164,6 +164,10 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         logger.debug("Rebalance Alert: Partitions '{}' assigned for lease '{}' with consumer '{}'", new Object[]{partitions, this, kafkaConsumer});
     }
 
+    public List<TopicPartition> getAssignedPartitions() {
+        return null;
+    }
+
     /**
      * Executes a poll on the underlying Kafka Consumer and creates any new
      * flowfiles necessary or appends to existing ones if in demarcation mode.
@@ -206,6 +210,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             resetInternalState();
             return false;
         }
+
         try {
             /*
              * Committing the nifi session then the offsets means we have an at
@@ -216,11 +221,13 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             if (!bundledFlowFiles.isEmpty()) {
                 getProcessSession().transfer(bundledFlowFiles, REL_SUCCESS);
             }
-            getProcessSession().commit();
 
-            final Map<TopicPartition, OffsetAndMetadata> offsetsMap = uncommittedOffsetsMap;
-            kafkaConsumer.commitSync(offsetsMap);
-            resetInternalState();
+            getProcessSession().commitAsync(() -> {
+                final Map<TopicPartition, OffsetAndMetadata> offsetsMap = uncommittedOffsetsMap;
+                kafkaConsumer.commitSync(offsetsMap);
+                resetInternalState();
+            });
+
             return true;
         } catch (final IOException ioe) {
             poison();

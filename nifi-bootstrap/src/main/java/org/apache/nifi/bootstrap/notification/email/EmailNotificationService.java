@@ -272,20 +272,18 @@ public class EmailNotificationService extends AbstractNotificationService {
      */
     private Session createMailSession(final Properties properties) {
         String authValue = properties.getProperty("mail.smtp.auth");
-        Boolean auth = Boolean.valueOf(authValue);
+        final boolean auth = Boolean.parseBoolean(authValue);
 
         /*
          * Conditionally create a password authenticator if the 'auth' parameter is set.
          */
-        final Session mailSession = auth ? Session.getInstance(properties, new Authenticator() {
+        return auth ? Session.getInstance(properties, new Authenticator() {
             @Override
             public PasswordAuthentication getPasswordAuthentication() {
                 String username = properties.getProperty("mail.smtp.user"), password = properties.getProperty("mail.smtp.password");
                 return new PasswordAuthentication(username, password);
             }
         }) : Session.getInstance(properties); // without auth
-
-        return mailSession;
     }
 
 }

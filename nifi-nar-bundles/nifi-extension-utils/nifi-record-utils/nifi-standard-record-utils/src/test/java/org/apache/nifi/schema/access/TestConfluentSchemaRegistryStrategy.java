@@ -18,7 +18,7 @@ package org.apache.nifi.schema.access;
 
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -26,7 +26,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Collections;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 
@@ -61,21 +62,23 @@ public class TestConfluentSchemaRegistryStrategy extends AbstractSchemaAccessStr
         }
     }
 
-    @Test(expected = SchemaNotFoundException.class)
-    public void testGetSchemaWithInvalidEncoding() throws IOException, SchemaNotFoundException {
+    @Test
+    public void testGetSchemaWithInvalidEncoding() {
         final SchemaAccessStrategy schemaAccessStrategy = new ConfluentSchemaRegistryStrategy(schemaRegistry);
 
         final int schemaId = 123456;
 
-        try (final ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
-             final DataOutputStream out = new DataOutputStream(bytesOut)) {
-            out.write(1); // write an invalid magic byte
-            out.writeInt(schemaId);
-            out.flush();
+        assertThrows(SchemaNotFoundException.class, () -> {
+            try (final ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
+                 final DataOutputStream out = new DataOutputStream(bytesOut)) {
+                out.write(1); // write an invalid magic byte
+                out.writeInt(schemaId);
+                out.flush();
 
-            try (final ByteArrayInputStream in = new ByteArrayInputStream(bytesOut.toByteArray())) {
-                schemaAccessStrategy.getSchema(Collections.emptyMap(), in, recordSchema);
+                try (final ByteArrayInputStream in = new ByteArrayInputStream(bytesOut.toByteArray())) {
+                    schemaAccessStrategy.getSchema(Collections.emptyMap(), in, recordSchema);
+                }
             }
-        }
+        });
     }
 }

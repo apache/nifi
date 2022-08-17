@@ -16,18 +16,13 @@
  */
 package org.apache.nifi.processors.aws.sqs;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
+import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
+import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
+import com.amazonaws.services.sqs.model.Message;
+import com.amazonaws.services.sqs.model.MessageAttributeValue;
+import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
+import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -46,13 +41,17 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.MessageAttributeValue;
-import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
-import com.amazonaws.services.sqs.model.ReceiveMessageResult;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @SupportsBatching
 @SeeAlso({ PutSQS.class, DeleteSQS.class })
@@ -200,28 +199,28 @@ public class GetSQS extends AbstractSQSProcessor {
         if (autoDelete) {
             // If we want to auto-delete messages, we must fist commit the session to ensure that the data
             // is persisted in NiFi's repositories.
-            session.commit();
-
-            final DeleteMessageBatchRequest deleteRequest = new DeleteMessageBatchRequest();
-            deleteRequest.setQueueUrl(queueUrl);
-            final List<DeleteMessageBatchRequestEntry> deleteRequestEntries = new ArrayList<>();
-            for (final Message message : messages) {
-                final DeleteMessageBatchRequestEntry entry = new DeleteMessageBatchRequestEntry();
-                entry.setId(message.getMessageId());
-                entry.setReceiptHandle(message.getReceiptHandle());
-                deleteRequestEntries.add(entry);
-            }
-
-            deleteRequest.setEntries(deleteRequestEntries);
-
-            try {
-                client.deleteMessageBatch(deleteRequest);
-            } catch (final Exception e) {
-                getLogger().error("Received {} messages from Amazon SQS but failed to delete the messages; these messages"
-                        + " may be duplicated. Reason for deletion failure: {}", new Object[]{messages.size(), e});
-            }
+            session.commitAsync(() -> deleteMessages(client, queueUrl, messages));
         }
-
     }
 
+    private void deleteMessages(final AmazonSQSClient client, final String queueUrl, final List<Message> messages) {
+        final DeleteMessageBatchRequest deleteRequest = new DeleteMessageBatchRequest();
+        deleteRequest.setQueueUrl(queueUrl);
+        final List<DeleteMessageBatchRequestEntry> deleteRequestEntries = new ArrayList<>();
+        for (final Message message : messages) {
+            final DeleteMessageBatchRequestEntry entry = new DeleteMessageBatchRequestEntry();
+            entry.setId(message.getMessageId());
+            entry.setReceiptHandle(message.getReceiptHandle());
+            deleteRequestEntries.add(entry);
+        }
+
+        deleteRequest.setEntries(deleteRequestEntries);
+
+        try {
+            client.deleteMessageBatch(deleteRequest);
+        } catch (final Exception e) {
+            getLogger().error("Received {} messages from Amazon SQS but failed to delete the messages; these messages"
+                + " may be duplicated. Reason for deletion failure: {}", new Object[]{messages.size(), e});
+        }
+    }
 }

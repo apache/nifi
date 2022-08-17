@@ -246,7 +246,19 @@ public class KuduLookupService extends AbstractControllerService implements Reco
 
     @Override
     public Optional<Record> lookup(Map<String, Object> coordinates) {
+        Optional<Record> record;
 
+        if (kerberosUser != null) {
+            final KerberosAction<Optional<Record>> kerberosAction = new KerberosAction<>(kerberosUser, () -> getRecord(coordinates), getLogger());
+            record = kerberosAction.execute();
+        } else {
+            record = getRecord(coordinates);
+        }
+
+        return record;
+    }
+
+    private Optional<Record> getRecord(Map<String, Object> coordinates) {
         //Scanner
         KuduScanner.KuduScannerBuilder builder = kuduClient.newScannerBuilder(table);
 

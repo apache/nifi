@@ -66,6 +66,9 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
             label.setSize(new Size(labelDTO.getWidth(), labelDTO.getHeight()));
         }
         label.setStyle(labelDTO.getStyle());
+        if (labelDTO.getzIndex() != null) {
+            label.setZIndex(labelDTO.getzIndex());
+        }
 
         // add the label
         group.addLabel(label);
@@ -100,6 +103,9 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
         }
         if (labelDTO.getWidth() != null && labelDTO.getHeight() != null) {
             label.setSize(new Size(labelDTO.getWidth(), labelDTO.getHeight()));
+        }
+        if (labelDTO.getzIndex() != null) {
+            label.setZIndex(labelDTO.getzIndex());
         }
 
         label.getProcessGroup().onComponentModified();

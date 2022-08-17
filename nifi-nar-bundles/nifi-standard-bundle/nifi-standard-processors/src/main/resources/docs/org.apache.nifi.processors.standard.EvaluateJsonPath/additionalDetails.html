@@ -31,8 +31,10 @@
         <h3>Additional Notes</h3>
         <p>
             It's a common pattern to make JSON from attributes in NiFi. Many of these attributes have periods in their names. For example
-            <em>record.count</em>. To reference them safely, you must use this sort of operation which puts the entire key in brackets:
+            <em>record.count</em>. To reference them safely, you must use this sort of operation which puts the entire key in brackets.
+            This also applies to JSON keys that contain whitespace:
         </p>
         <blockquote>$.["record.count"]</blockquote>
+        <blockquote>$.["record count"]</blockquote>
     </body>
 </html>

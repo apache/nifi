@@ -151,7 +151,6 @@
             api: '../nifi-api',
             controller: '../nifi-api/controller',
             parameterContexts: '../nifi-api/parameter-contexts',
-            downloadToken: '../nifi-api/access/download-token'
         }
     };
 
@@ -212,6 +211,43 @@
                 return nfCanvasUtils.getConnectionSourceComponentId(connection) === d.id;
             }).size() > 0;
     };
+
+    var moveComponentToFront = function (selection, componentManager) {
+        var datum = selection.datum();
+
+        // determine the current max zIndex
+        var maxZIndex = -1;
+        $.each(componentManager['get'](), function (_, otherComponent) {
+            if (datum.id !== otherComponent.id && otherComponent.zIndex > maxZIndex) {
+                maxZIndex = otherComponent.zIndex;
+            }
+        });
+
+        // ensure the edge wasn't already in front
+        if (maxZIndex >= 0) {
+            var zIndex = maxZIndex + 1;
+
+            // build the connection entity
+            var componentEntity = {
+                'revision': nfClient.getRevision(datum),
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+                'component': {
+                    'id': datum.id,
+                    'zIndex': zIndex
+                }
+            };
+
+            return $.ajax({
+                type: 'PUT',
+                url: datum.uri,
+                data: JSON.stringify(componentEntity),
+                dataType: 'json',
+                contentType: 'application/json'
+            }).done(function (response) {
+                componentManager['set'](response);
+            }).fail(nfErrorHandler.handleAjaxError);
+        }
+    }
 
     var nfActions = {
         /**
@@ -652,11 +688,18 @@
                     'id': nfCanvasUtils.getGroupId(),
                     'state': 'RUNNING'
                 };
-
                 updateResource(config.urls.api + '/flow/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()), entity).done(updateProcessGroup);
+
+                var remoteProcessGroupEntity = {
+                    'state': 'TRANSMITTING'
+                };
+                updateResource(config.urls.api + '/remote-process-groups/process-group/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/run-status', remoteProcessGroupEntity)
+                    .done(function (response) {
+                        nfRemoteProcessGroup.set(response.remoteProcessGroups);
+                    });
             } else {
                 var componentsToStart = selection.filter(function (d) {
-                    return nfCanvasUtils.isRunnable(d3.select(this));
+                    return nfCanvasUtils.isRunnable(d3.select(this)) || nfCanvasUtils.canStartTransmitting(d3.select(this));
                 });
 
                 // ensure there are startable components selected
@@ -675,6 +718,12 @@
                                 'id': d.id,
                                 'state': 'RUNNING'
                             }
+                        } else if (nfCanvasUtils.isRemoteProcessGroup(selected)) {
+                            uri = d.uri + '/run-status';
+                            entity = {
+                                'revision': nfClient.getRevision(d),
+                                'state': 'TRANSMITTING'
+                            };
                         } else {
                             uri = d.uri + '/run-status';
                             entity = {
@@ -683,13 +732,21 @@
                             };
                         }
 
-                        startRequests.push(updateResource(uri, entity).done(function (response) {
-                            if (nfCanvasUtils.isProcessGroup(selected)) {
+                        if (nfCanvasUtils.isProcessGroup(selected)) {
+                            var remoteProcessGroupEntity = {
+                                'state': 'TRANSMITTING'
+                            };
+                            var startRemoteProcessGroups = updateResource(config.urls.api + '/remote-process-groups/process-group/' + encodeURIComponent(d.id) + '/run-status', remoteProcessGroupEntity);
+                            startRequests.push(startRemoteProcessGroups.done(function (response) {}));
+
+                            startRequests.push(updateResource(uri, entity).done(function (response) {
                                 nfCanvasUtils.getComponentByType('ProcessGroup').reload(d.id);
-                            } else {
+                            }));
+                        } else {
+                            startRequests.push(updateResource(uri, entity).done(function (response) {
                                 nfCanvasUtils.getComponentByType(d.type).set(response);
-                            }
-                        }));
+                            }));
+                        }
                     });
 
                     // inform Angular app once the updates have completed
@@ -755,11 +812,18 @@
                     'id': nfCanvasUtils.getGroupId(),
                     'state': 'STOPPED'
                 };
-
                 updateResource(config.urls.api + '/flow/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()), entity).done(updateProcessGroup);
+
+                var remoteProcessGroupEntity = {
+                    'state': 'STOPPED'
+                };
+                updateResource(config.urls.api + '/remote-process-groups/process-group/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/run-status', remoteProcessGroupEntity)
+                    .done(function (response) {
+                        nfRemoteProcessGroup.set(response.remoteProcessGroups);
+                    });
             } else {
                 var componentsToStop = selection.filter(function (d) {
-                    return nfCanvasUtils.isStoppable(d3.select(this));
+                    return nfCanvasUtils.isStoppable(d3.select(this)) || nfCanvasUtils.canStopTransmitting(d3.select(this));
                 });
 
                 // ensure there are some component to stop
@@ -786,13 +850,21 @@
                             };
                         }
 
-                        stopRequests.push(updateResource(uri, entity).done(function (response) {
-                            if (nfCanvasUtils.isProcessGroup(selected)) {
+                        if (nfCanvasUtils.isProcessGroup(selected)) {
+                            var remoteProcessGroupEntity = {
+                                'state': 'STOPPED'
+                            };
+                            var stopRemoteProcessGroups = updateResource(config.urls.api + '/remote-process-groups/process-group/' + encodeURIComponent(d.id) + '/run-status', remoteProcessGroupEntity);
+                            stopRequests.push(stopRemoteProcessGroups.done(function (response) {}));
+
+                            stopRequests.push(updateResource(uri, entity).done(function (response) {
                                 nfCanvasUtils.getComponentByType('ProcessGroup').reload(d.id);
-                            } else {
+                            }));
+                        } else {
+                            stopRequests.push(updateResource(uri, entity).done(function (response) {
                                 nfCanvasUtils.getComponentByType(d.type).set(response);
-                            }
-                        }));
+                            }));
+                        }
                     });
 
                     // inform Angular app once the updates have completed
@@ -807,6 +879,56 @@
                          cb();
                     }
                 }
+            }
+        },
+
+        /**
+         * Enable all controller services in the specified ProcessGroup.
+         *
+         * @argument {selection} selection      The selection
+         */
+        enableAllControllerServices: function (selection) {
+            // get selected ProcessGroup id
+            var pg_id = selection.empty() ? nfCanvasUtils.getGroupId() : selection.datum().id;
+            // build URL
+            var url = config.urls.api + '/flow/process-groups/' + encodeURIComponent(pg_id) + '/controller-services';
+            // build the entity
+            var entity = {
+                'id': pg_id,
+                'state': 'ENABLED'
+            };
+
+            if (selection.empty()) {
+                updateResource(url, entity).done(updateProcessGroup);
+            } else {
+                updateResource(url, entity).done(function (response) {
+                    nfCanvasUtils.getComponentByType('ProcessGroup').reload(pg_id);
+                })
+            }
+        },
+
+        /**
+         * Disable all controller services in the specified ProcessGroup.
+         *
+         * @argument {selection} selection      The selection
+         */
+        disableAllControllerServices: function (selection) {
+            // get selected ProcessGroup id
+            var pg_id = selection.empty() ? nfCanvasUtils.getGroupId() : selection.datum().id;
+            // build URL
+            var url = config.urls.api + '/flow/process-groups/' + encodeURIComponent(pg_id) + '/controller-services';
+            // build the entity
+            var entity = {
+                'id': pg_id,
+                'state': 'DISABLED'
+            };
+
+            if (selection.empty()) {
+                updateResource(url, entity).done(updateProcessGroup);
+            } else {
+                updateResource(url, entity).done(function (response) {
+                    nfCanvasUtils.getComponentByType('ProcessGroup').reload(pg_id);
+                })
             }
         },
 
@@ -1597,9 +1719,23 @@
         },
 
         /**
+         * Downloads the current flow, without including the external Controller Services
+         */
+        downloadFlowWithoutExternalServices: function (selection) {
+            this.downloadFlow(selection, false);
+        },
+
+        /**
+         * Downloads the current flow, including the external Controller Services
+         */
+        downloadFlowWithExternalServices: function (selection) {
+            this.downloadFlow(selection, true);
+        },
+
+        /**
          * Downloads the current flow
          */
-        downloadFlow: function (selection) {
+        downloadFlow: function (selection,includeReferencedServices) {
             var processGroupId = null;
 
             if (selection.empty()) {
@@ -1612,26 +1748,11 @@
             }
 
             if (processGroupId !== null) {
-                nfCommon.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
-                    var parameters = {};
+                var parameters = {};
 
-                    // conditionally include the download token
-                    if (!nfCommon.isBlank(downloadToken)) {
-                        parameters['access_token'] = downloadToken;
-                    }
-
-                    // open the url
-                    var uri = '../nifi-api/process-groups/' + encodeURIComponent(processGroupId) + '/download';
-                    if (!$.isEmptyObject(parameters)) {
-                        uri += ('?' + $.param(parameters));
-                    }
-                    window.open(uri);
-                }).fail(function () {
-                    nfDialog.showOkDialog({
-                        headerText: 'Download Flow Definition',
-                        dialogContent: 'Unable to generate access token for downloading content.'
-                    });
-                });
+                // open the url
+                var uri = '../nifi-api/process-groups/' + encodeURIComponent(processGroupId) + '/download?includeReferencedServices=' + includeReferencedServices;
+                window.open(uri);
             }
         },
 
@@ -2182,47 +2303,15 @@
          *
          * @param {selection} selection
          */
-        toFront: function (selection) {
-            if (selection.size() !== 1 || !nfCanvasUtils.isConnection(selection)) {
+         toFront: function (selection) {
+            if (selection.size() !== 1) {
                 return;
             }
 
-            // get the connection data
-            var connection = selection.datum();
-
-            // determine the current max zIndex
-            var maxZIndex = -1;
-            $.each(nfConnection.get(), function (_, otherConnection) {
-                if (connection.id !== otherConnection.id && otherConnection.zIndex > maxZIndex) {
-                    maxZIndex = otherConnection.zIndex;
-                }
-            });
-
-            // ensure the edge wasn't already in front
-            if (maxZIndex >= 0) {
-                // use one higher
-                var zIndex = maxZIndex + 1;
-
-                // build the connection entity
-                var connectionEntity = {
-                    'revision': nfClient.getRevision(connection),
-                    'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
-                    'component': {
-                        'id': connection.id,
-                        'zIndex': zIndex
-                    }
-                };
-
-                // update the edge in question
-                $.ajax({
-                    type: 'PUT',
-                    url: connection.uri,
-                    data: JSON.stringify(connectionEntity),
-                    dataType: 'json',
-                    contentType: 'application/json'
-                }).done(function (response) {
-                    nfConnection.set(response);
-                }).fail(nfErrorHandler.handleAjaxError);
+            if (nfCanvasUtils.isConnection(selection)) {
+                moveComponentToFront(selection, nfConnection);
+            } else if (nfCanvasUtils.isLabel(selection)) {
+                moveComponentToFront(selection, nfLabel);
             }
         }
     };

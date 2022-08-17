@@ -20,8 +20,8 @@ package org.apache.nifi.processors.evtx.parser;
 import com.google.common.base.Charsets;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -31,11 +31,12 @@ import java.util.Date;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class BinaryReaderTest {
     private TestBinaryReaderBuilder testBinaryReaderBuilder;
 
-    @Before
+    @BeforeEach
     public void setup() {
         testBinaryReaderBuilder = new TestBinaryReaderBuilder();
     }
@@ -91,12 +92,12 @@ public class BinaryReaderTest {
         assertEquals(16, binaryReader.getPosition());
     }
 
-    @Test(expected = IOException.class)
+    @Test
     public void testReadStringNotNullTerminated() throws IOException {
         String value = "Hello world";
 
         BinaryReader binaryReader = testBinaryReaderBuilder.put(value.getBytes(Charsets.US_ASCII)).build();
-        binaryReader.readString(value.length());
+        assertThrows(IOException.class, () -> binaryReader.readString(value.length()));
     }
 
     @Test

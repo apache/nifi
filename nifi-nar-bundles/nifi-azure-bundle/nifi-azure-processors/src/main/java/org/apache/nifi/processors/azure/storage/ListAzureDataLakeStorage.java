@@ -41,8 +41,8 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processors.azure.storage.utils.ADLSFileInfo;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
@@ -100,7 +100,7 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
         "This allows the Processor to list only files that have been added or modified after this date the next time that the Processor is run. State is " +
         "stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up " +
         "where the previous node left off, without duplicating the data.")
-public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo> {
+public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFileInfo> {
 
     public static final PropertyDescriptor RECURSE_SUBDIRECTORIES = new PropertyDescriptor.Builder()
             .name("recurse-subdirectories")
@@ -140,7 +140,12 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
             LISTING_STRATEGY,
             TRACKING_STATE_CACHE,
             TRACKING_TIME_WINDOW,
-            INITIAL_LISTING_TARGET));
+            INITIAL_LISTING_TARGET,
+            MIN_AGE,
+            MAX_AGE,
+            MIN_SIZE,
+            MAX_SIZE,
+            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE));
 
     private static final Set<PropertyDescriptor> LISTING_RESET_PROPERTIES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             ADLS_CREDENTIALS_SERVICE,
@@ -160,12 +165,9 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
-        String fileFilter = context.getProperty(FILE_FILTER).evaluateAttributeExpressions().getValue();
-        filePattern = fileFilter != null ? Pattern.compile(fileFilter) : null;
-
-        String pathFilter = context.getProperty(PATH_FILTER).evaluateAttributeExpressions().getValue();
-        pathPattern = pathFilter != null ? Pattern.compile(pathFilter) : null;
+    public void onScheduled(final ProcessContext context) {
+        filePattern = getPattern(context, FILE_FILTER);
+        pathPattern = getPattern(context, PATH_FILTER);
     }
 
     @OnStopped
@@ -175,7 +177,7 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
     }
 
     @Override
-    protected void customValidate(ValidationContext context, Collection<ValidationResult> results) {
+    protected void customValidate(final ValidationContext context, final Collection<ValidationResult> results) {
         if (context.getProperty(PATH_FILTER).isSet() && !context.getProperty(RECURSE_SUBDIRECTORIES).asBoolean()) {
             results.add(new ValidationResult.Builder()
                     .subject(PATH_FILTER.getDisplayName())
@@ -191,7 +193,7 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
     }
 
     @Override
-    protected Scope getStateScope(PropertyContext context) {
+    protected Scope getStateScope(final PropertyContext context) {
         return Scope.CLUSTER;
     }
 
@@ -201,55 +203,34 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
     }
 
     @Override
-    protected boolean isListingResetNecessary(PropertyDescriptor property) {
+    protected boolean isListingResetNecessary(final PropertyDescriptor property) {
         return LISTING_RESET_PROPERTIES.contains(property);
     }
 
     @Override
-    protected String getPath(ProcessContext context) {
-        String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
+    protected String getPath(final ProcessContext context) {
+        final String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
         return directory != null ? directory : ".";
     }
 
     @Override
-    protected List<ADLSFileInfo> performListing(ProcessContext context, Long minTimestamp) throws IOException {
-        try {
-            String fileSystem = evaluateFileSystemProperty(context, null);
-            String baseDirectory = evaluateDirectoryProperty(context, null);
-            boolean recurseSubdirectories = context.getProperty(RECURSE_SUBDIRECTORIES).asBoolean();
-
-            DataLakeServiceClient storageClient = getStorageClient(context, null);
-            DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
-
-            ListPathsOptions options = new ListPathsOptions();
-            options.setPath(baseDirectory);
-            options.setRecursive(recurseSubdirectories);
-
-            Pattern baseDirectoryPattern = Pattern.compile("^" + baseDirectory + "/?");
-
-            List<ADLSFileInfo> listing = fileSystemClient.listPaths(options, null).stream()
-                    .filter(pathItem -> !pathItem.isDirectory())
-                    .map(pathItem -> new ADLSFileInfo.Builder()
-                            .fileSystem(fileSystem)
-                            .filePath(pathItem.getName())
-                            .length(pathItem.getContentLength())
-                            .lastModified(pathItem.getLastModified().toInstant().toEpochMilli())
-                            .etag(pathItem.getETag())
-                            .build())
-                    .filter(fileInfo -> filePattern == null || filePattern.matcher(fileInfo.getFilename()).matches())
-                    .filter(fileInfo -> pathPattern == null || pathPattern.matcher(RegExUtils.removeFirst(fileInfo.getDirectory(), baseDirectoryPattern)).matches())
-                    .collect(Collectors.toList());
-
-            return listing;
-        } catch (Exception e) {
-            getLogger().error("Failed to list directory on Azure Data Lake Storage", e);
-            throw new IOException(ExceptionUtils.getRootCause(e));
-        }
+    protected List<ADLSFileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode) throws IOException {
+        return performListing(context, minTimestamp, listingMode, true);
     }
 
     @Override
-    protected Map<String, String> createAttributes(ADLSFileInfo fileInfo, ProcessContext context) {
-        Map<String, String> attributes = new HashMap<>();
+    protected Integer countUnfilteredListing(final ProcessContext context) throws IOException {
+        return performListing(context, null, ListingMode.CONFIGURATION_VERIFICATION, false).size();
+    }
+
+    @Override
+    protected String getListingContainerName(final ProcessContext context) {
+        return String.format("Azure Data Lake Directory [%s]", getPath(context));
+    }
+
+    @Override
+    protected Map<String, String> createAttributes(final ADLSFileInfo fileInfo, final ProcessContext context) {
+        final Map<String, String> attributes = new HashMap<>();
 
         attributes.put(ATTR_NAME_FILESYSTEM, fileInfo.getFileSystem());
         attributes.put(ATTR_NAME_FILE_PATH, fileInfo.getFilePath());
@@ -260,5 +241,51 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
         attributes.put(ATTR_NAME_ETAG, fileInfo.getEtag());
 
         return attributes;
+    }
+
+    private List<ADLSFileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode,
+                                              final boolean applyFilters) throws IOException {
+        try {
+            final String fileSystem = evaluateFileSystemProperty(context, null);
+            final String baseDirectory = evaluateDirectoryProperty(context, null);
+            final boolean recurseSubdirectories = context.getProperty(RECURSE_SUBDIRECTORIES).asBoolean();
+
+            final Pattern filePattern = listingMode == ListingMode.EXECUTION ? this.filePattern : getPattern(context, FILE_FILTER);
+            final Pattern pathPattern = listingMode == ListingMode.EXECUTION ? this.pathPattern : getPattern(context, PATH_FILTER);
+
+            final DataLakeServiceClient storageClient = getStorageClient(context, null);
+            final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
+
+            final ListPathsOptions options = new ListPathsOptions();
+            options.setPath(baseDirectory);
+            options.setRecursive(recurseSubdirectories);
+
+            final Pattern baseDirectoryPattern = Pattern.compile("^" + baseDirectory + "/?");
+            final long minimumTimestamp = minTimestamp == null ? 0 : minTimestamp;
+
+            final List<ADLSFileInfo> listing = fileSystemClient.listPaths(options, null).stream()
+                    .filter(pathItem -> !pathItem.isDirectory())
+                    .filter(pathItem -> isFileInfoMatchesWithAgeAndSize(context, minimumTimestamp, pathItem.getLastModified().toInstant().toEpochMilli(), pathItem.getContentLength()))
+                    .map(pathItem -> new ADLSFileInfo.Builder()
+                            .fileSystem(fileSystem)
+                            .filePath(pathItem.getName())
+                            .length(pathItem.getContentLength())
+                            .lastModified(pathItem.getLastModified().toInstant().toEpochMilli())
+                            .etag(pathItem.getETag())
+                            .build())
+                    .filter(fileInfo -> applyFilters && (filePattern == null || filePattern.matcher(fileInfo.getFilename()).matches()))
+                    .filter(fileInfo -> applyFilters && (pathPattern == null || pathPattern.matcher(RegExUtils.removeFirst(fileInfo.getDirectory(), baseDirectoryPattern)).matches()))
+                    .collect(Collectors.toList());
+
+            return listing;
+        } catch (final Exception e) {
+            getLogger().error("Failed to list directory on Azure Data Lake Storage", e);
+            throw new IOException(ExceptionUtils.getRootCause(e));
+        }
+    }
+
+    private Pattern getPattern(final ProcessContext context, final PropertyDescriptor filterDescriptor) {
+        String value = context.getProperty(filterDescriptor).evaluateAttributeExpressions().getValue();
+        return value != null ? Pattern.compile(value) : null;
     }
 }

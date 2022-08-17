@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-cassandra-bundle</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-cassandra-processors</artifactId>
@@ -32,8 +32,8 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-processor-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <artifactId>nifi-utils</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -42,6 +42,12 @@
         <dependency>
             <groupId>com.datastax.cassandra</groupId>
             <artifactId>cassandra-driver-core</artifactId>
+            <version>${cassandra.sdk.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.datastax.cassandra</groupId>
+            <artifactId>cassandra-driver-extras</artifactId>
             <version>${cassandra.sdk.version}</version>
         </dependency>
         <dependency>
@@ -52,7 +58,6 @@
         <dependency>
             <groupId>org.apache.avro</groupId>
             <artifactId>avro</artifactId>
-            <version>1.8.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -62,7 +67,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-cassandra-services</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -76,7 +81,7 @@
             <scope>compile</scope>
         </dependency>
         <!-- test scoped in nar-bundles dependency management -->
-	<dependency>
+	    <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
         </dependency>

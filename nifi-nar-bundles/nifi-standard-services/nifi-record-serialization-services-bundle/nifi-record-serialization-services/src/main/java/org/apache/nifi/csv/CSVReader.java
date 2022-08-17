@@ -27,6 +27,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -79,6 +80,19 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
             .required(true)
             .build();
 
+    public static final PropertyDescriptor TRIM_DOUBLE_QUOTE = new PropertyDescriptor.Builder()
+            .name("Trim double quote")
+            .description("Whether or not to trim starting and ending double quotes. For example: with trim string '\"test\"'"
+                    +" would be parsed to 'test', without trim would be parsed to '\"test\"'."
+                    + "If set to 'false' it means full compliance with RFC-4180. Default value is true, with trim.")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .dependsOn(CSVUtils.CSV_FORMAT, CSVUtils.RFC_4180)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .required(true)
+            .build();
+
     private volatile ConfigurationContext context;
 
     private volatile String csvParser;
@@ -111,6 +125,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         properties.add(CSVUtils.TRIM_FIELDS);
         properties.add(CSVUtils.CHARSET);
         properties.add(CSVUtils.ALLOW_DUPLICATE_HEADER_NAMES);
+        properties.add(TRIM_DOUBLE_QUOTE);
         return properties;
     }
 
@@ -154,10 +169,12 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
             format = CSVUtils.createCSVFormat(context, variables);
         }
 
+        final boolean trimDoubleQuote = context.getProperty(TRIM_DOUBLE_QUOTE).asBoolean();
+
         if (APACHE_COMMONS_CSV.getValue().equals(csvParser)) {
-            return new CSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet);
+            return new CSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet, trimDoubleQuote);
         } else if (JACKSON_CSV.getValue().equals(csvParser)) {
-            return new JacksonCSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet);
+            return new JacksonCSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet, trimDoubleQuote);
         } else {
             throw new IOException("Parser not supported");
         }

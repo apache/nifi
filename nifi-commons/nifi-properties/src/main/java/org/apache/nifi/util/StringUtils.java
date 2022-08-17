@@ -77,15 +77,21 @@ public class StringUtils {
         return str.substring(pos + separator.length());
     }
 
-    public static String join(final Collection collection, String delimiter) {
-        if (collection == null || collection.size() == 0) {
+    public static String join(final Collection<?> collection, String delimiter) {
+        if (collection == null || collection.isEmpty()) {
             return EMPTY;
         }
-        final StringBuilder sb = new StringBuilder(collection.size() * 16);
-        for (Object element : collection) {
-            sb.append((String) element);
+
+        if (collection.size() == 1) {
+            return String.valueOf(collection.iterator().next());
+        }
+
+        final StringBuilder sb = new StringBuilder();
+        for (final Object element : collection) {
+            sb.append(element);
             sb.append(delimiter);
         }
+
         return sb.toString().substring(0, sb.lastIndexOf(delimiter));
     }
 

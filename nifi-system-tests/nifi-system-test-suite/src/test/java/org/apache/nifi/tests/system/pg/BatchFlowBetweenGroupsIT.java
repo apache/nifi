@@ -25,7 +25,7 @@ import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -108,7 +108,7 @@ public class BatchFlowBetweenGroupsIT extends NiFiSystemIT {
         getClientUtil().startProcessGroupComponents(processGroupA.getId());
 
         // Start generate processor and wait for data to queue up. Then stop.
-        getNifiClient().getProcessorClient().startProcessor(generate);
+        getClientUtil().startProcessor(generate);
         waitForQueueNotEmpty(generateToInputPortA.getId());
         getNifiClient().getProcessorClient().stopProcessor(generate);
 

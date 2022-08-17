@@ -16,142 +16,128 @@
  */
 package org.apache.nifi.reporting.datadog;
 
-import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.AtomicDouble;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
+import org.apache.nifi.mock.MockComponentLogger;
 import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.datadog.metrics.MetricsService;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Logger;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.when;
 
 public class TestDataDogReportingTask {
 
     private ProcessGroupStatus status;
     private ProcessorStatus procStatus;
-    private ConcurrentHashMap<String, AtomicDouble> metricsMap;
+    private ConcurrentHashMap<String, Double> metricsMap;
     private MetricRegistry metricRegistry;
     private MetricsService metricsService;
-    private String env = "dev";
-    private String prefix = "nifi";
     private ReportingContext context;
     private ReportingInitializationContext initContext;
     private ConfigurationContext configurationContext;
     private volatile JmxJvmMetrics virtualMachineMetrics;
-    private Logger logger;
 
-    @Before
+    @BeforeEach
     public void setup() {
         initProcessGroupStatus();
         initProcessorStatuses();
         initContexts();
     }
 
-    //init all contexts
     private void initContexts() {
-        configurationContext = Mockito.mock(ConfigurationContext.class);
-        context = Mockito.mock(ReportingContext.class);
-        Mockito.when(context.getProperty(DataDogReportingTask.ENVIRONMENT))
-                .thenReturn(new MockPropertyValue(env, null));
-        Mockito.when(context.getProperty(DataDogReportingTask.METRICS_PREFIX))
-                .thenReturn(new MockPropertyValue(prefix, null));
-        Mockito.when(context.getProperty(DataDogReportingTask.API_KEY))
+        configurationContext = mock(ConfigurationContext.class);
+        context = mock(ReportingContext.class);
+        when(context.getProperty(DataDogReportingTask.ENVIRONMENT))
+                .thenReturn(new MockPropertyValue("dev", null));
+        when(context.getProperty(DataDogReportingTask.METRICS_PREFIX))
+                .thenReturn(new MockPropertyValue("nifi", null));
+        when(context.getProperty(DataDogReportingTask.API_KEY))
                 .thenReturn(new MockPropertyValue("agent", null));
-        Mockito.when(context.getProperty(DataDogReportingTask.DATADOG_TRANSPORT))
+        when(context.getProperty(DataDogReportingTask.DATADOG_TRANSPORT))
                 .thenReturn(new MockPropertyValue("DataDog Agent", null));
-        EventAccess eventAccess = Mockito.mock(EventAccess.class);
-        Mockito.when(eventAccess.getControllerStatus()).thenReturn(status);
-        Mockito.when(context.getEventAccess()).thenReturn(eventAccess);
+        EventAccess eventAccess = mock(EventAccess.class);
+        when(eventAccess.getControllerStatus()).thenReturn(status);
+        when(context.getEventAccess()).thenReturn(eventAccess);
 
-        logger = Mockito.mock(Logger.class);
-        initContext = Mockito.mock(ReportingInitializationContext.class);
-        Mockito.when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
-        //Mockito.when(initContext.getLogger()).thenReturn(logger);
+        initContext = mock(ReportingInitializationContext.class);
+        when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
+        when(initContext.getLogger()).thenReturn(new MockComponentLogger());
         metricsMap = new ConcurrentHashMap<>();
-        metricRegistry = Mockito.mock(MetricRegistry.class);
+        metricRegistry = mock(MetricRegistry.class);
         virtualMachineMetrics = JmxJvmMetrics.getInstance();
-        metricsService = Mockito.mock(MetricsService.class);
-
+        metricsService = mock(MetricsService.class);
     }
 
-    //test onTrigger method
     @Test
-    public void testOnTrigger() throws InitializationException, IOException {
+    public void testOnTrigger() throws InitializationException {
         DataDogReportingTask dataDogReportingTask = new TestableDataDogReportingTask();
         dataDogReportingTask.initialize(initContext);
         dataDogReportingTask.setup(configurationContext);
         dataDogReportingTask.onTrigger(context);
 
-        verify(metricsService, atLeast(1)).getProcessorMetrics(Mockito.<ProcessorStatus>any());
-        verify(metricsService, atLeast(1)).getJVMMetrics(Mockito.<JmxJvmMetrics>any());
+        verify(metricsService, atLeast(1)).getProcessorMetrics(any());
+        verify(metricsService, atLeast(1)).getJVMMetrics(any());
     }
 
-
-    //test updating metrics of processors
     @Test
-    public void testUpdateMetricsProcessor() throws InitializationException, IOException {
+    public void testUpdateMetricsProcessor() throws InitializationException {
         MetricsService ms = new MetricsService();
         Map<String, Double> processorMetrics = ms.getProcessorMetrics(procStatus);
-        Map<String, String> tagsMap = ImmutableMap.of("env", "test");
+        Map<String, String> tagsMap = Collections.singletonMap("env", "test");
         DataDogReportingTask dataDogReportingTask = new TestableDataDogReportingTask();
         dataDogReportingTask.initialize(initContext);
         dataDogReportingTask.setup(configurationContext);
-        dataDogReportingTask.updateMetrics(processorMetrics, Optional.of("sampleProcessor"), tagsMap);
+        dataDogReportingTask.updateMetrics(processorMetrics, tagsMap);
 
-        verify(metricRegistry).register(eq("nifi.sampleProcessor.FlowFilesReceivedLast5Minutes"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.sampleProcessor.ActiveThreads"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.sampleProcessor.BytesWrittenLast5Minutes"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.sampleProcessor.BytesReadLast5Minutes"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.sampleProcessor.FlowFilesSentLast5Minutes"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.FlowFilesReceivedLast5Minutes"), any());
+        verify(metricRegistry).register(eq("nifi.ActiveThreads"), any());
+        verify(metricRegistry).register(eq("nifi.BytesWrittenLast5Minutes"), any());
+        verify(metricRegistry).register(eq("nifi.BytesReadLast5Minutes"), any());
+        verify(metricRegistry).register(eq("nifi.FlowFilesSentLast5Minutes"), any());
     }
 
-    //test updating JMV metrics
     @Test
-    public void testUpdateMetricsJVM() throws InitializationException, IOException {
+    public void testUpdateMetricsJVM() throws InitializationException {
         MetricsService ms = new MetricsService();
         Map<String, Double> processorMetrics = ms.getJVMMetrics(virtualMachineMetrics);
-        Map<String, String> tagsMap = ImmutableMap.of("env", "test");
+        Map<String, String> tagsMap = Collections.singletonMap("env", "test");
 
         DataDogReportingTask dataDogReportingTask = new TestableDataDogReportingTask();
         dataDogReportingTask.initialize(initContext);
         dataDogReportingTask.setup(configurationContext);
 
-        dataDogReportingTask.updateMetrics(processorMetrics, Optional.<String>absent(), tagsMap);
-        verify(metricRegistry).register(eq("nifi.flow.jvm.heap_usage"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.thread_count"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.thread_states.terminated"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.heap_used"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.thread_states.runnable"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.thread_states.timed_waiting"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.uptime"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.daemon_thread_count"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.file_descriptor_usage"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.thread_states.blocked"), Mockito.<Gauge>any());
+        dataDogReportingTask.updateMetrics(processorMetrics, tagsMap);
+        verify(metricRegistry).register(eq("nifi.jvm.heap_usage"), any());
+        verify(metricRegistry).register(eq("nifi.jvm.thread_count"), any());
+        verify(metricRegistry).register(eq("nifi.jvm.thread_states.terminated"), any());
+        verify(metricRegistry).register(eq("nifi.jvm.heap_used"), any());
+        verify(metricRegistry).register(eq("nifi.jvm.thread_states.runnable"), any());
+        verify(metricRegistry).register(eq("nifi.jvm.thread_states.timed_waiting"), any());
+        verify(metricRegistry).register(eq("nifi.jvm.uptime"), any());
+        verify(metricRegistry).register(eq("nifi.jvm.daemon_thread_count"), any());
+        verify(metricRegistry).register(eq("nifi.jvm.file_descriptor_usage"), any());
+        verify(metricRegistry).register(eq("nifi.jvm.thread_states.blocked"), any());
     }
-
 
     private void initProcessGroupStatus() {
         status = new ProcessGroupStatus();
@@ -206,10 +192,9 @@ public class TestDataDogReportingTask {
         }
 
         @Override
-        protected ConcurrentHashMap<String, AtomicDouble> getMetricsMap() {
+        protected ConcurrentHashMap<String, Double> getMetricsMap() {
             return metricsMap;
         }
 
     }
-
 }

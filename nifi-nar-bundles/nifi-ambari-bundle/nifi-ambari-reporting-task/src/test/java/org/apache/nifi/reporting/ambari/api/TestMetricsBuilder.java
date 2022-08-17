@@ -18,8 +18,7 @@ package org.apache.nifi.reporting.ambari.api;
 
 import org.apache.nifi.reporting.util.metrics.api.MetricFields;
 import org.apache.nifi.reporting.util.metrics.api.MetricsBuilder;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -28,6 +27,9 @@ import javax.json.JsonObject;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestMetricsBuilder {
 
@@ -55,22 +57,22 @@ public class TestMetricsBuilder {
                 .build();
 
         final JsonArray metricsArray = metricsObject.getJsonArray("metrics");
-        Assert.assertNotNull(metricsArray);
-        Assert.assertEquals(2, metricsArray.size());
+        assertNotNull(metricsArray);
+        assertEquals(2, metricsArray.size());
 
         JsonObject firstMetric = metricsArray.getJsonObject(0);
         if (!"a".equals(firstMetric.getString(MetricFields.METRIC_NAME))) {
             firstMetric = metricsArray.getJsonObject(1);
         }
 
-        Assert.assertEquals("a", firstMetric.getString(MetricFields.METRIC_NAME));
-        Assert.assertEquals(applicationId, firstMetric.getString(MetricFields.APP_ID));
-        Assert.assertEquals(instanceId, firstMetric.getString(MetricFields.INSTANCE_ID));
-        Assert.assertEquals(hostname, firstMetric.getString(MetricFields.HOSTNAME));
-        Assert.assertEquals(String.valueOf(timestamp), firstMetric.getString(MetricFields.TIMESTAMP));
+        assertEquals("a", firstMetric.getString(MetricFields.METRIC_NAME));
+        assertEquals(applicationId, firstMetric.getString(MetricFields.APP_ID));
+        assertEquals(instanceId, firstMetric.getString(MetricFields.INSTANCE_ID));
+        assertEquals(hostname, firstMetric.getString(MetricFields.HOSTNAME));
+        assertEquals(String.valueOf(timestamp), firstMetric.getString(MetricFields.TIMESTAMP));
 
         final JsonObject firstMetricValues = firstMetric.getJsonObject("metrics");
-        Assert.assertEquals("1", firstMetricValues.getString("" + timestamp));
+        assertEquals("1", firstMetricValues.getString("" + timestamp));
     }
 
 }

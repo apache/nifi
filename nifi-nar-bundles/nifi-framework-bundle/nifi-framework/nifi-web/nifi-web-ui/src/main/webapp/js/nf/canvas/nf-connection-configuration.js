@@ -1197,7 +1197,11 @@
         // reset the prioritizers
         var selectedList = $('#prioritizer-selected');
         var availableList = $('#prioritizer-available');
-        selectedList.children().detach().appendTo(availableList);
+        selectedList.children()
+            .detach()
+            .appendTo(availableList)
+            .find('div.draggable-control')
+            .remove();
 
         // sort the available list
         var listItems = availableList.children('li').get();
@@ -1267,12 +1271,9 @@
          * @param nfBirdseyeRef   The nfBirdseye module.
          * @param nfGraphRef   The nfGraph module.
          */
-        init: function (nfBirdseyeRef, nfGraphRef, defaultBackPressureObjectThresholdRef, defaultBackPressureDataSizeThresholdRef) {
+        init: function (nfBirdseyeRef, nfGraphRef) {
             nfBirdseye = nfBirdseyeRef;
             nfGraph = nfGraphRef;
-
-            defaultBackPressureObjectThreshold = defaultBackPressureObjectThresholdRef;
-            defaultBackPressureDataSizeThreshold = defaultBackPressureDataSizeThresholdRef;
 
             // initially hide the relationship names container
             $('#relationship-names-container').hide();
@@ -1343,16 +1344,56 @@
                     nfConnectionConfiguration.addAvailablePrioritizer('#prioritizer-available', documentedType);
                 });
 
+                // work around for https://bugs.jqueryui.com/ticket/6054
+                var shouldAllowDrop = true;
+
                 // make the prioritizer containers sortable
-                $('#prioritizer-available, #prioritizer-selected').sortable({
+                $('#prioritizer-available').sortable({
                     containment: $('#connection-settings-tab-content').find('.settings-right'),
                     connectWith: 'ul',
                     placeholder: 'ui-state-highlight',
                     scroll: true,
-                    opacity: 0.6
+                    opacity: 0.6,
+                    beforeStop: function (event, ui) {
+                        if ($('#prioritizer-available').find('.ui-sortable-placeholder').length) {
+                            shouldAllowDrop = false;
+                        }
+                    },
+                    stop: function (event, ui) {
+                        const allowDrop = shouldAllowDrop;
+                        shouldAllowDrop = true;
+                        return allowDrop;
+                    }
                 });
+
+                $('#prioritizer-selected').sortable({
+                    containment: $('#connection-settings-tab-content').find('.settings-right'),
+                    placeholder: 'selected',
+                    scroll: true,
+                    opacity: 0.6,
+                    receive: function (event, ui) {
+                        nfConnectionConfiguration.addControlsForSelectedPrioritizer(ui.item);
+                    },
+                    update: function (event, ui) {
+                        // update the buttons to possibly trigger the disabled state
+                        $('#connection-configuration').modal('refreshButtons');
+                    }
+                });
+
                 $('#prioritizer-available, #prioritizer-selected').disableSelection();
+
+                // add a listener that will handle dblclick for all available prioritizers
+                $(document).on('dblclick', '#prioritizer-available li', function() {
+                    var availablePrioritizerElement = $(this).detach().appendTo($('#prioritizer-selected'));
+
+                    nfConnectionConfiguration.addControlsForSelectedPrioritizer(availablePrioritizerElement);
+
+                    // update the buttons to possibly trigger the disabled state
+                    $('#connection-configuration').modal('refreshButtons');
+                });
             }).fail(nfErrorHandler.handleAjaxError);
+
+            nfConnectionConfiguration.sortAvailablePrioritizers();
         },
 
         /**
@@ -1378,12 +1419,50 @@
         },
 
         /**
+         * Sorts the available prioritizers.
+         */
+        sortAvailablePrioritizers: function () {
+            var availablePrioritizersList = $('#prioritizer-available');
+            availablePrioritizersList.children('li')
+                .detach()
+                .sort(function (aElement, bElement) {
+                    var nameA = $(aElement).text();
+                    var nameB = $(bElement).text();
+                    return nameA.localeCompare(nameB);
+                })
+                .appendTo(availablePrioritizersList);
+        },
+
+        /**
+         * Adds the controls to the specified selected draggable element.
+         *
+         * @argument {jQuery} draggableElement
+         */
+        addControlsForSelectedPrioritizer: function (draggableElement) {
+            var removeIcon = $('<div class="draggable-control"><div class="fa fa-remove"></div></div>')
+                .on('click', function () {
+                    // remove the remove icon
+                    removeIcon.remove();
+
+                    // restore to the available parameter contexts
+                    $('#prioritizer-available').append(draggableElement);
+
+                    // resort the available parameter contexts
+                    nfConnectionConfiguration.sortAvailablePrioritizers();
+
+                    // update the buttons to possibly trigger the disabled state
+                    $('#connection-configuration').modal('refreshButtons');
+                })
+                .appendTo(draggableElement);
+        },
+
+        /**
          * Shows the dialog for creating a new connection.
          *
          * @argument {string} sourceId      The source id
          * @argument {string} destinationId The destination id
          */
-        createConnection: function (sourceId, destinationId) {
+        createConnection: function (sourceId, destinationId, defaultSettings) {
             // select the source and destination
             var source = d3.select('#id-' + sourceId);
             var destination = d3.select('#id-' + destinationId);
@@ -1401,9 +1480,9 @@
             // initialize the connection dialog
             $.when(initializeSourceNewConnectionDialog(source), initializeDestinationNewConnectionDialog(destination)).done(function () {
                 // set the default values
-                $('#flow-file-expiration').val('0 sec');
-                $('#back-pressure-object-threshold').val(defaultBackPressureObjectThreshold);
-                $('#back-pressure-data-size-threshold').val(defaultBackPressureDataSizeThreshold);
+                $('#flow-file-expiration').val(defaultSettings.flowfileExpiration);
+                $('#back-pressure-object-threshold').val(defaultSettings.objectThreshold);
+                $('#back-pressure-data-size-threshold').val(defaultSettings.dataSizeThreshold);
 
                 // select the first tab
                 $('#connection-configuration-tabs').find('li:first').click();
@@ -1529,7 +1608,9 @@
 
                     // handle each prioritizer
                     $.each(connection.prioritizers, function (i, type) {
-                        $('#prioritizer-available').children('li[id="' + type + '"]').detach().appendTo('#prioritizer-selected');
+                        var selectedPrioritizer = $('#prioritizer-available').children('li[id="' + type + '"]');
+                        nfConnectionConfiguration.addControlsForSelectedPrioritizer(selectedPrioritizer);
+                        selectedPrioritizer.detach().appendTo('#prioritizer-selected');
                     });
 
                     // store the connection details

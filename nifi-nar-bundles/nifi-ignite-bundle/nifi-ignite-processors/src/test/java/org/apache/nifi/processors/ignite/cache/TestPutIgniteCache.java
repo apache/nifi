@@ -16,26 +16,36 @@
  */
 package org.apache.nifi.processors.ignite.cache;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.ignite.Ignite;
+import org.apache.ignite.IgniteCache;
+import org.apache.ignite.IgniteDataStreamer;
+import org.apache.ignite.lang.IgniteFuture;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 
 import java.io.IOException;
+import java.util.AbstractMap;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.ignite.Ignite;
-import org.apache.ignite.Ignition;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.AdditionalMatchers.or;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestPutIgniteCache {
 
@@ -44,66 +54,54 @@ public class TestPutIgniteCache {
     private PutIgniteCache putIgniteCache;
     private Map<String,String> properties1;
     private Map<String,String> properties2;
-    private static Ignite ignite;
+    private Ignite ignite;
 
-    // Check if the JDK running these tests is pre-Java 11, so that tests can be ignored if JDK is Java 11+
-    // TODO Once a version of Ignite that supports Java 11 is released, this check can be removed.
-    private static boolean preJava11;
-    static {
-        String javaVersion = System.getProperty("java.version");
-        preJava11 = Integer.parseInt(javaVersion.substring(0, javaVersion.indexOf('.'))) < 11;
-    }
+    @BeforeEach
+    public void setUp() {
+        ignite = mock(Ignite.class);
+        final IgniteCache igniteCache = TestGetIgniteCache.mockIgniteCache();
+        when(igniteCache.getName()).thenReturn(CACHE_NAME);
+        when(ignite.getOrCreateCache(or(ArgumentMatchers.eq(CACHE_NAME), isNull()))).thenReturn(igniteCache);
+        final IgniteDataStreamer dataStreamer = mock(IgniteDataStreamer.class);
+        final IgniteFuture igniteFuture = mock(IgniteFuture.class);
+        when(igniteFuture.get()).thenReturn(new Object());
 
-    @BeforeClass
-    public static void setUpClass() {
-        if (preJava11) {
-            List<Ignite> grids = Ignition.allGrids();
-            if ( grids.size() == 1 )
-                ignite = grids.get(0);
-            else
-                ignite = Ignition.start("test-ignite.xml");
-        }
+        final MutableBoolean allowOverride = new MutableBoolean(false);
+        doAnswer(args -> {
+            allowOverride.setValue((boolean) args.getArgument(0));
+            return null;
+        }).when(dataStreamer).allowOverwrite(anyBoolean());
 
-    }
-
-    @AfterClass
-    public static void tearDownClass() {
-        if (preJava11) {
-            if ( ignite != null )
-                ignite.close();
-            Ignition.stop(true);
-        }
-    }
-
-    @Before
-    public void setUp() throws IOException {
-        if (preJava11) {
-            putIgniteCache = new PutIgniteCache() {
-                @Override
-                protected Ignite getIgnite() {
-                    return TestPutIgniteCache.ignite;
+        when(dataStreamer.addData(any(Collection.class))).thenAnswer(args -> {
+            ((Collection)args.getArgument(0)).forEach(entry -> {
+                final AbstractMap.SimpleEntry simpleEntry = (AbstractMap.SimpleEntry) entry;
+                if (allowOverride.booleanValue() || !igniteCache.containsKey(simpleEntry.getKey())) {
+                    igniteCache.put(simpleEntry.getKey(), simpleEntry.getValue());
                 }
+            });
+            return igniteFuture;
+        });
+        when(ignite.dataStreamer(CACHE_NAME)).thenReturn(dataStreamer);
+        putIgniteCache = new PutIgniteCache() {
+            @Override
+            protected Ignite getIgnite() {
+                return ignite;
+            }
 
-            };
-            properties1 = new HashMap<String,String>();
-            properties1.put("igniteKey", "key1");
-            properties2 = new HashMap<String,String>();
-            properties2.put("igniteKey", "key2");
-        }
+        };
+        properties1 = new HashMap<String,String>();
+        properties1.put("igniteKey", "key1");
+        properties2 = new HashMap<String,String>();
+        properties2.put("igniteKey", "key2");
     }
 
-    @After
+    @AfterEach
     public void teardown() {
-        if (preJava11) {
-            runner = null;
-            ignite.destroyCache(CACHE_NAME);
-        }
+        runner = null;
     }
 
     @Test
-    public void testPutIgniteCacheOnTriggerDefaultConfigurationOneFlowFileWithPlainKey() throws IOException, InterruptedException {
-        Assume.assumeTrue(preJava11);
-
+    public void testPutIgniteCacheOnTriggerDefaultConfigurationOneFlowFileWithPlainKey() throws IOException {
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
         runner.setProperty(PutIgniteCache.CACHE_NAME, CACHE_NAME);
@@ -128,14 +126,12 @@ public class TestPutIgniteCache {
         out.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_ITEM_NUMBER, "0");
 
         out.assertContentEquals("test".getBytes());
-        Assert.assertArrayEquals("test".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("mykey"));
+        assertArrayEquals("test".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("mykey"));
         runner.shutdown();
     }
 
     @Test
-    public void testPutIgniteCacheOnTriggerDefaultConfigurationOneFlowFile() throws IOException, InterruptedException {
-        Assume.assumeTrue(preJava11);
-
+    public void testPutIgniteCacheOnTriggerDefaultConfigurationOneFlowFile() throws IOException {
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
         runner.setProperty(PutIgniteCache.CACHE_NAME, CACHE_NAME);
@@ -160,14 +156,12 @@ public class TestPutIgniteCache {
         out.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_ITEM_NUMBER, "0");
 
         out.assertContentEquals("test".getBytes());
-        Assert.assertArrayEquals("test".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
+        assertArrayEquals("test".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
         runner.shutdown();
     }
 
     @Test
-    public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFilesAllowOverrideDefaultFalse() throws IOException, InterruptedException {
-        Assume.assumeTrue(preJava11);
-
+    public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFilesAllowOverrideDefaultFalse() throws IOException {
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
         runner.setProperty(PutIgniteCache.CACHE_NAME, CACHE_NAME);
@@ -194,7 +188,7 @@ public class TestPutIgniteCache {
         out1.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_ITEM_NUMBER, "0");
 
         out1.assertContentEquals("test1".getBytes());
-        Assert.assertEquals("test1",new String(putIgniteCache.getIgniteCache().get("key1")));
+        assertEquals("test1",new String(putIgniteCache.getIgniteCache().get("key1")));
 
         final MockFlowFile out2 = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS).get(1);
 
@@ -204,15 +198,13 @@ public class TestPutIgniteCache {
         out2.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_SUCCESSFUL_COUNT, "2");
 
         out2.assertContentEquals("test2".getBytes());
-        Assert.assertArrayEquals("test1".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
+        assertArrayEquals("test1".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
 
         runner.shutdown();
     }
 
     @Test
-    public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFilesAllowOverrideTrue() throws IOException, InterruptedException {
-        Assume.assumeTrue(preJava11);
-
+    public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFilesAllowOverrideTrue() throws IOException {
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
         runner.setProperty(PutIgniteCache.CACHE_NAME, CACHE_NAME);
@@ -240,7 +232,7 @@ public class TestPutIgniteCache {
         out1.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_ITEM_NUMBER, "0");
 
         out1.assertContentEquals("test1".getBytes());
-        Assert.assertEquals("test2",new String(putIgniteCache.getIgniteCache().get("key1")));
+        assertEquals("test2",new String(putIgniteCache.getIgniteCache().get("key1")));
 
         final MockFlowFile out2 = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS).get(1);
 
@@ -251,15 +243,13 @@ public class TestPutIgniteCache {
 
         out2.assertContentEquals("test2".getBytes());
 
-        Assert.assertArrayEquals("test2".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
+        assertArrayEquals("test2".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
 
         runner.shutdown();
     }
 
     @Test
-    public void testPutIgniteCacheOnTriggerDefaultConfigurationOneFlowFileNoKey() throws IOException, InterruptedException {
-        Assume.assumeTrue(preJava11);
-
+    public void testPutIgniteCacheOnTriggerDefaultConfigurationOneFlowFileNoKey() throws IOException {
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
         runner.setProperty(PutIgniteCache.CACHE_NAME, CACHE_NAME);
@@ -291,9 +281,7 @@ public class TestPutIgniteCache {
     }
 
     @Test
-    public void testPutIgniteCacheOnTriggerDefaultConfigurationOneFlowFileNoBytes() throws IOException, InterruptedException {
-        Assume.assumeTrue(preJava11);
-
+    public void testPutIgniteCacheOnTriggerDefaultConfigurationOneFlowFileNoBytes() throws IOException {
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
         runner.setProperty(PutIgniteCache.CACHE_NAME, CACHE_NAME);
@@ -324,9 +312,7 @@ public class TestPutIgniteCache {
     }
 
     @Test
-    public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFiles() throws IOException, InterruptedException {
-        Assume.assumeTrue(preJava11);
-
+    public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFiles() throws IOException {
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
         runner.setProperty(PutIgniteCache.CACHE_NAME, CACHE_NAME);
@@ -352,7 +338,7 @@ public class TestPutIgniteCache {
         out1.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_ITEM_NUMBER, "0");
 
         out1.assertContentEquals("test1".getBytes());
-        Assert.assertArrayEquals("test1".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
+        assertArrayEquals("test1".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
 
         final MockFlowFile out2 = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS).get(1);
 
@@ -362,16 +348,14 @@ public class TestPutIgniteCache {
         out2.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_SUCCESSFUL_COUNT, "2");
 
         out2.assertContentEquals("test2".getBytes());
-        Assert.assertArrayEquals("test2".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key2"));
+        assertArrayEquals("test2".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key2"));
 
         runner.shutdown();
 
     }
 
     @Test
-    public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFilesNoKey() throws IOException, InterruptedException {
-        Assume.assumeTrue(preJava11);
-
+    public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFilesNoKey() throws IOException {
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
         runner.setProperty(PutIgniteCache.CACHE_NAME, CACHE_NAME);
@@ -417,9 +401,7 @@ public class TestPutIgniteCache {
     }
 
     @Test
-    public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFileFirstNoKey() throws IOException, InterruptedException {
-        Assume.assumeTrue(preJava11);
-
+    public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFileFirstNoKey() throws IOException {
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
         runner.setProperty(PutIgniteCache.CACHE_NAME, CACHE_NAME);
@@ -455,16 +437,14 @@ public class TestPutIgniteCache {
         out2.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_ITEM_NUMBER, "1");
 
         out2.assertContentEquals("test2".getBytes());
-        Assert.assertArrayEquals("test2".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key2"));
+        assertArrayEquals("test2".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key2"));
 
         runner.shutdown();
 
     }
 
     @Test
-    public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFileSecondNoKey() throws IOException, InterruptedException {
-        Assume.assumeTrue(preJava11);
-
+    public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFileSecondNoKey() throws IOException {
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
         runner.setProperty(PutIgniteCache.CACHE_NAME, CACHE_NAME);
@@ -490,7 +470,7 @@ public class TestPutIgniteCache {
         out1.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_ITEM_NUMBER, "0");
 
         out1.assertContentEquals("test1".getBytes());
-        Assert.assertArrayEquals("test1".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
+        assertArrayEquals("test1".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
 
         final MockFlowFile out2 = runner.getFlowFilesForRelationship(PutIgniteCache.REL_FAILURE).get(0);
 
@@ -509,9 +489,7 @@ public class TestPutIgniteCache {
     }
 
     @Test
-    public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFilesOneNoKeyOneNoBytes() throws IOException, InterruptedException {
-        Assume.assumeTrue(preJava11);
-
+    public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFilesOneNoKeyOneNoBytes() throws IOException {
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
         runner.setProperty(PutIgniteCache.CACHE_NAME, CACHE_NAME);
@@ -557,9 +535,7 @@ public class TestPutIgniteCache {
     }
 
     @Test
-    public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFilesOneNoKeySecondOkThirdNoBytes() throws IOException, InterruptedException {
-        Assume.assumeTrue(preJava11);
-
+    public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFilesOneNoKeySecondOkThirdNoBytes() throws IOException {
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
         runner.setProperty(PutIgniteCache.CACHE_NAME, CACHE_NAME);
@@ -596,7 +572,7 @@ public class TestPutIgniteCache {
         out2.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_SUCCESSFUL_COUNT, "1");
 
         out2.assertContentEquals("test2".getBytes());
-        Assert.assertArrayEquals("test2".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
+        assertArrayEquals("test2".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key1"));
 
         final MockFlowFile out3 = runner.getFlowFilesForRelationship(PutIgniteCache.REL_FAILURE).get(1);
 

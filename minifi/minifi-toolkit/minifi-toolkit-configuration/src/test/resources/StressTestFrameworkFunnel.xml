@@ -1,0 +1,540 @@
+<?xml version="1.0" ?>
+<!--
+  ~ /*
+  ~  * Licensed to the Apache Software Foundation (ASF) under one or more
+  ~  * contributor license agreements.  See the NOTICE file distributed with
+  ~  * this work for additional information regarding copyright ownership.
+  ~  * The ASF licenses this file to You under the Apache License, Version 2.0
+  ~  * (the "License"); you may not use this file except in compliance with
+  ~  * the License.  You may obtain a copy of the License at
+  ~  *
+  ~  *     http://www.apache.org/licenses/LICENSE-2.0
+  ~  *
+  ~  * Unless required by applicable law or agreed to in writing, software
+  ~  * distributed under the License is distributed on an "AS IS" BASIS,
+  ~  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  * See the License for the specific language governing permissions and
+  ~  * limitations under the License.
+  ~  */
+  -->
+<template encoding-version="1.0">
+    <description></description>
+    <groupId>7cba7223-0157-1000-0571-63471fdb84c9</groupId>
+    <name>StressTestFramework</name>
+    <snippet>
+        <connections>
+            <id>4ad21393-16a4-1794-0000-000000000000</id>
+            <parentGroupId>7cba7223-0157-1000-0000-000000000000</parentGroupId>
+            <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+            <destination>
+                <groupId>7cba7223-0157-1000-0000-000000000000</groupId>
+                <id>4ad21392-16a4-1794-0000-000000000000</id>
+                <type>FUNNEL</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <selectedRelationships>success</selectedRelationships>
+            <source>
+                <groupId>7cba7223-0157-1000-0000-000000000000</groupId>
+                <id>16a47794-5391-4ad2-0000-000000000000</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>4ad21394-16a4-1794-0000-000000000000</id>
+            <parentGroupId>7cba7223-0157-1000-0000-000000000000</parentGroupId>
+            <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+            <destination>
+                <groupId>7cba7223-0157-1000-0000-000000000000</groupId>
+                <id>4ad21392-16a4-1794-0000-000000000000</id>
+                <type>FUNNEL</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <selectedRelationships>success</selectedRelationships>
+            <source>
+                <groupId>7cba7223-0157-1000-0000-000000000000</groupId>
+                <id>53914ad2-7794-16a4-0000-000000000000</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>4ad21395-16a4-1794-0000-000000000000</id>
+            <parentGroupId>7cba7223-0157-1000-0000-000000000000</parentGroupId>
+            <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+            <destination>
+                <groupId>7cba7223-0157-1000-0000-000000000000</groupId>
+                <id>4ad21392-16a4-1794-0000-000000000000</id>
+                <type>FUNNEL</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <selectedRelationships>success</selectedRelationships>
+            <source>
+                <groupId>7cba7223-0157-1000-0000-000000000000</groupId>
+                <id>779416a4-4ad2-1391-0000-000000000000</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>4ad21396-16a4-1794-0000-000000000000</id>
+            <parentGroupId>7cba7223-0157-1000-0000-000000000000</parentGroupId>
+            <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+            <destination>
+                <groupId>7cba7223-0157-1000-0000-000000000000</groupId>
+                <id>4ad21392-16a4-1794-0000-000000000000</id>
+                <type>FUNNEL</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <selectedRelationships>success</selectedRelationships>
+            <source>
+                <groupId>7cba7223-0157-1000-0000-000000000000</groupId>
+                <id>4ad21391-16a4-1794-0000-000000000000</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>4ad21397-16a4-1794-0000-000000000000</id>
+            <parentGroupId>7cba7223-0157-1000-0000-000000000000</parentGroupId>
+            <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+            <destination>
+                <groupId>7cba7223-0157-1000-0000-000000000000</groupId>
+                <id>92557c76-f251-45a4-0000-000000000000</id>
+                <type>PROCESSOR</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <source>
+                <groupId>7cba7223-0157-1000-0000-000000000000</groupId>
+                <id>4ad21392-16a4-1794-0000-000000000000</id>
+                <type>FUNNEL</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>4c53556e-eb46-458c-0000-000000000000</id>
+            <parentGroupId>7cba7223-0157-1000-0000-000000000000</parentGroupId>
+            <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>2000</backPressureObjectThreshold>
+            <destination>
+                <groupId>7cba7223-0157-1000-0000-000000000000</groupId>
+                <id>397a4910-cc01-4c6b-0000-000000000000</id>
+                <type>PROCESSOR</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+            <selectedRelationships>success</selectedRelationships>
+            <source>
+                <groupId>7cba7223-0157-1000-0000-000000000000</groupId>
+                <id>92557c76-f251-45a4-0000-000000000000</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <funnels>
+            <id>4ad21392-16a4-1794-0000-000000000000</id>
+            <parentGroupId>7cba7223-0157-1000-0000-000000000000</parentGroupId>
+            <position>
+                <x>593.8762672567133</x>
+                <y>246.40484683047555</y>
+            </position>
+        </funnels>
+        <processors>
+            <id>92557c76-f251-45a4-0000-000000000000</id>
+            <parentGroupId>7cba7223-0157-1000-0000-000000000000</parentGroupId>
+            <position>
+                <x>442.8776092529297</x>
+                <y>345.48790588378904</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>2</concurrentlySchedulableTaskCount>
+                <descriptors>
+                    <entry>
+                        <key>Delete Attributes Expression</key>
+                        <value>
+                            <name>Delete Attributes Expression</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>property 1</key>
+                        <value>
+                            <name>property 1</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>property 2</key>
+                        <value>
+                            <name>property 2</name>
+                        </value>
+                    </entry>
+                </descriptors>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties>
+                    <entry>
+                        <key>Delete Attributes Expression</key>
+                    </entry>
+                    <entry>
+                        <key>property 1</key>
+                        <value>value 1</value>
+                    </entry>
+                    <entry>
+                        <key>property 2</key>
+                        <value>value 2 ${nextInt()}</value>
+                    </entry>
+                </properties>
+                <runDurationMillis>100</runDurationMillis>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>UpdateAttribute</name>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>success</name>
+            </relationships>
+            <style></style>
+            <type>org.apache.nifi.processors.attributes.UpdateAttribute</type>
+        </processors>
+        <processors>
+            <id>16a47794-5391-4ad2-0000-000000000000</id>
+            <parentGroupId>7cba7223-0157-1000-0000-000000000000</parentGroupId>
+            <position>
+                <x>0.0</x>
+                <y>188.24237060546875</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                <descriptors>
+                    <entry>
+                        <key>File Size</key>
+                        <value>
+                            <name>File Size</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>Batch Size</key>
+                        <value>
+                            <name>Batch Size</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>Data Format</key>
+                        <value>
+                            <name>Data Format</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>Unique FlowFiles</key>
+                        <value>
+                            <name>Unique FlowFiles</name>
+                        </value>
+                    </entry>
+                </descriptors>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties>
+                    <entry>
+                        <key>File Size</key>
+                        <value>0 KB</value>
+                    </entry>
+                    <entry>
+                        <key>Batch Size</key>
+                        <value>100</value>
+                    </entry>
+                    <entry>
+                        <key>Data Format</key>
+                        <value>Binary</value>
+                    </entry>
+                    <entry>
+                        <key>Unique FlowFiles</key>
+                        <value>false</value>
+                    </entry>
+                </properties>
+                <runDurationMillis>0</runDurationMillis>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>GenerateFlowFile</name>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>success</name>
+            </relationships>
+            <style></style>
+            <type>org.apache.nifi.processors.standard.GenerateFlowFile</type>
+        </processors>
+        <processors>
+            <id>397a4910-cc01-4c6b-0000-000000000000</id>
+            <parentGroupId>7cba7223-0157-1000-0000-000000000000</parentGroupId>
+            <position>
+                <x>444.3776092529297</x>
+                <y>609.6672564697267</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>2</concurrentlySchedulableTaskCount>
+                <descriptors>
+                    <entry>
+                        <key>Routing Strategy</key>
+                        <value>
+                            <name>Routing Strategy</name>
+                        </value>
+                    </entry>
+                </descriptors>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties>
+                    <entry>
+                        <key>Routing Strategy</key>
+                        <value>Route to Property name</value>
+                    </entry>
+                </properties>
+                <runDurationMillis>50</runDurationMillis>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>RouteOnAttribute</name>
+            <relationships>
+                <autoTerminate>true</autoTerminate>
+                <name>unmatched</name>
+            </relationships>
+            <style></style>
+            <type>org.apache.nifi.processors.standard.RouteOnAttribute</type>
+        </processors>
+        <processors>
+            <id>4ad21391-16a4-1794-0000-000000000000</id>
+            <parentGroupId>7cba7223-0157-1000-0000-000000000000</parentGroupId>
+            <position>
+                <x>975.3996429443359</x>
+                <y>173.76165771484375</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                <descriptors>
+                    <entry>
+                        <key>File Size</key>
+                        <value>
+                            <name>File Size</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>Batch Size</key>
+                        <value>
+                            <name>Batch Size</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>Data Format</key>
+                        <value>
+                            <name>Data Format</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>Unique FlowFiles</key>
+                        <value>
+                            <name>Unique FlowFiles</name>
+                        </value>
+                    </entry>
+                </descriptors>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties>
+                    <entry>
+                        <key>File Size</key>
+                        <value>0 KB</value>
+                    </entry>
+                    <entry>
+                        <key>Batch Size</key>
+                        <value>100</value>
+                    </entry>
+                    <entry>
+                        <key>Data Format</key>
+                        <value>Binary</value>
+                    </entry>
+                    <entry>
+                        <key>Unique FlowFiles</key>
+                        <value>false</value>
+                    </entry>
+                </properties>
+                <runDurationMillis>0</runDurationMillis>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>GenerateFlowFile</name>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>success</name>
+            </relationships>
+            <style></style>
+            <type>org.apache.nifi.processors.standard.GenerateFlowFile</type>
+        </processors>
+        <processors>
+            <id>53914ad2-7794-16a4-0000-000000000000</id>
+            <parentGroupId>7cba7223-0157-1000-0000-000000000000</parentGroupId>
+            <position>
+                <x>174.88023376464844</x>
+                <y>9.67376708984375</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                <descriptors>
+                    <entry>
+                        <key>File Size</key>
+                        <value>
+                            <name>File Size</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>Batch Size</key>
+                        <value>
+                            <name>Batch Size</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>Data Format</key>
+                        <value>
+                            <name>Data Format</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>Unique FlowFiles</key>
+                        <value>
+                            <name>Unique FlowFiles</name>
+                        </value>
+                    </entry>
+                </descriptors>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties>
+                    <entry>
+                        <key>File Size</key>
+                        <value>0 KB</value>
+                    </entry>
+                    <entry>
+                        <key>Batch Size</key>
+                        <value>100</value>
+                    </entry>
+                    <entry>
+                        <key>Data Format</key>
+                        <value>Binary</value>
+                    </entry>
+                    <entry>
+                        <key>Unique FlowFiles</key>
+                        <value>false</value>
+                    </entry>
+                </properties>
+                <runDurationMillis>0</runDurationMillis>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>GenerateFlowFile</name>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>success</name>
+            </relationships>
+            <style></style>
+            <type>org.apache.nifi.processors.standard.GenerateFlowFile</type>
+        </processors>
+        <processors>
+            <id>779416a4-4ad2-1391-0000-000000000000</id>
+            <parentGroupId>7cba7223-0157-1000-0000-000000000000</parentGroupId>
+            <position>
+                <x>758.0161590576172</x>
+                <y>0.0</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                <descriptors>
+                    <entry>
+                        <key>File Size</key>
+                        <value>
+                            <name>File Size</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>Batch Size</key>
+                        <value>
+                            <name>Batch Size</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>Data Format</key>
+                        <value>
+                            <name>Data Format</name>
+                        </value>
+                    </entry>
+                    <entry>
+                        <key>Unique FlowFiles</key>
+                        <value>
+                            <name>Unique FlowFiles</name>
+                        </value>
+                    </entry>
+                </descriptors>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties>
+                    <entry>
+                        <key>File Size</key>
+                        <value>0 KB</value>
+                    </entry>
+                    <entry>
+                        <key>Batch Size</key>
+                        <value>100</value>
+                    </entry>
+                    <entry>
+                        <key>Data Format</key>
+                        <value>Binary</value>
+                    </entry>
+                    <entry>
+                        <key>Unique FlowFiles</key>
+                        <value>false</value>
+                    </entry>
+                </properties>
+                <runDurationMillis>0</runDurationMillis>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>GenerateFlowFile</name>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>success</name>
+            </relationships>
+            <style></style>
+            <type>org.apache.nifi.processors.standard.GenerateFlowFile</type>
+        </processors>
+    </snippet>
+    <timestamp>09/30/2016 16:18:24 EDT</timestamp>
+</template>

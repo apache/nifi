@@ -19,16 +19,16 @@ package org.apache.nifi.processors.hl7;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
-import static org.junit.Assert.assertEquals;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestExtractHL7Attributes {
 
@@ -64,14 +64,14 @@ public class TestExtractHL7Attributes {
         }
 
         // First, check whether the actual and expected segment counts are the same
-        assertEquals("Segment counts do not match", expectedSegments, actualSegments);
+        assertEquals(expectedSegments, actualSegments, "Segment counts do not match");
 
         // Check whether the actual and expected segment field values are the same
         for (final Map.Entry<String, String> entry : expectedAttributes.entrySet()) {
             final String key = entry.getKey();
             final String expected = entry.getValue();
             final String actual = actualAttributes.get(key);
-            assertEquals(key + " segment value does not match", expected, actual);
+            assertEquals(expected, actual, key + " segment value does not match");
         }
     }
 
@@ -79,7 +79,7 @@ public class TestExtractHL7Attributes {
         runTests(message, expectedAttributes, false, false);
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "DEBUG");
     }

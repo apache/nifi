@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.fingerprint;
 
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.connectable.Position;
@@ -26,41 +28,26 @@ import org.apache.nifi.controller.serialization.ScheduledStateLookup;
 import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.encrypt.SensitiveValueEncoder;
-import org.apache.nifi.encrypt.StandardSensitiveValueEncoder;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
-import org.apache.nifi.security.util.crypto.Argon2SecureHasher;
-import org.apache.nifi.security.xml.XmlUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.junit.AfterClass;
+import org.apache.nifi.xml.processing.parsers.DocumentProvider;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.junit.Before;
 import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.xml.sax.ErrorHandler;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.Optional;
 
 import static org.apache.nifi.controller.serialization.ScheduledStateLookup.IDENTITY_LOOKUP;
-import static org.apache.nifi.fingerprint.FingerprintFactory.FLOW_CONFIG_XSD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -74,56 +61,61 @@ public class FingerprintFactoryTest {
 
     private PropertyEncryptor encryptor;
     private ExtensionManager extensionManager;
-    private FingerprintFactory fingerprinter;
+    private FingerprintFactory fingerprintFactory;
     private SensitiveValueEncoder sensitiveValueEncoder;
-    private NiFiProperties niFiProperties;
-
-    private static final String ORIGINAL_NIFI_PROPS_PATH = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH);
-    private static final String TEST_NIFI_PROPS_PATH = "src/test/resources/conf/nifi.properties";
 
     @Before
     public void setup() {
-        niFiProperties = NiFiProperties.createBasicNiFiProperties(TEST_NIFI_PROPS_PATH);
         encryptor = createEncryptor();
-        sensitiveValueEncoder = new StandardSensitiveValueEncoder(niFiProperties);
+        sensitiveValueEncoder = createSensitiveValueEncoder();
         extensionManager = new StandardExtensionDiscoveringManager();
-        fingerprinter = new FingerprintFactory(encryptor, extensionManager, sensitiveValueEncoder);
-    }
-
-    @AfterClass
-    public static void tearDownOnce() {
-        if (ORIGINAL_NIFI_PROPS_PATH != null) {
-            System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, ORIGINAL_NIFI_PROPS_PATH);
-        }
+        fingerprintFactory = new FingerprintFactory(encryptor, extensionManager, sensitiveValueEncoder);
     }
 
     @Test
     public void testSameFingerprint() throws IOException {
-        final String fp1 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1a.xml"), null);
-        final String fp2 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1b.xml"), null);
+        final String fp1 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1a.xml"), null);
+        final String fp2 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1b.xml"), null);
         assertEquals(fp1, fp2);
     }
 
     @Test
     public void testDifferentFingerprint() throws IOException {
-        final String fp1 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1a.xml"), null);
-        final String fp2 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow2.xml"), null);
+        final String fp1 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1a.xml"), null);
+        final String fp2 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow2.xml"), null);
         assertNotEquals(fp1, fp2);
     }
 
     @Test
+    public void testInheritedParameterContextsInFingerprint() throws IOException {
+        final String flowWithParameterContext = new String(getResourceBytes("/nifi/fingerprint/flow-with-parameter-context.xml"));
+        final String flowWithNoInheritedParameterContexts = flowWithParameterContext.replaceAll("<inheritedParameterContextId>.*?</inheritedParameterContextId>", "");
+        final String flowWithDifferentInheritedParamContextOrder = flowWithParameterContext
+                .replaceFirst("153a6266-dcd0-33e9-b5af-b8c282d25bf1", "SWAP")
+                .replaceFirst("253a6266-dcd0-33e9-b5af-b8c282d25bf2", "153a6266-dcd0-33e9-b5af-b8c282d25bf1")
+                .replaceFirst("SWAP", "253a6266-dcd0-33e9-b5af-b8c282d25bf2");
+
+        final String originalFingerprint = fingerprintFactory.createFingerprint(flowWithParameterContext.getBytes(StandardCharsets.UTF_8), null);
+        final String fingerprintWithNoInheritedParameterContexts = fingerprintFactory.createFingerprint(flowWithNoInheritedParameterContexts.getBytes(StandardCharsets.UTF_8), null);
+        final String fingerprintWithDifferentInheritedParamContextOrder = fingerprintFactory.createFingerprint(flowWithDifferentInheritedParamContextOrder.getBytes(StandardCharsets.UTF_8), null);
+
+        assertNotEquals(originalFingerprint, fingerprintWithNoInheritedParameterContexts);
+        assertNotEquals(originalFingerprint, fingerprintWithDifferentInheritedParamContextOrder);
+    }
+
+    @Test
     public void testResourceValueInFingerprint() throws IOException {
-        final String fingerprint = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1a.xml"), null);
+        final String fingerprint = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1a.xml"), null);
         assertEquals(3, StringUtils.countMatches(fingerprint, "success"));
         assertTrue(fingerprint.contains("In Connection"));
     }
 
     @Test
     public void testSameFlowWithDifferentBundleShouldHaveDifferentFingerprints() throws IOException {
-        final String fp1 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-bundle-1.xml"), null);
+        final String fp1 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-bundle-1.xml"), null);
         assertTrue(fp1.contains("org.apache.nifinifi-standard-nar1.0"));
 
-        final String fp2 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-bundle-2.xml"), null);
+        final String fp2 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-bundle-2.xml"), null);
         assertTrue(fp2.contains("org.apache.nifinifi-standard-nar2.0"));
 
         assertNotEquals(fp1, fp2);
@@ -131,10 +123,10 @@ public class FingerprintFactoryTest {
 
     @Test
     public void testSameFlowAndOneHasNoBundleShouldHaveDifferentFingerprints() throws IOException {
-        final String fp1 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-bundle-1.xml"), null);
+        final String fp1 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-bundle-1.xml"), null);
         assertTrue(fp1.contains("org.apache.nifinifi-standard-nar1.0"));
 
-        final String fp2 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-no-bundle.xml"), null);
+        final String fp2 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-no-bundle.xml"), null);
         assertTrue(fp2.contains("MISSING_BUNDLE"));
 
         assertNotEquals(fp1, fp2);
@@ -142,10 +134,10 @@ public class FingerprintFactoryTest {
 
     @Test
     public void testSameFlowAndOneHasMissingBundleShouldHaveDifferentFingerprints() throws IOException {
-        final String fp1 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-bundle-1.xml"), null);
+        final String fp1 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-bundle-1.xml"), null);
         assertTrue(fp1.contains("org.apache.nifinifi-standard-nar1.0"));
 
-        final String fp2 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-missing-bundle.xml"), null);
+        final String fp2 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-missing-bundle.xml"), null);
         assertTrue(fp2.contains("missingmissingmissing"));
 
         assertNotEquals(fp1, fp2);
@@ -153,64 +145,76 @@ public class FingerprintFactoryTest {
 
     @Test
     public void testConnectionWithMultipleRelationshipsSortedInFingerprint() throws IOException {
-        final String fingerprint = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow-connection-with-multiple-rels.xml"), null);
+        final String fingerprint = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow-connection-with-multiple-rels.xml"), null);
         assertNotNull(fingerprint);
         assertTrue(fingerprint.contains("AAABBBCCCDDD"));
     }
 
     @Test
-    public void testSchemaValidation() throws IOException {
-        FingerprintFactory fp = new FingerprintFactory(null, getValidatingDocumentBuilder(), extensionManager, null);
-        final String fingerprint = fp.createFingerprint(getResourceBytes("/nifi/fingerprint/validating-flow.xml"), null);
+    public void testPublicPortWithAccessPoliciesFingerprint()  throws IOException {
+        final String fingerprint = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1a.xml"), null);
+        // user access control
+        assertTrue(fingerprint.contains("user1"));
+        // group access control
+        assertTrue(fingerprint.contains("group1"));
+        // policies fingerprinted
+        assertTrue(fingerprint.contains("user1group1"));
+    }
+
+    @Test
+    public void testPublicPortWithDifferentFingerprintInAccessPolicies() throws IOException {
+        final String f1 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1a.xml"), null);
+        assertEquals(2, StringUtils.countMatches(f1, "user1group1"));
+
+        final Document document = getDocument("src/test/resources/nifi/fingerprint/public-port-with-no-policies.xml");
+        final Element rootProcessGroup = document.getDocumentElement();
+
+        final StringBuilder sb = new StringBuilder();
+        fingerprintFactory.addProcessGroupFingerprint(sb, rootProcessGroup, new FlowEncodingVersion(1, 0));
+
+        final String f2 = sb.toString();
+        assertEquals(2, StringUtils.countMatches(f1, "NO_USER_ACCESS_CONTROLNO_GROUP_ACCESS_CONTROL"));
+
+        // actual -> Public-IntrueNO_USER_ACCESS_CONTROLNO_GROUP_ACCESS_CONTROL
+        // expected -> Public-Intrueuser1group1
+        assertNotEquals(StringUtils.countMatches(f1, "user1group1"), StringUtils.countMatches(f2, "user1group1"));
+    }
+
+    @Test
+    public void testPublicPortWithNoAccessPoliciesFingerprint() throws IOException {
+        final Document document = getDocument("src/test/resources/nifi/fingerprint/public-port-with-no-policies.xml");
+        final Element rootProcessGroup = document.getDocumentElement();
+
+        final StringBuilder sb = new StringBuilder();
+        fingerprintFactory.addProcessGroupFingerprint(sb, rootProcessGroup, new FlowEncodingVersion(1, 0));
+
+        final String fingerprint = sb.toString();
+        assertTrue(fingerprint.contains("NO_USER_ACCESS_CONTROL"));
+        assertTrue(fingerprint.contains("NO_GROUP_ACCESS_CONTROL"));
+    }
+
+    private Document getDocument(final String filePath) throws IOException {
+        try (final FileInputStream inputStream = new FileInputStream(filePath)) {
+            final DocumentProvider documentProvider = new StandardDocumentProvider();
+            return documentProvider.parse(inputStream);
+        }
     }
 
     private byte[] getResourceBytes(final String resource) throws IOException {
         return IOUtils.toByteArray(FingerprintFactoryTest.class.getResourceAsStream(resource));
     }
 
-    private DocumentBuilder getValidatingDocumentBuilder() {
-        final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-        final Schema schema;
-        try {
-            schema = schemaFactory.newSchema(FingerprintFactory.class.getResource(FLOW_CONFIG_XSD));
-        } catch (final Exception e) {
-            throw new RuntimeException("Failed to parse schema for file flow configuration.", e);
-        }
-        try {
-            DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(schema, true);
-            docBuilder.setErrorHandler(new ErrorHandler() {
-                @Override
-                public void warning(SAXParseException e) throws SAXException {
-                    throw e;
-                }
-
-                @Override
-                public void error(SAXParseException e) throws SAXException {
-                    throw e;
-                }
-
-                @Override
-                public void fatalError(SAXParseException e) throws SAXException {
-                    throw e;
-                }
-            });
-            return docBuilder;
-        } catch (final Exception e) {
-            throw new RuntimeException("Failed to create document builder for flow configuration.", e);
-        }
-    }
-
     private <T> Element serializeElement(final PropertyEncryptor encryptor, final Class<T> componentClass, final T component,
                                          final String serializerMethodName, ScheduledStateLookup scheduledStateLookup) throws Exception {
-        final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(false);
-        final Document doc = docBuilder.newDocument();
+        final DocumentProvider documentProvider = new StandardDocumentProvider();
+        final Document doc = documentProvider.newDocument();
 
-        final FlowSerializer flowSerializer = new StandardFlowSerializer(encryptor);
+        final FlowSerializer flowSerializer = new StandardFlowSerializer();
         final Method serializeMethod = StandardFlowSerializer.class.getDeclaredMethod(serializerMethodName,
-                Element.class, componentClass, ScheduledStateLookup.class);
+                Element.class, componentClass, ScheduledStateLookup.class, PropertyEncryptor.class);
         serializeMethod.setAccessible(true);
         final Element rootElement = doc.createElement("root");
-        serializeMethod.invoke(flowSerializer, rootElement, component, scheduledStateLookup);
+        serializeMethod.invoke(flowSerializer, rootElement, component, scheduledStateLookup, encryptor);
         return rootElement;
     }
 
@@ -220,7 +224,7 @@ public class FingerprintFactoryTest {
         fingerprintFromComponent.setAccessible(true);
 
         final StringBuilder fingerprint = new StringBuilder();
-        fingerprintFromComponent.invoke(fingerprinter, fingerprint, input);
+        fingerprintFromComponent.invoke(fingerprintFactory, fingerprint, input);
         return fingerprint.toString();
     }
 
@@ -285,19 +289,7 @@ public class FingerprintFactoryTest {
         when(component.getProxyPassword()).thenReturn(proxyPassword);
         when(component.getVersionedComponentId()).thenReturn(Optional.empty());
 
-        // Build the same secure hasher to derive the HMAC key
-        Argon2SecureHasher a2sh = new Argon2SecureHasher();
-
-        // The nifi.properties file needs to be present
-        String npsk = niFiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
-
-        // The output will be 32B (256b)
-        byte[] sensitivePropertyKeyBytes = a2sh.hashRaw(npsk.getBytes(StandardCharsets.UTF_8));
-
-        Mac mac = Mac.getInstance("HmacSHA256");
-        mac.init(new SecretKeySpec(sensitivePropertyKeyBytes, "HmacSHA256"));
-        byte[] hashedBytes = mac.doFinal(proxyPassword.getBytes(StandardCharsets.UTF_8));
-        final String hashedProxyPassword = "[MASKED] (" + Base64.getEncoder().encodeToString(hashedBytes) + ")";
+        final String hashedProxyPassword = sensitiveValueEncoder.getEncoded(proxyPassword);
 
         // Assert fingerprints with expected one.
         final String expected = "id" +
@@ -361,13 +353,12 @@ public class FingerprintFactoryTest {
     }
 
     @Test
-    public void testControllerServicesIncludedInGroupFingerprint() throws ParserConfigurationException, IOException, SAXException {
-        final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(false);
-        final Document document = docBuilder.parse(new File("src/test/resources/nifi/fingerprint/group-with-controller-services.xml"));
+    public void testControllerServicesIncludedInGroupFingerprint() throws IOException {
+        final Document document = getDocument("src/test/resources/nifi/fingerprint/group-with-controller-services.xml");
         final Element processGroup = document.getDocumentElement();
 
         final StringBuilder sb = new StringBuilder();
-        fingerprinter.addProcessGroupFingerprint(sb, processGroup, new FlowEncodingVersion(1, 0));
+        fingerprintFactory.addProcessGroupFingerprint(sb, processGroup, new FlowEncodingVersion(1, 0));
 
         final String fingerprint = sb.toString();
         final String[] criticalFingerprintValues = new String[] {
@@ -388,12 +379,16 @@ public class FingerprintFactoryTest {
         return new PropertyEncryptor() {
             @Override
             public String encrypt(String property) {
-                return property;
+                return Hex.encodeHexString(property.getBytes(StandardCharsets.UTF_8));
             }
 
             @Override
             public String decrypt(String encryptedProperty) {
-                return encryptedProperty.substring(4, encryptedProperty.length() - 1);
+                try {
+                    return new String(Hex.decodeHex(encryptedProperty));
+                } catch (DecoderException e) {
+                    throw new IllegalArgumentException(e);
+                }
             }
         };
     }

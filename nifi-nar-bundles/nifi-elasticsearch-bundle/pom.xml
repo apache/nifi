@@ -15,10 +15,9 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
 
-    <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-elasticsearch-bundle</artifactId>
     <packaging>pom</packaging>
 
@@ -29,30 +28,34 @@ language governing permissions and limitations under the License. -->
         <module>nifi-elasticsearch-client-service-nar</module>
         <module>nifi-elasticsearch-nar</module>
         <module>nifi-elasticsearch-processors</module>
-        <module>nifi-elasticsearch-5-nar</module>
-        <module>nifi-elasticsearch-5-processors</module>
         <module>nifi-elasticsearch-restapi-nar</module>
         <module>nifi-elasticsearch-restapi-processors</module>
     </modules>
 
     <dependencyManagement>
         <dependencies>
+            <!-- Override snakeyaml:1.15 from elasticsearch -->
             <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-elasticsearch-processors</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>1.29</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-elasticsearch-5-processors</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <artifactId>nifi-elasticsearch-processors</artifactId>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-elasticsearch-restapi-processors</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
+            </dependency>
+            <!-- Override commons-compress -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.21</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
-
 </project>

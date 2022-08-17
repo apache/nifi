@@ -35,10 +35,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 import com.amazonaws.services.s3.model.ObjectTagging;
 import com.amazonaws.services.s3.model.Tag;
@@ -117,6 +120,11 @@ expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
     @WritesAttribute(attribute = "s3.key", description = "The S3 key within where the Object was put in S3"),
     @WritesAttribute(attribute = "s3.contenttype", description = "The S3 content type of the S3 Object that put in S3"),
     @WritesAttribute(attribute = "s3.version", description = "The version of the S3 Object that was put to S3"),
+    @WritesAttribute(attribute = "s3.exception", description = "The class name of the exception thrown during processor execution"),
+    @WritesAttribute(attribute = "s3.additionalDetails", description = "The S3 supplied detail from the failed operation"),
+    @WritesAttribute(attribute = "s3.statusCode", description = "The HTTP error code (if available) from the failed operation"),
+    @WritesAttribute(attribute = "s3.errorCode", description = "The S3 moniker of the failed operation"),
+    @WritesAttribute(attribute = "s3.errorMessage", description = "The S3 exception message from the failed operation"),
     @WritesAttribute(attribute = "s3.etag", description = "The ETag of the S3 Object"),
     @WritesAttribute(attribute = "s3.contentdisposition", description = "The content disposition of the S3 Object that put in S3"),
     @WritesAttribute(attribute = "s3.cachecontrol", description = "The cache-control header of the S3 Object"),
@@ -134,6 +142,10 @@ public class PutS3Object extends AbstractS3Processor {
     public static final String NO_SERVER_SIDE_ENCRYPTION = "None";
     public static final String CONTENT_DISPOSITION_INLINE = "inline";
     public static final String CONTENT_DISPOSITION_ATTACHMENT = "attachment";
+
+    private static final Set<String> STORAGE_CLASSES = Collections.unmodifiableSortedSet(new TreeSet<>(
+            Arrays.stream(StorageClass.values()).map(StorageClass::name).collect(Collectors.toSet())
+    ));
 
     public static final PropertyDescriptor EXPIRATION_RULE_ID = new PropertyDescriptor.Builder()
             .name("Expiration Time Rule")
@@ -178,9 +190,7 @@ public class PutS3Object extends AbstractS3Processor {
     public static final PropertyDescriptor STORAGE_CLASS = new PropertyDescriptor.Builder()
             .name("Storage Class")
             .required(true)
-            .allowableValues(StorageClass.Standard.name(), StorageClass.IntelligentTiering.name(), StorageClass.StandardInfrequentAccess.name(),
-                    StorageClass.OneZoneInfrequentAccess.name(), StorageClass.Glacier.name(), StorageClass.DeepArchive.name(),
-                    StorageClass.ReducedRedundancy.name(), StorageClass.Outposts.name())
+            .allowableValues(STORAGE_CLASSES)
             .defaultValue(StorageClass.Standard.name())
             .build();
 
@@ -833,6 +843,7 @@ public class PutS3Object extends AbstractS3Processor {
                         new Object[]{cacheKey, e.getMessage()});
             }
         } catch (final ProcessException | AmazonClientException pe) {
+            extractExceptionDetails(pe, session, flowFile);
             if (pe.getMessage().contains(S3_PROCESS_UNSCHEDULED_MESSAGE)) {
                 getLogger().info(pe.getMessage());
                 session.rollback();

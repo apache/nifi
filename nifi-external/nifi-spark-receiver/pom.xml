@@ -18,32 +18,54 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-external</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-spark-receiver</artifactId>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-streaming_2.10</artifactId>
+            <artifactId>spark-streaming_2.13</artifactId>
             <scope>provided</scope>
-            <version>1.6.0</version>
+            <version>3.3.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-core</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>log4j-over-slf4j</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-site-to-site-client</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.sun.jersey</groupId>
-            <artifactId>jersey-server</artifactId>
-            <version>1.2</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>${jackson-databind.version}</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <!-- Override Hadoop -->
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-client-api</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-client-runtime</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>

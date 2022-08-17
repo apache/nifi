@@ -28,7 +28,9 @@ import org.apache.nifi.serialization.WriteResult;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 public class MockRecordWriter extends AbstractControllerService implements RecordSetWriterFactory {
@@ -37,12 +39,14 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
     private final boolean quoteValues;
     private final boolean bufferOutput;
 
+    private final RecordSchema writeSchema;
+
     public MockRecordWriter() {
         this(null);
     }
 
     public MockRecordWriter(final String header) {
-        this(header, true, -1, false);
+        this(header, true, -1, false, null);
     }
 
     public MockRecordWriter(final String header, final boolean quoteValues) {
@@ -50,23 +54,24 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
     }
 
     public MockRecordWriter(final String header, final boolean quoteValues, final int failAfterN) {
-        this(header, quoteValues, failAfterN, false);
+        this(header, quoteValues, failAfterN, false, null);
     }
 
     public MockRecordWriter(final String header, final boolean quoteValues, final boolean bufferOutput) {
-        this(header, quoteValues, -1, bufferOutput);
+        this(header, quoteValues, -1, bufferOutput, null);
     }
 
-    public MockRecordWriter(final String header, final boolean quoteValues, final int failAfterN, final boolean bufferOutput) {
+    public MockRecordWriter(final String header, final boolean quoteValues, final int failAfterN, final boolean bufferOutput, final RecordSchema writeSchema) {
         this.header = header;
         this.quoteValues = quoteValues;
         this.failAfterN = failAfterN;
         this.bufferOutput = bufferOutput;
+        this.writeSchema = writeSchema;
     }
 
     @Override
     public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
-        return new SimpleRecordSchema(Collections.emptyList());
+        return (writeSchema != null) ? writeSchema : new SimpleRecordSchema(Collections.emptyList());
     }
 
     @Override
@@ -77,6 +82,8 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
             private int recordCount = 0;
             private boolean headerWritten = false;
 
+            private RecordSchema writerSchema = schema;
+
             @Override
             public void flush() throws IOException {
                 out.flush();
@@ -85,7 +92,7 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
             @Override
             public WriteResult write(final RecordSet rs) throws IOException {
                 if (header != null && !headerWritten) {
-                    out.write(header.getBytes());
+                    out.write(header.getBytes(StandardCharsets.UTF_8));
                     out.write("\n".getBytes());
                     headerWritten = true;
                 }
@@ -97,18 +104,26 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
                         throw new IOException("Unit Test intentionally throwing IOException after " + failAfterN + " records were written");
                     }
 
-                    final int numCols = record.getSchema().getFieldCount();
+                    final int numCols;
+                    final List<String> fieldNames;
+                    if (this.writerSchema != null && this.writerSchema.getFieldCount() != 0) {
+                        fieldNames = this.writerSchema.getFieldNames();
+                        numCols = this.writerSchema.getFieldCount();
+                    } else {
+                        fieldNames = record.getSchema().getFieldNames();
+                        numCols = record.getSchema().getFieldCount();
+                    }
 
                     int i = 0;
-                    for (final String fieldName : record.getSchema().getFieldNames()) {
+                    for (final String fieldName : fieldNames) {
                         final String val = record.getAsString(fieldName);
                         if (val != null) {
                             if (quoteValues) {
                                 out.write("\"".getBytes());
-                                out.write(val.getBytes());
+                                out.write(val.getBytes(StandardCharsets.UTF_8));
                                 out.write("\"".getBytes());
                             } else {
-                                out.write(val.getBytes());
+                                out.write(val.getBytes(StandardCharsets.UTF_8));
                             }
                         }
 
@@ -134,14 +149,22 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
                 }
 
                 if (header != null && !headerWritten) {
-                    out.write(header.getBytes());
+                    out.write(header.getBytes(StandardCharsets.UTF_8));
                     out.write("\n".getBytes());
                     headerWritten = true;
                 }
 
-                final int numCols = record.getSchema().getFieldCount();
+                final int numCols;
+                final List<String> fieldNames;
+                if (this.writerSchema != null && this.writerSchema.getFieldCount() != 0) {
+                    fieldNames = this.writerSchema.getFieldNames();
+                    numCols = this.writerSchema.getFieldCount();
+                } else {
+                    fieldNames = record.getSchema().getFieldNames();
+                    numCols = record.getSchema().getFieldCount();
+                }
                 int i = 0;
-                for (final String fieldName : record.getSchema().getFieldNames()) {
+                for (final String fieldName : fieldNames) {
                     final String val = record.getAsString(fieldName);
                     if (val != null) {
                         if (quoteValues) {

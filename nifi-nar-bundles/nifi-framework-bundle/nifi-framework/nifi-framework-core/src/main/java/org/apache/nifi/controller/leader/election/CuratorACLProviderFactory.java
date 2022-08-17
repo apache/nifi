@@ -17,6 +17,8 @@
 
 package org.apache.nifi.controller.leader.election;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -26,8 +28,6 @@ import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
-
-import com.google.common.collect.Lists;
 
 public class CuratorACLProviderFactory {
 
@@ -61,7 +61,7 @@ public class CuratorACLProviderFactory {
                     principal.append(realm);
                 }
 
-                this.acls = Lists.newArrayList(new ACL(ZooDefs.Perms.ALL, new Id(SASL_AUTH_SCHEME, principal.toString())));
+                this.acls = new ArrayList<>(Arrays.asList(new ACL(ZooDefs.Perms.ALL, new Id(SASL_AUTH_SCHEME, principal.toString()))));
                 this.acls.addAll(ZooDefs.Ids.READ_ACL_UNSAFE);
 
             }else{

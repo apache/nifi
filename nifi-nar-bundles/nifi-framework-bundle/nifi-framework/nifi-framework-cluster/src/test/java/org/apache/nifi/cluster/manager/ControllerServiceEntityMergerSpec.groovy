@@ -110,6 +110,7 @@ class ControllerServiceEntityMergerSpec extends Specification {
         [(createNodeIdentifier(1)): new ControllerServiceEntity(id: '1',
                 permissions: new PermissionsDTO(canRead: true, canWrite: true),
                 operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
+                bulletins: [],
                 component: new ControllerServiceDTO(referencingComponents: [new ControllerServiceReferencingComponentEntity(
                         permissions: new PermissionsDTO(canRead: true, canWrite: true),
                         operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
@@ -118,6 +119,7 @@ class ControllerServiceEntityMergerSpec extends Specification {
          (createNodeIdentifier(2)): new ControllerServiceEntity(id: '1',
                  permissions: new PermissionsDTO(canRead: true, canWrite: true),
                  operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
+                 bulletins: [],
                  component: new ControllerServiceDTO(referencingComponents: [new ControllerServiceReferencingComponentEntity(
                          permissions: new PermissionsDTO(canRead: true, canWrite: true),
                          operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
@@ -126,6 +128,7 @@ class ControllerServiceEntityMergerSpec extends Specification {
          (createNodeIdentifier(3)): new ControllerServiceEntity(id: '1',
                  permissions: new PermissionsDTO(canRead: true, canWrite: true),
                  operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
+                 bulletins: [],
                  component: new ControllerServiceDTO(referencingComponents: [new ControllerServiceReferencingComponentEntity(
                          permissions: new PermissionsDTO(canRead: true, canWrite: true),
                          operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
@@ -139,6 +142,7 @@ class ControllerServiceEntityMergerSpec extends Specification {
                                 referencingComponents: [new ControllerServiceReferencingComponentEntity(
                                         permissions: new PermissionsDTO(canRead: true, canWrite: true),
                                         operatePermissions: new PermissionsDTO(canRead: false, canWrite: true),
+                                        bulletins: [],
                                         component: new ControllerServiceReferencingComponentDTO(activeThreadCount: 3, state: ControllerServiceState.ENABLING.name()))]))
     }
 

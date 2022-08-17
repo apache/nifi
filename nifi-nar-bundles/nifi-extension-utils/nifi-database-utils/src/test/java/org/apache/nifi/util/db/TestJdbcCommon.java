@@ -27,11 +27,13 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.util.Utf8;
 import org.apache.commons.io.input.ReaderInputStream;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.apache.derby.jdbc.EmbeddedDriver;
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
@@ -40,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.CharArrayReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
@@ -48,40 +51,37 @@ import java.math.BigInteger;
 import java.math.MathContext;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.temporal.ChronoField;
-import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalAccessor;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -89,10 +89,6 @@ public class TestJdbcCommon {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TestJdbcCommon.class);
     static final String createTable = "create table restaurants(id integer, name varchar(20), city varchar(50))";
-    static final String dropTable = "drop table restaurants";
-
-    @ClassRule
-    public static TemporaryFolder folder = new TemporaryFolder();
 
     /**
      * Setting up Connection is expensive operation.
@@ -100,19 +96,42 @@ public class TestJdbcCommon {
      */
     static protected Connection con;
 
-    @BeforeClass
-    public static void setup() throws ClassNotFoundException, SQLException {
-        System.setProperty("derby.stream.error.file", "target/derby.log");
-        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-        // remove previous test database, if any
-        folder.delete();
+    private File tempFile;
 
-        String location = folder.getRoot().getAbsolutePath();
+    @BeforeAll
+    public static void beforeAll() throws ClassNotFoundException {
+        final File derbyLog = new File(System.getProperty("java.io.tmpdir"), "derby.log");
+        derbyLog.deleteOnExit();
+        System.setProperty(DERBY_LOG_PROPERTY, derbyLog.getAbsolutePath());
+        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+    }
+
+    @AfterAll
+    public static void clearDerbyLog() {
+        System.clearProperty(DERBY_LOG_PROPERTY);
+    }
+
+    @BeforeEach
+    public void setup() throws ClassNotFoundException, SQLException, IOException {
+        DriverManager.registerDriver(new EmbeddedDriver());
+        tempFile = new File(System.getProperty("java.io.tmpdir"), (this.getClass().getSimpleName() + "-" + UUID.randomUUID()));
+        String location = tempFile.getAbsolutePath();
         con = DriverManager.getConnection("jdbc:derby:" + location + ";create=true");
         try (final Statement stmt = con.createStatement()) {
             stmt.executeUpdate(createTable);
         }
     }
+
+    @AfterEach
+    public void cleanup() throws IOException {
+        if (tempFile.exists()) {
+            final SQLException exception = assertThrows(SQLException.class, () -> DriverManager.getConnection("jdbc:derby:;shutdown=true"));
+            assertEquals("XJ015", exception.getSQLState());
+            FileUtils.deleteFile(tempFile, true);
+        }
+    }
+
+    private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
 
     @Test
     public void testCreateSchema() throws ClassNotFoundException, SQLException {
@@ -264,7 +283,7 @@ public class TestJdbcCommon {
                 JdbcCommon.createSchema(rs);
             } catch (final IllegalArgumentException | SQLException sqle) {
                 sqle.printStackTrace();
-                Assert.fail("Failed when using type " + field.getName());
+                fail("Failed when using type " + field.getName());
             }
         }
     }
@@ -282,11 +301,11 @@ public class TestJdbcCommon {
         when(rs.getMetaData()).thenReturn(metadata);
 
         Schema schema = JdbcCommon.createSchema(rs);
-        Assert.assertNotNull(schema);
+        assertNotNull(schema);
 
         Schema.Field field = schema.getField("Col1");
         Schema fieldSchema = field.schema();
-        Assert.assertEquals(2, fieldSchema.getTypes().size());
+        assertEquals(2, fieldSchema.getTypes().size());
 
         boolean foundIntSchema = false;
         boolean foundNullSchema = false;
@@ -317,11 +336,11 @@ public class TestJdbcCommon {
         when(rs.getMetaData()).thenReturn(metadata);
 
         Schema schema = JdbcCommon.createSchema(rs);
-        Assert.assertNotNull(schema);
+        assertNotNull(schema);
 
         Schema.Field field = schema.getField("Col1");
         Schema fieldSchema = field.schema();
-        Assert.assertEquals(2, fieldSchema.getTypes().size());
+        assertEquals(2, fieldSchema.getTypes().size());
 
         boolean foundLongSchema = false;
         boolean foundNullSchema = false;
@@ -352,11 +371,11 @@ public class TestJdbcCommon {
         when(rs.getMetaData()).thenReturn(metadata);
 
         Schema schema = JdbcCommon.createSchema(rs);
-        Assert.assertNotNull(schema);
+        assertNotNull(schema);
 
         Schema.Field field = schema.getField("Col1");
         Schema fieldSchema = field.schema();
-        Assert.assertEquals(2, fieldSchema.getTypes().size());
+        assertEquals(2, fieldSchema.getTypes().size());
 
         boolean foundIntSchema = false;
         boolean foundNullSchema = false;
@@ -387,11 +406,11 @@ public class TestJdbcCommon {
         when(rs.getMetaData()).thenReturn(metadata);
 
         Schema schema = JdbcCommon.createSchema(rs);
-        Assert.assertNotNull(schema);
+        assertNotNull(schema);
 
         Schema.Field field = schema.getField("Col1");
         Schema fieldSchema = field.schema();
-        Assert.assertEquals(2, fieldSchema.getTypes().size());
+        assertEquals(2, fieldSchema.getTypes().size());
 
         boolean foundLongSchema = false;
         boolean foundNullSchema = false;
@@ -425,7 +444,37 @@ public class TestJdbcCommon {
         testConvertToAvroStreamForBigDecimal(bigDecimal, dbPrecision, 24, 24, expectedScale);
     }
 
+    @Test
+    public void testConvertToAvroStreamForBigDecimalWithScaleLargerThanPrecision() throws SQLException, IOException {
+        final int expectedScale = 6; // Scale can be larger than precision in Oracle
+        final int dbPrecision = 5;
+        final BigDecimal bigDecimal = new BigDecimal("0.000123", new MathContext(dbPrecision));
+        // If db doesn't return a precision, default precision should be used.
+        testConvertToAvroStreamForBigDecimal(bigDecimal, dbPrecision, 10, expectedScale, expectedScale);
+    }
+
+    @Test
+    public void testConvertToAvroStreamForBigDecimalWithZeroScale() throws SQLException, IOException {
+        final int dbPrecision = 5;
+        final int dbScale = 0;
+
+        final int expectedPrecision = dbPrecision;
+        final int expectedScale = dbScale;
+
+        final int defaultPrecision = 15;
+        final int defaultScale = 15;
+
+        final BigDecimal bigDecimal = new BigDecimal("1.123", new MathContext(dbPrecision));
+        final BigDecimal expectedValue = new BigDecimal("1");
+        testConvertToAvroStreamForBigDecimal(bigDecimal, expectedValue, dbPrecision, dbScale, defaultPrecision, defaultScale, expectedPrecision, expectedScale);
+    }
+
     private void testConvertToAvroStreamForBigDecimal(BigDecimal bigDecimal, int dbPrecision, int defaultPrecision, int expectedPrecision, int expectedScale) throws SQLException, IOException {
+        testConvertToAvroStreamForBigDecimal(bigDecimal, bigDecimal, dbPrecision, expectedScale, defaultPrecision, -1, expectedPrecision, expectedScale);
+    }
+
+    private void testConvertToAvroStreamForBigDecimal(BigDecimal bigDecimal, BigDecimal expectedValue, int dbPrecision, int dbScale, int defaultPrecision, int defaultScale,
+                                                      int expectedPrecision, int expectedScale) throws SQLException, IOException {
 
         final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
         when(metadata.getColumnCount()).thenReturn(1);
@@ -433,7 +482,7 @@ public class TestJdbcCommon {
         when(metadata.getColumnName(1)).thenReturn("The.Chairman");
         when(metadata.getTableName(1)).thenReturn("1the::table");
         when(metadata.getPrecision(1)).thenReturn(dbPrecision);
-        when(metadata.getScale(1)).thenReturn(expectedScale);
+        when(metadata.getScale(1)).thenReturn(dbScale);
 
         final ResultSet rs = JdbcCommonTestUtils.resultSetReturningMetadata(metadata);
 
@@ -441,8 +490,11 @@ public class TestJdbcCommon {
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        final JdbcCommon.AvroConversionOptions options = JdbcCommon.AvroConversionOptions
-                .builder().convertNames(true).useLogicalTypes(true).defaultPrecision(defaultPrecision).build();
+        final JdbcCommon.AvroConversionOptions.Builder optionsBuilder = JdbcCommon.AvroConversionOptions
+                .builder().convertNames(true).useLogicalTypes(true).defaultPrecision(defaultPrecision);
+        if (defaultScale > -1) optionsBuilder.defaultScale(defaultScale);
+
+        final JdbcCommon.AvroConversionOptions options = optionsBuilder.build();
         JdbcCommon.convertToAvroStream(rs, baos, options, null);
 
         final byte[] serializedBytes = baos.toByteArray();
@@ -468,7 +520,7 @@ public class TestJdbcCommon {
             while (dataFileReader.hasNext()) {
                 record = dataFileReader.next(record);
                 assertEquals("_1the__table", record.getSchema().getName());
-                assertEquals(bigDecimal, record.get("The_Chairman"));
+                assertEquals(expectedValue, record.get("The_Chairman"));
             }
         }
     }
@@ -581,6 +633,41 @@ public class TestJdbcCommon {
     }
 
     @Test
+    public void testConvertToAvroStreamForBlob_FreeNotSupported() throws SQLException, IOException {
+        final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
+        when(metadata.getColumnCount()).thenReturn(1);
+        when(metadata.getColumnType(1)).thenReturn(Types.BLOB);
+        when(metadata.getColumnName(1)).thenReturn("t_blob");
+        when(metadata.getTableName(1)).thenReturn("table");
+
+        final ResultSet rs = JdbcCommonTestUtils.resultSetReturningMetadata(metadata);
+
+        final byte[] byteBuffer = "test blob".getBytes(StandardCharsets.UTF_8);
+        when(rs.getObject(Mockito.anyInt())).thenReturn(byteBuffer);
+
+        ByteArrayInputStream bais = new ByteArrayInputStream(byteBuffer);
+        Blob blob = mock(Blob.class);
+        when(blob.getBinaryStream()).thenReturn(bais);
+        when(blob.length()).thenReturn((long) byteBuffer.length);
+        doThrow(SQLFeatureNotSupportedException.class).when(blob).free();
+        when(rs.getBlob(Mockito.anyInt())).thenReturn(blob);
+
+        final InputStream instream = JdbcCommonTestUtils.convertResultSetToAvroInputStream(rs);
+
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+        try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
+            GenericRecord record = null;
+            while (dataFileReader.hasNext()) {
+                record = dataFileReader.next(record);
+                Object o = record.get("t_blob");
+                assertTrue(o instanceof ByteBuffer);
+                ByteBuffer bb = (ByteBuffer) o;
+                assertEquals("test blob", new String(bb.array(), StandardCharsets.UTF_8));
+            }
+        }
+    }
+
+    @Test
     public void testConvertToAvroStreamForShort() throws SQLException, IOException {
         final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
         when(metadata.getColumnCount()).thenReturn(1);
@@ -680,7 +767,7 @@ public class TestJdbcCommon {
 
         testConvertToAvroStreamForDateTime(options,
                 (record, date) -> {
-                    final int expectedDaysSinceEpoch = (int) ChronoUnit.DAYS.between(LocalDate.ofEpochDay(0), date.toLocalDate());
+                    final int expectedDaysSinceEpoch = (int) date.toLocalDate().toEpochDay();
                     final int actualDaysSinceEpoch = (int) record.get("date");
                     LOGGER.debug("comparing days since epoch, expecting '{}', actual '{}'", expectedDaysSinceEpoch, actualDaysSinceEpoch);
                     assertEquals(expectedDaysSinceEpoch, actualDaysSinceEpoch);
@@ -710,48 +797,22 @@ public class TestJdbcCommon {
         final ResultSet rs = mock(ResultSet.class);
         when(rs.getMetaData()).thenReturn(metadata);
 
-        // create a ZonedDateTime (UTC) given a formatting pattern and a date/time string
-        BiFunction<String, String, ZonedDateTime> toZonedDateTime = (format, dateStr) -> {
-            DateTimeFormatterBuilder dateTimeFormatterBuilder = new DateTimeFormatterBuilder().appendPattern(format);
-            TemporalAccessor temporalAccessor = DateTimeFormatter.ofPattern(format).parse(dateStr);
-            if (!temporalAccessor.isSupported(ChronoField.EPOCH_DAY)) {
-                ZonedDateTime utcNow = LocalDateTime.now().atZone(ZoneId.systemDefault());
-                dateTimeFormatterBuilder.parseDefaulting(ChronoField.DAY_OF_MONTH, utcNow.getDayOfMonth())
-                        .parseDefaulting(ChronoField.MONTH_OF_YEAR, utcNow.getMonthValue())
-                        .parseDefaulting(ChronoField.YEAR, utcNow.getYear());
-
-            }
-            if (!temporalAccessor.isSupported(ChronoField.MILLI_OF_SECOND)) {
-                dateTimeFormatterBuilder.parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
-                        .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
-                        .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0);
-            }
-            DateTimeFormatter formatter = dateTimeFormatterBuilder.toFormatter();
-            LocalDateTime dateTime = LocalDateTime.parse(dateStr, formatter);
-            ZonedDateTime zonedDateTime = dateTime.atZone(ZoneOffset.UTC).withZoneSameInstant(ZoneOffset.UTC);
-            LOGGER.debug("calculated ZonedDateTime '{}' from format '{}', date/time string '{}'", zonedDateTime, format, dateStr);
-            return zonedDateTime;
-        };
-
         when(metadata.getColumnCount()).thenReturn(3);
         when(metadata.getTableName(anyInt())).thenReturn("table");
 
         when(metadata.getColumnType(1)).thenReturn(Types.DATE);
         when(metadata.getColumnName(1)).thenReturn("date");
-        ZonedDateTime parsedDate = toZonedDateTime.apply("yyyy/MM/dd", "2017/05/10");
-        final java.sql.Date date = java.sql.Date.valueOf(parsedDate.toLocalDate());
+        final java.sql.Date date = java.sql.Date.valueOf("2017-05-10");
         when(rs.getObject(1)).thenReturn(date);
 
         when(metadata.getColumnType(2)).thenReturn(Types.TIME);
         when(metadata.getColumnName(2)).thenReturn("time");
-        ZonedDateTime parsedTime = toZonedDateTime.apply("HH:mm:ss.SSS", "12:34:56.789");
-        final Time time = Time.valueOf(parsedTime.toLocalTime());
+        final Time time = Time.valueOf("12:34:56");
         when(rs.getObject(2)).thenReturn(time);
 
         when(metadata.getColumnType(3)).thenReturn(Types.TIMESTAMP);
         when(metadata.getColumnName(3)).thenReturn("timestamp");
-        ZonedDateTime parsedDateTime = toZonedDateTime.apply("yyyy/MM/dd HH:mm:ss.SSS", "2017/05/11 19:59:39.123");
-        final Timestamp timestamp = Timestamp.valueOf(parsedDateTime.toLocalDateTime());
+        final Timestamp timestamp = Timestamp.valueOf("2017-05-11 19:59:39");
         when(rs.getObject(3)).thenReturn(timestamp);
 
         final AtomicInteger counter = new AtomicInteger(1);

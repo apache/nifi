@@ -28,19 +28,18 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 
 public class TestLoggingRecordSink {
@@ -48,7 +47,7 @@ public class TestLoggingRecordSink {
     private LoggingRecordSink recordSink;
     private RecordSet recordSet;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         recordSink = new LoggingRecordSink();
@@ -82,13 +81,10 @@ public class TestLoggingRecordSink {
 
     @Test
     public void testLogging() {
-        try {
+        assertDoesNotThrow(() -> {
             final WriteResult writeResult = recordSink.sendData(recordSet, Collections.emptyMap(), false);
             assertNotNull(writeResult);
             assertEquals(2, writeResult.getRecordCount());
-        } catch (IOException ioe) {
-            fail("Should have completed successfully");
-        }
+        }, "Should have completed successfully");
     }
-
 }

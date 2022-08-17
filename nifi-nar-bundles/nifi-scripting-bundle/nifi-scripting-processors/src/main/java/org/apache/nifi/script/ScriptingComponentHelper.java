@@ -20,56 +20,55 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceReferences;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processors.script.ScriptEngineConfigurator;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.script.ScriptRunner;
 import org.apache.nifi.util.StringUtils;
 
-import javax.script.ScriptEngine;
+import javax.script.Invocable;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
-import java.io.File;
-import java.net.MalformedURLException;
+import javax.script.ScriptException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
 
 /**
  * This class contains variables and methods common to scripting processors, reporting tasks, etc.
  */
 public class ScriptingComponentHelper {
+    private static final String UNKNOWN_VERSION = "UNKNOWN";
 
     public PropertyDescriptor SCRIPT_ENGINE;
 
-    // A map from engine name to a custom configurator for that engine
-    public final Map<String, ScriptEngineConfigurator> scriptEngineConfiguratorMap = new ConcurrentHashMap<>();
     public final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     public Map<String, ScriptEngineFactory> scriptEngineFactoryMap;
     private String scriptEngineName;
     private String scriptPath;
     private String scriptBody;
-    private String[] modules;
     private List<PropertyDescriptor> descriptors;
     private List<AllowableValue> engineAllowableValues;
+    private ResourceReferences modules;
 
-    public BlockingQueue<ScriptEngine> engineQ = null;
+    public BlockingQueue<ScriptRunner> scriptRunnerQ = null;
 
     public String getScriptEngineName() {
         return scriptEngineName;
@@ -96,10 +95,10 @@ public class ScriptingComponentHelper {
     }
 
     public String[] getModules() {
-        return modules;
+        return modules.asLocations().toArray(new String[0]);
     }
 
-    public void setModules(String[] modules) {
+    public void setModules(final ResourceReferences modules) {
         this.modules = modules;
     }
 
@@ -136,14 +135,18 @@ public class ScriptingComponentHelper {
         return results;
     }
 
+    public void createResources() {
+        createResources(true);
+    }
+
     /**
      * This method creates all resources needed for the script processor to function, such as script engines,
      * script file reloader threads, etc.
      */
-    public void createResources() {
+    public void createResources(final boolean requireInvocable) {
         descriptors = new ArrayList<>();
         // The following is required for JRuby, should be transparent to everything else.
-        // Note this is not done in a ScriptEngineConfigurator, as it is too early in the lifecycle. The
+        // Note this is not done in a ScriptRunner, as it is too early in the lifecycle. The
         // setting must be there before the factories/engines are loaded.
         System.setProperty("org.jruby.embed.localvariable.behavior", "persistent");
 
@@ -154,12 +157,15 @@ public class ScriptingComponentHelper {
             scriptEngineFactoryMap = new HashMap<>(scriptEngineFactories.size());
             List<AllowableValue> engineList = new LinkedList<>();
             for (ScriptEngineFactory factory : scriptEngineFactories) {
-                engineList.add(new AllowableValue(factory.getLanguageName()));
-                scriptEngineFactoryMap.put(factory.getLanguageName(), factory);
+                if (!requireInvocable || factory.getScriptEngine() instanceof Invocable) {
+                    final AllowableValue scriptEngineAllowableValue = getScriptLanguageAllowableValue(factory);
+                    engineList.add(scriptEngineAllowableValue);
+                    scriptEngineFactoryMap.put(factory.getLanguageName(), factory);
+                }
             }
 
             // Sort the list by name so the list always looks the same.
-            Collections.sort(engineList, (o1, o2) -> {
+            engineList.sort((o1, o2) -> {
                 if (o1 == null) {
                     return o2 == null ? 0 : 1;
                 }
@@ -170,7 +176,7 @@ public class ScriptingComponentHelper {
             });
 
             engineAllowableValues = engineList;
-            AllowableValue[] engines = engineList.toArray(new AllowableValue[engineList.size()]);
+            AllowableValue[] engines = engineList.toArray(new AllowableValue[0]);
 
             SCRIPT_ENGINE = new PropertyDescriptor.Builder()
                     .name("Script Engine")
@@ -201,59 +207,32 @@ public class ScriptingComponentHelper {
         return path != null && Files.isRegularFile(Paths.get(path));
     }
 
-    /**
-     * Performs common setup operations when the processor is scheduled to run. This method assumes the member
-     * variables associated with properties have been filled.
-     *
-     * @param numberOfScriptEngines number of engines to setup
-     */
-    public void setup(int numberOfScriptEngines, ComponentLog log) {
-
-        if (scriptEngineConfiguratorMap.isEmpty()) {
-            ServiceLoader<ScriptEngineConfigurator> configuratorServiceLoader =
-                    ServiceLoader.load(ScriptEngineConfigurator.class);
-            for (ScriptEngineConfigurator configurator : configuratorServiceLoader) {
-                scriptEngineConfiguratorMap.put(configurator.getScriptEngineName().toLowerCase(), configurator);
-            }
-        }
-        setupEngines(numberOfScriptEngines, log);
+    public void setupScriptRunners(final int numberOfScriptEngines, final String scriptToRun, final ComponentLog log) {
+        setupScriptRunners(true, numberOfScriptEngines, scriptToRun, log);
     }
 
     /**
-     * Configures the specified script engine. First, the engine is loaded and instantiated using the JSR-223
+     * Configures the specified script engine(s) as a queue of ScriptRunners. First, the engine is loaded and instantiated using the JSR-223
      * javax.script APIs. Then, if any script configurators have been defined for this engine, their init() method is
      * called, and the configurator is saved for future calls.
      *
      * @param numberOfScriptEngines number of engines to setup
-     * @see org.apache.nifi.processors.script.ScriptEngineConfigurator
+     * @see org.apache.nifi.processors.script.ScriptRunner
      */
-    protected void setupEngines(int numberOfScriptEngines, ComponentLog log) {
-        engineQ = new LinkedBlockingQueue<>(numberOfScriptEngines);
+    public void setupScriptRunners(final boolean newQ, final int numberOfScriptEngines, final String scriptToRun, final ComponentLog log) {
+        if (newQ) {
+            scriptRunnerQ = new LinkedBlockingQueue<>(numberOfScriptEngines);
+        }
         ClassLoader originalContextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             if (StringUtils.isBlank(scriptEngineName)) {
                 throw new IllegalArgumentException("The script engine name cannot be null");
             }
 
-            ScriptEngineConfigurator configurator = scriptEngineConfiguratorMap.get(scriptEngineName.toLowerCase());
-
             // Get a list of URLs from the configurator (if present), or just convert modules from Strings to URLs
-            URL[] additionalClasspathURLs = null;
-            if (configurator != null) {
-                additionalClasspathURLs = configurator.getModuleURLsForClasspath(modules, log);
-            } else {
-                if (modules != null) {
-                    List<URL> urls = new LinkedList<>();
-                    for (String modulePathString : modules) {
-                        try {
-                            urls.add(new File(modulePathString).toURI().toURL());
-                        } catch (MalformedURLException mue) {
-                            log.error("{} is not a valid file, ignoring", new Object[]{modulePathString}, mue);
-                        }
-                    }
-                    additionalClasspathURLs = urls.toArray(new URL[urls.size()]);
-                }
-            }
+            final String[] locations = modules.asLocations().toArray(new String[0]);
+            final URL[] additionalClasspathURLs = ScriptRunnerFactory.getInstance().getModuleURLsForClasspath(scriptEngineName, locations, log);
+
 
             // Need the right classloader when the engine is created. This ensures the NAR's execution class loader
             // (plus the module path) becomes the parent for the script engine
@@ -264,11 +243,17 @@ public class ScriptingComponentHelper {
                 Thread.currentThread().setContextClassLoader(scriptEngineModuleClassLoader);
             }
 
-            for (int i = 0; i < numberOfScriptEngines; i++) {
-                ScriptEngine scriptEngine = createScriptEngine();
-                if (!engineQ.offer(scriptEngine)) {
-                    log.error("Error adding script engine {}", new Object[]{scriptEngine.getFactory().getEngineName()});
+            try {
+                for (int i = 0; i < numberOfScriptEngines; i++) {
+                    //
+                    ScriptEngineFactory factory = scriptEngineFactoryMap.get(scriptEngineName);
+                    ScriptRunner scriptRunner = ScriptRunnerFactory.getInstance().createScriptRunner(factory, scriptToRun, locations);
+                    if (!scriptRunnerQ.offer(scriptRunner)) {
+                        log.error("Error adding script engine {}", scriptRunner.getScriptEngineName());
+                    }
                 }
+            } catch (ScriptException se) {
+                throw new ProcessException("Could not instantiate script engines", se);
             }
         } finally {
             // Restore original context class loader
@@ -280,35 +265,21 @@ public class ScriptingComponentHelper {
         scriptEngineName = context.getProperty(SCRIPT_ENGINE).getValue();
         scriptPath = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
         scriptBody = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
-        String modulePath = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().getValue();
-        if (!StringUtils.isEmpty(modulePath)) {
-            modules = modulePath.split(",");
-        } else {
-            modules = new String[0];
-        }
-    }
-
-
-    /**
-     * Provides a ScriptEngine corresponding to the currently selected script engine name.
-     * ScriptEngineManager.getEngineByName() doesn't use find ScriptEngineFactory.getName(), which
-     * is what we used to populate the list. So just search the list of factories until a match is
-     * found, then create and return a script engine.
-     *
-     * @return a Script Engine corresponding to the currently specified name, or null if none is found.
-     */
-    protected ScriptEngine createScriptEngine() {
-        //
-        ScriptEngineFactory factory = scriptEngineFactoryMap.get(scriptEngineName);
-        if (factory == null) {
-            return null;
-        }
-        return factory.getScriptEngine();
+        modules = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().asResources().flattenRecursively();
     }
 
     public void stop() {
-        if (engineQ != null) {
-            engineQ.clear();
+        if (scriptRunnerQ != null) {
+            scriptRunnerQ.clear();
         }
+    }
+
+    private AllowableValue getScriptLanguageAllowableValue(final ScriptEngineFactory factory) {
+        final String languageName = factory.getLanguageName();
+        final String languageVersion = defaultIfBlank(factory.getLanguageVersion(), UNKNOWN_VERSION);
+        final String engineVersion = defaultIfBlank(factory.getEngineVersion(), UNKNOWN_VERSION);
+
+        final String description = String.format("%s %s [%s %s]", languageName, languageVersion, factory.getEngineName(), engineVersion);
+        return new AllowableValue(languageName, languageName, description);
     }
 }

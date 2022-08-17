@@ -20,6 +20,7 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Optional;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -138,7 +139,6 @@ public final class SslContextFactory {
      * @return an array of KeyManagers (can be {@code null})
      * @throws TlsException if there is a problem reading the keystore to create the key managers
      */
-    @SuppressWarnings("RedundantCast")
     protected static KeyManager[] getKeyManagers(TlsConfiguration tlsConfiguration) throws TlsException {
         KeyManager[] keyManagers = null;
         if (tlsConfiguration.isKeystoreValid()) {
@@ -168,8 +168,8 @@ public final class SslContextFactory {
      * @return the loaded trust managers
      * @throws TlsException if there is a problem reading from the truststore
      */
-    @SuppressWarnings("RedundantCast")
-    public static TrustManager[] getTrustManagers(TlsConfiguration tlsConfiguration) throws TlsException {
+    public static TrustManager[] getTrustManagers(final TlsConfiguration tlsConfiguration) throws TlsException {
+        Objects.requireNonNull(tlsConfiguration, "TLS Configuration required");
         TrustManager[] trustManagers = null;
         if (tlsConfiguration.isTruststoreValid()) {
             TrustManagerFactory trustManagerFactory = KeyStoreUtils.loadTrustManagerFactory(tlsConfiguration);
@@ -193,7 +193,7 @@ public final class SslContextFactory {
             sslContext.init(keyManagers, trustManagers, new SecureRandom());
             return sslContext;
         } catch (final NoSuchAlgorithmException | KeyManagementException e) {
-            logger.error("Encountered an error creating SSLContext from TLS configuration ({}): {}", tlsConfiguration.toString(), e.getLocalizedMessage());
+            logger.error("Encountered an error creating SSLContext from TLS configuration ({}): {}", tlsConfiguration, e.getLocalizedMessage());
             throw new TlsException("Error creating SSL context", e);
         }
     }

@@ -245,6 +245,11 @@ SERVICEDESCRIPTOR
         ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/K65${SVC_NAME}" || { echo "Could not create link /etc/rc2.d/K65${SVC_NAME}"; exit 1; }
         echo "Service ${SVC_NAME} installed"
     fi
+
+    # systemd: generate nifi.service from init.d
+    if [ -d "/run/systemd/system/" ] || [ ! -z "$(pidof systemd 2>/dev/null)" ]; then
+        systemctl daemon-reload
+    fi
 }
 
 is_nonzero_integer() {
@@ -321,17 +326,52 @@ run() {
 
     BOOTSTRAP_DIR_PARAMS="${BOOTSTRAP_LOG_PARAMS} ${BOOTSTRAP_PID_PARAMS} ${BOOTSTRAP_CONF_PARAMS}"
 
-    run_bootstrap_cmd="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS} ${BOOTSTRAP_DEBUG_PARAMS} ${BOOTSTRAP_JAVA_OPTS} org.apache.nifi.bootstrap.RunNiFi"
+    run_bootstrap_cmd="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' -Xms48m -Xmx48m ${BOOTSTRAP_DIR_PARAMS} ${BOOTSTRAP_DEBUG_PARAMS} ${BOOTSTRAP_JAVA_OPTS} org.apache.nifi.bootstrap.RunNiFi"
     run_nifi_cmd="${run_bootstrap_cmd} $@"
 
     if [ -n "${run_as_user}" ]; then
+      preserve_environment=$(grep '^\s*preserve.environment' "${BOOTSTRAP_CONF}" | cut -d'=' -f2 | tr '[:upper:]' '[:lower:]')
+      SUDO="sudo"
+      if [ "$preserve_environment" = "true" ]; then
+        SUDO="sudo -E"
+      fi
       # Provide SCRIPT_DIR and execute nifi-env for the run.as user command
-      run_nifi_cmd="sudo -u ${run_as_user} sh -c \"SCRIPT_DIR='${SCRIPT_DIR}' && . '${SCRIPT_DIR}/nifi-env.sh' && ${run_nifi_cmd}\""
+      run_nifi_cmd="${SUDO} -u ${run_as_user} sh -c \"SCRIPT_DIR='${SCRIPT_DIR}' && . '${SCRIPT_DIR}/nifi-env.sh' && ${run_nifi_cmd}\""
     fi
 
     if [ "$1" = "run" ]; then
       # Use exec to handover PID to RunNiFi java process, instead of foking it as a child process
       run_nifi_cmd="exec ${run_nifi_cmd}"
+    fi
+
+    if [ "$1" = "set-sensitive-properties-algorithm" ]; then
+        run_command="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' '-Dnifi.properties.file.path=${NIFI_HOME}/conf/nifi.properties' 'org.apache.nifi.flow.encryptor.command.SetSensitivePropertiesAlgorithm'"
+        eval "cd ${NIFI_HOME}"
+        shift
+        eval "${run_command}" '"$@"'
+        EXIT_STATUS=$?
+        echo
+        return;
+    fi
+
+    if [ "$1" = "set-sensitive-properties-key" ]; then
+        run_command="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' '-Dnifi.properties.file.path=${NIFI_HOME}/conf/nifi.properties' 'org.apache.nifi.flow.encryptor.command.SetSensitivePropertiesKey'"
+        eval "cd ${NIFI_HOME}"
+        shift
+        eval "${run_command}" '"$@"'
+        EXIT_STATUS=$?
+        echo
+        return;
+    fi
+
+    if [ "$1" = "set-single-user-credentials" ]; then
+        run_command="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' '-Dnifi.properties.file.path=${NIFI_HOME}/conf/nifi.properties' 'org.apache.nifi.authentication.single.user.command.SetSingleUserCredentials'"
+        eval "cd ${NIFI_HOME}"
+        shift
+        eval "${run_command}" '"$@"'
+        EXIT_STATUS=$?
+        echo
+        return;
     fi
 
     if [ "$1" = "stateless" ]; then
@@ -430,7 +470,7 @@ case "$1" in
         install "$@"
         ;;
 
-    start|stop|run|status|is_loaded|dump|diagnostics|env|stateless)
+    start|stop|decommission|run|status|is_loaded|dump|diagnostics|status-history|env|stateless|set-sensitive-properties-algorithm|set-sensitive-properties-key|set-single-user-credentials)
         main "$@"
         ;;
 
@@ -440,6 +480,6 @@ case "$1" in
         run "start"
         ;;
     *)
-        echo "Usage nifi {start|stop|run|restart|status|dump|diagnostics|install|stateless}"
+        echo "Usage nifi {start|stop|decommission|run|restart|status|dump|diagnostics|status-history|install|stateless|set-sensitive-properties-algorithm|set-sensitive-properties-key|set-single-user-credentials}"
         ;;
 esac

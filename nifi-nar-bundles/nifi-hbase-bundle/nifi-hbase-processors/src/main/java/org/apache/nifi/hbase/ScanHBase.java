@@ -16,18 +16,6 @@
  */
 package org.apache.nifi.hbase;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Pattern;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -54,6 +42,18 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"hbase", "scan", "fetch", "get"})
@@ -420,9 +420,7 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
             }
 
             session.transfer(flowFile, REL_ORIGINAL);
-            session.commit();
-
-        }catch (final Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to receive data from HBase due to {}", e);
             session.rollback();
             // if we failed, we want to yield so that we don't hammer hbase.
@@ -574,9 +572,10 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
                 // we could potentially have a huge number of rows. If we get to batchSize, go ahead and commit the
                 // session so that we can avoid buffering tons of FlowFiles without ever sending any out.
                 if (getBatchSize()>0 && ffUncommittedCount*bulkSize > getBatchSize()) {
-                    session.commit();
-                    ffCountHolder.set(0L);
-                }else{
+                    session.commitAsync(() -> {
+                        ffCountHolder.set(0L);
+                    });
+                } else {
                     ffCountHolder.set(ffUncommittedCount++);
                 }
             }else{

@@ -31,6 +31,7 @@ import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.TemplatesEntity;
@@ -261,6 +262,17 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
                 .queryParam("nodewise", nodewise);
 
             return getRequestBuilder(target).get(ConnectionStatusEntity.class);
+        });
+    }
+
+    @Override
+    public ProcessGroupStatusEntity getProcessGroupStatus(final String groupId, final boolean recursive) throws NiFiClientException, IOException {
+        return executeAction("Error retrieving ProcessGroup status", () -> {
+            final WebTarget target = flowTarget.path("/process-groups/{groupId}/status")
+                .resolveTemplate("groupId", groupId)
+                .queryParam("recursive", recursive);
+
+            return getRequestBuilder(target).get(ProcessGroupStatusEntity.class);
         });
     }
 }

@@ -17,47 +17,28 @@
 
 package org.apache.nifi.toolkit.tls.util;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
 import java.security.SecureRandom;
-import java.util.Arrays;
-import java.util.Base64;
 import java.util.function.Supplier;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class PasswordUtilTest {
     @Test
     public void testGeneratePassword() {
-        SecureRandom secureRandom = mock(SecureRandom.class);
+        SecureRandom secureRandom = new SecureRandom();
         PasswordUtil passwordUtil = new PasswordUtil(secureRandom);
-        int value = 8675309;
-        doAnswer(invocation -> {
-            byte[] bytes = (byte[]) invocation.getArguments()[0];
-            assertEquals(32, bytes.length);
-            Arrays.fill(bytes, (byte) 0);
-            byte[] val = ByteBuffer.allocate(Long.BYTES).putLong(value).array();
-            System.arraycopy(val, 0, bytes, bytes.length - val.length, val.length);
-            return null;
-        }).when(secureRandom).nextBytes(any(byte[].class));
-        byte[] expectedBytes = new byte[32];
-        byte[] numberBytes = BigInteger.valueOf(Integer.valueOf(value).longValue()).toByteArray();
-        System.arraycopy(numberBytes, 0, expectedBytes, expectedBytes.length - numberBytes.length, numberBytes.length);
-        String expected = Base64.getEncoder().encodeToString(expectedBytes).split("=")[0];
-        String actual = passwordUtil.generatePassword();
-        assertEquals(expected, actual);
+        String generated = passwordUtil.generatePassword();
+        assertEquals(43, generated.length());
     }
 
-    @Test(expected = PasswordsExhaustedException.class)
+    @Test
     public void testPasswordExhausted() {
         Supplier<String> supplier = PasswordUtil.passwordSupplier("exhausted", new String[]{"a", "b"});
         supplier.get();
         supplier.get();
-        supplier.get();
+        assertThrows(PasswordsExhaustedException.class, supplier::get);
     }
 }

@@ -19,10 +19,7 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,10 +33,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-public class TestReplaceText {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
+public class TestReplaceText {
 
     public TestRunner getRunner() {
         TestRunner runner = TestRunners.newTestRunner(ReplaceText.class);
@@ -307,7 +306,7 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testAppendWithCarriageReturn() throws IOException {
+    public void testAppendWithCarriageReturn() {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
@@ -323,7 +322,7 @@ public class TestReplaceText {
 
 
     @Test
-    public void testAppendFirstLineWithCarriageReturn() throws IOException {
+    public void testAppendFirstLineWithCarriageReturn() {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
@@ -339,7 +338,7 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testAppendExceptFirstLineWithCarriageReturn() throws IOException {
+    public void testAppendExceptFirstLineWithCarriageReturn() {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
@@ -355,7 +354,7 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testAppendLastLineWithCarriageReturn() throws IOException {
+    public void testAppendLastLineWithCarriageReturn() {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
@@ -371,7 +370,7 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testAppendExceptLastLineWithCarriageReturn() throws IOException {
+    public void testAppendExceptLastLineWithCarriageReturn() {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
@@ -387,7 +386,7 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testAppendWithNewLine() throws IOException {
+    public void testAppendWithNewLine() {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
@@ -402,7 +401,7 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testAppendWithCarriageReturnNewLine() throws IOException {
+    public void testAppendWithCarriageReturnNewLine() {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
@@ -417,7 +416,7 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testAppendFirstLineWithCarriageReturnNewLine() throws IOException {
+    public void testAppendFirstLineWithCarriageReturnNewLine() {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
@@ -434,7 +433,7 @@ public class TestReplaceText {
 
 
     @Test
-    public void testAppendLastLineWithCarriageReturnNewLine() throws IOException {
+    public void testAppendLastLineWithCarriageReturnNewLine() {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
@@ -451,7 +450,7 @@ public class TestReplaceText {
 
 
     @Test
-    public void testAppendExceptFistLineWithCarriageReturnNewLine() throws IOException {
+    public void testAppendExceptFistLineWithCarriageReturnNewLine() {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
@@ -468,7 +467,7 @@ public class TestReplaceText {
 
 
     @Test
-    public void testAppendExceptLastLineWithCarriageReturnNewLine() throws IOException {
+    public void testAppendExceptLastLineWithCarriageReturnNewLine() {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
@@ -562,7 +561,7 @@ public class TestReplaceText {
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
         final String actual = new String(out.toByteArray(), StandardCharsets.UTF_8);
         System.out.println(actual);
-        Assert.assertEquals(expected, actual);
+        assertEquals(expected, actual);
     }
 
     @Test
@@ -578,7 +577,7 @@ public class TestReplaceText {
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
         final String actual = new String(out.toByteArray(), StandardCharsets.UTF_8);
-        Assert.assertEquals("Hell123o, World!", actual);
+        assertEquals("Hell123o, World!", actual);
     }
 
     @Test
@@ -782,6 +781,23 @@ public class TestReplaceText {
     }
 
     @Test
+    public void testRoutesToFailureIfLineTooLarge() throws IOException {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "[123]");
+        runner.setProperty(ReplaceText.MAX_BUFFER_SIZE, "5 kb");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "${abc}");
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("abc", "Good");
+        runner.enqueue(Paths.get("src/test/resources/TestReplaceTextLineByLine/apacheLicenseOnOneLine.txt"), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_FAILURE, 1);
+    }
+
+    @Test
     public void testRoutesToSuccessIfTooLargeButRegexIsDotAsterisk() throws IOException {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.SEARCH_VALUE, ".*");
@@ -814,13 +830,13 @@ public class TestReplaceText {
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
         final String outContent = new String(out.toByteArray(), StandardCharsets.UTF_8);
-        Assert.assertTrue(outContent.startsWith("abc.txt\t"));
+        assertTrue(outContent.startsWith("abc.txt\t"));
         System.out.println(outContent);
-        Assert.assertTrue(outContent.endsWith("13\n"));
+        assertTrue(outContent.endsWith("13\n"));
     }
 
     @Test
-    public void testGetExistingContent() throws IOException {
+    public void testGetExistingContent() {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s)(^.*)");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "attribute header\n\n${filename}\n\ndata header\n\n$1\n\nfooter");
@@ -835,12 +851,12 @@ public class TestReplaceText {
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
         final String outContent = new String(out.toByteArray(), StandardCharsets.UTF_8);
-        Assert.assertTrue(outContent.equals("attribute header\n\nabc.txt\n\ndata header\n\nHello\nWorld!\n\nfooter"));
+        assertTrue(outContent.equals("attribute header\n\nabc.txt\n\ndata header\n\nHello\nWorld!\n\nfooter"));
         System.out.println(outContent);
     }
 
     @Test
-    public void testReplaceWithinCurlyBraces() throws IOException {
+    public void testReplaceWithinCurlyBraces() {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.SEARCH_VALUE, ".+");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "{ ${filename} }");
@@ -857,7 +873,7 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testDefaultReplacement() throws Exception {
+    public void testDefaultReplacement() {
         final String defaultValue = "default-replacement-value";
 
         // leave the default regex settings
@@ -875,7 +891,7 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testDefaultMultilineReplacement() throws Exception {
+    public void testDefaultMultilineReplacement() {
         final String defaultValue = "default-replacement-value";
 
         // leave the default regex settings
@@ -1022,7 +1038,7 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testLiteralLineByLine() throws IOException {
+    public void testLiteralLineByLine() {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
         runner.setProperty(ReplaceText.SEARCH_VALUE, ".ell.");
@@ -1387,7 +1403,7 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testAttributeToContentWindows() throws IOException {
+    public void testAttributeToContentWindows() {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
         runner.setProperty(ReplaceText.SEARCH_VALUE, ".*");
@@ -1420,13 +1436,13 @@ public class TestReplaceText {
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
         final String outContent = translateNewLines(new String(out.toByteArray(), StandardCharsets.UTF_8));
-        Assert.assertTrue(outContent.startsWith("abc.txt\t"));
+        assertTrue(outContent.startsWith("abc.txt\t"));
         System.out.println(outContent);
-        Assert.assertTrue(outContent.endsWith("193\n") || outContent.endsWith("203\r\n"));
+        assertTrue(outContent.endsWith("193\n") || outContent.endsWith("203\r\n"));
     }
 
     @Test
-    public void testGetExistingContentLineByLine() throws IOException {
+    public void testGetExistingContentLineByLine() {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
         runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s)(^.*)");
@@ -1442,8 +1458,9 @@ public class TestReplaceText {
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
         final String outContent = new String(out.toByteArray(), StandardCharsets.UTF_8);
         System.out.println(outContent);
-        Assert.assertTrue(outContent.equals("attribute header\n\nabc.txt\n\ndata header\n\nHello\n\n\nfooter\n"
-                + "attribute header\n\nabc.txt\n\ndata header\n\nWorld!\n\nfooter\n"));
+        final String expectedContent = "attribute header\n\nabc.txt\n\ndata header\n\nHello\n\n\nfooter\n"
+                + "attribute header\n\nabc.txt\n\ndata header\n\nWorld!\n\nfooter\n";
+        assertEquals(expectedContent, outContent);
     }
 
     @Test
@@ -1533,7 +1550,7 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testRegexWithBadCaptureGroup() throws IOException {
+    public void testRegexWithBadCaptureGroup() {
         // Test the old Default Regex and with a custom Replacement Value that should fail because the
         // Perl regex "(?s:^.*$)" must be written "(?s)(^.*$)" in Java for there to be a capture group.
         //      private static final String DEFAULT_REGEX = "(?s:^.*$)";
@@ -1552,7 +1569,7 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testRegexWithGoodCaptureGroup() throws IOException {
+    public void testRegexWithGoodCaptureGroup() {
         // Test the new Default Regex and with a custom Replacement Values that should succeed.
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s)(^.*$)");
@@ -1569,7 +1586,7 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testRegexNoCaptureDefaultReplacement() throws IOException {
+    public void testRegexNoCaptureDefaultReplacement() {
         // Test the old Default Regex and new Default Regex with the default replacement.  This should fail
         // because the regex does not create a capture group.
         final TestRunner runner = getRunner();
@@ -1578,14 +1595,16 @@ public class TestReplaceText {
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REGEX_REPLACE);
         runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
 
-        exception.expect(AssertionError.class);
-        exception.expectMessage("java.lang.IndexOutOfBoundsException: No group 1");
         runner.enqueue("testing\n123".getBytes());
-        runner.run();
+        final AssertionError e = assertThrows(AssertionError.class, () -> {
+            runner.run();
+        });
+        assertInstanceOf(IndexOutOfBoundsException.class, e.getCause());
+        assertTrue(e.getMessage().contains("java.lang.IndexOutOfBoundsException: No group 1"));
     }
 
     @Test
-    public void testProcessorConfigurationRegexNotValid() throws IOException {
+    public void testProcessorConfigurationRegexNotValid() {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.SEARCH_VALUE, "(?<!\\),*");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "hello");
@@ -1613,7 +1632,7 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testBackReferenceEscapeWithRegexReplaceUsingEL() throws Exception {
+    public void testBackReferenceEscapeWithRegexReplaceUsingEL() {
         final TestRunner runner = getRunner();
 
         runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s)(^.*$)");
@@ -1641,12 +1660,56 @@ public class TestReplaceText {
         out.assertContentEquals("WO$1R$2D");
     }
 
+    @Test
+    public void testSubstituteVariablesWithEvaluationModeEntireText() {
+        testSubstituteVariables("Line1: ${var1}\nLine2: ${var2}", "Line1: foo\nLine2: bar", ReplaceText.ENTIRE_TEXT, createAttributesMap());
+    }
+
+    @Test
+    public void testSubstituteVariablesWithEvaluationModeLineByLine() {
+        testSubstituteVariables("Line1: ${var1}\nLine2: ${var2}", "Line1: foo\nLine2: bar", ReplaceText.LINE_BY_LINE, createAttributesMap());
+    }
+
+    @Test
+    public void testSubstituteVariablesWhenVariableValueMissing() {
+        testSubstituteVariables("Line1: ${var1}\nLine2: ${var2}", "Line1: ${var1}\nLine2: ${var2}", ReplaceText.ENTIRE_TEXT, Collections.emptyMap());
+    }
+
+    @Test
+    public void testSubstituteVariablesWhenVariableReferenceEscaped() {
+        testSubstituteVariables("Line1: $${var1}\nLine2: $${var2}", "Line1: ${var1}\nLine2: ${var2}", ReplaceText.ENTIRE_TEXT, createAttributesMap());
+    }
+
+    @Test
+    public void testSubstituteVariablesWhenVariableNameEmpty() {
+        testSubstituteVariables("Line1: ${}\nLine2: ${}", "Line1: ${}\nLine2: ${}", ReplaceText.ENTIRE_TEXT, createAttributesMap());
+    }
+
+    private void testSubstituteVariables(String inputContent, String expectedContent, String evaluationMode, Map<String, String> attributesMap) {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.EVALUATION_MODE, evaluationMode);
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.SUBSTITUTE_VARIABLES.getValue());
+        runner.enqueue(inputContent, attributesMap);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals(expectedContent);
+    }
+
+    private Map<String, String> createAttributesMap() {
+        final Map<String, String> attributesMap = new HashMap<>();
+        attributesMap.put("var1", "foo");
+        attributesMap.put("var2", "bar");
+        return attributesMap;
+    }
+
     /*
      * A repeated alternation regex such as (A|B)* can lead to StackOverflowError
      * on large input strings.
      */
     @Test
-    public void testForStackOverflow() throws Exception {
+    public void testForStackOverflow() {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "New text");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REGEX_REPLACE);
@@ -1687,7 +1750,7 @@ public class TestReplaceText {
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_FAILURE, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_FAILURE).get(0);
         final String outContent = translateNewLines(new String(out.toByteArray(), StandardCharsets.UTF_8));
-        Assert.assertTrue(outContent.equals("hi"));
+        assertEquals("hi", outContent);
     }
 
     private String translateNewLines(final File file) throws IOException {

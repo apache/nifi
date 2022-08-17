@@ -25,9 +25,15 @@ import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.AbstractComponentNode;
@@ -38,16 +44,21 @@ import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.TerminationAwareLogger;
 import org.apache.nifi.controller.ValidationContextFactory;
+import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
+import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.Tuple;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
@@ -60,6 +71,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
@@ -77,6 +89,8 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardControllerServiceNode.class);
 
+    public static final String BULLETIN_OBSERVER_ID = "bulletin-observer";
+
     private final AtomicReference<ControllerServiceDetails> controllerServiceHolder = new AtomicReference<>(null);
     private final ControllerServiceProvider serviceProvider;
     private final ServiceStateTransition stateTransition;
@@ -89,6 +103,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     private final Set<Tuple<ComponentNode, PropertyDescriptor>> referencingComponents = new HashSet<>();
     private volatile String comment;
     private volatile ProcessGroup processGroup;
+    private volatile LogLevel bulletinLevel = LogLevel.WARN;
 
     private final AtomicBoolean active;
 
@@ -111,7 +126,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         this.serviceProvider = serviceProvider;
         this.active = new AtomicBoolean();
         setControllerServiceAndProxy(implementation, proxiedControllerService, invocationHandler);
-        stateTransition = new ServiceStateTransition();
+        stateTransition = new ServiceStateTransition(this);
     }
 
     @Override
@@ -201,13 +216,19 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     @Override
     public void reload(final Set<URL> additionalUrls) throws ControllerServiceInstantiationException {
         synchronized (this.active) {
-            if (isActive()) {
-                throw new IllegalStateException("Cannot reload Controller Service while service is active");
-            }
-            String additionalResourcesFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls);
+            final String additionalResourcesFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
             setAdditionalResourcesFingerprint(additionalResourcesFingerprint);
             getReloadComponent().reload(this, getCanonicalClassName(), getBundleCoordinate(), additionalUrls);
         }
+    }
+
+    @Override
+    public void setProperties(final Map<String, String> properties, final boolean allowRemovalOfRequiredProperties, final Set<String> sensitiveDynamicPropertyNames) {
+        super.setProperties(properties, allowRemovalOfRequiredProperties, sensitiveDynamicPropertyNames);
+
+        // It's possible that changing the properties of this Controller Service could alter the Classloader Isolation Key of a referencing
+        // component so reload any referencing component as necessary.
+        getReferences().findRecursiveReferences(ComponentNode.class).forEach(ComponentNode::reloadAdditionalResourcesIfNecessary);
     }
 
     @Override
@@ -283,8 +304,16 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     @Override
     public void verifyModifiable() throws IllegalStateException {
-        if (getState() != ControllerServiceState.DISABLED) {
-            throw new IllegalStateException("Cannot modify Controller Service configuration because it is currently enabled. Please disable the Controller Service first.");
+        final ControllerServiceState state = getState();
+
+        if (state == ControllerServiceState.DISABLING) {
+            // Provide precise/accurate error message for DISABLING case
+            throw new IllegalStateException("Cannot modify Controller Service configuration because it is currently still disabling. " +
+                "Please wait for the service to fully disable before attempting to modify it.");
+        }
+        if (state != ControllerServiceState.DISABLED) {
+            throw new IllegalStateException("Cannot modify Controller Service configuration because it is currently not disabled - it has a state of " + state
+                + ". Please disable the Controller Service first.");
         }
     }
 
@@ -303,7 +332,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     @Override
     public void verifyCanDisable(final Set<ControllerServiceNode> ignoreReferences) {
         if (!this.isActive()) {
-            throw new IllegalStateException("Cannot disable " + getControllerServiceImplementation().getIdentifier() + " because it is not enabled");
+            return;
         }
 
         final ControllerServiceReference references = getReferences();
@@ -323,16 +352,22 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     @Override
     public void verifyCanEnable() {
-        if (getState() != ControllerServiceState.DISABLED) {
-            throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not disabled");
+        final ControllerServiceState state = getState();
+        switch (state) {
+            case DISABLED:
+                return;
+            case DISABLING:
+                throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not disabled - it has a state of " + state);
+            default:
+                if (isReloadAdditionalResourcesNecessary()) {
+                    throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because additional resources are needed - it has a state of " + state);
+                }
         }
     }
 
     @Override
     public void verifyCanEnable(final Set<ControllerServiceNode> ignoredReferences) {
-        if (getState() != ControllerServiceState.DISABLED) {
-            throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not disabled");
-        }
+        verifyCanEnable();
     }
 
     @Override
@@ -368,6 +403,112 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     }
 
     @Override
+    public boolean awaitEnabled(final long timePeriod, final TimeUnit timeUnit) throws InterruptedException {
+        LOG.debug("Waiting up to {} {} for {} to be enabled", timePeriod, timeUnit, this);
+        final boolean enabled = stateTransition.awaitStateOrInvalid(ControllerServiceState.ENABLED, timePeriod, timeUnit);
+
+        if (enabled) {
+            LOG.debug("{} is enabled", this);
+        } else {
+            LOG.debug("After {} {}, {} is NOT enabled", timePeriod, timeUnit, this);
+        }
+
+        return enabled;
+    }
+
+    @Override
+    public boolean awaitDisabled(final long timePeriod, final TimeUnit timeUnit) throws InterruptedException {
+        LOG.debug("Waiting up to {} {} for {} to be disabled", timePeriod, timeUnit, this);
+        final boolean disabled = stateTransition.awaitState(ControllerServiceState.DISABLED, timePeriod, timeUnit);
+
+        if (disabled) {
+            LOG.debug("{} is now disabled", this);
+        } else {
+            LOG.debug("After {} {}, {} is NOT disabled", timePeriod, timeUnit, this);
+        }
+
+        return disabled;
+    }
+
+    @Override
+    public void verifyCanPerformVerification() {
+        if (getState() != ControllerServiceState.DISABLED) {
+            throw new IllegalStateException("Cannot perform verification because the Controller Service is not disabled");
+        }
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verifyConfiguration(final ConfigurationContext context, final ComponentLog logger, final Map<String, String> variables,
+                                                              final ExtensionManager extensionManager) {
+
+        final List<ConfigVerificationResult> results = new ArrayList<>();
+
+        try {
+            verifyCanPerformVerification();
+
+            final long startNanos = System.nanoTime();
+            // Call super's verifyConfig, which will perform component validation
+            results.addAll(super.verifyConfig(context.getProperties(), context.getAnnotationData(), getProcessGroup() == null ? null : getProcessGroup().getParameterContext()));
+            final long validationComplete = System.nanoTime();
+
+            // If any invalid outcomes from validation, we do not want to perform additional verification, because we only run additional verification when the component is valid.
+            // This is done in order to make it much simpler to develop these verifications, since the developer doesn't have to worry about whether or not the given values are valid.
+            if (!results.isEmpty() && results.stream().anyMatch(result -> result.getOutcome() == Outcome.FAILED)) {
+                return results;
+            }
+
+            final ControllerService controllerService = getControllerServiceImplementation();
+            if (controllerService instanceof VerifiableControllerService) {
+                LOG.debug("{} is a VerifiableControllerService. Will perform full verification of configuration.", this);
+
+                final VerifiableControllerService verifiable = (VerifiableControllerService) controllerService;
+
+                // Check if the given configuration requires a different classloader than the current configuration
+                final boolean classpathDifferent = isClasspathDifferent(context.getProperties());
+
+                if (classpathDifferent) {
+                    // Create a classloader for the given configuration and use that to verify the component's configuration
+                    final Bundle bundle = extensionManager.getBundle(getBundleCoordinate());
+                    final Set<URL> classpathUrls = getAdditionalClasspathResources(context.getProperties().keySet(), descriptor -> context.getProperty(descriptor).getValue());
+
+                    final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
+                    final String classLoaderIsolationKey = getClassLoaderIsolationKey(context);
+                    try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getComponentType(), getIdentifier(), bundle, classpathUrls, false,
+                                classLoaderIsolationKey)) {
+                        Thread.currentThread().setContextClassLoader(detectedClassLoader);
+                        results.addAll(verifiable.verify(context, logger, variables));
+                    } finally {
+                        Thread.currentThread().setContextClassLoader(currentClassLoader);
+                    }
+                } else {
+                    // Verify the configuration, using the component's classloader
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, controllerService.getClass(), getIdentifier())) {
+                        results.addAll(verifiable.verify(context, logger, variables));
+                    }
+                }
+
+                final long validationNanos = validationComplete - startNanos;
+                final long verificationNanos = System.nanoTime() - validationComplete;
+                LOG.debug("{} completed full configuration validation in {} plus {} for validation",
+                    this, FormatUtils.formatNanos(verificationNanos, false), FormatUtils.formatNanos(validationNanos, false));
+            } else {
+                LOG.debug("{} is not a VerifiableControllerService, so will not perform full verification of configuration. Validation took {}", this,
+                    FormatUtils.formatNanos(validationComplete - startNanos, false));
+            }
+        } catch (final Throwable t) {
+            LOG.error("Failed to perform verification of Controller Service's configuration for {}", this, t);
+
+            results.add(new ConfigVerificationResult.Builder()
+                .outcome(Outcome.FAILED)
+                .verificationStepName("Perform Verification")
+                .explanation("Encountered unexpected failure when attempting to perform verification: " + t)
+                .build());
+        }
+
+        return results;
+    }
+
+    @Override
     public boolean isValidationNecessary() {
         switch (getState()) {
             case DISABLED:
@@ -381,6 +522,20 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
             default:
                 return false;
         }
+    }
+
+    @Override
+    public ValidationState performValidation(final ValidationContext validationContext) {
+        final ValidationState state = super.performValidation(validationContext);
+        if (state.getStatus() == ValidationStatus.INVALID) {
+            stateTransition.signalInvalid();
+        }
+        return state;
+    }
+
+    @Override
+    protected List<ValidationResult> validateConfig() {
+        return Collections.emptyList();
     }
 
     /**
@@ -427,7 +582,10 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
                     final ValidationStatus validationStatus = getValidationStatus();
                     if (validationStatus != ValidationStatus.VALID) {
-                        LOG.debug("Cannot enable {} because it is not currently valid. (Validation State is {}). Will try again in 1 second", StandardControllerServiceNode.this, getValidationState());
+                        final ValidationState validationState = getValidationState();
+                        LOG.debug("Cannot enable {} because it is not currently valid. (Validation State is {}: {}). Will try again in 1 second",
+                            StandardControllerServiceNode.this, validationState, validationState.getValidationErrors());
+
                         scheduler.schedule(this, 1, TimeUnit.SECONDS);
                         future.complete(null);
                         return;
@@ -440,9 +598,8 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
                         boolean shouldEnable;
                         synchronized (active) {
-                            shouldEnable = active.get() && stateTransition.enable(); // Transitioning the state to ENABLED will complete our future.
+                            shouldEnable = active.get() && stateTransition.enable(getReferences()); // Transitioning the state to ENABLED will complete our future.
                         }
-                        validateReferences();
 
                         if (!shouldEnable) {
                             LOG.info("Disabling service {} after it has been enabled due to disable action being initiated.", service);
@@ -459,16 +616,12 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
                         final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
                         final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), StandardControllerServiceNode.this);
-                        componentLog.error("Failed to invoke @OnEnabled method due to {}", cause);
-                        LOG.error("Failed to invoke @OnEnabled method of {} due to {}", getControllerServiceImplementation(), cause.toString());
+                        componentLog.error("Failed to invoke @OnEnabled method", cause);
                         invokeDisable(configContext);
 
                         if (isActive()) {
                             scheduler.schedule(this, administrativeYieldMillis, TimeUnit.MILLISECONDS);
                         } else {
-                            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
-                                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, getControllerServiceImplementation(), configContext);
-                            }
                             stateTransition.disable();
                         }
                     }
@@ -481,12 +634,6 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         return future;
     }
 
-    private void validateReferences() {
-        final List<ComponentNode> referencingComponents = getReferences().findRecursiveReferences(ComponentNode.class);
-        for (final ComponentNode component : referencingComponents) {
-            component.performValidation();
-        }
-    }
 
     /**
      * Will atomically disable this service by invoking its @OnDisabled operation.
@@ -515,6 +662,11 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         }
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
+        final boolean transitioned = this.stateTransition.transitionToDisabling(ControllerServiceState.ENABLING, future);
+        if (transitioned) {
+            return future;
+        }
+
         if (this.stateTransition.transitionToDisabling(ControllerServiceState.ENABLED, future)) {
             final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceProvider, null, getVariableRegistry());
             scheduler.execute(new Runnable() {
@@ -533,8 +685,6 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     }
                 }
             });
-        } else {
-            this.stateTransition.transitionToDisabling(ControllerServiceState.ENABLING, future);
         }
 
         return future;
@@ -584,18 +734,34 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     @Override
     public String toString() {
-        final ControllerServiceDetails details = controllerServiceHolder.get();
-        final String bundleCoordinate = details == null ? "null" : String.valueOf(details.getBundleCoordinate());
         return "StandardControllerServiceNode[" +
                 "service=" + super.toString() +
-                ", versionedComponentId=" + versionedComponentId +
-                ", processGroup=" + processGroup +
+                ", name=" + getName() +
                 ", active=" + active +
-                ']';
+                "]";
     }
 
     @Override
     public ParameterLookup getParameterLookup() {
         return getParameterContext();
     }
+
+
+    @Override
+    public LogLevel getBulletinLevel() {
+        return bulletinLevel;
+    }
+
+    @Override
+    public synchronized void setBulletinLevel(LogLevel level) {
+        // handling backward compatibility with nifi 1.16 and earlier when bulletinLevel did not exist in flow.xml/flow.json
+        // and bulletins were always logged at WARN level
+        if (level == null) {
+            level = LogLevel.WARN;
+        }
+
+        LogRepositoryFactory.getRepository(getIdentifier()).setObservationLevel(BULLETIN_OBSERVER_ID, level);
+        this.bulletinLevel = level;
+    }
+
 }

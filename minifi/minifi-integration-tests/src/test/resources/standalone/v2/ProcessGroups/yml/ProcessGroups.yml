@@ -1,0 +1,163 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the \"License\"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an \"AS IS\" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+MiNiFi Config Version: 2
+Flow Controller:
+  name: pgtest
+  comment: ''
+Core Properties:
+  flow controller graceful shutdown period: 10 sec
+  flow service write delay interval: 500 ms
+  administrative yield duration: 30 sec
+  bored yield duration: 10 millis
+  max concurrent threads: 1
+FlowFile Repository:
+  partitions: 256
+  checkpoint interval: 2 mins
+  always sync: false
+  Swap:
+    threshold: 20000
+    in period: 5 sec
+    in threads: 1
+    out period: 5 sec
+    out threads: 4
+Content Repository:
+  content claim max appendable size: 10 MB
+  content claim max flow files: 100
+  always sync: false
+Provenance Repository:
+  provenance rollover time: 1 min
+Component Status Repository:
+  buffer size: 1440
+  snapshot frequency: 1 min
+Security Properties:
+  keystore: ''
+  keystore type: ''
+  keystore password: ''
+  key password: ''
+  truststore: ''
+  truststore type: ''
+  truststore password: ''
+  ssl protocol: ''
+  Sensitive Props:
+    key:
+    algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
+    provider: BC
+Processors:
+- id: e25cd92a-0157-1000-0000-000000000000
+  name: GenerateFlowFile
+  class: org.apache.nifi.processors.standard.GenerateFlowFile
+  max concurrent tasks: 1
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 0 sec
+  penalization period: 30 sec
+  yield period: 1 sec
+  run duration nanos: 0
+  auto-terminated relationships list: []
+  Properties:
+    Batch Size: '1'
+    Data Format: Binary
+    File Size: 1 b
+    Unique FlowFiles: 'false'
+- id: e25e0e6e-0157-1000-0000-000000000000
+  name: LogAttribute
+  class: org.apache.nifi.processors.standard.LogAttribute
+  max concurrent tasks: 1
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 0 sec
+  penalization period: 30 sec
+  yield period: 1 sec
+  run duration nanos: 0
+  auto-terminated relationships list:
+  - success
+  Properties:
+    Attributes to Ignore:
+    Attributes to Log:
+    Log Level: info
+    Log Payload: 'false'
+    Log prefix: OUTSIDE
+Process Groups:
+- id: e25cbc20-0157-1000-0000-000000000000
+  name: black box
+  Processors:
+  - id: e25d2588-0157-1000-0000-000000000000
+    name: LogAttribute
+    class: org.apache.nifi.processors.standard.LogAttribute
+    max concurrent tasks: 1
+    scheduling strategy: TIMER_DRIVEN
+    scheduling period: 0 sec
+    penalization period: 30 sec
+    yield period: 1 sec
+    run duration nanos: 0
+    auto-terminated relationships list: []
+    Properties:
+      Attributes to Ignore:
+      Attributes to Log:
+      Log Level: info
+      Log Payload: 'false'
+      Log prefix: INSIDE
+  Process Groups: []
+  Input Ports:
+  - id: e25d0cef-0157-1000-0000-000000000000
+    name: input
+  Output Ports:
+  - id: e25d578c-0157-1000-0000-000000000000
+    name: output
+  Funnels: []
+  Connections:
+  - id: e25d6bd6-0157-1000-0000-000000000000
+    name: LogAttribute/success/output
+    source id: e25d2588-0157-1000-0000-000000000000
+    source relationship names:
+    - success
+    destination id: e25d578c-0157-1000-0000-000000000000
+    max work queue size: 10000
+    max work queue data size: 1 GB
+    flowfile expiration: 0 sec
+    queue prioritizer class: ''
+  - id: e25d35dc-0157-1000-0000-000000000000
+    name: input//LogAttribute
+    source id: e25d0cef-0157-1000-0000-000000000000
+    source relationship names: []
+    destination id: e25d2588-0157-1000-0000-000000000000
+    max work queue size: 10000
+    max work queue data size: 1 GB
+    flowfile expiration: 0 sec
+    queue prioritizer class: ''
+  Remote Process Groups: []
+Input Ports: []
+Output Ports: []
+Funnels: []
+Connections:
+- id: e25dbff3-0157-1000-0000-000000000000
+  name: GenerateFlowFile/success/input
+  source id: e25cd92a-0157-1000-0000-000000000000
+  source relationship names:
+  - success
+  destination id: e25d0cef-0157-1000-0000-000000000000
+  max work queue size: 10000
+  max work queue data size: 1 GB
+  flowfile expiration: 0 sec
+  queue prioritizer class: ''
+- id: e25e22b1-0157-1000-0000-000000000000
+  name: output//LogAttribute
+  source id: e25d578c-0157-1000-0000-000000000000
+  source relationship names: []
+  destination id: e25e0e6e-0157-1000-0000-000000000000
+  max work queue size: 10000
+  max work queue data size: 1 GB
+  flowfile expiration: 0 sec
+  queue prioritizer class: ''
+Remote Process Groups: []

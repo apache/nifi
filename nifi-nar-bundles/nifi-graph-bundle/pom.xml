@@ -13,13 +13,13 @@
   See the License for the specific lang`uage governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-graph-bundle</artifactId>
@@ -33,18 +33,55 @@
         <module>nifi-graph-nar</module>
         <module>nifi-neo4j-cypher-service</module>
         <module>nifi-neo4j-cypher-service-nar</module>
+        <module>nifi-neo4j-3-cypher-service</module>
+        <module>nifi-neo4j-3-cypher-service-nar</module>
         <module>nifi-other-graph-services</module>
         <module>nifi-other-graph-services-nar</module>
     </modules>
 
     <dependencyManagement>
         <dependencies>
+            <!-- Override snakeyaml:1.15 -->
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>1.29</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-graph-processors</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
+                <version>1.18.0-SNAPSHOT</version>
+            </dependency>
+            <!-- Override commons-compress -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.21</version>
+            </dependency>
+            <dependency>
+                <groupId>org.codehaus.groovy</groupId>
+                <artifactId>groovy</artifactId>
+                <version>${nifi.groovy.version}</version>
+                <classifier>indy</classifier>
+            </dependency>
+            <dependency>
+                <groupId>org.codehaus.groovy</groupId>
+                <artifactId>groovy-json</artifactId>
+                <version>${nifi.groovy.version}</version>
+                <classifier>indy</classifier>
+            </dependency>
+            <dependency>
+                <groupId>org.codehaus.groovy</groupId>
+                <artifactId>groovy-groovysh</artifactId>
+                <version>${nifi.groovy.version}</version>
+                <classifier>indy</classifier>
+            </dependency>
+            <dependency>
+                <groupId>org.codehaus.groovy</groupId>
+                <artifactId>groovy-jsr223</artifactId>
+                <version>${nifi.groovy.version}</version>
+                <classifier>indy</classifier>
             </dependency>
         </dependencies>
     </dependencyManagement>
-
 </project>

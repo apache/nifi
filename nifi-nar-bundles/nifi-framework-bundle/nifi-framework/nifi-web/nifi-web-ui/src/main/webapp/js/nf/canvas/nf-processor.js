@@ -597,7 +597,7 @@
                             processorName.text(null).selectAll('title').remove();
 
                             // apply ellipsis to the processor name as necessary
-                            nfCanvasUtils.ellipsis(processorName, d.component.name);
+                            nfCanvasUtils.ellipsis(processorName, d.component.name, 'processor-name');
                         }).append('title').text(function (d) {
                             return d.component.name;
                         });
@@ -611,7 +611,7 @@
                             processorType.text(null).selectAll('title').remove();
 
                             // apply ellipsis to the processor type as necessary
-                            nfCanvasUtils.ellipsis(processorType, nfCommon.formatType(d.component));
+                            nfCanvasUtils.ellipsis(processorType, nfCommon.formatType(d.component), 'processor-type');
                         }).append('title').text(function (d) {
                             return nfCommon.formatType(d.component);
                         });
@@ -625,7 +625,7 @@
                             processorBundle.text(null).selectAll('title').remove();
 
                             // apply ellipsis to the processor type as necessary
-                            nfCanvasUtils.ellipsis(processorBundle, nfCommon.formatBundle(d.component.bundle));
+                            nfCanvasUtils.ellipsis(processorBundle, nfCommon.formatBundle(d.component.bundle), 'processor-bundle');
                         }).append('title').text(function (d) {
                             return nfCommon.formatBundle(d.component.bundle);
                         });

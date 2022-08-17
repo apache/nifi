@@ -21,7 +21,7 @@ import org.apache.nifi.syslog.attributes.SyslogAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TestParseSyslog {
     static final String PRI = "34";

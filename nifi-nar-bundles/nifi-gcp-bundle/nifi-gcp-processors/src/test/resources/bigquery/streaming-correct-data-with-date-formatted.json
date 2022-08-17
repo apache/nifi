@@ -1,0 +1,46 @@
+[
+  {
+    "id": 1,
+    "name": "John Doe",
+    "alias": ["john", "jd"],
+    "addresses": [
+      {
+        "zip": "1000",
+        "city": "NiFi"
+      },
+      {
+        "zip": "2000",
+        "city": "Bar"
+      }
+    ],
+    "job": {
+      "position": "Manager",
+      "company": "ASF"
+    },
+    "birth": {
+      "date": "07/18/2021",
+      "time": "12:35:24",
+      "full": "07-18-2021 12:35:24"
+    }
+  },
+  {
+    "id": 2,
+    "name": "Jane Doe",
+    "alias": [],
+    "addresses": [
+      {
+        "zip": "1000",
+        "city": "NiFi"
+      }
+    ],
+    "job": {
+      "position": "Director",
+      "company": "ASF"
+    },
+    "birth": {
+      "date": "01/01/1992",
+      "time": "00:00:00",
+      "full": "01-01-1992 00:00:00"
+    }
+  }
+]

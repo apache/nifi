@@ -19,9 +19,11 @@ package org.apache.nifi.controller.service;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.groups.ComponentScheduler;
 import org.apache.nifi.nar.ExtensionManager;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -134,7 +136,7 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      *
      * @param serviceNode the node
      */
-    Set<ComponentNode> unscheduleReferencingComponents(ControllerServiceNode serviceNode);
+    Map<ComponentNode, Future<Void>> unscheduleReferencingComponents(ControllerServiceNode serviceNode);
 
     /**
      * Verifies that all Controller Services referencing the provided Controller
@@ -200,6 +202,12 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      * @param serviceNode the node
      */
     Set<ComponentNode> scheduleReferencingComponents(ControllerServiceNode serviceNode);
+
+    /**
+     * Schedules any of the candidate components that are currently referencing the given Controller Service to run.
+     * @return the components that were scheduled
+     */
+    Set<ComponentNode> scheduleReferencingComponents(ControllerServiceNode serviceNode, Set<ComponentNode> candidates, ComponentScheduler componentScheduler);
 
     /**
      *

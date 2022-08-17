@@ -18,7 +18,6 @@ package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,13 +36,12 @@ public interface ContentRepository {
 
     /**
      * Initializes the Content Repository, providing to it the
-     * ContentClaimManager that is to be used for interacting with Content
-     * Claims
+     * ContentRepositoryContext.
      *
-     * @param claimManager to handle claims
+     * @param context to initialize repository
      * @throws java.io.IOException if unable to init
      */
-    void initialize(ResourceClaimManager claimManager) throws IOException;
+    void initialize(ContentRepositoryContext context) throws IOException;
 
     /**
      * Shuts down the Content Repository, freeing any resources that may be
@@ -161,6 +159,7 @@ public interface ContentRepository {
      * @throws IllegalArgumentException if the given destination is included in
      * the given claims
      */
+    @Deprecated
     long merge(Collection<ContentClaim> claims, ContentClaim destination, byte[] header, byte[] footer, byte[] demarcator) throws IOException;
 
     /**
@@ -242,6 +241,13 @@ public interface ContentRepository {
      * @throws IOException if size check failed
      */
     long size(ContentClaim claim) throws IOException;
+
+    /**
+     * @param claim to get size of
+     * @return size in bytes of the file/object backing the given resource claim, or 0 if this operation is not supported by the implementation
+     * @throws IOException if size check failed
+     */
+    long size(ResourceClaim claim) throws IOException;
 
     /**
      * Provides access to the input stream for the given claim

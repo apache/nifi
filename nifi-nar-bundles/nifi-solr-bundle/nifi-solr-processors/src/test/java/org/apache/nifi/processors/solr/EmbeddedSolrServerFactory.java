@@ -22,11 +22,11 @@ import org.apache.commons.io.FileUtils;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.core.CoreContainer;
+import org.apache.solr.core.NodeConfig;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.nio.file.Paths;
 
 /**
  * Helper to create EmbeddedSolrServer instances for testing.
@@ -60,16 +60,17 @@ public class EmbeddedSolrServerFactory {
     public static SolrClient create(String solrHome, String coreName, String dataDir)
             throws IOException {
 
-        Map<String,String> props = new HashMap<>();
+        NodeConfig.NodeConfigBuilder nodeConfig = new NodeConfig.NodeConfigBuilder(coreName, Paths.get(solrHome));
+
         if (dataDir != null) {
             File coreDataDir = new File(dataDir + "/" + coreName);
             if (coreDataDir.exists()) {
                 FileUtils.deleteDirectory(coreDataDir);
             }
-            props.put("dataDir", dataDir + "/" + coreName);
+            nodeConfig.setSolrDataHome(coreDataDir.getPath());
         }
 
-        final CoreContainer coreContainer = new CoreContainer(solrHome);
+        final CoreContainer coreContainer = new CoreContainer(new NodeConfig.NodeConfigBuilder(coreName, Paths.get(solrHome)).build());
         coreContainer.load();
 
         return new EmbeddedSolrServer(coreContainer, coreName);

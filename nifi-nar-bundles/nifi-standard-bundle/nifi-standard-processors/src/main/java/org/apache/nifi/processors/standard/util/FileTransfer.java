@@ -34,7 +34,7 @@ public interface FileTransfer extends Closeable {
 
     String getHomeDirectory(FlowFile flowFile) throws IOException;
 
-    List<FileInfo> getListing() throws IOException;
+    List<FileInfo> getListing(boolean applyFilters) throws IOException;
 
     FlowFile getRemoteFile(String remoteFileName, FlowFile flowFile, ProcessSession session) throws ProcessException, IOException;
 

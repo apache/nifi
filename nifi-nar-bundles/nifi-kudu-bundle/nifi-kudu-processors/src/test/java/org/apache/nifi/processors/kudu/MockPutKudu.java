@@ -33,10 +33,12 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.record.Record;
 
+import javax.security.auth.login.AppConfigurationEntry;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicReference;
@@ -72,8 +74,8 @@ public class MockPutKudu extends PutKudu {
 
     @Override
     protected Operation createKuduOperation(OperationType operationType, Record record,
-                                            List<String> fieldNames, Boolean ignoreNull,
-                                            Boolean lowercaseFields, KuduTable kuduTable) {
+                                            List<String> fieldNames, boolean ignoreNull,
+                                            boolean lowercaseFields, KuduTable kuduTable) {
         Operation operation = opQueue.poll();
         if (operation == null) {
             switch (operationType) {
@@ -175,7 +177,21 @@ public class MockPutKudu extends PutKudu {
             }
 
             @Override
+            public <T> T doAs(PrivilegedAction<T> action, ClassLoader contextClassLoader) throws IllegalStateException {
+                return action.run();
+            }
+
+            @Override
             public <T> T doAs(final PrivilegedExceptionAction<T> action) throws IllegalStateException, PrivilegedActionException {
+                try {
+                    return action.run();
+                } catch (Exception e) {
+                    throw new PrivilegedActionException(e);
+                }
+            }
+
+            @Override
+            public <T> T doAs(PrivilegedExceptionAction<T> action, ClassLoader contextClassLoader) throws IllegalStateException, PrivilegedActionException {
                 try {
                     return action.run();
                 } catch (Exception e) {
@@ -196,6 +212,11 @@ public class MockPutKudu extends PutKudu {
             @Override
             public String getPrincipal() {
                 return principal;
+            }
+
+            @Override
+            public AppConfigurationEntry getConfigurationEntry() {
+                return new AppConfigurationEntry("LoginModule", AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, Collections.emptyMap());
             }
         };
     }

@@ -21,12 +21,19 @@ import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.resource.ResourceContext;
+import org.apache.nifi.components.resource.StandardResourceContext;
+import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.PropertyConfiguration;
+import org.apache.nifi.controller.PropertyConfigurationMapper;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.FormatUtils;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -40,13 +47,27 @@ public class StandardConfigurationContext implements ConfigurationContext {
     private final VariableRegistry variableRegistry;
     private final String schedulingPeriod;
     private final Long schedulingNanos;
+    private final Map<PropertyDescriptor, String> properties;
+    private final String annotationData;
 
     public StandardConfigurationContext(final ComponentNode component, final ControllerServiceLookup serviceLookup, final String schedulingPeriod,
                                         final VariableRegistry variableRegistry) {
+        this(component, serviceLookup, schedulingPeriod, variableRegistry, component.getEffectivePropertyValues(), component.getAnnotationData());
+    }
+
+    public StandardConfigurationContext(final ComponentNode component, final Map<String, String> propertyOverrides, final String annotationDataOverride, final ParameterLookup parameterLookup,
+                                        final ControllerServiceLookup serviceLookup, final String schedulingPeriod, final VariableRegistry variableRegistry) {
+        this(component, serviceLookup, schedulingPeriod, variableRegistry, resolvePropertyValues(component, parameterLookup, propertyOverrides), annotationDataOverride);
+    }
+
+    public StandardConfigurationContext(final ComponentNode component, final ControllerServiceLookup serviceLookup, final String schedulingPeriod,
+                                        final VariableRegistry variableRegistry, final Map<PropertyDescriptor, String> propertyValues, final String annotationData) {
         this.component = component;
         this.serviceLookup = serviceLookup;
         this.schedulingPeriod = schedulingPeriod;
         this.variableRegistry = variableRegistry;
+        this.properties = Collections.unmodifiableMap(propertyValues);
+        this.annotationData = annotationData;
 
         if (schedulingPeriod == null) {
             schedulingNanos = null;
@@ -59,33 +80,59 @@ public class StandardConfigurationContext implements ConfigurationContext {
         }
 
         preparedQueries = new HashMap<>();
-        for (final Map.Entry<PropertyDescriptor, String> entry : component.getEffectivePropertyValues().entrySet()) {
+        for (final Map.Entry<PropertyDescriptor, String> entry : propertyValues.entrySet()) {
             final PropertyDescriptor desc = entry.getKey();
             String value = entry.getValue();
             if (value == null) {
                 value = desc.getDefaultValue();
             }
 
-            final PreparedQuery pq = Query.prepare(value);
+            final PreparedQuery pq = Query.prepareWithParametersPreEvaluated(value);
             preparedQueries.put(desc, pq);
         }
     }
 
+    private static Map<PropertyDescriptor, String> resolvePropertyValues(final ComponentNode component, final ParameterLookup parameterLookup, final Map<String, String> propertyOverrides) {
+        final Map<PropertyDescriptor, String> resolvedProperties = new LinkedHashMap<>(component.getEffectivePropertyValues());
+        final PropertyConfigurationMapper configurationMapper = new PropertyConfigurationMapper();
+
+        for (final Map.Entry<String, String> entry : propertyOverrides.entrySet()) {
+            final String propertyName = entry.getKey();
+            final String propertyValue = entry.getValue();
+            final PropertyDescriptor propertyDescriptor = component.getPropertyDescriptor(propertyName);
+            if (propertyValue == null) {
+                resolvedProperties.remove(propertyDescriptor);
+            } else {
+                final PropertyConfiguration configuration = configurationMapper.mapRawPropertyValuesToPropertyConfiguration(propertyDescriptor, propertyValue);
+                final String effectiveValue = configuration.getEffectiveValue(parameterLookup);
+                resolvedProperties.put(propertyDescriptor, effectiveValue);
+            }
+        }
+
+        return resolvedProperties;
+    }
+
     @Override
     public PropertyValue getProperty(final PropertyDescriptor property) {
-        final String configuredValue = component.getEffectivePropertyValue(property);
+        final String configuredValue = properties.get(property);
 
         // We need to get the 'canonical representation' of the property descriptor from the component itself,
         // since the supplied PropertyDescriptor may not have the proper default value.
         final PropertyDescriptor resolvedDescriptor = component.getPropertyDescriptor(property.getName());
         final String resolvedValue = (configuredValue == null) ? resolvedDescriptor.getDefaultValue() : configuredValue;
 
-        return new StandardPropertyValue(resolvedValue, serviceLookup, component.getParameterLookup(), preparedQueries.get(property), variableRegistry);
+        final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), property);
+        return new StandardPropertyValue(resourceContext, resolvedValue, serviceLookup, component.getParameterLookup(), preparedQueries.get(property), variableRegistry);
     }
 
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
-        return component.getEffectivePropertyValues();
+        return properties;
+    }
+
+    @Override
+    public String getAnnotationData() {
+        return annotationData;
     }
 
     @Override

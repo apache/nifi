@@ -19,13 +19,8 @@ package org.apache.nifi.security.util.crypto
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Assume
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -36,32 +31,26 @@ import java.security.SecureRandom
 import java.security.Security
 
 import static groovy.test.GroovyAssert.shouldFail
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 
-@RunWith(JUnit4.class)
 class AESKeyedCipherProviderGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(AESKeyedCipherProviderGroovyTest.class)
 
     private static final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210"
 
+    private static final String PLAINTEXT = "ExactBlockSizeRequiredForProcess"
+
     private static final List<EncryptionMethod> keyedEncryptionMethods = EncryptionMethod.values().findAll { it.keyedCipher }
 
     private static final SecretKey key = new SecretKeySpec(Hex.decodeHex(KEY_HEX as char[]), "AES")
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
     }
 
     private static boolean isUnlimitedStrengthCryptoAvailable() {
@@ -73,8 +62,6 @@ class AESKeyedCipherProviderGroovyTest {
         // Arrange
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
 
-        final String plaintext = "This is a plaintext message."
-
         // Act
         for (EncryptionMethod em : keyedEncryptionMethods) {
             logger.info("Using algorithm: ${em.getAlgorithm()}")
@@ -84,7 +71,7 @@ class AESKeyedCipherProviderGroovyTest {
             byte[] iv = cipher.getIV()
             logger.info("IV: ${Hex.encodeHexString(iv)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             cipher = cipherProvider.getCipher(em, key, iv, false)
@@ -93,7 +80,7 @@ class AESKeyedCipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
@@ -101,8 +88,6 @@ class AESKeyedCipherProviderGroovyTest {
     void testGetCipherWithExternalIVShouldBeInternallyConsistent() throws Exception {
         // Arrange
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
-
-        final String plaintext = "This is a plaintext message."
 
         // Act
         keyedEncryptionMethods.each { EncryptionMethod em ->
@@ -113,7 +98,7 @@ class AESKeyedCipherProviderGroovyTest {
             // Initialize a cipher for encryption
             Cipher cipher = cipherProvider.getCipher(em, key, iv, true)
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             cipher = cipherProvider.getCipher(em, key, iv, false)
@@ -122,19 +107,17 @@ class AESKeyedCipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
     @Test
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         // Arrange
-        Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.", isUnlimitedStrengthCryptoAvailable())
+        assumeTrue(isUnlimitedStrengthCryptoAvailable(), "Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.")
 
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
         final List<Integer> LONG_KEY_LENGTHS = [192, 256]
-
-        final String plaintext = "This is a plaintext message."
 
         SecureRandom secureRandom = new SecureRandom()
 
@@ -156,7 +139,7 @@ class AESKeyedCipherProviderGroovyTest {
                 // Initialize a cipher for encryption
                 Cipher cipher = cipherProvider.getCipher(em, localKey, iv, true)
 
-                byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+                byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
                 logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
                 cipher = cipherProvider.getCipher(em, localKey, iv, false)
@@ -165,7 +148,7 @@ class AESKeyedCipherProviderGroovyTest {
                 logger.info("Recovered: ${recovered}")
 
                 // Assert
-                assert plaintext.equals(recovered)
+                assert PLAINTEXT.equals(recovered)
             }
         }
     }
@@ -240,7 +223,7 @@ class AESKeyedCipherProviderGroovyTest {
         // Arrange
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
 
-        final String PLAINTEXT = "This is a plaintext message."
+        final String plaintext = "This is a plaintext message."
 
         // These values can be generated by running `$ ./openssl_aes.rb` in the terminal
         final byte[] IV = Hex.decodeHex("e0bc8cc7fbc0bdfdc184dc22ce2fcb5b" as char[])
@@ -261,15 +244,13 @@ class AESKeyedCipherProviderGroovyTest {
         logger.info("Recovered: ${recovered}")
 
         // Assert
-        assert PLAINTEXT.equals(recovered)
+        assert plaintext.equals(recovered)
     }
 
     @Test
     void testGetCipherForDecryptShouldRequireIV() throws Exception {
         // Arrange
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
-
-        final String plaintext = "This is a plaintext message."
 
         // Act
         keyedEncryptionMethods.each { EncryptionMethod em ->
@@ -280,7 +261,7 @@ class AESKeyedCipherProviderGroovyTest {
             // Initialize a cipher for encryption
             Cipher cipher = cipherProvider.getCipher(em, key, iv, true)
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             def msg = shouldFail(IllegalArgumentException) {

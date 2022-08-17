@@ -19,12 +19,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
 
-    <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-ranger-bundle</artifactId>
-    <version>1.14.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -33,4 +31,42 @@
 	    <module>nifi-ranger-resources</module>
     </modules>
 
+    <properties>
+        <ranger.hadoop.version>3.3.3</ranger.hadoop.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Override zookeeper -->
+            <dependency>
+                <groupId>org.apache.zookeeper</groupId>
+                <artifactId>zookeeper</artifactId>
+                <version>${zookeeper.version}</version>
+            </dependency>
+            <!-- Override snakeyaml:1.17 from ranger -->
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>1.29</version>
+            </dependency>
+            <!-- Override commons-compress -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.21</version>
+            </dependency>
+            <!-- Override commons-beanutils -->
+            <dependency>
+                <groupId>commons-beanutils</groupId>
+                <artifactId>commons-beanutils</artifactId>
+                <version>1.9.4</version>
+            </dependency>
+            <!-- Override Hadoop -->
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-common</artifactId>
+                <version>${ranger.hadoop.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>

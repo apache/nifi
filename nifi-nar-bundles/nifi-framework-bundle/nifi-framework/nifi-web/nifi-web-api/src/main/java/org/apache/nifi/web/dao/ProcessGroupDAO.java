@@ -19,8 +19,8 @@ package org.apache.nifi.web.dao;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
@@ -136,7 +136,7 @@ public interface ProcessGroupDAO {
      *            update the contents of that Process Group
      * @return the process group
      */
-    ProcessGroup updateProcessGroupFlow(String groupId, VersionedFlowSnapshot proposedSnapshot, VersionControlInformationDTO versionControlInformation, String componentIdSeed,
+    ProcessGroup updateProcessGroupFlow(String groupId, VersionedExternalFlow proposedSnapshot, VersionControlInformationDTO versionControlInformation, String componentIdSeed,
                                         boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows);
 
     /**

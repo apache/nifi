@@ -30,7 +30,7 @@ import org.apache.nifi.websocket.AbstractWebSocketSession;
 import org.apache.nifi.websocket.WebSocketMessage;
 import org.apache.nifi.websocket.WebSocketServerService;
 import org.apache.nifi.websocket.WebSocketSession;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -49,9 +49,9 @@ import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_MESSAGE_TYPE;
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_REMOTE_ADDRESS;
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_SESSION_ID;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -108,7 +108,6 @@ public class TestListenWebSocket {
         } catch (AssertionError e) {
             assertTrue(e.toString().contains("'server-url-path' is invalid because Must starts with"));
         }
-
     }
 
     @Test
@@ -198,16 +197,16 @@ public class TestListenWebSocket {
 
         // Simulate that the processor has started, and it get's triggered again
         processor.onTrigger(runner.getProcessContext(), sessionFactory);
-        assertEquals("No session should be created", 0, createdSessions.size());
+        assertEquals(0, createdSessions.size(), "No session should be created");
 
         // Simulate that the processor is stopped.
         processor.onStopped(runner.getProcessContext());
-        assertEquals("No session should be created", 0, createdSessions.size());
+        assertEquals(0, createdSessions.size(), "No session should be created");
 
         // Simulate that the processor is restarted.
         // And the mock service will emit consume msg events.
         processor.onTrigger(runner.getProcessContext(), sessionFactory);
-        assertEquals("Processor should register it with the service again", 6, createdSessions.size());
+        assertEquals(6, createdSessions.size(), "Processor should register it with the service again");
     }
 
 }

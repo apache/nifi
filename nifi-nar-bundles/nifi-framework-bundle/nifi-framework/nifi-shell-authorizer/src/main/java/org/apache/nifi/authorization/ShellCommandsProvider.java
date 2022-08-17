@@ -56,39 +56,6 @@ interface ShellCommandsProvider {
     String getGroupMembers(String groupName);
 
     /**
-     * Gets the command for reading a single user by id.  Implementations may return null if reading a single
-     * user by id is not supported.
-     *
-     * When executed, this command should output a single line, in the format used by `getUsersList`.
-     *
-     * @param userId name of user.
-     * @return Shell command string that will read a single user.
-     */
-    String getUserById(String userId);
-
-    /**
-     * Gets the command for reading a single user.  Implementations may return null if reading a single user by
-     * username is not supported.
-     *
-     * When executed, this command should output a single line, in the format used by `getUsersList`.
-     *
-     * @param userName name of user.
-     * @return Shell command string that will read a single user.
-     */
-    String getUserByName(String userName);
-
-    /**
-     * Gets the command for reading a single group.  Implementations may return null if reading a single group
-     * by name is not supported.
-     *
-     * When executed, this command should output a single line, in the format used by `getGroupsList`.
-     *
-     * @param groupId name of group.
-     * @return Shell command string that will read a single group.
-     */
-    String getGroupById(String groupId);
-
-    /**
      * Gets the command for checking the suitability of the host system.
      *
      * The command is expected to exit with status 0 (zero) to indicate success, and any other status

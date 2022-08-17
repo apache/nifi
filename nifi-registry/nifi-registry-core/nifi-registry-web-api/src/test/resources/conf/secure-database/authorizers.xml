@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<!--
+    This file lists the userGroupProviders, accessPolicyProviders, and authorizers to use when running securely. In order
+    to use a specific authorizer it must be configured here and its identifier must be specified in the nifi-registry.properties file.
+    If the authorizer is a managedAuthorizer, it may need to be configured with an accessPolicyProvider and an userGroupProvider.
+    This file allows for configuration of them, but they must be configured in order:
+
+    ...
+    all userGroupProviders
+    all accessPolicyProviders
+    all Authorizers
+    ...
+-->
+<authorizers>
+
+    <!--
+        The DatabaseUserGroupProvider will provide support for managing users and groups in a relational database. The framework
+        will provide a database connection to this provider using the same database information from nifi-registry.properties.
+
+        - Initial User Identity [unique key] - Same as the Initial User Identity in the FileUserGroupProvider
+    -->
+    <userGroupProvider>
+        <identifier>database-user-group-provider</identifier>
+        <class>org.apache.nifi.registry.security.authorization.database.DatabaseUserGroupProvider</class>
+        <property name="Initial User Identity 1">CN=user1, OU=nifi</property>
+        <property name="Initial User Identity 2">CN=user2, OU=nifi</property>
+    </userGroupProvider>
+
+    <!--
+        The DatabaseAccessPolicyProvider will provide support for managing access policies in a relational database. The
+        framework will provide a database connection to this provider using the same database information from nifi-registry.properties.
+
+        - User Group Provider - Same as User Group Provider in the FileAccessPolicyProvider
+
+        - Initial Admin Identity - Same as Initial Admin Identity in the FileAccessPolicyProvider
+
+        - NiFi Identity [unique key] - Same as NiFi Identity in the FileAccessPolicyProvider
+
+        - NiFi Group Name - Same as NiFi Group Name in the FileAccessPolicyProvider
+    -->
+    <accessPolicyProvider>
+        <identifier>database-access-policy-provider</identifier>
+        <class>org.apache.nifi.registry.security.authorization.database.DatabaseAccessPolicyProvider</class>
+        <property name="User Group Provider">database-user-group-provider</property>
+        <property name="Initial Admin Identity">CN=user1, OU=nifi</property>
+        <property name="NiFi Identity 1"></property>
+        <property name="NiFi Group Name"></property>
+    </accessPolicyProvider>
+
+    <!--
+        The StandardManagedAuthorizer. This authorizer implementation must be configured with the
+        Access Policy Provider which it will use to access and manage users, groups, and policies.
+        These users, groups, and policies will be used to make all access decisions during authorization
+        requests.
+
+        - Access Policy Provider - The identifier for an Access Policy Provider defined above.
+    -->
+    <authorizer>
+        <identifier>managed-authorizer</identifier>
+        <class>org.apache.nifi.registry.security.authorization.StandardManagedAuthorizer</class>
+        <property name="Access Policy Provider">database-access-policy-provider</property>
+    </authorizer>
+
+</authorizers>

@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -325,14 +324,6 @@ public class CipherUtility {
             throw new IllegalArgumentException("Cannot evaluate an empty encryption method algorithm");
         }
         return MAX_PASSWORD_LENGTH_BY_ALGORITHM.getOrDefault(encryptionMethod.getAlgorithm(), -1);
-    }
-
-    public static boolean isUnlimitedStrengthCryptoSupported() {
-        try {
-            return (Cipher.getMaxAllowedKeyLength("AES") > DEFAULT_MAX_ALLOWED_KEY_LENGTH);
-        } catch (NoSuchAlgorithmException e) {
-            return false;
-        }
     }
 
     /**

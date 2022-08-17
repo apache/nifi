@@ -21,7 +21,7 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.junit.Assert;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -29,8 +29,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.apache.nifi.authorization.CompositeUserGroupProvider.PROP_USER_GROUP_PROVIDER_PREFIX;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -179,7 +179,7 @@ public class CompositeUserGroupProviderTestBase {
 
     protected void mockProperties(final AuthorizerConfigurationContext configurationContext) {
         when(configurationContext.getProperties()).then((invocation) -> {
-            final Map<String, String> properties = new HashMap<>();
+            final Map<String, String> properties = new LinkedHashMap<>();
 
             int i = 1;
             while (true) {

@@ -16,17 +16,11 @@
  */
 package org.apache.nifi.processors.aws.wag;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.times;
-
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.http.AmazonHttpClient;
 import com.amazonaws.http.apache.client.impl.SdkHttpClient;
-import java.io.ByteArrayInputStream;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.amazonaws.internal.TokenBucket;
+import com.amazonaws.metrics.RequestMetricCollector;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpVersion;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -39,23 +33,32 @@ import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredential
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.times;
 
 public class TestInvokeAmazonGatewayApiMock {
 
     private TestRunner runner = null;
-    private InvokeAWSGatewayApi mockGetApi = null;
     private SdkHttpClient mockSdkClient = null;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         mockSdkClient = Mockito.mock(SdkHttpClient.class);
         ClientConfiguration clientConfig = new ClientConfiguration();
 
-        mockGetApi = new InvokeAWSGatewayApi(
-            new AmazonHttpClient(clientConfig, mockSdkClient, null));
+        InvokeAWSGatewayApi mockGetApi = new InvokeAWSGatewayApi(
+            new AmazonHttpClient(clientConfig, mockSdkClient, RequestMetricCollector.NONE, new TokenBucket()));
         runner = TestRunners.newTestRunner(mockGetApi);
         runner.setValidateExpressionUsage(false);
 
@@ -132,7 +135,7 @@ public class TestInvokeAmazonGatewayApiMock {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
         attributes.put("Foo", "Bar");
-        runner.enqueue("Hello".getBytes("UTF-8"), attributes);
+        runner.enqueue("Hello".getBytes(StandardCharsets.UTF_8), attributes);
         // execute
         runner.assertValid();
         runner.run(1);
@@ -183,7 +186,7 @@ public class TestInvokeAmazonGatewayApiMock {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
         attributes.put("Foo", "Bar");
-        runner.enqueue("Hello".getBytes("UTF-8"), attributes);
+        runner.enqueue("Hello".getBytes(StandardCharsets.UTF_8), attributes);
         // execute
         runner.assertValid();
         runner.run(1);

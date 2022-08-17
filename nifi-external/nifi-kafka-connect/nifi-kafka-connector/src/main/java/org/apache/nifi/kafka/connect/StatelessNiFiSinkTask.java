@@ -78,6 +78,7 @@ public class StatelessNiFiSinkTask extends SinkTask {
         headerNamePrefix = properties.getOrDefault(StatelessNiFiSinkConnector.HEADER_ATTRIBUTE_NAME_PREFIX, "");
 
         dataflow = StatelessKafkaConnectorUtil.createDataflow(properties);
+        dataflow.initialize();
 
         // Determine input port name. If input port is explicitly set, use the value given. Otherwise, if only one port exists, use that. Otherwise, throw ConfigException.
         final String dataflowName = properties.get(StatelessKafkaConnectorUtil.DATAFLOW_NAME);

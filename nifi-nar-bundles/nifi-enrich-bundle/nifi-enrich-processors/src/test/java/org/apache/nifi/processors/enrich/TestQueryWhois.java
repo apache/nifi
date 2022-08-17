@@ -22,46 +22,37 @@ import org.apache.commons.net.whois.WhoisClient;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.junit.runner.RunWith;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({WhoisClient.class})
 public class TestQueryWhois {
-    private QueryWhois queryWhois;
     private TestRunner queryWhoisTestRunner;
 
-    @Before
+    @BeforeEach
     public void setupTest() throws Exception {
         // This is what is sent by Mockito
         String header = "AS      | IP               | BGP Prefix          | CC | Registry | Allocated  | Info                    | AS Name\n";
         String responseBodyLine1 =  "999 | 123.123.123.123 | 123.123.123.123/32 | AU | apnic | 2014-01-01 | 2016-08-14 01:32:01 GMT | Apache NiFi\n";
         String responseBodyLine2 =  "333 | 124.124.124.124 | 124.124.124.124/32 | AU | apnic | 2014-01-01 | 2016-08-14 01:32:01 GMT | Apache NiFi\n";
 
-        WhoisClient whoisClient = PowerMockito.mock(WhoisClient.class);
-        Mockito.when(whoisClient.query(Mockito.anyString())).thenReturn(header + responseBodyLine1 + responseBodyLine2);
+        final WhoisClient mockWhoisClient = mock(WhoisClient.class);
+        Mockito.when(mockWhoisClient.query(Mockito.anyString())).thenReturn(header + responseBodyLine1 + responseBodyLine2);
 
-        this.queryWhois =  new QueryWhois() {
+        QueryWhois queryWhois = new QueryWhois() {
             @Override
-            protected WhoisClient createClient(){
-                return whoisClient;
+            protected WhoisClient createClient() {
+                return mockWhoisClient;
             }
         };
         this.queryWhoisTestRunner = TestRunners.newTestRunner(queryWhois);
-
     }
-
-
 
     @Test
     public void testCustomValidator() {
@@ -113,10 +104,7 @@ public class TestQueryWhois {
 
         queryWhoisTestRunner.setProperty(QueryWhois.QUERY_PARSER, QueryWhois.NONE.getValue());
         queryWhoisTestRunner.assertNotValid();
-
-
     }
-
 
     @Test
     public void testValidDataWithSplit()  {
@@ -144,9 +132,9 @@ public class TestQueryWhois {
         queryWhoisTestRunner.run();
 
         List<MockFlowFile> matchingResults = queryWhoisTestRunner.getFlowFilesForRelationship(QueryWhois.REL_FOUND);
-        assertTrue(matchingResults.size() == 2);
+        assertEquals(2, matchingResults.size());
         List<MockFlowFile> nonMatchingResults = queryWhoisTestRunner.getFlowFilesForRelationship(QueryWhois.REL_NOT_FOUND);
-        assertTrue(nonMatchingResults.size() == 1);
+        assertEquals(1, nonMatchingResults.size());
 
         matchingResults.get(0).assertAttributeEquals("enrich.whois.record0.group7", "Apache NiFi");
     }
@@ -178,17 +166,15 @@ public class TestQueryWhois {
         queryWhoisTestRunner.run();
 
         List<MockFlowFile> matchingResults = queryWhoisTestRunner.getFlowFilesForRelationship(QueryWhois.REL_FOUND);
-        assertTrue(matchingResults.size() == 2);
+        assertEquals(2, matchingResults.size());
         List<MockFlowFile> nonMatchingResults = queryWhoisTestRunner.getFlowFilesForRelationship(QueryWhois.REL_NOT_FOUND);
-        assertTrue(nonMatchingResults.size() == 1);
+        assertEquals(1, nonMatchingResults.size());
 
         matchingResults.get(0).assertAttributeEquals("enrich.whois.record0.group8", " Apache NiFi");
-
     }
 
     @Test
     public void testValidDataWithRegexButInvalidCaptureGroup()  {
-
         queryWhoisTestRunner.setProperty(QueryWhois.WHOIS_SERVER, "127.0.0.1");
         queryWhoisTestRunner.setProperty(QueryWhois.WHOIS_QUERY_TYPE, "origin");
         queryWhoisTestRunner.setProperty(QueryWhois.WHOIS_TIMEOUT, "1000 ms");
@@ -213,11 +199,9 @@ public class TestQueryWhois {
         queryWhoisTestRunner.run();
 
         List<MockFlowFile> matchingResults = queryWhoisTestRunner.getFlowFilesForRelationship(QueryWhois.REL_FOUND);
-        assertTrue(matchingResults.size() == 0);
+        assertEquals(0, matchingResults.size());
         List<MockFlowFile> nonMatchingResults = queryWhoisTestRunner.getFlowFilesForRelationship(QueryWhois.REL_NOT_FOUND);
-        assertTrue(nonMatchingResults.size() == 3);
-
+        assertEquals(3, nonMatchingResults.size());
     }
-
 }
 

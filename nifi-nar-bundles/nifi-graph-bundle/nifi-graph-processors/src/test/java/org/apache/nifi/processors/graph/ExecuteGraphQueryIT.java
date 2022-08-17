@@ -22,8 +22,8 @@ import org.apache.nifi.graph.InMemoryJanusGraphClientService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
@@ -37,7 +37,7 @@ public class ExecuteGraphQueryIT {
                                         "}\n" +
                                         "g.V().hasLabel(\"test\").count().next()";
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         InMemoryJanusGraphClientService service = new InMemoryJanusGraphClientService();
         runner = TestRunners.newTestRunner(ExecuteGraphQuery.class);

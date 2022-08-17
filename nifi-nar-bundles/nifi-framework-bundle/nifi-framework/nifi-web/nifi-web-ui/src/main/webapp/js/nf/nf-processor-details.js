@@ -64,15 +64,31 @@
      * @argument {object} relationship      The relationship
      */
     var createRelationshipOption = function (relationship) {
-        var relationshipLabel = $('<div class="relationship-name ellipsis"></div>').text(relationship.name);
+        var relationshipValue = $('<span class="relationship-name-value hidden"></span>').text(relationship.name);
 
-        // build the relationship checkbox element
+        // build terminate checkbox element
+        var terminateCheckbox = $('<div class="processor-terminate-relationship nf-checkbox disabled"></div>');
+        var terminateLabel = $('<div class="relationship-name nf-checkbox-label ellipsis"></div>').text('terminate');
         if (relationship.autoTerminate === true) {
-            relationshipLabel.css('font-weight', 'bold');
+            terminateCheckbox.addClass('checkbox-checked');
+        } else {
+            terminateCheckbox.addClass('checkbox-unchecked');
         }
+        var terminateCheckboxBundle = $('<div class="processor-terminate-relationship-container"></div>').append(terminateCheckbox).append(terminateLabel);
+
+        // build the retry checkbox element
+        var retryCheckbox = $('<div class="processor-retry-relationship nf-checkbox disabled"></div>');
+        var retryLabel = $('<div class="relationship-name nf-checkbox-label ellipsis"></div>').text('retry');
+        if (relationship.retry === true) {
+            retryCheckbox.addClass('checkbox-checked');
+        } else {
+            retryCheckbox.addClass('checkbox-unchecked');
+        }
+        var retryCheckboxBundle = $('<div class="processor-retry-relationship-container"></div>').append(retryCheckbox).append(retryLabel);
 
         // build the relationship container element
-        var relationshipContainerElement = $('<div class="processor-relationship-container"></div>').append(relationshipLabel).appendTo('#read-only-auto-terminate-relationship-names');
+        var relationshipContainerHeading = $('<div></div>').text(relationship.name);
+        var relationshipContainerElement = $('<div class="processor-relationship-container"></div>').append(relationshipContainerHeading).append(terminateCheckboxBundle).append(retryCheckboxBundle).append(relationshipValue).appendTo('#read-only-auto-action-relationship-names');
         if (!nfCommon.isBlank(relationship.description)) {
             var relationshipDescription = $('<div class="relationship-description"></div>').text(relationship.description);
             relationshipContainerElement.append(relationshipDescription);
@@ -107,6 +123,9 @@
                     name: 'Properties',
                     tabContentId: 'details-processor-properties-tab-content'
                 }, {
+                    name: 'Relationships',
+                    tabContentId: 'details-processor-relationships-tab-content'
+                }, {
                     name: 'Comments',
                     tabContentId: 'details-processor-comments-tab-content'
                 }],
@@ -118,12 +137,6 @@
                     if ($(this).text() === 'Properties') {
                         $('#read-only-processor-properties').propertytable('resetTableSize');
                     }
-
-                    // show the border if processor relationship names if necessary
-                    var processorRelationships = $('#read-only-auto-terminate-relationship-names');
-                    if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > Math.round(processorRelationships.innerHeight())) {
-                        processorRelationships.css('border-width', '1px');
-                    }
                 }
             });
 
@@ -134,7 +147,7 @@
                 handler: {
                     close: function () {
                         // empty the relationship list
-                        $('#read-only-auto-terminate-relationship-names').css('border-width', '0').empty();
+                        $('#read-only-auto-action-relationship-names').empty();
 
                         // clear the property grid
                         $('#read-only-processor-properties').propertytable('clear');
@@ -262,8 +275,35 @@
                         $.each(details.relationships, function (i, relationship) {
                             createRelationshipOption(relationship);
                         });
+
+                        // set initial disabled value for retry controls
+                        var setRetryControlsDisabledState = (function() {
+                            var isEnabled = $('#read-only-auto-action-relationship-names').find('div.nf-checkbox.processor-retry-relationship.checkbox-checked').length ? true : false;
+                            if (isEnabled) {
+                                $('#details-processor-relationships-tab-content .settings-right').show();
+                            } else {
+                                $('#details-processor-relationships-tab-content .settings-right').hide();
+                            }
+                        });
+                        setRetryControlsDisabledState();
                     } else {
-                        $('#read-only-auto-terminate-relationship-names').append('<div class="unset">This processor has no relationships.</div>');
+                        $('#read-only-auto-action-relationship-names').append('<div class="unset">This processor has no relationships.</div>');
+                    }
+
+                    if (nfCommon.isDefinedAndNotNull(details.config.backoffMechanism)) {
+                        if (details.config.backoffMechanism === 'PENALIZE_FLOWFILE') {
+                            $('.details-backoff-policy-setting #penalizeFlowFile').prop("checked", true);
+                        } else if (details.config.backoffMechanism === 'YIELD_PROCESSOR') {
+                            $('.details-backoff-policy-setting #yieldEntireProcessor').prop("checked", true);
+                        }
+                    }
+
+                    if (nfCommon.isDefinedAndNotNull(details.config.maxBackoffPeriod)) {
+                        $('.details-max-backoff-setting #details-max-backoff-period').text(details.config.maxBackoffPeriod);
+                    }
+
+                    if (nfCommon.isDefinedAndNotNull(details.config.retryCount)) {
+                        $('.details-retry-count-setting #details-retry-attempt-count').text(details.config.retryCount);
                     }
                 }
             });
@@ -399,12 +439,6 @@
 
                 // add ellipsis if necessary
                 $('#processor-details div.relationship-name').ellipsis();
-
-                // show the border if necessary
-                var processorRelationships = $('#read-only-auto-terminate-relationship-names');
-                if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > Math.round(processorRelationships.innerHeight())) {
-                    processorRelationships.css('border-width', '1px');
-                }
             }).fail(nfErrorHandler.handleAjaxError);
         }
     };

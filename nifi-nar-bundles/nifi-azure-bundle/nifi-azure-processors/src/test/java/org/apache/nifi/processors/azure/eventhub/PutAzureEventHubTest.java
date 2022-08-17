@@ -16,8 +16,39 @@
  */
 package org.apache.nifi.processors.azure.eventhub;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import com.microsoft.azure.eventhubs.EventData;
+import com.microsoft.azure.eventhubs.EventHubClient;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.azure.storage.utils.FlowFileResultCarrier;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -29,36 +60,6 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.azure.storage.utils.FlowFileResultCarrier;
-import org.apache.nifi.util.StopWatch;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
-
-import com.google.common.collect.ImmutableMap;
-import com.microsoft.azure.eventhubs.EventData;
-import com.microsoft.azure.eventhubs.EventHubClient;
 
 public class PutAzureEventHubTest {
     private static final String namespaceName = "nifi-azure-hub";
@@ -72,7 +73,7 @@ public class PutAzureEventHubTest {
     private TestRunner testRunner;
     private PutAzureEventHubTest.MockPutAzureEventHub processor;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         processor = new PutAzureEventHubTest.MockPutAzureEventHub();
         testRunner = TestRunners.newTestRunner(processor);
@@ -130,12 +131,12 @@ public class PutAzureEventHubTest {
         testRunner.clearTransferState();
     }
 
-    @Test(expected = AssertionError.class)
+    @Test
     public void testBadConnectionString() {
         PutAzureEventHubTest.BogusConnectionStringMockPutAzureEventHub badConnectionStringProcessor = new PutAzureEventHubTest.BogusConnectionStringMockPutAzureEventHub();
         testRunner = TestRunners.newTestRunner(badConnectionStringProcessor);
         setUpStandardTestConfig();
-        testRunner.run(1, true);
+        assertThrows(AssertionError.class, () -> testRunner.run(1, true));
     }
 
     @Test
@@ -155,7 +156,7 @@ public class PutAzureEventHubTest {
         testRunner.setProperty(PutAzureEventHub.PARTITIONING_KEY_ATTRIBUTE_NAME, TEST_PARTITIONING_KEY_ATTRIBUTE_NAME);
 
         MockFlowFile flowFile = new MockFlowFile(1234);
-        flowFile.putAttributes(ImmutableMap.of(TEST_PARTITIONING_KEY_ATTRIBUTE_NAME, TEST_PARTITIONING_KEY));
+        flowFile.putAttributes(Collections.singletonMap(TEST_PARTITIONING_KEY_ATTRIBUTE_NAME, TEST_PARTITIONING_KEY));
         testRunner.enqueue(flowFile);
         testRunner.run(1, true);
 
@@ -178,7 +179,7 @@ public class PutAzureEventHubTest {
         setUpStandardTestConfig();
 
         MockFlowFile flowFile = new MockFlowFile(1234);
-        flowFile.putAttributes(ImmutableMap.of(TEST_PARTITIONING_KEY_ATTRIBUTE_NAME, TEST_PARTITIONING_KEY));
+        flowFile.putAttributes(Collections.singletonMap(TEST_PARTITIONING_KEY_ATTRIBUTE_NAME, TEST_PARTITIONING_KEY));
 
         // Key not specified
         testRunner.enqueue(flowFile);
@@ -210,7 +211,11 @@ public class PutAzureEventHubTest {
         setUpStandardTestConfig();
 
         MockFlowFile flowFile = new MockFlowFile(1234);
-        ImmutableMap<String, String> demoAttributes = ImmutableMap.of("A", "a", "B", "b", "D", "d", "C", "c");
+        final Map<String, String> demoAttributes = new LinkedHashMap<>();
+        demoAttributes.put("A", "a");
+        demoAttributes.put("B", "b");
+        demoAttributes.put("D", "d");
+        demoAttributes.put("C", "c");
         flowFile.putAttributes(demoAttributes);
 
         testRunner.enqueue(flowFile);
@@ -323,6 +328,7 @@ public class PutAzureEventHubTest {
         @Override
         protected EventHubClient createEventHubClient(
                 final String namespace,
+                final String serviceBusEndpoint,
                 final String eventHubName,
                 final String policyName,
                 final String policyKey,
@@ -341,6 +347,7 @@ public class PutAzureEventHubTest {
         @Override
         protected EventHubClient createEventHubClient(
                 final String namespace,
+                final String serviceBusEndpoint,
                 final String eventHubName,
                 final String policyName,
                 final String policyKey,
@@ -350,7 +357,7 @@ public class PutAzureEventHubTest {
     }
     private static class BogusConnectionStringMockPutAzureEventHub extends PutAzureEventHub{
         @Override
-        protected String getConnectionString(final String namespace, final String eventHubName, final String policyName, final String policyKey){
+        protected String getConnectionString(final String namespace, final String serviceBusEndpoint, final String eventHubName, final String policyName, final String policyKey){
             return "Bogus Connection String";
         }
     }
@@ -366,6 +373,7 @@ public class PutAzureEventHubTest {
         @Override
         protected EventHubClient createEventHubClient(
                 final String namespace,
+                final String serviceBusEndpoint,
                 final String eventHubName,
                 final String policyName,
                 final String policyKey,

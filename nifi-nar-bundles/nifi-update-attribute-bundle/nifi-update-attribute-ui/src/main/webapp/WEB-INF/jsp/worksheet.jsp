@@ -16,7 +16,7 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <link rel="stylesheet" href="../nifi/assets/jquery-ui-dist/jquery-ui.min.css" type="text/css" />
@@ -56,6 +56,7 @@
         <script type="text/javascript" src="../nifi/assets/slickgrid/slick.grid.js"></script>
         <script type="text/javascript" src="../nifi/js/codemirror/lib/codemirror-compressed.js"></script>
         <script type="text/javascript" src="../nifi/js/nf/nf-namespace.js"></script>
+        <script type="text/javascript" src="../nifi/js/nf/nf-authorization-storage.js"></script>
         <script type="text/javascript" src="../nifi/js/nf/nf-storage.js"></script>
         <script type="text/javascript" src="../nifi/js/nf/nf-ajax-setup.js"></script>
         <script type="text/javascript" src="../nifi/js/nf/nf-universal-capture.js"></script>

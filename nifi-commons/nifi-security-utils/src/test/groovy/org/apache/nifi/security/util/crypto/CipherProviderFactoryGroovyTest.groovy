@@ -18,19 +18,13 @@ package org.apache.nifi.security.util.crypto
 
 import org.apache.nifi.security.util.KeyDerivationFunction
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Ignore
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import java.security.Security
 
-@RunWith(JUnit4.class)
 class CipherProviderFactoryGroovyTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(CipherProviderFactoryGroovyTest.class)
 
@@ -44,21 +38,13 @@ class CipherProviderFactoryGroovyTest extends GroovyTestCase {
             (KeyDerivationFunction.ARGON2)                  : Argon2CipherProvider.class
     ]
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
     }
 
     @Test
@@ -74,25 +60,5 @@ class CipherProviderFactoryGroovyTest extends GroovyTestCase {
             // Assert
             assert cp.class == (EXPECTED_CIPHER_PROVIDERS.get(kdf))
         }
-    }
-
-    @Ignore("Cannot mock enum using Groovy map coercion")
-    @Test
-    void testGetCipherProviderShouldHandleUnregisteredKDFs() {
-        // Arrange
-
-        // Can't mock this; see http://stackoverflow.com/questions/5323505/mocking-java-enum-to-add-a-value-to-test-fail-case
-        KeyDerivationFunction invalidKDF = [name: "Unregistered", description: "Not a registered KDF"] as KeyDerivationFunction
-        logger.info("Expected: ${invalidKDF.kdfName} -> error")
-
-        // Act
-        def msg = shouldFail(IllegalArgumentException) {
-            CipherProvider cp = CipherProviderFactory.getCipherProvider(invalidKDF)
-            logger.info("Resolved: ${invalidKDF.kdfName} -> ${cp.class.simpleName}")
-        }
-        logger.expected(msg)
-
-        // Assert
-        assert msg =~ "No cipher provider registered for ${invalidKDF.kdfName}"
     }
 }

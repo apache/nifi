@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-gcp-bundle</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-gcp-processors</artifactId>
@@ -52,19 +52,22 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-processor-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <artifactId>nifi-distributed-cache-client-service-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-listed-entity</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-gcp-services-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -84,10 +87,37 @@
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-bigquery</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-pubsub</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-pubsublite</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.google.apis</groupId>
+            <artifactId>google-api-services-drive</artifactId>
+            <version>v3-rev20220709-1.32.1</version>
         </dependency>
         <dependency>
             <groupId>com.tdunning</groupId>
@@ -95,15 +125,28 @@
             <version>1.8</version>
         </dependency>
         <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-json-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-serialization-services</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.18.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -120,6 +163,9 @@
                         <exclude>src/test/resources/mock-gcp-application-default-credentials.json</exclude>
                         <exclude>src/test/resources/bigquery/streaming-bad-data.json</exclude>
                         <exclude>src/test/resources/bigquery/streaming-correct-data.json</exclude>
+                        <exclude>src/test/resources/bigquery/schema-correct-data-with-date.avsc</exclude>
+                        <exclude>src/test/resources/bigquery/streaming-correct-data-with-date.json</exclude>
+                        <exclude>src/test/resources/bigquery/streaming-correct-data-with-date-formatted.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -127,7 +173,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
-                    <groups>org.apache.nifi.processors.gcp.GCPIntegrationTests</groups>
                     <skipITs>${skipGCPIntegrationTests}</skipITs>
                 </configuration>
             </plugin>
@@ -135,7 +180,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <excludedGroups>org.apache.nifi.processors.gcp.GCPIntegrationTests</excludedGroups>
                     <environmentVariables>
                         <GOOGLE_APPLICATION_CREDENTIALS>${project.basedir}/src/test/resources/mock-gcp-application-default-credentials.json</GOOGLE_APPLICATION_CREDENTIALS>
                     </environmentVariables>

@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
+import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
@@ -28,15 +30,18 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.S3VersionSummary;
 import com.amazonaws.services.s3.model.VersionListing;
 import org.apache.commons.lang3.time.DateUtils;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
@@ -44,30 +49,32 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class TestListS3 {
 
     private TestRunner runner = null;
-    private ListS3 mockListS3 = null;
-    private AmazonS3Client actualS3Client = null;
     private AmazonS3Client mockS3Client = null;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         mockS3Client = Mockito.mock(AmazonS3Client.class);
-        mockListS3 = new ListS3() {
+        final ListS3 mockListS3 = new ListS3() {
             protected AmazonS3Client getClient() {
-                actualS3Client = client;
+                return mockS3Client;
+            }
+
+            @Override
+            protected AmazonS3Client createClient(ProcessContext context, AWSCredentials credentials, ClientConfiguration config) {
                 return mockS3Client;
             }
         };
@@ -118,6 +125,12 @@ public class TestListS3 {
         flowFiles.get(1).assertAttributeEquals("filename", "b/c");
         flowFiles.get(2).assertAttributeEquals("filename", "d/e");
         runner.getStateManager().assertStateEquals(ListS3.CURRENT_TIMESTAMP, lastModifiedTimestamp, Scope.CLUSTER);
+
+        final List<ConfigVerificationResult> results = ((VerifiableProcessor) runner.getProcessor())
+                .verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
+        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, results.get(0).getOutcome());
+        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, results.get(1).getOutcome());
+        assertTrue(results.get(1).getExplanation().contains("finding 3 objects"));
     }
 
     @Test
@@ -161,7 +174,6 @@ public class TestListS3 {
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 1);
 
         final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         final String lastModifiedString = dateFormat.format(lastModified);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS).get(0);
@@ -370,7 +382,7 @@ public class TestListS3 {
         runner.setProperty(ListS3.BUCKET, "test-bucket");
 
         Calendar calendar = Calendar.getInstance();
-        calendar.set(2017, 5, 2);
+        calendar.set(2017, Calendar.JUNE, 2);
         Date objectLastModified = calendar.getTime();
         long stateCurrentTimestamp = objectLastModified.getTime();
 

@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements. See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License. You may obtain a copy of the License at
+  http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <suppress>
+        <notes>NiFi packages contain other project names, which can cause incorrect identification</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.nifi.*$</packageUrl>
+        <cpe regex="true">^cpe:.*$</cpe>
+    </suppress>
+    <suppress>
+        <notes>Meta MX HTTP Client is incorrectly identified as Netty</notes>
+        <packageUrl regex="true">^pkg:maven/com\.metamx/http\-client@.*$</packageUrl>
+        <cpe>cpe:/a:netty:netty</cpe>
+    </suppress>
+    <suppress>
+        <notes>Testcontainers MySQL is incorrectly identified with MySQL server</notes>
+        <packageUrl regex="true">^pkg:maven/org\.testcontainers/mysql@.*$</packageUrl>
+        <cpe>cpe:/a:mysql:mysql</cpe>
+    </suppress>
+    <suppress>
+        <notes>StumbleUpon Async is incorrectly identified as the JavaScript Async library</notes>
+        <packageUrl regex="true">^pkg:maven/com\.stumbleupon/async@.*$</packageUrl>
+        <cve>CVE-2021-43138</cve>
+    </suppress>
+    <suppress>
+        <notes>HBase Async is incorrectly identified as the JavaScript Async library</notes>
+        <packageUrl regex="true">^pkg:maven/org\.hbase/asynchbase@.*$</packageUrl>
+        <cve>CVE-2021-43138</cve>
+    </suppress>
+    <suppress>
+        <notes>Jetty SSLEngine is incorrectly identified with Jetty Server</notes>
+        <packageUrl regex="true">^pkg:maven/org\.mortbay\.jetty/jetty\-sslengine@.*$</packageUrl>
+        <cpe regex="true">^cpe:.*$</cpe>
+    </suppress>
+    <suppress>
+        <notes>MySQL Binary Log Connector is incorrectly identified as MySQL server</notes>
+        <packageUrl regex="true">^pkg:maven/com\.zendesk/mysql\-binlog\-connector\-java@.*$</packageUrl>
+        <cpe>cpe:/a:mysql:mysql</cpe>
+    </suppress>
+    <suppress>
+        <notes>Testcontainers MariaDB is incorrectly identified with MariaDB server</notes>
+        <packageUrl regex="true">^pkg:maven/org\.testcontainers/mariadb@.*$</packageUrl>
+        <cpe>cpe:/a:mariadb:mariadb</cpe>
+    </suppress>
+    <suppress>
+        <notes>Twill ZooKeeper is incorrectly identified with ZooKeeper server</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.twill/twill\-zookeeper@.*$</packageUrl>
+        <cpe>cpe:/a:apache:zookeeper</cpe>
+    </suppress>
+    <suppress>
+        <notes>H2 1.4.200 is shaded and repackaged without vulnerable components in nifi-h2-database for migration</notes>
+        <packageUrl>pkg:maven/com.h2database/h2@1.4.200</packageUrl>
+        <vulnerabilityName regex="true">^CVE.*$</vulnerabilityName>
+    </suppress>
+    <suppress>
+        <notes>H2 2 is not vulnerable to CVE-2018-14335</notes>
+        <packageUrl regex="true">^pkg:maven/com\.h2database/h2@2.*$</packageUrl>
+        <vulnerabilityName>CVE-2018-14335</vulnerabilityName>
+    </suppress>
+    <suppress>
+        <notes>Jetty apache-jsp is not part of Apache Tomcat server</notes>
+        <packageUrl>pkg:maven/org.mortbay.jasper/apache-jsp@8.5.70</packageUrl>
+        <cpe>cpe:/a:apache:tomcat</cpe>
+    </suppress>
+    <suppress>
+        <notes>CVE-2016-1000027 does not apply to Spring Web 5.3.20 and later</notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework/spring\-web@.*$</packageUrl>
+        <cve>CVE-2016-1000027</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2020-5408 does not apply to Spring Security Crypto 5.7.1 and later</notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring\-security\-crypto@.*$</packageUrl>
+        <vulnerabilityName>CVE-2020-5408</vulnerabilityName>
+    </suppress>
+    <suppress>
+        <notes>Spring Security Kerberos Core is an extension of the Spring Security project</notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.security\.kerberos/spring\-security\-kerberos.*$</packageUrl>
+        <cpe>cpe:/a:vmware:spring_security</cpe>
+    </suppress>
+    <suppress>
+        <notes>Servlet API 2.5 does not include Jetty Server vulnerabilities</notes>
+        <packageUrl regex="true">^pkg:maven/org\.mortbay\.jetty/servlet\-api@.*$</packageUrl>
+        <cpe regex="true">^cpe:.*$</cpe>
+    </suppress>
+    <suppress>
+        <notes>Spark 2.13 used in nifi-spark-receiver is not impacted by Spark Server vulnerabilities</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.spark/spark\-.+?_2\.13@.*$</packageUrl>
+        <cpe>cpe:/a:apache:spark</cpe>
+    </suppress>
+    <suppress>
+        <notes>Apache Hive vulnerabilities do not apply to Flume Hive Sink</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.flume\.flume\-ng\-sinks/flume\-hive\-sink@.*$</packageUrl>
+        <cpe>cpe:/a:apache:hive</cpe>
+    </suppress>
+    <suppress>
+        <notes>Apache Kafka vulnerabilities do not apply to Flume Kafka Sink</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.flume\.flume\-ng\-sinks/flume\-ng\-kafka\-sink@.*$</packageUrl>
+        <cpe>cpe:/a:apache:kafka</cpe>
+    </suppress>
+    <suppress>
+        <notes>Apache Kafka vulnerabilities do not apply to Flume Kafka Source</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.flume\.flume\-ng\-sources/flume\-kafka\-source@.*$</packageUrl>
+        <cpe>cpe:/a:apache:kafka</cpe>
+    </suppress>
+    <suppress>
+        <notes>Apache Kafka vulnerabilities do not apply to Flume Shared Kafka</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.flume\.flume\-shared/flume\-shared\-kafka@.*$</packageUrl>
+        <cpe>cpe:/a:apache:kafka</cpe>
+    </suppress>
+    <suppress>
+        <notes>Apache HBase vulnerabilities do not apply to Flume HBase Sink</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.flume\.flume\-ng\-sinks/flume\-ng\-hbase\-sink@.*$</packageUrl>
+        <cpe>cpe:/a:apache:hbase</cpe>
+    </suppress>
+    <suppress>
+        <notes>Apache Solr vulnerabilities do not apply to Flume Solr Sink</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.flume\.flume\-ng\-sinks/flume\-ng\-morphline\-solr\-sink@.*$</packageUrl>
+        <cpe>cpe:/a:apache:solr</cpe>
+    </suppress>
+    <suppress>
+        <notes>CVE-2017-10355 does not apply to Xerces 2.12.2</notes>
+        <packageUrl regex="true">^pkg:maven/xerces/xercesImpl@.*$</packageUrl>
+        <cve>CVE-2017-10355</cve>
+    </suppress>
+</suppressions>

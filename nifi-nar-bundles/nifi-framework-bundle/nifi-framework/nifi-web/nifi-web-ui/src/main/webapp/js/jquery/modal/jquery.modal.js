@@ -28,6 +28,7 @@
  *   header: true,
  *   footer: true,
  *   headerText: 'Dialog Header',
+ *   subtitleText: 'Dialog subtitle',
  *   scrollableContentStyle: 'scrollable',
  *   buttons: [{
  *      buttonText: 'Cancel',
@@ -191,6 +192,9 @@
                         dialogHeaderText.text(nfDialogData.headerText);
                     }
 
+                    $('<span></span>').addClass("dialog-header-subtitle").text(nfDialogData.subtitleText).appendTo(dialogHeader);
+
+
                     dialog.prepend(dialogHeader);
                 }
 
@@ -311,6 +315,12 @@
         setHeaderText: function (text) {
             return this.each(function () {
                 $(this).find('span.dialog-header-text').text(text);
+            });
+        },
+
+        setSubtitle: function (text) {
+            return this.each(function () {
+                $(this).find('span.dialog-header-subtitle').text(text);
             });
         },
 

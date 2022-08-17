@@ -38,18 +38,14 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -58,14 +54,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.zip.ZipInputStream;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestMergeContent {
-
-    @BeforeClass
-    public static void setup() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard", "DEBUG");
-    }
 
     /**
      * This test will verify that if we have a FlowFile larger than the Max Size for a Bin, it will go into its
@@ -99,7 +93,7 @@ public class TestMergeContent {
     }
 
     @Test
-    public void testSimpleAvroConcat() throws IOException, InterruptedException {
+    public void testSimpleAvroConcat() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_ENTRIES, "3");
         runner.setProperty(MergeContent.MIN_ENTRIES, "3");
@@ -143,14 +137,14 @@ public class TestMergeContent {
         byte[] data = runner.getContentAsByteArray(bundle);
         final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
 
-        Assert.assertEquals(3, users.size());
-        Assert.assertTrue(users.containsKey("Alyssa"));
-        Assert.assertTrue(users.containsKey("Ben"));
-        Assert.assertTrue(users.containsKey("John"));
+        assertEquals(3, users.size());
+        assertTrue(users.containsKey("Alyssa"));
+        assertTrue(users.containsKey("Ben"));
+        assertTrue(users.containsKey("John"));
     }
 
     @Test
-    public void testAvroConcatWithDifferentSchemas() throws IOException, InterruptedException {
+    public void testAvroConcatWithDifferentSchemas() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_ENTRIES, "3");
         runner.setProperty(MergeContent.MIN_ENTRIES, "3");
@@ -191,19 +185,19 @@ public class TestMergeContent {
 
         final byte[] data = runner.getContentAsByteArray(bundle);
         final Map<String, GenericRecord> users = getGenericRecordMap(data, schema1, "name");
-        Assert.assertEquals(2, users.size());
-        Assert.assertTrue(users.containsKey("Alyssa"));
-        Assert.assertTrue(users.containsKey("John"));
+        assertEquals(2, users.size());
+        assertTrue(users.containsKey("Alyssa"));
+        assertTrue(users.containsKey("John"));
 
         final MockFlowFile failure = runner.getFlowFilesForRelationship(MergeContent.REL_FAILURE).get(0);
         final byte[] failureData = runner.getContentAsByteArray(failure);
         final Map<String, GenericRecord> places = getGenericRecordMap(failureData, schema2, "name");
-        Assert.assertEquals(1, places.size());
-        Assert.assertTrue(places.containsKey("Some Place"));
+        assertEquals(1, places.size());
+        assertTrue(places.containsKey("Some Place"));
     }
 
     @Test
-    public void testAvroConcatWithDifferentMetadataDoNotMerge() throws IOException, InterruptedException {
+    public void testAvroConcatWithDifferentMetadataDoNotMerge() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_ENTRIES, "3");
         runner.setProperty(MergeContent.MIN_ENTRIES, "3");
@@ -258,12 +252,12 @@ public class TestMergeContent {
         byte[] data = runner.getContentAsByteArray(bundle);
         final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
 
-        Assert.assertEquals(1, users.size());
-        Assert.assertTrue(users.containsKey("Alyssa"));
+        assertEquals(1, users.size());
+        assertTrue(users.containsKey("Alyssa"));
     }
 
     @Test
-    public void testAvroConcatWithDifferentMetadataIgnore() throws IOException, InterruptedException {
+    public void testAvroConcatWithDifferentMetadataIgnore() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_ENTRIES, "3");
         runner.setProperty(MergeContent.MIN_ENTRIES, "3");
@@ -318,14 +312,14 @@ public class TestMergeContent {
         byte[] data = runner.getContentAsByteArray(bundle);
         final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
 
-        Assert.assertEquals(3, users.size());
-        Assert.assertTrue(users.containsKey("Alyssa"));
-        Assert.assertTrue(users.containsKey("Ben"));
-        Assert.assertTrue(users.containsKey("John"));
+        assertEquals(3, users.size());
+        assertTrue(users.containsKey("Alyssa"));
+        assertTrue(users.containsKey("Ben"));
+        assertTrue(users.containsKey("John"));
     }
 
     @Test
-    public void testAvroConcatWithDifferentMetadataUseFirst() throws IOException, InterruptedException {
+    public void testAvroConcatWithDifferentMetadataUseFirst() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_ENTRIES, "3");
         runner.setProperty(MergeContent.MIN_ENTRIES, "3");
@@ -380,14 +374,14 @@ public class TestMergeContent {
         byte[] data = runner.getContentAsByteArray(bundle);
         final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
 
-        Assert.assertEquals(3, users.size());
-        Assert.assertTrue(users.containsKey("Alyssa"));
-        Assert.assertTrue(users.containsKey("Ben"));
-        Assert.assertTrue(users.containsKey("John"));
+        assertEquals(3, users.size());
+        assertTrue(users.containsKey("Alyssa"));
+        assertTrue(users.containsKey("Ben"));
+        assertTrue(users.containsKey("John"));
     }
 
     @Test
-    public void testAvroConcatWithDifferentMetadataKeepCommon() throws IOException, InterruptedException {
+    public void testAvroConcatWithDifferentMetadataKeepCommon() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_ENTRIES, "3");
         runner.setProperty(MergeContent.MIN_ENTRIES, "3");
@@ -442,9 +436,9 @@ public class TestMergeContent {
         byte[] data = runner.getContentAsByteArray(bundle);
         final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
 
-        Assert.assertEquals(2, users.size());
-        Assert.assertTrue(users.containsKey("Alyssa"));
-        Assert.assertTrue(users.containsKey("John"));
+        assertEquals(2, users.size());
+        assertTrue(users.containsKey("Alyssa"));
+        assertTrue(users.containsKey("John"));
     }
 
     private Map<String, GenericRecord> getGenericRecordMap(byte[] data, Schema schema, String key) throws IOException {
@@ -479,13 +473,13 @@ public class TestMergeContent {
     }
 
     @Test
-    public void testSimpleBinaryConcat() throws IOException, InterruptedException {
+    public void testSimpleBinaryConcat() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
         runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
 
         createFlowFiles(runner);
-        runner.run();
+        runner.run(2);
 
         runner.assertQueueEmpty();
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
@@ -501,14 +495,14 @@ public class TestMergeContent {
     }
 
     @Test
-    public void testSimpleBinaryConcatSingleBin() throws IOException, InterruptedException {
+    public void testSimpleBinaryConcatSingleBin() {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
         runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
         runner.setProperty(MergeContent.MAX_BIN_COUNT, "1");
 
         createFlowFiles(runner);
-        runner.run();
+        runner.run(2);
 
         runner.assertQueueEmpty();
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
@@ -516,12 +510,12 @@ public class TestMergeContent {
         runner.assertTransferCount(MergeContent.REL_ORIGINAL, 3);
 
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
-        bundle.assertContentEquals("Hello, World!".getBytes("UTF-8"));
+        bundle.assertContentEquals("Hello, World!");
         bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
     }
 
     @Test
-    public void testSimpleBinaryConcatWithTextDelimiters() throws IOException, InterruptedException {
+    public void testSimpleBinaryConcatWithTextDelimiters() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
         runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
@@ -531,7 +525,7 @@ public class TestMergeContent {
         runner.setProperty(MergeContent.FOOTER, "$");
 
         createFlowFiles(runner);
-        runner.run();
+        runner.run(2);
 
         runner.assertQueueEmpty();
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
@@ -544,7 +538,7 @@ public class TestMergeContent {
     }
 
     @Test
-    public void testSimpleBinaryConcatWithTextDelimitersHeaderOnly() throws IOException, InterruptedException {
+    public void testSimpleBinaryConcatWithTextDelimitersHeaderOnly() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
         runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
@@ -552,7 +546,7 @@ public class TestMergeContent {
         runner.setProperty(MergeContent.HEADER, "@");
 
         createFlowFiles(runner);
-        runner.run();
+        runner.run(2);
 
         runner.assertQueueEmpty();
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
@@ -584,7 +578,7 @@ public class TestMergeContent {
         runner.enqueue("Hello".getBytes("UTF-8"), attributes);
         runner.enqueue(", ".getBytes("UTF-8"), attributes);
         runner.enqueue("World!".getBytes("UTF-8"), attributes);
-        runner.run();
+        runner.run(2);
 
         runner.assertQueueEmpty();
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
@@ -597,7 +591,7 @@ public class TestMergeContent {
     }
 
     @Test
-    public void testTextDelimitersValidation() throws IOException, InterruptedException {
+    public void testTextDelimitersValidation() {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
         runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
@@ -613,14 +607,14 @@ public class TestMergeContent {
             results = mockContext.validate();
         }
 
-        Assert.assertEquals(3, results.size());
+        assertEquals(3, results.size());
         for (ValidationResult vr : results) {
-            Assert.assertTrue(vr.toString().contains("cannot be empty"));
+            assertTrue(vr.toString().contains("cannot be empty"));
         }
     }
 
     @Test
-    public void testFileDelimitersValidation() throws IOException, InterruptedException {
+    public void testFileDelimitersValidation() {
         final String doesNotExistFile = "src/test/resources/TestMergeContent/does_not_exist";
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
@@ -637,14 +631,14 @@ public class TestMergeContent {
             results = mockContext.validate();
         }
 
-        Assert.assertEquals(3, results.size());
+        assertEquals(3, results.size());
         for (ValidationResult vr : results) {
-            Assert.assertTrue(vr.toString().contains("is invalid because File " + new File(doesNotExistFile).toString() + " does not exist"));
+            assertTrue(vr.toString().contains("is invalid because File " + new File(doesNotExistFile).toString() + " does not exist"));
         }
     }
 
     @Test
-    public void testMimeTypeIsOctetStreamIfConflictingWithBinaryConcat() throws IOException, InterruptedException {
+    public void testMimeTypeIsOctetStreamIfConflictingWithBinaryConcat() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
         runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
@@ -654,7 +648,7 @@ public class TestMergeContent {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/zip");
         runner.enqueue(new byte[0], attributes);
-        runner.run();
+        runner.run(2);
 
         runner.assertQueueEmpty();
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
@@ -667,7 +661,7 @@ public class TestMergeContent {
     }
 
     @Test
-    public void testOldestBinIsExpired() throws IOException, InterruptedException {
+    public void testOldestBinIsExpired() {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 day");
         runner.setProperty(MergeContent.MAX_BIN_COUNT, "50");
@@ -705,6 +699,11 @@ public class TestMergeContent {
         // will be in a separate bin.
         runner.run(1, false, true);
         runner.enqueue(new byte[0], attrs);
+
+        // Add one more FlowFile, with a unique correlation id so that it creates the 51st bin.
+        // This should trigger the oldest bin to be evicted.
+        attrs.put("correlationId", "abc");
+        runner.enqueue(new byte[0], attrs);
         runner.run();
 
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
@@ -713,7 +712,7 @@ public class TestMergeContent {
     }
 
     @Test
-    public void testSimpleBinaryConcatWaitsForMin() throws IOException, InterruptedException {
+    public void testSimpleBinaryConcatWaitsForMin() {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
         runner.setProperty(MergeContent.MIN_SIZE, "20 KB");
@@ -733,7 +732,7 @@ public class TestMergeContent {
         runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_ZIP);
 
         createFlowFiles(runner);
-        runner.run();
+        runner.run(2);
 
         runner.assertQueueEmpty();
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
@@ -742,17 +741,17 @@ public class TestMergeContent {
 
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
         try (final InputStream rawIn = new ByteArrayInputStream(runner.getContentAsByteArray(bundle)); final ZipInputStream in = new ZipInputStream(rawIn)) {
-            Assert.assertNotNull(in.getNextEntry());
+            assertNotNull(in.getNextEntry());
             final byte[] part1 = IOUtils.toByteArray(in);
-            Assert.assertTrue(Arrays.equals("Hello".getBytes("UTF-8"), part1));
+            assertArrayEquals("Hello".getBytes("UTF-8"), part1);
 
             in.getNextEntry();
             final byte[] part2 = IOUtils.toByteArray(in);
-            Assert.assertTrue(Arrays.equals(", ".getBytes("UTF-8"), part2));
+            assertArrayEquals(", ".getBytes("UTF-8"), part2);
 
             in.getNextEntry();
             final byte[] part3 = IOUtils.toByteArray(in);
-            Assert.assertTrue(Arrays.equals("World!".getBytes("UTF-8"), part3));
+            assertArrayEquals("World!".getBytes("UTF-8"), part3);
         }
         bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/zip");
     }
@@ -770,7 +769,7 @@ public class TestMergeContent {
         runner.enqueue("Hello".getBytes("UTF-8"), attributes);
         runner.enqueue(", ".getBytes("UTF-8"), attributes);
         runner.enqueue("World!".getBytes("UTF-8"), attributes);
-        runner.run();
+        runner.run(2);
 
         runner.assertQueueEmpty();
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
@@ -793,7 +792,7 @@ public class TestMergeContent {
         runner.enqueue(", ".getBytes("UTF-8"), attributes);
         attributes.put(CoreAttributes.FILENAME.key(), "AReallyLongggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggFileName");
         runner.enqueue("World!".getBytes("UTF-8"), attributes);
-        runner.run();
+        runner.run(2);
 
         runner.assertQueueEmpty();
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
@@ -803,20 +802,20 @@ public class TestMergeContent {
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
         try (final InputStream rawIn = new ByteArrayInputStream(runner.getContentAsByteArray(bundle)); final TarArchiveInputStream in = new TarArchiveInputStream(rawIn)) {
             ArchiveEntry entry = in.getNextEntry();
-            Assert.assertNotNull(entry);
+            assertNotNull(entry);
             assertEquals("AShortFileName", entry.getName());
             final byte[] part1 = IOUtils.toByteArray(in);
-            Assert.assertTrue(Arrays.equals("Hello".getBytes("UTF-8"), part1));
+            assertArrayEquals("Hello".getBytes("UTF-8"), part1);
 
             entry = in.getNextEntry();
             assertEquals("ALongerrrFileName", entry.getName());
             final byte[] part2 = IOUtils.toByteArray(in);
-            Assert.assertTrue(Arrays.equals(", ".getBytes("UTF-8"), part2));
+            assertArrayEquals(", ".getBytes("UTF-8"), part2);
 
             entry = in.getNextEntry();
             assertEquals("AReallyLongggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggFileName", entry.getName());
             final byte[] part3 = IOUtils.toByteArray(in);
-            Assert.assertTrue(Arrays.equals("World!".getBytes("UTF-8"), part3));
+            assertArrayEquals("World!".getBytes("UTF-8"), part3);
         }
         bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/tar");
     }
@@ -1108,7 +1107,7 @@ public class TestMergeContent {
         attributes.put("attr", "b");
         runner.enqueue("Panama".getBytes("UTF-8"), attributes);
 
-        runner.run(1);
+        runner.run(2);
 
         runner.assertTransferCount(MergeContent.REL_MERGED, 2);
 
@@ -1120,7 +1119,7 @@ public class TestMergeContent {
         final String attr2 = merged2.getAttribute("attr");
 
         if ("c".equals(attr1)) {
-            Assert.assertEquals("b", attr2);
+            assertEquals("b", attr2);
             merged1.assertContentEquals("A Canal ", "UTF-8");
             merged2.assertContentEquals("A Man A Plan Panama", "UTF-8");
         } else {
@@ -1225,13 +1224,13 @@ public class TestMergeContent {
     }
 
     @Test
-    public void testCountAttribute() throws IOException, InterruptedException {
+    public void testCountAttribute() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
         runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
 
         createFlowFiles(runner);
-        runner.run();
+        runner.run(2);
 
         runner.assertQueueEmpty();
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
@@ -1262,15 +1261,15 @@ public class TestMergeContent {
         assertEquals(2, runner.getQueueSize().getObjectCount());
     }
 
-    private void createFlowFiles(final TestRunner testRunner) throws UnsupportedEncodingException {
+    private void createFlowFiles(final TestRunner testRunner) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
         // add 'fragment.index' attribute to ensure non-defragment mode operates correctly even when index is present
         attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "1");
 
-        testRunner.enqueue("Hello".getBytes("UTF-8"), attributes);
-        testRunner.enqueue(", ".getBytes("UTF-8"), attributes);
-        testRunner.enqueue("World!".getBytes("UTF-8"), attributes);
+        testRunner.enqueue("Hello", attributes);
+        testRunner.enqueue(", ", attributes);
+        testRunner.enqueue("World!", attributes);
     }
 
 }

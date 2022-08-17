@@ -25,6 +25,7 @@ import org.apache.nifi.security.util.KeyDerivationFunction
 import org.apache.nifi.security.util.crypto.Argon2CipherProvider
 import org.apache.nifi.security.util.crypto.Argon2SecureHasher
 import org.apache.nifi.security.util.crypto.CipherUtility
+import org.apache.nifi.security.util.crypto.KeyedEncryptor
 import org.apache.nifi.security.util.crypto.PasswordBasedEncryptor
 import org.apache.nifi.security.util.crypto.RandomIVPBECipherProvider
 import org.apache.nifi.util.MockFlowFile
@@ -34,7 +35,6 @@ import org.apache.nifi.util.TestRunners
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.Assert
-import org.junit.Assume
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
@@ -58,6 +58,8 @@ class TestEncryptContentGroovy {
     private static final String WEAK_CRYPTO_ALLOWED = EncryptContent.WEAK_CRYPTO_ALLOWED_NAME
     private static final String WEAK_CRYPTO_NOT_ALLOWED = EncryptContent.WEAK_CRYPTO_NOT_ALLOWED_NAME
 
+    private static final List<EncryptionMethod> SUPPORTED_KEYED_ENCRYPTION_METHODS = EncryptionMethod.values().findAll { it.isKeyedCipher() && it != EncryptionMethod.AES_CBC_NO_PADDING }
+
     @BeforeClass
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
@@ -78,9 +80,6 @@ class TestEncryptContentGroovy {
     @Test
     void testShouldValidateMaxKeySizeForAlgorithmsOnUnlimitedStrengthJVM() throws IOException {
         // Arrange
-        Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.",
-                CipherUtility.isUnlimitedStrengthCryptoSupported())
-
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class)
         Collection<ValidationResult> results
         MockProcessContext pc
@@ -111,50 +110,6 @@ class TestEncryptContentGroovy {
         String expectedResult = "'raw-key-hex' is invalid because Key must be valid length [128, 192, 256]"
         String message = "'" + vr.toString() + "' contains '" + expectedResult + "'"
         Assert.assertTrue(message, vr.toString().contains(expectedResult))
-    }
-
-    @Test
-    void testShouldValidateMaxKeySizeForAlgorithmsOnLimitedStrengthJVM() throws IOException {
-        // Arrange
-        Assume.assumeTrue("Test is being skipped because this JVM supports unlimited strength crypto.",
-                !CipherUtility.isUnlimitedStrengthCryptoSupported())
-
-        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class)
-        Collection<ValidationResult> results
-        MockProcessContext pc
-
-        EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
-
-        final int MAX_KEY_LENGTH = 128
-        final String TOO_LONG_KEY_HEX = "ab" * (MAX_KEY_LENGTH / 8 + 1)
-        logger.info("Using key ${TOO_LONG_KEY_HEX} (${TOO_LONG_KEY_HEX.length() * 4} bits)")
-
-        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE)
-        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, encryptionMethod.name())
-        runner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NONE.name())
-        runner.setProperty(EncryptContent.RAW_KEY_HEX, TOO_LONG_KEY_HEX)
-
-        runner.enqueue(new byte[0])
-        pc = (MockProcessContext) runner.getProcessContext()
-
-        // Act
-        results = pc.validate()
-
-        // Assert
-
-        // Two validation problems -- max key size and key length is invalid
-        Assert.assertEquals(2, results.size())
-        logger.expected(results)
-        ValidationResult maxKeyLengthVR = results.first()
-
-        String expectedResult = "'raw-key-hex' is invalid because Key length greater than ${MAX_KEY_LENGTH} bits is not supported"
-        String message = "'" + maxKeyLengthVR.toString() + "' contains '" + expectedResult + "'"
-        Assert.assertTrue(message, maxKeyLengthVR.toString().contains(expectedResult))
-
-        expectedResult = "'raw-key-hex' is invalid because Key must be valid length [128, 192, 256]"
-        ValidationResult keyLengthInvalidVR = results.last()
-        message = "'" + keyLengthInvalidVR.toString() + "' contains '" + expectedResult + "'"
-        Assert.assertTrue(message, keyLengthInvalidVR.toString().contains(expectedResult))
     }
 
     @Test
@@ -198,15 +153,13 @@ class TestEncryptContentGroovy {
         Collection<ValidationResult> results
         MockProcessContext pc
 
-        def encryptionMethods = EncryptionMethod.values().findAll { it.isKeyedCipher() }
-
         final int VALID_KEY_LENGTH = 128
         final String VALID_KEY_HEX = "ab" * (VALID_KEY_LENGTH / 8)
         logger.info("Using key ${VALID_KEY_HEX} (${VALID_KEY_HEX.length() * 4} bits)")
 
         runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE)
 
-        encryptionMethods.each { EncryptionMethod encryptionMethod ->
+        SUPPORTED_KEYED_ENCRYPTION_METHODS.each { EncryptionMethod encryptionMethod ->
             logger.info("Trying encryption method ${encryptionMethod.name()}")
             runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, encryptionMethod.name())
 
@@ -315,8 +268,7 @@ class TestEncryptContentGroovy {
         Collection<ValidationResult> results
         MockProcessContext pc
 
-        def keyedEncryptionMethods = EncryptionMethod.values().findAll { it.isKeyedCipher() }
-        logger.info("Testing keyed encryption methods: ${keyedEncryptionMethods*.name()}")
+        logger.info("Testing keyed encryption methods: ${SUPPORTED_KEYED_ENCRYPTION_METHODS*.name()}")
 
         final int VALID_KEY_LENGTH = 128
         final String VALID_KEY_HEX = "ab" * (VALID_KEY_LENGTH / 8)
@@ -330,7 +282,7 @@ class TestEncryptContentGroovy {
         final def VALID_KDFS = KeyDerivationFunction.values().findAll { it.isStrongKDF() }
 
         // Scenario 1 - RKH w/ KDF NONE & em in [CBC, CTR, GCM] (no password)
-        keyedEncryptionMethods.each { EncryptionMethod kem ->
+        SUPPORTED_KEYED_ENCRYPTION_METHODS.each { EncryptionMethod kem ->
             logger.info("Trying encryption method ${kem.name()} with KDF ${none.name()}")
             runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, kem.name())
             runner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, none.name())
@@ -379,10 +331,6 @@ class TestEncryptContentGroovy {
         final String PASSWORD = "short"
 
         def encryptionMethods = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }
-        if (!CipherUtility.isUnlimitedStrengthCryptoSupported()) {
-            // Remove all unlimited strength algorithms
-            encryptionMethods.removeAll { it.unlimitedStrength }
-        }
 
         runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE)
         runner.setProperty(EncryptContent.PASSWORD, PASSWORD)
@@ -440,9 +388,7 @@ class TestEncryptContentGroovy {
         testRunner.setProperty(EncryptContent.RAW_KEY_HEX, RAW_KEY_HEX)
         testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NONE.name())
 
-        def keyedCipherEMs = EncryptionMethod.values().findAll { it.isKeyedCipher() }
-
-        keyedCipherEMs.each { EncryptionMethod encryptionMethod ->
+        SUPPORTED_KEYED_ENCRYPTION_METHODS.each { EncryptionMethod encryptionMethod ->
             logger.info("Attempting {}", encryptionMethod.name())
             testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, encryptionMethod.name())
             testRunner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE)
@@ -467,6 +413,33 @@ class TestEncryptContentGroovy {
             flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0)
             flowFile.assertContentEquals(new File("src/test/resources/hello.txt"))
         }
+    }
+
+    @Test
+    void testDecryptAesCbcNoPadding() {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent())
+        final String RAW_KEY_HEX = "ab" * 16
+        testRunner.setProperty(EncryptContent.RAW_KEY_HEX, RAW_KEY_HEX)
+        testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NONE.name())
+        testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.AES_CBC_NO_PADDING.name())
+        testRunner.setProperty(EncryptContent.MODE, EncryptContent.DECRYPT_MODE)
+
+        final String content = "ExactBlockSizeRequiredForProcess"
+        final byte[] bytes = content.getBytes(StandardCharsets.UTF_8)
+        final ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes)
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
+
+        final KeyedEncryptor encryptor = new KeyedEncryptor(EncryptionMethod.AES_CBC_NO_PADDING, Hex.decodeHex(RAW_KEY_HEX))
+        encryptor.encryptionCallback.process(inputStream, outputStream)
+        outputStream.close()
+
+        final byte[] encrypted = outputStream.toByteArray()
+        testRunner.enqueue(encrypted)
+        testRunner.run()
+
+        testRunner.assertAllFlowFilesTransferred(EncryptContent.REL_SUCCESS, 1)
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0)
+        flowFile.assertContentEquals(content)
     }
 
     // TODO: Implement
@@ -801,53 +774,6 @@ class TestEncryptContentGroovy {
     }
 
     @Test
-    void testShouldCheckMaximumLengthOfPasswordOnLimitedStrengthCryptoJVM() throws IOException {
-        // Arrange
-        Assume.assumeTrue("Only run on systems with limited strength crypto", !CipherUtility.isUnlimitedStrengthCryptoSupported())
-
-        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent())
-        testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NIFI_LEGACY.name())
-        testRunner.setProperty(EncryptContent.ALLOW_WEAK_CRYPTO, WEAK_CRYPTO_ALLOWED)
-
-        Collection<ValidationResult> results
-        MockProcessContext pc
-
-        def encryptionMethods = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }
-
-        // Use .find instead of .each to allow "breaks" using return false
-        encryptionMethods.find { EncryptionMethod encryptionMethod ->
-            def invalidPasswordLength = CipherUtility.getMaximumPasswordLengthForAlgorithmOnLimitedStrengthCrypto(encryptionMethod) + 1
-            String tooLongPassword = "x" * invalidPasswordLength
-            if (encryptionMethod.isUnlimitedStrength() || encryptionMethod.isKeyedCipher()) {
-                return false
-                // cannot test unlimited strength in unit tests because it's not enabled by the JVM by default.
-            }
-
-            testRunner.setProperty(EncryptContent.PASSWORD, tooLongPassword)
-            logger.info("Attempting ${encryptionMethod.algorithm} with password of length ${invalidPasswordLength}")
-            testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, encryptionMethod.name())
-            testRunner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE)
-
-            testRunner.clearTransferState()
-            testRunner.enqueue(new byte[0])
-            pc = (MockProcessContext) testRunner.getProcessContext()
-
-            // Act
-            results = pc.validate()
-
-            // Assert
-            logger.expected(results)
-            Assert.assertEquals(1, results.size())
-            ValidationResult passwordLengthVR = results.first()
-
-            String expectedResult = "'Password' is invalid because Password length greater than ${invalidPasswordLength - 1} characters is not supported by" +
-                    " this JVM due to lacking JCE Unlimited Strength Jurisdiction Policy files."
-            String message = "'" + passwordLengthVR.toString() + "' contains '" + expectedResult + "'"
-            Assert.assertTrue(message, passwordLengthVR.toString().contains(expectedResult))
-        }
-    }
-
-    @Test
     void testShouldCheckLengthOfPasswordWhenNotAllowed() throws IOException {
         // Arrange
         final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent())
@@ -858,7 +784,7 @@ class TestEncryptContentGroovy {
 
         def encryptionMethods = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }
 
-        boolean limitedStrengthCrypto = !CipherUtility.isUnlimitedStrengthCryptoSupported()
+        boolean limitedStrengthCrypto = false
         boolean allowWeakCrypto = false
         testRunner.setProperty(EncryptContent.ALLOW_WEAK_CRYPTO, WEAK_CRYPTO_NOT_ALLOWED)
 
@@ -908,7 +834,7 @@ class TestEncryptContentGroovy {
 
         def encryptionMethods = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }
 
-        boolean limitedStrengthCrypto = !CipherUtility.isUnlimitedStrengthCryptoSupported()
+        boolean limitedStrengthCrypto = false
         boolean allowWeakCrypto = true
         testRunner.setProperty(EncryptContent.ALLOW_WEAK_CRYPTO, WEAK_CRYPTO_ALLOWED)
 

@@ -21,14 +21,10 @@ import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.crypto.scrypt.Scrypt
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Assume
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Ignore
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -42,9 +38,10 @@ import java.security.Security
 import static groovy.test.GroovyAssert.shouldFail
 import static org.junit.Assert.assertTrue
 
-@RunWith(JUnit4.class)
 class ScryptCipherProviderGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(ScryptCipherProviderGroovyTest.class)
+
+    private static final String PLAINTEXT = "ExactBlockSizeRequiredForProcess"
 
     private static List<EncryptionMethod> strongKDFEncryptionMethods
 
@@ -54,7 +51,7 @@ class ScryptCipherProviderGroovyTest {
 
     RandomIVPBECipherProvider cipherProvider
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
@@ -64,22 +61,13 @@ class ScryptCipherProviderGroovyTest {
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
 
-        if (CipherUtility.isUnlimitedStrengthCryptoSupported()) {
-            AES_KEY_LENGTHS = [128, 192, 256]
-        } else {
-            AES_KEY_LENGTHS = [128]
-        }
+        AES_KEY_LENGTHS = [128, 192, 256]
     }
 
-    @Before
+    @BeforeEach
     void setUp() throws Exception {
         // Very fast parameters to test for correctness rather than production values
         cipherProvider = new ScryptCipherProvider(4, 1, 1)
-    }
-
-    @After
-    void tearDown() throws Exception {
-
     }
 
     @Test
@@ -87,8 +75,6 @@ class ScryptCipherProviderGroovyTest {
         // Arrange
         final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
-
-        final String plaintext = "This is a plaintext message."
 
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
@@ -99,7 +85,7 @@ class ScryptCipherProviderGroovyTest {
             byte[] iv = cipher.getIV()
             logger.info("IV: ${Hex.encodeHexString(iv)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             cipher = cipherProvider.getCipher(em, PASSWORD, SALT, iv, DEFAULT_KEY_LENGTH, false)
@@ -108,7 +94,7 @@ class ScryptCipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
@@ -119,8 +105,6 @@ class ScryptCipherProviderGroovyTest {
         final byte[] SALT = cipherProvider.generateSalt()
         final byte[] IV = Hex.decodeHex("01" * 16 as char[])
 
-        final String plaintext = "This is a plaintext message."
-
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
             logger.info("Using algorithm: ${em.getAlgorithm()}")
@@ -129,7 +113,7 @@ class ScryptCipherProviderGroovyTest {
             Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true)
             logger.info("IV: ${Hex.encodeHexString(IV)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false)
@@ -138,22 +122,17 @@ class ScryptCipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
     @Test
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         // Arrange
-        Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.",
-                CipherUtility.isUnlimitedStrengthCryptoSupported())
-
         final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
 
         final int LONG_KEY_LENGTH = 256
-
-        final String plaintext = "This is a plaintext message."
 
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
@@ -164,7 +143,7 @@ class ScryptCipherProviderGroovyTest {
             byte[] iv = cipher.getIV()
             logger.info("IV: ${Hex.encodeHexString(iv)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             cipher = cipherProvider.getCipher(em, PASSWORD, SALT, iv, LONG_KEY_LENGTH, false)
@@ -173,7 +152,7 @@ class ScryptCipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
@@ -265,7 +244,6 @@ class ScryptCipherProviderGroovyTest {
         final String EXPECTED_FORMATTED_SALT = cipherProvider.formatSaltForScrypt(SALT)
         logger.info("Expected salt: ${EXPECTED_FORMATTED_SALT}")
 
-        final String plaintext = "This is a plaintext message."
         EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
         logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()}")
 
@@ -276,7 +254,7 @@ class ScryptCipherProviderGroovyTest {
         byte[] iv = cipher.getIV()
         logger.info("IV: ${Hex.encodeHexString(iv)}")
 
-        byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+        byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
         logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
         // Manually initialize a cipher for decrypt with the expected salt
@@ -294,7 +272,7 @@ class ScryptCipherProviderGroovyTest {
         logger.info("Recovered: ${recovered}")
 
         // Assert
-        assert plaintext.equals(recovered)
+        assert PLAINTEXT.equals(recovered)
     }
 
     @Test
@@ -368,8 +346,6 @@ class ScryptCipherProviderGroovyTest {
         final byte[] SALT = cipherProvider.generateSalt()
         final byte[] IV = Hex.decodeHex("00" * 16 as char[])
 
-        final String plaintext = "This is a plaintext message."
-
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
             logger.info("Using algorithm: ${em.getAlgorithm()}")
@@ -378,7 +354,7 @@ class ScryptCipherProviderGroovyTest {
             Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true)
             logger.info("IV: ${Hex.encodeHexString(IV)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             def msg = shouldFail(IllegalArgumentException) {
@@ -397,8 +373,6 @@ class ScryptCipherProviderGroovyTest {
         final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
         final byte[] IV = Hex.decodeHex("01" * 16 as char[])
-
-        final String PLAINTEXT = "This is a plaintext message."
 
         final def VALID_KEY_LENGTHS = AES_KEY_LENGTHS
         EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
@@ -430,8 +404,6 @@ class ScryptCipherProviderGroovyTest {
         final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
         final byte[] IV = Hex.decodeHex("00" * 16 as char[])
-
-        final String PLAINTEXT = "This is a plaintext message."
 
         // Even though Scrypt can derive keys of arbitrary length, it will fail to validate if the underlying cipher does not support it
         final def INVALID_KEY_LENGTHS = [-1, 40, 64, 112, 512]
@@ -632,7 +604,8 @@ class ScryptCipherProviderGroovyTest {
         assert isScryptSalt
     }
 
-    @Ignore("This test can be run on a specific machine to evaluate if the default parameters are sufficient")
+    @EnabledIfSystemProperty(named = "nifi.test.unstable", matches = "true",
+        disabledReason = "This test can be run on a specific machine to evaluate if the default parameters are sufficient")
     @Test
     void testDefaultConstructorShouldProvideStrongParameters() {
         // Arrange

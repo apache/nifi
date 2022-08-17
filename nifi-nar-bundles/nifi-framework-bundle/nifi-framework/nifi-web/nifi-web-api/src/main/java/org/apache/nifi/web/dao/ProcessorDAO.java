@@ -19,8 +19,11 @@ package org.apache.nifi.web.dao;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public interface ProcessorDAO {
@@ -72,6 +75,12 @@ public interface ProcessorDAO {
     void verifyUpdate(ProcessorDTO processorDTO);
 
     /**
+     * Verifies the specified processor can have its configuration verified
+     * @param processorId the ID of the Processor
+     */
+    void verifyConfigVerification(String processorId);
+
+    /**
      * Verifies that the specified processor can be terminated at this time
      *
      * @param processorId the id of the processor
@@ -92,6 +101,15 @@ public interface ProcessorDAO {
      * @return updated processor
      */
     ProcessorNode updateProcessor(ProcessorDTO processorDTO);
+
+    /**
+     * Performs verification of the given Processor Configuration for the Processor with the given ID
+     * @param processorId the id of the processor
+     * @param properties the property configuration to verify
+     * @param attributes a map of values that can be used for resolving FlowFile attributes for Expression Language
+     * @return verification results
+     */
+    List<ConfigVerificationResultDTO> verifyProcessorConfiguration(String processorId, Map<String, String> properties, Map<String, String> attributes);
 
     /**
      * Verifies the specified processor can be removed.

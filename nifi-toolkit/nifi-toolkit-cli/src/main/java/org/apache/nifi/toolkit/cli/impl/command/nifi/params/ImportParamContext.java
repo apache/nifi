@@ -43,7 +43,8 @@ public class ImportParamContext extends AbstractNiFiCommand<StringResult> {
     @Override
     public String getDescription() {
         return "Imports a parameter context using the output from the export-param-context command as the context to import. " +
-                "If the context name and context description arguments are specified, they will override what is in the context json. ";
+                "If the context name and context description arguments are specified, they will override what is in the context json. " +
+                "All inherited parameter contexts are expected to have been imported already, otherwise the operation will fail.";
     }
 
     @Override

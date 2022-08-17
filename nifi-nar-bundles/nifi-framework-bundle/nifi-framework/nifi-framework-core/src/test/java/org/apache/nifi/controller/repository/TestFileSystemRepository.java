@@ -16,17 +16,25 @@
  */
 package org.apache.nifi.controller.repository;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
+import org.apache.commons.lang3.SystemUtils;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.StandardContentClaim;
+import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
+import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
+import org.apache.nifi.controller.repository.util.DiskUtils;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -38,40 +46,27 @@ import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.lang3.SystemUtils;
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaim;
-import org.apache.nifi.controller.repository.claim.StandardContentClaim;
-import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
-import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
-import org.apache.nifi.controller.repository.util.DiskUtils;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.slf4j.LoggerFactory;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
 
 public class TestFileSystemRepository {
-
-    public static final int NUM_REPO_SECTIONS = 1;
 
     public static final File helloWorldFile = new File("src/test/resources/hello.txt");
 
@@ -93,7 +88,7 @@ public class TestFileSystemRepository {
         }
         repository = new FileSystemRepository(nifiProperties);
         claimManager = new StandardResourceClaimManager();
-        repository.initialize(claimManager);
+        repository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
         repository.purge();
     }
 
@@ -135,43 +130,65 @@ public class TestFileSystemRepository {
     }
 
     @Test
-    public void testMinimalArchiveCleanupIntervalHonoredAndLogged() throws Exception {
-        // We are going to construct our own repository using different properties, so
-        // we need to shutdown the existing one.
-        shutdown();
+    public void testIsArchived() {
+        assertFalse(repository.isArchived(Paths.get("1.txt")));
+        assertFalse(repository.isArchived(Paths.get("a/1.txt")));
+        assertFalse(repository.isArchived(Paths.get("a/b/1.txt")));
+        assertFalse(repository.isArchived(Paths.get("a/archive/b/c/1.txt")));
 
-        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-        ListAppender<ILoggingEvent> testAppender = new ListAppender<>();
-        testAppender.setName("Test");
-        testAppender.start();
-        root.addAppender(testAppender);
-        final Map<String, String> addProps = new HashMap<>();
-        addProps.put(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY, "1 millis");
-        final NiFiProperties localProps = NiFiProperties.createBasicNiFiProperties(TestFileSystemRepository.class.getResource("/conf/nifi.properties").getFile(), addProps);
-        repository = new FileSystemRepository(localProps);
-        repository.initialize(new StandardResourceClaimManager());
-        repository.purge();
+        assertTrue(repository.isArchived(Paths.get("archive/1.txt")));
+        assertTrue(repository.isArchived(Paths.get("a/archive/1.txt")));
+        assertTrue(repository.isArchived(Paths.get("a/b/c/archive/1.txt")));
+    }
 
-        boolean messageFound = false;
-        String message = "The value of nifi.content.repository.archive.cleanup.frequency property "
-                + "is set to '1 millis' which is below the allowed minimum of 1 second (1000 milliseconds). "
-                + "Minimum value of 1 sec will be used as scheduling interval for archive cleanup task.";
+    @Test
+    public void testUnreferencedFilesAreArchivedOnCleanup() throws IOException {
+        final Map<String, Path> containerPaths = nifiProperties.getContentRepositoryPaths();
+        assertTrue(containerPaths.size() > 0);
 
-        // Must synchronize on testAppender, because the call to append() is synchronized and this synchronize
-        // keyword guards testAppender.list. Since we are accessing testAppender.list, we must do so in a thread-safe manner.
-        synchronized (testAppender) {
-            for (ILoggingEvent event : testAppender.list) {
-                String actualMessage = event.getFormattedMessage();
-                if (actualMessage.equals(message)) {
-                    assertEquals(event.getLevel(), Level.WARN);
-                    messageFound = true;
-                    break;
-                }
+        for (final Map.Entry<String, Path> entry : containerPaths.entrySet()) {
+            final String containerName = entry.getKey();
+            final Path containerPath = entry.getValue();
+
+            final Path section1 = containerPath.resolve("1");
+            final Path file1 = section1.resolve("file-1");
+            Files.write(file1, "hello".getBytes(), StandardOpenOption.CREATE);
+
+            // Should be nothing in the archive at this point
+            assertEquals(0, repository.getArchiveCount(containerName));
+
+            // When we cleanup, we should see one file moved to archive
+            repository.cleanup();
+            assertEquals(1, repository.getArchiveCount(containerName));
+        }
+    }
+
+    @Test
+    public void testAlreadyArchivedFilesCounted() throws IOException {
+        // We want to make sure that the initialization code counts files in archive, so we need to create a new FileSystemRepository to do this.
+        repository.shutdown();
+
+        final Map<String, Path> containerPaths = nifiProperties.getContentRepositoryPaths();
+        assertTrue(containerPaths.size() > 0);
+
+        for (final Path containerPath : containerPaths.values()) {
+            final Path section1 = containerPath.resolve("1");
+            final Path archive = section1.resolve("archive");
+            Files.createDirectories(archive);
+
+            for (int i=0; i < 3; i++) {
+                final Path file1 = archive.resolve("file-" + i);
+                Files.write(file1, "hello".getBytes(), StandardOpenOption.CREATE);
             }
         }
 
-        assertTrue(messageFound);
+        repository = new FileSystemRepository(nifiProperties);
+
+        for (final String containerName : containerPaths.keySet()) {
+            assertEquals(3, repository.getArchiveCount(containerName));
+        }
     }
+
 
     @Test
     public void testContentNotFoundExceptionThrownIfResourceClaimTooShort() throws IOException {
@@ -228,7 +245,7 @@ public class TestFileSystemRepository {
             bogus.setReadable(false);
 
             repository = new FileSystemRepository(nifiProperties);
-            repository.initialize(new StandardResourceClaimManager());
+            repository.initialize(new StandardContentRepositoryContext(new StandardResourceClaimManager(), EventReporter.NO_OP));
         } finally {
             bogus.setReadable(true);
             assertTrue(bogus.delete());
@@ -312,7 +329,7 @@ public class TestFileSystemRepository {
         Thread.sleep(1000L);
 
         repository = new FileSystemRepository(nifiProperties);
-        repository.initialize(new StandardResourceClaimManager());
+        repository.initialize(new StandardContentRepositoryContext(new StandardResourceClaimManager(), EventReporter.NO_OP));
         repository.purge();
 
         final ContentClaim claim2 = repository.create(false);
@@ -612,7 +629,7 @@ public class TestFileSystemRepository {
             };
 
             final StandardResourceClaimManager claimManager = new StandardResourceClaimManager();
-            repository.initialize(claimManager);
+            repository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
             repository.purge();
 
             final ContentClaim claim = repository.create(false);
@@ -666,7 +683,7 @@ public class TestFileSystemRepository {
             };
 
             final StandardResourceClaimManager claimManager = new StandardResourceClaimManager();
-            repository.initialize(claimManager);
+            repository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
             repository.purge();
 
             final ContentClaim claim = repository.create(false);
@@ -744,7 +761,8 @@ public class TestFileSystemRepository {
             };
 
             final StandardResourceClaimManager claimManager = new StandardResourceClaimManager();
-            repository.initialize(claimManager);
+
+            repository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
             repository.purge();
 
             final ContentClaim claim = repository.create(false);

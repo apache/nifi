@@ -25,6 +25,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 @CapabilityDescription("Example Service API.")
 public interface MyService extends ControllerService {
 
-    public void execute()  throws ProcessException;
+    public void execute();
 
 }

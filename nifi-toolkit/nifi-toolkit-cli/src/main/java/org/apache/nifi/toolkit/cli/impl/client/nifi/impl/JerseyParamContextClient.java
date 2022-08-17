@@ -53,14 +53,15 @@ public class JerseyParamContextClient extends AbstractJerseyClient implements Pa
     }
 
     @Override
-    public ParameterContextEntity getParamContext(final String id) throws NiFiClientException, IOException {
+    public ParameterContextEntity getParamContext(final String id, final boolean includeInheritedParameters) throws NiFiClientException, IOException {
         if (StringUtils.isBlank(id)) {
             throw new IllegalArgumentException("Parameter context id cannot be null or blank");
         }
 
         return executeAction("Error retrieving parameter context", () -> {
             final WebTarget target = paramContextTarget.path("{id}")
-                    .resolveTemplate("id", id);
+                    .resolveTemplate("id", id)
+                    .queryParam("includeInheritedParameters", String.valueOf(includeInheritedParameters));
             return getRequestBuilder(target).get(ParameterContextEntity.class);
         });
     }

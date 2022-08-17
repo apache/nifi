@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Calendar;
 import java.util.Comparator;
@@ -51,17 +52,12 @@ public class FlowConfigurationArchiveManager {
      * <li>yyyyMMddTHHmmssZ_original-file-name</li>
      */
     private final Pattern archiveFilenamePattern = Pattern.compile("^([\\d]{8}T[\\d]{6}([\\+\\-][\\d]{4}|Z))_.+$");
-    private final Path flowConfigFile;
     private final Path archiveDir;
     private final Integer maxCount;
     private final Long maxTimeMillis;
     private final Long maxStorageBytes;
 
-    public FlowConfigurationArchiveManager(final Path flowConfigFile, final NiFiProperties properties) {
-        final String archiveDirVal = properties.getFlowConfigurationArchiveDir();
-        final Path archiveDir = (archiveDirVal == null || archiveDirVal.equals(""))
-                ? flowConfigFile.getParent().resolve("archive") : new File(archiveDirVal).toPath();
-
+    public FlowConfigurationArchiveManager(final NiFiProperties properties) {
         this.maxCount = properties.getFlowConfigurationArchiveMaxCount();
 
         String maxTime = properties.getFlowConfigurationArchiveMaxTime();
@@ -78,8 +74,21 @@ public class FlowConfigurationArchiveManager {
         this.maxTimeMillis = StringUtils.isBlank(maxTime) ? null : FormatUtils.getTimeDuration(maxTime, TimeUnit.MILLISECONDS);
         this.maxStorageBytes = StringUtils.isBlank(maxStorage) ? null : DataUnit.parseDataSize(maxStorage, DataUnit.B).longValue();
 
-        this.flowConfigFile = flowConfigFile;
-        this.archiveDir = archiveDir;
+        // Determine the archive directory
+        final String archiveDirVal = properties.getFlowConfigurationArchiveDir();
+        final Path archiveDirectory;
+        if (archiveDirVal == null || archiveDirVal.trim().isEmpty()) {
+            File persistenceFile = properties.getFlowConfigurationJsonFile();
+            if (persistenceFile == null) {
+                persistenceFile = properties.getFlowConfigurationFile();
+            }
+
+            archiveDirectory = (archiveDirVal == null || archiveDirVal.equals(""))
+                ? persistenceFile.toPath().getParent().resolve("archive") : new File(archiveDirVal).toPath();
+        } else {
+            archiveDirectory = Paths.get(archiveDirVal);
+        }
+        this.archiveDir = archiveDirectory;
     }
 
     private String createArchiveFileName(final String originalFlowConfigFileName) {
@@ -107,14 +116,13 @@ public class FlowConfigurationArchiveManager {
      * @return Resolved archive file which is ready to write to
      * @throws IOException when it fails to access archive dir
      */
-    public File setupArchiveFile() throws IOException {
+    private File setupArchiveFile(final String originalFilename) throws IOException {
         Files.createDirectories(archiveDir);
-
         if (!Files.isDirectory(archiveDir)) {
             throw new IOException("Archive directory doesn't appear to be a directory " + archiveDir);
         }
-        final String originalFlowConfigFileName = flowConfigFile.getFileName().toString();
-        final Path archiveFile = archiveDir.resolve(createArchiveFileName(originalFlowConfigFileName));
+
+        final Path archiveFile = archiveDir.resolve(createArchiveFileName(originalFilename));
         return archiveFile.toFile();
     }
 
@@ -135,10 +143,10 @@ public class FlowConfigurationArchiveManager {
      * @throws IOException If it fails to create new archive file.
      * Although, other IOExceptions like the ones thrown during removing expired archive files will not be thrown.
      */
-    public File archive() throws IOException {
-        final String originalFlowConfigFileName = flowConfigFile.getFileName().toString();
+    public File archive(final File file) throws IOException {
+        final String originalFlowConfigFileName = file.getName();
 
-        final File archiveFile = setupArchiveFile();
+        final File archiveFile = setupArchiveFile(file.getName());
 
         // Collect archive files by its name
         final long now = System.currentTimeMillis();
@@ -165,7 +173,7 @@ public class FlowConfigurationArchiveManager {
         logger.debug("archives={}", archives);
 
         final int archiveCount = archives.size();
-        final long flowConfigFileSize = Files.size(flowConfigFile);
+        final long flowConfigFileSize = file.length();
         IntStream.range(0, archiveCount).filter(i -> {
             // If maxCount is specified, remove old archives
             boolean old = maxCount != null && maxCount > 0 && (archiveCount - i) > maxCount - 1;
@@ -189,11 +197,11 @@ public class FlowConfigurationArchiveManager {
         });
 
         // Create new archive file.
-        Files.copy(flowConfigFile, archiveFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(file.toPath(), archiveFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
         if (maxStorageBytes != null && maxStorageBytes > 0 && flowConfigFileSize > maxStorageBytes) {
             logger.warn("Size of {} ({}) exceeds configured maxStorage size ({}). Archive won't be able to keep old files.",
-                    flowConfigFile, flowConfigFileSize, maxStorageBytes);
+                file, flowConfigFileSize, maxStorageBytes);
         }
 
         return archiveFile;

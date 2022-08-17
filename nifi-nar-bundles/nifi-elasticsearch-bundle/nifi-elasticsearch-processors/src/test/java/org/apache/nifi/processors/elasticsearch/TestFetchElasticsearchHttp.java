@@ -16,33 +16,6 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-
 import okhttp3.Call;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -51,25 +24,47 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.stubbing.Answer;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.HashMap;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestFetchElasticsearchHttp {
 
     private InputStream docExample;
     private TestRunner runner;
 
-    @Before
-    public void setUp() throws IOException {
+    @BeforeEach
+    public void setUp() {
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
         docExample = classloader.getResourceAsStream("DocumentExample.json");
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         runner = null;
     }
 
     @Test
-    public void testFetchElasticsearchOnTriggerEL() throws IOException {
+    public void testFetchElasticsearchOnTriggerEL() {
         runner = TestRunners.newTestRunner(new FetchElasticsearchHttpTestProcessor(true)); // all docs are found
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "${es.url}");
 
@@ -104,7 +99,7 @@ public class TestFetchElasticsearchHttp {
     }
 
     @Test
-    public void testFetchElasticsearchOnTrigger() throws IOException {
+    public void testFetchElasticsearchOnTrigger() {
         runner = TestRunners.newTestRunner(new FetchElasticsearchHttpTestProcessor(true)); // all docs are found
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
@@ -127,7 +122,7 @@ public class TestFetchElasticsearchHttp {
     }
 
     @Test
-    public void testFetchElasticsearchOnTriggerNoType() throws IOException {
+    public void testFetchElasticsearchOnTriggerNoType() {
         final String ES_URL = "http://127.0.0.1:9200";
         final String DOC_ID = "28039652140";
         FetchElasticsearchHttpTestProcessor processor = new FetchElasticsearchHttpTestProcessor(true);
@@ -149,13 +144,12 @@ public class TestFetchElasticsearchHttp {
         final MockFlowFile out = runner.getFlowFilesForRelationship(FetchElasticsearchHttp.REL_SUCCESS).get(0);
         assertNotNull(out);
         out.assertAttributeEquals("doc_id", DOC_ID);
-        assertEquals("URL doesn't match expected value when type is not supplied",
-                "http://127.0.0.1:9200" + "/doc/_all/" + DOC_ID,
-                processor.getURL().toString());
+        assertEquals("http://127.0.0.1:9200" + "/doc/_all/" + DOC_ID,
+                processor.getURL().toString(), "URL doesn't match expected value when type is not supplied");
     }
 
     @Test
-    public void testFetchElasticsearchOnTriggerWithFields() throws IOException {
+    public void testFetchElasticsearchOnTriggerWithFields() {
         runner = TestRunners.newTestRunner(new FetchElasticsearchHttpTestProcessor(true)); // all docs are found
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
@@ -180,7 +174,7 @@ public class TestFetchElasticsearchHttp {
     }
 
     @Test
-    public void testFetchElasticsearchOnTriggerWithDocNotFound() throws IOException {
+    public void testFetchElasticsearchOnTriggerWithDocNotFound() {
         runner = TestRunners.newTestRunner(new FetchElasticsearchHttpTestProcessor(false)); // simulate doc not found
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
@@ -201,7 +195,7 @@ public class TestFetchElasticsearchHttp {
     }
 
     @Test
-    public void testFetchElasticsearchOnTriggerWithServerErrorRetry() throws IOException {
+    public void testFetchElasticsearchOnTriggerWithServerErrorRetry() {
         FetchElasticsearchHttpTestProcessor processor = new FetchElasticsearchHttpTestProcessor(false);
         processor.setStatus(500, "Server error");
         runner = TestRunners.newTestRunner(processor); // simulate doc not found
@@ -223,7 +217,7 @@ public class TestFetchElasticsearchHttp {
     }
 
     @Test
-    public void testFetchElasticsearchOnTriggerWithServerFail() throws IOException {
+    public void testFetchElasticsearchOnTriggerWithServerFail() {
         FetchElasticsearchHttpTestProcessor processor = new FetchElasticsearchHttpTestProcessor(false);
         processor.setStatus(100, "Should fail");
         runner = TestRunners.newTestRunner(processor); // simulate doc not found
@@ -245,7 +239,7 @@ public class TestFetchElasticsearchHttp {
     }
 
     @Test
-    public void testFetchElasticsearchOnTriggerWithServerFailNoIncomingFlowFile() throws IOException {
+    public void testFetchElasticsearchOnTriggerWithServerFailNoIncomingFlowFile() {
         FetchElasticsearchHttpTestProcessor processor = new FetchElasticsearchHttpTestProcessor(false);
         processor.setStatus(100, "Should fail");
         runner = TestRunners.newTestRunner(processor); // simulate doc not found
@@ -263,7 +257,7 @@ public class TestFetchElasticsearchHttp {
     }
 
     @Test
-    public void testFetchElasticsearchWithBadHosts() throws IOException {
+    public void testFetchElasticsearchWithBadHosts() {
         runner = TestRunners.newTestRunner(new FetchElasticsearchHttpTestProcessor(false)); // simulate doc not found
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "127.0.0.1:9200");
         runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
@@ -298,7 +292,7 @@ public class TestFetchElasticsearchHttp {
     }
 
     @Test
-    public void testFetchElasticsearchOnTriggerQueryParameter() throws IOException {
+    public void testFetchElasticsearchOnTriggerQueryParameter() {
         FetchElasticsearchHttpTestProcessor p = new FetchElasticsearchHttpTestProcessor(true); // all docs are found
         p.setExpectedUrl("http://127.0.0.1:9200/doc/status/28039652140?_source=id&myparam=myvalue");
         runner = TestRunners.newTestRunner(p);
@@ -324,7 +318,7 @@ public class TestFetchElasticsearchHttp {
     }
 
     @Test
-    public void testFetchElasticsearchOnTriggerQueryParameterNoType() throws IOException {
+    public void testFetchElasticsearchOnTriggerQueryParameterNoType() {
         FetchElasticsearchHttpTestProcessor p = new FetchElasticsearchHttpTestProcessor(true); // all docs are found
         p.setExpectedUrl("http://127.0.0.1:9200/doc/_all/28039652140?_source=id&myparam=myvalue");
         runner = TestRunners.newTestRunner(p);
@@ -382,30 +376,26 @@ public class TestFetchElasticsearchHttp {
         protected void createElasticsearchClient(ProcessContext context) throws ProcessException {
             client = mock(OkHttpClient.class);
 
-            when(client.newCall(any(Request.class))).thenAnswer(new Answer<Call>() {
-
-                @Override
-                public Call answer(InvocationOnMock invocationOnMock) throws Throwable {
-                    Request realRequest = (Request) invocationOnMock.getArguments()[0];
-                    assertTrue((expectedUrl == null) || (expectedUrl.equals(realRequest.url().toString())));
-                    StringBuilder sb = new StringBuilder("{\"_index\":\"randomuser.me\",\"_type\":\"user\",\"_id\":\"0\",\"_version\":2,");
-                    if (documentExists) {
-                        sb.append("\"found\":true,\"_source\":{\"gender\":\"female\",\"name\":{\"title\":\"Ms\",\"first\":\"Joan\",\"last\":\"Smith\"}}");
-                    } else {
-                        sb.append("\"found\": false");
-                    }
-                    sb.append("}");
-                    Response mockResponse = new Response.Builder()
-                            .request(realRequest)
-                            .protocol(Protocol.HTTP_1_1)
-                            .code(statusCode)
-                            .message(statusMessage)
-                            .body(ResponseBody.create(MediaType.parse("application/json"), sb.toString()))
-                            .build();
-                    final Call call = mock(Call.class);
-                    when(call.execute()).thenReturn(mockResponse);
-                    return call;
+            when(client.newCall(any(Request.class))).thenAnswer((Answer<Call>) invocationOnMock -> {
+                Request realRequest = (Request) invocationOnMock.getArguments()[0];
+                assertTrue((expectedUrl == null) || (expectedUrl.equals(realRequest.url().toString())));
+                StringBuilder sb = new StringBuilder("{\"_index\":\"randomuser.me\",\"_type\":\"user\",\"_id\":\"0\",\"_version\":2,");
+                if (documentExists) {
+                    sb.append("\"found\":true,\"_source\":{\"gender\":\"female\",\"name\":{\"title\":\"Ms\",\"first\":\"Joan\",\"last\":\"Smith\"}}");
+                } else {
+                    sb.append("\"found\": false");
                 }
+                sb.append("}");
+                Response mockResponse = new Response.Builder()
+                        .request(realRequest)
+                        .protocol(Protocol.HTTP_1_1)
+                        .code(statusCode)
+                        .message(statusMessage)
+                        .body(ResponseBody.create(MediaType.parse("application/json"), sb.toString()))
+                        .build();
+                final Call call = mock(Call.class);
+                when(call.execute()).thenReturn(mockResponse);
+                return call;
             });
         }
 
@@ -423,101 +413,5 @@ public class TestFetchElasticsearchHttp {
         protected OkHttpClient getClient() {
             return client;
         }
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Integration test section below
-    //
-    // The tests below are meant to run on real ES instances, and are thus @Ignored during normal test execution.
-    // However if you wish to execute them as part of a test phase, comment out the @Ignored line for each
-    // desired test.
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Tests basic ES functionality against a local or test ES cluster
-     */
-    @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
-    public void testFetchElasticsearchBasic() throws IOException {
-        System.out.println("Starting test " + new Object() {
-        }.getClass().getEnclosingMethod().getName());
-        final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
-
-        // add data to ES instance
-        new OkHttpClient.Builder().build().newCall(
-                new Request.Builder().url("http://127.0.0.1:9200/doc/_doc/28039652140")
-                        .addHeader("Content-Type", "application/json")
-                        .put(
-                                RequestBody.create(MediaType.get("application/json"),
-                                        IOUtils.toString(docExample, StandardCharsets.UTF_8))
-                        ).build()
-        ).execute();
-
-        //Local Cluster - Mac pulled from brew
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
-        runner.removeProperty(FetchElasticsearchHttp.TYPE);
-        runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
-        runner.assertValid();
-
-        runner.enqueue(docExample, new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
-
-        runner.enqueue(docExample);
-        runner.run(1, true, true);
-        runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 1);
-    }
-
-    @Test
-    @Ignore("Un-authenticated proxy : Comment this out if you want to run against local proxied ES.")
-    public void testFetchElasticsearchBasicBehindProxy() {
-        final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
-        runner.setValidateExpressionUsage(true);
-
-        runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
-        runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
-        runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
-
-        runner.setProperty(FetchElasticsearchHttp.PROXY_HOST, "localhost");
-        runner.setProperty(FetchElasticsearchHttp.PROXY_PORT, "3228");
-        runner.setProperty(FetchElasticsearchHttp.ES_URL, "http://172.18.0.2:9200");
-
-        runner.assertValid();
-
-        runner.enqueue(docExample, new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
-
-        runner.enqueue(docExample);
-        runner.run(1, true, true);
-        runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 1);
-    }
-
-    @Test
-    @Ignore("Authenticated Proxy : Comment this out if you want to run against local proxied ES.")
-    public void testFetchElasticsearchBasicBehindAuthenticatedProxy() {
-        final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
-        runner.setValidateExpressionUsage(true);
-
-        runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
-        runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
-        runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
-
-        runner.setProperty(FetchElasticsearchHttp.PROXY_HOST, "localhost");
-        runner.setProperty(FetchElasticsearchHttp.PROXY_PORT, "3328");
-        runner.setProperty(FetchElasticsearchHttp.PROXY_USERNAME, "squid");
-        runner.setProperty(FetchElasticsearchHttp.PROXY_PASSWORD, "changeme");
-        runner.setProperty(FetchElasticsearchHttp.ES_URL, "http://172.18.0.2:9200");
-
-        runner.assertValid();
-
-        runner.enqueue(docExample, new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
-
-        runner.enqueue(docExample);
-        runner.run(1, true, true);
-        runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 1);
     }
 }

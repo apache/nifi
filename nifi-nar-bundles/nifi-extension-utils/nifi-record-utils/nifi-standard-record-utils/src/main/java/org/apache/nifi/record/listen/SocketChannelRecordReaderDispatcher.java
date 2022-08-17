@@ -119,7 +119,7 @@ public class SocketChannelRecordReaderDispatcher implements Runnable, Closeable 
                     }
 
                     final SSLSocketChannel sslSocketChannel = new SSLSocketChannel(sslEngine, socketChannel);
-                    socketChannelRecordReader = new SSLSocketChannelRecordReader(socketChannel, sslSocketChannel, readerFactory, this);
+                    socketChannelRecordReader = new SSLSocketChannelRecordReader(socketChannel, sslSocketChannel, readerFactory, this, sslEngine);
                 }
 
                 // queue the SocketChannelRecordReader for processing by the processor

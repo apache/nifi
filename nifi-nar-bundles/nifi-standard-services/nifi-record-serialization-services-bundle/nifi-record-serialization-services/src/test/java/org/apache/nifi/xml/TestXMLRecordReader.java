@@ -25,8 +25,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
@@ -40,11 +39,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestXMLRecordReader {
     private final String dateFormat = RecordFieldType.DATE.getDefaultFormat();
@@ -54,16 +55,16 @@ public class TestXMLRecordReader {
     @Test
     public void testSingleRecord() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/person.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), false,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), false, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
-        Assert.assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
-        Assert.assertNull(reader.nextRecord());
+        assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
+        assertNull(reader.nextRecord());
     }
 
     @Test
     public void testMap() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_map.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForMap(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForMap(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord();
@@ -84,38 +85,38 @@ public class TestXMLRecordReader {
     @Test
     public void testMapWithRecords() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_map2.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForRecordMap(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForRecordMap(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord();
         assertEquals("P1", first.getValue("ID"));
         Map firstMap = (Map) first.getValue("MAP");
-        Assert.assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, ((Record) firstMap.get("ENTRY")).getValues());
-        Assert.assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, ((Record) firstMap.get("ENTRY2")).getValues());
+        assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, ((Record) firstMap.get("ENTRY")).getValues());
+        assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, ((Record) firstMap.get("ENTRY2")).getValues());
 
         Record second = reader.nextRecord();
         assertEquals("P2", second.getValue("ID"));
         Map secondMap = (Map) second.getValue("MAP");
-        Assert.assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, ((Record) secondMap.get("ENTRY")).getValues());
-        Assert.assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, ((Record) secondMap.get("ENTRY2")).getValues());
+        assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, ((Record) secondMap.get("ENTRY")).getValues());
+        assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, ((Record) secondMap.get("ENTRY2")).getValues());
     }
 
     @Test
     public void testTagInCharactersSimpleField() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_tag_in_characters.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
-        Assert.assertArrayEquals(new Object[] {"Cleve Butler", 42, null}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, null}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Amélie Bonfils", 74, null}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Elenora Scrivens", 16, null}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Cleve Butler", 42, null}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, null}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Amélie Bonfils", 74, null}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Elenora Scrivens", 16, null}, reader.nextRecord().getValues());
     }
 
     @Test
     public void testTagInCharactersRecord() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_tag_in_characters.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaWithNestedRecord3(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSchemaWithNestedRecord3(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(true, true);
@@ -157,7 +158,7 @@ public class TestXMLRecordReader {
     @Test
     public void testTagInCharactersCoerceTrueDropFalse() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_tag_in_characters.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaWithNestedRecord3(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSchemaWithNestedRecord3(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(true, false);
@@ -204,7 +205,7 @@ public class TestXMLRecordReader {
     @Test
     public void testTagInCharactersCoerceFalseDropFalse() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_tag_in_characters.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(false, false);
@@ -251,20 +252,20 @@ public class TestXMLRecordReader {
     @Test
     public void testSimpleRecord() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
-        Assert.assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, reader.nextRecord().getValues());
     }
 
     @Test
     public void testSimpleRecord2() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema2(), true, null,
-                "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema2(), true, true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertNull(reader.nextRecord(true, true).getValue("AGE"));
         assertNull(reader.nextRecord(false, true).getValue("AGE"));
@@ -275,8 +276,8 @@ public class TestXMLRecordReader {
     @Test
     public void testSimpleRecord3() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, null,
-                "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertEquals(Integer.class, reader.nextRecord(true, true).getValue("AGE").getClass());
         assertEquals(String.class, reader.nextRecord(false, true).getValue("AGE").getClass());
@@ -287,7 +288,7 @@ public class TestXMLRecordReader {
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
         List<RecordField> fields = getSimpleRecordFields();
         fields.remove(2);
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertEquals(Integer.class, reader.nextRecord(true, false).getValue("AGE").getClass());
@@ -297,13 +298,13 @@ public class TestXMLRecordReader {
     @Test
     public void testSimpleRecordCoerceFalseDropFalse() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_no_attributes.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, null,
-                "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,  true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
-        Assert.assertArrayEquals(new Object[] {"Cleve Butler", "42", "USA"}, reader.nextRecord(false, false).getValues());
-        Assert.assertArrayEquals(new Object[] {"Ainslie Fletcher", "33", "UK"}, reader.nextRecord(false, false).getValues());
-        Assert.assertArrayEquals(new Object[] {"Amélie Bonfils", "74", "FR"}, reader.nextRecord(false, false).getValues());
-        Assert.assertArrayEquals(new Object[] {"Elenora Scrivens", "16", "USA"}, reader.nextRecord(false, false).getValues());
+        assertArrayEquals(new Object[] {"Cleve Butler", "42", "USA"}, reader.nextRecord(false, false).getValues());
+        assertArrayEquals(new Object[] {"Ainslie Fletcher", "33", "UK"}, reader.nextRecord(false, false).getValues());
+        assertArrayEquals(new Object[] {"Amélie Bonfils", "74", "FR"}, reader.nextRecord(false, false).getValues());
+        assertArrayEquals(new Object[] {"Elenora Scrivens", "16", "USA"}, reader.nextRecord(false, false).getValues());
     }
 
     @Test
@@ -311,7 +312,7 @@ public class TestXMLRecordReader {
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
         List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ID", RecordFieldType.STRING.getDataType()));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord();
@@ -336,7 +337,7 @@ public class TestXMLRecordReader {
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
         List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ID", RecordFieldType.STRING.getDataType()));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 "ATTR_", "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord();
@@ -359,8 +360,8 @@ public class TestXMLRecordReader {
     @Test
     public void testSimpleRecordWithAttribute3() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(Collections.emptyList()),
-                true, null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(Collections.emptyList()), true,  true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(true, true);
         assertEquals(null, first.getAsString("ID"));
@@ -381,7 +382,7 @@ public class TestXMLRecordReader {
         List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ID", RecordFieldType.INT.getDataType()));
 
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertEquals(Integer.class, reader.nextRecord(true, true).getValue("ID").getClass());
@@ -394,7 +395,7 @@ public class TestXMLRecordReader {
         List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ID", RecordFieldType.INT.getDataType()));
 
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertEquals(Integer.class, reader.nextRecord(true, false).getValue("ID").getClass());
@@ -403,17 +404,14 @@ public class TestXMLRecordReader {
 
     @Test
     public void testSimpleRecordWithAttribute6() throws IOException, MalformedRecordException {
-        // given
         final InputStream is = new FileInputStream("src/test/resources/xml/people2.xml");
         final List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ID", RecordFieldType.DECIMAL.getDecimalDataType(38, 10)));
-        final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,
+        final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
-        // when
         final Record record = reader.nextRecord(true, false);
 
-        // then
         assertEquals(BigDecimal.class, record.getValue("ID").getClass());
     }
 
@@ -422,7 +420,7 @@ public class TestXMLRecordReader {
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
         List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ID", RecordFieldType.STRING.getDataType()));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(false, false);
@@ -461,8 +459,8 @@ public class TestXMLRecordReader {
         final DataType recordType2 = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(nestedFields2));
         fields.add(new RecordField("AGE", recordType2));
 
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, null,
-                "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,  true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(true, true);
         assertTrue(first.getValue("NAME") instanceof Record);
@@ -488,7 +486,7 @@ public class TestXMLRecordReader {
     @Test
     public void testSimpleTypeWithAttributeAsRecordCoerceFalseDropFalse() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people3.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(false, false);
@@ -517,30 +515,32 @@ public class TestXMLRecordReader {
     @Test
     public void testSimpleRecordWithHeader() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_with_header_and_comments.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, null, dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
-        Assert.assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, reader.nextRecord().getValues());
     }
 
     @Test
     public void testSimpleRecordWithHeaderNoValidation() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_with_header_and_comments.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, null, null, dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,  true,
+                null, null, dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
-        Assert.assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, reader.nextRecord().getValues());
     }
 
     @Test
     public void testInvalidXml() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_invalid.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
         int count = 0;
 
         /*
@@ -565,8 +565,8 @@ public class TestXMLRecordReader {
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
         List<RecordField> fields = getSimpleRecordFields2();
         fields.add(new RecordField("AGE", RecordFieldType.CHOICE.getDataType()));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, null,
-                "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,  true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record record = reader.nextRecord();
         assertTrue(record.getValue("AGE") instanceof String);
@@ -578,8 +578,8 @@ public class TestXMLRecordReader {
         InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
         List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ADDRESS", RecordFieldType.CHOICE.getDataType()));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, null,
-                "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record record = reader.nextRecord();
         assertTrue(record.getValue("ADDRESS") instanceof Record);
@@ -592,25 +592,25 @@ public class TestXMLRecordReader {
     @Test
     public void testNameSpaces() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_namespace.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
-        Assert.assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, reader.nextRecord().getValues());
     }
 
     @Test
     public void testCData() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_cdata.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
-        Assert.assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, reader.nextRecord().getValues());
     }
 
     @Test
@@ -619,13 +619,13 @@ public class TestXMLRecordReader {
         List<RecordField> fields = getSimpleRecordFields2();
         final DataType recordType = RecordFieldType.RECORD.getRecordDataType(getNestedSchema());
         fields.add(new RecordField("AGE", recordType));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, null,
-                "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
-        Assert.assertArrayEquals(new Object[] {"Cleve Butler", "USA", null}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Ainslie Fletcher", "UK", null}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Amélie Bonfils", "FR", null}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {"Elenora Scrivens", "USA", null}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Cleve Butler", "USA", null}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Ainslie Fletcher", "UK", null}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Amélie Bonfils", "FR", null}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {"Elenora Scrivens", "USA", null}, reader.nextRecord().getValues());
     }
 
     @Test
@@ -633,8 +633,8 @@ public class TestXMLRecordReader {
         InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
         List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ADDRESS", RecordFieldType.STRING.getDataType()));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, null,
-                "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertNull(reader.nextRecord().getValue("ADDRESS"));
         assertNull(reader.nextRecord().getValue("ADDRESS"));
@@ -645,121 +645,121 @@ public class TestXMLRecordReader {
     @Test
     public void testParseEmptyFields() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_empty.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
-        Assert.assertArrayEquals(new Object[] {null, null, null}, reader.nextRecord().getValues());
-        Assert.assertArrayEquals(new Object[] {null, null, null}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {null, null, null}, reader.nextRecord().getValues());
+        assertArrayEquals(new Object[] {null, null, null}, reader.nextRecord().getValues());
     }
 
     @Test
     public void testParseEmptyFieldsCoerceFalseDropFalse() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_empty.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
-        Assert.assertArrayEquals(new Object[] {null, null, null}, reader.nextRecord(false, false).getValues());
-        Assert.assertArrayEquals(new Object[] {null, null, null}, reader.nextRecord(false, false).getValues());
+        assertArrayEquals(new Object[] {null, null, null}, reader.nextRecord(false, false).getValues());
+        assertArrayEquals(new Object[] {null, null, null}, reader.nextRecord(false, false).getValues());
     }
 
-    @Test(expected = MalformedRecordException.class)
-    public void testEmptyStreamAsSingleRecord() throws IOException, MalformedRecordException {
+    @Test
+    public void testEmptyStreamAsSingleRecord() {
         InputStream is = new ByteArrayInputStream(new byte[0]);
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), false, null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
-        reader.nextRecord(true, true);
+        assertThrows(MalformedRecordException.class,
+                () -> new XMLRecordReader(is, getSimpleSchema(), false,  true,
+                        null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class)));
     }
 
-    @Test(expected = MalformedRecordException.class)
-    public void testEmptyStreamAsArray() throws IOException, MalformedRecordException {
+    @Test
+    public void testEmptyStreamAsArray() {
         InputStream is = new ByteArrayInputStream(new byte[0]);
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
-        reader.nextRecord(true, true);
+        assertThrows(MalformedRecordException.class,
+                () -> new XMLRecordReader(is, getSimpleSchema(), true, true,
+                        null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class)));
     }
 
-    @Test(expected = MalformedRecordException.class)
-    public void testEmptyStreamWIthXmlHeader() throws IOException, MalformedRecordException {
+    @Test
+    public void testEmptyStreamWIthXmlHeader() {
         InputStream is = new ByteArrayInputStream(("<?xml version=\"1.0\" encoding=\"utf-8\"?>").getBytes());
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
-                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
-        Record record = reader.nextRecord(false, false);
-        assertNull(record);
+        assertThrows(MalformedRecordException.class, () -> new XMLRecordReader(is, getSimpleSchema(), true, true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class)));
     }
 
     @Test
     public void testParseEmptyArray() throws IOException, MalformedRecordException {
         InputStream is = new ByteArrayInputStream("<root></root>".getBytes());
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
-        Assert.assertNull(reader.nextRecord());
+        assertNull(reader.nextRecord());
     }
 
     @Test
     public void testNestedRecord() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
         RecordSchema schema = getSchemaWithNestedRecord();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true,
+        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Object[] valuesFirstRecord = reader.nextRecord().getValues();
-        Assert.assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
-        Assert.assertArrayEquals(new Object[] {"292 West Street", "Jersey City"},((Record) valuesFirstRecord[valuesFirstRecord.length - 1]).getValues());
+        assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
+        assertArrayEquals(new Object[] {"292 West Street", "Jersey City"},((Record) valuesFirstRecord[valuesFirstRecord.length - 1]).getValues());
 
         Object[] valuesSecondRecord = reader.nextRecord().getValues();
-        Assert.assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
-        Assert.assertArrayEquals(new Object[] {"123 6th St.", "Seattle"},((Record) valuesSecondRecord[valuesSecondRecord.length - 1]).getValues());
+        assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
+        assertArrayEquals(new Object[] {"123 6th St.", "Seattle"},((Record) valuesSecondRecord[valuesSecondRecord.length - 1]).getValues());
 
         Object[] valuesThirdRecord = reader.nextRecord().getValues();
-        Assert.assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
-        Assert.assertArrayEquals(new Object[] {"44 Shirley Ave.", "Los Angeles"},((Record) valuesThirdRecord[valuesThirdRecord.length - 1]).getValues());
+        assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
+        assertArrayEquals(new Object[] {"44 Shirley Ave.", "Los Angeles"},((Record) valuesThirdRecord[valuesThirdRecord.length - 1]).getValues());
 
         Object[] valuesFourthRecord = reader.nextRecord().getValues();
-        Assert.assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
-        Assert.assertArrayEquals(new Object[] {"70 Bowman St." , "Columbus"},((Record) valuesFourthRecord[valuesFourthRecord.length - 1]).getValues());
+        assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
+        assertArrayEquals(new Object[] {"70 Bowman St." , "Columbus"},((Record) valuesFourthRecord[valuesFourthRecord.length - 1]).getValues());
     }
 
     @Test
     public void testNestedRecordCoerceFalseDropFalse() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
         RecordSchema schema = getSchemaWithNestedRecord();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true,
+        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(false, false);
         Object[] valuesFirstRecord = first.getValues();
-        Assert.assertArrayEquals(new Object[] {"Cleve Butler", "42", "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
+        assertArrayEquals(new Object[] {"Cleve Butler", "42", "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
         assertEquals("P1", first.getAsString("ID"));
 
         Record nestedFirstRecord = (Record) first.getValue("ADDRESS");
-        Assert.assertEquals("Jersey City", nestedFirstRecord.getAsString("CITY"));
-        Assert.assertEquals("292 West Street", nestedFirstRecord.getAsString("STREET"));
+        assertEquals("Jersey City", nestedFirstRecord.getAsString("CITY"));
+        assertEquals("292 West Street", nestedFirstRecord.getAsString("STREET"));
 
         Record second = reader.nextRecord(false, false);
         Object[] valuesSecondRecord = second.getValues();
-        Assert.assertArrayEquals(new Object[] {"Ainslie Fletcher", "33", "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
+        assertArrayEquals(new Object[] {"Ainslie Fletcher", "33", "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
         assertEquals("P2", second.getAsString("ID"));
 
         Record nestedSecondRecord = (Record) second.getValue("ADDRESS");
-        Assert.assertEquals("Seattle", nestedSecondRecord.getAsString("CITY"));
-        Assert.assertEquals("123 6th St.", nestedSecondRecord.getAsString("STREET"));
+        assertEquals("Seattle", nestedSecondRecord.getAsString("CITY"));
+        assertEquals("123 6th St.", nestedSecondRecord.getAsString("STREET"));
 
         Record third = reader.nextRecord(false, false);
         Object[] valuesThirdRecord = third.getValues();
-        Assert.assertArrayEquals(new Object[] {"Amélie Bonfils", "74", "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
+        assertArrayEquals(new Object[] {"Amélie Bonfils", "74", "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
         assertEquals("P3", third.getAsString("ID"));
 
         Record nestedThirdRecord = (Record) third.getValue("ADDRESS");
-        Assert.assertEquals("Los Angeles", nestedThirdRecord.getAsString("CITY"));
-        Assert.assertEquals("44 Shirley Ave.", nestedThirdRecord.getAsString("STREET"));
+        assertEquals("Los Angeles", nestedThirdRecord.getAsString("CITY"));
+        assertEquals("44 Shirley Ave.", nestedThirdRecord.getAsString("STREET"));
 
         Record fourth = reader.nextRecord(false, false);
         Object[] valuesFourthRecord = fourth.getValues();
-        Assert.assertArrayEquals(new Object[] {"Elenora Scrivens", "16", "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
+        assertArrayEquals(new Object[] {"Elenora Scrivens", "16", "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
         assertEquals("P4", fourth.getAsString("ID"));
 
         Record nestedFourthRecord = (Record) fourth.getValue("ADDRESS");
-        Assert.assertEquals("Columbus", nestedFourthRecord.getAsString("CITY"));
-        Assert.assertEquals("70 Bowman St.", nestedFourthRecord.getAsString("STREET"));
+        assertEquals("Columbus", nestedFourthRecord.getAsString("CITY"));
+        assertEquals("70 Bowman St.", nestedFourthRecord.getAsString("STREET"));
     }
 
     @Test
@@ -768,40 +768,40 @@ public class TestXMLRecordReader {
 
         // Fields "AGE" and "ADDRESS/CITY" are not defined here
         RecordSchema schema = getSchemaWithNestedRecord2();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true,
+        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record firstRecord = reader.nextRecord(true, true);
         Object[] valuesFirstRecord = firstRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Cleve Butler", "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
+        assertArrayEquals(new Object[] {"Cleve Butler", "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
         Record firstRecordNested = (Record) firstRecord.getValue("ADDRESS");
-        Assert.assertEquals("292 West Street", firstRecordNested.getValue("STREET"));
-        Assert.assertNull(firstRecord.getValue("AGE"));
-        Assert.assertNull(firstRecordNested.getValue("CITY"));
+        assertEquals("292 West Street", firstRecordNested.getValue("STREET"));
+        assertNull(firstRecord.getValue("AGE"));
+        assertNull(firstRecordNested.getValue("CITY"));
 
         Record secondRecord = reader.nextRecord(true, true);
         Object[] valuesSecondRecord = secondRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Ainslie Fletcher", "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
+        assertArrayEquals(new Object[] {"Ainslie Fletcher", "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
         Record secondRecordNested = (Record) secondRecord.getValue("ADDRESS");
-        Assert.assertEquals("123 6th St.", secondRecordNested.getValue("STREET"));
-        Assert.assertNull(secondRecord.getValue("AGE"));
-        Assert.assertNull(secondRecordNested.getValue("CITY"));
+        assertEquals("123 6th St.", secondRecordNested.getValue("STREET"));
+        assertNull(secondRecord.getValue("AGE"));
+        assertNull(secondRecordNested.getValue("CITY"));
 
         Record thirdRecord = reader.nextRecord(true, true);
         Object[] valuesThirdRecord = thirdRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Amélie Bonfils", "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
+        assertArrayEquals(new Object[] {"Amélie Bonfils", "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
         Record thirdRecordNested = (Record) thirdRecord.getValue("ADDRESS");
-        Assert.assertEquals("44 Shirley Ave.", thirdRecordNested.getValue("STREET"));
-        Assert.assertNull(thirdRecord.getValue("AGE"));
-        Assert.assertNull(thirdRecordNested.getValue("CITY"));
+        assertEquals("44 Shirley Ave.", thirdRecordNested.getValue("STREET"));
+        assertNull(thirdRecord.getValue("AGE"));
+        assertNull(thirdRecordNested.getValue("CITY"));
 
         Record fourthRecord = reader.nextRecord(true, true);
         Object[] valuesFourthRecord = fourthRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Elenora Scrivens", "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
+        assertArrayEquals(new Object[] {"Elenora Scrivens", "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
         Record fourthRecordNested = (Record) fourthRecord.getValue("ADDRESS");
-        Assert.assertEquals("70 Bowman St.", fourthRecordNested.getValue("STREET"));
-        Assert.assertNull(fourthRecord.getValue("AGE"));
-        Assert.assertNull(fourthRecordNested.getValue("CITY"));
+        assertEquals("70 Bowman St.", fourthRecordNested.getValue("STREET"));
+        assertNull(fourthRecord.getValue("AGE"));
+        assertNull(fourthRecordNested.getValue("CITY"));
     }
 
     @Test
@@ -810,40 +810,40 @@ public class TestXMLRecordReader {
 
         // Fields "AGE" and "ADDRESS/CITY" are not defined here
         RecordSchema schema = getSchemaWithNestedRecord2();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true,
+        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record firstRecord = reader.nextRecord(false, true);
         Object[] valuesFirstRecord = firstRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Cleve Butler", "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
+        assertArrayEquals(new Object[] {"Cleve Butler", "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
         Record firstRecordNested = (Record) firstRecord.getValue("ADDRESS");
-        Assert.assertEquals("292 West Street", firstRecordNested.getValue("STREET"));
-        Assert.assertNull(firstRecord.getValue("AGE"));
-        Assert.assertNull(firstRecordNested.getValue("CITY"));
+        assertEquals("292 West Street", firstRecordNested.getValue("STREET"));
+        assertNull(firstRecord.getValue("AGE"));
+        assertNull(firstRecordNested.getValue("CITY"));
 
         Record secondRecord = reader.nextRecord(false, true);
         Object[] valuesSecondRecord = secondRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Ainslie Fletcher", "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
+        assertArrayEquals(new Object[] {"Ainslie Fletcher", "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
         Record secondRecordNested = (Record) secondRecord.getValue("ADDRESS");
-        Assert.assertEquals("123 6th St.", secondRecordNested.getValue("STREET"));
-        Assert.assertNull(secondRecord.getValue("AGE"));
-        Assert.assertNull(secondRecordNested.getValue("CITY"));
+        assertEquals("123 6th St.", secondRecordNested.getValue("STREET"));
+        assertNull(secondRecord.getValue("AGE"));
+        assertNull(secondRecordNested.getValue("CITY"));
 
         Record thirdRecord = reader.nextRecord(false, true);
         Object[] valuesThirdRecord = thirdRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Amélie Bonfils", "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
+        assertArrayEquals(new Object[] {"Amélie Bonfils", "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
         Record thirdRecordNested = (Record) thirdRecord.getValue("ADDRESS");
-        Assert.assertEquals("44 Shirley Ave.", thirdRecordNested.getValue("STREET"));
-        Assert.assertNull(thirdRecord.getValue("AGE"));
-        Assert.assertNull(thirdRecordNested.getValue("CITY"));
+        assertEquals("44 Shirley Ave.", thirdRecordNested.getValue("STREET"));
+        assertNull(thirdRecord.getValue("AGE"));
+        assertNull(thirdRecordNested.getValue("CITY"));
 
         Record fourthRecord = reader.nextRecord(false, true);
         Object[] valuesFourthRecord = fourthRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Elenora Scrivens", "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
+        assertArrayEquals(new Object[] {"Elenora Scrivens", "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
         Record fourthRecordNested = (Record) fourthRecord.getValue("ADDRESS");
-        Assert.assertEquals("70 Bowman St.", fourthRecordNested.getValue("STREET"));
-        Assert.assertNull(fourthRecord.getValue("AGE"));
-        Assert.assertNull(fourthRecordNested.getValue("CITY"));
+        assertEquals("70 Bowman St.", fourthRecordNested.getValue("STREET"));
+        assertNull(fourthRecord.getValue("AGE"));
+        assertNull(fourthRecordNested.getValue("CITY"));
     }
 
     @Test
@@ -852,48 +852,48 @@ public class TestXMLRecordReader {
 
         // Fields "AGE" and "ADDRESS/CITY" are not defined here
         RecordSchema schema = getSchemaWithNestedRecord2();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true,
+        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record firstRecord = reader.nextRecord(true, false);
         Object[] valuesFirstRecord = firstRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Cleve Butler", "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
+        assertArrayEquals(new Object[] {"Cleve Butler", "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
         Record firstRecordNested = (Record) firstRecord.getValue("ADDRESS");
-        Assert.assertEquals("292 West Street", firstRecordNested.getValue("STREET"));
-        Assert.assertNotNull(firstRecord.getValue("AGE"));
-        Assert.assertEquals("42", firstRecord.getValue("AGE"));
-        Assert.assertNotNull(firstRecordNested.getValue("CITY"));
-        Assert.assertEquals("Jersey City", firstRecordNested.getValue("CITY"));
+        assertEquals("292 West Street", firstRecordNested.getValue("STREET"));
+        assertNotNull(firstRecord.getValue("AGE"));
+        assertEquals("42", firstRecord.getValue("AGE"));
+        assertNotNull(firstRecordNested.getValue("CITY"));
+        assertEquals("Jersey City", firstRecordNested.getValue("CITY"));
 
         Record secondRecord = reader.nextRecord(true, false);
         Object[] valuesSecondRecord = secondRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Ainslie Fletcher", "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
+        assertArrayEquals(new Object[] {"Ainslie Fletcher", "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
         Record secondRecordNested = (Record) secondRecord.getValue("ADDRESS");
-        Assert.assertEquals("123 6th St.", secondRecordNested.getValue("STREET"));
-        Assert.assertNotNull(secondRecord.getValue("AGE"));
-        Assert.assertEquals("33", secondRecord.getValue("AGE"));
-        Assert.assertNotNull(secondRecordNested.getValue("CITY"));
-        Assert.assertEquals("Seattle", secondRecordNested.getValue("CITY"));
+        assertEquals("123 6th St.", secondRecordNested.getValue("STREET"));
+        assertNotNull(secondRecord.getValue("AGE"));
+        assertEquals("33", secondRecord.getValue("AGE"));
+        assertNotNull(secondRecordNested.getValue("CITY"));
+        assertEquals("Seattle", secondRecordNested.getValue("CITY"));
 
         Record thirdRecord = reader.nextRecord(true, false);
         Object[] valuesThirdRecord = thirdRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Amélie Bonfils", "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
+        assertArrayEquals(new Object[] {"Amélie Bonfils", "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
         Record thirdRecordNested = (Record) thirdRecord.getValue("ADDRESS");
-        Assert.assertEquals("44 Shirley Ave.", thirdRecordNested.getValue("STREET"));
-        Assert.assertNotNull(thirdRecord.getValue("AGE"));
-        Assert.assertEquals("74", thirdRecord.getValue("AGE"));
-        Assert.assertNotNull(thirdRecordNested.getValue("CITY"));
-        Assert.assertEquals("Los Angeles", thirdRecordNested.getValue("CITY"));
+        assertEquals("44 Shirley Ave.", thirdRecordNested.getValue("STREET"));
+        assertNotNull(thirdRecord.getValue("AGE"));
+        assertEquals("74", thirdRecord.getValue("AGE"));
+        assertNotNull(thirdRecordNested.getValue("CITY"));
+        assertEquals("Los Angeles", thirdRecordNested.getValue("CITY"));
 
         Record fourthRecord = reader.nextRecord(true, false);
         Object[] valuesFourthRecord = fourthRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Elenora Scrivens", "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
+        assertArrayEquals(new Object[] {"Elenora Scrivens", "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
         Record fourthRecordNested = (Record) fourthRecord.getValue("ADDRESS");
-        Assert.assertEquals("70 Bowman St.", fourthRecordNested.getValue("STREET"));
-        Assert.assertNotNull(fourthRecord.getValue("AGE"));
-        Assert.assertEquals("16", fourthRecord.getValue("AGE"));
-        Assert.assertNotNull(fourthRecordNested.getValue("CITY"));
-        Assert.assertEquals("Columbus", fourthRecordNested.getValue("CITY"));
+        assertEquals("70 Bowman St.", fourthRecordNested.getValue("STREET"));
+        assertNotNull(fourthRecord.getValue("AGE"));
+        assertEquals("16", fourthRecord.getValue("AGE"));
+        assertNotNull(fourthRecordNested.getValue("CITY"));
+        assertEquals("Columbus", fourthRecordNested.getValue("CITY"));
     }
 
     @Test
@@ -902,48 +902,48 @@ public class TestXMLRecordReader {
 
         // Fields "AGE" and "ADDRESS/CITY" are not defined here
         RecordSchema schema = getSchemaWithNestedRecord2();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true,
+        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record firstRecord = reader.nextRecord(false, false);
         Object[] valuesFirstRecord = firstRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Cleve Butler", "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
+        assertArrayEquals(new Object[] {"Cleve Butler", "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
         Record firstRecordNested = (Record) firstRecord.getValue("ADDRESS");
-        Assert.assertEquals("292 West Street", firstRecordNested.getValue("STREET"));
-        Assert.assertNotNull(firstRecord.getValue("AGE"));
-        Assert.assertEquals("42", firstRecord.getValue("AGE"));
-        Assert.assertNotNull(firstRecordNested.getValue("CITY"));
-        Assert.assertEquals("Jersey City", firstRecordNested.getValue("CITY"));
+        assertEquals("292 West Street", firstRecordNested.getValue("STREET"));
+        assertNotNull(firstRecord.getValue("AGE"));
+        assertEquals("42", firstRecord.getValue("AGE"));
+        assertNotNull(firstRecordNested.getValue("CITY"));
+        assertEquals("Jersey City", firstRecordNested.getValue("CITY"));
 
         Record secondRecord = reader.nextRecord(false, false);
         Object[] valuesSecondRecord = secondRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Ainslie Fletcher", "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
+        assertArrayEquals(new Object[] {"Ainslie Fletcher", "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
         Record secondRecordNested = (Record) secondRecord.getValue("ADDRESS");
-        Assert.assertEquals("123 6th St.", secondRecordNested.getValue("STREET"));
-        Assert.assertNotNull(secondRecord.getValue("AGE"));
-        Assert.assertEquals("33", secondRecord.getValue("AGE"));
-        Assert.assertNotNull(secondRecordNested.getValue("CITY"));
-        Assert.assertEquals("Seattle", secondRecordNested.getValue("CITY"));
+        assertEquals("123 6th St.", secondRecordNested.getValue("STREET"));
+        assertNotNull(secondRecord.getValue("AGE"));
+        assertEquals("33", secondRecord.getValue("AGE"));
+        assertNotNull(secondRecordNested.getValue("CITY"));
+        assertEquals("Seattle", secondRecordNested.getValue("CITY"));
 
         Record thirdRecord = reader.nextRecord(false, false);
         Object[] valuesThirdRecord = thirdRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Amélie Bonfils", "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
+        assertArrayEquals(new Object[] {"Amélie Bonfils", "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
         Record thirdRecordNested = (Record) thirdRecord.getValue("ADDRESS");
-        Assert.assertEquals("44 Shirley Ave.", thirdRecordNested.getValue("STREET"));
-        Assert.assertNotNull(thirdRecord.getValue("AGE"));
-        Assert.assertEquals("74", thirdRecord.getValue("AGE"));
-        Assert.assertNotNull(thirdRecordNested.getValue("CITY"));
-        Assert.assertEquals("Los Angeles", thirdRecordNested.getValue("CITY"));
+        assertEquals("44 Shirley Ave.", thirdRecordNested.getValue("STREET"));
+        assertNotNull(thirdRecord.getValue("AGE"));
+        assertEquals("74", thirdRecord.getValue("AGE"));
+        assertNotNull(thirdRecordNested.getValue("CITY"));
+        assertEquals("Los Angeles", thirdRecordNested.getValue("CITY"));
 
         Record fourthRecord = reader.nextRecord(false, false);
         Object[] valuesFourthRecord = fourthRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Elenora Scrivens", "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
+        assertArrayEquals(new Object[] {"Elenora Scrivens", "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
         Record fourthRecordNested = (Record) fourthRecord.getValue("ADDRESS");
-        Assert.assertEquals("70 Bowman St.", fourthRecordNested.getValue("STREET"));
-        Assert.assertNotNull(fourthRecord.getValue("AGE"));
-        Assert.assertEquals("16", fourthRecord.getValue("AGE"));
-        Assert.assertNotNull(fourthRecordNested.getValue("CITY"));
-        Assert.assertEquals("Columbus", fourthRecordNested.getValue("CITY"));
+        assertEquals("70 Bowman St.", fourthRecordNested.getValue("STREET"));
+        assertNotNull(fourthRecord.getValue("AGE"));
+        assertEquals("16", fourthRecord.getValue("AGE"));
+        assertNotNull(fourthRecordNested.getValue("CITY"));
+        assertEquals("Columbus", fourthRecordNested.getValue("CITY"));
     }
 
 
@@ -951,35 +951,35 @@ public class TestXMLRecordReader {
     public void testSimpleArray() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_array_simple.xml");
         RecordSchema schema = getSchemaWithSimpleArray();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true,
+        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record firstRecord = reader.nextRecord();
         Object[] valuesFirstRecord = firstRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
+        assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
         Object[] nestedArrayFirstRecord = (Object[]) valuesFirstRecord[valuesFirstRecord.length - 1];
         assertEquals(2, nestedArrayFirstRecord.length);
-        Assert.assertArrayEquals(new Object[] {"child1", "child2"}, nestedArrayFirstRecord);
+        assertArrayEquals(new Object[] {"child1", "child2"}, nestedArrayFirstRecord);
         assertNotEquals(null, firstRecord.getValue("CHILD"));
 
         Record secondRecord = reader.nextRecord();
         Object[] valuesSecondRecord = secondRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
+        assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
         Object[] nestedArraySecondRecord = (Object[]) valuesSecondRecord[valuesSecondRecord.length - 1];
         assertEquals(1, nestedArraySecondRecord.length);
-        Assert.assertArrayEquals(new Object[] {"child1"}, nestedArraySecondRecord);
+        assertArrayEquals(new Object[] {"child1"}, nestedArraySecondRecord);
         assertNotEquals(null, secondRecord.getValue("CHILD"));
 
         Record thirdRecord = reader.nextRecord();
         Object[] valuesThirdRecord = thirdRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
+        assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
         Object[] nestedArrayThirdRecord = (Object[]) valuesThirdRecord[valuesThirdRecord.length - 1];
         assertEquals(3, nestedArrayThirdRecord.length);
-        Assert.assertArrayEquals(new Object[] {"child1", "child2", "child3"}, nestedArrayThirdRecord);
+        assertArrayEquals(new Object[] {"child1", "child2", "child3"}, nestedArrayThirdRecord);
         assertNotEquals(null, thirdRecord.getValue("CHILD"));
 
         Record valuesFourthRecord = reader.nextRecord();
-        Assert.assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, Arrays.copyOfRange(valuesFourthRecord.getValues(), 0, valuesFourthRecord.getValues().length - 1));
+        assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, Arrays.copyOfRange(valuesFourthRecord.getValues(), 0, valuesFourthRecord.getValues().length - 1));
         assertEquals(null, valuesFourthRecord.getValue("CHILD"));
     }
 
@@ -987,34 +987,34 @@ public class TestXMLRecordReader {
     public void testSimpleArrayCoerceFalseDropFalse() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_array_simple.xml");
         RecordSchema schema = getSchemaWithSimpleArray();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true,
+        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(false, false);
         Object[] valuesFirstRecord = first.getValues();
-        Assert.assertArrayEquals(new Object[] {"Cleve Butler", "42", "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
+        assertArrayEquals(new Object[] {"Cleve Butler", "42", "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
         Object[] nestedArrayFirstRecord = (Object[]) valuesFirstRecord[valuesFirstRecord.length - 1];
         assertEquals(2, nestedArrayFirstRecord.length);
-        Assert.assertArrayEquals(new Object[] {"child1", "child2"}, nestedArrayFirstRecord);
+        assertArrayEquals(new Object[] {"child1", "child2"}, nestedArrayFirstRecord);
         assertNotEquals(null, first.getValue("CHILD"));
 
         Record second = reader.nextRecord(false, false);
         Object[] valuesSecondRecord = second.getValues();
-        Assert.assertArrayEquals(new Object[] {"Ainslie Fletcher", "33", "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
+        assertArrayEquals(new Object[] {"Ainslie Fletcher", "33", "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
         String nestedArraySecondRecord = (String) valuesSecondRecord[valuesSecondRecord.length - 1];
-        Assert.assertEquals("child1", nestedArraySecondRecord);
+        assertEquals("child1", nestedArraySecondRecord);
         assertNotEquals(null, second.getValue("CHILD"));
 
         Record third = reader.nextRecord(false, false);
         Object[] valuesThirdRecord = third.getValues();
-        Assert.assertArrayEquals(new Object[] {"Amélie Bonfils", "74", "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
+        assertArrayEquals(new Object[] {"Amélie Bonfils", "74", "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
         Object[] nestedArrayThirdRecord = (Object[]) valuesThirdRecord[valuesThirdRecord.length - 1];
         assertEquals(3, nestedArrayThirdRecord.length);
-        Assert.assertArrayEquals(new Object[] {"child1", "child2", "child3"}, nestedArrayThirdRecord);
+        assertArrayEquals(new Object[] {"child1", "child2", "child3"}, nestedArrayThirdRecord);
         assertNotEquals(null, third.getValue("CHILD"));
 
         Record fourth = reader.nextRecord(false, false);
-        Assert.assertArrayEquals(new Object[] {"Elenora Scrivens", "16", "USA"}, Arrays.copyOfRange(fourth.getValues(), 0, fourth.getValues().length - 1));
+        assertArrayEquals(new Object[] {"Elenora Scrivens", "16", "USA"}, Arrays.copyOfRange(fourth.getValues(), 0, fourth.getValues().length - 1));
         assertEquals(null, fourth.getValue("CHILD"));
     }
 
@@ -1022,45 +1022,45 @@ public class TestXMLRecordReader {
     public void testNestedArrayInNestedRecord() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_array.xml");
         RecordSchema schema = getSchemaWithNestedArray();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true, null,
-                "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record firstRecord = reader.nextRecord();
         Object[] valuesFirstRecord = firstRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
+        assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
 
         Record nestedArrayFirstRecord = (Record) firstRecord.getValue("CHILDREN");
         assertEquals(2, ((Object[]) nestedArrayFirstRecord.getValue("CHILD")).length);
-        Assert.assertArrayEquals(new Object[] {"child1", "child2"}, ((Object[]) nestedArrayFirstRecord.getValue("CHILD")));
+        assertArrayEquals(new Object[] {"child1", "child2"}, ((Object[]) nestedArrayFirstRecord.getValue("CHILD")));
 
         Record secondRecord = reader.nextRecord();
         Object[] valuesSecondRecord = secondRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
+        assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
 
         Record nestedArraySecondRecord = (Record) secondRecord.getValue("CHILDREN");
         assertEquals(1, ((Object[]) nestedArraySecondRecord.getValue("CHILD")).length);
-        Assert.assertArrayEquals(new Object[] {"child1"}, ((Object[]) nestedArraySecondRecord.getValue("CHILD")));
+        assertArrayEquals(new Object[] {"child1"}, ((Object[]) nestedArraySecondRecord.getValue("CHILD")));
 
         Record thirdRecord = reader.nextRecord();
         Object[] valuesThirdRecord = thirdRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
+        assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
 
         Record nestedArrayThirdRecord = (Record) thirdRecord.getValue("CHILDREN");
         assertEquals(3, ((Object[]) nestedArrayThirdRecord.getValue("CHILD")).length);
-        Assert.assertArrayEquals(new Object[] {"child1", "child2", "child3"}, ((Object[]) nestedArrayThirdRecord.getValue("CHILD")));
+        assertArrayEquals(new Object[] {"child1", "child2", "child3"}, ((Object[]) nestedArrayThirdRecord.getValue("CHILD")));
 
         Record fourthRecord = reader.nextRecord();
         Object[] valuesFourthRecord = fourthRecord.getValues();
-        Assert.assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
+        assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
 
-        Assert.assertEquals(null, fourthRecord.getValue("CHILDREN"));
+        assertEquals(null, fourthRecord.getValue("CHILDREN"));
     }
 
     @Test
     public void testDeeplyNestedArraysAndRecords() throws IOException, MalformedRecordException {
         // test records in nested arrays
         InputStream is = new FileInputStream("src/test/resources/xml/people_complex1.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForComplexData(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForComplexData(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(true, true);
@@ -1099,7 +1099,7 @@ public class TestXMLRecordReader {
     public void testDeeplyNestedArraysAndRecords2() throws IOException, MalformedRecordException {
         // test multiply nested arrays and records (recursion)
         InputStream is = new FileInputStream("src/test/resources/xml/people_complex2.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForComplexData2(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForComplexData2(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord();
@@ -1155,7 +1155,7 @@ public class TestXMLRecordReader {
     public void testDeeplyNestedArraysAndRecordsCoerceFalseDropTrue() throws IOException, MalformedRecordException {
         // test multiply nested arrays and records (recursion)
         InputStream is = new FileInputStream("src/test/resources/xml/people_complex2.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForComplexData2(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForComplexData2(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(false, true);
@@ -1211,8 +1211,8 @@ public class TestXMLRecordReader {
     public void testDeeplyNestedArraysAndRecordsCoerceFalseDropFalse() throws IOException, MalformedRecordException {
         // test multiply nested arrays and records (recursion)
         InputStream is = new FileInputStream("src/test/resources/xml/people_complex2.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(Collections.emptyList()),
-                true, null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(Collections.emptyList()), true,  true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(false, false);
         assertEquals("1", first.getValue("ID"));
@@ -1266,6 +1266,110 @@ public class TestXMLRecordReader {
                 .getValue("CHILDREN"))
                 .getValue("CHILD"))
                 .getValue("ID"));
+    }
+
+    @Test
+    public void testSimpleTypeWithAttributesIgnored1() throws IOException, MalformedRecordException {
+        boolean parseXMLAttributes = false;
+        boolean coerceTypes = true;
+        boolean dropUnknownFields = true;
+
+        List<Record> records = simpleTypeWithAttributesIgnored(parseXMLAttributes, coerceTypes, dropUnknownFields);
+
+        Record first = records.get(0);
+        Record second = records.get(1);
+
+        assertTrue(first.getValue("NAME") instanceof String);
+        assertEquals("Cleve Butler", first.getValue("NAME"));
+        assertTrue(first.getValue("AGE") instanceof Integer);
+        assertEquals(42, first.getValue("AGE"));
+        assertEquals(2, first.toMap().size());
+
+        assertTrue(second.getValue("NAME") instanceof String);
+        assertEquals("Ainslie Fletcher", second.getValue("NAME"));
+        assertTrue(second.getValue("AGE") instanceof  Integer);
+        assertEquals(33, second.getValue("AGE"));
+        assertEquals(2, second.toMap().size());
+    }
+
+    @Test
+    public void testSimpleTypeWithAttributesIgnored2() throws IOException, MalformedRecordException {
+        boolean parseXMLAttributes = false;
+        boolean coerceTypes = false;
+        boolean dropUnknownFields = true;
+
+        List<Record> records = simpleTypeWithAttributesIgnored(parseXMLAttributes, coerceTypes, dropUnknownFields);
+
+        Record first = records.get(0);
+        Record second = records.get(1);
+
+        assertTrue(first.getValue("NAME") instanceof String);
+        assertEquals("Cleve Butler", first.getValue("NAME"));
+        assertTrue(first.getValue("AGE") instanceof String);
+        assertEquals("42", first.getValue("AGE"));
+        assertEquals(2, first.toMap().size());
+
+        assertTrue(second.getValue("NAME") instanceof String);
+        assertEquals("Ainslie Fletcher", second.getValue("NAME"));
+        assertTrue(second.getValue("AGE") instanceof  String);
+        assertEquals("33", second.getValue("AGE"));
+        assertEquals(2, second.toMap().size());
+    }
+
+    @Test
+    public void testSimpleTypeWithAttributesIgnored3() throws IOException, MalformedRecordException {
+        boolean parseXMLAttributes = false;
+        boolean coerceTypes = true;
+        boolean dropUnknownFields = false;
+
+        List<Record> records = simpleTypeWithAttributesIgnored(parseXMLAttributes, coerceTypes, dropUnknownFields);
+
+        Record first = records.get(0);
+        Record second = records.get(1);
+
+        assertTrue(first.getValue("NAME") instanceof String);
+        assertEquals("Cleve Butler", first.getValue("NAME"));
+        assertTrue(first.getValue("AGE") instanceof Integer);
+        assertEquals(42, first.getValue("AGE"));
+        assertTrue(first.getValue("COUNTRY") instanceof String);
+        assertEquals("USA", first.getValue("COUNTRY"));
+        assertEquals(3, first.toMap().size());
+
+        assertTrue(second.getValue("NAME") instanceof String);
+        assertEquals("Ainslie Fletcher", second.getValue("NAME"));
+        assertTrue(second.getValue("AGE") instanceof  Integer);
+        assertEquals(33, second.getValue("AGE"));
+        assertTrue(second.getValue("COUNTRY") instanceof  String);
+        assertEquals("UK", second.getValue("COUNTRY"));
+        assertEquals(3, second.toMap().size());
+    }
+
+    @Test
+    public void testSimpleTypeWithAttributesIgnored4() throws IOException, MalformedRecordException {
+        boolean parseXMLAttributes = false;
+        boolean coerceTypes = false;
+        boolean dropUnknownFields = false;
+
+        List<Record> records = simpleTypeWithAttributesIgnored(parseXMLAttributes, coerceTypes, dropUnknownFields);
+
+        Record first = records.get(0);
+        Record second = records.get(1);
+
+        assertTrue(first.getValue("NAME") instanceof String);
+        assertEquals("Cleve Butler", first.getValue("NAME"));
+        assertTrue(first.getValue("AGE") instanceof String);
+        assertEquals("42", first.getValue("AGE"));
+        assertTrue(first.getValue("COUNTRY") instanceof String);
+        assertEquals("USA", first.getValue("COUNTRY"));
+        assertEquals(3, first.toMap().size());
+
+        assertTrue(second.getValue("NAME") instanceof String);
+        assertEquals("Ainslie Fletcher", second.getValue("NAME"));
+        assertTrue(second.getValue("AGE") instanceof  String);
+        assertEquals("33", second.getValue("AGE"));
+        assertTrue(second.getValue("COUNTRY") instanceof  String);
+        assertEquals("UK", second.getValue("COUNTRY"));
+        assertEquals(3, second.toMap().size());
     }
 
     private List<RecordField> getSimpleRecordFields() {
@@ -1449,5 +1553,21 @@ public class TestXMLRecordReader {
             addAll(getSimpleFieldsForComplexData());
         }};
         return new SimpleRecordSchema(fields);
+    }
+
+    private List<Record> simpleTypeWithAttributesIgnored(boolean parseXMLAttributes, boolean coerceTypes, boolean dropunknownFields) throws IOException, MalformedRecordException {
+        InputStream is = new FileInputStream("src/test/resources/xml/people3.xml");
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("NAME", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("AGE", RecordFieldType.INT.getDataType()));
+
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,  parseXMLAttributes,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+
+        List<Record> records = new ArrayList<>(2);
+        records.add(reader.nextRecord(coerceTypes, dropunknownFields));
+        records.add(reader.nextRecord(coerceTypes, dropunknownFields));
+        return records;
     }
 }

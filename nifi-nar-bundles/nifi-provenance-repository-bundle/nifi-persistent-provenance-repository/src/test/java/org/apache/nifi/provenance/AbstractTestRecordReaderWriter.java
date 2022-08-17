@@ -25,8 +25,7 @@ import org.apache.nifi.provenance.toc.TocReader;
 import org.apache.nifi.provenance.toc.TocUtil;
 import org.apache.nifi.provenance.toc.TocWriter;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -39,26 +38,21 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public abstract class AbstractTestRecordReaderWriter {
-    @BeforeClass
-    public static void setLogLevel() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.provenance", "INFO");
-    }
-
     protected ProvenanceEventRecord createEvent() {
         return TestUtil.createEvent();
     }
 
     @Test
     public void testSimpleWriteWithToc() throws IOException {
-        final File journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testSimpleWrite");
+        final File journalFile = new File("target/storage/" + UUID.randomUUID() + "/testSimpleWrite");
         final File tocFile = TocUtil.getTocFile(journalFile);
         final TocWriter tocWriter = new StandardTocWriter(tocFile, false, false);
         final RecordWriter writer = createWriter(journalFile, tocWriter, false, 1024 * 1024);
@@ -92,7 +86,7 @@ public abstract class AbstractTestRecordReaderWriter {
 
     @Test
     public void testSingleRecordCompressed() throws IOException {
-        final File journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testSimpleWrite.gz");
+        final File journalFile = new File("target/storage/" + UUID.randomUUID() + "/testSimpleWrite.gz");
         final File tocFile = TocUtil.getTocFile(journalFile);
         final TocWriter tocWriter = new StandardTocWriter(tocFile, false, false);
         final RecordWriter writer = createWriter(journalFile, tocWriter, true, 8192);
@@ -111,7 +105,7 @@ public abstract class AbstractTestRecordReaderWriter {
 
     @Test
     public void testMultipleRecordsSameBlockCompressed() throws IOException {
-        final File journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testSimpleWrite.gz");
+        final File journalFile = new File("target/storage/" + UUID.randomUUID() + "/testSimpleWrite.gz");
         final File tocFile = TocUtil.getTocFile(journalFile);
         final TocWriter tocWriter = new StandardTocWriter(tocFile, false, false);
         // new record each 1 MB of uncompressed data
@@ -150,7 +144,7 @@ public abstract class AbstractTestRecordReaderWriter {
 
     @Test
     public void testMultipleRecordsMultipleBlocksCompressed() throws IOException {
-        final File journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testSimpleWrite.gz");
+        final File journalFile = new File("target/storage/" + UUID.randomUUID() + "/testSimpleWrite.gz");
         final File tocFile = TocUtil.getTocFile(journalFile);
         final TocWriter tocWriter = new StandardTocWriter(tocFile, false, false);
         // new block each 10 bytes
@@ -188,7 +182,7 @@ public abstract class AbstractTestRecordReaderWriter {
 
     @Test
     public void testSkipToEvent() throws IOException {
-        final File journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testSimpleWrite.gz");
+        final File journalFile = new File("target/storage/" + UUID.randomUUID() + "/testSimpleWrite.gz");
         final File tocFile = TocUtil.getTocFile(journalFile);
         final TocWriter tocWriter = new StandardTocWriter(tocFile, false, false);
         // new block each 10 bytes

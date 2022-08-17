@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -61,6 +62,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
     private static final String NAME = "Name";
     private static final String ANNOTATION_DATA = "Annotation Data";
     private static final String EXTENSION_VERSION = "Extension Version";
+    private static final String BULLETIN_LEVEL = "Bulletin Level";
 
     /**
      * Audits the creation of controller service via createControllerService().
@@ -119,6 +121,9 @@ public class ControllerServiceAuditor extends NiFiAuditor {
 
         // ensure the user was found
         if (user != null) {
+            final Set<String> sensitiveDynamicPropertyNames = controllerServiceDTO.getSensitiveDynamicPropertyNames() == null
+                    ? Collections.emptySet() : controllerServiceDTO.getSensitiveDynamicPropertyNames();
+
             // determine the updated values
             Map<String, String> updatedValues = extractConfiguredPropertyValues(controllerService, controllerServiceDTO);
 
@@ -144,13 +149,14 @@ public class ControllerServiceAuditor extends NiFiAuditor {
                 // create a configuration action accordingly
                 if (operation != null) {
                     // clear the value if this property is sensitive
-                    final PropertyDescriptor propertyDescriptor = controllerService.getControllerServiceImplementation().getPropertyDescriptor(property);
-                    if (propertyDescriptor != null && propertyDescriptor.isSensitive()) {
+                    final PropertyDescriptor propertyDescriptor = controllerService.getPropertyDescriptor(property);
+                    // Evaluate both Property Descriptor status and whether the client requested a new Sensitive Dynamic Property
+                    if (propertyDescriptor != null && (propertyDescriptor.isSensitive() || sensitiveDynamicPropertyNames.contains(property))) {
                         if (newValue != null) {
-                            newValue = "********";
+                            newValue = SENSITIVE_VALUE_PLACEHOLDER;
                         }
                         if (oldValue != null) {
-                            oldValue = "********";
+                            oldValue = SENSITIVE_VALUE_PLACEHOLDER;
                         }
                     } else if (ANNOTATION_DATA.equals(property)) {
                         if (newValue != null) {
@@ -430,6 +436,9 @@ public class ControllerServiceAuditor extends NiFiAuditor {
         }
         if (controllerServiceDTO.getComments() != null) {
             values.put(COMMENTS, controllerService.getComments());
+        }
+        if (controllerServiceDTO.getBulletinLevel() != null) {
+            values.put(BULLETIN_LEVEL, controllerService.getBulletinLevel().name());
         }
 
         return values;

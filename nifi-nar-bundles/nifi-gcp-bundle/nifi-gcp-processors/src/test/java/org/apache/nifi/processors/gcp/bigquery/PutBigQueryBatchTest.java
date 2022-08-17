@@ -21,18 +21,27 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
+import com.google.cloud.bigquery.JobId;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.JobStatistics;
 import com.google.cloud.bigquery.JobStatus;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableDataWriteChannel;
 import com.google.cloud.bigquery.WriteChannelConfiguration;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.util.TestRunner;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 
+import java.util.Collections;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
@@ -59,6 +68,9 @@ public class PutBigQueryBatchTest extends AbstractBQTest {
     Job job;
 
     @Mock
+    JobId jobId;
+
+    @Mock
     JobStatus jobStatus;
 
     @Mock
@@ -67,7 +79,7 @@ public class PutBigQueryBatchTest extends AbstractBQTest {
     @Mock
     TableDataWriteChannel tableDataWriteChannel;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         super.setup();
         reset(bq);
@@ -82,6 +94,11 @@ public class PutBigQueryBatchTest extends AbstractBQTest {
         return new PutBigQueryBatch() {
             @Override
             protected BigQuery getCloudService() {
+                return bq;
+            }
+
+            @Override
+            protected BigQuery getCloudService(final ProcessContext context) {
                 return bq;
             }
         };
@@ -113,14 +130,22 @@ public class PutBigQueryBatchTest extends AbstractBQTest {
         when(stats.getCreationTime()).thenReturn(0L);
         when(stats.getStartTime()).thenReturn(1L);
         when(stats.getEndTime()).thenReturn(2L);
+        when(job.getJobId()).thenReturn(jobId);
+        when(jobId.getJob()).thenReturn("job-id");
 
-        final TestRunner runner = buildNewRunner(getProcessor());
+        final AbstractBigQueryProcessor processor = getProcessor();
+        final TestRunner runner = buildNewRunner(processor);
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
         runner.enqueue("{ \"data\": \"datavalue\" }");
 
         runner.run();
+
+        when(bq.testIamPermissions(any(), any())).thenReturn(Collections.singletonList("permission"));
+        final List<ConfigVerificationResult> verificationResults = ((VerifiableProcessor) processor).verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
+        assertEquals(2, verificationResults.size());
+        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, verificationResults.get(1).getOutcome());
 
         runner.assertAllFlowFilesTransferred(PutBigQueryBatch.REL_SUCCESS);
     }

@@ -54,11 +54,13 @@ public class ZooKeeperClientConfig {
     private final String authPrincipal;
     private final String removeHostFromPrincipal;
     private final String removeRealmFromPrincipal;
+    private final int juteMaxbuffer;
 
     private ZooKeeperClientConfig(String connectString, int sessionTimeoutMillis, int connectionTimeoutMillis,
                                   String rootPath, String authType, String authPrincipal, String removeHostFromPrincipal,
                                   String removeRealmFromPrincipal, boolean clientSecure, String keyStore, String keyStoreType,
-                                  String keyStorePassword, String trustStore, String trustStoreType, String trustStorePassword) {
+                                  String keyStorePassword, String trustStore, String trustStoreType, String trustStorePassword,
+                                  final int juteMaxbuffer) {
         this.connectString = connectString;
         this.sessionTimeoutMillis = sessionTimeoutMillis;
         this.connectionTimeoutMillis = connectionTimeoutMillis;
@@ -74,6 +76,7 @@ public class ZooKeeperClientConfig {
         this.authPrincipal = authPrincipal;
         this.removeHostFromPrincipal = removeHostFromPrincipal;
         this.removeRealmFromPrincipal = removeRealmFromPrincipal;
+        this.juteMaxbuffer = juteMaxbuffer;
     }
 
     public String getConnectString() {
@@ -140,6 +143,10 @@ public class ZooKeeperClientConfig {
         return removeRealmFromPrincipal;
     }
 
+    public int getJuteMaxbuffer() {
+        return juteMaxbuffer;
+    }
+
     public String resolvePath(final String path) {
         if (path.startsWith("/")) {
             return rootPath + path;
@@ -174,6 +181,7 @@ public class ZooKeeperClientConfig {
                 NiFiProperties.DEFAULT_ZOOKEEPER_KERBEROS_REMOVE_HOST_FROM_PRINCIPAL);
         final String removeRealmFromPrincipal = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_KERBEROS_REMOVE_REALM_FROM_PRINCIPAL,
                 NiFiProperties.DEFAULT_ZOOKEEPER_KERBEROS_REMOVE_REALM_FROM_PRINCIPAL);
+        final int juteMaxbuffer = nifiProperties.getIntegerProperty(NiFiProperties.ZOOKEEPER_JUTE_MAXBUFFER, NiFiProperties.DEFAULT_ZOOKEEPER_JUTE_MAXBUFFER);
 
         try {
             PathUtils.validatePath(rootPath);
@@ -196,7 +204,8 @@ public class ZooKeeperClientConfig {
             keyStorePassword,
             trustStore,
             trustStoreType,
-            trustStorePassword
+            trustStorePassword,
+            juteMaxbuffer
         );
     }
 

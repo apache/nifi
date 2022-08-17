@@ -19,8 +19,8 @@ package org.apache.nifi.processors.evtx.parser;
 
 import com.google.common.primitives.UnsignedInteger;
 import org.apache.nifi.logging.ComponentLog;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -43,7 +43,7 @@ public class FileHeaderTest {
     private int chunkCount = 0;
     private int flags = 340942;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         TestBinaryReaderBuilder testBinaryReaderBuilder = new TestBinaryReaderBuilder();
         testBinaryReaderBuilder.putString(FileHeader.ELF_FILE);

@@ -16,56 +16,51 @@
  */
 package org.apache.nifi.processors.slack;
 
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.web.util.TestServer;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.json.Json;
 import javax.json.JsonObject;
-import java.io.ByteArrayInputStream;
+import javax.json.JsonReader;
 import java.io.InputStreamReader;
-import java.nio.charset.Charset;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
 
-import static org.apache.nifi.processors.slack.PostSlackCaptureServlet.REQUEST_PATH_EMPTY_JSON;
-import static org.apache.nifi.processors.slack.PostSlackCaptureServlet.REQUEST_PATH_ERROR;
-import static org.apache.nifi.processors.slack.PostSlackCaptureServlet.REQUEST_PATH_INVALID_JSON;
-import static org.apache.nifi.processors.slack.PostSlackCaptureServlet.REQUEST_PATH_SUCCESS_TEXT_MSG;
-import static org.apache.nifi.processors.slack.PostSlackCaptureServlet.REQUEST_PATH_WARNING;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class PostSlackTextMessageTest {
+    private static final String RESPONSE_SUCCESS_TEXT_MSG = "{\"ok\": true}";
+    private static final String RESPONSE_SUCCESS_FILE_MSG = "{\"ok\": true, \"file\": {\"url_private\": \"slack-file-url\"}}";
+    private static final String RESPONSE_WARNING = "{\"ok\": true, \"warning\": \"slack-warning\"}";
+    private static final String RESPONSE_ERROR = "{\"ok\": false, \"error\": \"slack-error\"}";
+    private static final String RESPONSE_EMPTY_JSON = "{}";
+    private static final String RESPONSE_INVALID_JSON = "{invalid-json}";
 
     private TestRunner testRunner;
 
-    private TestServer server;
-    private PostSlackCaptureServlet servlet;
+    private MockWebServer mockWebServer;
 
-    @Before
-    public void setup() throws Exception {
+    private String url;
+
+    @BeforeEach
+    public void init() {
+        mockWebServer = new MockWebServer();
+        url = mockWebServer.url("/").toString();
         testRunner = TestRunners.newTestRunner(PostSlack.class);
-
-        servlet = new PostSlackCaptureServlet();
-
-        ServletContextHandler handler = new ServletContextHandler();
-        handler.addServlet(new ServletHolder(servlet), "/*");
-
-        server = new TestServer();
-        server.addHandler(handler);
-        server.startServer();
     }
 
     @Test
     public void sendTextOnlyMessageSuccessfully() {
-        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl() + REQUEST_PATH_SUCCESS_TEXT_MSG);
+        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, url);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty(PostSlack.TEXT, "my-text");
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_SUCCESS_TEXT_MSG));
 
         testRunner.enqueue(new byte[0]);
         testRunner.run(1);
@@ -79,11 +74,13 @@ public class PostSlackTextMessageTest {
 
     @Test
     public void sendTextWithAttachmentMessageSuccessfully() {
-        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl() + REQUEST_PATH_SUCCESS_TEXT_MSG);
+        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, url);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty(PostSlack.TEXT, "my-text");
         testRunner.setProperty("attachment_01", "{\"my-attachment-key\": \"my-attachment-value\"}");
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_SUCCESS_FILE_MSG));
 
         testRunner.enqueue(new byte[0]);
         testRunner.run(1);
@@ -98,10 +95,12 @@ public class PostSlackTextMessageTest {
 
     @Test
     public void sendAttachmentOnlyMessageSuccessfully() {
-        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl() + REQUEST_PATH_SUCCESS_TEXT_MSG);
+        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, url);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty("attachment_01", "{\"my-attachment-key\": \"my-attachment-value\"}");
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_SUCCESS_FILE_MSG));
 
         testRunner.enqueue(new byte[0]);
         testRunner.run(1);
@@ -115,7 +114,7 @@ public class PostSlackTextMessageTest {
 
     @Test
     public void processShouldFailWhenChannelIsEmpty() {
-        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl());
+        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, url);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "${dummy}");
         testRunner.setProperty(PostSlack.TEXT, "my-text");
@@ -124,13 +123,11 @@ public class PostSlackTextMessageTest {
         testRunner.run(1);
 
         testRunner.assertAllFlowFilesTransferred(PutSlack.REL_FAILURE);
-
-        assertFalse(servlet.hasBeenInteracted());
     }
 
     @Test
     public void processShouldFailWhenTextIsEmptyAndNoAttachmentSpecified() {
-        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl());
+        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, url);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty(PostSlack.TEXT, "${dummy}");
@@ -139,17 +136,17 @@ public class PostSlackTextMessageTest {
         testRunner.run(1);
 
         testRunner.assertAllFlowFilesTransferred(PutSlack.REL_FAILURE);
-
-        assertFalse(servlet.hasBeenInteracted());
     }
 
     @Test
     public void emptyAttachmentShouldBeSkipped() {
-        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl() + REQUEST_PATH_SUCCESS_TEXT_MSG);
+        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, url);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty("attachment_01", "${dummy}");
         testRunner.setProperty("attachment_02", "{\"my-attachment-key\": \"my-attachment-value\"}");
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_SUCCESS_FILE_MSG));
 
         testRunner.enqueue(new byte[0]);
         testRunner.run(1);
@@ -164,11 +161,13 @@ public class PostSlackTextMessageTest {
 
     @Test
     public void invalidAttachmentShouldBeSkipped() {
-        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl() + REQUEST_PATH_SUCCESS_TEXT_MSG);
+        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, url);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty("attachment_01", "{invalid-json}");
         testRunner.setProperty("attachment_02", "{\"my-attachment-key\": \"my-attachment-value\"}");
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_SUCCESS_FILE_MSG));
 
         testRunner.enqueue(new byte[0]);
         testRunner.run(1);
@@ -183,10 +182,12 @@ public class PostSlackTextMessageTest {
 
     @Test
     public void processShouldFailWhenHttpErrorCodeReturned() {
-        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl());
+        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, url);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty(PostSlack.TEXT, "my-text");
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(500));
 
         testRunner.enqueue(new byte[0]);
         testRunner.run(1);
@@ -196,10 +197,12 @@ public class PostSlackTextMessageTest {
 
     @Test
     public void processShouldFailWhenSlackReturnsError() {
-        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl() + REQUEST_PATH_ERROR);
+        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, url);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty(PostSlack.TEXT, "my-text");
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_ERROR));
 
         testRunner.enqueue(new byte[0]);
         testRunner.run(1);
@@ -209,10 +212,12 @@ public class PostSlackTextMessageTest {
 
     @Test
     public void processShouldNotFailWhenSlackReturnsWarning() {
-        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl() + REQUEST_PATH_WARNING);
+        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, url);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty(PostSlack.TEXT, "my-text");
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_WARNING));
 
         testRunner.enqueue(new byte[0]);
         testRunner.run(1);
@@ -224,10 +229,12 @@ public class PostSlackTextMessageTest {
 
     @Test
     public void processShouldFailWhenSlackReturnsEmptyJson() {
-        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl() + REQUEST_PATH_EMPTY_JSON);
+        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, url);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty(PostSlack.TEXT, "my-text");
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_EMPTY_JSON));
 
         testRunner.enqueue(new byte[0]);
         testRunner.run(1);
@@ -237,10 +244,12 @@ public class PostSlackTextMessageTest {
 
     @Test
     public void processShouldFailWhenSlackReturnsInvalidJson() {
-        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl() + REQUEST_PATH_INVALID_JSON);
+        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, url);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty(PostSlack.TEXT, "my-text");
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_INVALID_JSON));
 
         testRunner.enqueue(new byte[0]);
         testRunner.run(1);
@@ -250,10 +259,12 @@ public class PostSlackTextMessageTest {
 
     @Test
     public void sendInternationalMessageSuccessfully() {
-        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl() + REQUEST_PATH_SUCCESS_TEXT_MSG);
+        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, url);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty(PostSlack.TEXT, "Iñtërnâtiônàližætiøn");
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_SUCCESS_TEXT_MSG));
 
         testRunner.enqueue(new byte[0]);
         testRunner.run(1);
@@ -266,17 +277,18 @@ public class PostSlackTextMessageTest {
     }
 
     private void assertBasicRequest(JsonObject requestBodyJson) {
-        Map<String, String> requestHeaders = servlet.getLastPostHeaders();
-        assertEquals("Bearer my-access-token", requestHeaders.get("Authorization"));
-        assertEquals("application/json; charset=UTF-8", requestHeaders.get("Content-Type"));
-
         assertEquals("my-channel", requestBodyJson.getString("channel"));
     }
 
     private JsonObject getRequestBodyJson() {
-        return Json.createReader(
-                new InputStreamReader(
-                        new ByteArrayInputStream(servlet.getLastPostBody()), Charset.forName("UTF-8")))
-                .readObject();
+        try {
+            final RecordedRequest recordedRequest = mockWebServer.takeRequest();
+            try (final JsonReader reader = Json.createReader(new InputStreamReader(
+                    recordedRequest.getBody().inputStream(), StandardCharsets.UTF_8))) {
+                return reader.readObject();
+            }
+        } catch (final InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

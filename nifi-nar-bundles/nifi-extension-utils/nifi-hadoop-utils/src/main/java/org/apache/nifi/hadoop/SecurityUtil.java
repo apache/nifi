@@ -20,12 +20,11 @@ import org.apache.commons.lang3.Validate;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.security.krb.KerberosLoginException;
 import org.apache.nifi.security.krb.KerberosUser;
 
 import javax.security.auth.Subject;
 import javax.security.auth.kerberos.KerberosPrincipal;
-import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.security.AccessControlContext;
 import java.security.AccessController;
@@ -110,9 +109,9 @@ public class SecurityUtil {
                 UserGroupInformation.setLoginUser(ugi);
                 return ugi;
             });
-        } catch (PrivilegedActionException e) {
+        } catch (final PrivilegedActionException e) {
             throw new IOException("Unable to acquire UGI for KerberosUser: " + e.getException().getLocalizedMessage(), e.getException());
-        } catch (LoginException e) {
+        } catch (final KerberosLoginException e) {
             throw new IOException("Unable to acquire UGI for KerberosUser: " + e.getLocalizedMessage(), e);
         }
     }
@@ -149,27 +148,52 @@ public class SecurityUtil {
         return KERBEROS.equalsIgnoreCase(config.get(HADOOP_SECURITY_AUTHENTICATION));
     }
 
-    public static <T> T callWithUgi(UserGroupInformation ugi, PrivilegedExceptionAction<T> action) throws IOException {
+    /**
+     * Helper method to execute the given action as the given user.
+     *
+     * @param ugi the user
+     * @param action the action
+     * @param <T> the result type of the action
+     * @return the result of the action
+     * @throws IOException if the action was interrupted
+     */
+    public static <T> T callWithUgi(final UserGroupInformation ugi, final PrivilegedExceptionAction<T> action) throws IOException {
         try {
-            return ugi.doAs(action);
+            T result;
+            if (ugi == null) {
+                try {
+                    result = action.run();
+                } catch (IOException ioe) {
+                    throw ioe;
+                } catch (RuntimeException re) {
+                    throw re;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }  else {
+                result = ugi.doAs(action);
+            }
+            return result;
         } catch (InterruptedException e) {
             throw new IOException(e);
         }
     }
 
-    public static void checkTGTAndRelogin(ComponentLog log, KerberosUser kerberosUser) {
-        log.trace("getting UGI instance");
-        if (kerberosUser != null) {
-            // if there's a KerberosUser associated with this UGI, check the TGT and relogin if it is close to expiring
-            log.debug("kerberosUser is " + kerberosUser);
-            try {
-                log.debug("checking TGT on kerberosUser " + kerberosUser);
-                kerberosUser.checkTGTAndRelogin();
-            } catch (LoginException e) {
-                throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
-            }
-        } else {
+    /**
+     * Helper method to call checkTGTAndRelogin on a given KerberosUser that may be null.
+     *
+     * @param log the logger
+     * @param kerberosUser the kerberos user
+     * @throws KerberosLoginException if an error occurs when checkTGTAndRelogin calls login or logout
+     */
+    public static void checkTGTAndRelogin(final ComponentLog log, final KerberosUser kerberosUser) {
+        if (kerberosUser == null) {
             log.debug("kerberosUser was null, will not refresh TGT with KerberosUser");
+            return;
         }
+
+        log.debug("checking TGT on kerberosUser {}", kerberosUser);
+        kerberosUser.checkTGTAndRelogin();
     }
+
 }

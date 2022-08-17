@@ -44,4 +44,8 @@ public interface Label extends ComponentAuthorizable, Positionable, VersionedCom
     String getValue();
 
     void setValue(String value);
+
+    long getZIndex();
+
+    void setZIndex(long zIndex);
 }

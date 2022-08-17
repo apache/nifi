@@ -20,10 +20,8 @@ import com.google.protobuf.ByteString;
 import io.grpc.CompressorRegistry;
 import io.grpc.DecompressorRegistry;
 import io.grpc.ManagedChannel;
-import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
-import io.netty.handler.ssl.SslContextBuilder;
-import org.apache.commons.lang3.StringUtils;
+import io.netty.handler.ssl.SslContext;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -45,8 +43,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.util.KeyStoreUtils;
-import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.processors.grpc.ssl.SslContextProvider;
 import org.apache.nifi.ssl.SSLContextService;
 
 import java.io.InputStream;
@@ -235,7 +232,7 @@ public class InvokeGRPC extends AbstractProcessor {
      * @param context the processor context
      */
     @OnScheduled
-    public void initializeClient(final ProcessContext context) throws Exception {
+    public void initializeClient(final ProcessContext context) {
 
         channelReference.set(null);
         blockingStubReference.set(null);
@@ -263,18 +260,8 @@ public class InvokeGRPC extends AbstractProcessor {
         final SSLContextService sslContextService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
 
         if (useSecure) {
-            final TlsConfiguration tlsConfiguration = sslContextService.createTlsConfiguration();
-            final SslContextBuilder sslContextBuilder = GrpcSslContexts.forClient();
-
-            if (StringUtils.isNotBlank(sslContextService.getKeyStoreFile())) {
-                sslContextBuilder.keyManager(KeyStoreUtils.loadKeyManagerFactory(tlsConfiguration));
-            }
-
-            if (StringUtils.isNotBlank(sslContextService.getTrustStoreFile())) {
-                sslContextBuilder.trustManager(KeyStoreUtils.loadTrustManagerFactory(tlsConfiguration));
-            }
-
-            nettyChannelBuilder.sslContext(sslContextBuilder.build());
+            final SslContext clientSslContext = SslContextProvider.getSslContext(sslContextService, true);
+            nettyChannelBuilder.sslContext(clientSslContext);
         } else {
             nettyChannelBuilder.usePlaintext();
         }
@@ -439,11 +426,11 @@ public class InvokeGRPC extends AbstractProcessor {
 
     private void logRequest(final ComponentLog logger, final String host, final String port, final FlowFileRequest flowFileRequest) {
         logger.debug("\nRequest to remote service:\n\t{}\n{}",
-                new Object[]{getRemote(host, port), flowFileRequest.toString()});
+                getRemote(host, port), flowFileRequest.toString());
     }
 
     private void logReply(final ComponentLog logger, final String host, final String port, final FlowFileReply flowFileReply) {
         logger.debug("\nResponse from remote service:\n\t{}\n{}",
-                new Object[]{getRemote(host, port), flowFileReply.toString()});
+                getRemote(host, port), flowFileReply.toString());
     }
 }

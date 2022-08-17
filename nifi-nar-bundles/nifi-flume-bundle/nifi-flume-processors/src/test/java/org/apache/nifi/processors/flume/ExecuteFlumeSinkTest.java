@@ -16,18 +16,6 @@
  */
 package org.apache.nifi.processors.flume;
 
-import java.io.File;
-
-import static org.junit.Assert.assertEquals;
-
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-
 import org.apache.commons.io.filefilter.HiddenFileFilter;
 import org.apache.flume.sink.NullSink;
 import org.apache.flume.source.AvroSource;
@@ -39,21 +27,30 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.util.security.MessageDigestUtils;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ExecuteFlumeSinkTest {
 
     private static final Logger logger =
         LoggerFactory.getLogger(ExecuteFlumeSinkTest.class);
-
-    @Rule
-    public final TemporaryFolder temp = new TemporaryFolder();
 
     @Test
     public void testValidators() {
@@ -67,10 +64,10 @@ public class ExecuteFlumeSinkTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         for (ValidationResult vr : results) {
             logger.debug(vr.toString());
-            Assert.assertTrue(vr.toString().contains("is invalid because Sink Type is required"));
+            assertTrue(vr.toString().contains("is invalid because Sink Type is required"));
         }
 
         // non-existent class
@@ -81,10 +78,10 @@ public class ExecuteFlumeSinkTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         for (ValidationResult vr : results) {
             logger.debug(vr.toString());
-            Assert.assertTrue(vr.toString().contains("is invalid because unable to load sink"));
+            assertTrue(vr.toString().contains("is invalid because unable to load sink"));
         }
 
         // class doesn't implement Sink
@@ -95,10 +92,10 @@ public class ExecuteFlumeSinkTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         for (ValidationResult vr : results) {
             logger.debug(vr.toString());
-            Assert.assertTrue(vr.toString().contains("is invalid because unable to create sink"));
+            assertTrue(vr.toString().contains("is invalid because unable to create sink"));
         }
 
         results = new HashSet<>();
@@ -108,7 +105,7 @@ public class ExecuteFlumeSinkTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(0, results.size());
+        assertEquals(0, results.size());
     }
 
 
@@ -137,9 +134,10 @@ public class ExecuteFlumeSinkTest {
     }
 
     @Test
-    @Ignore("Does not work on Windows")
-    public void testHdfsSink() throws IOException {
-        File destDir = temp.newFolder("hdfs");
+    @Disabled("Does not work on Windows")
+    public void testHdfsSink(@TempDir Path temp) throws IOException {
+        File destDir = temp.resolve("hdfs").toFile();
+        destDir.mkdirs();
 
         TestRunner runner = TestRunners.newTestRunner(ExecuteFlumeSink.class);
         runner.setProperty(ExecuteFlumeSink.SINK_TYPE, "hdfs");
@@ -157,14 +155,14 @@ public class ExecuteFlumeSinkTest {
         }
 
         File[] files = destDir.listFiles((FilenameFilter)HiddenFileFilter.VISIBLE);
-        assertEquals("Unexpected number of destination files.", 1, files.length);
+        assertEquals(1, files.length, "Unexpected number of destination files.");
         File dst = files[0];
         byte[] expectedDigest;
         try (InputStream resourceStream = getClass().getResourceAsStream("/testdata/records.txt")) {
             expectedDigest = MessageDigestUtils.getDigest(resourceStream);
         }
         byte[] actualDigest = FileUtils.computeDigest(dst);
-        Assert.assertArrayEquals("Destination file doesn't match source data", expectedDigest, actualDigest);
+        assertArrayEquals(expectedDigest, actualDigest, "Destination file doesn't match source data");
     }
 
 }

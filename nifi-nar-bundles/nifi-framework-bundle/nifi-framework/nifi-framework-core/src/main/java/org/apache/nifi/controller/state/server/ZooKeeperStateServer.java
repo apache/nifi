@@ -118,7 +118,8 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
             embeddedZkServer.setMaxSessionTimeout(config.getMaxSessionTimeout());
 
             connectionFactory = ServerCnxnFactory.createFactory();
-            connectionFactory.configure(getAvailableSocketAddress(config), config.getMaxClientCnxns(), quorumPeerConfig.isSslQuorum());
+            final int listenBacklog = quorumPeerConfig.getClientPortListenBacklog();
+            connectionFactory.configure(getAvailableSocketAddress(config), config.getMaxClientCnxns(), listenBacklog, quorumPeerConfig.isSslQuorum());
             connectionFactory.startup(embeddedZkServer);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -136,7 +137,8 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         try {
             transactionLog = new FileTxnSnapLog(quorumPeerConfig.getDataLogDir(), quorumPeerConfig.getDataDir());
             connectionFactory = ServerCnxnFactory.createFactory();
-            connectionFactory.configure(getAvailableSocketAddress(quorumPeerConfig), quorumPeerConfig.getMaxClientCnxns(), quorumPeerConfig.isSslQuorum());
+            final int listenBacklog = quorumPeerConfig.getClientPortListenBacklog();
+            connectionFactory.configure(getAvailableSocketAddress(quorumPeerConfig), quorumPeerConfig.getMaxClientCnxns(), listenBacklog, quorumPeerConfig.isSslQuorum());
 
             quorumPeer = new QuorumPeer();
 
@@ -175,24 +177,32 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         if (started) {
             started = false;
 
+            if (quorumPeer != null && quorumPeer.isRunning()) {
+                quorumPeer.shutdown();
+            }
+
+            if (connectionFactory != null) {
+                try {
+                    connectionFactory.shutdown();
+                } catch (Exception e) {
+                    logger.warn("Failed to shutdown Connection Factory", e);
+                }
+            }
+
+            if (embeddedZkServer != null && embeddedZkServer.isRunning()) {
+                try {
+                    embeddedZkServer.shutdown();
+                } catch (Exception e) {
+                    logger.warn("Failed to shutdown Embedded Zookeeper", e);
+                }
+            }
+
             if (transactionLog != null) {
                 try {
                     transactionLog.close();
                 } catch (final IOException ioe) {
                     logger.warn("Failed to close Transaction Log", ioe);
                 }
-            }
-
-            if (connectionFactory != null) {
-                connectionFactory.shutdown();
-            }
-
-            if (quorumPeer != null && quorumPeer.isRunning()) {
-                quorumPeer.shutdown();
-            }
-
-            if (embeddedZkServer != null && embeddedZkServer.isRunning()) {
-                embeddedZkServer.shutdown();
             }
 
             if (datadirCleanupManager != null) {

@@ -48,7 +48,7 @@ public class VariableDTO {
         this.value = value;
     }
 
-    @ApiModelProperty(value = "The ID of the Process Group where this Variable is defined", readOnly = true)
+    @ApiModelProperty(value = "The ID of the Process Group where this Variable is defined", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public String getProcessGroupId() {
         return processGroupId;
     }
@@ -57,7 +57,7 @@ public class VariableDTO {
         this.processGroupId = groupId;
     }
 
-    @ApiModelProperty(value = "A set of all components that will be affected if the value of this variable is changed", readOnly = true)
+    @ApiModelProperty(value = "A set of all components that will be affected if the value of this variable is changed", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Set<AffectedComponentEntity> getAffectedComponents() {
         return affectedComponents;
     }

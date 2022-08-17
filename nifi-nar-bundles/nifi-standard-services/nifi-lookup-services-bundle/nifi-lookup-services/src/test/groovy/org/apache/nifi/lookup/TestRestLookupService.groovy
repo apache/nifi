@@ -17,7 +17,11 @@
 
 package org.apache.nifi.lookup
 
-import okhttp3.*
+import okhttp3.MediaType
+import okhttp3.Protocol
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.ResponseBody
 import org.apache.nifi.lookup.rest.MockRestLookupService
 import org.apache.nifi.serialization.SimpleRecordSchema
 import org.apache.nifi.serialization.record.MapRecord
@@ -27,11 +31,13 @@ import org.apache.nifi.serialization.record.RecordFieldType
 import org.apache.nifi.serialization.record.RecordSchema
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 
 import static groovy.json.JsonOutput.toJson
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 class TestRestLookupService {
     TestRunner runner
@@ -45,11 +51,15 @@ class TestRestLookupService {
         recordReader = new MockRecordParser()
         lookupService = new MockRestLookupService()
         runner = TestRunners.newTestRunner(TestRestLookupServiceProcessor.class)
+        runner.setValidateExpressionUsage(false)
+
         runner.addControllerService("lookupService", lookupService)
         runner.addControllerService("recordReader", recordReader)
         runner.setProperty(lookupService, RestLookupService.RECORD_READER, "recordReader")
         runner.setProperty("Lookup Service", "lookupService")
         runner.setProperty(lookupService, RestLookupService.URL, "http://localhost:8080")
+        // Add a dynamic property using Expression Language (expecting to be provided by FlowFile attribute)
+        runner.setProperty(lookupService, 'test', '${test.ff.attribute}')
         runner.enableControllerService(lookupService)
         runner.enableControllerService(recordReader)
         runner.assertValid()
@@ -66,14 +76,20 @@ class TestRestLookupService {
         recordReader.addRecord("Sally Doe", 47, "Curling")
 
         lookupService.response = buildResponse(toJson([ simpleTest: true]), JSON_TYPE)
-        def result = lookupService.lookup(getCoordinates(JSON_TYPE, "get"))
-        Assert.assertTrue(result.isPresent())
+        def result = lookupService.lookup(getCoordinates(JSON_TYPE, "get"), ['test.ff.attribute' : 'Hello'])
+        assertTrue(result.isPresent())
+        def headers = lookupService.getHeaders()
+        assertNotNull(headers)
+        def headerValue = headers.get('test')
+        assertNotNull(headerValue)
+        assertEquals(1, headerValue.size())
+        assertEquals('Hello', headerValue.get(0))
         def record = result.get()
-        Assert.assertEquals("John Doe", record.getAsString("name"))
-        Assert.assertEquals(48, record.getAsInt("age"))
-        Assert.assertEquals("Soccer", record.getAsString("sport"))
+        assertEquals("John Doe", record.getAsString("name"))
+        assertEquals(48, record.getAsInt("age"))
+        assertEquals("Soccer", record.getAsString("sport"))
     }
-    
+
     @Test
     void testNestedLookup() {
         runner.disableControllerService(lookupService)
@@ -99,12 +115,12 @@ class TestRestLookupService {
 
         lookupService.response = buildResponse(toJson([ simpleTest: true]), JSON_TYPE)
         def result = lookupService.lookup(getCoordinates(JSON_TYPE, "get"))
-        Assert.assertTrue(result.isPresent())
+        assertTrue(result.isPresent())
         def record = result.get()
 
-        Assert.assertEquals("John Doe", record.getAsString("name"))
-        Assert.assertEquals(48, record.getAsInt("age"))
-        Assert.assertEquals("Soccer", record.getAsString("sport"))
+        assertEquals("John Doe", record.getAsString("name"))
+        assertEquals(48, record.getAsInt("age"))
+        assertEquals("Soccer", record.getAsString("sport"))
 
         /*
          * Test deep lookup
@@ -116,25 +132,25 @@ class TestRestLookupService {
         runner.assertValid()
 
         result = lookupService.lookup(getCoordinates(JSON_TYPE, "get"))
-        Assert.assertTrue(result.isPresent())
+        assertTrue(result.isPresent())
         record = result.get()
-        Assert.assertNotNull(record.getAsString("sport"))
-        Assert.assertEquals("Soccer", record.getAsString("sport"))
+        assertNotNull(record.getAsString("sport"))
+        assertEquals("Soccer", record.getAsString("sport"))
     }
 
-    private Map<String, Object> getCoordinates(String mimeType, String method) {
-        def retVal = [:]
+    private static Map<String, Object> getCoordinates(String mimeType, String method) {
+        def retVal = [:] as Map<String, Object>
         retVal[RestLookupService.MIME_TYPE_KEY] = mimeType
         retVal[RestLookupService.METHOD_KEY] = method
 
         retVal
     }
 
-    private Response buildResponse(String resp, String mimeType) {
+    private static Response buildResponse(String resp, String mimeType) {
         return new Response.Builder()
             .code(200)
             .body(
-                ResponseBody.create(MediaType.parse(mimeType), resp)
+                ResponseBody.create(resp, MediaType.parse(mimeType))
             )
             .message("Test")
             .protocol(Protocol.HTTP_1_1)

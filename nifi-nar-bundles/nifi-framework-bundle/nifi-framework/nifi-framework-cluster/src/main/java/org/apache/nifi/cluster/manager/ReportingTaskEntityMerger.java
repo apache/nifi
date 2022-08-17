@@ -29,6 +29,17 @@ import java.util.stream.Collectors;
 
 public class ReportingTaskEntityMerger implements ComponentEntityMerger<ReportingTaskEntity> {
 
+    @Override
+    public void merge(ReportingTaskEntity clientEntity, Map<NodeIdentifier, ReportingTaskEntity> entityMap) {
+        ComponentEntityMerger.super.merge(clientEntity, entityMap);
+        for (Map.Entry<NodeIdentifier, ReportingTaskEntity> entry : entityMap.entrySet()) {
+            final ReportingTaskEntity entityStatus = entry.getValue();
+            if (clientEntity != entityStatus) {
+                StatusMerger.merge(clientEntity.getStatus(), entityStatus.getStatus());
+            }
+        }
+    }
+
     /**
      * Merges the ReportingTaskEntity responses.
      *
@@ -73,9 +84,11 @@ public class ReportingTaskEntityMerger implements ComponentEntityMerger<Reportin
                 ErrorMerger.mergeErrors(validationErrorMap, nodeId, nodeReportingTask.getValidationErrors());
 
                 // aggregate the property descriptors
-                nodeReportingTask.getDescriptors().values().stream().forEach(propertyDescriptor -> {
-                    propertyDescriptorMap.computeIfAbsent(propertyDescriptor.getName(), nodeIdToPropertyDescriptor -> new HashMap<>()).put(nodeId, propertyDescriptor);
-                });
+                if (nodeReportingTask.getDescriptors() != null) {
+                    nodeReportingTask.getDescriptors().values().forEach(propertyDescriptor -> {
+                        propertyDescriptorMap.computeIfAbsent(propertyDescriptor.getName(), nodeIdToPropertyDescriptor -> new HashMap<>()).put(nodeId, propertyDescriptor);
+                    });
+                }
             }
         }
 

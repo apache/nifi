@@ -30,10 +30,11 @@
                 'nf.Processor',
                 'nf.ClusterSummary',
                 'nf.CustomUi',
+                'nf.Verify',
                 'nf.UniversalCapture',
                 'nf.Connection'],
-            function ($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfProcessor, nfClusterSummary, nfCustomUi, nfUniversalCapture, nfConnection) {
-                return (nf.ProcessorConfiguration = factory($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfProcessor, nfClusterSummary, nfCustomUi, nfUniversalCapture, nfConnection));
+            function ($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfProcessor, nfClusterSummary, nfCustomUi, nfVerify, nfUniversalCapture, nfConnection) {
+                return (nf.ProcessorConfiguration = factory($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfProcessor, nfClusterSummary, nfCustomUi, nfVerify, nfUniversalCapture, nfConnection));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ProcessorConfiguration =
@@ -48,6 +49,7 @@
                 require('nf.Processor'),
                 require('nf.ClusterSummary'),
                 require('nf.CustomUi'),
+                require('nf.Verify'),
                 require('nf.UniversalCapture'),
                 require('nf.Connection')));
     } else {
@@ -62,10 +64,11 @@
             root.nf.Processor,
             root.nf.ClusterSummary,
             root.nf.CustomUi,
+            root.nf.Verify,
             root.nf.UniversalCapture,
             root.nf.Connection);
     }
-}(this, function ($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfProcessor, nfClusterSummary, nfCustomUi, nfUniversalCapture, nfConnection) {
+}(this, function ($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfProcessor, nfClusterSummary, nfCustomUi, nfVerify, nfUniversalCapture, nfConnection) {
     'use strict';
 
     /**
@@ -80,6 +83,9 @@
     var ACTIVE_THREAD_COUNT_KEY = 'status.aggregateSnapshot.activeThreadCount',
         RUN_STATUS_KEY = 'status.aggregateSnapshot.runStatus',
         BULLETINS_KEY = 'bulletins';
+
+    // the last submitted referenced attributes
+    var referencedAttributes = null;
 
     /**
      * Gets the available scheduling strategies based on the specified processor.
@@ -156,19 +162,31 @@
      * @argument {object} relationship      The relationship
      */
     var createRelationshipOption = function (relationship) {
-        var relationshipLabel = $('<div class="relationship-name nf-checkbox-label ellipsis"></div>').text(relationship.name);
         var relationshipValue = $('<span class="relationship-name-value hidden"></span>').text(relationship.name);
 
-        // build the relationship checkbox element
-        var relationshipCheckbox = $('<div class="processor-relationship nf-checkbox"></div>');
+        // build terminate checkbox element
+        var terminateCheckbox = $('<div class="processor-terminate-relationship nf-checkbox"></div>');
+        var terminateLabel = $('<div class="relationship-name nf-checkbox-label ellipsis"></div>').text('terminate');
         if (relationship.autoTerminate === true) {
-            relationshipCheckbox.addClass('checkbox-checked');
+            terminateCheckbox.addClass('checkbox-checked');
         } else {
-            relationshipCheckbox.addClass('checkbox-unchecked');
+            terminateCheckbox.addClass('checkbox-unchecked');
         }
+        var terminateCheckboxBundle = $('<div class="processor-terminate-relationship-container"></div>').append(terminateCheckbox).append(terminateLabel);
+
+        // build the retry checkbox element
+        var retryCheckbox = $('<div class="processor-retry-relationship nf-checkbox"></div>');
+        var retryLabel = $('<div class="relationship-name nf-checkbox-label ellipsis"></div>').text('retry');
+        if (relationship.retry === true) {
+            retryCheckbox.addClass('checkbox-checked');
+        } else {
+            retryCheckbox.addClass('checkbox-unchecked');
+        }
+        var retryCheckboxBundle = $('<div class="processor-retry-relationship-container"></div>').append(retryCheckbox).append(retryLabel);
 
         // build the relationship container element
-        var relationshipContainerElement = $('<div class="processor-relationship-container"></div>').append(relationshipCheckbox).append(relationshipLabel).append(relationshipValue).appendTo('#auto-terminate-relationship-names');
+        var relationshipContainerHeading = $('<div></div>').text(relationship.name);
+        var relationshipContainerElement = $('<div class="processor-relationship-container"></div>').append(relationshipContainerHeading).append(terminateCheckboxBundle).append(retryCheckboxBundle).append(relationshipValue).appendTo('#auto-action-relationship-names');
         if (!nfCommon.isBlank(relationship.description)) {
             var relationshipDescription = $('<div class="relationship-description"></div>').text(relationship.description);
             relationshipContainerElement.append(relationshipDescription);
@@ -188,7 +206,7 @@
 
         // consider auto terminated relationships
         var autoTerminatedChanged = false;
-        var autoTerminated = marshalRelationships();
+        var autoTerminated = marshalRelationships('terminate');
         $.each(details.relationships, function (i, relationship) {
             if (relationship.autoTerminate === true) {
                 // relationship was auto terminated but is no longer selected
@@ -205,6 +223,28 @@
             }
         });
         if (autoTerminatedChanged) {
+            return true;
+        }
+
+        // consider retried relationships
+        var retriedChanged = false;
+        var retried = marshalRelationships('retry');
+        $.each(details.relationships, function (i, relationship) {
+            if (relationship.retry === true) {
+                // relationship was retried but is no longer selected
+                if ($.inArray(relationship.name, retried) === -1) {
+                    retriedChanged = true;
+                    return false;
+                }
+            } else if (relationship.retry === false) {
+                // relationship was not retried but is now selected
+                if ($.inArray(relationship.name, retried) >= 0) {
+                    retriedChanged = true;
+                    return false;
+                }
+            }
+        });
+        if (retriedChanged) {
             return true;
         }
 
@@ -327,7 +367,17 @@
         }
 
         // relationships
-        processorConfigDto['autoTerminatedRelationships'] = marshalRelationships();
+        var autoTerminatedRelationships = marshalRelationships('terminate');
+        var retriedRelationships = marshalRelationships('retry');
+
+        processorConfigDto['autoTerminatedRelationships'] = autoTerminatedRelationships;
+        processorConfigDto['retriedRelationships'] = retriedRelationships;
+
+        if (retriedRelationships.length > 0) {
+            processorConfigDto['retryCount'] = $('#retry-attempt-count').val();
+            processorConfigDto['backoffMechanism'] = $("input:radio[name ='backoffPolicy']:checked").val();
+            processorConfigDto['maxBackoffPeriod'] = $('#max-backoff-period').val();
+        }
 
         // properties
         var properties = $('#processor-properties').propertytable('marshalProperties');
@@ -335,6 +385,10 @@
         // set the properties
         if ($.isEmptyObject(properties) === false) {
             processorConfigDto['properties'] = properties;
+        }
+
+        if (processor.supportsSensitiveDynamicProperties === true) {
+            processorConfigDto['sensitiveDynamicPropertyNames'] = $('#processor-properties').propertytable('getSensitiveDynamicPropertyNames');
         }
 
         // create the processor dto
@@ -359,11 +413,13 @@
     };
 
     /**
-     * Marshals the relationships that will be auto terminated.
+     * Marshals the relationships that will be auto terminated and retried
+     *
+     * @argument {string} relationshipType      The type of relationship to marshal. ie. terminate || retry
      **/
-    var marshalRelationships = function () {
+    var marshalRelationships = function(relationshipType) {
         // get all available relationships
-        var availableRelationships = $('#auto-terminate-relationship-names');
+        var availableRelationships = $('#auto-action-relationship-names');
         var selectedRelationships = [];
 
         // go through each relationship to determine which are selected
@@ -371,7 +427,7 @@
             var relationship = $(relationshipElement);
 
             // get each relationship and its corresponding checkbox
-            var relationshipCheck = relationship.children('div.processor-relationship');
+            var relationshipCheck = relationship.children('div.processor-' + relationshipType + '-relationship-container').children('div.processor-' + relationshipType + '-relationship');
 
             // see if this relationship has been selected
             if (relationshipCheck.hasClass('checkbox-checked')) {
@@ -380,7 +436,7 @@
         });
 
         return selectedRelationships;
-    };
+    }
 
     /**
      * Validates the specified details.
@@ -499,6 +555,29 @@
         }
     };
 
+    /**
+     * Handles verification results.
+     */
+    var handleVerificationResults = function (verificationResults, referencedAttributeMap) {
+        // record the most recently submitted referenced attributes
+        referencedAttributes = referencedAttributeMap;
+
+        var verificationResultsContainer = $('#processor-properties-verification-results');
+
+        // expand the dialog to make room for the verification result
+        if (verificationResultsContainer.is(':visible') === false) {
+            // show the verification results
+            $('#processor-properties').css('bottom', '40%').propertytable('resetTableSize')
+            verificationResultsContainer.show();
+        }
+
+        // show borders if appropriate
+        var verificationResultsListing = $('#processor-properties-verification-results-listing');
+        if (verificationResultsListing.get(0).scrollHeight > Math.round(verificationResultsListing.innerHeight())) {
+            verificationResultsListing.css('border-width', '1px');
+        }
+    };
+
     return {
         /**
          * Initializes the processor properties tab.
@@ -524,6 +603,9 @@
                     name: 'Properties',
                     tabContentId: 'processor-properties-tab-content'
                 }, {
+                    name: 'Relationships',
+                    tabContentId: 'processor-relationships-tab-content'
+                }, {
                     name: 'Comments',
                     tabContentId: 'processor-comments-tab-content'
                 }],
@@ -538,12 +620,6 @@
 
                     // close all fields currently being edited
                     $('#processor-properties').propertytable('saveRow');
-
-                    // show the border around the processor relationships if necessary
-                    var processorRelationships = $('#auto-terminate-relationship-names');
-                    if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > Math.round(processorRelationships.innerHeight())) {
-                        processorRelationships.css('border-width', '1px');
-                    }
                 }
             });
 
@@ -554,7 +630,7 @@
                 handler: {
                     close: function () {
                         // empty the relationship list
-                        $('#auto-terminate-relationship-names').css('border-width', '0').empty();
+                        $('#auto-action-relationship-names').empty();
 
                         // cancel any active edits and clear the table
                         $('#processor-properties').propertytable('cancelEdit').propertytable('clear');
@@ -562,8 +638,16 @@
                         // removed the cached processor details
                         $('#processor-configuration').removeData('processorDetails');
 
+                        // clean up an shown verification errors
+                        $('#processor-properties-verification-results').hide();
+                        $('#processor-properties-verification-results-listing').css('border-width', '0').empty();
+                        $('#processor-properties').css('bottom', '0');
+
+                        // clear most recently submitted referenced attributes
+                        referencedAttributes = null;
+
                         //stop any synchronization
-                        if(config.supportsStatusBar){
+                        if (config.supportsStatusBar){
                             $('#processor-configuration-status-bar').statusbar('disconnect');
                         }
                     },
@@ -617,14 +701,15 @@
                 readOnly: false,
                 supportsGoTo: true,
                 dialogContainer: '#new-processor-property-container',
-                descriptorDeferred: function (propertyName) {
+                descriptorDeferred: function (propertyName, sensitive) {
                     var processor = $('#processor-configuration').data('processorDetails');
                     var d = nfProcessor.get(processor.id);
                     return $.ajax({
                         type: 'GET',
                         url: d.uri + '/descriptors',
                         data: {
-                            propertyName: propertyName
+                            propertyName: propertyName,
+                            sensitive: sensitive
                         },
                         dataType: 'json'
                     }).fail(nfErrorHandler.handleAjaxError);
@@ -639,6 +724,9 @@
                                 $.ajax({
                                     type: 'GET',
                                     url: '../nifi-api/parameter-contexts/' + encodeURIComponent(parameterContext.id),
+                                    data: {
+                                        includeInheritedParameters: 'true'
+                                    },
                                     dataType: 'json'
                                 }).done(function (response) {
                                     var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
@@ -712,7 +800,10 @@
 
                     // populate the processor settings
                     $('#processor-id').text(processor['id']);
+
                     $('#processor-type').text(nfCommon.formatType(processor));
+                    $('#processor-configuration').modal('setSubtitle', nfCommon.formatType(processor));
+
                     $('#processor-bundle').text(nfCommon.formatBundle(processor['bundle']));
                     $('#processor-name').val(processor['name']);
                     $('#processor-enabled').removeClass('checkbox-unchecked checkbox-checked').addClass(processorEnableStyle);
@@ -822,8 +913,40 @@
                         $.each(processor.relationships, function (i, relationship) {
                             createRelationshipOption(relationship);
                         });
+
+                        // set initial disabled value for retry controls
+                        var setRetryControlsDisabledState = (function() {
+                            var isEnabled = $('#auto-action-relationship-names').find('div.nf-checkbox.processor-retry-relationship.checkbox-checked').length ? true : false;
+                            if (isEnabled) {
+                                $('#processor-relationships-tab-content .settings-right').show();
+                            } else {
+                                $('#processor-relationships-tab-content .settings-right').hide();
+                            }
+                        });
+                        setRetryControlsDisabledState();
+
+                        // disble retry controls if no retry checkboxes are checked
+                        $('#auto-action-relationship-names').on('change', 'div.nf-checkbox.processor-retry-relationship', function () {
+                            setRetryControlsDisabledState();
+                        });
                     } else {
-                        $('#auto-terminate-relationship-names').append('<div class="unset">This processor has no relationships.</div>');
+                        $('#auto-action-relationship-names').append('<div class="unset">This processor has no relationships.</div>');
+                    }
+
+                    if (nfCommon.isDefinedAndNotNull(processor.config.backoffMechanism)) {
+                        if (processor.config.backoffMechanism === 'PENALIZE_FLOWFILE') {
+                            $('.backoff-policy-setting #penalizeFlowFile').prop("checked", true);
+                        } else if (processor.config.backoffMechanism === 'YIELD_PROCESSOR') {
+                            $('.backoff-policy-setting #yieldEntireProcessor').prop("checked", true);
+                        }
+                    }
+
+                    if (nfCommon.isDefinedAndNotNull(processor.config.maxBackoffPeriod)) {
+                        $('.max-backoff-setting #max-backoff-period').val(processor.config.maxBackoffPeriod);
+                    }
+
+                    if (nfCommon.isDefinedAndNotNull(processor.config.retryCount)) {
+                        $('.retry-count-setting #retry-attempt-count').val(processor.config.retryCount);
                     }
 
                     var buttons = [{
@@ -976,7 +1099,11 @@
                     // load the property table
                     $('#processor-properties')
                         .propertytable('setGroupId', processor.parentGroupId)
-                        .propertytable('loadProperties', processor.config.properties, processor.config.descriptors, processorHistory.propertyHistory);
+                        .propertytable('setSupportsSensitiveDynamicProperties', processor.supportsSensitiveDynamicProperties)
+                        .propertytable('loadProperties', processor.config.properties, processor.config.descriptors, processorHistory.propertyHistory)
+                        .propertytable('setPropertyVerificationCallback', function (proposedProperties) {
+                            nfVerify.verify(processor['id'], processorResponse['uri'], proposedProperties, referencedAttributes, handleVerificationResults, $('#processor-properties-verification-results-listing'));
+                        });
 
                     // show the details
                     $('#processor-configuration').modal('show');
@@ -984,20 +1111,13 @@
                     // add ellipsis if necessary
                     $('#processor-configuration div.relationship-name').ellipsis();
 
-                    // show the border if necessary
-                    var processorRelationships = $('#auto-terminate-relationship-names');
-                    if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > Math.round(processorRelationships.innerHeight())) {
-                        processorRelationships.css('border-width', '1px');
-                    }
-
                     // Ensure the properties table has rendered correctly if initially selected
-                    if ($('#processor-configuration-tabs').find('.selected-tab').text() === 'Properties' &&
-                        $('#processor-properties').find('.slick-viewport').height() == 0) {
+                    if ($('#processor-configuration-tabs').find('.selected-tab').text() === 'Properties') {
                         $('#processor-properties').propertytable('resetTableSize');
                     }
 
-                    //execute the callback if one was provided
-                    if(typeof cb == 'function'){
+                    // execute the callback if one was provided
+                    if (typeof cb == 'function'){
                         cb();
                     }
                 }).fail(nfErrorHandler.handleAjaxError);

@@ -16,11 +16,17 @@
  */
 package org.apache.nifi.toolkit.encryptconfig
 
+import groovy.cli.internal.OptionAccessor
 import groovy.cli.commons.CliBuilder
-import groovy.cli.commons.OptionAccessor
+
 import org.apache.commons.cli.HelpFormatter
-import org.apache.nifi.properties.AESSensitivePropertyProvider
+import org.apache.nifi.properties.ConfigEncryptionTool
+import org.apache.nifi.properties.scheme.ProtectionScheme
+import org.apache.nifi.properties.scheme.ProtectionSchemeResolver
 import org.apache.nifi.properties.SensitivePropertyProvider
+import org.apache.nifi.properties.SensitivePropertyProviderFactory
+import org.apache.nifi.properties.scheme.StandardProtectionSchemeResolver
+import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.toolkit.encryptconfig.util.PropertiesEncryptor
 import org.apache.nifi.toolkit.encryptconfig.util.ToolUtilities
@@ -32,6 +38,8 @@ import org.slf4j.LoggerFactory
 class DecryptMode implements ToolMode {
 
     private static final Logger logger = LoggerFactory.getLogger(DecryptMode.class)
+
+    private static final ProtectionSchemeResolver PROTECTION_SCHEME_RESOLVER = new StandardProtectionSchemeResolver()
 
     static enum FileType {
         properties,
@@ -72,8 +80,6 @@ class DecryptMode implements ToolMode {
             if (options.v) {
                 verboseEnabled = true
             }
-            EncryptConfigLogger.configureLogger(verboseEnabled)
-
             DecryptConfiguration config = new DecryptConfiguration(options)
 
             run(config)
@@ -123,7 +129,7 @@ class DecryptMode implements ToolMode {
                 break
 
             case FileType.xml:
-                XmlEncryptor xmlEncryptor = new XmlEncryptor(null, config.decryptionProvider) {
+                XmlEncryptor xmlEncryptor = new XmlEncryptor(null, config.decryptionProvider, config.providerFactory) {
                     @Override
                     List<String> serializeXmlContentAndPreserveFormat(String updatedXmlContent, String originalXmlContent) {
                         // For decrypting unknown, generic XML, this tool will not support preserving the format
@@ -208,8 +214,10 @@ class DecryptMode implements ToolMode {
         OptionAccessor rawOptions
 
         Configuration.KeySource keySource
+        ProtectionScheme protectionScheme = ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME
         String key
         SensitivePropertyProvider decryptionProvider
+        SensitivePropertyProviderFactory providerFactory
         String inputBootstrapPath
 
         FileType fileType
@@ -228,11 +236,13 @@ class DecryptMode implements ToolMode {
             validateOptions()
             determineInputFileFromRemainingArgs()
 
+            determineProtectionScheme()
+            determineBootstrapProperties()
             determineKey()
-            if (!key) {
-                throw new RuntimeException("Failed to configure tool, could not determine key.")
-            }
-            decryptionProvider = new AESSensitivePropertyProvider(key)
+
+            providerFactory = StandardSensitivePropertyProviderFactory
+                    .withKeyAndBootstrapSupplier(key, ConfigEncryptionTool.getBootstrapSupplier(inputBootstrapPath))
+            decryptionProvider = providerFactory.getProvider(protectionScheme)
 
             if (rawOptions.t) {
                 fileType = FileType.valueOf(rawOptions.t)
@@ -241,6 +251,12 @@ class DecryptMode implements ToolMode {
             if (rawOptions.o) {
                 outputToFile = true
                 outputFilePath = rawOptions.o
+            }
+        }
+
+        private void determineBootstrapProperties() {
+            if (rawOptions.b) {
+                inputBootstrapPath = rawOptions.b
             }
         }
 
@@ -266,6 +282,13 @@ class DecryptMode implements ToolMode {
                 throw new RuntimeException("Too many arguments: Please specify exactly one input file in addition to the options.")
             }
             this.inputFilePath = remainingArgs[0]
+        }
+
+        private void determineProtectionScheme() {
+
+            if (rawOptions.S) {
+                protectionScheme = PROTECTION_SCHEME_RESOLVER.getProtectionScheme(rawOptions.S)
+            }
         }
 
         private void determineKey() {
@@ -302,7 +325,6 @@ class DecryptMode implements ToolMode {
                 }
                 key = ToolUtilities.determineKey(TextDevices.defaultTextDevice(), keyHex, password, usingPassword)
             } else if (usingBootstrapKey) {
-                inputBootstrapPath = rawOptions.b
                 logger.debug("Looking in bootstrap conf file ${inputBootstrapPath} for root key for decryption.")
 
                 // first, try to treat the bootstrap file as a NiFi bootstrap.conf

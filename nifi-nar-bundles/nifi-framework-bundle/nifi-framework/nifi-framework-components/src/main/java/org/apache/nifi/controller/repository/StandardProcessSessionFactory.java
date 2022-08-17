@@ -17,20 +17,23 @@
 package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.controller.lifecycle.TaskTermination;
+import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
 import org.apache.nifi.processor.ProcessSessionFactory;
 
 public class StandardProcessSessionFactory implements ProcessSessionFactory {
 
     private final RepositoryContext context;
     private final TaskTermination taskTermination;
+    private final PerformanceTracker performanceTracker;
 
-    public StandardProcessSessionFactory(final RepositoryContext context, final TaskTermination taskTermination) {
+    public StandardProcessSessionFactory(final RepositoryContext context, final TaskTermination taskTermination, final PerformanceTracker performanceTracker) {
         this.context = context;
         this.taskTermination = taskTermination;
+        this.performanceTracker = performanceTracker;
     }
 
     @Override
     public StandardProcessSession createSession() {
-        return new StandardProcessSession(context, taskTermination);
+        return new StandardProcessSession(context, taskTermination, performanceTracker);
     }
 }

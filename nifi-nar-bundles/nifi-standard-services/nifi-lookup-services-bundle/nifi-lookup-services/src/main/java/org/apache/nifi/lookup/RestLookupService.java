@@ -17,27 +17,10 @@
 
 package org.apache.nifi.lookup;
 
-import static org.apache.commons.lang3.StringUtils.trimToEmpty;
-
 import com.burgstaller.okhttp.AuthenticationCacheInterceptor;
 import com.burgstaller.okhttp.CachingAuthenticatorDecorator;
 import com.burgstaller.okhttp.digest.CachingAuthenticator;
 import com.burgstaller.okhttp.digest.DigestAuthenticator;
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.Proxy;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import okhttp3.Credentials;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -65,8 +48,6 @@ import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.record.path.validation.RecordPathValidator;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.security.util.OkHttpClientUtils;
-import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -77,11 +58,31 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509TrustManager;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.Proxy;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import static org.apache.commons.lang3.StringUtils.trimToEmpty;
+
 @Tags({ "rest", "lookup", "json", "xml", "http" })
 @CapabilityDescription("Use a REST service to look up values.")
 @DynamicProperties({
     @DynamicProperty(name = "*", value = "*", description = "All dynamic properties are added as HTTP headers with the name " +
-            "as the header name and the value as the header value.")
+            "as the header name and the value as the header value.", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 })
 public class RestLookupService extends AbstractControllerService implements RecordLookupService {
     static final PropertyDescriptor URL = new PropertyDescriptor.Builder()
@@ -89,7 +90,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .displayName("URL")
         .description("The URL for the REST endpoint. Expression language is evaluated against the lookup key/value pairs, " +
                 "not flowfile attributes.")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .build();
@@ -180,7 +181,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
     static final List<PropertyDescriptor> DESCRIPTORS;
     static final Set<String> KEYS;
 
-    static final List VALID_VERBS = Arrays.asList("delete", "get", "post", "put");
+    static final List<String> VALID_VERBS = Arrays.asList("delete", "get", "post", "put");
 
     static {
         DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
@@ -206,7 +207,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
     private volatile RecordReaderFactory readerFactory;
     private volatile RecordPath recordPath;
     private volatile OkHttpClient client;
-    private volatile Map<String, String> headers;
+    private volatile Map<String, PropertyValue> headers;
     private volatile PropertyValue urlTemplate;
     private volatile String basicUser;
     private volatile String basicPass;
@@ -233,8 +234,9 @@ public class RestLookupService extends AbstractControllerService implements Reco
         // Apply the TLS configuration if present
         final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslService != null) {
-            final TlsConfiguration tlsConfiguration = sslService.createTlsConfiguration();
-            OkHttpClientUtils.applyTlsToOkHttpClientBuilder(tlsConfiguration, builder);
+            final SSLContext sslContext = sslService.createContext();
+            final X509TrustManager trustManager = sslService.createTrustManager();
+            builder.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
         }
 
         client = builder.build();
@@ -261,7 +263,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
             if (descriptor.isDynamic()) {
                 headers.put(
                     descriptor.getDisplayName(),
-                    context.getProperty(descriptor).evaluateAttributeExpressions().getValue()
+                    context.getProperty(descriptor)
                 );
             }
         }
@@ -273,7 +275,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
             final Proxy proxy = config.createProxy();
             builder.proxy(proxy);
 
-            if (config.hasCredential()){
+            if (config.hasCredential()) {
                 builder.proxyAuthenticator((route, response) -> {
                     final String credential= Credentials.basic(config.getProxyUserName(), config.getProxyUserPassword());
                     return response.request().newBuilder()
@@ -292,10 +294,10 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
     @Override
     public Optional<Record> lookup(Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
-        final String endpoint = determineEndpoint(coordinates);
-        final String mimeType = (String)coordinates.get(MIME_TYPE_KEY);
-        final String method   = ((String)coordinates.getOrDefault(METHOD_KEY, "get")).trim().toLowerCase();
-        final String body     = (String)coordinates.get(BODY_KEY);
+        final String endpoint = determineEndpoint(coordinates, context);
+        final String mimeType = (String) coordinates.get(MIME_TYPE_KEY);
+        final String method   = ((String) coordinates.getOrDefault(METHOD_KEY, "get")).trim().toLowerCase();
+        final String body     = (String) coordinates.get(BODY_KEY);
 
         validateVerb(method);
 
@@ -313,7 +315,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
             }
         }
 
-        Request request = buildRequest(mimeType, method, body, endpoint);
+        Request request = buildRequest(mimeType, method, body, endpoint, context);
         try {
             Response response = executeRequest(request);
 
@@ -346,13 +348,21 @@ public class RestLookupService extends AbstractControllerService implements Reco
         }
     }
 
-    protected String determineEndpoint(Map<String, Object> coordinates) {
+    protected String determineEndpoint(Map<String, Object> coordinates, Map<String, String> context) {
         Map<String, String> converted = coordinates.entrySet().stream()
-            .filter(e -> e.getValue() != null)
-            .collect(Collectors.toMap(
-                e -> e.getKey(),
-                e -> e.getValue().toString()
-            ));
+                .filter(e -> e.getValue() != null)
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> e.getValue().toString()
+                ));
+        Map<String, String> contextConverted = (context == null) ? Collections.emptyMap()
+                : context.entrySet().stream()
+                .filter(e -> e.getValue() != null)
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue
+                ));
+        converted.putAll(contextConverted);
         return urlTemplate.evaluateAttributeExpressions(converted).getValue();
     }
 
@@ -362,7 +372,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
             .displayName(propertyDescriptorName)
             .addValidator(Validator.VALID)
             .dynamic(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     }
 
@@ -407,15 +417,15 @@ public class RestLookupService extends AbstractControllerService implements Reco
         }
     }
 
-    private Request buildRequest(final String mimeType, final String method, final String body, final String endpoint) {
+    private Request buildRequest(final String mimeType, final String method, final String body, final String endpoint, final Map<String,String> context) {
         RequestBody requestBody = null;
         if (body != null) {
             final MediaType mt = MediaType.parse(mimeType);
-            requestBody = RequestBody.create(mt, body);
+            requestBody = RequestBody.create(body, mt);
         }
         Request.Builder request = new Request.Builder()
                 .url(endpoint);
-        switch(method) {
+        switch (method) {
             case "delete":
                 request = body != null ? request.delete(requestBody) : request.delete();
                 break;
@@ -431,8 +441,8 @@ public class RestLookupService extends AbstractControllerService implements Reco
         }
 
         if (headers != null) {
-            for (Map.Entry<String, String> header : headers.entrySet()) {
-                request = request.addHeader(header.getKey(), header.getValue());
+            for (Map.Entry<String, PropertyValue> header : headers.entrySet()) {
+                request = request.addHeader(header.getKey(), header.getValue().evaluateAttributeExpressions(context).getValue());
             }
         }
 

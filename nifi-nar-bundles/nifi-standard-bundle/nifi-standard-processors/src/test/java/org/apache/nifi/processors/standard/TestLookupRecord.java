@@ -37,12 +37,12 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,7 +51,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestLookupRecord {
 
@@ -60,7 +61,7 @@ public class TestLookupRecord {
     private MockRecordParser recordReader;
     private MockRecordWriter recordWriter;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         recordReader = new MockRecordParser();
         recordWriter = new MockRecordWriter(null, false);
@@ -85,9 +86,9 @@ public class TestLookupRecord {
         recordReader.addSchemaField("age", RecordFieldType.INT);
         recordReader.addSchemaField("sport", RecordFieldType.STRING);
 
-        recordReader.addRecord("John Doe", 48, null);
-        recordReader.addRecord("Jane Doe", 47, null);
-        recordReader.addRecord("Jimmy Doe", 14, null);
+        recordReader.addRecord("John Doe", 48, null, null);
+        recordReader.addRecord("Jane Doe", 47, null, null);
+        recordReader.addRecord("Jimmy Doe", 14, null, null);
     }
 
     @Test
@@ -134,6 +135,30 @@ public class TestLookupRecord {
     }
 
     @Test
+    public void testLookupWithTimestamp() {
+        recordReader.addSchemaField("record_timestamp", RecordFieldType.TIMESTAMP);
+        runner.setProperty("lookup", "/record_timestamp");
+
+        final Timestamp timestamp = new Timestamp(0L);
+        final String timestampKey = timestamp.toString();
+        recordReader.addRecord("Jason Doe", 15, null, timestamp);
+
+        lookupService.addValue(timestampKey, "Bowling");
+
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertTransferCount(LookupRecord.REL_MATCHED, 1);
+        runner.assertTransferCount(LookupRecord.REL_UNMATCHED, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).get(0);
+
+        out.assertAttributeEquals("record.count", "1");
+        out.assertAttributeEquals("mime.type", "text/plain");
+        String contents = out.getContent();
+        assertTrue(contents.matches("Jason Doe,15,Bowling,19[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\n"));
+    }
+
+    @Test
     public void testAllUnmatched() {
         runner.enqueue("");
         runner.run();
@@ -167,6 +192,24 @@ public class TestLookupRecord {
         unmatched.assertAttributeEquals("record.count", "1");
         unmatched.assertAttributeEquals("mime.type", "text/plain");
         unmatched.assertContentEquals("Jane Doe,47,\n");
+    }
+
+    @Test
+    public void testAllMatchButFirstRouteToSuccess() {
+        lookupService.addValue("Jane Doe", "Soccer");
+        lookupService.addValue("Jimmy Doe", "Football");
+        runner.setProperty(LookupRecord.ROUTING_STRATEGY, LookupRecord.ROUTE_TO_SUCCESS);
+
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertTransferCount(LookupRecord.REL_FAILURE, 0);
+        runner.assertTransferCount(LookupRecord.REL_SUCCESS, 1);
+
+        final MockFlowFile matched = runner.getFlowFilesForRelationship(LookupRecord.REL_SUCCESS).get(0);
+        matched.assertAttributeEquals("record.count", "3");
+        matched.assertAttributeEquals("mime.type", "text/plain");
+        matched.assertContentEquals("John Doe,48,\nJane Doe,47,Soccer\nJimmy Doe,14,Football\n");
     }
 
 
@@ -514,14 +557,29 @@ public class TestLookupRecord {
         runner.setProperty("lookupFoo", "/foo/foo");
 
         lookupService.addValue("FR", "France");
-        lookupService.addValue("CA", "Canada");
         lookupService.addValue("fr", "French");
         lookupService.addValue("badkey", "value");
 
-        runner.enqueue(new File("src/test/resources/TestLookupRecord/lookup-array-input.json").toPath());
+        runner.enqueue(new File("src/test/resources/TestLookupRecord/lookup-array-input-unmatched.json").toPath());
         runner.run();
 
         runner.assertAllFlowFilesTransferred(LookupRecord.REL_UNMATCHED);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_UNMATCHED).get(0);
+        System.out.println(out.getContent());
+        out.assertContentEquals(new File("src/test/resources/TestLookupRecord/lookup-array-output-unmatched.json").toPath());
+    }
+
+
+    @Test
+    public void testLiteralCoordinate() {
+        lookupService.addValue("lookupKey", "lookupValue");
+
+        runner.setProperty("lookup", "toString('lookupKey', 'UTF-8')");
+
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(LookupRecord.REL_MATCHED, 1);
     }
 
     private static class MapLookup extends AbstractControllerService implements StringLookupService {
@@ -549,7 +607,7 @@ public class TestLookupRecord {
                 return Optional.empty();
             }
 
-            final String key = (String)coordinates.get("lookup");
+            final String key = coordinates.containsKey("lookup") ? coordinates.get("lookup").toString() : null;
             if (key == null) {
                 return Optional.empty();
             }
@@ -569,9 +627,9 @@ public class TestLookupRecord {
         private void validateContext(Map<String, String> context) {
             if (expectedContext != null) {
                 for (Map.Entry<String, Object> entry : expectedContext.entrySet()) {
-                    Assert.assertTrue(String.format("%s was not in coordinates.", entry.getKey()),
-                            context.containsKey(entry.getKey()));
-                    Assert.assertEquals("Wrong value", entry.getValue(), context.get(entry.getKey()));
+                    assertTrue(context.containsKey(entry.getKey()),
+                            String.format("%s was not in coordinates.", entry.getKey()));
+                    assertEquals(entry.getValue(), context.get(entry.getKey()), "Wrong value");
                 }
             }
         }

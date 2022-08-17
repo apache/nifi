@@ -38,6 +38,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 
+import java.sql.Blob
+import java.sql.Clob
 import java.sql.Connection
 import java.sql.Date
 import java.sql.DriverManager
@@ -143,14 +145,13 @@ class TestPutDatabaseRecord {
 
         def tableSchema = [
                 [
-                        new PutDatabaseRecord.ColumnDescription('id', 4, true, 2),
-                        new PutDatabaseRecord.ColumnDescription('name', 12, true, 255),
-                        new PutDatabaseRecord.ColumnDescription('code', 4, true, 10)
+                        new PutDatabaseRecord.ColumnDescription('id', 4, true, 2, false),
+                        new PutDatabaseRecord.ColumnDescription('name', 12, true, 255, true),
+                        new PutDatabaseRecord.ColumnDescription('code', 4, true, 10, true)
                 ],
                 false,
                 ['id'] as Set<String>,
                 ''
-
         ] as PutDatabaseRecord.TableSchema
 
         runner.setProperty(PutDatabaseRecord.TRANSLATE_FIELD_NAMES, 'false')
@@ -168,7 +169,7 @@ class TestPutDatabaseRecord {
             assertEquals('UPDATE PERSONS SET name = ?, code = ? WHERE id = ?',
                     generateUpdate(schema, 'PERSONS', null, tableSchema, settings).sql)
 
-            assertEquals('DELETE FROM PERSONS WHERE (id = ? OR (id is null AND ? is null)) AND (name = ? OR (name is null AND ? is null)) AND (code = ? OR (code is null AND ? is null))',
+            assertEquals('DELETE FROM PERSONS WHERE (id = ?) AND (name = ? OR (name is null AND ? is null)) AND (code = ? OR (code is null AND ? is null))',
                     generateDelete(schema, 'PERSONS', tableSchema, settings).sql)
         }
     }
@@ -192,9 +193,9 @@ class TestPutDatabaseRecord {
 
         def tableSchema = [
                 [
-                        new PutDatabaseRecord.ColumnDescription('id', 4, true, 2),
-                        new PutDatabaseRecord.ColumnDescription('name', 12, true, 255),
-                        new PutDatabaseRecord.ColumnDescription('code', 4, true, 10)
+                        new PutDatabaseRecord.ColumnDescription('id', 4, true, 2, false),
+                        new PutDatabaseRecord.ColumnDescription('name', 12, true, 255, true),
+                        new PutDatabaseRecord.ColumnDescription('code', 4, true, 10, true)
                 ],
                 false,
                 ['id'] as Set<String>,
@@ -247,14 +248,12 @@ class TestPutDatabaseRecord {
         parser.addSchemaField("dt", RecordFieldType.DATE)
 
         LocalDate testDate1 = LocalDate.of(2021, 1, 26)
-        Date nifiDate1 = new Date(testDate1.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()) // in UTC
         Date jdbcDate1 = Date.valueOf(testDate1) // in local TZ
         LocalDate testDate2 = LocalDate.of(2021, 7, 26)
-        Date nifiDate2 = new Date(testDate2.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()) // in URC
         Date jdbcDate2 = Date.valueOf(testDate2) // in local TZ
 
-        parser.addRecord(1, 'rec1', 101, nifiDate1)
-        parser.addRecord(2, 'rec2', 102, nifiDate2)
+        parser.addRecord(1, 'rec1', 101, jdbcDate1)
+        parser.addRecord(2, 'rec2', 102, jdbcDate2)
         parser.addRecord(3, 'rec3', 103, null)
         parser.addRecord(4, 'rec4', 104, null)
         parser.addRecord(5, null, 105, null)
@@ -274,12 +273,12 @@ class TestPutDatabaseRecord {
         assertEquals(1, rs.getInt(1))
         assertEquals('rec1', rs.getString(2))
         assertEquals(101, rs.getInt(3))
-        assertEquals(jdbcDate1, rs.getDate(4))
+        assertEquals(jdbcDate1.toString(), rs.getDate(4).toString())
         assertTrue(rs.next())
         assertEquals(2, rs.getInt(1))
         assertEquals('rec2', rs.getString(2))
         assertEquals(102, rs.getInt(3))
-        assertEquals(jdbcDate2, rs.getDate(4))
+        assertEquals(jdbcDate2.toString(), rs.getDate(4).toString())
         assertTrue(rs.next())
         assertEquals(3, rs.getInt(1))
         assertEquals('rec3', rs.getString(2))
@@ -294,6 +293,71 @@ class TestPutDatabaseRecord {
         assertEquals(5, rs.getInt(1))
         assertNull(rs.getString(2))
         assertEquals(105, rs.getInt(3))
+        assertNull(rs.getDate(4))
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+
+    @Test
+    void testInsertNonRequiredColumns() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable(createPersons)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("dt", RecordFieldType.DATE)
+
+        LocalDate testDate1 = LocalDate.of(2021, 1, 26)
+        Date jdbcDate1 = Date.valueOf(testDate1) // in local TZ
+        LocalDate testDate2 = LocalDate.of(2021, 7, 26)
+        Date jdbcDate2 = Date.valueOf(testDate2) // in local TZ
+
+        parser.addRecord(1, 'rec1', jdbcDate1)
+        parser.addRecord(2, 'rec2', jdbcDate2)
+        parser.addRecord(3, 'rec3', null)
+        parser.addRecord(4, 'rec4', null)
+        parser.addRecord(5, null, null)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        final Connection conn = dbcp.getConnection()
+        final Statement stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        assertTrue(rs.next())
+        assertEquals(1, rs.getInt(1))
+        assertEquals('rec1', rs.getString(2))
+        // Zero value because of the constraint
+        assertEquals(0, rs.getInt(3))
+        assertEquals(jdbcDate1.toString(), rs.getDate(4).toString())
+        assertTrue(rs.next())
+        assertEquals(2, rs.getInt(1))
+        assertEquals('rec2', rs.getString(2))
+        assertEquals(0, rs.getInt(3))
+        assertEquals(jdbcDate2.toString(), rs.getDate(4).toString())
+        assertTrue(rs.next())
+        assertEquals(3, rs.getInt(1))
+        assertEquals('rec3', rs.getString(2))
+        assertEquals(0, rs.getInt(3))
+        assertNull(rs.getDate(4))
+        assertTrue(rs.next())
+        assertEquals(4, rs.getInt(1))
+        assertEquals('rec4', rs.getString(2))
+        assertEquals(0, rs.getInt(3))
+        assertNull(rs.getDate(4))
+        assertTrue(rs.next())
+        assertEquals(5, rs.getInt(1))
+        assertNull(rs.getString(2))
+        assertEquals(0, rs.getInt(3))
         assertNull(rs.getDate(4))
         assertFalse(rs.next())
 
@@ -415,6 +479,9 @@ class TestPutDatabaseRecord {
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0)
         runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1)
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).get(0);
+        final String errorMessage = flowFile.getAttribute("putdatabaserecord.error")
+        assertTrue(errorMessage.contains("PERSONS2"))
     }
 
     @Test
@@ -701,6 +768,51 @@ class TestPutDatabaseRecord {
     }
 
     @Test
+    void testUpdatePkNotFirst() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable('CREATE TABLE PERSONS (name varchar(100), id integer primary key, code integer)')
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("code", RecordFieldType.INT)
+
+        parser.addRecord('rec1', 1, 201)
+        parser.addRecord('rec2', 2, 202)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.UPDATE_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        // Set some existing records with different values for name and code
+        final Connection conn = dbcp.getConnection()
+        Statement stmt = conn.createStatement()
+        stmt.execute('''INSERT INTO PERSONS VALUES ('x1', 1, 101)''')
+        stmt.execute('''INSERT INTO PERSONS VALUES ('x2', 2, 102)''')
+        stmt.close()
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        assertTrue(rs.next())
+        assertEquals('rec1', rs.getString(1))
+        assertEquals(1, rs.getInt(2))
+        assertEquals(201, rs.getInt(3))
+        assertTrue(rs.next())
+        assertEquals('rec2', rs.getString(1))
+        assertEquals(2, rs.getInt(2))
+        assertEquals(202, rs.getInt(3))
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+    
+    @Test
     void testUpdateMultipleSchemas() throws InitializationException, ProcessException, SQLException, IOException {
         // Manually create and drop the tables and schemas
         def conn = dbcp.connection
@@ -880,6 +992,99 @@ class TestPutDatabaseRecord {
         stmt.close()
 
         runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        assertTrue(rs.next())
+        assertEquals(1, rs.getInt(1))
+        assertEquals('rec1', rs.getString(2))
+        assertEquals(201, rs.getInt(3))
+        assertTrue(rs.next())
+        assertEquals(2, rs.getInt(1))
+        assertEquals('rec2', rs.getString(2))
+        assertEquals(202, rs.getInt(3))
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+
+    @Test
+    void testUpdateSpecifyUpdateKeysNotFirst() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable('CREATE TABLE PERSONS (id integer, name varchar(100), code integer)')
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("code", RecordFieldType.INT)
+
+        parser.addRecord(1, 'rec1', 201)
+        parser.addRecord(2, 'rec2', 202)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.UPDATE_TYPE)
+        runner.setProperty(PutDatabaseRecord.UPDATE_KEYS, 'code')
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        // Set some existing records with different values for name and code
+        final Connection conn = dbcp.getConnection()
+        Statement stmt = conn.createStatement()
+        stmt.execute('''INSERT INTO PERSONS VALUES (10,'x1',201)''')
+        stmt.execute('''INSERT INTO PERSONS VALUES (12,'x2',202)''')
+        stmt.close()
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        assertTrue(rs.next())
+        assertEquals(1, rs.getInt(1))
+        assertEquals('rec1', rs.getString(2))
+        assertEquals(201, rs.getInt(3))
+        assertTrue(rs.next())
+        assertEquals(2, rs.getInt(1))
+        assertEquals('rec2', rs.getString(2))
+        assertEquals(202, rs.getInt(3))
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+
+    @Test
+    void testUpdateSpecifyQuotedUpdateKeys() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable('CREATE TABLE PERSONS ("id" integer, name varchar(100), code integer)')
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("code", RecordFieldType.INT)
+
+        parser.addRecord(1, 'rec1', 201)
+        parser.addRecord(2, 'rec2', 202)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.UPDATE_TYPE)
+        runner.setProperty(PutDatabaseRecord.UPDATE_KEYS, '${updateKey}')
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+        runner.setProperty(PutDatabaseRecord.QUOTE_IDENTIFIERS, 'true')
+
+        // Set some existing records with different values for name and code
+        final Connection conn = dbcp.getConnection()
+        Statement stmt = conn.createStatement()
+        stmt.execute('''INSERT INTO PERSONS VALUES (1,'x1',101)''')
+        stmt.execute('''INSERT INTO PERSONS VALUES (2,'x2',102)''')
+        stmt.close()
+
+        runner.enqueue(new byte[0], ['updateKey': 'id'])
         runner.run()
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
@@ -1165,9 +1370,9 @@ class TestPutDatabaseRecord {
 
         def tableSchema = [
                 [
-                        new PutDatabaseRecord.ColumnDescription('id', 4, true, 2),
-                        new PutDatabaseRecord.ColumnDescription('name', 12, true, 255),
-                        new PutDatabaseRecord.ColumnDescription('code', 4, true, 10)
+                        new PutDatabaseRecord.ColumnDescription('id', 4, true, 2, false),
+                        new PutDatabaseRecord.ColumnDescription('name', 12, true, 255, true),
+                        new PutDatabaseRecord.ColumnDescription('code', 4, true, 10, true)
                 ],
                 false,
                 ['id'] as Set<String>,
@@ -1203,11 +1408,12 @@ class TestPutDatabaseRecord {
         parser.addSchemaField("dt", RecordFieldType.BIGINT)
 
         LocalDate testDate1 = LocalDate.of(2021, 1, 26)
-        BigInteger nifiDate1 = testDate1.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() // in UTC
         Date jdbcDate1 = Date.valueOf(testDate1) // in local TZ
+        BigInteger nifiDate1 = jdbcDate1.getTime() // in local TZ
+
         LocalDate testDate2 = LocalDate.of(2021, 7, 26)
-        BigInteger nifiDate2 = testDate2.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() // in UTC
         Date jdbcDate2 = Date.valueOf(testDate2) // in local TZ
+        BigInteger nifiDate2 = jdbcDate2.getTime() // in local TZ
 
         parser.addRecord(1, 'rec1', 101, nifiDate1)
         parser.addRecord(2, 'rec2', 102, nifiDate2)
@@ -1230,12 +1436,12 @@ class TestPutDatabaseRecord {
         assertEquals(1, rs.getInt(1))
         assertEquals('rec1', rs.getString(2))
         assertEquals(101, rs.getInt(3))
-        assertEquals(jdbcDate1, rs.getDate(4))
+        assertEquals(jdbcDate1.toString(), rs.getDate(4).toString())
         assertTrue(rs.next())
         assertEquals(2, rs.getInt(1))
         assertEquals('rec2', rs.getString(2))
         assertEquals(102, rs.getInt(3))
-        assertEquals(jdbcDate2, rs.getDate(4))
+        assertEquals(jdbcDate2.toString(), rs.getDate(4).toString())
         assertTrue(rs.next())
         assertEquals(3, rs.getInt(1))
         assertEquals('rec3', rs.getString(2))
@@ -1336,5 +1542,224 @@ class TestPutDatabaseRecord {
 
         stmt.close()
         conn.close()
+    }
+
+    @Test
+    void testInsertWithDifferentColumnOrdering() throws InitializationException, ProcessException, SQLException, IOException {
+        // Manually create and drop the tables and schemas
+        def conn = dbcp.connection
+        def stmt = conn.createStatement()
+        try {
+            stmt.execute('DROP TABLE TEMP')
+        } catch(ex) {
+            // Do nothing, table may not exist
+        }
+        stmt.execute('CREATE TABLE TEMP (id integer primary key, code integer, name long varchar)')
+
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("code", RecordFieldType.INT)
+
+        // change order of columns
+        parser.addRecord('rec1', 1, 101)
+        parser.addRecord('rec2', 2, 102)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'TEMP')
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        ResultSet rs = stmt.executeQuery('SELECT * FROM TEMP')
+        assertTrue(rs.next())
+        assertEquals(1, rs.getInt(1))
+        assertEquals(101, rs.getInt(2))
+        assertEquals('rec1', rs.getString(3))
+        assertTrue(rs.next())
+        assertEquals(2, rs.getInt(1))
+        assertEquals(102, rs.getInt(2))
+        assertEquals('rec2', rs.getString(3))
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+
+    @Test
+    void testInsertWithBlobClob() throws Exception {
+        String createTableWithBlob = "CREATE TABLE PERSONS (id integer primary key, name clob," +
+                "content blob, code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000))"
+
+        recreateTable(createTableWithBlob)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        byte[] bytes = "BLOB".getBytes()
+        Byte[] blobRecordValue = new Byte[bytes.length]
+        (0 .. (bytes.length-1)).each { i -> blobRecordValue[i] = bytes[i].longValue() }
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("code", RecordFieldType.INT)
+        parser.addSchemaField("content", RecordFieldType.ARRAY)
+
+        parser.addRecord(1, 'rec1', 101, blobRecordValue)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        final Connection conn = dbcp.getConnection()
+        final Statement stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        assertTrue(rs.next())
+        assertEquals(1, rs.getInt(1))
+        Clob clob = rs.getClob(2)
+        assertNotNull(clob)
+        char[] clobText = new char[5]
+        int numBytes = clob.characterStream.read(clobText)
+        assertEquals(4, numBytes)
+        // Ignore last character, it's meant to ensure that only 4 bytes were read even though the buffer is 5 bytes
+        assertEquals('rec1', new String(clobText).substring(0,4))
+        Blob blob = rs.getBlob(3)
+        assertEquals("BLOB", new String(blob.getBytes(1, blob.length() as int)))
+        assertEquals(101, rs.getInt(4))
+
+        stmt.close()
+        conn.close()
+    }
+
+    @Test
+    void testInsertWithBlobClobObjectArraySource() throws Exception {
+        String createTableWithBlob = "CREATE TABLE PERSONS (id integer primary key, name clob," +
+                "content blob, code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000))"
+
+        recreateTable(createTableWithBlob)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        byte[] bytes = "BLOB".getBytes()
+        Object[] blobRecordValue = new Object[bytes.length]
+        (0 .. (bytes.length-1)).each { i -> blobRecordValue[i] = bytes[i] }
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("code", RecordFieldType.INT)
+        parser.addSchemaField("content", RecordFieldType.ARRAY)
+
+        parser.addRecord(1, 'rec1', 101, blobRecordValue)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        final Connection conn = dbcp.getConnection()
+        final Statement stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        assertTrue(rs.next())
+        assertEquals(1, rs.getInt(1))
+        Clob clob = rs.getClob(2)
+        assertNotNull(clob)
+        char[] clobText = new char[5]
+        int numBytes = clob.characterStream.read(clobText)
+        assertEquals(4, numBytes)
+        // Ignore last character, it's meant to ensure that only 4 bytes were read even though the buffer is 5 bytes
+        assertEquals('rec1', new String(clobText).substring(0,4))
+        Blob blob = rs.getBlob(3)
+        assertEquals("BLOB", new String(blob.getBytes(1, blob.length() as int)))
+        assertEquals(101, rs.getInt(4))
+
+        stmt.close()
+        conn.close()
+    }
+
+    @Test
+    void testInsertWithBlobStringSource() throws Exception {
+        String createTableWithBlob = "CREATE TABLE PERSONS (id integer primary key, name clob," +
+                "content blob, code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000))"
+
+        recreateTable(createTableWithBlob)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("code", RecordFieldType.INT)
+        parser.addSchemaField("content", RecordFieldType.STRING)
+
+        parser.addRecord(1, 'rec1', 101, 'BLOB')
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        final Connection conn = dbcp.getConnection()
+        final Statement stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        assertTrue(rs.next())
+        assertEquals(1, rs.getInt(1))
+        Clob clob = rs.getClob(2)
+        assertNotNull(clob)
+        char[] clobText = new char[5]
+        int numBytes = clob.characterStream.read(clobText)
+        assertEquals(4, numBytes)
+        // Ignore last character, it's meant to ensure that only 4 bytes were read even though the buffer is 5 bytes
+        assertEquals('rec1', new String(clobText).substring(0,4))
+        Blob blob = rs.getBlob(3)
+        assertEquals("BLOB", new String(blob.getBytes(1, blob.length() as int)))
+        assertEquals(101, rs.getInt(4))
+
+        stmt.close()
+        conn.close()
+    }
+
+    @Test
+    void testInsertWithBlobIntegerArraySource() throws Exception {
+        String createTableWithBlob = "CREATE TABLE PERSONS (id integer primary key, name clob," +
+                "content blob, code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000))"
+
+        recreateTable(createTableWithBlob)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("code", RecordFieldType.INT)
+        parser.addSchemaField("content", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType()).getFieldType())
+
+        parser.addRecord(1, 'rec1', 101, [1,2,3] as Integer[])
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0)
+        runner.assertTransferCount(PutDatabaseRecord.REL_RETRY, 0)
+        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1)
     }
 }

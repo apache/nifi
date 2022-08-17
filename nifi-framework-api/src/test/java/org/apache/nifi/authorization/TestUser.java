@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.authorization;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestUser {
 
@@ -38,18 +39,18 @@ public class TestUser {
         assertEquals(identity, user.getIdentity());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testMissingIdentifier() {
-        new User.Builder()
+        assertThrows(IllegalArgumentException.class, () -> new User.Builder()
                 .identity("user1")
-                .build();
+                .build());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testMissingIdentity() {
-        new User.Builder()
+        assertThrows(IllegalArgumentException.class, () -> new User.Builder()
                 .identifier("1")
-                .build();
+                .build());
     }
 
     @Test
@@ -72,14 +73,14 @@ public class TestUser {
         assertEquals(user.getIdentity(), user2.getIdentity());
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testFromUserAndChangeIdentifier() {
         final User user = new User.Builder()
                 .identifier("1")
                 .identity("user1")
                 .build();
 
-        new User.Builder(user).identifier("2").build();
+        assertThrows(IllegalStateException.class, () -> new User.Builder(user).identifier("2").build());
     }
 
 }

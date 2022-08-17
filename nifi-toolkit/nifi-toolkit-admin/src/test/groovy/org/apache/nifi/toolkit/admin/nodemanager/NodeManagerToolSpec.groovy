@@ -26,6 +26,7 @@ import org.apache.nifi.web.api.entity.NodeEntity
 import org.junit.Rule
 import org.junit.contrib.java.lang.system.ExpectedSystemExit
 import org.junit.contrib.java.lang.system.SystemOutRule
+import spock.lang.Ignore
 import spock.lang.Specification
 
 import javax.ws.rs.client.Client
@@ -36,24 +37,10 @@ import javax.ws.rs.core.Response
 class NodeManagerToolSpec extends Specification{
 
     @Rule
-    public final ExpectedSystemExit exit = ExpectedSystemExit.none()
+    public ExpectedSystemExit exit = ExpectedSystemExit.none()
 
     @Rule
-    public final SystemOutRule systemOutRule = new SystemOutRule().enableLog()
-
-
-    def "print help and usage info"() {
-
-        given:
-        def ClientFactory clientFactory = Mock ClientFactory
-        def config = new NodeManagerTool()
-
-        when:
-        config.parse(clientFactory,["-h"] as String[])
-
-        then:
-        systemOutRule.getLog().contains("usage: org.apache.nifi.toolkit.admin.nodemanager.NodeManagerTool")
-    }
+    public SystemOutRule systemOutRule = new SystemOutRule().enableLog()
 
     def "throws exception missing bootstrap conf flag"() {
 

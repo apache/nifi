@@ -16,22 +16,23 @@
  */
 package org.apache.nifi.remote.protocol;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.apache.nifi.remote.Transaction;
+import org.apache.nifi.remote.TransactionCompletion;
+import org.apache.nifi.remote.util.StandardDataPacket;
+import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
-import org.apache.nifi.remote.Transaction;
-import org.apache.nifi.remote.TransactionCompletion;
-import org.apache.nifi.remote.util.StandardDataPacket;
-import org.apache.nifi.stream.io.StreamUtils;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SiteToSiteTestUtils {
     public static DataPacket createDataPacket(String contents) {
@@ -61,7 +62,7 @@ public class SiteToSiteTestUtils {
 
         TransactionCompletion completion = transaction.complete();
         assertEquals(Transaction.TransactionState.TRANSACTION_COMPLETED, transaction.getState());
-        assertFalse("Should NOT be backoff", completion.isBackoff());
+        assertFalse(completion.isBackoff(), "Should NOT be backoff");
         assertEquals(0, completion.getDataPacketsTransferred());
     }
 
@@ -81,7 +82,7 @@ public class SiteToSiteTestUtils {
 
         TransactionCompletion completion = transaction.complete();
         assertEquals(Transaction.TransactionState.TRANSACTION_COMPLETED, transaction.getState());
-        assertFalse("Should NOT be backoff", completion.isBackoff());
+        assertFalse(completion.isBackoff(), "Should NOT be backoff");
         assertEquals(1, completion.getDataPacketsTransferred());
     }
 
@@ -104,7 +105,7 @@ public class SiteToSiteTestUtils {
 
         TransactionCompletion completion = transaction.complete();
         assertEquals(Transaction.TransactionState.TRANSACTION_COMPLETED, transaction.getState());
-        assertFalse("Should NOT be backoff", completion.isBackoff());
+        assertFalse(completion.isBackoff(), "Should NOT be backoff");
         assertEquals(2, completion.getDataPacketsTransferred());
     }
 
@@ -124,36 +125,18 @@ public class SiteToSiteTestUtils {
         packet = transaction.receive();
         assertNull(packet);
 
-        try {
-            transaction.confirm();
-            fail();
-        } catch (IOException e){
-            assertTrue(e.getMessage().contains("Received a BadChecksum response"));
-            assertEquals(Transaction.TransactionState.ERROR, transaction.getState());
-        }
+        IOException io = assertThrows(IOException.class, () -> transaction.confirm());
+        assertTrue(io.getMessage().contains("Received a BadChecksum response"));
+        assertEquals(Transaction.TransactionState.ERROR, transaction.getState());
 
-        try {
-            transaction.complete();
-            fail("It's not confirmed.");
-        } catch (IllegalStateException e){
-            assertEquals(Transaction.TransactionState.ERROR, transaction.getState());
-        }
+        assertThrows(IllegalStateException.class, () -> transaction.complete());
+        assertEquals(Transaction.TransactionState.ERROR, transaction.getState());
     }
 
     public static void execSendZeroFlowFile(Transaction transaction) throws IOException {
         assertEquals(Transaction.TransactionState.TRANSACTION_STARTED, transaction.getState());
-
-        try {
-            transaction.confirm();
-            fail("Nothing has been sent.");
-        } catch (IllegalStateException e){
-        }
-
-        try {
-            transaction.complete();
-            fail("Nothing has been sent.");
-        } catch (IllegalStateException e){
-        }
+        assertThrows(IllegalStateException.class, () -> transaction.confirm());
+        assertThrows(IllegalStateException.class, () -> transaction.complete());
     }
 
     public static void execSendOneFlowFile(Transaction transaction) throws IOException {
@@ -167,7 +150,7 @@ public class SiteToSiteTestUtils {
 
         TransactionCompletion completion = transaction.complete();
         assertEquals(Transaction.TransactionState.TRANSACTION_COMPLETED, transaction.getState());
-        assertFalse("Should NOT be backoff", completion.isBackoff());
+        assertFalse(completion.isBackoff(), "Should NOT be backoff");
         assertEquals(1, completion.getDataPacketsTransferred());
     }
 
@@ -185,7 +168,7 @@ public class SiteToSiteTestUtils {
 
         TransactionCompletion completion = transaction.complete();
         assertEquals(Transaction.TransactionState.TRANSACTION_COMPLETED, transaction.getState());
-        assertFalse("Should NOT be backoff", completion.isBackoff());
+        assertFalse(completion.isBackoff(), "Should NOT be backoff");
         assertEquals(2, completion.getDataPacketsTransferred());
     }
 
@@ -198,21 +181,12 @@ public class SiteToSiteTestUtils {
         packet = createDataPacket("contents on client 2");
         transaction.send(packet);
 
+        IOException e = assertThrows(IOException.class, () -> transaction.confirm());
+        assertTrue(e.getMessage().contains("peer calculated CRC32 Checksum as Different checksum"));
+        assertEquals(Transaction.TransactionState.ERROR, transaction.getState());
 
-        try {
-            transaction.confirm();
-            fail();
-        } catch (IOException e){
-            assertTrue(e.getMessage().contains("peer calculated CRC32 Checksum as Different checksum"));
-            assertEquals(Transaction.TransactionState.ERROR, transaction.getState());
-        }
-
-        try {
-            transaction.complete();
-            fail("It's not confirmed.");
-        } catch (IllegalStateException e){
-            assertEquals(Transaction.TransactionState.ERROR, transaction.getState());
-        }
+        assertThrows(IllegalStateException.class, () -> transaction.complete());
+        assertEquals(Transaction.TransactionState.ERROR, transaction.getState());
     }
 
     public static void execSendButDestinationFull(Transaction transaction) throws IOException {
@@ -229,7 +203,7 @@ public class SiteToSiteTestUtils {
 
         TransactionCompletion completion = transaction.complete();
         assertEquals(Transaction.TransactionState.TRANSACTION_COMPLETED, transaction.getState());
-        assertTrue("Should be backoff", completion.isBackoff());
+        assertTrue(completion.isBackoff(), "Should be backoff");
         assertEquals(2, completion.getDataPacketsTransferred());
     }
 

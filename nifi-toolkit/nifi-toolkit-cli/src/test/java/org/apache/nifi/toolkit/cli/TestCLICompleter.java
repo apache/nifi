@@ -31,9 +31,10 @@ import org.apache.nifi.toolkit.cli.impl.command.registry.NiFiRegistryCommandGrou
 import org.apache.nifi.toolkit.cli.impl.context.StandardContext;
 import org.apache.nifi.toolkit.cli.impl.session.InMemorySession;
 import org.apache.nifi.toolkit.cli.impl.session.SessionVariable;
+import org.apache.nifi.util.StringUtils;
 import org.jline.reader.Candidate;
 import org.jline.reader.LineReader;
-import org.jline.reader.impl.DefaultParser;
+import org.jline.reader.ParsedLine;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -76,8 +77,7 @@ public class TestCLICompleter {
 
     @Test
     public void testCompletionWithWordIndexNegative() {
-        final DefaultParser.ArgumentList parsedLine = new DefaultParser.ArgumentList(
-                "", Collections.emptyList(), -1, -1, -1);
+        final ParsedLine parsedLine = new TestParsedLine(Collections.emptyList(), -1);
 
         final List<Candidate> candidates = new ArrayList<>();
         completer.complete(lineReader, parsedLine, candidates);
@@ -86,8 +86,7 @@ public class TestCLICompleter {
 
     @Test
     public void testCompletionWithWordIndexZero() {
-        final DefaultParser.ArgumentList parsedLine = new DefaultParser.ArgumentList(
-                "", Collections.emptyList(), 0, -1, -1);
+        final ParsedLine parsedLine = new TestParsedLine(Collections.emptyList(), 0);
 
         final List<Candidate> candidates = new ArrayList<>();
         completer.complete(lineReader, parsedLine, candidates);
@@ -98,8 +97,7 @@ public class TestCLICompleter {
     public void testCompletionWithWordIndexOneAndMatching() {
         final String topCommand = NiFiRegistryCommandGroup.REGISTRY_COMMAND_GROUP;
 
-        final DefaultParser.ArgumentList parsedLine = new DefaultParser.ArgumentList(
-                "", Collections.singletonList(topCommand), 1, -1, -1);
+        final ParsedLine parsedLine = new TestParsedLine(Collections.singletonList(topCommand), 1);
 
         final List<Candidate> candidates = new ArrayList<>();
         completer.complete(lineReader, parsedLine, candidates);
@@ -110,8 +108,7 @@ public class TestCLICompleter {
     public void testCompletionWithWordIndexOneAndNotMatching() {
         final String topCommand = "NOT-A-TOP-LEVEL-COMMAND";
 
-        final DefaultParser.ArgumentList parsedLine = new DefaultParser.ArgumentList(
-                "", Collections.singletonList(topCommand), 1, -1, -1);
+        final ParsedLine parsedLine = new TestParsedLine(Collections.singletonList(topCommand), 1);
 
         final List<Candidate> candidates = new ArrayList<>();
         completer.complete(lineReader, parsedLine, candidates);
@@ -123,8 +120,7 @@ public class TestCLICompleter {
         final String topCommand = NiFiRegistryCommandGroup.REGISTRY_COMMAND_GROUP;
         final String subCommand = "list-buckets";
 
-        final DefaultParser.ArgumentList parsedLine = new DefaultParser.ArgumentList(
-                "", Arrays.asList(topCommand, subCommand), 2, -1, -1);
+        final ParsedLine parsedLine = new TestParsedLine(Arrays.asList(topCommand, subCommand), 2);
 
         final List<Candidate> candidates = new ArrayList<>();
         completer.complete(lineReader, parsedLine, candidates);
@@ -137,8 +133,7 @@ public class TestCLICompleter {
         final String topCommand = NiFiRegistryCommandGroup.REGISTRY_COMMAND_GROUP;
         final String subCommand = "NOT-A-TOP-LEVEL-COMMAND";
 
-        final DefaultParser.ArgumentList parsedLine = new DefaultParser.ArgumentList(
-                "", Arrays.asList(topCommand, subCommand), 2, -1, -1);
+        final ParsedLine parsedLine = new TestParsedLine(Arrays.asList(topCommand, subCommand), 2);
 
         final List<Candidate> candidates = new ArrayList<>();
         completer.complete(lineReader, parsedLine, candidates);
@@ -150,8 +145,7 @@ public class TestCLICompleter {
         final String topCommand = NiFiRegistryCommandGroup.REGISTRY_COMMAND_GROUP;
         final String subCommand = "list-buckets";
 
-        final DefaultParser.ArgumentList parsedLine = new DefaultParser.ArgumentList(
-                "", Arrays.asList(topCommand, subCommand, "-ks", "foo", "-kst", "JKS"), 6, -1, -1);
+        final ParsedLine parsedLine = new TestParsedLine(Arrays.asList(topCommand, subCommand, "-ks", "foo", "-kst", "JKS"), 5);
 
         final List<Candidate> candidates = new ArrayList<>();
         completer.complete(lineReader, parsedLine, candidates);
@@ -164,8 +158,7 @@ public class TestCLICompleter {
         final String topCommand = NiFiRegistryCommandGroup.REGISTRY_COMMAND_GROUP;
         final String subCommand = "list-buckets";
 
-        final DefaultParser.ArgumentList parsedLine = new DefaultParser.ArgumentList(
-                "", Arrays.asList(topCommand, subCommand, "-p", "src/test/resources/"), 3, -1, -1);
+        final ParsedLine parsedLine = new TestParsedLine(Arrays.asList(topCommand, subCommand, "-p", "src/test/resources/"), 3);
 
         final List<Candidate> candidates = new ArrayList<>();
         completer.complete(lineReader, parsedLine, candidates);
@@ -187,8 +180,7 @@ public class TestCLICompleter {
         final String topCommand = "session";
         final String subCommand = "set";
 
-        final DefaultParser.ArgumentList parsedLine = new DefaultParser.ArgumentList(
-                "", Arrays.asList(topCommand, subCommand), 2, -1, -1);
+        final ParsedLine parsedLine = new TestParsedLine(Arrays.asList(topCommand, subCommand), 2);
 
         final List<Candidate> candidates = new ArrayList<>();
         completer.complete(lineReader, parsedLine, candidates);
@@ -201,13 +193,13 @@ public class TestCLICompleter {
         final String topCommand = "session";
         final String subCommand = "set";
 
-        final DefaultParser.ArgumentList parsedLine = new DefaultParser.ArgumentList("",
+        final ParsedLine parsedLine = new TestParsedLine(
                 Arrays.asList(
                         topCommand,
                         subCommand,
                         SessionVariable.NIFI_CLIENT_PROPS.getVariableName(),
                         "src/test/resources/"),
-                3, -1, -1);
+                3);
 
         final List<Candidate> candidates = new ArrayList<>();
         completer.complete(lineReader, parsedLine, candidates);
@@ -224,4 +216,50 @@ public class TestCLICompleter {
         assertTrue(found);
     }
 
+    private static class TestParsedLine implements ParsedLine {
+        private final List<String> words;
+
+        private final int wordIndex;
+
+        private TestParsedLine(
+                final List<String> words,
+                final int wordIndex
+        ) {
+            this.words = words;
+            this.wordIndex = wordIndex;
+        }
+
+        @Override
+        public String word() {
+            if (wordIndex >= words.size()) {
+                return StringUtils.EMPTY;
+            }
+            return words.get(wordIndex);
+        }
+
+        @Override
+        public int wordCursor() {
+            return 0;
+        }
+
+        @Override
+        public int wordIndex() {
+            return wordIndex;
+        }
+
+        @Override
+        public List<String> words() {
+            return words;
+        }
+
+        @Override
+        public String line() {
+            return StringUtils.join(words, " ");
+        }
+
+        @Override
+        public int cursor() {
+            return 0;
+        }
+    }
 }

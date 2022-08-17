@@ -23,22 +23,23 @@ import org.apache.nifi.mongodb.MongoDBClientService;
 import org.apache.nifi.mongodb.MongoDBControllerService;
 import org.apache.nifi.util.TestRunner;
 import org.bson.Document;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 public class DeleteMongoIT extends MongoWriteTestBase {
-    @Before
+    @BeforeEach
     public void setup() {
         super.setup(DeleteMongo.class);
         collection.insertMany(DOCUMENTS);
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         super.teardown();
     }
@@ -49,8 +50,8 @@ public class DeleteMongoIT extends MongoWriteTestBase {
         runner.assertTransferCount(DeleteMongo.REL_FAILURE, 0);
         runner.assertTransferCount(DeleteMongo.REL_SUCCESS, 1);
 
-        Assert.assertEquals("Found a document that should have been deleted.",
-                0, collection.count(Document.parse(query)));
+        assertEquals(0, collection.countDocuments(Document.parse(query)),
+                "Found a document that should have been deleted.");
     }
 
     @Test
@@ -73,10 +74,8 @@ public class DeleteMongoIT extends MongoWriteTestBase {
         runner.assertTransferCount(DeleteMongo.REL_FAILURE, 0);
         runner.assertTransferCount(DeleteMongo.REL_SUCCESS, 1);
 
-        Assert.assertEquals("Found a document that should have been deleted.",
-                0, collection.count(Document.parse(query)));
-        Assert.assertEquals("One document should have been left.",
-                1, collection.count(Document.parse("{}")));
+        assertEquals(0, collection.countDocuments(Document.parse(query)), "Found a document that should have been deleted.");
+        assertEquals(1, collection.countDocuments(Document.parse("{}")), "One document should have been left.");
     }
 
     @Test
@@ -108,7 +107,7 @@ public class DeleteMongoIT extends MongoWriteTestBase {
         runner.assertTransferCount(DeleteMongo.REL_FAILURE, 1);
         runner.assertTransferCount(DeleteMongo.REL_SUCCESS, 0);
 
-        Assert.assertEquals("A document was deleted", 3, collection.count(Document.parse("{}")));
+        assertEquals(3, collection.countDocuments(Document.parse("{}")), "A document was deleted");
 
         runner.setProperty(DeleteMongo.FAIL_ON_NO_DELETE, DeleteMongo.NO_FAIL);
         runner.clearTransferState();
@@ -119,7 +118,7 @@ public class DeleteMongoIT extends MongoWriteTestBase {
         runner.assertTransferCount(DeleteMongo.REL_FAILURE, 0);
         runner.assertTransferCount(DeleteMongo.REL_SUCCESS, 1);
 
-        Assert.assertEquals("A document was deleted", 3, collection.count(Document.parse("{}")));
+        assertEquals(3, collection.countDocuments(Document.parse("{}")), "A document was deleted");
     }
 
     @Test
@@ -139,6 +138,6 @@ public class DeleteMongoIT extends MongoWriteTestBase {
         runner.assertTransferCount(DeleteMongo.REL_SUCCESS, 1);
         runner.assertTransferCount(DeleteMongo.REL_FAILURE, 0);
 
-        Assert.assertEquals(0, collection.count());
+        assertEquals(0, collection.countDocuments());
     }
 }

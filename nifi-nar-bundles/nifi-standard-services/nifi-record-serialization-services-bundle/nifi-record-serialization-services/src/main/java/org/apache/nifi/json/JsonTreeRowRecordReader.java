@@ -17,6 +17,8 @@
 
 package org.apache.nifi.json;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -31,38 +33,79 @@ import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.node.ArrayNode;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Queue;
 import java.util.function.Supplier;
 
 public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
+
     private final RecordSchema schema;
 
-
     public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
-        final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException, MalformedRecordException {
-        super(in, logger, dateFormat, timeFormat, timestampFormat);
-        this.schema = schema;
+                                   final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException, MalformedRecordException {
+        this(in, logger, schema, dateFormat, timeFormat, timestampFormat, null, null, null);
     }
 
+    public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
+                                   final String dateFormat, final String timeFormat, final String timestampFormat,
+                                   final StartingFieldStrategy startingFieldStrategy, final String startingFieldName,
+                                   final SchemaApplicationStrategy schemaApplicationStrategy)
+            throws IOException, MalformedRecordException {
 
+        super(in, logger, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName);
+        if (startingFieldStrategy == StartingFieldStrategy.NESTED_FIELD && schemaApplicationStrategy == SchemaApplicationStrategy.WHOLE_JSON) {
+            this.schema = getSelectedSchema(schema, startingFieldName);
+        } else {
+            this.schema = schema;
+        }
+    }
+
+    private RecordSchema getSelectedSchema(final RecordSchema schema, final String startingFieldName) {
+        final Queue<RecordSchema> schemas = new LinkedList<>();
+        schemas.add(schema);
+        while (!schemas.isEmpty()) {
+            final RecordSchema currentSchema = schemas.poll();
+            final Optional<RecordField> optionalRecordField = currentSchema.getField(startingFieldName);
+            if (optionalRecordField.isPresent()) {
+                return getChildSchemaFromField(optionalRecordField.get());
+            } else {
+                for (RecordField field : currentSchema.getFields()) {
+                    if (field.getDataType() instanceof  ArrayDataType || field.getDataType() instanceof RecordDataType) {
+                        schemas.add(getChildSchemaFromField(field));
+                    }
+                }
+            }
+
+        }
+        throw new RuntimeException(String.format("Selected schema field [%s] not found.", startingFieldName));
+    }
+
+    private RecordSchema getChildSchemaFromField(final RecordField recordField) {
+        if (recordField.getDataType() instanceof ArrayDataType) {
+            return ((RecordDataType) ((ArrayDataType) recordField.getDataType()).getElementType()).getChildSchema();
+        } else if (recordField.getDataType() instanceof RecordDataType) {
+            return ((RecordDataType) recordField.getDataType()).getChildSchema();
+        } else
+            throw new RuntimeException(String.format("Selected schema field [%s] is not record or array type.", recordField.getFieldName()));
+    }
 
     @Override
     protected Record convertJsonNodeToRecord(final JsonNode jsonNode, final RecordSchema schema, final boolean coerceTypes, final boolean dropUnknownFields)
-        throws IOException, MalformedRecordException {
+            throws IOException, MalformedRecordException {
         return convertJsonNodeToRecord(jsonNode, schema, coerceTypes, dropUnknownFields, null);
     }
 
     private Record convertJsonNodeToRecord(final JsonNode jsonNode, final RecordSchema schema, final boolean coerceTypes, final boolean dropUnknown, final String fieldNamePrefix)
-        throws IOException, MalformedRecordException {
+            throws IOException, MalformedRecordException {
         if (jsonNode == null) {
             return null;
         }
@@ -85,9 +128,9 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
     }
 
     private Record convertJsonNodeToRecord(final JsonNode jsonNode, final RecordSchema schema, final String fieldNamePrefix,
-            final boolean coerceTypes, final boolean dropUnknown) throws IOException, MalformedRecordException {
+                                           final boolean coerceTypes, final boolean dropUnknown) throws IOException, MalformedRecordException {
 
-        final Map<String, Object> values = new HashMap<>(schema.getFieldCount() * 2);
+        final Map<String, Object> values = new LinkedHashMap<>(schema.getFieldCount() * 2);
 
         if (dropUnknown) {
             for (final RecordField recordField : schema.getFields()) {
@@ -104,13 +147,13 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
                     final String fullFieldName = fieldNamePrefix == null ? fieldName : fieldNamePrefix + fieldName;
                     value = convertField(childNode, fullFieldName, desiredType, dropUnknown);
                 } else {
-                    value = getRawNodeValue(childNode, recordField == null ? null : recordField.getDataType(), fieldName);
+                    value = getRawNodeValue(childNode, recordField.getDataType(), fieldName);
                 }
 
                 values.put(fieldName, value);
             }
         } else {
-            final Iterator<String> fieldNames = jsonNode.getFieldNames();
+            final Iterator<String> fieldNames = jsonNode.fieldNames();
             while (fieldNames.hasNext()) {
                 final String fieldName = fieldNames.next();
                 final JsonNode childNode = jsonNode.get(fieldName);
@@ -155,16 +198,16 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
             case ENUM:
             case DATE:
             case TIME:
+            case UUID:
             case TIMESTAMP: {
                 final Object rawValue = getRawNodeValue(fieldNode, fieldName);
-                final Object converted = DataTypeUtils.convertType(rawValue, desiredType, getLazyDateFormat(), getLazyTimeFormat(), getLazyTimestampFormat(), fieldName);
-                return converted;
+                return DataTypeUtils.convertType(rawValue, desiredType, getLazyDateFormat(), getLazyTimeFormat(), getLazyTimestampFormat(), fieldName);
             }
             case MAP: {
                 final DataType valueType = ((MapDataType) desiredType).getValueType();
 
-                final Map<String, Object> map = new HashMap<>();
-                final Iterator<String> fieldNameItr = fieldNode.getFieldNames();
+                final Map<String, Object> map = new LinkedHashMap<>();
+                final Iterator<String> fieldNameItr = fieldNode.fieldNames();
                 while (fieldNameItr.hasNext()) {
                     final String childName = fieldNameItr.next();
                     final JsonNode childNode = fieldNode.get(childName);
@@ -198,7 +241,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
 
                     if (childSchema == null) {
                         final List<RecordField> fields = new ArrayList<>();
-                        final Iterator<String> fieldNameItr = fieldNode.getFieldNames();
+                        final Iterator<String> fieldNameItr = fieldNode.fieldNames();
                         while (fieldNameItr.hasNext()) {
                             fields.add(new RecordField(fieldNameItr.next(), RecordFieldType.STRING.getDataType()));
                         }

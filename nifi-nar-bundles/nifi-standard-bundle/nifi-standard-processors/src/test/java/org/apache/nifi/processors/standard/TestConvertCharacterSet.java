@@ -25,9 +25,9 @@ import java.util.Map;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static junit.framework.TestCase.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestConvertCharacterSet {
 
@@ -84,23 +84,17 @@ public class TestConvertCharacterSet {
         runner.setProperty(ConvertCharacterSet.OUTPUT_CHARSET, "UTF-32");
 
         runner.enqueue(Paths.get("src/test/resources/CharacterSetConversionSamples/Original.txt"));
-        try {
+        assertThrows(AssertionError.class, () -> {
             runner.run();
-            fail("Should fail to validate config and fail to run the on trigger");
-        } catch (AssertionError e){
-            // Expect to fail assertion for passing a date to the character set validator
-        }
-
+        });
 
         runner.setProperty(ConvertCharacterSet.INPUT_CHARSET, "UTF-32");
         runner.setProperty(ConvertCharacterSet.OUTPUT_CHARSET, "${anyAttribute(\"abc\", \"xyz\"):contains(\"bye\")}");
 
         runner.enqueue(Paths.get("src/test/resources/CharacterSetConversionSamples/Original.txt"));
-        try {
+
+        assertThrows(AssertionError.class, () -> {
             runner.run();
-            fail("Should fail to validate config and fail to run the on trigger");
-        } catch (AssertionError e) {
-            // Expect to fail assertion for passing a boolean to the character set validator
-        }
+        });
     }
 }

@@ -26,6 +26,7 @@ org.apache.nifi.atlas.provenance.analyzer.HBaseTable
 org.apache.nifi.atlas.provenance.analyzer.FilePath
 org.apache.nifi.atlas.provenance.analyzer.AwsS3Directory
 org.apache.nifi.atlas.provenance.analyzer.AzureADLSDirectory
+org.apache.nifi.atlas.provenance.analyzer.GCSDirectory
 
 # By event type, if none of above analyzers matches
 org.apache.nifi.atlas.provenance.analyzer.unknown.Create

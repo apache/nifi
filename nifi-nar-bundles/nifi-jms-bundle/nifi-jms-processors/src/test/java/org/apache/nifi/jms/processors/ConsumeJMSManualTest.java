@@ -19,8 +19,8 @@ package org.apache.nifi.jms.processors;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.command.ActiveMQMessage;
 import org.apache.nifi.logging.ComponentLog;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
@@ -35,7 +35,7 @@ import javax.jms.TextMessage;
 
 import static org.mockito.Mockito.mock;
 
-@Ignore("Used for manual testing.")
+@Disabled("Used for manual testing.")
 public class ConsumeJMSManualTest {
     @Test
     public void testTextMessage() throws Exception {

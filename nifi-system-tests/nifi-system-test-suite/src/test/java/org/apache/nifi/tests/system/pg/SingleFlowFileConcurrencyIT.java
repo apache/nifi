@@ -26,15 +26,15 @@ import org.apache.nifi.web.api.entity.FlowFileEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SingleFlowFileConcurrencyIT extends NiFiSystemIT {
 
@@ -127,7 +127,7 @@ public class SingleFlowFileConcurrencyIT extends NiFiSystemIT {
         // Start generate so that data is created. Start Input Port so that the data is ingested.
         // Start Output Ports but not the Sleep processor. This will keep data queued up for the Sleep processor,
         // and that should prevent data from being transferred by Output Port "Out2" also.
-        getNifiClient().getProcessorClient().startProcessor(generate);
+        getClientUtil().startProcessor(generate);
         getNifiClient().getInputPortClient().startInputPort(inputPort);
         getNifiClient().getOutputPortClient().startOutputPort(outputPort);
         getNifiClient().getOutputPortClient().startOutputPort(secondOut);
@@ -143,7 +143,7 @@ public class SingleFlowFileConcurrencyIT extends NiFiSystemIT {
         }
 
         // Start Sleep
-        getNifiClient().getProcessorClient().startProcessor(sleep);
+        getClientUtil().startProcessor(sleep);
 
         // Data should now flow from both output ports.
         waitForQueueCount(inputToSleep.getId(), 0);
@@ -192,15 +192,21 @@ public class SingleFlowFileConcurrencyIT extends NiFiSystemIT {
 
         // Start generate so that data is created. Start Input Port so that the data is ingested.
         // Start "Out" Output Ports but "Out2.". This will keep data queued up for the Out2 output port.
-        getNifiClient().getProcessorClient().startProcessor(generate);
+        getClientUtil().startProcessor(generate);
         getNifiClient().getInputPortClient().startInputPort(inputPort);
         getNifiClient().getOutputPortClient().startOutputPort(outputPort);
 
         waitForQueueCount(inputToSecondOut.getId(), 1);
         assertEquals(1, getConnectionQueueSize(inputToSecondOut.getId()));
 
+        // Stop processor so that it won't generate data upon restart
+        getNifiClient().getProcessorClient().stopProcessor(generate);
+
         // Everything is queued up at an Output Port so the first Output Port should run and its queue should become empty.
         waitForQueueCount(inputToOutput.getId(), 0);
+
+        // Wait a bit before shutting down so that nifi has a chance to save the changes to the flow
+        Thread.sleep(2000L);
 
         // Restart nifi.
         getNiFiInstance().stop();

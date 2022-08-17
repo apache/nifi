@@ -18,14 +18,16 @@ package org.apache.nifi.elasticsearch;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextService;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -49,6 +51,7 @@ public interface ElasticSearchClientService extends ControllerService {
             .identifiesControllerService(SSLContextService.class)
             .addValidator(Validator.VALID)
             .build();
+    PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxySpec.HTTP);
     PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .name("el-cs-username")
             .displayName("Username")
@@ -82,6 +85,11 @@ public interface ElasticSearchClientService extends ControllerService {
             .defaultValue("60000")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
+    /**
+     * @deprecated this setting is no longer used and will be removed in a future version.
+     * Property retained for now to prevent existing Flows with this processor from breaking upon upgrade.
+     */
+    @Deprecated
     PropertyDescriptor RETRY_TIMEOUT = new PropertyDescriptor.Builder()
             .name("el-cs-retry-timeout")
             .displayName("Retry timeout")
@@ -99,75 +107,112 @@ public interface ElasticSearchClientService extends ControllerService {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
+    AllowableValue ALWAYS_SUPPRESS = new AllowableValue("always-suppress", "Always Suppress",
+            "Fields that are missing (present in the schema but not in the record), or that have a value of null/empty, will not be written out");
+
+    AllowableValue NEVER_SUPPRESS = new AllowableValue("never-suppress", "Never Suppress",
+            "Fields that are missing (present in the schema but not in the record), or that have a value of null/empty, will be written out as a null/empty value");
+
+    PropertyDescriptor SUPPRESS_NULLS = new PropertyDescriptor.Builder()
+            .name("el-cs-suppress-nulls")
+            .displayName("Suppress Null/Empty Values")
+            .description("Specifies how the writer should handle null and empty fields (including objects and arrays)")
+            .allowableValues(NEVER_SUPPRESS, ALWAYS_SUPPRESS)
+            .defaultValue(ALWAYS_SUPPRESS.getValue())
+            .required(true)
+            .build();
+
     /**
      * Index a document.
      *
      * @param operation A document to index.
+     * @param requestParameters A collection of URL request parameters. Optional.
      * @return IndexOperationResponse if successful
-     * @throws IOException thrown when there is an error.
      */
-    IndexOperationResponse add(IndexOperationRequest operation);
+    IndexOperationResponse add(IndexOperationRequest operation, Map<String, String> requestParameters);
 
     /**
      * Bulk process multiple documents.
      *
      * @param operations A list of index operations.
+     * @param requestParameters A collection of URL request parameters. Optional.
      * @return IndexOperationResponse if successful.
-     * @throws IOException thrown when there is an error.
      */
-    IndexOperationResponse bulk(List<IndexOperationRequest> operations);
+    IndexOperationResponse bulk(List<IndexOperationRequest> operations, Map<String, String> requestParameters);
 
     /**
      * Count the documents that match the criteria.
      *
      * @param query A query in the JSON DSL syntax
      * @param index The index to target.
-     * @param type The type to target.
-     * @return
+     * @param type The type to target. Will not be used in future versions of Elasticsearch.
+     * @param requestParameters A collection of URL request parameters. Optional.
+     * @return number of documents matching the query
      */
-    Long count(String query, String index, String type);
+    Long count(String query, String index, String type, Map<String, String> requestParameters);
 
     /**
      * Delete a document by its ID from an index.
      *
      * @param index The index to target.
-     * @param type The type to target. Optional.
+     * @param type The type to target. Optional. Will not be used in future versions of Elasticsearch.
      * @param id The document ID to remove from the selected index.
+     * @param requestParameters A collection of URL request parameters. Optional.
      * @return A DeleteOperationResponse object if successful.
      */
-    DeleteOperationResponse deleteById(String index, String type, String id);
+    DeleteOperationResponse deleteById(String index, String type, String id, Map<String, String> requestParameters);
 
 
     /**
      * Delete multiple documents by ID from an index.
      * @param index The index to target.
-     * @param type The type to target. Optional.
+     * @param type The type to target. Optional. Will not be used in future versions of Elasticsearch.
      * @param ids A list of document IDs to remove from the selected index.
+     * @param requestParameters A collection of URL request parameters. Optional.
      * @return A DeleteOperationResponse object if successful.
-     * @throws IOException thrown when there is an error.
      */
-    DeleteOperationResponse deleteById(String index, String type, List<String> ids);
+    DeleteOperationResponse deleteById(String index, String type, List<String> ids, Map<String, String> requestParameters);
 
     /**
      * Delete documents by query.
      *
      * @param query A valid JSON query to be used for finding documents to delete.
      * @param index The index to target.
-     * @param type The type to target within the index. Optional.
+     * @param type The type to target within the index. Optional. Will not be used in future versions of Elasticsearch.
+     * @param requestParameters A collection of URL request parameters. Optional.
      * @return A DeleteOperationResponse object if successful.
      */
-    DeleteOperationResponse deleteByQuery(String query, String index, String type);
+    DeleteOperationResponse deleteByQuery(String query, String index, String type, Map<String, String> requestParameters);
+
+    /**
+     * Update documents by query.
+     *
+     * @param query A valid JSON query to be used for finding documents to update.
+     * @param index The index to target.
+     * @param type The type to target within the index. Optional. Will not be used in future versions of Elasticsearch.
+     * @param requestParameters A collection of URL request parameters. Optional.
+     * @return An UpdateOperationResponse object if successful.
+     */
+    UpdateOperationResponse updateByQuery(String query, String index, String type, Map<String, String> requestParameters);
+
+    /**
+     * Refresh index/indices.
+     *
+     * @param index The index to target, if omitted then all indices will be updated.
+     * @param requestParameters A collection of URL request parameters. Optional.
+     */
+    void refresh(final String index, final Map<String, String> requestParameters);
 
     /**
      * Get a document by ID.
      *
      * @param index The index that holds the document.
-     * @param type The document type. Optional.
+     * @param type The document type. Optional. Will not be used in future versions of Elasticsearch.
      * @param id The document ID
+     * @param requestParameters A collection of URL request parameters. Optional.
      * @return Map if successful, null if not found.
-     * @throws IOException thrown when there is an error.
      */
-    Map<String, Object> get(String index, String type, String id);
+    Map<String, Object> get(String index, String type, String id, Map<String, String> requestParameters);
 
     /**
      * Perform a search using the JSON DSL.
@@ -175,9 +220,45 @@ public interface ElasticSearchClientService extends ControllerService {
      * @param query A JSON string reprensenting the query.
      * @param index The index to target. Optional.
      * @param type The type to target. Optional. Will not be used in future versions of Elasticsearch.
+     * @param requestParameters A collection of URL request parameters. Optional.
      * @return A SearchResponse object if successful.
      */
-    SearchResponse search(String query, String index, String type);
+    SearchResponse search(String query, String index, String type, Map<String, String> requestParameters);
+
+    /**
+     * Retrieve next page of results from a Scroll.
+     *
+     * @param scroll A JSON string containing scrollId and optional scroll (keep alive) retention period.
+     * @return A SearchResponse object if successful.
+     */
+    SearchResponse scroll(String scroll);
+
+    /**
+     * Initialise a Point in Time for paginated queries.
+     * Requires Elasticsearch 7.10+ and XPack features.
+     *
+     * @param index Index targeted.
+     * @param keepAlive Point in Time's retention period (maximum time Elasticsearch will retain the PiT between requests). Optional.
+     * @return the Point in Time Id (pit_id)
+     */
+    String initialisePointInTime(String index, String keepAlive);
+
+    /**
+     * Delete a Point in Time.
+     * Requires Elasticsearch 7.10+ and XPack features.
+     *
+     * @param pitId Point in Time Id to be deleted.
+     * @return A DeleteOperationResponse object if successful.
+     */
+    DeleteOperationResponse deletePointInTime(String pitId);
+
+    /**
+     * Delete a Scroll.
+     *
+     * @param scrollId Scroll Id to be deleted.
+     * @return A DeleteOperationResponse object if successful.
+     */
+    DeleteOperationResponse deleteScroll(String scrollId);
 
     /**
      * Build a transit URL to use with the provenance reporter.

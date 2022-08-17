@@ -76,6 +76,8 @@ import org.apache.nifi.util.StopWatch;
         + "Also please be aware that this processor creates a thread pool of 4 threads for Event Hub Client. They will be extra threads other than the concurrent tasks scheduled for this processor.")
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PutAzureEventHub extends AbstractProcessor {
+    private static final String TRANSIT_URI_FORMAT_STRING = "amqps://%s%s/%s";
+
     static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
             .name("Event Hub Name")
             .description("The name of the event hub to send to")
@@ -89,6 +91,7 @@ public class PutAzureEventHub extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .build();
+    static final PropertyDescriptor SERVICE_BUS_ENDPOINT = AzureEventHubUtils.SERVICE_BUS_ENDPOINT;
     static final PropertyDescriptor ACCESS_POLICY = new PropertyDescriptor.Builder()
             .name("Shared Access Policy Name")
             .description("The name of the shared access policy. This policy must have Send claims.")
@@ -140,6 +143,7 @@ public class PutAzureEventHub extends AbstractProcessor {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
         _propertyDescriptors.add(EVENT_HUB_NAME);
         _propertyDescriptors.add(NAMESPACE);
+        _propertyDescriptors.add(SERVICE_BUS_ENDPOINT);
         _propertyDescriptors.add(ACCESS_POLICY);
         _propertyDescriptors.add(POLICY_PRIMARY_KEY);
         _propertyDescriptors.add(USE_MANAGED_IDENTITY);
@@ -241,7 +245,9 @@ public class PutAzureEventHub extends AbstractProcessor {
                 if(flowFileResult.getResult() == REL_SUCCESS) {
                     final String namespace = context.getProperty(NAMESPACE).getValue();
                     final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
-                    session.getProvenanceReporter().send(flowFile, "amqps://" + namespace + ".servicebus.windows.net" + "/" + eventHubName, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                    final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
+                    final String transitUri = String.format(TRANSIT_URI_FORMAT_STRING, namespace, serviceBusEndpoint, eventHubName);
+                    session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
                     session.transfer(flowFile, REL_SUCCESS);
 
                 } else {
@@ -330,9 +336,10 @@ public class PutAzureEventHub extends AbstractProcessor {
                 policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
             }
             final String namespace = context.getProperty(NAMESPACE).getValue();
+            final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
             final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
             for (int i = 0; i < numThreads; i++) {
-                final EventHubClient client = createEventHubClient(namespace, eventHubName, policyName, policyKey, executor);
+                final EventHubClient client = createEventHubClient(namespace, serviceBusEndpoint, eventHubName, policyName, policyKey, executor);
                 if(null != client) {
                     senderQueue.offer(client);
                 }
@@ -351,6 +358,7 @@ public class PutAzureEventHub extends AbstractProcessor {
      */
     protected EventHubClient createEventHubClient(
         final String namespace,
+        final String serviceBusEndpoint,
         final String eventHubName,
         final String policyName,
         final String policyKey,
@@ -361,9 +369,9 @@ public class PutAzureEventHub extends AbstractProcessor {
             EventHubClientImpl.USER_AGENT = "ApacheNiFi-azureeventhub/3.1.1";
             final String connectionString;
             if(policyName == AzureEventHubUtils.MANAGED_IDENTITY_POLICY) {
-                connectionString = AzureEventHubUtils.getManagedIdentityConnectionString(namespace, eventHubName);
+                connectionString = AzureEventHubUtils.getManagedIdentityConnectionString(namespace, serviceBusEndpoint, eventHubName);
             } else{
-                connectionString = getConnectionString(namespace, eventHubName, policyName, policyKey);
+                connectionString = getConnectionString(namespace, serviceBusEndpoint, eventHubName, policyName, policyKey);
             }
             return EventHubClient.createFromConnectionStringSync(connectionString, executor);
         } catch (IOException | EventHubException | IllegalConnectionStringFormatException e) {
@@ -372,8 +380,8 @@ public class PutAzureEventHub extends AbstractProcessor {
         }
     }
 
-    protected String getConnectionString(final String namespace, final String eventHubName, final String policyName, final String policyKey){
-        return AzureEventHubUtils.getSharedAccessSignatureConnectionString(namespace, eventHubName, policyName, policyKey);
+    protected String getConnectionString(final String namespace, final String serviceBusEndpoint, final String eventHubName, final String policyName, final String policyKey){
+        return AzureEventHubUtils.getSharedAccessSignatureConnectionString(namespace, serviceBusEndpoint, eventHubName, policyName, policyKey);
     }
 
     /**

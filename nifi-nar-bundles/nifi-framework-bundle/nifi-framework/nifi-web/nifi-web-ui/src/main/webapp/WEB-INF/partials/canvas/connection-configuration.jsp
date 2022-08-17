@@ -104,7 +104,7 @@
                             <div class="fa fa-question-circle" alt="Info" title="Available prioritizers that could reprioritize FlowFiles in this work queue."></div>
                         </div>
                         <div class="setting-field">
-                            <ul id="prioritizer-available"></ul>
+                            <ol id="prioritizer-available"></ol>
                         </div>
                     </div>
                     <div class="setting">

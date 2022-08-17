@@ -16,255 +16,137 @@
  */
 package org.apache.nifi.web;
 
-import java.util.Arrays;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.security.StandardAuthenticationEntryPoint;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationFilter;
-import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationProvider;
-import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
-import org.apache.nifi.web.security.jwt.JwtAuthenticationProvider;
+import org.apache.nifi.web.security.csrf.CsrfCookieRequestMatcher;
+import org.apache.nifi.web.security.csrf.StandardCookieCsrfTokenRepository;
 import org.apache.nifi.web.security.knox.KnoxAuthenticationFilter;
-import org.apache.nifi.web.security.knox.KnoxAuthenticationProvider;
-import org.apache.nifi.web.security.otp.OtpAuthenticationFilter;
-import org.apache.nifi.web.security.otp.OtpAuthenticationProvider;
-import org.apache.nifi.web.security.saml.SAMLEndpoints;
+import org.apache.nifi.web.security.log.AuthenticationUserFilter;
+import org.apache.nifi.web.security.oidc.OIDCEndpoints;
+import org.apache.nifi.web.security.saml2.web.authentication.logout.Saml2LocalLogoutFilter;
+import org.apache.nifi.web.security.saml2.web.authentication.logout.Saml2SingleLogoutFilter;
 import org.apache.nifi.web.security.x509.X509AuthenticationFilter;
-import org.apache.nifi.web.security.x509.X509AuthenticationProvider;
-import org.apache.nifi.web.security.x509.X509CertificateExtractor;
-import org.apache.nifi.web.security.x509.X509IdentityProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationFilter;
+import org.springframework.security.saml2.provider.service.servlet.filter.Saml2WebSsoAuthenticationFilter;
+import org.springframework.security.saml2.provider.service.servlet.filter.Saml2WebSsoAuthenticationRequestFilter;
+import org.springframework.security.saml2.provider.service.web.Saml2MetadataFilter;
+import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestFilter;
+import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutResponseFilter;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.ExceptionTranslationFilter;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
-import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.util.matcher.AndRequestMatcher;
+
+import java.util.List;
 
 /**
- * NiFi Web Api Spring security. Applies the various NiFiAuthenticationFilter servlet filters which will extract authentication
- * credentials from API requests.
+ * Application Security Configuration using Spring Security
  */
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
-public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
-    private static final Logger logger = LoggerFactory.getLogger(NiFiWebApiSecurityConfiguration.class);
-
-    private NiFiProperties properties;
-
-    private X509AuthenticationFilter x509AuthenticationFilter;
-    private X509CertificateExtractor certificateExtractor;
-    private X509PrincipalExtractor principalExtractor;
-    private X509IdentityProvider certificateIdentityProvider;
-    private X509AuthenticationProvider x509AuthenticationProvider;
-
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
-    private JwtAuthenticationProvider jwtAuthenticationProvider;
-
-    private OtpAuthenticationFilter otpAuthenticationFilter;
-    private OtpAuthenticationProvider otpAuthenticationProvider;
-
-    private KnoxAuthenticationFilter knoxAuthenticationFilter;
-    private KnoxAuthenticationProvider knoxAuthenticationProvider;
-
-    private NiFiAnonymousAuthenticationFilter anonymousAuthenticationFilter;
-    private NiFiAnonymousAuthenticationProvider anonymousAuthenticationProvider;
-
-    public NiFiWebApiSecurityConfiguration() {
-        super(true); // disable defaults
+public class NiFiWebApiSecurityConfiguration {
+    /**
+     * Spring Security Authentication Manager configured using Authentication Providers from specific configuration classes
+     *
+     * @param authenticationProviders Autowired Authentication Providers
+     * @return Authentication Manager
+     */
+    @Bean
+    public AuthenticationManager authenticationManager(final List<AuthenticationProvider> authenticationProviders) {
+        return new ProviderManager(authenticationProviders);
     }
 
-    @Override
-    public void configure(WebSecurity webSecurity) throws Exception {
-        // ignore the access endpoints for obtaining the access config, the access token
-        // granting, and access status for a given user (note: we are not ignoring the
-        // the /access/download-token and /access/ui-extension-token endpoints
-        webSecurity
-                .ignoring()
-                    .antMatchers(
-                            "/access",
-                            "/access/config",
-                            "/access/token",
-                            "/access/kerberos",
-                            "/access/oidc/exchange",
-                            "/access/oidc/callback",
-                            "/access/oidc/logoutCallback",
-                            "/access/oidc/request",
-                            "/access/knox/callback",
-                            "/access/knox/request",
-                            SAMLEndpoints.SERVICE_PROVIDER_METADATA,
-                            SAMLEndpoints.LOGIN_REQUEST,
-                            SAMLEndpoints.LOGIN_CONSUMER,
-                            SAMLEndpoints.LOGIN_EXCHANGE,
-                            // the logout sequence will be protected by a request identifier set in a Cookie so these
-                            // paths need to be listed here in order to pass through our normal authn filters
-                            SAMLEndpoints.SINGLE_LOGOUT_REQUEST,
-                            SAMLEndpoints.SINGLE_LOGOUT_CONSUMER,
-                            SAMLEndpoints.LOCAL_LOGOUT,
-                            "/access/logout/complete");
-    }
-
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
+    @Bean
+    public SecurityFilterChain securityFilterChain(
+            final HttpSecurity http,
+            final NiFiProperties properties,
+            final StandardAuthenticationEntryPoint authenticationEntryPoint,
+            final X509AuthenticationFilter x509AuthenticationFilter,
+            final BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter,
+            final KnoxAuthenticationFilter knoxAuthenticationFilter,
+            final NiFiAnonymousAuthenticationFilter anonymousAuthenticationFilter,
+            final Saml2WebSsoAuthenticationFilter saml2WebSsoAuthenticationFilter,
+            final Saml2WebSsoAuthenticationRequestFilter saml2WebSsoAuthenticationRequestFilter,
+            final Saml2MetadataFilter saml2MetadataFilter,
+            final Saml2LogoutRequestFilter saml2LogoutRequestFilter,
+            final Saml2LogoutResponseFilter saml2LogoutResponseFilter,
+            final Saml2SingleLogoutFilter saml2SingleLogoutFilter,
+            final Saml2LocalLogoutFilter saml2LocalLogoutFilter
+    ) throws Exception {
         http
-                .cors().and()
+                .logout().disable()
+                .anonymous().disable()
+                .requestCache().disable()
                 .rememberMe().disable()
-                .authorizeRequests()
-                    .anyRequest().fullyAuthenticated()
-                    .and()
-                .sessionManagement()
-                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+                .sessionManagement().disable()
+                .headers().disable()
+                .servletApi().disable()
+                .securityContext().disable()
+                .authorizeHttpRequests(authorize -> authorize
+                        .antMatchers(
+                                "/access",
+                                "/access/config",
+                                "/access/token",
+                                "/access/kerberos",
+                                "/access/knox/callback",
+                                "/access/knox/request",
+                                "/access/logout/complete",
+                                OIDCEndpoints.TOKEN_EXCHANGE,
+                                OIDCEndpoints.LOGIN_REQUEST,
+                                OIDCEndpoints.LOGIN_CALLBACK,
+                                OIDCEndpoints.LOGOUT_CALLBACK
+                        ).permitAll()
+                        .anyRequest().authenticated()
+                )
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(
+                                new StandardCookieCsrfTokenRepository()
+                        )
+                        .requireCsrfProtectionMatcher(
+                                new AndRequestMatcher(CsrfFilter.DEFAULT_CSRF_MATCHER, new CsrfCookieRequestMatcher())
+                        )
+                )
+                .exceptionHandling(exceptionHandling -> exceptionHandling
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                )
+                .addFilterBefore(x509AuthenticationFilter, AnonymousAuthenticationFilter.class)
+                .addFilterBefore(bearerTokenAuthenticationFilter, AnonymousAuthenticationFilter.class)
+                .addFilterBefore(new AuthenticationUserFilter(), ExceptionTranslationFilter.class);
 
-        // x509
-        http.addFilterBefore(x509FilterBean(), AnonymousAuthenticationFilter.class);
-
-        // jwt
-        http.addFilterBefore(jwtFilterBean(), AnonymousAuthenticationFilter.class);
-
-        // otp
-        http.addFilterBefore(otpFilterBean(), AnonymousAuthenticationFilter.class);
-
-        // knox
-        http.addFilterBefore(knoxFilterBean(), AnonymousAuthenticationFilter.class);
-
-        // anonymous
-        http.addFilterAfter(anonymousFilterBean(), AnonymousAuthenticationFilter.class);
-
-        // disable default anonymous handling because it doesn't handle conditional authentication well
-        http.anonymous().disable();
-    }
-
-
-    @Bean
-    CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedMethods(Arrays.asList("HEAD", "GET"));
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/process-groups/*/templates/upload", configuration);
-        return source;
-    }
-
-    @Bean
-    @Override
-    public AuthenticationManager authenticationManagerBean() throws Exception {
-        // override xxxBean method so the authentication manager is available in app context (necessary for the method level security)
-        return super.authenticationManagerBean();
-    }
-
-    @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth
-                .authenticationProvider(x509AuthenticationProvider)
-                .authenticationProvider(jwtAuthenticationProvider)
-                .authenticationProvider(otpAuthenticationProvider)
-                .authenticationProvider(knoxAuthenticationProvider)
-                .authenticationProvider(anonymousAuthenticationProvider);
-    }
-
-    @Bean
-    public JwtAuthenticationFilter jwtFilterBean() throws Exception {
-        if (jwtAuthenticationFilter == null) {
-            jwtAuthenticationFilter = new JwtAuthenticationFilter();
-            jwtAuthenticationFilter.setProperties(properties);
-            jwtAuthenticationFilter.setAuthenticationManager(authenticationManager());
+        if (properties.isKnoxSsoEnabled()) {
+            http.addFilterBefore(knoxAuthenticationFilter, AnonymousAuthenticationFilter.class);
         }
-        return jwtAuthenticationFilter;
-    }
 
-    @Bean
-    public OtpAuthenticationFilter otpFilterBean() throws Exception {
-        if (otpAuthenticationFilter == null) {
-            otpAuthenticationFilter = new OtpAuthenticationFilter();
-            otpAuthenticationFilter.setProperties(properties);
-            otpAuthenticationFilter.setAuthenticationManager(authenticationManager());
+        if (properties.isAnonymousAuthenticationAllowed() || properties.isHttpEnabled()) {
+            http.addFilterAfter(anonymousAuthenticationFilter, AnonymousAuthenticationFilter.class);
         }
-        return otpAuthenticationFilter;
-    }
 
-    @Bean
-    public KnoxAuthenticationFilter knoxFilterBean() throws Exception {
-        if (knoxAuthenticationFilter == null) {
-            knoxAuthenticationFilter = new KnoxAuthenticationFilter();
-            knoxAuthenticationFilter.setProperties(properties);
-            knoxAuthenticationFilter.setAuthenticationManager(authenticationManager());
+        if (properties.isSamlEnabled()) {
+            http.addFilterBefore(saml2WebSsoAuthenticationFilter, AnonymousAuthenticationFilter.class);
+            http.addFilterBefore(saml2WebSsoAuthenticationRequestFilter, AnonymousAuthenticationFilter.class);
+
+            // Metadata and Logout Filters must be invoked prior to CSRF or other security filtering
+            http.addFilterBefore(saml2MetadataFilter, CsrfFilter.class);
+            http.addFilterBefore(saml2LocalLogoutFilter, CsrfFilter.class);
+
+            if (properties.isSamlSingleLogoutEnabled()) {
+                http.addFilterBefore(saml2SingleLogoutFilter, CsrfFilter.class);
+                http.addFilterBefore(saml2LogoutRequestFilter, CsrfFilter.class);
+                http.addFilterBefore(saml2LogoutResponseFilter, CsrfFilter.class);
+            }
         }
-        return knoxAuthenticationFilter;
-    }
 
-    @Bean
-    public X509AuthenticationFilter x509FilterBean() throws Exception {
-        if (x509AuthenticationFilter == null) {
-            x509AuthenticationFilter = new X509AuthenticationFilter();
-            x509AuthenticationFilter.setProperties(properties);
-            x509AuthenticationFilter.setCertificateExtractor(certificateExtractor);
-            x509AuthenticationFilter.setPrincipalExtractor(principalExtractor);
-            x509AuthenticationFilter.setAuthenticationManager(authenticationManager());
-        }
-        return x509AuthenticationFilter;
-    }
-
-    @Bean
-    public NiFiAnonymousAuthenticationFilter anonymousFilterBean() throws Exception {
-        if (anonymousAuthenticationFilter == null) {
-            anonymousAuthenticationFilter = new NiFiAnonymousAuthenticationFilter();
-            anonymousAuthenticationFilter.setProperties(properties);
-            anonymousAuthenticationFilter.setAuthenticationManager(authenticationManager());
-        }
-        return anonymousAuthenticationFilter;
-    }
-
-    @Autowired
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
-    }
-
-    @Autowired
-    public void setJwtAuthenticationProvider(JwtAuthenticationProvider jwtAuthenticationProvider) {
-        this.jwtAuthenticationProvider = jwtAuthenticationProvider;
-    }
-
-    @Autowired
-    public void setOtpAuthenticationProvider(OtpAuthenticationProvider otpAuthenticationProvider) {
-        this.otpAuthenticationProvider = otpAuthenticationProvider;
-    }
-
-    @Autowired
-    public void setKnoxAuthenticationProvider(KnoxAuthenticationProvider knoxAuthenticationProvider) {
-        this.knoxAuthenticationProvider = knoxAuthenticationProvider;
-    }
-
-    @Autowired
-    public void setAnonymousAuthenticationProvider(NiFiAnonymousAuthenticationProvider anonymousAuthenticationProvider) {
-        this.anonymousAuthenticationProvider = anonymousAuthenticationProvider;
-    }
-
-    @Autowired
-    public void setX509AuthenticationProvider(X509AuthenticationProvider x509AuthenticationProvider) {
-        this.x509AuthenticationProvider = x509AuthenticationProvider;
-    }
-
-    @Autowired
-    public void setCertificateExtractor(X509CertificateExtractor certificateExtractor) {
-        this.certificateExtractor = certificateExtractor;
-    }
-
-    @Autowired
-    public void setPrincipalExtractor(X509PrincipalExtractor principalExtractor) {
-        this.principalExtractor = principalExtractor;
-    }
-
-    @Autowired
-    public void setCertificateIdentityProvider(X509IdentityProvider certificateIdentityProvider) {
-        this.certificateIdentityProvider = certificateIdentityProvider;
+        return http.build();
     }
 }

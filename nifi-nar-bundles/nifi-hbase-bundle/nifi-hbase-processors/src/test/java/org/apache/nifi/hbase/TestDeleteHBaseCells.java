@@ -18,14 +18,14 @@ package org.apache.nifi.hbase;
 
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 public class TestDeleteHBaseCells extends DeleteTestBase {
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         super.setup(DeleteHBaseCells.class);
     }

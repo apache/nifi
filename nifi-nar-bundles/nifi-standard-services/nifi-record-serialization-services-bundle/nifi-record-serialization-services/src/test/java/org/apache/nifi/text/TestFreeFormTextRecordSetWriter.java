@@ -17,31 +17,24 @@
 package org.apache.nifi.text;
 
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestFreeFormTextRecordSetWriter {
 
     private TestRunner setup(FreeFormTextRecordSetWriter writer) throws InitializationException, IOException {
         TestRunner runner = TestRunners.newTestRunner(TestFreeFormTextRecordSetWriterProcessor.class);
 
-        final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/text/testschema")));
-
         runner.addControllerService("writer", writer);
         runner.setProperty(TestFreeFormTextRecordSetWriterProcessor.WRITER, "writer");
 
-        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
         runner.setProperty(writer, FreeFormTextRecordSetWriter.TEXT, "ID: ${ID}, Name: ${NAME}, Age: ${AGE}, Country: ${COUNTRY}, Username: ${user.name}");
 
         return runner;

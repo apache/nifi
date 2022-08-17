@@ -32,14 +32,17 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.stream.io.NonCloseableInputStream;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.xml.inference.XmlSchemaInference;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.stream.StandardXMLEventReaderProvider;
+import org.apache.nifi.xml.processing.stream.XMLEventReaderProvider;
 
 import javax.xml.stream.XMLEventReader;
-import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.Attribute;
 import javax.xml.stream.events.Characters;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
+import javax.xml.transform.stream.StreamSource;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -144,18 +147,13 @@ public class WindowsEventLogRecordReader implements RecordReader {
         LAZY_TIMESTAMP_FORMAT = () -> tsf;
 
         final FilterInputStream inputStream;
-        final XMLInputFactory xmlInputFactory;
+        final XMLEventReaderProvider provider = new StandardXMLEventReaderProvider();
         try {
-            xmlInputFactory = XMLInputFactory.newInstance();
-            // Avoid XXE Vulnerabilities
-            xmlInputFactory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
-            xmlInputFactory.setProperty("javax.xml.stream.isSupportingExternalEntities", false);
-
             inputStream = new NonCloseableInputStream(in);
             inputStream.mark(Integer.MAX_VALUE);
-            xmlEventReader = xmlInputFactory.createXMLEventReader(inputStream);
+            xmlEventReader = provider.getEventReader(new StreamSource(inputStream));
             xmlSchemaInference = new XmlSchemaInference(new TimeValueInference(dateFormat, timeFormat, timestampFormat));
-        } catch (XMLStreamException e) {
+        } catch (final ProcessingException e) {
             throw new MalformedRecordException("Error creating XML Event reader from FlowFile input stream", e);
         }
 
@@ -169,7 +167,7 @@ public class WindowsEventLogRecordReader implements RecordReader {
         try {
             // Restart the XML event stream and advance to the first Event tag
             inputStream.reset();
-            xmlEventReader = xmlInputFactory.createXMLEventReader(inputStream);
+            xmlEventReader = provider.getEventReader(new StreamSource(inputStream));
             if (isArray) {
                 skipToNextStartTag();
             }

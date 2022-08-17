@@ -16,14 +16,15 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.IOException;
-import java.nio.file.Paths;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.nio.file.Paths;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SuppressWarnings("deprecation")
 public class TestHashContent {
@@ -43,7 +44,7 @@ public class TestHashContent {
     @Test
     public void testSHA1() throws IOException {
         // Expected hash value obtained by running Linux sha1sum against the file
-        test("SHA", "0a0a9f2a6772942557ab5355d76af442f8f65e01");
+        test("SHA-1", "0a0a9f2a6772942557ab5355d76af442f8f65e01");
     }
 
     private void test(final String hashAlgorithm, final String expectedHash) throws IOException {

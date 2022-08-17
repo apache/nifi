@@ -170,12 +170,11 @@ public class SiteToSiteRestApiClient implements Closeable {
     private int batchCount = 0;
     private long batchSize = 0;
     private long batchDurationMillis = 0;
-    private TransportProtocolVersionNegotiator transportProtocolVersionNegotiator = new TransportProtocolVersionNegotiator(1);
+    private final TransportProtocolVersionNegotiator transportProtocolVersionNegotiator = new TransportProtocolVersionNegotiator(1);
 
     private String trustedPeerDn;
     private final ScheduledExecutorService ttlExtendTaskExecutor;
     private ScheduledFuture<?> ttlExtendingFuture;
-    private SiteToSiteRestApiClient extendingApiClient;
 
     private int connectTimeoutMillis;
     private int readTimeoutMillis;
@@ -199,7 +198,7 @@ public class SiteToSiteRestApiClient implements Closeable {
             @Override
             public Thread newThread(final Runnable r) {
                 final Thread thread = defaultFactory.newThread(r);
-                thread.setName(Thread.currentThread().getName() + " TTLExtend");
+                thread.setName(Thread.currentThread().getName() + " Site-to-Site Extend Transactions");
                 thread.setDaemon(true);
                 return thread;
             }
@@ -208,7 +207,7 @@ public class SiteToSiteRestApiClient implements Closeable {
 
     @Override
     public void close() throws IOException {
-        stopExtendingTtl();
+        stopExtendingTransaction();
         closeSilently(httpClient);
         closeSilently(httpAsyncClient);
     }
@@ -376,7 +375,7 @@ public class SiteToSiteRestApiClient implements Closeable {
     private ControllerDTO getController() throws IOException {
         // first check cache and prune any old values.
         // Periodically prune the map so that we are not keeping entries around forever, in case an RPG is removed
-        // from he canvas, etc. We want to ensure that we avoid memory leaks, even if they are likely to not cause a problem.
+        // from the canvas, etc. We want to ensure that we avoid memory leaks, even if they are likely to not cause a problem.
         if (System.currentTimeMillis() > lastPruneTimestamp + TimeUnit.MINUTES.toMillis(5)) {
             pruneCache();
         }
@@ -487,7 +486,7 @@ public class SiteToSiteRestApiClient implements Closeable {
                 if (transportProtocolVersionHeader == null) {
                     throw new ProtocolException("Server didn't return confirmed protocol version");
                 }
-                final Integer protocolVersionConfirmedByServer = Integer.valueOf(transportProtocolVersionHeader.getValue());
+                final int protocolVersionConfirmedByServer = Integer.parseInt(transportProtocolVersionHeader.getValue());
                 logger.debug("Finished version negotiation, protocolVersionConfirmedByServer={}", protocolVersionConfirmedByServer);
                 transportProtocolVersionNegotiator.setVersion(protocolVersionConfirmedByServer);
 
@@ -590,7 +589,7 @@ public class SiteToSiteRestApiClient implements Closeable {
             }
 
             @Override
-            public HttpRequest generateRequest() throws IOException, HttpException {
+            public HttpRequest generateRequest() {
                 final BasicHttpEntity entity = new BasicHttpEntity();
                 post.setEntity(entity);
                 return post;
@@ -623,12 +622,12 @@ public class SiteToSiteRestApiClient implements Closeable {
             }
 
             @Override
-            public void resetRequest() throws IOException {
+            public void resetRequest() {
                 requestHasBeenReset = true;
             }
 
             @Override
-            public void close() throws IOException {
+            public void close() {
             }
         };
 
@@ -722,7 +721,7 @@ public class SiteToSiteRestApiClient implements Closeable {
                             if (r < 0) {
                                 closed = true;
                                 logger.debug("Reached to end of input stream. Closing resources...");
-                                stopExtendingTtl();
+                                stopExtendingTransaction();
                                 closeSilently(httpIn);
                                 closeSilently(response);
                             }
@@ -731,7 +730,7 @@ public class SiteToSiteRestApiClient implements Closeable {
                     };
                     ((HttpInput) peer.getCommunicationsSession().getInput()).setInputStream(streamCapture);
 
-                    startExtendingTtl(transactionUrl, httpIn, response);
+                    startExtendingTransaction(transactionUrl);
                     keepItOpen = true;
                     return true;
 
@@ -784,7 +783,7 @@ public class SiteToSiteRestApiClient implements Closeable {
             }
 
             @Override
-            public HttpRequest generateRequest() throws IOException, HttpException {
+            public HttpRequest generateRequest() {
 
                 // Pass the output stream so that Site-to-Site client thread can send
                 // data packet through this connection.
@@ -888,17 +887,17 @@ public class SiteToSiteRestApiClient implements Closeable {
             }
 
             @Override
-            public void resetRequest() throws IOException {
+            public void resetRequest() {
                 logger.debug("Sending data request to {} has been reset...", flowFilesPath);
                 requestHasBeenReset = true;
             }
 
             @Override
-            public void close() throws IOException {
+            public void close() {
                 logger.debug("Closing sending data request to {}", flowFilesPath);
                 closeSilently(outputStream);
                 closeSilently(dataPacketChannel);
-                stopExtendingTtl();
+                stopExtendingTransaction();
             }
         };
 
@@ -912,7 +911,7 @@ public class SiteToSiteRestApiClient implements Closeable {
 
             // Started.
             transferDataLatch = new CountDownLatch(1);
-            startExtendingTtl(transactionUrl, dataPacketChannel, null);
+            startExtendingTransaction(transactionUrl);
 
         } catch (final InterruptedException e) {
             throw new IOException("Awaiting initConnectionLatch has been interrupted.", e);
@@ -927,7 +926,7 @@ public class SiteToSiteRestApiClient implements Closeable {
         }
 
         // No more data can be sent.
-        // Close PipedOutputStream so that dataPacketChannel doesn't blocked.
+        // Close PipedOutputStream so that dataPacketChannel doesn't get blocked.
         // If we don't close this output stream, then PipedInputStream loops infinitely at read().
         commSession.getOutput().getOutputStream().close();
         logger.debug("{} FinishTransferFlowFiles no more data can be sent", this);
@@ -940,7 +939,7 @@ public class SiteToSiteRestApiClient implements Closeable {
             throw new IOException("Awaiting transferDataLatch has been interrupted.", e);
         }
 
-        stopExtendingTtl();
+        stopExtendingTransaction();
 
         final HttpResponse response;
         try {
@@ -968,37 +967,15 @@ public class SiteToSiteRestApiClient implements Closeable {
         }
     }
 
-    private void startExtendingTtl(final String transactionUrl, final Closeable stream, final CloseableHttpResponse response) {
+    private void startExtendingTransaction(final String transactionUrl) {
         if (ttlExtendingFuture != null) {
-            // Already started.
             return;
         }
 
-        logger.debug("Starting extending TTL thread...");
-
-        extendingApiClient = new SiteToSiteRestApiClient(sslContext, proxy, EventReporter.NO_OP);
-        extendingApiClient.transportProtocolVersionNegotiator = this.transportProtocolVersionNegotiator;
-        extendingApiClient.connectTimeoutMillis = this.connectTimeoutMillis;
-        extendingApiClient.readTimeoutMillis = this.readTimeoutMillis;
-        extendingApiClient.localAddress = this.localAddress;
-
         final int extendFrequency = serverTransactionTtl / 2;
-
-        ttlExtendingFuture = ttlExtendTaskExecutor.scheduleWithFixedDelay(() -> {
-            try {
-                extendingApiClient.extendTransaction(transactionUrl);
-            } catch (final Exception e) {
-                logger.warn("Failed to extend transaction ttl", e);
-
-                try {
-                    // Without disconnecting, Site-to-Site client keep reading data packet,
-                    // while server has already rollback.
-                    this.close();
-                } catch (final IOException ec) {
-                    logger.warn("Failed to close", e);
-                }
-            }
-        }, extendFrequency, extendFrequency, TimeUnit.SECONDS);
+        logger.debug("Extend Transaction Started [{}] Frequency [{} seconds]", transactionUrl, extendFrequency);
+        final Runnable command = new ExtendTransactionCommand(this, transactionUrl, eventReporter);
+        ttlExtendingFuture = ttlExtendTaskExecutor.scheduleWithFixedDelay(command, extendFrequency, extendFrequency, TimeUnit.SECONDS);
     }
 
     private void closeSilently(final Closeable closeable) {
@@ -1040,17 +1017,15 @@ public class SiteToSiteRestApiClient implements Closeable {
 
     }
 
-    private void stopExtendingTtl() {
+    private void stopExtendingTransaction() {
         if (!ttlExtendTaskExecutor.isShutdown()) {
             ttlExtendTaskExecutor.shutdown();
         }
 
         if (ttlExtendingFuture != null && !ttlExtendingFuture.isCancelled()) {
-            logger.debug("Cancelling extending ttl...");
-            ttlExtendingFuture.cancel(true);
+            final boolean cancelled = ttlExtendingFuture.cancel(true);
+            logger.debug("Extend Transaction Cancelled [{}]", cancelled);
         }
-
-        closeSilently(extendingApiClient);
     }
 
     private IOException handleErrResponse(final int responseCode, final InputStream in) throws IOException {
@@ -1451,7 +1426,7 @@ public class SiteToSiteRestApiClient implements Closeable {
         logger.debug("Sending commitReceivingFlowFiles request to transactionUrl: {}, clientResponse={}, checksum={}",
             transactionUrl, clientResponse, checksum);
 
-        stopExtendingTtl();
+        stopExtendingTransaction();
 
         final StringBuilder urlBuilder = new StringBuilder(transactionUrl).append("?responseCode=").append(clientResponse.getCode());
         if (ResponseCode.CONFIRM_TRANSACTION.equals(clientResponse)) {

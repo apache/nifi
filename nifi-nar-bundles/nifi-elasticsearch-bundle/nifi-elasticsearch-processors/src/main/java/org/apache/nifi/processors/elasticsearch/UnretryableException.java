@@ -19,8 +19,8 @@ package org.apache.nifi.processors.elasticsearch;
 /**
  * Represents an unrecoverable error from ElasticSearch.
  * @author jgresock
- *
  */
+@Deprecated
 public class UnretryableException extends RuntimeException {
     private static final long serialVersionUID = -4528006567211380914L;
 

@@ -43,7 +43,6 @@
 
     <bean id="flowElection" class="org.apache.nifi.cluster.coordination.flow.PopularVoteFlowElectionFactoryBean">
         <property name="properties" ref="nifiProperties" />
-        <property name="extensionManager" ref="extensionManager" />
     </bean>
 
     <!-- Cluster Coordinator -->
@@ -51,9 +50,15 @@
         <property name="properties" ref="nifiProperties"/>
         <property name="extensionManager" ref="extensionManager" />
     </bean>
-    
+
     <!-- Heartbeat Monitor -->
     <bean id="heartbeatMonitor" class="org.apache.nifi.cluster.spring.HeartbeatMonitorFactoryBean">
         <property name="properties" ref="nifiProperties"/>
     </bean>
+
+    <bean id="decommissionTask" class="org.apache.nifi.cluster.lifecycle.ClusterDecommissionTask">
+        <constructor-arg ref="clusterCoordinator" />
+        <constructor-arg ref="flowController" />
+    </bean>
+
 </beans>

@@ -20,16 +20,18 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.label.StandardLabel;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.flow.ComponentType;
+import org.apache.nifi.flow.ScheduledState;
+import org.apache.nifi.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedConnection;
+import org.apache.nifi.flow.VersionedFlowCoordinates;
+import org.apache.nifi.flow.VersionedLabel;
+import org.apache.nifi.flow.VersionedPort;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.registry.flow.ComponentType;
-import org.apache.nifi.registry.flow.ScheduledState;
-import org.apache.nifi.registry.flow.VersionedComponent;
-import org.apache.nifi.registry.flow.VersionedConnection;
-import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
-import org.apache.nifi.registry.flow.VersionedPort;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
-import org.apache.nifi.registry.flow.VersionedProcessor;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
@@ -44,6 +46,32 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 public class FlowDifferenceFilters {
+
+    /**
+     * Determines whether or not the Flow Difference depicts an environmental change. I.e., a change that is expected to happen from environment to environment,
+     * and which should be considered a "local modification" to a dataflow after a flow has been imported from a flow registry
+     * @param difference the Flow Difference to consider
+     * @param localGroup a mapping of the local Process Group
+     * @param flowManager the Flow Manager
+     * @return <code>true</code> if the change is an environment-specific change, <code>false</code> otherwise
+     */
+    public static boolean isEnvironmentalChange(final FlowDifference difference, final VersionedProcessGroup localGroup, final FlowManager flowManager) {
+        return difference.getDifferenceType() == DifferenceType.BUNDLE_CHANGED
+            || isVariableValueChange(difference)
+            || isRpgUrlChange(difference)
+            || isAddedOrRemovedRemotePort(difference)
+            || isPublicPortNameChange(difference)
+            || isIgnorableVersionedFlowCoordinateChange(difference)
+            || isNewPropertyWithDefaultValue(difference, flowManager)
+            || isNewRelationshipAutoTerminatedAndDefaulted(difference, localGroup, flowManager)
+            || isScheduledStateNew(difference)
+            || isLocalScheduleStateChange(difference)
+            || isPropertyMissingFromGhostComponent(difference, flowManager)
+            || isNewRetryConfigWithDefaultValue(difference, flowManager)
+            || isNewZIndexLabelConfigWithDefaultValue(difference, flowManager)
+            || isNewZIndexConnectionConfigWithDefaultValue(difference, flowManager)
+            || isParameterContextChange(difference);
+    }
 
     /**
      * Predicate that returns true if the difference is NOT a name change on a public port (i.e. VersionedPort that allows remote access).
@@ -121,6 +149,87 @@ public class FlowDifferenceFilters {
         return false;
     }
 
+    private static boolean isNewZIndexLabelConfigWithDefaultValue(final FlowDifference fd, final FlowManager flowManager) {
+        final Object valueA = fd.getValueA();
+        if (valueA != null) {
+            return false;
+        }
+
+        final VersionedComponent componentB = fd.getComponentB();
+        if (!(componentB instanceof VersionedLabel)) {
+            return false;
+        }
+
+        final VersionedLabel versionedLabel = (VersionedLabel) componentB;
+        if (fd.getDifferenceType() == DifferenceType.ZINDEX_CHANGED) {
+            final Long zIndex = versionedLabel.getzIndex();
+
+            // should not be possible as the default value will serialize as non-null but protecting the comparison below
+            if (zIndex == null) {
+                return false;
+            }
+
+            return zIndex.longValue() == StandardLabel.DEFAULT_Z_INDEX;
+        }
+        return false;
+    }
+
+    private static boolean isNewZIndexConnectionConfigWithDefaultValue(final FlowDifference fd, final FlowManager flowManager) {
+        final Object valueA = fd.getValueA();
+        if (valueA != null) {
+            return false;
+        }
+
+        final VersionedComponent componentB = fd.getComponentB();
+        if (!(componentB instanceof VersionedConnection)) {
+            return false;
+        }
+
+        final VersionedConnection versionedConnection = (VersionedConnection) componentB;
+        if (fd.getDifferenceType() == DifferenceType.ZINDEX_CHANGED) {
+            final Long zIndex = versionedConnection.getzIndex();
+
+            // should not be possible as the default value will serialize as non-null but protecting the comparison below
+            if (zIndex == null) {
+                return false;
+            }
+
+            return zIndex.longValue() == StandardLabel.DEFAULT_Z_INDEX;
+        }
+        return false;
+    }
+
+    private static boolean isNewRetryConfigWithDefaultValue(final FlowDifference fd, final FlowManager flowManager) {
+        final Object valueA = fd.getValueA();
+        if (valueA != null) {
+            return false;
+        }
+
+        final VersionedComponent componentB = fd.getComponentB();
+        if (!(componentB instanceof InstantiatedVersionedProcessor)) {
+            return false;
+        }
+
+        final DifferenceType type = fd.getDifferenceType();
+        final InstantiatedVersionedProcessor instantiatedProcessor = (InstantiatedVersionedProcessor) componentB;
+        final ProcessorNode processorNode = flowManager.getProcessorNode(instantiatedProcessor.getInstanceIdentifier());
+        if (processorNode == null) {
+            return false;
+        }
+
+        switch (type) {
+            case RETRIED_RELATIONSHIPS_CHANGED:
+                return processorNode.getRetriedRelationships().isEmpty();
+            case RETRY_COUNT_CHANGED:
+                return processorNode.getRetryCount() == ProcessorNode.DEFAULT_RETRY_COUNT;
+            case MAX_BACKOFF_PERIOD_CHANGED:
+                return ProcessorNode.DEFAULT_MAX_BACKOFF_PERIOD.equals(processorNode.getMaxBackoffPeriod());
+            case BACKOFF_MECHANISM_CHANGED:
+                return ProcessorNode.DEFAULT_BACKOFF_MECHANISM == processorNode.getBackoffMechanism();
+            default:
+                return false;
+        }
+    }
 
     public static boolean isNewPropertyWithDefaultValue(final FlowDifference fd, final FlowManager flowManager) {
         if (fd.getDifferenceType() != DifferenceType.PROPERTY_ADDED) {
@@ -131,11 +240,11 @@ public class FlowDifferenceFilters {
 
         if (componentB instanceof InstantiatedVersionedProcessor) {
             final InstantiatedVersionedProcessor instantiatedProcessor = (InstantiatedVersionedProcessor) componentB;
-            final ProcessorNode processorNode = flowManager.getProcessorNode(instantiatedProcessor.getInstanceId());
+            final ProcessorNode processorNode = flowManager.getProcessorNode(instantiatedProcessor.getInstanceIdentifier());
             return isNewPropertyWithDefaultValue(fd, processorNode);
         } else if (componentB instanceof InstantiatedVersionedControllerService) {
             final InstantiatedVersionedControllerService instantiatedControllerService = (InstantiatedVersionedControllerService) componentB;
-            final ControllerServiceNode controllerService = flowManager.getControllerServiceNode(instantiatedControllerService.getInstanceId());
+            final ControllerServiceNode controllerService = flowManager.getControllerServiceNode(instantiatedControllerService.getInstanceIdentifier());
             return isNewPropertyWithDefaultValue(fd, controllerService);
         }
 
@@ -181,6 +290,42 @@ public class FlowDifferenceFilters {
         return false;
     }
 
+    /**
+     * @return <code>true</code> if the Flow Difference shows a processor/port transitioning between stopped/running or a controller service transitioning
+     * between enabled/disabled. These are a normal part of the flow lifecycle and don't represent changes to the flow itself.
+     */
+    public static boolean isLocalScheduleStateChange(final FlowDifference fd) {
+        if (fd.getDifferenceType() != DifferenceType.SCHEDULED_STATE_CHANGED) {
+            return false;
+        }
+
+        if (fd.getComponentA().getComponentType() == ComponentType.CONTROLLER_SERVICE) {
+            return true;
+        }
+
+        final String scheduledStateB = String.valueOf(fd.getValueB());
+        final String scheduledStateA = String.valueOf(fd.getValueA());
+
+        // If transitioned from 'STOPPED' or 'ENABLED' to 'RUNNING', this is a 'local' schedule State Change.
+        // Because of this, it won't be a considered a difference between the local, running flow, and a versioned flow
+        if ("RUNNING".equals(scheduledStateB) && ("STOPPED".equals(scheduledStateA) || "ENABLED".equals(scheduledStateA))) {
+            return true;
+        }
+        if ("RUNNING".equals(scheduledStateA) && ("STOPPED".equals(scheduledStateB) || "ENABLED".equals(scheduledStateB))) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public static boolean isVariableValueChange(final FlowDifference flowDifference) {
+        return flowDifference.getDifferenceType() == DifferenceType.VARIABLE_CHANGED;
+    }
+
+    public static boolean isRpgUrlChange(final FlowDifference flowDifference) {
+        return flowDifference.getDifferenceType() == DifferenceType.RPG_URL_CHANGED;
+    }
+
     public static boolean isNewRelationshipAutoTerminatedAndDefaulted(final FlowDifference fd, final VersionedProcessGroup processGroup, final FlowManager flowManager) {
         if (fd.getDifferenceType() != DifferenceType.AUTO_TERMINATED_RELATIONSHIPS_CHANGED) {
             return false;
@@ -207,7 +352,7 @@ public class FlowDifferenceFilters {
         }
 
         final InstantiatedVersionedProcessor instantiatedVersionedProcessor = (InstantiatedVersionedProcessor) processorB;
-        final ProcessorNode processorNode = flowManager.getProcessorNode(instantiatedVersionedProcessor.getInstanceId());
+        final ProcessorNode processorNode = flowManager.getProcessorNode(instantiatedVersionedProcessor.getInstanceIdentifier());
         if (processorNode == null) {
             return false;
         }
@@ -239,6 +384,51 @@ public class FlowDifferenceFilters {
     }
 
     /**
+     * If a property is removed from a ghosted component, we may want to ignore it. This is because all properties will be considered sensitive for
+     * a ghosted component and as a result, the property map may not be populated with its property value, resulting in an indication that the property
+     * is missing when it is not.
+     */
+    public static boolean isPropertyMissingFromGhostComponent(final FlowDifference difference, final FlowManager flowManager) {
+        if (difference.getDifferenceType() != DifferenceType.PROPERTY_REMOVED) {
+            return false;
+        }
+
+        final Optional<String> fieldName = difference.getFieldName();
+        if (!fieldName.isPresent()) {
+            return false;
+        }
+
+        final VersionedComponent componentB = difference.getComponentB();
+        if (componentB instanceof InstantiatedVersionedProcessor) {
+            final ProcessorNode procNode = flowManager.getProcessorNode(componentB.getInstanceIdentifier());
+            return procNode.isExtensionMissing() && isPropertyPresent(procNode, difference);
+        }
+
+        if (componentB instanceof InstantiatedVersionedControllerService) {
+            final ControllerServiceNode serviceNode = flowManager.getControllerServiceNode(componentB.getInstanceIdentifier());
+            return serviceNode.isExtensionMissing() && isPropertyPresent(serviceNode, difference);
+        }
+
+        return false;
+    }
+
+    private static boolean isPropertyPresent(final ComponentNode componentNode, final FlowDifference difference) {
+        if (componentNode == null) {
+            return false;
+        }
+
+        final Optional<String> fieldNameOptional = difference.getFieldName();
+        if (!fieldNameOptional.isPresent()) {
+            return false;
+        }
+
+        // Check if a value is configured. If any value is configured, then the property is not actually missing.
+        final PropertyDescriptor descriptor = componentNode.getPropertyDescriptor(fieldNameOptional.get());
+        final String rawPropertyValue = componentNode.getRawPropertyValue(descriptor);
+        return rawPropertyValue != null;
+    }
+
+    /**
      * Determines whether or not the given Process Group has a Connection whose source is the given Processor and that contains the given relationship
      *
      * @param processGroup the process group
@@ -255,5 +445,9 @@ public class FlowDifferenceFilters {
         }
 
         return false;
+    }
+
+    private static boolean isParameterContextChange(final FlowDifference flowDifference) {
+        return flowDifference.getDifferenceType() == DifferenceType.PARAMETER_CONTEXT_CHANGED;
     }
 }

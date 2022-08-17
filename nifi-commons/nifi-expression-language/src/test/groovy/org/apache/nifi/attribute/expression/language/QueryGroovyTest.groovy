@@ -18,39 +18,36 @@ package org.apache.nifi.attribute.expression.language
 
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult
 import org.apache.nifi.expression.AttributeExpression
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-@RunWith(JUnit4.class)
-public class QueryGroovyTest extends GroovyTestCase {
+class QueryGroovyTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(QueryGroovyTest.class)
 
-    @BeforeClass
-    public static void setUpOnce() throws Exception {
+    @BeforeAll
+    static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
     }
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
 
     }
 
-    @After
-    public void tearDown() {
+    @AfterEach
+    void tearDown() {
         Query.metaClass.static = null
 
     }
 
     @Test
-    public void testReplaceShouldReplaceAllLiteralMatches() {
+    void testReplaceShouldReplaceAllLiteralMatches() {
         // Arrange
         int n = 3
         final String ORIGINAL_VALUE = "Hello World"
@@ -90,7 +87,7 @@ public class QueryGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testReplaceFirstShouldOnlyReplaceFirstRegexMatch() {
+    void testReplaceFirstShouldOnlyReplaceFirstRegexMatch() {
         // Arrange
         int n = 3
         final String ORIGINAL_VALUE = "Hello World"
@@ -130,7 +127,7 @@ public class QueryGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testReplaceFirstShouldOnlyReplaceFirstLiteralMatch() {
+    void testReplaceFirstShouldOnlyReplaceFirstLiteralMatch() {
         // Arrange
         int n = 3
         final String ORIGINAL_VALUE = "Hello World"
@@ -170,7 +167,7 @@ public class QueryGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldDemonstrateDifferenceBetweenStringReplaceAndStringReplaceFirst() {
+    void testShouldDemonstrateDifferenceBetweenStringReplaceAndStringReplaceFirst() {
         // Arrange
         int n = 3
         final String ORIGINAL_VALUE = "Hello World"

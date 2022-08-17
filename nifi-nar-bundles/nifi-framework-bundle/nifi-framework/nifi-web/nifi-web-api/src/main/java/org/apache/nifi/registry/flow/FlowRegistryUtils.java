@@ -20,8 +20,9 @@ package org.apache.nifi.registry.flow;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.util.Tuple;
-import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.BundleDTO;
 
@@ -39,7 +40,7 @@ public class FlowRegistryUtils {
         for (final Tuple<String, BundleCoordinate> tuple : componentTypes) {
             final ConfigurableComponent component = serviceFacade.getTempComponent(tuple.getKey(), tuple.getValue());
             if (component == null) {
-                throw new NiFiCoreException("Could not create an instance of component " + tuple.getKey() + " using bundle coordinates " + tuple.getValue());
+                continue;
             }
 
             final boolean isRestricted = component.getClass().isAnnotationPresent(Restricted.class);

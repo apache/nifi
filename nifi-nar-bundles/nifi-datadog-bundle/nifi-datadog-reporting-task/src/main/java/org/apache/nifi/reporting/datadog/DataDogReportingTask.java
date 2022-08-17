@@ -18,10 +18,6 @@ package org.apache.nifi.reporting.datadog;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.AtomicDouble;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -39,9 +35,8 @@ import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.datadog.metrics.MetricsService;
 import org.coursera.metrics.datadog.DynamicTagsCallback;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
@@ -72,6 +67,7 @@ public class DataDogReportingTask extends AbstractReportingTask {
             .name("API key")
             .description("Datadog API key. If specified value is 'agent', local Datadog agent will be used.")
             .required(false)
+            .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -99,11 +95,9 @@ public class DataDogReportingTask extends AbstractReportingTask {
     private MetricRegistry metricRegistry;
     private String metricsPrefix;
     private String environment;
-    private String statusId;
-    private ConcurrentHashMap<String, AtomicDouble> metricsMap;
+    private ConcurrentHashMap<String, Double> metricsMap;
     private Map<String, String> defaultTags;
     private volatile JmxJvmMetrics virtualMachineMetrics;
-    private Logger logger = LoggerFactory.getLogger(getClass().getName());
 
     @OnScheduled
     public void setup(final ConfigurationContext context) {
@@ -114,8 +108,7 @@ public class DataDogReportingTask extends AbstractReportingTask {
         metricsPrefix = METRICS_PREFIX.getDefaultValue();
         environment = ENVIRONMENT.getDefaultValue();
         virtualMachineMetrics = JmxJvmMetrics.getInstance();
-        ddMetricRegistryBuilder.setMetricRegistry(metricRegistry)
-                .setTags(metricsService.getAllTagsList());
+        ddMetricRegistryBuilder.setMetricRegistry(metricRegistry);
     }
 
     @Override
@@ -134,28 +127,30 @@ public class DataDogReportingTask extends AbstractReportingTask {
 
         metricsPrefix = context.getProperty(METRICS_PREFIX).evaluateAttributeExpressions().getValue();
         environment = context.getProperty(ENVIRONMENT).evaluateAttributeExpressions().getValue();
-        statusId = status.getId();
-        defaultTags = ImmutableMap.of("env", environment, "dataflow_id", statusId);
+        final Map<String, String> tags = new HashMap<>();
+        tags.put("env", environment);
+        tags.put("dataflow_id", status.getId());
+        defaultTags = Collections.unmodifiableMap(tags);
         try {
             updateDataDogTransport(context);
         } catch (IOException e) {
-            logger.warn("Unable to update data dog transport", e);
+            getLogger().warn("Unable to update data dog transport", e);
         }
         updateAllMetricGroups(status);
         ddMetricRegistryBuilder.getDatadogReporter().report();
     }
 
-    protected void updateMetrics(Map<String, Double> metrics, Optional<String> processorName, Map<String, String> tags) {
+    protected void updateMetrics(Map<String, Double> metrics, Map<String, String> tags) {
         for (Map.Entry<String, Double> entry : metrics.entrySet()) {
-            final String metricName = buildMetricName(processorName, entry.getKey());
-            logger.debug(metricName + ": " + entry.getValue());
+            final String metricName = buildMetricName(entry.getKey());
+            getLogger().debug("Metric [{}] Value [{}]", metricName, entry.getValue());
             //if metric is not registered yet - register it
             if (!metricsMap.containsKey(metricName)) {
-                metricsMap.put(metricName, new AtomicDouble(entry.getValue()));
+                metricsMap.put(metricName, entry.getValue());
                 metricRegistry.register(metricName, new MetricGauge(metricName, tags));
             }
             //set real time value to metrics map
-            metricsMap.get(metricName).set(entry.getValue());
+            metricsMap.put(metricName, entry.getValue());
         }
     }
 
@@ -163,42 +158,36 @@ public class DataDogReportingTask extends AbstractReportingTask {
         final List<ProcessorStatus> processorStatuses = new ArrayList<>();
         populateProcessorStatuses(processGroupStatus, processorStatuses);
         for (final ProcessorStatus processorStatus : processorStatuses) {
-            updateMetrics(metricsService.getProcessorMetrics(processorStatus),
-                    Optional.of(processorStatus.getName()), defaultTags);
+            final Map<String, String> processorTags = new HashMap<>(defaultTags);
+            processorTags.putAll(metricsService.getProcessorTags(processorStatus));
+            updateMetrics(metricsService.getProcessorMetrics(processorStatus), processorTags);
         }
 
         final List<ConnectionStatus> connectionStatuses = new ArrayList<>();
         populateConnectionStatuses(processGroupStatus, connectionStatuses);
         for (ConnectionStatus connectionStatus: connectionStatuses) {
-            Map<String, String> connectionStatusTags = new HashMap<>(defaultTags);
-            connectionStatusTags.putAll(metricsService.getConnectionStatusTags(connectionStatus));
-            updateMetrics(metricsService.getConnectionStatusMetrics(connectionStatus), Optional.<String>absent(), connectionStatusTags);
+            updateMetrics(metricsService.getConnectionStatusMetrics(connectionStatus), defaultTags);
         }
 
         final List<PortStatus> inputPortStatuses = new ArrayList<>();
         populateInputPortStatuses(processGroupStatus, inputPortStatuses);
         for (PortStatus portStatus: inputPortStatuses) {
-            Map<String, String> portTags = new HashMap<>(defaultTags);
-            portTags.putAll(metricsService.getPortStatusTags(portStatus));
-            updateMetrics(metricsService.getPortStatusMetrics(portStatus), Optional.<String>absent(), portTags);
+            updateMetrics(metricsService.getPortStatusMetrics(portStatus), defaultTags);
         }
 
         final List<PortStatus> outputPortStatuses = new ArrayList<>();
         populateOutputPortStatuses(processGroupStatus, outputPortStatuses);
         for (PortStatus portStatus: outputPortStatuses) {
-            Map<String, String> portTags = new HashMap<>(defaultTags);
-            portTags.putAll(metricsService.getPortStatusTags(portStatus));
-            updateMetrics(metricsService.getPortStatusMetrics(portStatus), Optional.<String>absent(), portTags);
+            updateMetrics(metricsService.getPortStatusMetrics(portStatus), defaultTags);
         }
 
-        updateMetrics(metricsService.getJVMMetrics(virtualMachineMetrics),
-                Optional.<String>absent(), defaultTags);
-        updateMetrics(metricsService.getDataFlowMetrics(processGroupStatus), Optional.<String>absent(), defaultTags);
+        updateMetrics(metricsService.getJVMMetrics(virtualMachineMetrics), defaultTags);
+        updateMetrics(metricsService.getDataFlowMetrics(processGroupStatus), defaultTags);
     }
 
-    private class MetricGauge implements Gauge, DynamicTagsCallback {
-        private Map<String, String> tags;
-        private String metricName;
+    private class MetricGauge implements Gauge<Object>, DynamicTagsCallback {
+        private final Map<String, String> tags;
+        private final String metricName;
 
         public MetricGauge(String metricName, Map<String, String> tagsMap) {
             this.tags = tagsMap;
@@ -207,12 +196,12 @@ public class DataDogReportingTask extends AbstractReportingTask {
 
         @Override
         public Object getValue() {
-            return metricsMap.get(metricName).get();
+            return metricsMap.get(metricName);
         }
 
         @Override
         public List<String> getTags() {
-            List<String> tagsList = Lists.newArrayList();
+            List<String> tagsList = new ArrayList<>();
             for (Map.Entry<String, String> entry : tags.entrySet()) {
                 tagsList.add(entry.getKey() + ":" + entry.getValue());
             }
@@ -258,8 +247,8 @@ public class DataDogReportingTask extends AbstractReportingTask {
         }
     }
 
-    private String buildMetricName(Optional<String> processorName, String metricName) {
-        return metricsPrefix + "." + processorName.or("flow") + "." + metricName;
+    private String buildMetricName(String metricName) {
+        return metricsPrefix + "." + metricName;
     }
 
     protected MetricsService getMetricsService() {
@@ -274,7 +263,7 @@ public class DataDogReportingTask extends AbstractReportingTask {
         return new MetricRegistry();
     }
 
-    protected ConcurrentHashMap<String, AtomicDouble> getMetricsMap() {
+    protected ConcurrentHashMap<String, Double> getMetricsMap() {
         return new ConcurrentHashMap<>();
     }
 }

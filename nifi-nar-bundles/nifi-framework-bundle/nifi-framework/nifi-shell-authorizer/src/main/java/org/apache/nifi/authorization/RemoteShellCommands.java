@@ -56,18 +56,6 @@ class RemoteShellCommands implements ShellCommandsProvider {
         return String.format(remoteCommand, innerProvider.getGroupMembers(groupName), privateKeyPath, remotePort, remoteHost);
     }
 
-    public String getUserById(String userId) {
-        return String.format(remoteCommand, innerProvider.getUserById(userId), privateKeyPath, remotePort, remoteHost);
-    }
-
-    public String getUserByName(String userName) {
-        return String.format(remoteCommand, innerProvider.getUserByName(userName), privateKeyPath, remotePort, remoteHost);
-    }
-
-    public String getGroupById(String groupId) {
-        return String.format(remoteCommand, innerProvider.getGroupById(groupId), privateKeyPath, remotePort, remoteHost);
-    }
-
     public String getSystemCheck() {
         return String.format(remoteCommand, innerProvider.getSystemCheck(), privateKeyPath, remotePort, remoteHost);
     }

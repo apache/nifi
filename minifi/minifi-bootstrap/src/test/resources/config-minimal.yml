@@ -1,0 +1,35 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the \"License\"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an \"AS IS\" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+Flow Controller:
+    name: MiNiFi Flow
+
+# When running the Flow (not just doing the transform) these processors will be invalid due to not having the necesary properties/auto-terminated relationships
+Processors:
+    - name: TailAppLog
+      class: org.apache.nifi.processors.standard.TailFile
+      scheduling strategy: TIMER_DRIVEN
+      scheduling period: 10 sec
+    - name: PutFile
+      class: org.apache.nifi.processors.standard.PutFile
+      max concurrent tasks: 1
+      scheduling strategy: TIMER_DRIVEN
+      scheduling period: 0 sec
+
+Connections:
+    - name: TailToSplit
+      source name: TailAppLog
+      source relationship name: success
+      destination name: PutFile

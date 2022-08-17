@@ -24,11 +24,11 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.HttpResponseMapper;
 import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMapper;
+import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionEndpointMerger;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.exception.ConnectingNodeMutableRequestException;
-import org.apache.nifi.cluster.manager.exception.DisconnectedNodeMutableRequestException;
 import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
 import org.apache.nifi.cluster.manager.exception.NoConnectedNodesException;
 import org.apache.nifi.cluster.manager.exception.OffloadedNodeMutableRequestException;
@@ -40,7 +40,8 @@ import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
-import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
+import org.apache.nifi.web.security.http.SecurityCookieName;
+import org.apache.nifi.web.security.http.SecurityHeader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,7 +103,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
     /**
      * Creates an instance.
      *
-     * @param corePoolSize core size of the thread pool
      * @param maxPoolSize the max number of threads in the thread pool
      * @param maxConcurrentRequests maximum number of concurrent requests
      * @param client a client for making requests
@@ -111,12 +111,10 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      * @param eventReporter an EventReporter that can be used to notify users of interesting events. May be null.
      * @param nifiProperties properties
      */
-    public ThreadPoolRequestReplicator(final int corePoolSize, final int maxPoolSize, final int maxConcurrentRequests, final HttpReplicationClient client,
+    public ThreadPoolRequestReplicator(final int maxPoolSize, final int maxConcurrentRequests, final HttpReplicationClient client,
         final ClusterCoordinator clusterCoordinator, final RequestCompletionCallback callback, final EventReporter eventReporter, final NiFiProperties nifiProperties) {
-        if (corePoolSize <= 0) {
-            throw new IllegalArgumentException("The Core Pool Size must be greater than zero.");
-        } else if (maxPoolSize < corePoolSize) {
-            throw new IllegalArgumentException("Max Pool Size must be >= Core Pool Size.");
+        if (maxPoolSize < 2) {
+            throw new IllegalArgumentException("Max Pool Size must be >= 2");
         } else if (client == null) {
             throw new IllegalArgumentException("Client may not be null.");
         }
@@ -137,7 +135,8 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             return t;
         };
 
-        executorService = new ThreadPoolExecutor(corePoolSize, maxPoolSize, 5, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), threadFactory);
+        executorService = new ThreadPoolExecutor(maxPoolSize, maxPoolSize, 5, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), threadFactory);
+        executorService.allowCoreThreadTimeOut(true);
 
         maintenanceExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
             @Override
@@ -167,52 +166,24 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
     @Override
     public AsyncClusterResponse replicate(NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers) {
         final Map<NodeConnectionState, List<NodeIdentifier>> stateMap = clusterCoordinator.getConnectionStates();
-        final boolean mutable = isMutableRequest(method, uri.getPath());
+        final boolean mutable = isMutableRequest(method);
 
-        // If the request is mutable, ensure that all nodes are connected.
+        // If the request is mutable, ensure the appropriate state: there can be no Connecting Nodes (in order to avoid confusion where a node gets the dataflow, and then gets modified before the
+        // node fully loads the dataflow), and we cannot delete a connection while a node is OFFLOADING (otherwise, we could delete a connection while a node is trying to push data to it).
         if (mutable) {
-            final List<NodeIdentifier> offloaded = stateMap.get(NodeConnectionState.OFFLOADED);
-            if (offloaded != null && !offloaded.isEmpty()) {
-                if (offloaded.size() == 1) {
-                    throw new OffloadedNodeMutableRequestException("Node " + offloaded.iterator().next() + " is currently offloaded");
-                } else {
-                    throw new OffloadedNodeMutableRequestException(offloaded.size() + " Nodes are currently offloaded");
-                }
-            }
-
-            final List<NodeIdentifier> offloading = stateMap.get(NodeConnectionState.OFFLOADING);
-            if (offloading != null && !offloading.isEmpty()) {
-                if (offloading.size() == 1) {
-                    throw new OffloadedNodeMutableRequestException("Node " + offloading.iterator().next() + " is currently offloading");
-                } else {
-                    throw new OffloadedNodeMutableRequestException(offloading.size() + " Nodes are currently offloading");
-                }
-            }
-
-            final List<NodeIdentifier> disconnected = stateMap.get(NodeConnectionState.DISCONNECTED);
-            if (disconnected != null && !disconnected.isEmpty()) {
-                if (disconnected.size() == 1) {
-                    throw new DisconnectedNodeMutableRequestException("Node " + disconnected.iterator().next() + " is currently disconnected");
-                } else {
-                    throw new DisconnectedNodeMutableRequestException(disconnected.size() + " Nodes are currently disconnected");
-                }
-            }
-
-            final List<NodeIdentifier> disconnecting = stateMap.get(NodeConnectionState.DISCONNECTING);
-            if (disconnecting != null && !disconnecting.isEmpty()) {
-                if (disconnecting.size() == 1) {
-                    throw new DisconnectedNodeMutableRequestException("Node " + disconnecting.iterator().next() + " is currently disconnecting");
-                } else {
-                    throw new DisconnectedNodeMutableRequestException(disconnecting.size() + " Nodes are currently disconnecting");
-                }
-            }
-
             final List<NodeIdentifier> connecting = stateMap.get(NodeConnectionState.CONNECTING);
             if (connecting != null && !connecting.isEmpty()) {
                 if (connecting.size() == 1) {
                     throw new ConnectingNodeMutableRequestException("Node " + connecting.iterator().next() + " is currently connecting");
                 } else {
                     throw new ConnectingNodeMutableRequestException(connecting.size() + " Nodes are currently connecting");
+                }
+            }
+
+            if (isDeleteConnection(method, uri.getPath())) {
+                final List<NodeIdentifier> offloading = stateMap.get(NodeConnectionState.OFFLOADING);
+                if (offloading != null && !offloading.isEmpty()) {
+                    throw new OffloadedNodeMutableRequestException("Cannot delete conection because the following Nodes are currently being offloaded: " + offloading);
                 }
             }
         }
@@ -244,25 +215,14 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
         // remove the access token if present, since the user is already authenticated... authorization
         // will happen when the request is replicated using the proxy chain above
-        headers.remove(JwtAuthenticationFilter.AUTHORIZATION);
+        headers.remove(SecurityHeader.AUTHORIZATION.getHeader());
 
         // if knox sso cookie name is set, remove any authentication cookie since this user is already authenticated
         // and will be included in the proxied entities chain above... authorization will happen when the
         // request is replicated
-        final String knoxCookieName = nifiProperties.getKnoxCookieName();
-        if (headers.containsKey("Cookie") && StringUtils.isNotBlank(knoxCookieName)) {
-            final String rawCookies = headers.get("Cookie");
-            final String[] rawCookieParts = rawCookies.split(";");
-            final Set<String> filteredCookieParts = Stream.of(rawCookieParts).map(String::trim).filter(cookie -> !cookie.startsWith(knoxCookieName + "=")).collect(Collectors.toSet());
-
-            // if that was the only cookie, remove it
-            if (filteredCookieParts.isEmpty()) {
-                headers.remove("Cookie");
-            } else {
-                // otherwise rebuild the cookies without the knox token
-                headers.put("Cookie", StringUtils.join(filteredCookieParts, "; "));
-            }
-        }
+        removeCookie(headers, nifiProperties.getKnoxCookieName());
+        removeCookie(headers, SecurityCookieName.AUTHORIZATION_BEARER.getName());
+        removeCookie(headers, SecurityCookieName.REQUEST_TOKEN.getName());
 
         // remove the host header
         headers.remove("Host");
@@ -293,7 +253,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             // performing an action, rather than simply proxying the request to the cluster coordinator. In this case,
             // we need to ensure that we use proper locking. We don't want two requests modifying the flow at the same
             // time, so we use a write lock if the request is mutable and a read lock otherwise.
-            final Lock lock = isMutableRequest(method, uri.getPath()) ? writeLock : readLock;
+            final Lock lock = isMutableRequest(method) ? writeLock : readLock;
             logger.debug("Obtaining lock {} in order to replicate request {} {}", lock, method, uri);
             lock.lock();
             try {
@@ -444,7 +404,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             // issue the request. This is all handled by calling performVerification, which will replicate
             // the 'vote' request to all nodes and then if successful will call back into this method to
             // replicate the actual request.
-            final boolean mutableRequest = isMutableRequest(method, uri.getPath());
+            final boolean mutableRequest = isMutableRequest(method);
             if (mutableRequest && performVerification) {
                 logger.debug("Performing verification (first phase of two-phase commit) for Request ID {}", requestId);
                 performVerification(nodeIds, method, uri, entity, updatedHeaders, response, merge, monitor);
@@ -667,7 +627,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         return nodeResponse;
     }
 
-    private boolean isMutableRequest(final String method, final String uriPath) {
+    private boolean isMutableRequest(final String method) {
         switch (method.toUpperCase()) {
             case HttpMethod.GET:
             case HttpMethod.HEAD:
@@ -676,6 +636,15 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             default:
                 return true;
         }
+    }
+
+    private boolean isDeleteConnection(final String method, final String uriPath) {
+        if (!HttpMethod.DELETE.equalsIgnoreCase(method)) {
+            return false;
+        }
+
+        final boolean isConnectionUri = ConnectionEndpointMerger.CONNECTION_URI_PATTERN.matcher(uriPath).matches();
+        return isConnectionUri;
     }
 
     /**
@@ -691,9 +660,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         // check that the request can be applied
         if (mutableRequest) {
             final Map<NodeConnectionState, List<NodeIdentifier>> connectionStates = clusterCoordinator.getConnectionStates();
-            if (connectionStates.containsKey(NodeConnectionState.DISCONNECTED) || connectionStates.containsKey(NodeConnectionState.DISCONNECTING)) {
-                throw new DisconnectedNodeMutableRequestException("Received a mutable request [" + httpMethod + " " + uriPath + "] while a node is disconnected from the cluster");
-            }
 
             if (connectionStates.containsKey(NodeConnectionState.CONNECTING)) {
                 // if any node is connecting and a request can change the flow, then we throw an exception
@@ -868,5 +834,21 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
         expiredRequestIds.forEach(id -> onResponseConsumed(id));
         return responseMap.size();
+    }
+
+    private void removeCookie(Map<String, String> headers, final String cookieName) {
+        if (headers.containsKey("Cookie") && StringUtils.isNotBlank(cookieName)) {
+            final String rawCookies = headers.get("Cookie");
+            final String[] rawCookieParts = rawCookies.split(";");
+            final Set<String> filteredCookieParts = Stream.of(rawCookieParts).map(String::trim).filter(cookie -> !cookie.startsWith(cookieName + "=")).collect(Collectors.toSet());
+
+            // if that was the only cookie, remove it
+            if (filteredCookieParts.isEmpty()) {
+                headers.remove("Cookie");
+            } else {
+                // otherwise rebuild the cookies without the knox token
+                headers.put("Cookie", StringUtils.join(filteredCookieParts, "; "));
+            }
+        }
     }
 }

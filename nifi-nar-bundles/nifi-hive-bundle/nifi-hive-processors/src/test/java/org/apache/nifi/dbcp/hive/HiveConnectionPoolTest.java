@@ -17,21 +17,7 @@
 
 package org.apache.nifi.dbcp.hive;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.isA;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.UndeclaredThrowableException;
-import java.security.PrivilegedExceptionAction;
-import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.commons.dbcp.BasicDataSource;
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
@@ -44,9 +30,24 @@ import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockVariableRegistry;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.security.PrivilegedExceptionAction;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class HiveConnectionPoolTest {
     private UserGroupInformation userGroupInformation;
@@ -56,7 +57,7 @@ public class HiveConnectionPoolTest {
     private KerberosProperties kerberosProperties;
     private File krb5conf = new File("src/test/resources/krb5.conf");
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         // have to initialize this system property before anything else
         System.setProperty("java.security.krb5.conf", krb5conf.getAbsolutePath());
@@ -113,16 +114,13 @@ public class HiveConnectionPoolTest {
         kerberosPropertiesField.set(hiveConnectionPool, kerberosProperties);
     }
 
-    @Test(expected = ProcessException.class)
+    @Test
     public void testGetConnectionSqlException() throws SQLException {
         SQLException sqlException = new SQLException("bad sql");
         when(basicDataSource.getConnection()).thenThrow(sqlException);
-        try {
-            hiveConnectionPool.getConnection();
-        } catch (ProcessException e) {
-            assertEquals(sqlException, e.getCause());
-            throw e;
-        }
+
+        ProcessException e = assertThrows(ProcessException.class, () -> hiveConnectionPool.getConnection());
+        assertEquals(sqlException, e.getCause());
     }
 
     @Test
@@ -131,6 +129,7 @@ public class HiveConnectionPoolTest {
         final String USER = "user";
         final String PASS = "pass";
         final int MAX_CONN = 7;
+        final String MAX_CONN_LIFETIME = "1 sec";
         final String MAX_WAIT = "10 sec"; // 10000 milliseconds
         final String CONF = "/path/to/hive-site.xml";
         hiveConnectionPool = new HiveConnectionPool();
@@ -140,6 +139,7 @@ public class HiveConnectionPoolTest {
             put(HiveConnectionPool.DB_USER, "${username}");
             put(HiveConnectionPool.DB_PASSWORD, "${password}");
             put(HiveConnectionPool.MAX_TOTAL_CONNECTIONS, "${maxconn}");
+            put(HiveConnectionPool.MAX_CONN_LIFETIME, "${maxconnlifetime}");
             put(HiveConnectionPool.MAX_WAIT_TIME, "${maxwait}");
             put(HiveConnectionPool.HIVE_CONFIGURATION_RESOURCES, "${hiveconf}");
         }};
@@ -149,6 +149,7 @@ public class HiveConnectionPoolTest {
         registry.setVariable(new VariableDescriptor("username"), USER);
         registry.setVariable(new VariableDescriptor("password"), PASS);
         registry.setVariable(new VariableDescriptor("maxconn"), Integer.toString(MAX_CONN));
+        registry.setVariable(new VariableDescriptor("maxconnlifetime"), MAX_CONN_LIFETIME);
         registry.setVariable(new VariableDescriptor("maxwait"), MAX_WAIT);
         registry.setVariable(new VariableDescriptor("hiveconf"), CONF);
 
@@ -162,14 +163,18 @@ public class HiveConnectionPoolTest {
         assertEquals(URL, basicDataSource.getUrl());
         assertEquals(USER, basicDataSource.getUsername());
         assertEquals(PASS, basicDataSource.getPassword());
-        assertEquals(MAX_CONN, basicDataSource.getMaxActive());
-        assertEquals(10000L, basicDataSource.getMaxWait());
+        assertEquals(MAX_CONN, basicDataSource.getMaxTotal());
+        assertEquals(1000L, basicDataSource.getMaxConnLifetimeMillis());
+        assertEquals(10000L, basicDataSource.getMaxWaitMillis());
         assertEquals(URL, hiveConnectionPool.getConnectionURL());
     }
 
-    @Ignore("Kerberos does not seem to be properly handled in Travis build, but, locally, this test should successfully run")
-    @Test(expected = InitializationException.class)
-    public void testKerberosAuthException() throws Exception {
+    @EnabledIfSystemProperty(
+            named = "nifi.test.unstable",
+            matches = "true",
+            disabledReason = "Kerberos does not seem to be properly handled in Travis build, but, locally, this test should successfully run")
+    @Test
+    public void testKerberosAuthException() {
         final String URL = "jdbc:hive2://localhost:10000/default";
         final String conf = "src/test/resources/hive-site-security.xml";
         final String ktab = "src/test/resources/fake.keytab";
@@ -191,6 +196,6 @@ public class HiveConnectionPoolTest {
         registry.setVariable(new VariableDescriptor("kprinc"), kprinc);
 
         MockConfigurationContext context = new MockConfigurationContext(props, null, registry);
-        hiveConnectionPool.onConfigured(context);
+        assertThrows(InitializationException.class, () -> hiveConnectionPool.onConfigured(context));
     }
 }

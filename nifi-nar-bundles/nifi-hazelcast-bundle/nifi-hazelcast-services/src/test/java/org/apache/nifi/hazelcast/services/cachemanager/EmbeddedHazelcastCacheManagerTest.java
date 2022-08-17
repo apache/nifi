@@ -16,23 +16,20 @@
  */
 package org.apache.nifi.hazelcast.services.cachemanager;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class EmbeddedHazelcastCacheManagerTest extends AbstractHazelcastCacheManagerTest {
 
     @Test
     public void testExecution() throws Exception {
-        // given
         testSubject = new EmbeddedHazelcastCacheManager();
         testRunner.addControllerService("hazelcast-connection-service", testSubject);
 
         givenHazelcastMapCacheClient();
         givenServicesAreEnabled();
 
-        // when
         whenExecuting();
 
-        // then
         thenProcessingIsSuccessful();
     }
 }

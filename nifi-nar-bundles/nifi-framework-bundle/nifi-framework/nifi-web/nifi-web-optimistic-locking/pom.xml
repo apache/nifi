@@ -18,9 +18,8 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-web</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
-    <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-web-optimistic-locking</artifactId>
     <dependencies>
         <dependency>
@@ -38,6 +37,10 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
         </dependency>
     </dependencies>
 </project>

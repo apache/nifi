@@ -61,6 +61,7 @@
 
     var nfControllerServices;
     var nfParameterContexts;
+    var nfBackpressureDefaults;
 
     var config = {
         urls: {
@@ -107,7 +108,10 @@
                     'id': $('#process-group-parameter-context-combo').combo('getSelectedOption').value
                 },
                 'flowfileConcurrency': $('#process-group-flowfile-concurrency-combo').combo('getSelectedOption').value,
-                'flowfileOutboundPolicy': $('#process-group-outbound-policy-combo').combo('getSelectedOption').value
+                'flowfileOutboundPolicy': $('#process-group-outbound-policy-combo').combo('getSelectedOption').value,
+                'defaultFlowFileExpiration': $('#process-group-default-flowfile-expiration').val(),
+                'defaultBackPressureObjectThreshold': $('#process-group-default-back-pressure-object-threshold').val(),
+                'defaultBackPressureDataSizeThreshold': $('#process-group-default-back-pressure-data-size-threshold').val()
             }
         };
 
@@ -140,7 +144,10 @@
             $.ajax({
                 type: 'GET',
                 url: controllerServicesUri,
-                dataType: 'json'
+                dataType: 'json',
+                data: {
+                    uiOnly: true
+                }
             }).done(function (response) {
                 var serviceTable = getControllerServicesTable();
 
@@ -167,6 +174,9 @@
         var setUnauthorizedText = function () {
             $('#read-only-process-group-name').text('Unauthorized');
             $('#read-only-process-group-comments').text('Unauthorized');
+            $('#read-only-process-group-default-flowfile-expiration').text('Unauthorized');
+            $('#read-only-process-group-default-back-pressure-object-threshold').text('Unauthorized');
+            $('#read-only-process-group-default-back-pressure-data-size-threshold').text('Unauthorized');
         };
 
         var setEditable = function (editable) {
@@ -202,7 +212,10 @@
             $.ajax({
                 type: 'GET',
                 url: config.urls.api + '/process-groups/' + encodeURIComponent(groupId),
-                dataType: 'json'
+                dataType: 'json',
+                data: {
+                    uiOnly: true
+                }
             }).done(function (response) {
                 // store the process group
                 $('#process-group-configuration').data('process-group', response);
@@ -255,6 +268,10 @@
                         }
                     });
 
+                    $('#process-group-default-flowfile-expiration').removeClass('unset').val(processGroup.defaultFlowFileExpiration);
+                    $('#process-group-default-back-pressure-object-threshold').removeClass('unset').val(processGroup.defaultBackPressureObjectThreshold);
+                    $('#process-group-default-back-pressure-data-size-threshold').removeClass('unset').val(processGroup.defaultBackPressureDataSizeThreshold);
+
 
                     // populate the header
                     $('#process-group-configuration-header-text').text(processGroup.name + ' Configuration');
@@ -290,6 +307,15 @@
 
                         // populate the header
                         $('#process-group-configuration-header-text').text(processGroup.name + ' Configuration');
+
+                        // backpressure settings
+                        $('#process-group-default-flowfile-expiration').text(processGroup.defaultFlowFileExpiration);
+                        $('#process-group-default-back-pressure-object-threshold').text(processGroup.defaultBackPressureObjectThreshold);
+                        $('#process-group-default-back-pressure-data-size-threshold').text(processGroup.defaultBackPressureDataSizeThreshold);
+
+                        $('#read-only-process-group-default-flowfile-expiration').text(processGroup.defaultFlowFileExpiration);
+                        $('#read-only-process-group-default-back-pressure-object-threshold').text(processGroup.defaultBackPressureObjectThreshold);
+                        $('#read-only-process-group-default-back-pressure-data-size-threshold').text(processGroup.defaultBackPressureDataSizeThreshold);
                     } else {
                         setUnauthorizedText();
                     }
@@ -519,6 +545,9 @@
         $('#process-group-id').text('');
         $('#process-group-name').val('');
         $('#process-group-comments').val('');
+        $('#process-group-default-flowfile-expiration').val('');
+        $('#process-group-default-back-pressure-object-threshold').val('');
+        $('#process-group-default-back-pressure-data-size-threshold').val('');
 
         // reset the header
         $('#process-group-configuration-header-text').text('Process Group Configuration');

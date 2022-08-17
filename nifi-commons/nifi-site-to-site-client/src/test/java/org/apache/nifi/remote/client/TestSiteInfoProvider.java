@@ -21,7 +21,7 @@ import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
 import org.apache.nifi.web.api.dto.ControllerDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -31,11 +31,11 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -190,18 +190,7 @@ public class TestSiteInfoProvider {
             return apiClient;
         }).when(siteInfoProvider).createSiteToSiteRestApiClient(any(), any());
 
-        try {
-            siteInfoProvider.getSiteToSitePort();
-            fail();
-        } catch (IOException e) {
-        }
-
-        try {
-            siteInfoProvider.getActiveClusterUrl();
-            fail();
-        } catch (IOException e) {
-        }
-
+        assertThrows(IOException.class, () -> siteInfoProvider.getSiteToSitePort());
+        assertThrows(IOException.class, () -> siteInfoProvider.getActiveClusterUrl());
     }
-
 }

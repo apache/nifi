@@ -18,14 +18,19 @@ package org.apache.nifi.syslog;
 
 import org.apache.nifi.syslog.events.SyslogEvent;
 import org.apache.nifi.syslog.parsers.SyslogParser;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSyslogParser {
 
@@ -33,7 +38,7 @@ public class TestSyslogParser {
 
     private SyslogParser parser;
 
-    @Before
+    @BeforeEach
     public void setup() {
         parser = new SyslogParser(CHARSET);
     }
@@ -52,16 +57,16 @@ public class TestSyslogParser {
         buffer.put(bytes);
 
         final SyslogEvent event = parser.parseEvent(buffer);
-        Assert.assertNotNull(event);
-        Assert.assertEquals(pri, event.getPriority());
-        Assert.assertEquals("2", event.getSeverity());
-        Assert.assertEquals("1", event.getFacility());
-        Assert.assertNull(event.getVersion());
-        Assert.assertEquals(stamp, event.getTimeStamp());
-        Assert.assertEquals(host, event.getHostName());
-        Assert.assertEquals(body, event.getMsgBody());
-        Assert.assertEquals(message, event.getFullMessage());
-        Assert.assertTrue(event.isValid());
+        assertNotNull(event);
+        assertEquals(pri, event.getPriority());
+        assertEquals("2", event.getSeverity());
+        assertEquals("1", event.getFacility());
+        assertNull(event.getVersion());
+        assertEquals(stamp, event.getTimeStamp());
+        assertEquals(host, event.getHostName());
+        assertEquals(body, event.getMsgBody());
+        assertEquals(message, event.getFullMessage());
+        assertTrue(event.isValid());
     }
 
     @Test
@@ -78,16 +83,16 @@ public class TestSyslogParser {
         buffer.put(bytes);
 
         final SyslogEvent event = parser.parseEvent(buffer);
-        Assert.assertNotNull(event);
-        Assert.assertEquals(pri, event.getPriority());
-        Assert.assertEquals("7", event.getSeverity());
-        Assert.assertEquals("3", event.getFacility());
-        Assert.assertNull(event.getVersion());
-        Assert.assertEquals(stamp, event.getTimeStamp());
-        Assert.assertEquals(host, event.getHostName());
-        Assert.assertEquals(body, event.getMsgBody());
-        Assert.assertEquals(message, event.getFullMessage());
-        Assert.assertTrue(event.isValid());
+        assertNotNull(event);
+        assertEquals(pri, event.getPriority());
+        assertEquals("7", event.getSeverity());
+        assertEquals("3", event.getFacility());
+        assertNull(event.getVersion());
+        assertEquals(stamp, event.getTimeStamp());
+        assertEquals(host, event.getHostName());
+        assertEquals(body, event.getMsgBody());
+        assertEquals(message, event.getFullMessage());
+        assertTrue(event.isValid());
     }
 
     @Test
@@ -105,16 +110,16 @@ public class TestSyslogParser {
         buffer.put(bytes);
 
         final SyslogEvent event = parser.parseEvent(buffer);
-        Assert.assertNotNull(event);
-        Assert.assertEquals(pri, event.getPriority());
-        Assert.assertEquals("7", event.getSeverity());
-        Assert.assertEquals("3", event.getFacility());
-        Assert.assertEquals(version, event.getVersion());
-        Assert.assertEquals(stamp, event.getTimeStamp());
-        Assert.assertEquals(host, event.getHostName());
-        Assert.assertEquals(body, event.getMsgBody());
-        Assert.assertEquals(message, event.getFullMessage());
-        Assert.assertTrue(event.isValid());
+        assertNotNull(event);
+        assertEquals(pri, event.getPriority());
+        assertEquals("7", event.getSeverity());
+        assertEquals("3", event.getFacility());
+        assertEquals(version, event.getVersion());
+        assertEquals(stamp, event.getTimeStamp());
+        assertEquals(host, event.getHostName());
+        assertEquals(body, event.getMsgBody());
+        assertEquals(message, event.getFullMessage());
+        assertTrue(event.isValid());
     }
 
     @Test
@@ -133,16 +138,16 @@ public class TestSyslogParser {
         buffer.put(bytes);
 
         final SyslogEvent event = parser.parseEvent(buffer);
-        Assert.assertNotNull(event);
-        Assert.assertEquals(pri, event.getPriority());
-        Assert.assertEquals("2", event.getSeverity());
-        Assert.assertEquals("4", event.getFacility());
-        Assert.assertEquals(version, event.getVersion());
-        Assert.assertEquals(stamp, event.getTimeStamp());
-        Assert.assertEquals(host, event.getHostName());
-        Assert.assertEquals(body, event.getMsgBody());
-        Assert.assertEquals(message, event.getFullMessage());
-        Assert.assertTrue(event.isValid());
+        assertNotNull(event);
+        assertEquals(pri, event.getPriority());
+        assertEquals("2", event.getSeverity());
+        assertEquals("4", event.getFacility());
+        assertEquals(version, event.getVersion());
+        assertEquals(stamp, event.getTimeStamp());
+        assertEquals(host, event.getHostName());
+        assertEquals(body, event.getMsgBody());
+        assertEquals(message, event.getFullMessage());
+        assertTrue(event.isValid());
     }
 
     @Test
@@ -160,16 +165,16 @@ public class TestSyslogParser {
         buffer.put(bytes);
 
         final SyslogEvent event = parser.parseEvent(buffer);
-        Assert.assertNotNull(event);
-        Assert.assertEquals(pri, event.getPriority());
-        Assert.assertEquals("2", event.getSeverity());
-        Assert.assertEquals("4", event.getFacility());
-        Assert.assertNull(event.getVersion());
-        Assert.assertEquals(stamp, event.getTimeStamp());
-        Assert.assertEquals(host, event.getHostName());
-        Assert.assertEquals(body, event.getMsgBody());
-        Assert.assertEquals(message, event.getFullMessage());
-        Assert.assertTrue(event.isValid());
+        assertNotNull(event);
+        assertEquals(pri, event.getPriority());
+        assertEquals("2", event.getSeverity());
+        assertEquals("4", event.getFacility());
+        assertNull(event.getVersion());
+        assertEquals(stamp, event.getTimeStamp());
+        assertEquals(host, event.getHostName());
+        assertEquals(body, event.getMsgBody());
+        assertEquals(message, event.getFullMessage());
+        assertTrue(event.isValid());
     }
 
     @Test
@@ -182,8 +187,8 @@ public class TestSyslogParser {
         buffer.put(bytes);
 
         final SyslogEvent event = parser.parseEvent(buffer);
-        Assert.assertNotNull(event);
-        Assert.assertTrue(event.isValid());
+        assertNotNull(event);
+        assertTrue(event.isValid());
     }
 
     @Test
@@ -218,7 +223,7 @@ public class TestSyslogParser {
             buffer.put(bytes);
 
             final SyslogEvent event = parser.parseEvent(buffer);
-            Assert.assertTrue(event.isValid());
+            assertTrue(event.isValid());
         }
     }
 
@@ -232,9 +237,9 @@ public class TestSyslogParser {
         buffer.put(bytes);
 
         final SyslogEvent event = parser.parseEvent(buffer);
-        Assert.assertNotNull(event);
-        Assert.assertFalse(event.isValid());
-        Assert.assertEquals(message, event.getFullMessage());
+        assertNotNull(event);
+        assertFalse(event.isValid());
+        assertEquals(message, event.getFullMessage());
     }
 
     @Test
@@ -248,8 +253,8 @@ public class TestSyslogParser {
         buffer.put(bytes);
 
         final SyslogEvent event = parser.parseEvent(buffer, sender);
-        Assert.assertNotNull(event);
-        Assert.assertTrue(event.isValid());
-        Assert.assertEquals(sender, event.getSender());
+        assertNotNull(event);
+        assertTrue(event.isValid());
+        assertEquals(sender, event.getSender());
     }
 }

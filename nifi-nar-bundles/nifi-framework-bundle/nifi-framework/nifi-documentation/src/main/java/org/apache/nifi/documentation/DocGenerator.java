@@ -22,6 +22,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.html.HtmlDocumentationWriter;
 import org.apache.nifi.documentation.html.HtmlProcessorDocumentationWriter;
+import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.processor.Processor;
@@ -69,25 +70,34 @@ public class DocGenerator {
     /**
      * Documents a type of configurable component.
      *
-     * @param extensionClasses types of a configurable component
+     * @param extensionDefinitions definitions of the extensions to document
      * @param explodedNiFiDocsDir base directory of component documentation
      */
-    public static void documentConfigurableComponent(final Set<Class> extensionClasses, final File explodedNiFiDocsDir, final ExtensionManager extensionManager) {
-        for (final Class<?> extensionClass : extensionClasses) {
-            if (ConfigurableComponent.class.isAssignableFrom(extensionClass)) {
-                final String extensionClassName = extensionClass.getCanonicalName();
+    public static void documentConfigurableComponent(final Set<ExtensionDefinition> extensionDefinitions, final File explodedNiFiDocsDir, final ExtensionManager extensionManager) {
+        for (final ExtensionDefinition extensionDefinition : extensionDefinitions) {
+            final Bundle bundle = extensionDefinition.getBundle();
+            if (bundle == null) {
+                logger.warn("Cannot document extension {} because it has no bundle associated with it", extensionDefinition);
+                continue;
+            }
 
-                final Bundle bundle = extensionManager.getBundle(extensionClass.getClassLoader());
-                if (bundle == null) {
-                    logger.warn("No coordinate found for {}, skipping...", new Object[] {extensionClassName});
-                    continue;
-                }
-                final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
+            final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
 
-                final String path = coordinate.getGroup() + "/" + coordinate.getId() + "/" + coordinate.getVersion() + "/" + extensionClassName;
-                final File componentDirectory = new File(explodedNiFiDocsDir, path);
+            final String extensionClassName = extensionDefinition.getImplementationClassName();
+            final String path = coordinate.getGroup() + "/" + coordinate.getId() + "/" + coordinate.getVersion() + "/" + extensionClassName;
+            final File componentDirectory = new File(explodedNiFiDocsDir, path);
+            final File indexHtml = new File(componentDirectory, "index.html");
+            if (indexHtml.exists()) {
+                // index.html already exists, no need to unpack the docs again.
+                logger.debug("Found existing documentation file {}. Will not generate documentation for {}", indexHtml.getAbsolutePath(), extensionClassName);
+                continue;
+            }
+
+            final Class<?> extensionType = extensionDefinition.getExtensionType();
+            if (ConfigurableComponent.class.isAssignableFrom(extensionType)) {
                 componentDirectory.mkdirs();
 
+                final Class<?> extensionClass = extensionManager.getClass(extensionDefinition);
                 final Class<? extends ConfigurableComponent> componentClass = extensionClass.asSubclass(ConfigurableComponent.class);
                 try {
                     logger.debug("Documenting: " + componentClass);

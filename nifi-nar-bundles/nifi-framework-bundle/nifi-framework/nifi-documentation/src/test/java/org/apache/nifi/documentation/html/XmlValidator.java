@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.documentation.html;
 
-import java.io.IOException;
-import java.io.StringReader;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.parsers.DocumentProvider;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.junit.Assert;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
 /**
  * A helper class to validate xml documents.
@@ -30,21 +30,21 @@ import org.xml.sax.SAXException;
  *
  */
 public class XmlValidator {
+    private static final String DOCTYPE = "<!DOCTYPE html>";
+
+    private static final String EMPTY = "";
 
     /**
-     * Asserts a failure if the provided XML is not valid. <strong>This method does
-     * not use the "safe" {@link DocumentBuilderFactory} from
-     * {@code XmlUtils#createSafeDocumentBuilder(Schema, boolean)} because it checks
-     * generated documentation which contains a doctype. </strong>
+     * Asserts a failure if the provided XHTML is not valid
      *
      * @param xml the XML to validate
      */
     public static void assertXmlValid(String xml) {
+        final String html = xml.replace(DOCTYPE, EMPTY);
         try {
-            final DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-            dbf.setNamespaceAware(true);
-            dbf.newDocumentBuilder().parse(new InputSource(new StringReader(xml)));
-        } catch (SAXException | IOException | ParserConfigurationException e) {
+            final DocumentProvider provider = new StandardDocumentProvider();
+            provider.parse(new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8)));
+        } catch (final ProcessingException e) {
             Assert.fail(e.getMessage());
         }
     }

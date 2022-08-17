@@ -127,7 +127,7 @@ public class TestStandardPropertyValue {
     @Test
     public void testisExpressionLanguagePresentShouldHandleNPE() {
         // Arrange
-        final PropertyValue value = new StandardPropertyValue(null, lookup, ParameterLookup.EMPTY, null, null);
+        final PropertyValue value = new StandardPropertyValue(null, lookup, ParameterLookup.EMPTY);
 
         // Act
         boolean elPresent = value.isExpressionLanguagePresent();

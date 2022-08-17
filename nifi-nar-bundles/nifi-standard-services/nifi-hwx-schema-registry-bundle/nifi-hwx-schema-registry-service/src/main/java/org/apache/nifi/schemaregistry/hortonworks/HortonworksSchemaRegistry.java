@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.schemaregistry.hortonworks;
 
-import com.google.common.collect.ImmutableMap;
 import com.hortonworks.registries.schemaregistry.SchemaIdVersion;
 import com.hortonworks.registries.schemaregistry.SchemaMetadata;
 import com.hortonworks.registries.schemaregistry.SchemaMetadataInfo;
@@ -50,6 +49,7 @@ import org.apache.nifi.util.Tuple;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -76,55 +76,55 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
     private static final String CLIENT_SSL_PROPERTY_PREFIX = "schema.registry.client.ssl";
 
     private final ConcurrentMap<Tuple<SchemaIdentifier, String>, RecordSchema> schemaNameToSchemaMap = new ConcurrentHashMap<>();
-    private final ConcurrentMap<Tuple<String,String>, Tuple<SchemaVersionInfo, Long>> schemaVersionByNameCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Tuple<String, String>, Tuple<SchemaVersionInfo, Long>> schemaVersionByNameCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<SchemaVersionKey, Tuple<SchemaVersionInfo, Long>> schemaVersionByKeyCache = new ConcurrentHashMap<>();
 
     private volatile long versionInfoCacheNanos;
 
     static final PropertyDescriptor URL = new PropertyDescriptor.Builder()
-        .name("url")
-        .displayName("Schema Registry URL")
-        .description("URL of the schema registry that this Controller Service should connect to, including version. For example, http://localhost:9090/api/v1")
-        .addValidator(StandardValidators.URL_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .required(true)
-        .build();
+            .name("url")
+            .displayName("Schema Registry URL")
+            .description("URL of the schema registry that this Controller Service should connect to, including version. For example, http://localhost:9090/api/v1")
+            .addValidator(StandardValidators.URL_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .required(true)
+            .build();
 
     static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
-        .name("cache-size")
-        .displayName("Cache Size")
-        .description("Specifies how many Schemas should be cached from the Hortonworks Schema Registry")
-        .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-        .defaultValue("1000")
-        .required(true)
-        .build();
+            .name("cache-size")
+            .displayName("Cache Size")
+            .description("Specifies how many Schemas should be cached from the Hortonworks Schema Registry")
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .defaultValue("1000")
+            .required(true)
+            .build();
 
     static final PropertyDescriptor CACHE_EXPIRATION = new PropertyDescriptor.Builder()
-        .name("cache-expiration")
-        .displayName("Cache Expiration")
-        .description("Specifies how long a Schema that is cached should remain in the cache. Once this time period elapses, a "
-            + "cached version of a schema will no longer be used, and the service will have to communicate with the "
-            + "Hortonworks Schema Registry again in order to obtain the schema.")
-        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .defaultValue("1 hour")
-        .required(true)
-        .build();
+            .name("cache-expiration")
+            .displayName("Cache Expiration")
+            .description("Specifies how long a Schema that is cached should remain in the cache. Once this time period elapses, a "
+                    + "cached version of a schema will no longer be used, and the service will have to communicate with the "
+                    + "Hortonworks Schema Registry again in order to obtain the schema.")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("1 hour")
+            .required(true)
+            .build();
 
     static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-        .name("ssl-context-service")
-        .displayName("SSL Context Service")
-        .description("Specifies the SSL Context Service to use for communicating with Schema Registry.")
-        .required(false)
-        .identifiesControllerService(SSLContextService.class)
-        .build();
+            .name("ssl-context-service")
+            .displayName("SSL Context Service")
+            .description("Specifies the SSL Context Service to use for communicating with Schema Registry.")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .build();
 
     static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
-        .name("kerberos-credentials-service")
-        .displayName("Kerberos Credentials Service")
-        .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
-        .identifiesControllerService(KerberosCredentialsService.class)
-        .required(false)
-        .build();
+            .name("kerberos-credentials-service")
+            .displayName("Kerberos Credentials Service")
+            .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
+            .identifiesControllerService(KerberosCredentialsService.class)
+            .required(false)
+            .build();
 
     static final PropertyDescriptor KERBEROS_PRINCIPAL = new PropertyDescriptor.Builder()
             .name("kerberos-principal")
@@ -145,6 +145,23 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor BASIC_AUTH_USERNAME = new PropertyDescriptor.Builder()
+            .name("basic-auth-username")
+            .displayName("Basic Authentication Username")
+            .description("The username to use for basic authentication when the Schema Registry is behind a proxy such as Apache Knox.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .dependsOn(SSL_CONTEXT_SERVICE)
+            .build();
+
+    static final PropertyDescriptor BASIC_AUTH_PASSWORD = new PropertyDescriptor.Builder()
+            .name("basic-auth-password")
+            .displayName("Basic Authentication Password")
+            .description("The password to use for basic authentication when the Schema Registry is behind a proxy such as Apache Knox.")
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .dependsOn(SSL_CONTEXT_SERVICE)
+            .build();
+
     private volatile boolean usingKerberosWithPassword = false;
     private volatile SchemaRegistryClient schemaRegistryClient;
     private volatile boolean initialized;
@@ -156,6 +173,8 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
 
         final String kerberosPrincipal = validationContext.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
         final String kerberosPassword = validationContext.getProperty(KERBEROS_PASSWORD).getValue();
+
+        final String basicAuthUsername = validationContext.getProperty(BASIC_AUTH_USERNAME).evaluateAttributeExpressions().getValue();
 
         final KerberosCredentialsService kerberosCredentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE)
                 .asControllerService(KerberosCredentialsService.class);
@@ -184,6 +203,23 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
                     .build());
         }
 
+        if ((validationContext.getProperty(BASIC_AUTH_USERNAME).isSet() || validationContext.getProperty(BASIC_AUTH_PASSWORD).isSet())
+                && !validationContext.getProperty(SSL_CONTEXT_SERVICE).isSet()) {
+            results.add(new ValidationResult.Builder()
+                    .subject(BASIC_AUTH_USERNAME.getDisplayName())
+                    .valid(false)
+                    .explanation("SSL Context Service must be set when using basic authentication")
+                    .build());
+        }
+
+        if ((!StringUtils.isBlank(kerberosPrincipal) || kerberosCredentialsService != null ) && !StringUtils.isBlank(basicAuthUsername)) {
+            results.add(new ValidationResult.Builder()
+                    .subject(BASIC_AUTH_USERNAME.getDisplayName())
+                    .valid(false)
+                    .explanation("kerberos- and basic authentication cannot be configured at the same time")
+                    .build());
+        }
+
         return results;
     }
 
@@ -202,10 +238,10 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         }
 
         schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SCHEMA_REGISTRY_URL.name(), urlValue);
-        schemaRegistryConfig.put(SchemaRegistryClient.Configuration.CLASSLOADER_CACHE_SIZE.name(), 10L);
-        schemaRegistryConfig.put(SchemaRegistryClient.Configuration.CLASSLOADER_CACHE_EXPIRY_INTERVAL_SECS.name(), context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.SECONDS));
+        schemaRegistryConfig.put(SchemaRegistryClient.Configuration.CLASSLOADER_CACHE_SIZE.name(), 10);
+        schemaRegistryConfig.put(SchemaRegistryClient.Configuration.CLASSLOADER_CACHE_EXPIRY_INTERVAL_SECS.name(), context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.SECONDS).intValue());
         schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SCHEMA_VERSION_CACHE_SIZE.name(), context.getProperty(CACHE_SIZE).asInteger());
-        schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SCHEMA_VERSION_CACHE_EXPIRY_INTERVAL_SECS.name(), context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.SECONDS));
+        schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SCHEMA_VERSION_CACHE_EXPIRY_INTERVAL_SECS.name(), context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.SECONDS).intValue());
         Map<String, String> sslProperties = buildSslProperties(context);
         if (!sslProperties.isEmpty()) {
             schemaRegistryConfig.put(CLIENT_SSL_PROPERTY_PREFIX, sslProperties);
@@ -229,6 +265,14 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
             schemaRegistryConfig.put(SchemaRegistryClientWithKerberosPassword.SCHEMA_REGISTRY_CLIENT_NIFI_COMP_LOGGER, getLogger());
             usingKerberosWithPassword = true;
         }
+
+        if (context.getProperty(BASIC_AUTH_USERNAME).isSet()) {
+            schemaRegistryConfig.put(SchemaRegistryClient.Configuration.AUTH_USERNAME.name(), context.getProperty(BASIC_AUTH_USERNAME).getValue());
+        }
+
+        if (context.getProperty(BASIC_AUTH_PASSWORD).isSet()) {
+            schemaRegistryConfig.put(SchemaRegistryClient.Configuration.AUTH_PASSWORD.name(), context.getProperty(BASIC_AUTH_PASSWORD).getValue());
+        }
     }
 
     private String getKeytabJaasConfig(final String principal, final String keytab) {
@@ -242,7 +286,7 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
 
     private Map<String, String> buildSslProperties(final ConfigurationContext context) {
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        ImmutableMap.Builder<String, String> propertiesBuilder = ImmutableMap.builder();
+        final Map<String, String> propertiesBuilder = new HashMap<>();
         if (sslContextService != null) {
             propertiesBuilder.put("protocol", sslContextService.getSslAlgorithm());
             if (sslContextService.isKeyStoreConfigured()) {
@@ -259,7 +303,7 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
                 propertiesBuilder.put("trustStoreType", sslContextService.getTrustStoreType());
             }
         }
-      return propertiesBuilder.build();
+        return Collections.unmodifiableMap(propertiesBuilder);
     }
 
     @OnDisabled
@@ -283,6 +327,8 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         properties.add(KERBEROS_CREDENTIALS_SERVICE);
         properties.add(KERBEROS_PRINCIPAL);
         properties.add(KERBEROS_PASSWORD);
+        properties.add(BASIC_AUTH_USERNAME);
+        properties.add(BASIC_AUTH_PASSWORD);
         return properties;
     }
 
@@ -304,7 +350,7 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
             throws org.apache.nifi.schema.access.SchemaNotFoundException {
         try {
             // Try to fetch the SchemaVersionInfo from the cache.
-            final Tuple<String,String> nameAndBranch = new Tuple<>(schemaName, branchName);
+            final Tuple<String, String> nameAndBranch = new Tuple<>(schemaName, branchName);
             final Tuple<SchemaVersionInfo, Long> timestampedVersionInfo = schemaVersionByNameCache.get(nameAndBranch);
 
             // Determine if the timestampedVersionInfo is expired

@@ -26,27 +26,26 @@ import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.encrypt.SensitiveValueEncoder;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.util.LoggingXmlParserErrorHandler;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
+import org.xml.sax.ErrorHandler;
 
 import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -83,11 +82,9 @@ public class FingerprintFactory {
     private static final String ENCRYPTED_VALUE_PREFIX = "enc{";
     private static final String ENCRYPTED_VALUE_SUFFIX = "}";
     private final PropertyEncryptor encryptor;
-    private final DocumentBuilder flowConfigDocBuilder;
+    private final Schema schema;
     private final ExtensionManager extensionManager;
     private final SensitiveValueEncoder sensitiveValueEncoder;
-
-    private byte[] sensitivePropertyKeyBytes;
 
     private static final Logger logger = LoggerFactory.getLogger(FingerprintFactory.class);
 
@@ -97,25 +94,11 @@ public class FingerprintFactory {
         this.sensitiveValueEncoder = sensitiveValueEncoder;
 
         final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-        final Schema schema;
         try {
             schema = schemaFactory.newSchema(FingerprintFactory.class.getResource(FLOW_CONFIG_XSD));
         } catch (final Exception e) {
             throw new RuntimeException("Failed to parse schema for file flow configuration.", e);
         }
-        try {
-            flowConfigDocBuilder = XmlUtils.createSafeDocumentBuilder(schema, true);
-            flowConfigDocBuilder.setErrorHandler(new LoggingXmlParserErrorHandler("Flow Configuration", logger));
-        } catch (final Exception e) {
-            throw new RuntimeException("Failed to create document builder for flow configuration.", e);
-        }
-    }
-
-    public FingerprintFactory(final PropertyEncryptor encryptor, final DocumentBuilder docBuilder, final ExtensionManager extensionManager, final SensitiveValueEncoder sensitiveValueEncoder) {
-        this.encryptor = encryptor;
-        this.flowConfigDocBuilder = docBuilder;
-        this.extensionManager = extensionManager;
-        this.sensitiveValueEncoder = sensitiveValueEncoder;
     }
 
     /**
@@ -185,9 +168,15 @@ public class FingerprintFactory {
         }
 
         try {
-            return flowConfigDocBuilder.parse(new ByteArrayInputStream(flow));
-        } catch (final SAXException | IOException ex) {
-            throw new FingerprintException(ex);
+            final ErrorHandler errorHandler = new LoggingXmlParserErrorHandler("Flow Configuration", logger);
+            final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
+            documentProvider.setSchema(schema);
+            documentProvider.setNamespaceAware(true);
+            documentProvider.setErrorHandler(errorHandler);
+
+            return documentProvider.parse(new ByteArrayInputStream(flow));
+        } catch (final ProcessingException e) {
+            throw new FingerprintException("Flow Parsing failed", e);
         }
     }
 
@@ -314,6 +303,15 @@ public class FingerprintFactory {
             }
         }
 
+        final List<Element> inheritedParameterContexts = DomUtils.getChildElementsByTagName(parameterContextElement, "inheritedParameterContextId");
+        if (inheritedParameterContexts == null || inheritedParameterContexts.isEmpty()) {
+            builder.append("NO_INHERITED_PARAMETER_CONTEXT_IDS");
+        } else {
+            for (final Element inheritedParameterContextId : inheritedParameterContexts) {
+                builder.append(inheritedParameterContextId.getTextContent());
+            }
+        }
+
         return builder;
     }
 
@@ -348,6 +346,9 @@ public class FingerprintFactory {
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "parameterContextId"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "flowfileConcurrency"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "flowfileOutboundPolicy"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "defaultFlowFileExpiration"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "defaultBackPressureObjectThreshold"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "defaultBackPressureDataSizeThreshold"));
 
         final Element versionControlInfo = DomUtils.getChild(processGroupElem, "versionControlInformation");
         if (versionControlInfo == null) {
@@ -471,6 +472,12 @@ public class FingerprintFactory {
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "executionNode"));
         // run duration nanos
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "runDurationNanos"));
+        // retry count
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "retryCount"));
+        // backoff mechanism
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "backoffMechanism"));
+        // max backoff period
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "maxBackoffPeriod"));
 
         // get the temp instance of the Processor so that we know the default property values
         final BundleCoordinate coordinate = getCoordinate(className, bundle);
@@ -492,6 +499,12 @@ public class FingerprintFactory {
         final List<Element> sortedAutoTerminateElems = sortElements(autoTerminateElems, getElementTextComparator());
         for (final Element autoTerminateElem : sortedAutoTerminateElems) {
             builder.append(autoTerminateElem.getTextContent());
+        }
+
+        final NodeList retriedRelationshipsElems = DomUtils.getChildNodesByTagName(processorElem, "retriedRelationships");
+        final List<Element> sortedRetriedRelationshipsElems = sortElements(retriedRelationshipsElems, getElementTextComparator());
+        for (final Element retriedRelationshipElem : sortedRetriedRelationshipsElems) {
+            builder.append(retriedRelationshipElem.getTextContent());
         }
 
         return builder;
@@ -545,7 +558,7 @@ public class FingerprintFactory {
      * @return a deterministic string value which represents this input but is safe to print in a log
      */
     private String getLoggableRepresentationOfSensitiveValue(String encryptedPropertyValue) {
-        final String plaintextValue = encryptor.decrypt(encryptedPropertyValue);
+        final String plaintextValue = decrypt(encryptedPropertyValue);
         return sensitiveValueEncoder.getEncoded(plaintextValue);
     }
 
@@ -556,6 +569,7 @@ public class FingerprintFactory {
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(portElem, "name"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(portElem, "allowRemoteAccess"));
 
+        // user access control
         final NodeList userAccessControlNodeList = DomUtils.getChildNodesByTagName(portElem, "userAccessControl");
         if (userAccessControlNodeList == null || userAccessControlNodeList.getLength() == 0) {
             builder.append("NO_USER_ACCESS_CONTROL");
@@ -570,7 +584,8 @@ public class FingerprintFactory {
             }
         }
 
-        final NodeList groupAccessControlNodeList = DomUtils.getChildNodesByTagName(portElem, "userAccessControl");
+        // group access control
+        final NodeList groupAccessControlNodeList = DomUtils.getChildNodesByTagName(portElem, "groupAccessControl");
         if (groupAccessControlNodeList == null || groupAccessControlNodeList.getLength() == 0) {
             builder.append("NO_GROUP_ACCESS_CONTROL");
         } else {
@@ -671,7 +686,6 @@ public class FingerprintFactory {
         return builder;
     }
 
-
     private StringBuilder addConnectionFingerprint(final StringBuilder builder, final Element connectionElem) throws FingerprintException {
         // id
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "id"));
@@ -721,6 +735,7 @@ public class FingerprintFactory {
         addBundleFingerprint(builder, dto.getBundle());
 
         builder.append(dto.getComments());
+        builder.append(dto.getBulletinLevel());
         builder.append(dto.getAnnotationData());
         builder.append(dto.getState());
 
@@ -884,21 +899,11 @@ public class FingerprintFactory {
     }
 
     private String getValue(final Node node, final String defaultValue) {
-        final String value;
-        if (node.getTextContent() == null || StringUtils.isBlank(node.getTextContent())) {
-            value = defaultValue;
-        } else {
-            value = node.getTextContent().trim();
-        }
-        return value;
+        return StringUtils.isBlank(node.getTextContent()) ? defaultValue : node.getTextContent().trim();
     }
 
     private String getValue(final String value, final String defaultValue) {
-        if (StringUtils.isBlank(value)) {
-            return defaultValue;
-        } else {
-            return value;
-        }
+        return StringUtils.isBlank(value) ? defaultValue : value;
     }
 
     private String getFirstValue(final NodeList nodeList) {
@@ -906,13 +911,7 @@ public class FingerprintFactory {
     }
 
     private String getFirstValue(final NodeList nodeList, final String defaultValue) {
-        final String value;
-        if (nodeList == null || nodeList.getLength() == 0) {
-            value = defaultValue;
-        } else {
-            value = getValue(nodeList.item(0));
-        }
-        return value;
+        return nodeList == null || nodeList.getLength() == 0 ? defaultValue : getValue(nodeList.item(0));
     }
 
     private StringBuilder appendFirstValue(final StringBuilder builder, final NodeList nodeList) {

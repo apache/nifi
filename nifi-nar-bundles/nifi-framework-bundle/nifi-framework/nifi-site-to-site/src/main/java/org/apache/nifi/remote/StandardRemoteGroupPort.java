@@ -39,6 +39,7 @@ import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
 import org.apache.nifi.remote.exception.PortNotRunningException;
 import org.apache.nifi.remote.exception.ProtocolException;
+import org.apache.nifi.remote.exception.TransmissionDisabledException;
 import org.apache.nifi.remote.exception.UnknownPortException;
 import org.apache.nifi.remote.exception.UnreachableClusterException;
 import org.apache.nifi.remote.protocol.DataPacket;
@@ -102,7 +103,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         this.remoteGroup = remoteGroup;
         this.transferDirection = direction;
         this.sslContext = sslContext;
-        setScheduldingPeriod(MINIMUM_SCHEDULING_NANOS + " nanos");
+        setSchedulingPeriod(MINIMUM_SCHEDULING_NANOS + " nanos");
     }
 
     @Override
@@ -270,17 +271,24 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
                 }
             }
 
-            session.commit();
+            session.commitAsync();
         } catch (final Throwable t) {
             final String message = String.format("%s failed to communicate with remote NiFi instance due to %s", this, t.toString());
-            logger.error("{} failed to communicate with remote NiFi instance due to {}", this, t.toString());
-            if (logger.isDebugEnabled()) {
-                logger.error("", t);
+
+            // If Exception is a TransmissionDisabledException, it's because the user explicitly terminated the connection in the middle.
+            // No need to log errors for this, just debug log and move on. Otherwise, log the error.
+            if (t instanceof TransmissionDisabledException) {
+                logger.debug(message, t);
+            } else {
+                logger.error("{} failed to communicate with remote NiFi instance due to {}", this, t.toString());
+                if (logger.isDebugEnabled()) {
+                    logger.error("", t);
+                }
+
+                remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
             }
 
-            remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
             transaction.error();
-
             throw new ProcessException(t);
         }
     }
@@ -358,7 +366,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             final String dataSize = FormatUtils.formatDataSize(bytesSent);
 
             transaction.complete();
-            session.commit();
+            session.commitAsync();
 
             final String flowFileDescription = (flowFilesSent.size() < 20) ? flowFilesSent.toString() : flowFilesSent.size() + " FlowFiles";
             logger.info("{} Successfully sent {} ({}) to {} in {} milliseconds at a rate of {}",
@@ -420,20 +428,25 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         // Confirm that what we received was the correct data.
         transaction.confirm();
 
-        // Commit the session so that we have persisted the data
-        session.commit();
+        final long numBytesReceived = bytesReceived;
+        session.commitAsync(() -> {
+            try {
+                transaction.complete();
+            } catch (final Exception e) {
+                logger.error("Successfully received {} FlowFiles ({}) from {} and committed session but failed to notify sender that transaction was complete. This could result in data duplication.",
+                    flowFilesReceived.size(), flowFilesReceived, userDn);
+            }
 
-        transaction.complete();
-
-        if (!flowFilesReceived.isEmpty()) {
-            stopWatch.stop();
-            final String flowFileDescription = flowFilesReceived.size() < 20 ? flowFilesReceived.toString() : flowFilesReceived.size() + " FlowFiles";
-            final String uploadDataRate = stopWatch.calculateDataRate(bytesReceived);
-            final long uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
-            final String dataSize = FormatUtils.formatDataSize(bytesReceived);
-            logger.info("{} Successfully received {} ({}) from {} in {} milliseconds at a rate of {}", new Object[]{
-                this, flowFileDescription, dataSize, transaction.getCommunicant().getUrl(), uploadMillis, uploadDataRate});
-        }
+            if (!flowFilesReceived.isEmpty()) {
+                stopWatch.stop();
+                final String flowFileDescription = flowFilesReceived.size() < 20 ? flowFilesReceived.toString() : flowFilesReceived.size() + " FlowFiles";
+                final String uploadDataRate = stopWatch.calculateDataRate(numBytesReceived);
+                final long uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
+                final String dataSize = FormatUtils.formatDataSize(numBytesReceived);
+                logger.info("{} Successfully received {} ({}) from {} in {} milliseconds at a rate of {}", new Object[]{
+                    this, flowFileDescription, dataSize, transaction.getCommunicant().getUrl(), uploadMillis, uploadDataRate});
+            }
+        });
 
         return flowFilesReceived.size();
     }

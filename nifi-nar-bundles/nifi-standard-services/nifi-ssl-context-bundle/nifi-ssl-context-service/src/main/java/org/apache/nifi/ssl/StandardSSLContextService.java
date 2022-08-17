@@ -16,26 +16,21 @@
  */
 package org.apache.nifi.ssl;
 
-import java.io.File;
-import java.net.MalformedURLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
@@ -45,7 +40,20 @@ import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.security.util.TlsPlatform;
 import org.apache.nifi.util.StringUtils;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.io.File;
+import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Tags({"ssl", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs", "tls"})
 @CapabilityDescription("Standard implementation of the SSLContextService. Provides the ability to configure "
@@ -55,19 +63,12 @@ import org.apache.nifi.util.StringUtils;
         + "allows a specific set of SSL protocols to be chosen.")
 public class StandardSSLContextService extends AbstractControllerService implements SSLContextService {
 
-    // Shared description for other SSL context services
-    public static final String COMMON_TLS_PROTOCOL_DESCRIPTION = "The algorithm to use for this TLS/SSL context. \"TLS\" will instruct NiFi to allow all supported protocol versions " +
-            "and choose the highest available protocol for each connection. " +
-            "Java 8 enabled TLSv1.2, which is now the lowest version supported for incoming connections. " +
-            "Java 11 enabled TLSv1.3. Depending on the version of Java NiFi is running on, different protocol versions will be available. " +
-            "With \"TLS\" selected, as new protocol versions are made available, NiFi will automatically select them. " +
-            "It is recommended unless a specific protocol version is needed. ";
-
     public static final PropertyDescriptor TRUSTSTORE = new PropertyDescriptor.Builder()
             .name("Truststore Filename")
             .description("The fully-qualified filename of the Truststore")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue(null)
-            .addValidator(createFileExistsAndReadableValidator())
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .sensitive(false)
             .build();
     public static final PropertyDescriptor TRUSTSTORE_TYPE = new PropertyDescriptor.Builder()
@@ -88,8 +89,9 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     public static final PropertyDescriptor KEYSTORE = new PropertyDescriptor.Builder()
             .name("Keystore Filename")
             .description("The fully-qualified filename of the Keystore")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue(null)
-            .addValidator(createFileExistsAndReadableValidator())
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .sensitive(false)
             .build();
     public static final PropertyDescriptor KEYSTORE_TYPE = new PropertyDescriptor.Builder()
@@ -118,11 +120,10 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     public static final PropertyDescriptor SSL_ALGORITHM = new PropertyDescriptor.Builder()
             .name("SSL Protocol")
             .displayName("TLS Protocol")
-            .defaultValue("TLS")
+            .defaultValue(TlsConfiguration.TLS_PROTOCOL)
             .required(false)
-            .allowableValues(SSLContextService.buildAlgorithmAllowableValues())
-            .description(COMMON_TLS_PROTOCOL_DESCRIPTION +
-                    "For outgoing connections, legacy protocol versions like \"TLSv1.0\" are supported, but discouraged unless necessary. ")
+            .allowableValues(getProtocolAllowableValues())
+            .description("SSL or TLS Protocol Version for encrypted connections. Supported versions include insecure legacy options and depend on the specific version of Java used.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
@@ -153,8 +154,10 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         configContext = context;
 
         final Collection<ValidationResult> results = new ArrayList<>();
-        results.addAll(validateStore(context.getProperties(), KeystoreValidationGroup.KEYSTORE));
-        results.addAll(validateStore(context.getProperties(), KeystoreValidationGroup.TRUSTSTORE));
+
+        final Map<PropertyDescriptor, String> properties = evaluateProperties(context);
+        results.addAll(validateStore(properties, KeystoreValidationGroup.KEYSTORE));
+        results.addAll(validateStore(properties, KeystoreValidationGroup.TRUSTSTORE));
 
         if (!results.isEmpty()) {
             final StringBuilder sb = new StringBuilder(this + " is not valid due to:");
@@ -169,21 +172,6 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
         super.onPropertyModified(descriptor, oldValue, newValue);
         resetValidationCache();
-    }
-
-    private static Validator createFileExistsAndReadableValidator() {
-        // Not using the FILE_EXISTS_VALIDATOR because the default is to allow expression language
-        return (subject, input, context) -> {
-            final File file = new File(input);
-            final boolean valid = file.exists() && file.canRead();
-            final String explanation = valid ? null : "File " + file + " does not exist or cannot be read";
-            return new ValidationResult.Builder()
-                    .subject(subject)
-                    .input(input)
-                    .valid(valid)
-                    .explanation(explanation)
-                    .build();
-        };
     }
 
     @Override
@@ -204,12 +192,24 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             }
         }
 
-        results.addAll(validateStore(validationContext.getProperties(), KeystoreValidationGroup.KEYSTORE));
-        results.addAll(validateStore(validationContext.getProperties(), KeystoreValidationGroup.TRUSTSTORE));
+        final Map<PropertyDescriptor, String> properties = evaluateProperties(validationContext);
+        results.addAll(validateStore(properties, KeystoreValidationGroup.KEYSTORE));
+        results.addAll(validateStore(properties, KeystoreValidationGroup.TRUSTSTORE));
 
         isValidated = results.isEmpty();
 
         return results;
+    }
+
+    private Map<PropertyDescriptor, String> evaluateProperties(final PropertyContext context) {
+        final Map<PropertyDescriptor, String> evaluatedProperties = new HashMap<>(getSupportedPropertyDescriptors().size(), 1);
+        for (final PropertyDescriptor pd : getSupportedPropertyDescriptors()) {
+            final PropertyValue pv = pd.isExpressionLanguageSupported()
+                    ? context.getProperty(pd).evaluateAttributeExpressions()
+                    : context.getProperty(pd);
+            evaluatedProperties.put(pd, pv.isSet() ? pv.getValue() : null);
+        }
+        return evaluatedProperties;
     }
 
     private void resetValidationCache() {
@@ -252,7 +252,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             final TrustManager[] trustManagers = SslContextFactory.getTrustManagers(tlsConfiguration);
             return SslContextFactory.createSslContext(tlsConfiguration, trustManagers);
         } catch (final TlsException e) {
-            getLogger().error("Unable to create SSLContext: {}", new String[]{e.getLocalizedMessage()});
+            getLogger().error("Unable to create SSLContext: {}", e.getLocalizedMessage());
             throw new ProcessException("Unable to create SSLContext", e);
         }
     }
@@ -288,9 +288,27 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         return createContext();
     }
 
+    /**
+     * Create X.509 Trust Manager using configured properties
+     *
+     * @return {@link X509TrustManager} initialized using configured properties
+     */
+    @Override
+    public X509TrustManager createTrustManager() {
+        try {
+            final X509TrustManager trustManager = SslContextFactory.getX509TrustManager(createTlsConfiguration());
+            if (trustManager == null) {
+                throw new ProcessException("X.509 Trust Manager not found using configured properties");
+            }
+            return trustManager;
+        } catch (final TlsException e) {
+            throw new ProcessException("Unable to create X.509 Trust Manager", e);
+        }
+    }
+
     @Override
     public String getTrustStoreFile() {
-        return configContext.getProperty(TRUSTSTORE).getValue();
+        return configContext.getProperty(TRUSTSTORE).evaluateAttributeExpressions().getValue();
     }
 
     @Override
@@ -311,7 +329,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
 
     @Override
     public String getKeyStoreFile() {
-        return configContext.getProperty(KEYSTORE).getValue();
+        return configContext.getProperty(KEYSTORE).evaluateAttributeExpressions().getValue();
     }
 
     @Override
@@ -570,5 +588,19 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     @Override
     public String toString() {
         return "SSLContextService[id=" + getIdentifier() + "]";
+    }
+
+    private static AllowableValue[] getProtocolAllowableValues() {
+        final List<AllowableValue> allowableValues = new ArrayList<>();
+
+        allowableValues.add(new AllowableValue(TlsConfiguration.SSL_PROTOCOL, TlsConfiguration.SSL_PROTOCOL, "Negotiate latest SSL or TLS protocol version based on platform supported versions"));
+        allowableValues.add(new AllowableValue(TlsConfiguration.TLS_PROTOCOL, TlsConfiguration.TLS_PROTOCOL, "Negotiate latest TLS protocol version based on platform supported versions"));
+
+        for (final String supportedProtocol : TlsPlatform.getSupportedProtocols()) {
+            final String description = String.format("Require %s protocol version", supportedProtocol);
+            allowableValues.add(new AllowableValue(supportedProtocol, supportedProtocol, description));
+        }
+
+        return allowableValues.toArray(new AllowableValue[0]);
     }
 }

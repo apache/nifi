@@ -17,14 +17,15 @@
 package org.apache.nifi.persistence;
 
 import org.apache.nifi.controller.serialization.FlowSerializationException;
-import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.web.api.dto.TemplateDTO;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
+import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
-import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stream.StreamSource;
 import java.io.InputStream;
@@ -46,14 +47,16 @@ public class TemplateDeserializer {
     }
 
     public static TemplateDTO deserialize(final StreamSource source) {
+        final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
+
         try {
-            final XMLStreamReader xsr = XmlUtils.createSafeReader(source);
+            final XMLStreamReader xsr = provider.getStreamReader(source);
             final Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
             final JAXBElement<TemplateDTO> templateElement = unmarshaller.unmarshal(xsr, TemplateDTO.class);
             final TemplateDTO templateDto = templateElement.getValue();
 
             return templateDto;
-        } catch (final JAXBException | XMLStreamException e) {
+        } catch (final JAXBException | ProcessingException e) {
             throw new FlowSerializationException(e);
         }
     }

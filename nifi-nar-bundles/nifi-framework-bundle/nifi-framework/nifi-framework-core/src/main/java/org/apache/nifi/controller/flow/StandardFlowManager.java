@@ -211,7 +211,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         final ProcessGroup rootGroup = getRootGroup();
         Port port = rootGroup.findOutputPort(id);
         if (port != null) {
-            throw new IllegalStateException("An Input Port already exists with ID " + id);
+            throw new IllegalStateException("An Output Port already exists with ID " + id);
         }
         port = rootGroup.findInputPort(id);
         if (port != null) {
@@ -259,7 +259,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
         final ProcessGroup group = new StandardProcessGroup(requireNonNull(id), flowController.getControllerServiceProvider(), processScheduler, flowController.getEncryptor(),
             flowController.getExtensionManager(), flowController.getStateManagerProvider(), this, flowController.getFlowRegistryClient(),
-            flowController.getReloadComponent(), mutableVariableRegistry, flowController);
+            flowController.getReloadComponent(), mutableVariableRegistry, flowController, nifiProperties);
         onProcessGroupAdded(group);
 
         return group;
@@ -271,7 +271,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
         final FlowSnippet snippet = new StandardFlowSnippet(dto, flowController.getExtensionManager());
         snippet.validate(group);
-        snippet.instantiate(this, group);
+        snippet.instantiate(this, flowController, group);
 
         group.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
     }
@@ -306,8 +306,9 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         }
     }
 
+    @Override
     public ProcessorNode createProcessor(final String type, String id, final BundleCoordinate coordinate, final Set<URL> additionalUrls,
-                                         final boolean firstTimeAdded, final boolean registerLogObserver) {
+                                         final boolean firstTimeAdded, final boolean registerLogObserver, final String classloaderIsolationKey) {
 
         // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
@@ -317,7 +318,6 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .identifier(id)
             .type(type)
             .bundleCoordinate(coordinate)
-            .extensionManager(extensionManager)
             .controllerServiceProvider(flowController.getControllerServiceProvider())
             .processScheduler(processScheduler)
             .nodeTypeProvider(flowController)
@@ -327,6 +327,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .addClasspathUrls(additionalUrls)
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .extensionManager(extensionManager)
+            .classloaderIsolationKey(classloaderIsolationKey)
             .buildProcessor();
 
         LogRepositoryFactory.getRepository(procNode.getIdentifier()).setLogger(procNode.getLogger());
@@ -343,12 +344,6 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
                 }
                 throw new ComponentLifeCycleException("Failed to invoke @OnAdded methods of " + procNode.getProcessor(), e);
             }
-
-            if (firstTimeAdded && flowController.isInitialized()) {
-                try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getProcessor().getIdentifier())) {
-                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, procNode.getProcessor());
-                }
-            }
         }
 
         return procNode;
@@ -359,10 +354,10 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
     }
 
     public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls,
-                                                 final boolean firstTimeAdded, final boolean register) {
-        if (type == null || id == null || bundleCoordinate == null) {
-            throw new NullPointerException();
-        }
+                                                 final boolean firstTimeAdded, final boolean register, final String classloaderIsolationKey) {
+        requireNonNull(type);
+        requireNonNull(id);
+        requireNonNull(bundleCoordinate);
 
         // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
@@ -372,7 +367,6 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .identifier(id)
             .type(type)
             .bundleCoordinate(bundleCoordinate)
-            .extensionManager(flowController.getExtensionManager())
             .controllerServiceProvider(flowController.getControllerServiceProvider())
             .processScheduler(processScheduler)
             .nodeTypeProvider(flowController)
@@ -383,6 +377,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .flowController(flowController)
             .extensionManager(extensionManager)
+            .classloaderIsolationKey(classloaderIsolationKey)
             .buildReportingTask();
 
         LogRepositoryFactory.getRepository(taskNode.getIdentifier()).setLogger(taskNode.getLogger());
@@ -395,7 +390,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
                 ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, taskNode.getReportingTask());
 
                 if (flowController.isInitialized()) {
-                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, taskNode.getReportingTask());
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, taskNode.getReportingTask(), taskNode.getConfigurationContext());
                 }
             } catch (final Exception e) {
                 throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + taskNode.getReportingTask(), e);
@@ -458,7 +453,8 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         }
 
         rootControllerServices.remove(service.getIdentifier());
-        flowController.getStateManagerProvider().onComponentRemoved(service.getIdentifier());
+
+        processScheduler.submitFrameworkTask(() -> flowController.getStateManagerProvider().onComponentRemoved(service.getIdentifier()));
 
         extensionManager.removeInstanceClassLoader(service.getIdentifier());
 
@@ -466,7 +462,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
     }
 
     public ControllerServiceNode createControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded,
-                                                         final boolean registerLogObserver) {
+                                                         final boolean registerLogObserver, final String classloaderIsolationKey) {
         // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
         final ExtensionManager extensionManager = flowController.getExtensionManager();
@@ -486,12 +482,12 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .stateManagerProvider(flowController.getStateManagerProvider())
             .extensionManager(extensionManager)
+            .classloaderIsolationKey(classloaderIsolationKey)
             .buildControllerService();
 
         LogRepositoryFactory.getRepository(serviceNode.getIdentifier()).setLogger(serviceNode.getLogger());
         if (registerLogObserver) {
-            // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
-            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN, new ControllerServiceLogObserver(bulletinRepository, serviceNode));
+            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, serviceNode.getBulletinLevel(), new ControllerServiceLogObserver(bulletinRepository, serviceNode));
         }
 
         if (firstTimeAdded) {
@@ -499,7 +495,9 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
             if (flowController.isInitialized()) {
                 try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, service.getClass(), service.getIdentifier())) {
-                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service);
+                    final ConfigurationContext configurationContext =
+                            new StandardConfigurationContext(serviceNode, controllerServiceProvider, null, flowController.getVariableRegistry());
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service, configurationContext);
                 }
             }
 

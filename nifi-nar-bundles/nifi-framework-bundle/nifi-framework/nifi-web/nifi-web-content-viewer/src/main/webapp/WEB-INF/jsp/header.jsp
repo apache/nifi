@@ -16,7 +16,7 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <link rel="shortcut icon" href="../nifi/images/nifi16.ico"/>
@@ -35,6 +35,7 @@
         <script type="text/javascript" src="../nifi/js/jquery/combo/jquery.combo.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/modal/jquery.modal.js"></script>
         <script type="text/javascript" src="../nifi/js/nf/nf-namespace.js"></script>
+        <script type="text/javascript" src="../nifi/js/nf/nf-authorization-storage.js"></script>
         <script type="text/javascript" src="../nifi/js/nf/nf-storage.js"></script>
         <script type="text/javascript" src="../nifi/js/nf/nf-ajax-setup.js"></script>
         <script type="text/javascript" src="../nifi/js/nf/nf-universal-capture.js"></script>
@@ -107,38 +108,12 @@
 
                         // if the selection has changesd, reload the page
                         if (currentLocation !== option.value) {
-                            // get an access token if necessary
-                            var getAccessToken = $$.Deferred(function (deferred) {
-                                if (nf.Storage.hasItem('jwt')) {
-                                    $$.ajax({
-                                        type: 'POST',
-                                        url: '../nifi-api/access/ui-extension-token'
-                                    }).done(function (token) {
-                                        deferred.resolve(token);
-                                    }).fail(function () {
-                                        $$('#content-viewer-message').text('Unable to generate a token to view the content.');
-                                        $$('#content-viewer-message-dialog').modal('show');
-                                        deferred.reject();
-                                    })
-                                } else {
-                                    deferred.resolve('');
-                                }
-                            }).promise();
+                            var contentParameter = {
+                                mode: option.value
+                            };
 
-                            // reload as appropriate
-                            getAccessToken.done(function (uiExtensionToken) {
-                                var contentParameter = {
-                                    mode: option.value
-                                };
-
-                                // include the download token if applicable
-                                if (typeof uiExtensionToken !== 'undefined' && uiExtensionToken !== null && $$.trim(uiExtensionToken) !== '') {
-                                    contentParameter['access_token'] = uiExtensionToken;
-                                }
-
-                                var url = window.location.origin + window.location.pathname;
-                                window.location.href = url + '?' + $$.param($$.extend(contentParameter, params));
-                            });
+                            var url = window.location.origin + window.location.pathname;
+                            window.location.href = url + '?' + $$.param($$.extend(contentParameter, params));
                         }
                     }
                 });

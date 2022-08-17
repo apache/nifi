@@ -74,6 +74,11 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     }
 
     @Override
+    public void removeEventsForFlowFile(final String uuid) {
+        events.removeIf(event -> event.getFlowFileUuid().equals(uuid));
+    }
+
+    @Override
     public void clear() {
         events.clear();
 
@@ -93,6 +98,10 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
         for (final ProvenanceEventRecord event : events) {
             if (flowFileIds.contains(event.getFlowFileUuid())) {
                 toMove.add(event);
+            } else if (event.getEventType() == ProvenanceEventType.CLONE) {
+                if (flowFileIds.containsAll(event.getChildUuids())) {
+                    toMove.add(event);
+                }
             }
         }
 

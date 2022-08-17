@@ -17,7 +17,7 @@
 
 package org.apache.nifi.processors.websocket;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.flowfile.FlowFile;
@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_CS_ID;
@@ -89,6 +90,7 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
         logger = getLogger();
     }
 
+    @FunctionalInterface
     public interface WebSocketFunction {
         void execute(final WebSocketService webSocketService) throws IOException, WebSocketConfigurationException;
     }
@@ -118,12 +120,23 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
 
     // @OnScheduled can not report error messages well on bulletin since it's an async method.
     // So, let's do it in onTrigger().
-    public void onWebSocketServiceReady(final WebSocketService webSocketService) throws IOException {
-
+    public void onWebSocketServiceReady(final WebSocketService webSocketService, final ProcessContext context) throws IOException {
         if (webSocketService instanceof WebSocketClientService) {
             // If it's a ws client, then connect to the remote here.
             // Otherwise, ws server is already started at WebSocketServerService
-            ((WebSocketClientService) webSocketService).connect(endpointId);
+            WebSocketClientService webSocketClientService = (WebSocketClientService) webSocketService;
+            if (context.hasIncomingConnection()) {
+                final ProcessSession session = processSessionFactory.createSession();
+                final FlowFile flowFile = session.get();
+                try {
+                    webSocketClientService.connect(endpointId, flowFile.getAttributes());
+                } finally {
+                    session.remove(flowFile);
+                    session.commitAsync();
+                }
+            } else {
+                webSocketClientService.connect(endpointId);
+            }
         }
 
     }
@@ -137,6 +150,7 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
     }
 
     protected abstract WebSocketService getWebSocketService(final ProcessContext context);
+
     protected abstract String getEndpointId(final ProcessContext context);
 
     protected boolean isProcessorRegisteredToService() {
@@ -146,7 +160,7 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
     }
 
     @OnStopped
-    public void onStopped(final ProcessContext context) throws IOException {
+    public void onStopped(final ProcessContext context) {
         deregister();
     }
 
@@ -165,27 +179,35 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
     }
 
     @Override
-    public final void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
+    public final void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         if (processSessionFactory == null) {
             processSessionFactory = sessionFactory;
         }
 
         if (!isProcessorRegisteredToService()) {
-            try {
-                registerProcessorToService(context, webSocketService -> onWebSocketServiceReady(webSocketService));
-            } catch (IOException|WebSocketConfigurationException e) {
-                // Deregister processor if it failed so that it can retry next onTrigger.
-                deregister();
-                context.yield();
-                throw new ProcessException("Failed to register processor to WebSocket service due to: " + e, e);
-            }
+            register(context);
+        } else if (webSocketService instanceof WebSocketClientService && context.hasIncomingConnection()) {
+            // Deregister processor to close previous sessions when flowfile is provided.
+            deregister();
+            register(context);
         }
 
         context.yield();//nothing really to do here since handling WebSocket messages is done at ControllerService.
     }
 
+    private void register(ProcessContext context) {
+        try {
+            registerProcessorToService(context, webSocketService -> onWebSocketServiceReady(webSocketService, context));
+        } catch (IOException | WebSocketConfigurationException e) {
+            // Deregister processor if it failed so that it can retry next onTrigger.
+            deregister();
+            context.yield();
+            throw new ProcessException("Failed to register processor to WebSocket service due to: " + e, e);
+        }
+    }
 
-    private void enqueueMessage(final WebSocketMessage incomingMessage){
+
+    private void enqueueMessage(final WebSocketMessage incomingMessage) {
         final ProcessSession session = processSessionFactory.createSession();
         try {
             FlowFile messageFlowFile = session.create();
@@ -206,9 +228,9 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
 
             final byte[] payload = incomingMessage.getPayload();
             if (payload != null) {
-                messageFlowFile = session.write(messageFlowFile, out -> {
-                    out.write(payload, incomingMessage.getOffset(), incomingMessage.getLength());
-                });
+                messageFlowFile = session.write(messageFlowFile, out ->
+                        out.write(payload, incomingMessage.getOffset(), incomingMessage.getLength())
+                );
             }
 
             session.getProvenanceReporter().receive(messageFlowFile, getTransitUri(sessionInfo));
@@ -216,7 +238,7 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
             if (incomingMessage instanceof WebSocketConnectedMessage) {
                 session.transfer(messageFlowFile, REL_CONNECTED);
             } else {
-                switch (messageType) {
+                switch (Objects.requireNonNull(messageType)) {
                     case TEXT:
                         session.transfer(messageFlowFile, REL_MESSAGE_TEXT);
                         break;
@@ -225,7 +247,7 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
                         break;
                 }
             }
-            session.commit();
+            session.commitAsync();
 
         } catch (Exception e) {
             logger.error("Unable to fully process input due to " + e, e);
@@ -233,6 +255,6 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
         }
     }
 
-    abstract protected String getTransitUri(final WebSocketSessionInfo sessionInfo);
+    protected abstract String getTransitUri(final WebSocketSessionInfo sessionInfo);
 
 }

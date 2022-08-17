@@ -34,7 +34,7 @@ public class PermissionsDTO implements ReadablePermission, WritablePermission {
      */
     @ApiModelProperty(
             value = "Indicates whether the user can read a given resource.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     @Override
     public Boolean getCanRead() {
@@ -51,7 +51,7 @@ public class PermissionsDTO implements ReadablePermission, WritablePermission {
      */
     @ApiModelProperty(
             value = "Indicates whether the user can write a given resource.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     @Override
     public Boolean getCanWrite() {

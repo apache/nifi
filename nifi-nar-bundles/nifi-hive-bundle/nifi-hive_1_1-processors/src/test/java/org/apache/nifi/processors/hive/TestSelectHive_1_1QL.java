@@ -32,9 +32,9 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.hive.HiveJdbcCommon;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,14 +91,14 @@ public class TestSelectHive_1_1QL {
             + " where PER.ID > 10";
 
 
-    @BeforeClass
+    @BeforeAll
     public static void setupClass() {
         System.setProperty("derby.stream.error.file", "target/derby.log");
     }
 
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         final DBCPService dbcp = new DBCPServiceSimpleImpl();
         final Map<String, String> dbcpProperties = new HashMap<>();
@@ -110,7 +110,7 @@ public class TestSelectHive_1_1QL {
     }
 
     @Test
-    public void testIncomingConnectionWithNoFlowFile() throws InitializationException {
+    public void testIncomingConnectionWithNoFlowFile() {
         runner.setIncomingConnection(true);
         runner.setProperty(SelectHive_1_1QL.HIVEQL_SELECT_QUERY, "SELECT * FROM persons");
         runner.run();
@@ -134,7 +134,7 @@ public class TestSelectHive_1_1QL {
         invokeOnTrigger(QUERY_WITH_EL, true, "Avro");
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
-        assertEquals(3, provenanceEvents.size());
+        assertEquals(4, provenanceEvents.size());
 
         final ProvenanceEventRecord provenance0 = provenanceEvents.get(0);
         assertEquals(ProvenanceEventType.FORK, provenance0.getEventType());
@@ -145,6 +145,9 @@ public class TestSelectHive_1_1QL {
 
         final ProvenanceEventRecord provenance2 = provenanceEvents.get(2);
         assertEquals(ProvenanceEventType.FORK, provenance2.getEventType());
+
+        final ProvenanceEventRecord provenance3 = provenanceEvents.get(3);
+        assertEquals(ProvenanceEventType.DROP, provenance3.getEventType());
     }
 
 
@@ -204,7 +207,7 @@ public class TestSelectHive_1_1QL {
     }
 
     @Test
-    public void invokeOnTriggerExceptionInPreQieriesNoIncomingFlows()
+    public void invokeOnTriggerExceptionInPreQueriesNoIncomingFlows()
             throws InitializationException, ClassNotFoundException, SQLException, IOException {
 
         doOnTrigger(QUERY_WITHOUT_EL, false, CSV,
@@ -215,7 +218,7 @@ public class TestSelectHive_1_1QL {
     }
 
     @Test
-    public void invokeOnTriggerExceptionInPreQieriesWithIncomingFlows()
+    public void invokeOnTriggerExceptionInPreQueriesWithIncomingFlows()
             throws InitializationException, ClassNotFoundException, SQLException, IOException {
 
         doOnTrigger(QUERY_WITHOUT_EL, true, CSV,
@@ -226,7 +229,7 @@ public class TestSelectHive_1_1QL {
     }
 
     @Test
-    public void invokeOnTriggerExceptionInPostQieriesNoIncomingFlows()
+    public void invokeOnTriggerExceptionInPostQueriesNoIncomingFlows()
             throws InitializationException, ClassNotFoundException, SQLException, IOException {
 
         doOnTrigger(QUERY_WITHOUT_EL, false, CSV,
@@ -237,7 +240,7 @@ public class TestSelectHive_1_1QL {
     }
 
     @Test
-    public void invokeOnTriggerExceptionInPostQieriesWithIncomingFlows()
+    public void invokeOnTriggerExceptionInPostQueriesWithIncomingFlows()
             throws InitializationException, ClassNotFoundException, SQLException, IOException {
 
         doOnTrigger(QUERY_WITHOUT_EL, true, CSV,

@@ -17,26 +17,41 @@
 
 package org.apache.nifi.elasticsearch
 
-import org.junit.Assert
-import org.junit.Test
+import org.junit.jupiter.api.Test
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 class SearchResponseTest {
     @Test
     void test() {
         def results = []
         def aggs    = [:]
+        def pitId = "pitId"
+        def scrollId = "scrollId"
+        def searchAfter = "searchAfter"
         def num     = 10
         def took    = 100
         def timeout = false
-        def response = new SearchResponse(results, aggs, num, took, timeout)
+        def warnings = ["auth"]
+        def response = new SearchResponse(results, aggs as Map<String, Object>, pitId, scrollId, searchAfter, num, took, timeout, warnings)
         def str = response.toString()
-        Assert.assertEquals(results, response.hits)
-        Assert.assertEquals(aggs, response.aggregations)
-        Assert.assertEquals(num, response.numberOfHits)
-        Assert.assertEquals(took, response.took)
-        Assert.assertEquals(timeout, response.timedOut)
-        Assert.assertTrue(str.contains("aggregations"))
-        Assert.assertTrue(str.contains("hits"))
-        Assert.assertTrue(str.contains("numberOfHits"))
+
+        assertEquals(results, response.hits)
+        assertEquals(aggs, response.aggregations)
+        assertEquals(pitId, response.pitId)
+        assertEquals(scrollId, response.scrollId)
+        assertEquals(num, response.numberOfHits)
+        assertEquals(took, response.took)
+        assertEquals(timeout, response.timedOut)
+        assertEquals(warnings, response.warnings)
+        assertTrue(str.contains("aggregations"))
+        assertTrue(str.contains("hits"))
+        assertTrue(str.contains("pitId"))
+        assertTrue(str.contains("scrollId"))
+        assertTrue(str.contains("searchAfter"))
+        assertTrue(str.contains("numberOfHits"))
+        assertTrue(str.contains("took"))
+        assertTrue(str.contains("timedOut"))
+        assertTrue(str.contains("warnings"))
     }
 }

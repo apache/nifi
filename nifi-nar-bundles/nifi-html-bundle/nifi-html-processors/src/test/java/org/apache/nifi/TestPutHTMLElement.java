@@ -24,19 +24,20 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.util.List;
-import static org.junit.Assert.assertTrue;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestPutHTMLElement extends AbstractHTMLTest {
 
     private TestRunner testRunner;
 
-    @Before
+    @BeforeEach
     public void init() {
         testRunner = TestRunners.newTestRunner(PutHTMLElement.class);
         testRunner.setProperty(PutHTMLElement.URL, "http://localhost");
@@ -58,7 +59,7 @@ public class TestPutHTMLElement extends AbstractHTMLTest {
         testRunner.assertTransferCount(PutHTMLElement.REL_NOT_FOUND, 0);
 
         List<MockFlowFile> ffs = testRunner.getFlowFilesForRelationship(PutHTMLElement.REL_SUCCESS);
-        assertTrue(ffs.size() == 1);
+        assertEquals(1, ffs.size());
         String data = new String(testRunner.getContentAsByteArray(ffs.get(0)));
 
         //Contents will be the entire HTML doc. So lets use Jsoup again just the grab the element we want.
@@ -85,7 +86,7 @@ public class TestPutHTMLElement extends AbstractHTMLTest {
         testRunner.assertTransferCount(PutHTMLElement.REL_NOT_FOUND, 0);
 
         List<MockFlowFile> ffs = testRunner.getFlowFilesForRelationship(PutHTMLElement.REL_SUCCESS);
-        assertTrue(ffs.size() == 1);
+        assertEquals(1, ffs.size());
         String data = new String(testRunner.getContentAsByteArray(ffs.get(0)));
 
         //Contents will be the entire HTML doc. So lets use Jsoup again just the grab the element we want.
@@ -93,7 +94,7 @@ public class TestPutHTMLElement extends AbstractHTMLTest {
         Elements eles = doc.select("#put");
         Element ele = eles.get(0);
 
-        assertTrue(StringUtils.equals("<p>modified value</p> \n<a href=\"httpd://localhost\"></a>", ele.html()));
+        assertEquals("<p>modified value</p><a href=\"httpd://localhost\"></a>", ele.html());
     }
 
     @Test
@@ -112,7 +113,7 @@ public class TestPutHTMLElement extends AbstractHTMLTest {
         testRunner.assertTransferCount(PutHTMLElement.REL_NOT_FOUND, 0);
 
         List<MockFlowFile> ffs = testRunner.getFlowFilesForRelationship(PutHTMLElement.REL_SUCCESS);
-        assertTrue(ffs.size() == 1);
+        assertEquals(1, ffs.size());
         String data = new String(testRunner.getContentAsByteArray(ffs.get(0)));
 
         //Contents will be the entire HTML doc. So lets use Jsoup again just the grab the element we want.

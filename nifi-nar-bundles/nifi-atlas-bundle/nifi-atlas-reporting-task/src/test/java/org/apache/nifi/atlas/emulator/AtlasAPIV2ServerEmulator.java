@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.atlas.emulator;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.atlas.model.discovery.AtlasSearchResult;
 import org.apache.atlas.model.instance.AtlasEntity;
 import org.apache.atlas.model.instance.AtlasEntityHeader;
@@ -26,8 +28,6 @@ import org.apache.atlas.v1.model.instance.Referenceable;
 import org.apache.atlas.v1.model.notification.HookNotificationV1;
 import org.apache.nifi.atlas.AtlasUtils;
 import org.apache.nifi.atlas.NiFiTypes;
-import org.codehaus.jackson.map.DeserializationConfig;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
@@ -243,10 +243,8 @@ public class AtlasAPIV2ServerEmulator {
 
     private static <T> T readInputJSON(HttpServletRequest req, Class<? extends T> clazz) throws IOException {
         return new ObjectMapper()
-                .configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                .reader()
-                .withType(clazz)
-                .readValue(req.getInputStream());
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .readValue(req.getInputStream(), clazz);
     }
 
     private static final AtlasTypesDef atlasTypesDef = new AtlasTypesDef();

@@ -117,7 +117,8 @@ as it includes annotations (1), (2), etc. for illustrative purposes):
 (12)   "header.attribute.regex": "syslog.*",
 (13)   "krb5.file": "/etc/krb5.conf",
 (14)   "dataflow.timeout": "30 sec",
-(15)   "parameter.Syslog Port": "19944"
+(15)   "parameter.Syslog Port": "19944",
+(16)   "extensions.directory": "/tmp/stateless-extensions"
   }
 }
 ``` 
@@ -155,6 +156,7 @@ a result, Connect can be configured with the URL of a Nexus server. The example 
 extensions. When a connector is started, it will first identify which extensions are necessary to run the dataflow, determine which extensions are available,
 and then automatically download any necessary extensions that it currently does not have available. If configuring a Nexus instance that has multiple repositories,
 the name of the repository should be included in the URL. For example: `https://nexus-private.myorganization.org/nexus/repository/my-repository/`.
+If the property is not specified, the necessary extensions (used by the flow) must be provided in the `extensions.directory` before deploying the connector.
 
 `(9) flow.snapshot`: Specifies the dataflow to run. This is the file that was downloaded by right-clicking on the Process Group in NiFi and
 clicking "Download flow". The dataflow can be stored external to the configured and the location can be represented as an HTTP (or HTTPS URL), or a filename.
@@ -191,6 +193,9 @@ Process Groups have their own Parameter Contexts, this value will be used for an
 should be applied only to a specific Parameter Context, the name of the Parameter Context may be supplied and separated from the Parameter Name with a colon. For example,
 `parameter.Syslog Context:Syslog Port`. In this case, the only Parameter Context whose `Syslog Port` parameter would be set would be the Parameter Context whose name is `Syslog Context`.
 
+`(16) extensions.directory` : Specifies the directory to add any downloaded extensions to. If not specified, the extensions will be written to the same directory that the
+connector lives in. Because this directory may not be writable, and to aid in upgrade scenarios, it is highly recommended that this property be configured.
+ 
 
 ### Transactional sources
 
@@ -252,7 +257,8 @@ as it includes annotations (1), (2), etc. for illustrative purposes):
 (12)   "headers.as.attributes.regex": "syslog.*",
 (13)   "krb5.file": "/etc/krb5.conf",
 (14)   "dataflow.timeout": "30 sec",
-(15)   "parameter.Directory": "/syslog"
+(15)   "parameter.Directory": "/syslog",
+(16)   "extensions.directory": "/tmp/stateless-extensions"
   }
 }
 ``` 
@@ -287,6 +293,7 @@ a result, Connect can be configured with the URL of a Nexus server. The example 
 extensions. When a connector is started, it will first identify which extensions are necessary to run the dataflow, determine which extensions are available,
 and then automatically download any necessary extensions that it currently does not have available. If configuring a Nexus instance that has multiple repositories,
 the name of the repository should be included in the URL. For example: `https://nexus-private.myorganization.org/nexus/repository/my-repository/`.
+If the property is not specified, the necessary extensions (used by the flow) must be provided in the `extensions.directory` before deploying the connector.
 
 `(9) flow.snapshot`: Specifies the dataflow to run. This is the file that was downloaded by right-clicking on the Process Group in NiFi and
 clicking "Download flow". The dataflow can be stored external to the configured and the location can be represented as an HTTP (or HTTPS URL), or a filename.
@@ -323,6 +330,9 @@ Process Groups have their own Parameter Contexts, this value will be used for an
 should be applied only to a specific Parameter Context, the name of the Parameter Context may be supplied and separated from the Parameter Name with a colon. For example,
 `parameter.HDFS:Directory`. In this case, the only Parameter Context whose `Directory` parameter would be set would be the Parameter Context whose name is `HDFS`.
 
+`(16) extensions.directory` : Specifies the directory to add any downloaded extensions to. If not specified, the extensions will be written to the same directory that the
+connector lives in. Because this directory may not be writable, and to aid in upgrade scenarios, it is highly recommended that this property be configured.
+
 
 <a name="merging"></a>
 ### Merging
@@ -333,15 +343,10 @@ sent to S3 or to HDFS, those services will perform much better if the data is fi
 processors are extremely popular in NiFi for this reason. They allow many small FlowFiles to be merged together into one larger FlowFile.
 
 With traditional NiFi, we can simply set a minimum and maximum size for the merged data along with a timeout. However, with Stateless NiFi and Kafka Connect,
-this may not work as well, because only a limited number of FlowFiles will be made available to the Processor. There, we can still use these Processor in
-order to merge the data together, but with a few limitations, discussed here.
+this may not work as well, because only a limited number of FlowFiles will be made available to the Processor. We can still use these Processor in
+order to merge the data together, but with a bit of a limitation.
 
-(1) The MergeContent / MergeRecord processor must be the first component in the dataflow after the Input Port. The Sink Connector will queue up some number
-of FlowFiles before triggering the dataflow. When Kafka Connect calls the Connector's `flush` method, the dataflow will be triggered. 
-If the MergeContent / MergeRecord processor is not the first processor in the flow, the processor will either merge only a single FlowFile in each batch 
-(if the configuration allows) or the processor will never make progress, and the dataflow will eventually timeout and be restarted.
-
-(2) If MergeContent / MergeRecord are triggered but do not have enough FlowFiles to create a batch, the processor will do nothing. If there are more FlowFiles
+If MergeContent / MergeRecord are triggered but do not have enough FlowFiles to create a batch, the processor will do nothing. If there are more FlowFiles
 queued up than the configured maximum number of entries, the Processor will merge up to that number of FlowFiles but then leave the rest sitting in the queue.
 The next invocation will then not have enough FlowFiles to create a batch and therefore will remain queued. In either of these situations, the result can be
 that the dataflow is constantly triggering the merge processor, which makes no process, and as a result the dataflow times out and rolls back the entire session.
@@ -441,8 +446,10 @@ The Connector will then examine its own set of downloaded extensions and determi
 and begin downloading them.
 
 In order to do this, the connect configuration must specify where to download the extensions. This is the reason for the "nexus.url" property that is described
-in both the Source Connector and the Sink Connector. Once downloaded, the extensions are placed in the same directory as existing NiFi Archive (NAR) files.
-Unless explicitly specified in the connector configuration (via the `nar.directory` configuration element), this is auto-detected to be the same directory
+in both the Source Connector and the Sink Connector. Once downloaded, the extensions are placed in the configured extensions directory (configured via the
+`extensions.directory` configuration element).
+If the `extensions.directory` is not explicitly specified in the connector configuration, extensions will be added to the NAR Directory 
+(configured via the `nar.directory` configuration element). If this is not specified, it is is auto-detected to be the same directory
 that the NiFi Kafka Connector was installed in.
 
 
@@ -467,7 +474,9 @@ Kafka Connect does not allow for state to be stored for Sink Tasks.
 NiFi provides several processors that are expected to run only on a single node in the cluster. This is accomplished by setting the Execution Node to
 "Primary Node Only" in the scheduling tab when configuring a NiFi Processor. When using the Source Connector, if any source processor in the configured
 dataflow is set to run on Primary Node Only, only a single task will ever run, even if the "tasks" configuration element is set to a large value. In this
-case, a warning will be logged if attempting to use multiple tasks for a dataflow that has a source processor configured for Primary Node Only.
+case, a warning will be logged if attempting to use multiple tasks for a dataflow that has a source processor configured for Primary Node Only. Because Processors
+should only be scheduled on Primary Node Only if they are sources of data, this is ignored for all Sink Tasks and for any Processor in a Source Task that has
+incoming connections.
 
 #### Processor Yielding
 

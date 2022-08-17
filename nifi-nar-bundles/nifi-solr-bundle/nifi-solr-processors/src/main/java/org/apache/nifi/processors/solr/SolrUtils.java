@@ -18,25 +18,6 @@
  */
 package org.apache.nifi.processors.solr;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.HttpClient;
@@ -52,6 +33,7 @@ import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -77,6 +59,26 @@ import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.MultiMapSolrParams;
+
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 public class SolrUtils {
 
@@ -147,6 +149,14 @@ public class SolrUtils {
             .displayName("Kerberos Credentials Service")
             .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
             .identifiesControllerService(KerberosCredentialsService.class)
+            .required(false)
+            .build();
+
+    static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
+            .name("kerberos-user-service")
+            .displayName("Kerberos User Service")
+            .description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos")
+            .identifiesControllerService(KerberosUserService.class)
             .required(false)
             .build();
 
@@ -226,6 +236,7 @@ public class SolrUtils {
             .build();
 
     public static final String REPEATING_PARAM_PATTERN = "[\\w\\.]+\\.\\d+$";
+    private static final String ROOT_PATH = "/";
 
     public static synchronized SolrClient createSolrClient(final PropertyContext context, final String solrLocation) {
         final Integer socketTimeout = context.getProperty(SOLR_SOCKET_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
@@ -248,9 +259,9 @@ public class SolrUtils {
         if (sslContextService != null) {
             final SSLContext sslContext = sslContextService.createContext();
             final SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(sslContext);
-            HttpClientUtil.setSchemaRegistryProvider(new HttpClientUtil.SchemaRegistryProvider() {
+            HttpClientUtil.setSocketFactoryRegistryProvider(new HttpClientUtil.SocketFactoryRegistryProvider() {
                 @Override
-                public Registry<ConnectionSocketFactory> getSchemaRegistry() {
+                public Registry<ConnectionSocketFactory> getSocketFactoryRegistry() {
                     RegistryBuilder<ConnectionSocketFactory> builder = RegistryBuilder.create();
                     builder.register("http", PlainConnectionSocketFactory.getSocketFactory());
                     builder.register("https", sslSocketFactory);
@@ -271,22 +282,29 @@ public class SolrUtils {
             return new HttpSolrClient.Builder(solrLocation).withHttpClient(httpClient).build();
         } else {
             // CloudSolrClient.Builder now requires a List of ZK addresses and znode for solr as separate parameters
-            final String[] zk = solrLocation.split("/");
+            final String[] zk = solrLocation.split(ROOT_PATH);
             final List zkList = Arrays.asList(zk[0].split(","));
-            String zkRoot = "/";
-            if (zk.length > 1 && ! zk[1].isEmpty()) {
-                zkRoot += zk[1];
-            }
+            String zkChrootPath = getZooKeeperChrootPathSuffix(solrLocation);
 
             final String collection = context.getProperty(COLLECTION).evaluateAttributeExpressions().getValue();
             final Integer zkClientTimeout = context.getProperty(ZK_CLIENT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
             final Integer zkConnectionTimeout = context.getProperty(ZK_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
-            CloudSolrClient cloudSolrClient = new CloudSolrClient.Builder(zkList, Optional.of(zkRoot)).withHttpClient(httpClient).build();
+            CloudSolrClient cloudSolrClient = new CloudSolrClient.Builder(zkList, Optional.of(zkChrootPath)).withHttpClient(httpClient).build();
             cloudSolrClient.setDefaultCollection(collection);
             cloudSolrClient.setZkClientTimeout(zkClientTimeout);
             cloudSolrClient.setZkConnectTimeout(zkConnectionTimeout);
             return cloudSolrClient;
+        }
+    }
+
+    private static String getZooKeeperChrootPathSuffix(final String solrLocation) {
+        String[] zkConnectStringAndChrootSuffix = solrLocation.split("(?=/)", 2);
+        if (zkConnectStringAndChrootSuffix.length > 1) {
+            final String chrootSuffix = zkConnectStringAndChrootSuffix[1];
+            return chrootSuffix;
+        } else {
+            return ROOT_PATH;
         }
     }
 

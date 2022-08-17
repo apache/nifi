@@ -38,6 +38,16 @@ public interface FlowFileEvent {
 
     long getProcessingNanoseconds();
 
+    long getCpuNanoseconds();
+
+    long getContentReadNanoseconds();
+
+    long getContentWriteNanoseconds();
+
+    long getSessionCommitNanoseconds();
+
+    long getGargeCollectionMillis();
+
     long getAverageLineageMillis();
 
     long getAggregateLineageMillis();
