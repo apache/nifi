@@ -67,11 +67,6 @@
             <artifactId>spring-expression</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.jeasy</groupId>
-            <artifactId>easy-rules-mvel</artifactId>
-            <version>3.4.0</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
             <scope>test</scope>
