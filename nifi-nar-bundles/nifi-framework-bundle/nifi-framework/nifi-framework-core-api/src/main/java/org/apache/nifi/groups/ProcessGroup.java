@@ -32,6 +32,7 @@ import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.Triggerable;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flowfile.FlowFile;
@@ -1227,4 +1228,9 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @param defaultBackPressureDataSizeThreshold new default back pressure size threshold (must include size unit label)
      */
     void setDefaultBackPressureDataSizeThreshold(String defaultBackPressureDataSizeThreshold);
+
+    /**
+     * @return the QueueSize of this Process Group and all child Process Groups
+     */
+    QueueSize getQueueSize();
 }
