@@ -16,15 +16,17 @@
  */
 package org.apache.nifi.processors.azure.eventhub;
 
-import com.microsoft.azure.eventhubs.EventData;
-import com.microsoft.azure.eventprocessorhost.PartitionContext;
+import com.azure.messaging.eventhubs.CheckpointStore;
+import com.azure.messaging.eventhubs.EventData;
+import com.azure.messaging.eventhubs.EventProcessorClient;
+import com.azure.messaging.eventhubs.models.Checkpoint;
+import com.azure.messaging.eventhubs.models.EventBatchContext;
+import com.azure.messaging.eventhubs.models.PartitionContext;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -38,15 +40,15 @@ import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.MockProcessSession;
-import org.apache.nifi.util.SharedSessionState;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -56,7 +58,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -66,62 +67,71 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class TestConsumeAzureEventHub {
-    private static final String namespaceName = "nifi-azure-hub";
-    private static final String eventHubName = "get-test";
-    private static final String policyName = "test-pn";
-    private static final String policyKey = "test-pk";
-    private static final String storageAccountName = "test-sa";
-    private static final String storageAccountKey = "test-sa-key";
-    private static final String storageSasToken = "?test-sa-token";
-    private static final String serviceBusEndpoint = ".endpoint";
+    private static final String EVENT_HUB_NAMESPACE = "NAMESPACE";
+    private static final String EVENT_HUB_NAME = "NAME";
+    private static final String POLICY_NAME = "POLICY";
+    private static final String POLICY_KEY = "POLICY_KEY";
+    private static final String STORAGE_ACCOUNT_NAME = "STORAGE";
+    private static final String STORAGE_ACCOUNT_KEY = "STORAGE_KEY";
+    private static final String STORAGE_TOKEN = "?TOKEN";
+    private static final String SERVICE_BUS_ENDPOINT = ".endpoint";
+    private static final String CONSUMER_GROUP = "CONSUMER";
+    private static final String PARTITION_ID = "0";
+    private static final String FIRST_CONTENT = "CONTENT-1";
+    private static final String SECOND_CONTENT = "CONTENT-2";
+    private static final String THIRD_CONTENT = "CONTENT-3";
+    private static final String FOURTH_CONTENT = "CONTENT-4";
+    private static final String APPLICATION_PROPERTY = "application";
+    private static final String APPLICATION_ATTRIBUTE_NAME = String.format("eventhub.property.%s", APPLICATION_PROPERTY);
 
-    private static final String EXPECTED_TRANSIT_URI = "amqps://namespace" + serviceBusEndpoint + "/" +
-            "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id";
+    private static final String EXPECTED_TRANSIT_URI = String.format("amqps://%s%s/%s/ConsumerGroups/%s/Partitions/%s",
+            EVENT_HUB_NAMESPACE,
+            SERVICE_BUS_ENDPOINT,
+            EVENT_HUB_NAME,
+            CONSUMER_GROUP,
+            PARTITION_ID
+    );
 
-    private ConsumeAzureEventHub.EventProcessor eventProcessor;
-    private MockProcessSession processSession;
-    private SharedSessionState sharedState;
-    private PartitionContext partitionContext;
-    private ConsumeAzureEventHub processor;
+    @Mock
+    EventProcessorClient eventProcessorClient;
+
+    @Mock
+    PartitionContext partitionContext;
+
+    @Mock
+    CheckpointStore checkpointStore;
+
+    @Mock
+    RecordSetWriterFactory writerFactory;
+
+    @Mock
+    RecordSetWriter writer;
+
+    @Mock
+    RecordReaderFactory readerFactory;
+
+    @Mock
+    RecordReader reader;
+
+    private MockConsumeAzureEventHub processor;
+
+    private TestRunner testRunner;
 
     @BeforeEach
     public void setupProcessor() {
-        processor = new ConsumeAzureEventHub();
-        final ProcessorInitializationContext initContext = Mockito.mock(ProcessorInitializationContext.class);
-        final String componentId = "componentId";
-        when(initContext.getIdentifier()).thenReturn(componentId);
-        MockComponentLog componentLog = new MockComponentLog(componentId, processor);
-        when(initContext.getLogger()).thenReturn(componentLog);
-        processor.initialize(initContext);
-
-        final ProcessSessionFactory processSessionFactory = Mockito.mock(ProcessSessionFactory.class);
-        processor.setProcessSessionFactory(processSessionFactory);
-        processor.setNamespaceName("namespace");
-        processor.setServiceBusEndpoint(serviceBusEndpoint);
-
-        sharedState = new SharedSessionState(processor, new AtomicLong(0));
-        processSession = new MockProcessSession(sharedState, processor);
-        when(processSessionFactory.createSession()).thenReturn(processSession);
-
-        eventProcessor = processor.new EventProcessor();
-
-        partitionContext = Mockito.mock(PartitionContext.class);
-        when(partitionContext.getEventHubPath()).thenReturn("eventhub-name");
-        when(partitionContext.getPartitionId()).thenReturn("partition-id");
-        when(partitionContext.getConsumerGroupName()).thenReturn("consumer-group");
+        processor = new MockConsumeAzureEventHub();
+        testRunner = TestRunners.newTestRunner(processor);
     }
 
     @Test
     public void testProcessorConfigValidityWithManagedIdentityFlag() throws InitializationException {
-        TestRunner testRunner = TestRunners.newTestRunner(processor);
-        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME,eventHubName);
+        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
         testRunner.assertNotValid();
-        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE,namespaceName);
+        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
         testRunner.assertNotValid();
         final MockRecordParser reader = new MockRecordParser();
         final MockRecordWriter writer = new MockRecordWriter();
@@ -132,8 +142,8 @@ public class TestConsumeAzureEventHub {
         testRunner.setProperty(ConsumeAzureEventHub.RECORD_WRITER, "writer");
         testRunner.setProperty(ConsumeAzureEventHub.RECORD_READER, "reader");
         testRunner.assertNotValid();
-        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, storageAccountName);
-        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY, storageAccountKey);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_NAME);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY, STORAGE_ACCOUNT_KEY);
         testRunner.assertNotValid();
         testRunner.setProperty(ConsumeAzureEventHub.USE_MANAGED_IDENTITY,"true");
         testRunner.assertValid();
@@ -141,94 +151,76 @@ public class TestConsumeAzureEventHub {
 
     @Test
     public void testProcessorConfigValidityWithNeitherStorageKeyNorTokenSet() {
-        TestRunner testRunner = TestRunners.newTestRunner(processor);
-        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME,eventHubName);
+        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
         testRunner.assertNotValid();
-        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE,namespaceName);
+        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
         testRunner.assertNotValid();
-        testRunner.setProperty(ConsumeAzureEventHub.ACCESS_POLICY_NAME, policyName);
-        testRunner.setProperty(ConsumeAzureEventHub.POLICY_PRIMARY_KEY, policyKey);
+        testRunner.setProperty(ConsumeAzureEventHub.ACCESS_POLICY_NAME, POLICY_NAME);
+        testRunner.setProperty(ConsumeAzureEventHub.POLICY_PRIMARY_KEY, POLICY_KEY);
         testRunner.assertNotValid();
-        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, storageAccountName);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_NAME);
         testRunner.assertNotValid();
     }
 
     @Test
     public void testProcessorConfigValidityWithBothStorageKeyAndTokenSet() {
-        TestRunner testRunner = TestRunners.newTestRunner(processor);
-        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME,eventHubName);
+        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
         testRunner.assertNotValid();
-        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE,namespaceName);
+        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
         testRunner.assertNotValid();
-        testRunner.setProperty(ConsumeAzureEventHub.ACCESS_POLICY_NAME, policyName);
-        testRunner.setProperty(ConsumeAzureEventHub.POLICY_PRIMARY_KEY, policyKey);
+        testRunner.setProperty(ConsumeAzureEventHub.ACCESS_POLICY_NAME, POLICY_NAME);
+        testRunner.setProperty(ConsumeAzureEventHub.POLICY_PRIMARY_KEY, POLICY_KEY);
         testRunner.assertNotValid();
-        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, storageAccountName);
-        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY, storageAccountKey);
-        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_SAS_TOKEN, storageSasToken);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_NAME);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY, STORAGE_ACCOUNT_KEY);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_SAS_TOKEN, STORAGE_TOKEN);
         testRunner.assertNotValid();
     }
 
     @Test
     public void testProcessorConfigValidityWithTokenSet() {
-        TestRunner testRunner = TestRunners.newTestRunner(processor);
-        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME,eventHubName);
+        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
         testRunner.assertNotValid();
-        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE,namespaceName);
+        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
         testRunner.assertNotValid();
-        testRunner.setProperty(ConsumeAzureEventHub.ACCESS_POLICY_NAME, policyName);
-        testRunner.setProperty(ConsumeAzureEventHub.POLICY_PRIMARY_KEY, policyKey);
+        testRunner.setProperty(ConsumeAzureEventHub.ACCESS_POLICY_NAME, POLICY_NAME);
+        testRunner.setProperty(ConsumeAzureEventHub.POLICY_PRIMARY_KEY, POLICY_KEY);
         testRunner.assertNotValid();
-        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, storageAccountName);
-        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_SAS_TOKEN, storageSasToken);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_NAME);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_SAS_TOKEN, STORAGE_TOKEN);
         testRunner.assertValid();
     }
 
     @Test
     public void testProcessorConfigValidityWithStorageKeySet() {
-        TestRunner testRunner = TestRunners.newTestRunner(processor);
-        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME,eventHubName);
+        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
         testRunner.assertNotValid();
-        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE,namespaceName);
+        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
         testRunner.assertNotValid();
-        testRunner.setProperty(ConsumeAzureEventHub.ACCESS_POLICY_NAME, policyName);
-        testRunner.setProperty(ConsumeAzureEventHub.POLICY_PRIMARY_KEY, policyKey);
+        testRunner.setProperty(ConsumeAzureEventHub.ACCESS_POLICY_NAME, POLICY_NAME);
+        testRunner.setProperty(ConsumeAzureEventHub.POLICY_PRIMARY_KEY, POLICY_KEY);
         testRunner.assertNotValid();
-        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, storageAccountName);
-        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY, storageAccountKey);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_NAME);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY, STORAGE_ACCOUNT_KEY);
         testRunner.assertValid();
     }
 
     @Test
-    public void testReceivedApplicationProperties() throws Exception {
-        final EventData singleEvent = EventData.create("one".getBytes(StandardCharsets.UTF_8));
-        singleEvent.getProperties().put("event-sender", "Apache NiFi");
-        singleEvent.getProperties().put("application", "TestApp");
-        final Iterable<EventData> eventDataList = Collections.singletonList(singleEvent);
-        eventProcessor.onEvents(partitionContext, eventDataList);
+    public void testReceiveOne() {
+        setProperties();
+        testRunner.run(1, false);
+        final List<EventData> events = getEvents(FIRST_CONTENT);
 
-        processSession.assertCommitted();
-        final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
+        final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
+        processor.eventBatchProcessor.accept(eventBatchContext);
+
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
-        final MockFlowFile msg1 = flowFiles.get(0);
-        msg1.assertAttributeEquals("eventhub.property.event-sender", "Apache NiFi");
-        msg1.assertAttributeEquals("eventhub.property.application", "TestApp");
-    }
+        final MockFlowFile flowFile = flowFiles.get(0);
+        flowFile.assertContentEquals(FIRST_CONTENT);
+        assertEventHubAttributesFound(flowFile);
 
-    @Test
-    public void testReceiveOne() throws Exception {
-        final Iterable<EventData> eventDataList = Collections.singletonList(EventData.create("one".getBytes(StandardCharsets.UTF_8)));
-        eventProcessor.onEvents(partitionContext, eventDataList);
-
-        processSession.assertCommitted();
-        final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
-        assertEquals(1, flowFiles.size());
-        final MockFlowFile msg1 = flowFiles.get(0);
-        msg1.assertContentEquals("one");
-        msg1.assertAttributeEquals("eventhub.name", "eventhub-name");
-        msg1.assertAttributeEquals("eventhub.partition", "partition-id");
-
-        final List<ProvenanceEventRecord> provenanceEvents = sharedState.getProvenanceEvents();
+        final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertEquals(1, provenanceEvents.size());
         final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
@@ -236,45 +228,168 @@ public class TestConsumeAzureEventHub {
     }
 
     @Test
-    public void testReceiveTwo() throws Exception {
-        final Iterable<EventData> eventDataList = Arrays.asList(
-                EventData.create("one".getBytes(StandardCharsets.UTF_8)),
-                EventData.create("two".getBytes(StandardCharsets.UTF_8))
-        );
-        eventProcessor.onEvents(partitionContext, eventDataList);
+    public void testReceiveTwo() {
+        setProperties();
+        testRunner.run(1, false);
+        final List<EventData> events = getEvents(FIRST_CONTENT, SECOND_CONTENT);
 
-        processSession.assertCommitted();
-        final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
+        final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
+        processor.eventBatchProcessor.accept(eventBatchContext);
+
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
         assertEquals(2, flowFiles.size());
         final MockFlowFile msg1 = flowFiles.get(0);
-        msg1.assertContentEquals("one");
+        msg1.assertContentEquals(FIRST_CONTENT);
         final MockFlowFile msg2 = flowFiles.get(1);
-        msg2.assertContentEquals("two");
+        msg2.assertContentEquals(SECOND_CONTENT);
 
-        final List<ProvenanceEventRecord> provenanceEvents = sharedState.getProvenanceEvents();
+        final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertEquals(2, provenanceEvents.size());
     }
 
     @Test
-    public void testCheckpointFailure() throws Exception {
-        final Iterable<EventData> eventDataList = Arrays.asList(
-                EventData.create("one".getBytes(StandardCharsets.UTF_8)),
-                EventData.create("two".getBytes(StandardCharsets.UTF_8))
-        );
-        doThrow(new RuntimeException("Failed to create a checkpoint.")).when(partitionContext).checkpoint();
-        eventProcessor.onEvents(partitionContext, eventDataList);
+    public void testReceiveRecords() throws Exception {
+        setProperties();
 
-        // Even if it fails to create a checkpoint, these FlowFiles are already committed.
-        processSession.assertCommitted();
-        final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
-        assertEquals(2, flowFiles.size());
-        final MockFlowFile msg1 = flowFiles.get(0);
-        msg1.assertContentEquals("one");
-        final MockFlowFile msg2 = flowFiles.get(1);
-        msg2.assertContentEquals("two");
+        final List<EventData> events = getEvents(FIRST_CONTENT, SECOND_CONTENT);
+        setupRecordReader(events);
+        setupRecordWriter();
 
-        final List<ProvenanceEventRecord> provenanceEvents = sharedState.getProvenanceEvents();
+        testRunner.run(1, false);
+
+        final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
+        processor.eventBatchProcessor.accept(eventBatchContext);
+
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
+        assertEquals(1, flowFiles.size());
+        final MockFlowFile ff1 = flowFiles.get(0);
+        ff1.assertContentEquals(FIRST_CONTENT + SECOND_CONTENT);
+        assertEventHubAttributesFound(ff1);
+
+        final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
+        assertEquals(1, provenanceEvents.size());
+        final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
+        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
+        assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
+    }
+
+    @Test
+    public void testReceiveRecordReaderFailure() throws Exception {
+        setProperties();
+
+        final List<EventData> events = getEvents(FIRST_CONTENT, SECOND_CONTENT, THIRD_CONTENT, FOURTH_CONTENT);
+        setupRecordReader(events, 2, null);
+        setupRecordWriter();
+
+        testRunner.run(1, false);
+
+        final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
+        processor.eventBatchProcessor.accept(eventBatchContext);
+
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
+        assertEquals(1, flowFiles.size());
+        final MockFlowFile ff1 = flowFiles.get(0);
+        ff1.assertContentEquals(FIRST_CONTENT + SECOND_CONTENT + FOURTH_CONTENT);
+        assertEventHubAttributesFound(ff1);
+
+        final List<MockFlowFile> failedFFs = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_PARSE_FAILURE);
+        assertEquals(1, failedFFs.size());
+        final MockFlowFile failed1 = failedFFs.get(0);
+        failed1.assertContentEquals(THIRD_CONTENT);
+        assertEventHubAttributesFound(failed1);
+
+        final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertEquals(2, provenanceEvents.size());
+
+        final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
+        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
+        assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
+
+        final ProvenanceEventRecord provenanceEvent2 = provenanceEvents.get(1);
+        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent2.getEventType());
+        assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent2.getTransitUri());
+    }
+
+    @Test
+    public void testReceiveAllRecordFailure() throws Exception {
+        setProperties();
+
+        final List<EventData> events = getEvents(FIRST_CONTENT);
+        setupRecordReader(events, 0, null);
+        setRecordWriterProperty();
+
+        testRunner.run(1, false);
+
+        final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
+        processor.eventBatchProcessor.accept(eventBatchContext);
+
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
+        assertEquals(0, flowFiles.size());
+
+        final List<MockFlowFile> failedFFs = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_PARSE_FAILURE);
+        assertEquals(1, failedFFs.size());
+        final MockFlowFile failed1 = failedFFs.get(0);
+        failed1.assertContentEquals(FIRST_CONTENT);
+        assertEventHubAttributesFound(failed1);
+
+        final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
+        assertEquals(1, provenanceEvents.size());
+
+        final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
+        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
+        assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
+    }
+
+    @Test
+    public void testReceiveRecordWriterFailure() throws Exception {
+        setProperties();
+
+        final List<EventData> events = getEvents(FIRST_CONTENT, SECOND_CONTENT, THIRD_CONTENT, FOURTH_CONTENT);
+        setupRecordReader(events, -1, SECOND_CONTENT);
+        setupRecordWriter(SECOND_CONTENT);
+
+        testRunner.run(1, false);
+
+        final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
+        processor.eventBatchProcessor.accept(eventBatchContext);
+
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
+        assertEquals(1, flowFiles.size());
+        final MockFlowFile ff1 = flowFiles.get(0);
+        ff1.assertContentEquals(FIRST_CONTENT + THIRD_CONTENT + FOURTH_CONTENT);
+        assertEventHubAttributesFound(ff1);
+
+        final List<MockFlowFile> failedFFs = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_PARSE_FAILURE);
+        assertEquals(1, failedFFs.size());
+        final MockFlowFile failed1 = failedFFs.get(0);
+        failed1.assertContentEquals(SECOND_CONTENT);
+        assertEventHubAttributesFound(failed1);
+
+        final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
+        assertEquals(2, provenanceEvents.size());
+
+        final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
+        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
+        assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
+
+        final ProvenanceEventRecord provenanceEvent2 = provenanceEvents.get(1);
+        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent2.getEventType());
+        assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent2.getTransitUri());
+    }
+
+    private void setProperties() {
+        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
+        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
+        testRunner.setProperty(ConsumeAzureEventHub.ACCESS_POLICY_NAME, POLICY_NAME);
+        testRunner.setProperty(ConsumeAzureEventHub.POLICY_PRIMARY_KEY, POLICY_KEY);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_NAME);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_SAS_TOKEN, STORAGE_TOKEN);
+
+        when(partitionContext.getEventHubName()).thenReturn(EVENT_HUB_NAME);
+        when(partitionContext.getConsumerGroup()).thenReturn(CONSUMER_GROUP);
+        when(partitionContext.getPartitionId()).thenReturn(PARTITION_ID);
+
+        when(checkpointStore.updateCheckpoint(any(Checkpoint.class))).thenReturn(Mono.empty());
     }
 
     private Record toRecord(String value) {
@@ -284,14 +399,22 @@ public class TestConsumeAzureEventHub {
                 new RecordField("value", RecordFieldType.STRING.getDataType()))), map);
     }
 
-    private void setupRecordWriter() throws SchemaNotFoundException, IOException {
+    private void setupRecordWriter() throws Exception {
         setupRecordWriter(null);
     }
 
-    private void setupRecordWriter(String throwErrorWith) throws SchemaNotFoundException, IOException {
-        final RecordSetWriterFactory writerFactory = mock(RecordSetWriterFactory.class);
-        processor.setWriterFactory(writerFactory);
-        final RecordSetWriter writer = mock(RecordSetWriter.class);
+    private RecordSetWriterFactory setRecordWriterProperty() throws InitializationException {
+        when(writerFactory.getIdentifier()).thenReturn(RecordSetWriterFactory.class.getName());
+
+        testRunner.addControllerService(RecordSetWriterFactory.class.getName(), writerFactory);
+        testRunner.enableControllerService(writerFactory);
+        testRunner.setProperty(ConsumeAzureEventHub.RECORD_WRITER, RecordSetWriterFactory.class.getName());
+
+        return writerFactory;
+    }
+
+    private void setupRecordWriter(String throwErrorWith) throws Exception {
+        final RecordSetWriterFactory writerFactory = setRecordWriterProperty();
         final AtomicReference<OutputStream> outRef = new AtomicReference<>();
         when(writerFactory.createWriter(any(), any(), any(), any(FlowFile.class))).thenAnswer(invocation -> {
             outRef.set(invocation.getArgument(2));
@@ -300,25 +423,27 @@ public class TestConsumeAzureEventHub {
         when(writer.write(any(Record.class))).thenAnswer(invocation -> {
             final String value = (String) invocation.<Record>getArgument(0).getValue("value");
             if (throwErrorWith != null && throwErrorWith.equals(value)) {
-                throw new IOException("Simulating record write failure.");
+                throw new IOException(MockConsumeAzureEventHub.class.getSimpleName());
             }
             outRef.get().write(value.getBytes(StandardCharsets.UTF_8));
             return WriteResult.of(1, Collections.emptyMap());
         });
     }
 
-    private void setupRecordReader(List<EventData> eventDataList) throws MalformedRecordException, IOException, SchemaNotFoundException {
+    private void setupRecordReader(List<EventData> eventDataList) throws Exception {
         setupRecordReader(eventDataList, -1, null);
     }
 
-    private void setupRecordReader(List<EventData> eventDataList, int throwExceptionAt, String writeFailureWith)
-            throws MalformedRecordException, IOException, SchemaNotFoundException {
-        final RecordReaderFactory readerFactory = mock(RecordReaderFactory.class);
-        processor.setReaderFactory(readerFactory);
-        final RecordReader reader = mock(RecordReader.class);
+    private void setupRecordReader(List<EventData> eventDataList, int throwExceptionAt, String writeFailureWith) throws Exception {
+        when(readerFactory.getIdentifier()).thenReturn(RecordReaderFactory.class.getName());
+
+        testRunner.addControllerService(RecordReaderFactory.class.getName(), readerFactory);
+        testRunner.enableControllerService(readerFactory);
+        testRunner.setProperty(ConsumeAzureEventHub.RECORD_READER, RecordReaderFactory.class.getName());
+
         when(readerFactory.createRecordReader(anyMap(), any(), anyLong(), any())).thenReturn(reader);
         final List<Record> recordList = eventDataList.stream()
-                .map(eventData -> toRecord(new String(eventData.getBytes())))
+                .map(eventData -> toRecord(eventData.getBodyAsString()))
                 .collect(Collectors.toList());
 
         // Add null to indicate the end of records.
@@ -337,161 +462,47 @@ public class TestConsumeAzureEventHub {
                 break;
             case 0:
                 when(reader.nextRecord())
-                        .thenThrow(new MalformedRecordException("Simulating Record parse failure."))
+                        .thenThrow(new MalformedRecordException(MockConsumeAzureEventHub.class.getSimpleName()))
                         .thenReturn(records[0], Arrays.copyOfRange(records, 1, records.length));
                 break;
             default:
                 final List<Record> recordList1 = addEndRecord.apply(recordList.subList(0, throwExceptionAt));
                 final List<Record> recordList2 = addEndRecord.apply(recordList.subList(throwExceptionAt + 1, recordList.size()));
-                final Record[] records1 = recordList1.toArray(new Record[recordList1.size()]);
-                final Record[] records2 = recordList2.toArray(new Record[recordList2.size()]);
+                final Record[] records1 = recordList1.toArray(new Record[0]);
+                final Record[] records2 = recordList2.toArray(new Record[0]);
                 when(reader.nextRecord())
                         .thenReturn(records1[0], Arrays.copyOfRange(records1, 1, records1.length))
-                        .thenThrow(new MalformedRecordException("Simulating Record parse failure."))
+                        .thenThrow(new MalformedRecordException(MockConsumeAzureEventHub.class.getSimpleName()))
                         .thenReturn(records2[0], Arrays.copyOfRange(records2, 1, records2.length));
         }
     }
 
-    @Test
-    public void testReceiveRecords() throws Exception {
-        final List<EventData> eventDataList = Arrays.asList(
-                EventData.create("one".getBytes(StandardCharsets.UTF_8)),
-                EventData.create("two".getBytes(StandardCharsets.UTF_8))
-        );
-
-        setupRecordReader(eventDataList);
-
-        setupRecordWriter();
-
-        eventProcessor.onEvents(partitionContext, eventDataList);
-
-        processSession.assertCommitted();
-        final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
-        assertEquals(1, flowFiles.size());
-        final MockFlowFile ff1 = flowFiles.get(0);
-        ff1.assertContentEquals("onetwo");
-        ff1.assertAttributeEquals("eventhub.name", "eventhub-name");
-        ff1.assertAttributeEquals("eventhub.partition", "partition-id");
-
-        final List<ProvenanceEventRecord> provenanceEvents = sharedState.getProvenanceEvents();
-        assertEquals(1, provenanceEvents.size());
-        final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
-        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
-        assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
+    private void assertEventHubAttributesFound(final MockFlowFile flowFile) {
+        flowFile.assertAttributeEquals("eventhub.name", EVENT_HUB_NAME);
+        flowFile.assertAttributeEquals("eventhub.partition", PARTITION_ID);
+        flowFile.assertAttributeEquals(APPLICATION_ATTRIBUTE_NAME, MockConsumeAzureEventHub.class.getSimpleName());
     }
 
-    @Test
-    public void testReceiveRecordReaderFailure() throws Exception {
-        final List<EventData> eventDataList = Arrays.asList(
-                EventData.create("one".getBytes(StandardCharsets.UTF_8)),
-                EventData.create("two".getBytes(StandardCharsets.UTF_8)),
-                EventData.create("three".getBytes(StandardCharsets.UTF_8)),
-                EventData.create("four".getBytes(StandardCharsets.UTF_8))
-        );
-
-        setupRecordReader(eventDataList, 2, null);
-
-        setupRecordWriter();
-
-        eventProcessor.onEvents(partitionContext, eventDataList);
-
-        processSession.assertCommitted();
-        final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
-        assertEquals(1, flowFiles.size());
-        final MockFlowFile ff1 = flowFiles.get(0);
-        ff1.assertContentEquals("onetwofour");
-        ff1.assertAttributeEquals("eventhub.name", "eventhub-name");
-        ff1.assertAttributeEquals("eventhub.partition", "partition-id");
-
-        final List<MockFlowFile> failedFFs = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_PARSE_FAILURE);
-        assertEquals(1, failedFFs.size());
-        final MockFlowFile failed1 = failedFFs.get(0);
-        failed1.assertContentEquals("three");
-        failed1.assertAttributeEquals("eventhub.name", "eventhub-name");
-        failed1.assertAttributeEquals("eventhub.partition", "partition-id");
-
-        final List<ProvenanceEventRecord> provenanceEvents = sharedState.getProvenanceEvents();
-        assertEquals(2, provenanceEvents.size());
-
-        final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
-        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
-        assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
-
-        final ProvenanceEventRecord provenanceEvent2 = provenanceEvents.get(1);
-        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent2.getEventType());
-        assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent2.getTransitUri());
+    private List<EventData> getEvents(final String... contents) {
+        return Arrays.stream(contents)
+                .map(content -> {
+                    final EventData eventData = new EventData(content);
+                    eventData.getProperties().put(APPLICATION_PROPERTY, MockConsumeAzureEventHub.class.getSimpleName());
+                    return eventData;
+                })
+                .collect(Collectors.toList());
     }
 
-    @Test
-    public void testReceiveAllRecordFailure() throws Exception {
-        final List<EventData> eventDataList = Collections.singletonList(
-                EventData.create("one".getBytes(StandardCharsets.UTF_8))
-        );
+    private class MockConsumeAzureEventHub extends ConsumeAzureEventHub {
 
-        setupRecordReader(eventDataList, 0, null);
+        @Override
+        protected EventProcessorClient createClient(final ProcessContext context) {
+            return eventProcessorClient;
+        }
 
-        setupRecordWriter();
-
-        eventProcessor.onEvents(partitionContext, eventDataList);
-
-        processSession.assertCommitted();
-        final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
-        assertEquals(0, flowFiles.size());
-
-        final List<MockFlowFile> failedFFs = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_PARSE_FAILURE);
-        assertEquals(1, failedFFs.size());
-        final MockFlowFile failed1 = failedFFs.get(0);
-        failed1.assertContentEquals("one");
-        failed1.assertAttributeEquals("eventhub.name", "eventhub-name");
-        failed1.assertAttributeEquals("eventhub.partition", "partition-id");
-
-        final List<ProvenanceEventRecord> provenanceEvents = sharedState.getProvenanceEvents();
-        assertEquals(1, provenanceEvents.size());
-
-        final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
-        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
-        assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
-    }
-
-    @Test
-    public void testReceiveRecordWriterFailure() throws Exception {
-        final List<EventData> eventDataList = Arrays.asList(
-                EventData.create("one".getBytes(StandardCharsets.UTF_8)),
-                EventData.create("two".getBytes(StandardCharsets.UTF_8)),
-                EventData.create("three".getBytes(StandardCharsets.UTF_8)),
-                EventData.create("four".getBytes(StandardCharsets.UTF_8))
-        );
-
-        setupRecordReader(eventDataList, -1, "two");
-
-        setupRecordWriter("two");
-
-        eventProcessor.onEvents(partitionContext, eventDataList);
-
-        processSession.assertCommitted();
-        final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
-        assertEquals(1, flowFiles.size());
-        final MockFlowFile ff1 = flowFiles.get(0);
-        ff1.assertContentEquals("onethreefour");
-        ff1.assertAttributeEquals("eventhub.name", "eventhub-name");
-        ff1.assertAttributeEquals("eventhub.partition", "partition-id");
-
-        final List<MockFlowFile> failedFFs = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_PARSE_FAILURE);
-        assertEquals(1, failedFFs.size());
-        final MockFlowFile failed1 = failedFFs.get(0);
-        failed1.assertContentEquals("two");
-        failed1.assertAttributeEquals("eventhub.name", "eventhub-name");
-        failed1.assertAttributeEquals("eventhub.partition", "partition-id");
-
-        final List<ProvenanceEventRecord> provenanceEvents = sharedState.getProvenanceEvents();
-        assertEquals(2, provenanceEvents.size());
-
-        final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
-        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
-        assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
-
-        final ProvenanceEventRecord provenanceEvent2 = provenanceEvents.get(1);
-        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent2.getEventType());
-        assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent2.getTransitUri());
+        @Override
+        protected String getTransitUri(final PartitionContext partitionContext) {
+            return EXPECTED_TRANSIT_URI;
+        }
     }
 }

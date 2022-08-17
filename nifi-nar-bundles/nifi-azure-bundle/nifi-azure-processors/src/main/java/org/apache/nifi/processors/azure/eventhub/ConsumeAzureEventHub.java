@@ -16,14 +16,20 @@
  */
 package org.apache.nifi.processors.azure.eventhub;
 
-import com.microsoft.azure.eventhubs.EventData;
-import com.microsoft.azure.eventhubs.ReceiverDisconnectedException;
-import com.microsoft.azure.eventprocessorhost.CloseReason;
-import com.microsoft.azure.eventprocessorhost.EventProcessorHost;
-import com.microsoft.azure.eventprocessorhost.EventProcessorOptions;
-import com.microsoft.azure.eventprocessorhost.IEventProcessor;
-import com.microsoft.azure.eventprocessorhost.IEventProcessorFactory;
-import com.microsoft.azure.eventprocessorhost.PartitionContext;
+import com.azure.core.credential.AzureNamedKeyCredential;
+import com.azure.identity.ManagedIdentityCredential;
+import com.azure.identity.ManagedIdentityCredentialBuilder;
+import com.azure.messaging.eventhubs.EventData;
+import com.azure.messaging.eventhubs.EventProcessorClient;
+import com.azure.messaging.eventhubs.EventProcessorClientBuilder;
+import com.azure.messaging.eventhubs.checkpointstore.blob.BlobCheckpointStore;
+import com.azure.messaging.eventhubs.models.ErrorContext;
+import com.azure.messaging.eventhubs.models.EventBatchContext;
+import com.azure.messaging.eventhubs.models.EventPosition;
+import com.azure.messaging.eventhubs.models.LastEnqueuedEventProperties;
+import com.azure.messaging.eventhubs.models.PartitionContext;
+import com.azure.storage.blob.BlobContainerAsyncClient;
+import com.azure.storage.blob.BlobContainerClientBuilder;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -45,10 +51,10 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.azure.eventhub.position.EarliestEventPositionProvider;
+import org.apache.nifi.processors.azure.eventhub.position.LegacyBlobStorageEventPositionProvider;
 import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -74,9 +80,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
-import static org.apache.nifi.util.StringUtils.isEmpty;
+import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
 
 @Tags({"azure", "microsoft", "cloud", "eventhub", "events", "streaming", "streams"})
 @CapabilityDescription("Receives messages from Azure Event Hubs, writing the contents of the message to the content of the FlowFile.")
@@ -138,8 +145,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
     static final PropertyDescriptor CONSUMER_HOSTNAME = new PropertyDescriptor.Builder()
             .name("event-hub-consumer-hostname")
             .displayName("Consumer Hostname")
-            .description("The hostname of this event hub consumer instance." +
-                    " If not specified, an unique identifier is generated in 'nifi-<UUID>' format.")
+            .description("DEPRECATED: This property is no longer used.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
@@ -271,10 +277,24 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
     static {
         PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-                NAMESPACE, EVENT_HUB_NAME, SERVICE_BUS_ENDPOINT, ACCESS_POLICY_NAME, POLICY_PRIMARY_KEY, USE_MANAGED_IDENTITY, CONSUMER_GROUP, CONSUMER_HOSTNAME,
-                RECORD_READER, RECORD_WRITER,
-                INITIAL_OFFSET, PREFETCH_COUNT, BATCH_SIZE, RECEIVE_TIMEOUT,
-                STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_KEY, STORAGE_SAS_TOKEN, STORAGE_CONTAINER_NAME
+                NAMESPACE,
+                EVENT_HUB_NAME,
+                SERVICE_BUS_ENDPOINT,
+                ACCESS_POLICY_NAME,
+                POLICY_PRIMARY_KEY,
+                USE_MANAGED_IDENTITY,
+                CONSUMER_GROUP,
+                CONSUMER_HOSTNAME,
+                RECORD_READER,
+                RECORD_WRITER,
+                INITIAL_OFFSET,
+                PREFETCH_COUNT,
+                BATCH_SIZE,
+                RECEIVE_TIMEOUT,
+                STORAGE_ACCOUNT_NAME,
+                STORAGE_ACCOUNT_KEY,
+                STORAGE_SAS_TOKEN,
+                STORAGE_CONTAINER_NAME
         ));
 
         Set<Relationship> relationships = new HashSet<>();
@@ -285,50 +305,15 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         RECORD_RELATIONSHIPS = Collections.unmodifiableSet(relationships);
     }
 
-    private volatile EventProcessorHost eventProcessorHost;
     private volatile ProcessSessionFactory processSessionFactory;
+    private volatile EventProcessorClient eventProcessorClient;
     private volatile RecordReaderFactory readerFactory;
     private volatile RecordSetWriterFactory writerFactory;
-    // The namespace name can not be retrieved from a PartitionContext at EventProcessor.onEvents, so keep it here.
+
     private volatile String namespaceName;
     private volatile boolean isRecordReaderSet = false;
     private volatile boolean isRecordWriterSet = false;
     private volatile String serviceBusEndpoint;
-
-    /**
-     * For unit test.
-     */
-    void setProcessSessionFactory(ProcessSessionFactory processSessionFactory) {
-        this.processSessionFactory = processSessionFactory;
-    }
-
-    /**
-     * For unit test.
-     */
-    void setNamespaceName(String namespaceName) {
-        this.namespaceName = namespaceName;
-    }
-
-    /**
-     * For unit test.
-     */
-    public void setReaderFactory(RecordReaderFactory readerFactory) {
-        this.readerFactory = readerFactory;
-    }
-
-    /**
-     * For unit test.
-     */
-    public void setWriterFactory(RecordSetWriterFactory writerFactory) {
-        this.writerFactory = writerFactory;
-    }
-
-    /**
-     * For unit test.
-     */
-    public void setServiceBusEndpoint(String serviceBusEndpoint) {
-        this.serviceBusEndpoint = serviceBusEndpoint;
-    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -381,216 +366,23 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
     }
 
     @Override
-    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         if (RECORD_READER.equals(descriptor)) {
-            isRecordReaderSet = !StringUtils.isEmpty(newValue);
+            isRecordReaderSet = StringUtils.isNotEmpty(newValue);
         } else if (RECORD_WRITER.equals(descriptor)) {
-            isRecordWriterSet = !StringUtils.isEmpty(newValue);
-        }
-    }
-
-    public class EventProcessorFactory implements IEventProcessorFactory<EventProcessor> {
-        @Override
-        public EventProcessor createEventProcessor(PartitionContext context) throws Exception {
-            final EventProcessor eventProcessor = new EventProcessor();
-            return eventProcessor;
-        }
-    }
-
-    public class EventProcessor implements IEventProcessor {
-
-        @Override
-        public void onOpen(PartitionContext context) throws Exception {
-            getLogger().info("Consumer group {} opened partition {} of {}",
-                    new Object[]{context.getConsumerGroupName(), context.getPartitionId(), context.getEventHubPath()});
-        }
-
-        @Override
-        public void onClose(PartitionContext context, CloseReason reason) throws Exception {
-            getLogger().info("Consumer group {} closed partition {} of {}. reason={}",
-                    new Object[]{context.getConsumerGroupName(), context.getPartitionId(), context.getEventHubPath(), reason});
-        }
-
-        @Override
-        public void onEvents(PartitionContext context, Iterable<EventData> messages) throws Exception {
-            final ProcessSession session = processSessionFactory.createSession();
-
-            try {
-
-                final StopWatch stopWatch = new StopWatch(true);
-
-                if (readerFactory != null && writerFactory != null) {
-                    writeRecords(context, messages, session, stopWatch);
-                } else {
-                    writeFlowFiles(context, messages, session, stopWatch);
-                }
-
-                // Commit NiFi first.
-                // If creating an Event Hub checkpoint failed, then the same message can be retrieved again.
-                session.commitAsync(context::checkpoint);
-            } catch (Exception e) {
-                getLogger().error("Unable to fully process received message due to " + e, e);
-                // FlowFiles those are already committed will not get rollback.
-                session.rollback();
-            }
-        }
-
-        private void putEventHubAttributes(Map<String, String> attributes, String eventHubName, String partitionId, EventData eventData) {
-            final EventData.SystemProperties systemProperties = eventData.getSystemProperties();
-            if (null != systemProperties) {
-                attributes.put("eventhub.enqueued.timestamp", String.valueOf(systemProperties.getEnqueuedTime()));
-                attributes.put("eventhub.offset", systemProperties.getOffset());
-                attributes.put("eventhub.sequence", String.valueOf(systemProperties.getSequenceNumber()));
-            }
-
-            final Map<String,String> applicationProperties = AzureEventHubUtils.getApplicationProperties(eventData);
-            attributes.putAll(applicationProperties);
-
-            attributes.put("eventhub.name", eventHubName);
-            attributes.put("eventhub.partition", partitionId);
-        }
-
-        private void writeFlowFiles(PartitionContext context, Iterable<EventData> messages, ProcessSession session, StopWatch stopWatch) {
-            final String eventHubName = context.getEventHubPath();
-            final String partitionId = context.getPartitionId();
-            final String consumerGroup = context.getConsumerGroupName();
-            messages.forEach(eventData -> {
-                FlowFile flowFile = session.create();
-
-                final Map<String, String> attributes = new HashMap<>();
-                putEventHubAttributes(attributes, eventHubName, partitionId, eventData);
-                flowFile = session.putAllAttributes(flowFile, attributes);
-
-                flowFile = session.write(flowFile, out -> {
-                    out.write(eventData.getBytes());
-                });
-
-                transferTo(REL_SUCCESS, session, stopWatch, eventHubName, partitionId, consumerGroup, flowFile);
-            });
-        }
-
-        private void transferTo(Relationship relationship, ProcessSession session, StopWatch stopWatch,
-                                String eventHubName, String partitionId, String consumerGroup, FlowFile flowFile) {
-            session.transfer(flowFile, relationship);
-            final String transitUri = String.format("amqps://%s%s/%s/ConsumerGroups/%s/Partitions/%s",
-                    namespaceName, serviceBusEndpoint, eventHubName, consumerGroup, partitionId);
-            session.getProvenanceReporter().receive(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-        }
-
-        private void writeRecords(PartitionContext context, Iterable<EventData> messages, ProcessSession session, StopWatch stopWatch)
-                throws SchemaNotFoundException, IOException {
-
-            final String eventHubName = context.getEventHubPath();
-            final String partitionId = context.getPartitionId();
-            final String consumerGroup = context.getConsumerGroupName();
-            final Map<String, String> schemaRetrievalVariables = new HashMap<>();
-            schemaRetrievalVariables.put("eventhub.name", eventHubName);
-
-            final ComponentLog logger = getLogger();
-            FlowFile flowFile = session.create();
-            final Map<String, String> attributes = new HashMap<>();
-
-            RecordSetWriter writer = null;
-            EventData lastEventData = null;
-            WriteResult lastWriteResult = null;
-            int recordCount = 0;
-
-            try (final OutputStream out = session.write(flowFile)) {
-                for (final EventData eventData : messages) {
-                    final byte[] eventDataBytes = eventData.getBytes();
-                    try (final InputStream in = new ByteArrayInputStream(eventDataBytes)) {
-                        final RecordReader reader = readerFactory.createRecordReader(schemaRetrievalVariables, in, eventDataBytes.length, logger);
-
-                        Record record;
-                        while ((record = reader.nextRecord()) != null) {
-
-                            if (writer == null) {
-                                // Initialize the writer when the first record is read.
-                                final RecordSchema readerSchema = record.getSchema();
-                                final RecordSchema writeSchema = writerFactory.getSchema(schemaRetrievalVariables, readerSchema);
-                                writer = writerFactory.createWriter(logger, writeSchema, out, flowFile);
-                                writer.beginRecordSet();
-                            }
-
-                            lastWriteResult = writer.write(record);
-                            recordCount += lastWriteResult.getRecordCount();
-                        }
-
-                        lastEventData = eventData;
-
-                    } catch (Exception e) {
-                        // Write it to the parse failure relationship.
-                        logger.error("Failed to parse message from Azure Event Hub using configured Record Reader and Writer due to " + e, e);
-                        FlowFile failed = session.create();
-                        session.write(failed, o -> o.write(eventData.getBytes()));
-                        putEventHubAttributes(attributes, eventHubName, partitionId, eventData);
-                        failed = session.putAllAttributes(failed, attributes);
-                        transferTo(REL_PARSE_FAILURE, session, stopWatch, eventHubName, partitionId, consumerGroup, failed);
-                    }
-                }
-
-                if (lastEventData != null) {
-                    putEventHubAttributes(attributes, eventHubName, partitionId, lastEventData);
-
-                    attributes.put("record.count", String.valueOf(recordCount));
-                    if (writer != null) {
-                        writer.finishRecordSet();
-                        attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
-                        if (lastWriteResult != null) {
-                            attributes.putAll(lastWriteResult.getAttributes());
-                        }
-
-                        try {
-                            writer.close();
-                        } catch (IOException e) {
-                            logger.warn("Failed to close Record Writer due to {}" + e, e);
-                        }
-                    }
-                }
-            }
-
-            // This part has to be outside of 'session.write(flowFile)' code block.
-            if (lastEventData != null) {
-                flowFile = session.putAllAttributes(flowFile, attributes);
-                transferTo(REL_SUCCESS, session, stopWatch, eventHubName, partitionId, consumerGroup, flowFile);
-            } else {
-                // If there's no successful event data, then remove the FlowFile.
-                session.remove(flowFile);
-            }
-        }
-
-        @Override
-        public void onError(PartitionContext context, Throwable e) {
-            if (e instanceof ReceiverDisconnectedException && e.getMessage().startsWith("New receiver with higher epoch of ")) {
-                // This is a known behavior in a NiFi cluster where multiple nodes consumes from the same Event Hub.
-                // Once another node connects, some partitions are given to that node to distribute consumer load.
-                // When that happens, this exception is thrown.
-                getLogger().info("New receiver took over partition {} of Azure Event Hub {}, consumerGroupName={}, message={}",
-                        new Object[]{context.getPartitionId(), context.getEventHubPath(), context.getConsumerGroupName(), e.getMessage()});
-                return;
-            }
-            getLogger().error("An error occurred while receiving messages from Azure Event Hub {} at partition {}," +
-                            " consumerGroupName={}, exception={}",
-                    new Object[]{context.getEventHubPath(), context.getPartitionId(), context.getConsumerGroupName(), e}, e);
+            isRecordWriterSet = StringUtils.isNotEmpty(newValue);
         }
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
-
-        if (eventProcessorHost == null) {
-            try {
-                registerEventProcessor(context);
-            } catch (IllegalArgumentException e) {
-                // In order to show simple error message without wrapping it by another ProcessException, just throw it as it is.
-                throw e;
-            } catch (Exception e) {
-                throw new ProcessException("Failed to register the event processor due to " + e, e);
-            }
+    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
+        if (eventProcessorClient == null) {
             processSessionFactory = sessionFactory;
-
             readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
             writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+
+            eventProcessorClient = createClient(context);
+            eventProcessorClient.start();
         }
 
         // After a EventProcessor is registered successfully, nothing has to be done at onTrigger
@@ -599,95 +391,263 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
     }
 
     @OnStopped
-    public void unregisterEventProcessor(final ProcessContext context) {
-        if (eventProcessorHost != null) {
+    public void stopClient() {
+        if (eventProcessorClient != null) {
             try {
-                eventProcessorHost.unregisterEventProcessor();
-                eventProcessorHost = null;
-                processSessionFactory = null;
-                readerFactory = null;
-                writerFactory = null;
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to unregister the event processor due to " + e, e);
+                eventProcessorClient.stop();
+            } catch (final Exception e) {
+                getLogger().warn("Event Processor Client stop failed", e);
             }
+            eventProcessorClient = null;
+            processSessionFactory = null;
+            readerFactory = null;
+            writerFactory = null;
         }
     }
 
-    private void registerEventProcessor(final ProcessContext context) throws Exception {
-        // Validate required properties.
-        final String consumerGroupName = context.getProperty(CONSUMER_GROUP).evaluateAttributeExpressions().getValue();
-        validateRequiredProperty(CONSUMER_GROUP, consumerGroupName);
-
+    protected EventProcessorClient createClient(final ProcessContext context) {
         namespaceName = context.getProperty(NAMESPACE).evaluateAttributeExpressions().getValue();
-        validateRequiredProperty(NAMESPACE, namespaceName);
-
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).evaluateAttributeExpressions().getValue();
-        validateRequiredProperty(EVENT_HUB_NAME, eventHubName);
+        final String consumerGroup = context.getProperty(CONSUMER_GROUP).evaluateAttributeExpressions().getValue();
 
+        final String containerName = defaultIfBlank(context.getProperty(STORAGE_CONTAINER_NAME).evaluateAttributeExpressions().getValue(), eventHubName);
+        final String storageConnectionString = createStorageConnectionString(context);
+        final BlobContainerAsyncClient blobContainerAsyncClient = new BlobContainerClientBuilder()
+                .connectionString(storageConnectionString)
+                .containerName(containerName)
+                .buildAsyncClient();
+        final BlobCheckpointStore checkpointStore = new BlobCheckpointStore(blobContainerAsyncClient);
 
-        final String consumerHostname = orDefault(context.getProperty(CONSUMER_HOSTNAME).evaluateAttributeExpressions().getValue(),
-                EventProcessorHost.createHostName("nifi"));
+        final Long receiveTimeout = context.getProperty(RECEIVE_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
+        final Duration maxWaitTime = Duration.ofMillis(receiveTimeout);
+        final Integer maxBatchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
 
-        final String containerName = orDefault(context.getProperty(STORAGE_CONTAINER_NAME).evaluateAttributeExpressions().getValue(),
-                eventHubName);
+        final EventProcessorClientBuilder eventProcessorClientBuilder = new EventProcessorClientBuilder()
+                .consumerGroup(consumerGroup)
+                .trackLastEnqueuedEventProperties(true)
+                .checkpointStore(checkpointStore)
+                .processError(errorProcessor)
+                .processEventBatch(eventBatchProcessor, maxBatchSize, maxWaitTime);
 
-
-        final EventProcessorOptions options = new EventProcessorOptions();
-        final String initialOffset = context.getProperty(INITIAL_OFFSET).getValue();
-        if (INITIAL_OFFSET_START_OF_STREAM.getValue().equals(initialOffset)) {
-            options.setInitialPositionProvider(options.new StartOfStreamInitialPositionProvider());
-        } else if (INITIAL_OFFSET_END_OF_STREAM.getValue().equals(initialOffset)){
-            options.setInitialPositionProvider(options.new EndOfStreamInitialPositionProvider());
+        final String fullyQualifiedNamespace = String.format("%s%s", namespaceName, serviceBusEndpoint);
+        final boolean useManagedIdentity = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
+        if (useManagedIdentity) {
+            final ManagedIdentityCredentialBuilder managedIdentityCredentialBuilder = new ManagedIdentityCredentialBuilder();
+            final ManagedIdentityCredential managedIdentityCredential = managedIdentityCredentialBuilder.build();
+            eventProcessorClientBuilder.credential(fullyQualifiedNamespace, eventHubName, managedIdentityCredential);
         } else {
-            throw new IllegalArgumentException("Initial offset " + initialOffset + " is not allowed.");
+            final String policyName = context.getProperty(ACCESS_POLICY_NAME).evaluateAttributeExpressions().getValue();
+            final String policyKey = context.getProperty(POLICY_PRIMARY_KEY).evaluateAttributeExpressions().getValue();
+            final AzureNamedKeyCredential azureNamedKeyCredential = new AzureNamedKeyCredential(policyName, policyKey);
+            eventProcessorClientBuilder.credential(fullyQualifiedNamespace, eventHubName, azureNamedKeyCredential);
         }
 
         final Integer prefetchCount = context.getProperty(PREFETCH_COUNT).evaluateAttributeExpressions().asInteger();
         if (prefetchCount != null && prefetchCount > 0) {
-            options.setPrefetchCount(prefetchCount);
+            eventProcessorClientBuilder.prefetchCount(prefetchCount);
         }
 
-        final Integer batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
-        if (batchSize != null && batchSize > 0) {
-            options.setMaxBatchSize(batchSize);
-        }
-
-        final Long receiveTimeoutMillis = context.getProperty(RECEIVE_TIMEOUT)
-                .evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
-        options.setReceiveTimeOut(Duration.ofMillis(receiveTimeoutMillis));
-
-        final String storageConnectionString = createStorageConnectionString(context);
-
-        final String connectionString;
-        final boolean useManagedIdentity = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
-        if(useManagedIdentity) {
-            connectionString = AzureEventHubUtils.getManagedIdentityConnectionString(namespaceName, serviceBusEndpoint, eventHubName);
+        final Map<String, EventPosition> legacyPartitionEventPosition = getLegacyPartitionEventPosition(blobContainerAsyncClient, consumerGroup);
+        if (legacyPartitionEventPosition.isEmpty()) {
+            final String initialOffset = context.getProperty(INITIAL_OFFSET).getValue();
+            // EventPosition.latest() is the default behavior is absence of existing checkpoints
+            if (INITIAL_OFFSET_START_OF_STREAM.getValue().equals(initialOffset)) {
+                final EarliestEventPositionProvider eventPositionProvider = new EarliestEventPositionProvider();
+                final Map<String, EventPosition> partitionEventPosition = eventPositionProvider.getInitialPartitionEventPosition();
+                eventProcessorClientBuilder.initialPartitionEventPosition(partitionEventPosition);
+            }
         } else {
-            final String sasName = context.getProperty(ACCESS_POLICY_NAME).evaluateAttributeExpressions().getValue();
-            validateRequiredProperty(ACCESS_POLICY_NAME, sasName);
-            final String sasKey = context.getProperty(POLICY_PRIMARY_KEY).evaluateAttributeExpressions().getValue();
-            validateRequiredProperty(POLICY_PRIMARY_KEY, sasKey);
-            connectionString = AzureEventHubUtils.getSharedAccessSignatureConnectionString(namespaceName, serviceBusEndpoint, eventHubName, sasName, sasKey);
+            eventProcessorClientBuilder.initialPartitionEventPosition(legacyPartitionEventPosition);
         }
 
-        eventProcessorHost = EventProcessorHost.EventProcessorHostBuilder
-                                .newBuilder(consumerHostname, consumerGroupName)
-                                .useAzureStorageCheckpointLeaseManager(storageConnectionString, containerName, null)
-                                .useEventHubConnectionString(connectionString, eventHubName)
-                                .build();
+        return eventProcessorClientBuilder.buildEventProcessorClient();
+    }
 
-        options.setExceptionNotification(e -> {
-            getLogger().error("An error occurred while receiving messages from Azure Event Hub {}" +
-                            " at consumer group {} and partition {}, action={}, hostname={}, exception={}",
-                    new Object[]{eventHubName, consumerGroupName, e.getPartitionId(), e.getAction(), e.getHostname()}, e.getException());
+    protected String getTransitUri(final PartitionContext partitionContext) {
+        return String.format("amqps://%s%s/%s/ConsumerGroups/%s/Partitions/%s",
+                namespaceName,
+                serviceBusEndpoint,
+                partitionContext.getEventHubName(),
+                partitionContext.getConsumerGroup(),
+                partitionContext.getPartitionId()
+        );
+    }
+
+    protected final Consumer<EventBatchContext> eventBatchProcessor = eventBatchContext -> {
+        final ProcessSession session = processSessionFactory.createSession();
+
+        try {
+            final StopWatch stopWatch = new StopWatch(true);
+
+            if (readerFactory == null || writerFactory == null) {
+                writeFlowFiles(eventBatchContext, session, stopWatch);
+            } else {
+                writeRecords(eventBatchContext, session, stopWatch);
+            }
+
+            // Commit ProcessSession and then update Azure Event Hubs checkpoint status
+            session.commitAsync(eventBatchContext::updateCheckpoint);
+        } catch (final Exception e) {
+            final PartitionContext partitionContext = eventBatchContext.getPartitionContext();
+            getLogger().error("Event Batch processing failed Namespace [{}] Event Hub [{}] Consumer Group [{}] Partition [{}]",
+                    partitionContext.getFullyQualifiedNamespace(),
+                    partitionContext.getEventHubName(),
+                    partitionContext.getConsumerGroup(),
+                    partitionContext.getPartitionId(),
+                    e
+            );
+            session.rollback();
+        }
+    };
+
+    private final Consumer<ErrorContext> errorProcessor = errorContext -> {
+        final PartitionContext partitionContext = errorContext.getPartitionContext();
+        getLogger().error("Receive Events failed Namespace [{}] Event Hub [{}] Consumer Group [{}] Partition [{}]",
+                partitionContext.getFullyQualifiedNamespace(),
+                partitionContext.getEventHubName(),
+                partitionContext.getConsumerGroup(),
+                partitionContext.getPartitionId(),
+                errorContext.getThrowable()
+        );
+    };
+
+    private void putEventHubAttributes(
+            final Map<String, String> attributes,
+            final PartitionContext partitionContext,
+            final EventData eventData,
+            final LastEnqueuedEventProperties lastEnqueuedEventProperties
+    ) {
+        if (lastEnqueuedEventProperties != null) {
+            attributes.put("eventhub.enqueued.timestamp", String.valueOf(lastEnqueuedEventProperties.getEnqueuedTime()));
+            attributes.put("eventhub.offset", String.valueOf(lastEnqueuedEventProperties.getOffset()));
+            attributes.put("eventhub.sequence", String.valueOf(lastEnqueuedEventProperties.getSequenceNumber()));
+        }
+
+        final Map<String, String> applicationProperties = AzureEventHubUtils.getApplicationProperties(eventData.getProperties());
+        attributes.putAll(applicationProperties);
+
+        attributes.put("eventhub.name", partitionContext.getEventHubName());
+        attributes.put("eventhub.partition", partitionContext.getPartitionId());
+    }
+
+    private void writeFlowFiles(
+            final EventBatchContext eventBatchContext,
+            final ProcessSession session,
+            final StopWatch stopWatch
+    ) {
+        final PartitionContext partitionContext = eventBatchContext.getPartitionContext();
+        final List<EventData> events = eventBatchContext.getEvents();
+        events.forEach(eventData -> {
+            final Map<String, String> attributes = new HashMap<>();
+            putEventHubAttributes(attributes, partitionContext, eventData, eventBatchContext.getLastEnqueuedEventProperties());
+
+            FlowFile flowFile = session.create();
+            flowFile = session.putAllAttributes(flowFile, attributes);
+
+            final byte[] body = eventData.getBody();
+            flowFile = session.write(flowFile, outputStream -> outputStream.write(body));
+
+            transferTo(REL_SUCCESS, session, stopWatch, partitionContext, flowFile);
         });
+    }
 
-        eventProcessorHost.registerEventProcessorFactory(new EventProcessorFactory(), options).get();
+    private void writeRecords(
+            final EventBatchContext eventBatchContext,
+            final ProcessSession session,
+            final StopWatch stopWatch
+    ) throws IOException {
+        final PartitionContext partitionContext = eventBatchContext.getPartitionContext();
+        final Map<String, String> schemaRetrievalVariables = new HashMap<>();
+        schemaRetrievalVariables.put("eventhub.name", partitionContext.getEventHubName());
+
+        final ComponentLog logger = getLogger();
+        FlowFile flowFile = session.create();
+        final Map<String, String> attributes = new HashMap<>();
+
+        RecordSetWriter writer = null;
+        EventData lastEventData = null;
+        WriteResult lastWriteResult = null;
+        int recordCount = 0;
+
+        final LastEnqueuedEventProperties lastEnqueuedEventProperties = eventBatchContext.getLastEnqueuedEventProperties();
+        final List<EventData> events = eventBatchContext.getEvents();
+
+        try (final OutputStream out = session.write(flowFile)) {
+            for (final EventData eventData : events) {
+                final byte[] eventDataBytes = eventData.getBody();
+                try (final InputStream in = new ByteArrayInputStream(eventDataBytes)) {
+                    final RecordReader reader = readerFactory.createRecordReader(schemaRetrievalVariables, in, eventDataBytes.length, logger);
+
+                    Record record;
+                    while ((record = reader.nextRecord()) != null) {
+
+                        if (writer == null) {
+                            // Initialize the writer when the first record is read.
+                            final RecordSchema readerSchema = record.getSchema();
+                            final RecordSchema writeSchema = writerFactory.getSchema(schemaRetrievalVariables, readerSchema);
+                            writer = writerFactory.createWriter(logger, writeSchema, out, flowFile);
+                            writer.beginRecordSet();
+                        }
+
+                        lastWriteResult = writer.write(record);
+                        recordCount += lastWriteResult.getRecordCount();
+                    }
+
+                    lastEventData = eventData;
+
+                } catch (Exception e) {
+                    // Write it to the parse failure relationship.
+                    logger.error("Failed to parse message from Azure Event Hub using configured Record Reader and Writer", e);
+                    FlowFile failed = session.create();
+                    session.write(failed, o -> o.write(eventData.getBody()));
+                    putEventHubAttributes(attributes, partitionContext, eventData, lastEnqueuedEventProperties);
+                    failed = session.putAllAttributes(failed, attributes);
+                    transferTo(REL_PARSE_FAILURE, session, stopWatch, partitionContext, failed);
+                }
+            }
+
+            if (lastEventData != null) {
+                putEventHubAttributes(attributes, partitionContext, lastEventData, lastEnqueuedEventProperties);
+
+                attributes.put("record.count", String.valueOf(recordCount));
+                if (writer != null) {
+                    writer.finishRecordSet();
+                    attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+                    if (lastWriteResult != null) {
+                        attributes.putAll(lastWriteResult.getAttributes());
+                    }
+
+                    try {
+                        writer.close();
+                    } catch (final IOException e) {
+                        logger.warn("Failed to close Record Writer", e);
+                    }
+                }
+            }
+        }
+
+        if (lastEventData == null) {
+            session.remove(flowFile);
+        } else {
+            flowFile = session.putAllAttributes(flowFile, attributes);
+            transferTo(REL_SUCCESS, session, stopWatch, partitionContext, flowFile);
+        }
+    }
+
+    private void transferTo(
+            final Relationship relationship,
+            final ProcessSession session,
+            final StopWatch stopWatch,
+            final PartitionContext partitionContext,
+            final FlowFile flowFile
+    ) {
+        session.transfer(flowFile, relationship);
+        final String transitUri = getTransitUri(partitionContext);
+        session.getProvenanceReporter().receive(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
     }
 
     private String createStorageConnectionString(final ProcessContext context) {
         final String storageAccountName = context.getProperty(STORAGE_ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
-        validateRequiredProperty(STORAGE_ACCOUNT_NAME, storageAccountName);
 
         serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
         final String domainName = serviceBusEndpoint.replace(".servicebus.", "");
@@ -700,13 +660,22 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         return String.format(FORMAT_STORAGE_CONNECTION_STRING_FOR_SAS_TOKEN, storageAccountName, domainName, storageSasToken);
     }
 
-    private String orDefault(String value, String defaultValue) {
-        return isEmpty(value) ? defaultValue : value;
-    }
+    private Map<String, EventPosition> getLegacyPartitionEventPosition(
+            final BlobContainerAsyncClient blobContainerAsyncClient,
+            final String consumerGroup
+    ) {
+        final LegacyBlobStorageEventPositionProvider legacyBlobStorageEventPositionProvider = new LegacyBlobStorageEventPositionProvider(
+                blobContainerAsyncClient,
+                consumerGroup
+        );
+        final Map<String, EventPosition> partitionEventPosition = legacyBlobStorageEventPositionProvider.getInitialPartitionEventPosition();
 
-    private void validateRequiredProperty(PropertyDescriptor property, String value) {
-        if (isEmpty(value)) {
-            throw new IllegalArgumentException(String.format("'%s' is required, but not specified.", property.getDisplayName()));
+        for (final Map.Entry<String, EventPosition> partition : partitionEventPosition.entrySet()) {
+            final String partitionId = partition.getKey();
+            final EventPosition eventPosition = partition.getValue();
+            getLogger().info("Loaded Event Position [{}] for Partition [{}] from Legacy Checkpoint Storage", eventPosition, partitionId);
         }
+
+        return partitionEventPosition;
     }
 }

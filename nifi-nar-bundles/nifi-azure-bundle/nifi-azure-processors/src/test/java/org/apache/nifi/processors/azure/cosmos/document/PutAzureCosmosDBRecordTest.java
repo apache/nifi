@@ -20,11 +20,10 @@ import com.azure.cosmos.ConsistencyLevel;
 import com.azure.cosmos.CosmosClient;
 import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosException;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import net.minidev.json.JSONObject;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.avro.Schema;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.json.JsonTreeReader;
@@ -183,47 +182,49 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
 
     @Test
     public void testArrayConversion() throws Exception {
-        Gson gson = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
+        final ObjectMapper objectMapper = new ObjectMapper();
+        final JsonNodeFactory nodeFactory = objectMapper.getNodeFactory();
+
         // schema creation for test
-        JsonObject schemaDef = new JsonObject();
-        schemaDef.addProperty("type", "record");
-        schemaDef.addProperty("name", "Test");
-        JsonArray schemaArray = new JsonArray();
-        JsonObject f1 = new JsonObject();
-        f1.addProperty("type", "string");
-        f1.addProperty("name", "id");
+        final ObjectNode schemaDef = nodeFactory.objectNode();
+        schemaDef.put("type", "record");
+        schemaDef.put("name", "Test");
+        final ArrayNode schemaArray = nodeFactory.arrayNode();
+        final ObjectNode f1 = nodeFactory.objectNode();
+        f1.put("type", "string");
+        f1.put("name", "id");
         schemaArray.add(f1);
-        JsonObject f2 = new JsonObject();
-        f2.addProperty("type", "string");
-        f2.addProperty("name", "name");
+        final ObjectNode f2 = nodeFactory.objectNode();
+        f2.put("type", "string");
+        f2.put("name", "name");
         schemaArray.add(f2);
-        JsonObject f3 = new JsonObject();
-        f3.addProperty("type", "string");
-        f3.addProperty("name", "sport");
+        final ObjectNode f3 = nodeFactory.objectNode();
+        f3.put("type", "string");
+        f3.put("name", "sport");
         schemaArray.add(f3);
-        JsonObject arrayDef = new JsonObject();
-        arrayDef.addProperty("type", "array");
-        arrayDef.addProperty("items", "string");
-        JsonObject f4 = new JsonObject();
-        f4.add("type", arrayDef);
-        f4.addProperty("name", "arrayTest");
+        final ObjectNode arrayDef = nodeFactory.objectNode();
+        arrayDef.put("type", "array");
+        arrayDef.put("items", "string");
+        final ObjectNode f4 = nodeFactory.objectNode();
+        f4.set("type", arrayDef);
+        f4.put("name", "arrayTest");
         schemaArray.add(f4);
-        schemaDef.add("fields", schemaArray);
+        schemaDef.set("fields", schemaArray);
 
         // test data generation
-        JsonObject testData = new JsonObject();
-        testData.addProperty("id", UUID.randomUUID().toString());
-        testData.addProperty("name", "John Doe");
-        testData.addProperty("sport", "Soccer");
-        JsonArray jarray = new JsonArray();
+        final ObjectNode testData = nodeFactory.objectNode();
+        testData.put("id", UUID.randomUUID().toString());
+        testData.put("name", "John Doe");
+        testData.put("sport", "Soccer");
+        final ArrayNode jarray = nodeFactory.arrayNode();
         jarray.add("a");
         jarray.add("b");
         jarray.add("c");
-        testData.add("arrayTest", jarray);
+        testData.set("arrayTest", jarray);
 
         // setup registry and reader
         MockSchemaRegistry registry = new MockSchemaRegistry();
-        RecordSchema rschema = AvroTypeUtil.createSchema(new Schema.Parser().parse(gson.toJson(schemaDef)));
+        RecordSchema rschema = AvroTypeUtil.createSchema(new Schema.Parser().parse(schemaDef.toPrettyString()));
         registry.addSchema("test", rschema);
         JsonTreeReader reader = new JsonTreeReader();
         testRunner.addControllerService("registry", registry);
@@ -239,7 +240,7 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
         Map<String, String> attrs = new HashMap<>();
         attrs.put("schema.name", "test");
 
-        testRunner.enqueue(gson.toJson(testData), attrs);
+        testRunner.enqueue(testData.toPrettyString(), attrs);
         testRunner.run();
 
         testRunner.assertTransferCount(PutAzureCosmosDBRecord.REL_FAILURE, 0);
@@ -247,8 +248,7 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
         List<Map<String, Object>> backendData = processor.getTestResults();
         assertEquals(1, backendData.size());
         //validate array data
-        JSONObject arrayTestResult = new JSONObject();
-        arrayTestResult.putAll(backendData.get(0));
+        final Map<?, ?> arrayTestResult = backendData.get(0);
         Object[] check  = (Object []) arrayTestResult.get("arrayTest");
         assertArrayEquals(new Object[]{"a", "b", "c"}, check);
     }
@@ -262,7 +262,7 @@ class MockPutAzureCosmosDBRecord extends PutAzureCosmosDBRecord {
 
     static CosmosClient mockClient = mock(CosmosClient.class);
     static CosmosContainer mockContainer = mock(CosmosContainer.class);
-    private List<Map<String, Object>> mockBackend = new ArrayList<>();
+    private final List<Map<String, Object>> mockBackend = new ArrayList<>();
 
     @Override
     protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel) {
@@ -280,10 +280,5 @@ class MockPutAzureCosmosDBRecord extends PutAzureCosmosDBRecord {
 
     public List<Map<String, Object>> getTestResults() {
         return mockBackend;
-    }
-
-
-    public CosmosContainer getMockConainer() {
-        return mockContainer;
     }
 }
