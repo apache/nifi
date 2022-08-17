@@ -139,7 +139,7 @@ public class SmbjClientService implements SmbClientService {
         } catch (SMBApiException a) {
             throw new SmbException(a.getMessage(), a.getStatusCode(), a);
         } catch (Exception e) {
-            throw new SmbException(e.getMessage(), e);
+            throw new SmbException(e.getMessage(), -1L, e);
         } finally {
             outputStream.close();
         }

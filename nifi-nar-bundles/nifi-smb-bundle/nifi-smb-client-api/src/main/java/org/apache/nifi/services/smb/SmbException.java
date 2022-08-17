@@ -18,18 +18,14 @@ package org.apache.nifi.services.smb;
 
 public class SmbException extends RuntimeException {
 
-    private Long errorCode;
+    private long errorCode;
 
     public SmbException(String message, long errorCode, Exception cause) {
         super(message, cause);
         this.errorCode = errorCode;
     }
 
-    public SmbException(String message, Exception cause) {
-        super(message, cause);
-    }
-
-    public Long getErrorCode() {
+    public long getErrorCode() {
         return errorCode;
     }
 

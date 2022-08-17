@@ -18,10 +18,10 @@ package org.apache.nifi.processors.smb;
 
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toSet;
-import static org.apache.nifi.processors.smb.FetchSmb.FILE_ID;
 import static org.apache.nifi.processors.smb.FetchSmb.RECORD_READER;
 import static org.apache.nifi.processors.smb.FetchSmb.REL_FAILURE;
 import static org.apache.nifi.processors.smb.FetchSmb.REL_SUCCESS;
+import static org.apache.nifi.processors.smb.FetchSmb.REMOTE_FILE;
 import static org.apache.nifi.util.TestRunners.newTestRunner;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -41,7 +41,7 @@ public class FetchSmbIT extends SambaTestcontinerIT {
         writeFile("/test_file", "test_content");
         TestRunner testRunner = newTestRunner(FetchSmb.class);
         SmbjClientProviderService smbjClientProviderService = configureTestRunnerForSambaDockerContainer(testRunner);
-        testRunner.setProperty(FILE_ID, "${attribute_to_find_using_EL}");
+        testRunner.setProperty(REMOTE_FILE, "${attribute_to_find_using_EL}");
         testRunner.enableControllerService(smbjClientProviderService);
 
         Map<String, String> attributes = new HashMap<>();
@@ -56,8 +56,8 @@ public class FetchSmbIT extends SambaTestcontinerIT {
 
     @Test
     public void fetchFilesUsingRecordReader() throws Exception {
-        writeFile("/test_file1", "test_content");
-        writeFile("/test_file2", "test_content");
+        writeFile("/test_file1", "test_content_1");
+        writeFile("/test_file2", "test_content_2");
         TestRunner testRunner = newTestRunner(FetchSmb.class);
         SmbjClientProviderService smbjClientProviderService = configureTestRunnerForSambaDockerContainer(testRunner);
         JsonTreeReader jsonTreeReader = new JsonTreeReader();
@@ -69,7 +69,7 @@ public class FetchSmbIT extends SambaTestcontinerIT {
         testRunner.enqueue("{\"identifier\": \"test_file1\"}\n{\"identifier\": \"test_file2\"}\n");
         testRunner.run();
         testRunner.assertTransferCount(REL_SUCCESS, 2);
-        assertEquals(new HashSet<>(asList("test_content")),
+        assertEquals(new HashSet<>(asList("test_content_1", "test_content_2")),
                 testRunner.getFlowFilesForRelationship(REL_SUCCESS).stream().map(
                         MockFlowFile::getContent).collect(toSet()));
         testRunner.assertValid();
@@ -79,7 +79,7 @@ public class FetchSmbIT extends SambaTestcontinerIT {
     public void tryToFetchNonExistingFileEmitsFailure() throws Exception {
         TestRunner testRunner = newTestRunner(FetchSmb.class);
         SmbjClientProviderService smbjClientProviderService = configureTestRunnerForSambaDockerContainer(testRunner);
-        testRunner.setProperty(FILE_ID, "${attribute_to_find_using_EL}");
+        testRunner.setProperty(REMOTE_FILE, "${attribute_to_find_using_EL}");
         testRunner.enableControllerService(smbjClientProviderService);
 
         Map<String, String> attributes = new HashMap<>();
