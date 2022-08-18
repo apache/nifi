@@ -17,6 +17,8 @@
 package org.apache.nifi.c2.client.service.operation;
 
 import static org.apache.commons.lang3.StringUtils.EMPTY;
+import static org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler.LOCATION;
+import static org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler.FLOW_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -40,8 +42,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class UpdateConfigurationOperationHandlerTest {
-    private static final String LOCATION = "location";
-    private static final String FLOW_ID = "flowId";
     private static final String OPERATION_ID = "operationId";
     private static final Map<String, String> CORRECT_LOCATION_MAP = Collections.singletonMap(LOCATION, "/path/for/the/" + FLOW_ID);
     private static final Map<String, String> INCORRECT_LOCATION_MAP = Collections.singletonMap(LOCATION, "incorrect/location");
@@ -82,7 +82,7 @@ public class UpdateConfigurationOperationHandlerTest {
 
         Map<String, String> args = new HashMap<>();
         args.putAll(INCORRECT_LOCATION_MAP);
-        args.put("flowId", "argsFlowId");
+        args.put(FLOW_ID, "argsFlowId");
         operation.setArgs(args);
 
         C2OperationAck response = handler.handle(operation);

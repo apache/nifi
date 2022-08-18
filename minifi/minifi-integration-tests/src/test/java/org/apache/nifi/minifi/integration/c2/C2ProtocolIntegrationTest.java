@@ -107,7 +107,7 @@ public class C2ProtocolIntegrationTest {
     }
 
     @Test
-    public void testMiNiFiHeartbeat() throws Exception {
+    public void testFlowPublishThroughC2Protocol() throws Exception {
         LogUtil.verifyLogEntries("c2/protocol/minifi-edge1/expected.json", docker.containers().container(AGENT_1));
         LogUtil.verifyLogEntries("c2/protocol/minifi-edge2/expected.json", docker.containers().container(AGENT_2));
     }
