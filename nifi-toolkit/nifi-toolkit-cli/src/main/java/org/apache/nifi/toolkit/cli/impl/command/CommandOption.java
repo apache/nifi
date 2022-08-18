@@ -125,8 +125,6 @@ public enum CommandOption {
     PARAM_PROVIDER_GROUP_ID("ppgid", "paramProviderGroupId", "The bundle group ID of a parameter provider", true),
     PARAM_PROVIDER_ARTIFACT_ID("ppaid", "paramProviderArtifactId", "The bundle artifact ID of a parameter provider", true),
     PARAM_PROVIDER_VERSION("ppv", "paramProviderVersion", "The bundle version of a parameter provider", true),
-    PARAM_PROVIDER_SYNC("pps", "paramProviderSync", "Whether the parameter context should be synchronized with the parameter provider (true/false)", false),
-    PARAM_GROUP_NAME("pgn", "paramGroupName", "The parameter group name that will be used to update the param context (defaults to context name)", true),
     APPLY_PARAMETERS("ap", "applyParameters", "If specified, the fetched parameters will also be applied to all referencing parameter contexts", false),
     SENSITIVE_PARAM_PATTERN("spp", "sensitiveParamPattern", "A Regular Expression indicating the names of parameters that should be fetched as Sensitive.  " +
             "If not specified, and --inputSource (-i) is not specified, all fetched parameters will be Sensitive.", true),

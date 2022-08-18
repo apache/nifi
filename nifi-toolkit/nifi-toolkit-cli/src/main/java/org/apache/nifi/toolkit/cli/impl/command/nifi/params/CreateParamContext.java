@@ -27,9 +27,7 @@ import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.StringResult;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
-import org.apache.nifi.web.api.dto.ParameterProviderConfigurationDTO;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
-import org.apache.nifi.web.api.entity.ParameterProviderConfigurationEntity;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -52,9 +50,6 @@ public class CreateParamContext extends AbstractNiFiCommand<StringResult> {
         super.doInitialize(context);
         addOption(CommandOption.PARAM_CONTEXT_NAME.createOption());
         addOption(CommandOption.PARAM_CONTEXT_DESC.createOption());
-        addOption(CommandOption.PARAM_PROVIDER_ID.createOption());
-        addOption(CommandOption.PARAM_GROUP_NAME.createOption());
-        addOption(CommandOption.PARAM_PROVIDER_SYNC.createOption());
     }
 
     @Override
@@ -63,9 +58,6 @@ public class CreateParamContext extends AbstractNiFiCommand<StringResult> {
 
         final String paramContextName = getRequiredArg(properties, CommandOption.PARAM_CONTEXT_NAME);
         final String paramContextDesc = getArg(properties, CommandOption.PARAM_CONTEXT_DESC);
-        final String paramProviderId = getArg(properties, CommandOption.PARAM_PROVIDER_ID);
-        final String paramGroupName = getArg(properties, CommandOption.PARAM_GROUP_NAME);
-        final boolean sync = hasArg(properties, CommandOption.PARAM_PROVIDER_SYNC);
 
         final ParameterContextDTO paramContextDTO = new ParameterContextDTO();
         paramContextDTO.setName(paramContextName);
@@ -78,18 +70,6 @@ public class CreateParamContext extends AbstractNiFiCommand<StringResult> {
         final ParameterContextEntity paramContextEntity = new ParameterContextEntity();
         paramContextEntity.setComponent(paramContextDTO);
         paramContextEntity.setRevision(getInitialRevisionDTO());
-
-        if (paramProviderId != null) {
-            final ParameterProviderConfigurationEntity paramProviderConfigEntity = new ParameterProviderConfigurationEntity();
-            final ParameterProviderConfigurationDTO paramProviderConfigDTO = new ParameterProviderConfigurationDTO();
-            paramProviderConfigDTO.setParameterProviderId(paramProviderId);
-            paramProviderConfigDTO.setParameterGroupName(paramGroupName);
-            paramProviderConfigDTO.setSynchronized(sync);
-            paramProviderConfigEntity.setComponent(paramProviderConfigDTO);
-            paramProviderConfigEntity.setId(paramProviderId);
-
-            paramContextDTO.setParameterProviderConfiguration(paramProviderConfigEntity);
-        }
 
         final ParamContextClient paramContextClient = client.getParamContextClient();
         final ParameterContextEntity createdParamContext = paramContextClient.createParamContext(paramContextEntity);

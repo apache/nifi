@@ -49,7 +49,7 @@ public class FetchParams extends AbstractNiFiCommand<ParamProviderResult> {
         return "Fetches the parameters of a parameter provider.  If indicated, also applies the parameters to any referencing parameter contexts. " +
                 "When applying parameters, the --inputSource (-i) option specifies the location of a JSON file containing a parameterProviderParameterApplication " +
                 "entity, which allows detailed configuration of the applied groups and parameters.  For a simpler approach, this argument may be omitted, and " +
-                "all fetched groups will be mapped to parameter contexts of the same names.  To select sensitive vs. non-sensitive parameters, the " +
+                "all fetched groups will be mapped to parameter contexts of the same names, creating new parameter contexts if needed.  To select sensitive vs. non-sensitive parameters, the " +
                 "--sensitiveParamPattern (-spp) can be used.  If this is not supplied, all fetched parameters will default to sensitive.  Note that the " +
                 "--inputSource argument overrides any parameter sensitivity specified in the --sensitiveParamPattern argument.";
     }
