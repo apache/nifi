@@ -1932,8 +1932,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             parameters.put(versionedParameter.getName(), parameter);
         }
 
-        return context.getFlowManager().createParameterContext(parameterContextId, versionedParameterContext.getName(), parameters, Collections.emptyList(),
-                getParameterProviderConfiguration(versionedParameterContext));
+        return context.getFlowManager().createParameterContext(parameterContextId, versionedParameterContext.getName(), parameters, Collections.emptyList(), null);
     }
 
     private ParameterProviderConfiguration getParameterProviderConfiguration(final VersionedParameterContext context) {
