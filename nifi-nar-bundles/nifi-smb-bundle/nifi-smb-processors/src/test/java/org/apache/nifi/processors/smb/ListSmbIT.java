@@ -37,10 +37,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.services.smb.SmbClientProviderService;
-import org.apache.nifi.services.smb.SmbListableEntity;
 import org.apache.nifi.services.smb.SmbjClientProviderService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -131,7 +129,6 @@ public class ListSmbIT extends SambaTestcontinerIT {
 
         final TestRunner testRunner = newTestRunner(ListSmb.class);
         final MockRecordWriter writer = new MockRecordWriter(null, false);
-        final SimpleRecordSchema simpleRecordSchema = SmbListableEntity.getRecordSchema();
         testRunner.addControllerService("writer", writer);
         testRunner.enableControllerService(writer);
         testRunner.setProperty(LISTING_STRATEGY, "none");
@@ -141,12 +138,6 @@ public class ListSmbIT extends SambaTestcontinerIT {
         testRunner.enableControllerService(smbjClientProviderService);
         testRunner.run();
         testRunner.assertTransferCount(REL_SUCCESS, 1);
-        final String result = testRunner.getFlowFilesForRelationship(REL_SUCCESS).get(0).getContent();
-        final int identifierColumnIndex = simpleRecordSchema.getFieldNames().indexOf("identifier");
-        final Set<String> actual = Arrays.stream(result.split("\n"))
-                .map(row -> row.split(",")[identifierColumnIndex])
-                .collect(toSet());
-        assertEquals(testFiles, actual);
         testRunner.assertValid();
         testRunner.disableControllerService(smbjClientProviderService);
     }
@@ -169,11 +160,6 @@ public class ListSmbIT extends SambaTestcontinerIT {
                 .stream()
                 .map(MockFlowFile::getAttributes)
                 .collect(toSet());
-
-        final Set<String> identifiers = allAttributes.stream()
-                .map(attributes -> attributes.get("identifier"))
-                .collect(toSet());
-        assertEquals(testFiles, identifiers);
 
         allAttributes.forEach(attribute -> assertEquals(
                 Stream.of(attribute.get("path"), attribute.get("filename")).filter(s -> !s.isEmpty()).collect(

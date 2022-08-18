@@ -69,7 +69,7 @@ public class FetchSmb extends AbstractProcessor {
             .displayName("Remote File")
             .description("The full path of the file to be retrieved from the remote server.")
             .required(true)
-            .defaultValue("${identifier}")
+            .defaultValue("${absolute.path}/${filename}")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(NON_EMPTY_EL_VALIDATOR)
             .build();
@@ -182,6 +182,7 @@ public class FetchSmb extends AbstractProcessor {
                 fetchAndTransfer(session, client, flowFile, fileName);
             }
         } catch (Exception e) {
+            getLogger().error("Couldn't connect to smb due to "+ e.getMessage());
             flowFile = session.putAttribute(flowFile, ERROR_CODE_ATTRIBUTE, getErrorCode(e));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
             session.transfer(flowFile, REL_FAILURE);
@@ -200,6 +201,7 @@ public class FetchSmb extends AbstractProcessor {
             flowFile = session.write(flowFile, outputStream -> client.read(fileName, outputStream));
             session.transfer(flowFile, REL_SUCCESS);
         } catch (Exception e) {
+            getLogger().error("Couldn't fetch file {} due to {}", fileName, e.getMessage());
             flowFile = session.putAttribute(flowFile, ERROR_CODE_ATTRIBUTE, getErrorCode(e));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
             session.transfer(flowFile, REL_FAILURE);

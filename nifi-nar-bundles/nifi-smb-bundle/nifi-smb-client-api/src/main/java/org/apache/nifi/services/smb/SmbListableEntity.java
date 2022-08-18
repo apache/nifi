@@ -154,7 +154,7 @@ public class SmbListableEntity implements ListableEntity {
         final Map<String, Object> record = new TreeMap<>();
         record.put("filename", getName());
         record.put("shortName", getShortName());
-        record.put("path", path);
+        record.put("path", getPath());
         record.put("identifier", getPathWithName());
         record.put("timestamp", getTimestamp());
         record.put("creationTime", getCreationTime());

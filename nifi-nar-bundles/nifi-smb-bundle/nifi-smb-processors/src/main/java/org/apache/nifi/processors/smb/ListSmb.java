@@ -92,9 +92,8 @@ import org.apache.nifi.services.smb.SmbListableEntity;
                         + "given a remote location smb://HOSTNAME:PORT/SHARE/DIRECTORY, and a file is being listen from "
                         + "SHARE/DIRECTORY/sub/folder/file then the absolute.path attribute will be set to "
                         + "SHARE/DIRECTORY/sub/folder/file."),
-        @WritesAttribute(attribute = "identifier", description =
-                "The identifier of the file. This equals to the path attribute so two files with the same relative path "
-                        + "coming from different file shares considered to be identical."),
+        @WritesAttribute(attribute = "serviceLocation", description =
+                "The serviceLocation is set to the host and port of the remote smb server."),
         @WritesAttribute(attribute = "timestamp", description =
                 "The timestamp of when the file's content changed in the filesystem as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
         @WritesAttribute(attribute = "createTime", description =
@@ -207,11 +206,13 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     @Override
     protected Map<String, String> createAttributes(SmbListableEntity entity, ProcessContext context) {
         final Map<String, String> attributes = new TreeMap<>();
+        final SmbClientProviderService clientProviderService =
+                context.getProperty(SMB_CLIENT_PROVIDER_SERVICE).asControllerService(SmbClientProviderService.class);
         attributes.put("filename", entity.getName());
         attributes.put("shortname", entity.getShortName());
         attributes.put("path", entity.getPath());
         attributes.put("absolute.path", entity.getPathWithName());
-        attributes.put("identifier", entity.getIdentifier());
+        attributes.put("serviceLocation", clientProviderService.getServiceLocation().toString());
         attributes.put("timestamp", formatTimeStamp(entity.getTimestamp()));
         attributes.put("creationTime", formatTimeStamp(entity.getCreationTime()));
         attributes.put("lastAccessTime", formatTimeStamp(entity.getLastAccessTime()));
@@ -359,7 +360,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             return new ValidationResult.Builder()
                     .subject(subject)
                     .input(value)
-                    .valid(!value.contains("/"))
+                    .valid(!value.contains("/") && !value.contains("\\"))
                     .explanation(subject + " must not contain any folder separator character.")
                     .build();
         }

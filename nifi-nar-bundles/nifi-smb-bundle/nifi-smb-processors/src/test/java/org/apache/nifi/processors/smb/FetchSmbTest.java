@@ -26,6 +26,7 @@ import static org.apache.nifi.processors.smb.ListSmb.SMB_CLIENT_PROVIDER_SERVICE
 import static org.apache.nifi.util.TestRunners.newTestRunner;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -209,10 +210,12 @@ class FetchSmbTest {
         final TestRunner testRunner = createRunner();
         mockNifiSmbClientService();
         Map<String, String> attributes = new HashMap<>();
-        attributes.put("identifier", "testDirectory/cannotReadThis");
+        attributes.put("absolute.path", "testDirectory");
+        attributes.put("filename", "cannotReadThis");
         testRunner.enqueue("ignore", attributes);
         attributes = new HashMap<>();
-        attributes.put("identifier", "testDirectory/canReadThis");
+        attributes.put("absolute.path", "testDirectory");
+        attributes.put("filename", "canReadThis");
         testRunner.enqueue("ignore", attributes);
         testRunner.run();
         testRunner.assertTransferCount(REL_FAILURE, 1);
@@ -239,7 +242,7 @@ class FetchSmbTest {
 
     private void mockNifiSmbClientService() throws IOException {
         doThrow(new SmbException("test exception", 1L, new RuntimeException())).when(mockNifiSmbClientService)
-                .read(eq("testDirectory/cannotReadThis"), any(OutputStream.class));
+                .read(anyString(), any(OutputStream.class));
         doAnswer(invocation -> {
             final OutputStream o = invocation.getArgument(1);
             final ByteArrayInputStream bytes = new ByteArrayInputStream("content".getBytes());

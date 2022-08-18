@@ -66,7 +66,7 @@ public class FetchSmbIT extends SambaTestcontinerIT {
         testRunner.enableControllerService(jsonTreeReader);
         testRunner.enableControllerService(smbjClientProviderService);
 
-        testRunner.enqueue("{\"identifier\": \"test_file1\"}\n{\"identifier\": \"test_file2\"}\n");
+        testRunner.enqueue("{\"identifier\": \"test_file1\"}\n{\"identifier\": \"/test_file2\"}\n");
         testRunner.run();
         testRunner.assertTransferCount(REL_SUCCESS, 2);
         assertEquals(new HashSet<>(asList("test_content_1", "test_content_2")),
