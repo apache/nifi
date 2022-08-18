@@ -16,23 +16,25 @@
  */
 package org.apache.nifi.annotation.behavior;
 
-public enum RunDuration {
-    ZERO_MILLIS(0),
+import java.time.Duration;
+
+public enum DefaultRunDuration {
+    NO_BATCHING(0),
     TWENTY_FIVE_MILLIS(25),
     FIFTY_MILLIS(50),
     ONE_HUNDRED_MILLIS(100),
     TWO_HUNDRED_FIFTY_MILLIS(250),
     FIVE_HUNDRED_MILLIS(500),
-    ONE_SECONDS(1000),
+    ONE_SECOND(1000),
     TWO_SECONDS(2000);
 
     private final long millis;
 
-    RunDuration(final long millis) {
+    DefaultRunDuration(final long millis) {
         this.millis = millis;
     }
 
-    public long getMillis() {
-        return millis;
+    public Duration getDuration() {
+        return Duration.ofMillis(1000);
     }
 }

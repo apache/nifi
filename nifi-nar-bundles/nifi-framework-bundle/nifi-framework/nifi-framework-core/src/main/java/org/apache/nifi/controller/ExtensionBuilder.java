@@ -369,7 +369,7 @@ public class ExtensionBuilder {
 
             final SupportsBatching sb = procClass.getAnnotation(SupportsBatching.class);
             if (sb != null) {
-                processorNode.setRunDuration(sb.duration().getMillis(), TimeUnit.MILLISECONDS);
+                processorNode.setRunDuration(sb.defaultDuration().getDuration().toMillis(), TimeUnit.MILLISECONDS);
             }
         } catch (final Exception ex) {
             logger.error("Error while setting default run duration from SupportsBatching annotation: {}", ex.toString(), ex);
