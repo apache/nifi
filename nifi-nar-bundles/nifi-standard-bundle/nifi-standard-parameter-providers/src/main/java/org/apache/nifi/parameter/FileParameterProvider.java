@@ -65,7 +65,7 @@ import java.util.stream.Collectors;
 )
 public class FileParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider  {
     private static final int MAX_SIZE_LIMIT = 8096;
-    public static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
+    private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
 
     private enum ParameterValueEncoding {
         BASE64,
@@ -165,7 +165,7 @@ public class FileParameterProvider extends AbstractParameterProvider implements 
         }
         return results;
     }
-    
+
     private String getParameterValue(final String rawValue, final ParameterValueEncoding encoding) {
         if (ParameterValueEncoding.BASE64 == encoding) {
             return new String(Base64.getDecoder().decode(rawValue.getBytes(DEFAULT_CHARSET)), DEFAULT_CHARSET);
@@ -196,7 +196,7 @@ public class FileParameterProvider extends AbstractParameterProvider implements 
             try (final InputStream in = new BufferedInputStream(new LimitingInputStream(new FileInputStream(file), parameterSizeLimit))) {
                 final String rawValue = IOUtils.toString(in, Charset.defaultCharset()).trim();
                 final String parameterValue = getParameterValue(rawValue, parameterEncoding);
-                
+
                 if (parameterValue.length() >= parameterSizeLimit) {
                     getLogger().warn("Parameter {} may be truncated at {} bytes", parameterName, parameterValue.length());
                 }
