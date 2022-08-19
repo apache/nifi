@@ -21,9 +21,9 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.nar.NarClassLoader;
 import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.nar.SystemBundle;
-import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.stateless.config.ParameterOverride;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
 import org.apache.nifi.stateless.engine.NarUnpackLock;
@@ -37,8 +37,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -147,7 +150,7 @@ public class StatelessBootstrap {
      * @param parent the parent class loader that the given BlockListClassLoader should delegate to for classes that it does not block
      * @return an AllowListClassLoader that allows only the appropriate classes to be loaded from the given parent
      */
-    private static AllowListClassLoader createExtensionRootClassLoader(final File narDirectory, final ClassLoader parent) throws IOException {
+    protected static AllowListClassLoader createExtensionRootClassLoader(final File narDirectory, final ClassLoader parent) throws IOException {
         final File[] narDirectoryFiles = narDirectory.listFiles();
         if (narDirectoryFiles == null) {
             throw new IOException("Could not get a listing of the NAR directory");
@@ -183,6 +186,12 @@ public class StatelessBootstrap {
         logger.debug("The following class/JAR files will be explicitly allowed to be loaded by Stateless Extensions ClassLoaders from parent {}: {}", parent, filesAllowed);
         logger.debug("The following JAR/JMOD files from ${JAVA_HOME} will be explicitly allowed to be loaded by Stateless Extensions ClassLoaders from parent {}: {}", parent, javaHomeFilenames);
         logger.debug("The final list of classes allowed to be loaded by Stateless Extension ClassLoaders from parent {}: {}", parent, classesAllowed);
+        if (parent instanceof URLClassLoader) {
+            final URL[] parentUrls = ((URLClassLoader) parent).getURLs();
+            logger.debug("Parent ClassLoader has the following URLs loaded: {}", Arrays.asList(parentUrls));
+        } else {
+            logger.debug("Parent ClassLoader is not a URLClassLoader: {} / {}", parent, parent.getClass());
+        }
 
         final AllowListClassLoader allowListClassLoader = new AllowListClassLoader(parent, classesAllowed);
         return allowListClassLoader;
@@ -200,11 +209,17 @@ public class StatelessBootstrap {
             logger.warn("System property for java.home is {} but that directory does not exist so will not allow any classes explicitly from java.home in AllowListClassLoader", javaHomeValue);
             return Collections.emptySet();
         }
+        logger.debug("Java Home Directory is {}", javaHome.getAbsolutePath());
 
         final File[] javaHomeFiles = javaHome.listFiles();
         if (javaHomeFiles == null) {
             logger.warn("System property for java.home is {} but that directory is not readable so will not allow any classes explicitly from java.home in AllowListClassLoader", javaHomeValue);
             return Collections.emptySet();
+        }
+        if (logger.isDebugEnabled()) {
+            logger.debug("Found the following files in Java Home: {}", Arrays.asList(javaHomeFiles));
+            logger.debug("Full listing of Java Home:");
+            logFullJavaHomeListing(javaHomeFiles);
         }
 
         final Set<File> loadableFiles = new HashSet<>();
@@ -215,10 +230,32 @@ public class StatelessBootstrap {
         return loadableFiles;
     }
 
+    private static void logFullJavaHomeListing(final File[] files) {
+        if (files == null) {
+            return;
+        }
+
+        for (final File file : files) {
+            if (file.isDirectory()) {
+                logger.debug(file.getAbsolutePath() + "/");
+                final File[] children = file.listFiles();
+                if (children == null) {
+                    logger.debug("Failed to perform listing of directory {}", file);
+                    continue;
+                }
+
+                logFullJavaHomeListing(children);
+            } else {
+                logger.debug(file.getAbsolutePath());
+            }
+        }
+    }
+
     private static void findLoadableFiles(final File file, final Set<File> loadable) {
         if (file.isDirectory()) {
             final File[] children = file.listFiles();
             if (children == null) {
+                logger.debug("Unable to obtain listing of files for directory {}", file.getAbsolutePath());
                 return;
             }
 
