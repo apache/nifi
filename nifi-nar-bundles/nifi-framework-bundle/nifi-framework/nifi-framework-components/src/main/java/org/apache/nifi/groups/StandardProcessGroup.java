@@ -1004,7 +1004,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         if (duplicateId) {
             LOG.debug("Adding {} to {}, found conflicting Version Component ID {} so marking Version Component ID of {} as null", component, this, versionControlId, component);
-            setVersionedComponentId(null);
+            component.setVersionedComponentId(null);
         } else {
             LOG.debug("Adding {} to {}, found no conflicting Version Component ID for ID {}", component, this, versionControlId);
         }
