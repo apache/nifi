@@ -39,6 +39,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.ValidationState;
@@ -2079,6 +2080,35 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), getProcessor().getClass(), getProcessor().getIdentifier())) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, getProcessor(), context);
         }
+
+        // Now that the configuration has been fully restored, it's possible that some components (in particular, scripted components)
+        // may change the Property Descriptor definitions because they've now reloaded the configured scripts. As a result,
+        // the PropertyDescriptor may now indicate that it references a Controller Service when it previously had not.
+        // In order to account for this, we need to refresh our controller service references by removing an previously existing
+        // references and establishing new references.
+        updateControllerServiceReferences();
     }
 
+    private void updateControllerServiceReferences() {
+        for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : getProperties().entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            final PropertyConfiguration propertyConfiguration = entry.getValue();
+            if (descriptor.getControllerServiceDefinition() == null || propertyConfiguration == null) {
+                continue;
+            }
+
+            final String propertyValue = propertyConfiguration.getEffectiveValue(getParameterLookup());
+            if (propertyValue == null) {
+                continue;
+            }
+
+            final ControllerServiceNode serviceNode = getControllerServiceProvider().getControllerServiceNode(propertyValue);
+            if (serviceNode == null) {
+                continue;
+            }
+
+            serviceNode.removeReference(this, descriptor);
+            serviceNode.addReference(this, descriptor);
+        }
+    }
 }
