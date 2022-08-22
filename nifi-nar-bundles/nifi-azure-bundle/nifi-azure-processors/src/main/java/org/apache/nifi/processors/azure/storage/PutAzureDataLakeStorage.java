@@ -20,6 +20,7 @@ import com.azure.storage.file.datalake.DataLakeDirectoryClient;
 import com.azure.storage.file.datalake.DataLakeFileClient;
 import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
+import com.azure.storage.file.datalake.models.DataLakeRequestConditions;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
 import org.apache.commons.io.input.BoundedInputStream;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -30,20 +31,24 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_DIRECTORY;
@@ -83,11 +88,23 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             .allowableValues(FAIL_RESOLUTION, REPLACE_RESOLUTION, IGNORE_RESOLUTION)
             .build();
 
+    public static final PropertyDescriptor BASE_TEMPORARY_PATH = new PropertyDescriptor.Builder()
+            .name("base-temporary-path")
+            .displayName("Base Temporary Path")
+            .description("The Path where the temporary directory will be created. The Path name cannot contain a leading '/'." +
+                    " The root directory can be designated by the empty string value. Non-existing directories will be created." +
+                    "The Temporary File Directory name is " + TEMP_FILE_DIRECTORY)
+            .defaultValue("")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(new DirectoryValidator("Base Temporary Path"))
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             ADLS_CREDENTIALS_SERVICE,
             FILESYSTEM,
             DIRECTORY,
             FILE,
+            BASE_TEMPORARY_PATH,
             CONFLICT_RESOLUTION,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
     ));
@@ -107,41 +124,39 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         final long startNanos = System.nanoTime();
         try {
             final String fileSystem = evaluateFileSystemProperty(context, flowFile);
-            final String directory = evaluateDirectoryProperty(context, flowFile);
+            final String originalDirectory = evaluateDirectoryProperty(context, flowFile);
+            final String tempPath = evaluateDirectoryProperty(context, flowFile, BASE_TEMPORARY_PATH);
+            final String tempDirectory = createPath(tempPath, TEMP_FILE_DIRECTORY);
             final String fileName = evaluateFileNameProperty(context, flowFile);
 
             final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
             final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
-            final DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);
-            final DataLakeFileClient fileClient;
+            final DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(originalDirectory);
+            final DataLakeFileClient tempFileClient;
+            final DataLakeFileClient renamedFileClient;
 
+            final String tempFilePrefix = UUID.randomUUID().toString();
+            final DataLakeDirectoryClient tempDirectoryClient = fileSystemClient.getDirectoryClient(tempDirectory);
             final String conflictResolution = context.getProperty(CONFLICT_RESOLUTION).getValue();
             boolean overwrite = conflictResolution.equals(REPLACE_RESOLUTION);
 
             try {
-                fileClient = directoryClient.createFile(fileName, overwrite);
-
-                final long length = flowFile.getSize();
-                if (length > 0) {
-                    try (final InputStream rawIn = session.read(flowFile); final BufferedInputStream bufferedIn = new BufferedInputStream(rawIn)) {
-                        uploadContent(fileClient, bufferedIn, length);
-                    } catch (Exception e) {
-                        removeTempFile(fileClient);
-                        throw e;
-                    }
-                }
+                tempFileClient = tempDirectoryClient.createFile(tempFilePrefix + fileName, true);
+                appendContent(flowFile, tempFileClient, session);
+                createDirectoryIfNotExists(directoryClient);
+                renamedFileClient = renameFile(fileName, directoryClient.getDirectoryPath(), tempFileClient, overwrite);
 
                 final Map<String, String> attributes = new HashMap<>();
                 attributes.put(ATTR_NAME_FILESYSTEM, fileSystem);
-                attributes.put(ATTR_NAME_DIRECTORY, directory);
+                attributes.put(ATTR_NAME_DIRECTORY, originalDirectory);
                 attributes.put(ATTR_NAME_FILENAME, fileName);
-                attributes.put(ATTR_NAME_PRIMARY_URI, fileClient.getFileUrl());
-                attributes.put(ATTR_NAME_LENGTH, String.valueOf(length));
+                attributes.put(ATTR_NAME_PRIMARY_URI, renamedFileClient.getFileUrl());
+                attributes.put(ATTR_NAME_LENGTH, String.valueOf(flowFile.getSize()));
                 flowFile = session.putAllAttributes(flowFile, attributes);
 
                 session.transfer(flowFile, REL_SUCCESS);
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                session.getProvenanceReporter().send(flowFile, fileClient.getFileUrl(), transferMillis);
+                session.getProvenanceReporter().send(flowFile, renamedFileClient.getFileUrl(), transferMillis);
             } catch (DataLakeStorageException dlsException) {
                 if (dlsException.getStatusCode() == 409) {
                     if (conflictResolution.equals(IGNORE_RESOLUTION)) {
@@ -164,14 +179,26 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         }
     }
 
-    private void removeTempFile(DataLakeFileClient fileClient) {
-        try {
-            fileClient.delete();
-        } catch (Exception e) {
-            getLogger().error("Error while removing temp file on Azure Data Lake Storage", e);
+    private void createDirectoryIfNotExists(DataLakeDirectoryClient directoryClient) {
+        if (!directoryClient.getDirectoryPath().isEmpty() && !directoryClient.exists()) {
+            directoryClient.create();
         }
     }
 
+   //Visible for testing
+    void appendContent(FlowFile flowFile, DataLakeFileClient fileClient, ProcessSession session) throws IOException {
+        final long length = flowFile.getSize();
+        if (length > 0) {
+            try (final InputStream rawIn = session.read(flowFile); final BufferedInputStream bufferedIn = new BufferedInputStream(rawIn)) {
+                uploadContent(fileClient, bufferedIn, length);
+            } catch (Exception e) {
+                removeTempFile(fileClient);
+                throw e;
+            }
+        }
+    }
+
+    //Visible for testing
     static void uploadContent(DataLakeFileClient fileClient, InputStream in, long length) {
         long chunkStart = 0;
         long chunkSize;
@@ -189,5 +216,35 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         }
 
         fileClient.flush(length);
+    }
+
+    //Visible for testing
+    DataLakeFileClient renameFile(final String fileName, final String directoryPath, final DataLakeFileClient fileClient, final boolean overwrite) {
+        try {
+            final DataLakeRequestConditions destinationCondition = new DataLakeRequestConditions();
+            if (!overwrite) {
+                destinationCondition.setIfNoneMatch("*");
+            }
+            final String destinationPath = createPath(directoryPath, fileName);
+            return fileClient.renameWithResponse(null, destinationPath, null, destinationCondition, null, null).getValue();
+        } catch (DataLakeStorageException dataLakeStorageException) {
+            getLogger().error("Renaming File [{}] failed", fileClient.getFileName(), dataLakeStorageException);
+            removeTempFile(fileClient);
+            throw dataLakeStorageException;
+        }
+    }
+
+    private String createPath(final String baseDirectory, final String path) {
+        return StringUtils.isNotBlank(baseDirectory)
+                ? baseDirectory + "/" + path
+                : path;
+    }
+
+    private void removeTempFile(final DataLakeFileClient fileClient) {
+        try {
+            fileClient.delete();
+        } catch (Exception e) {
+            getLogger().error("Renaming File [{}] failed", fileClient.getFileName(), e);
+        }
     }
 }

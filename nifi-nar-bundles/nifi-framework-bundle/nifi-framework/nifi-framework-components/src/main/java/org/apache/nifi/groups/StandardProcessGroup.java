@@ -182,8 +182,8 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     private final Map<String, Port> inputPorts = new HashMap<>();
     private final Map<String, Port> outputPorts = new HashMap<>();
-    private final Map<String, Connection> connections = new HashMap<>();
-    private final Map<String, ProcessGroup> processGroups = new HashMap<>();
+    private final Map<String, Connection> connections = new ConcurrentHashMap<>();
+    private final Map<String, ProcessGroup> processGroups = new ConcurrentHashMap<>();
     private final Map<String, Label> labels = new HashMap<>();
     private final Map<String, RemoteProcessGroup> remoteGroups = new HashMap<>();
     private final Map<String, ProcessorNode> processors = new HashMap<>();
@@ -4253,6 +4253,24 @@ public final class StandardProcessGroup implements ProcessGroup {
             DataUnit.parseDataSize(defaultBackPressureDataSizeThreshold, DataUnit.B);
             this.defaultBackPressureDataSizeThreshold.set(defaultBackPressureDataSizeThreshold.toUpperCase());
         }
+    }
+
+    @Override
+    public QueueSize getQueueSize() {
+        int count = 0;
+        long contentSize = 0L;
+
+        for (final ProcessGroup childGroup : processGroups.values()) {
+            final QueueSize queueSize = childGroup.getQueueSize();
+            count += queueSize.getObjectCount();
+            contentSize += queueSize.getByteCount();
+        }
+        for (final Connection connection : connections.values()) {
+            final QueueSize queueSize = connection.getFlowFileQueue().size();
+            count += queueSize.getObjectCount();
+            contentSize += queueSize.getByteCount();
+        }
+        return new QueueSize(count, contentSize);
     }
 
     @Override
