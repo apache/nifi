@@ -1206,7 +1206,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             }
 
             final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(service, proposed.getProperties(), proposed.getPropertyDescriptors().values());
-            final Map<String, String> properties = populatePropertiesMap(service, proposed.getProperties(), service.getProcessGroup());
+            final Map<String, String> properties = populatePropertiesMap(service, proposed.getProperties(), proposed.getPropertyDescriptors(), service.getProcessGroup());
             service.setProperties(properties, true, sensitiveDynamicPropertyNames);
 
             if (!isEqual(service.getBundleCoordinate(), proposed.getBundle())) {
@@ -1249,7 +1249,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         return sensitiveDynamicPropertyNames;
     }
 
-    private Map<String, String> populatePropertiesMap(final ComponentNode componentNode, final Map<String, String> proposedProperties, final ProcessGroup group) {
+    private Map<String, String> populatePropertiesMap(final ComponentNode componentNode, final Map<String, String> proposedProperties,
+                                                      final Map<String, VersionedPropertyDescriptor> proposedPropertyDescriptors, final ProcessGroup group) {
 
         // Explicitly set all existing properties to null, except for sensitive properties, so that if there isn't an entry in the proposedProperties
         // it will get removed from the processor. We don't do this for sensitive properties because when we retrieve the VersionedProcessGroup from registry,
@@ -1270,9 +1271,14 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
             for (final String propertyName : updatedPropertyNames) {
                 final PropertyDescriptor descriptor = componentNode.getPropertyDescriptor(propertyName);
+                final VersionedPropertyDescriptor versionedDescriptor = (proposedPropertyDescriptors == null) ? null : proposedPropertyDescriptors.get(propertyName);
+                final boolean referencesService = (descriptor != null && descriptor.getControllerServiceDefinition() != null)
+                    || (versionedDescriptor != null && versionedDescriptor.getIdentifiesControllerService());
+                final boolean sensitive = (descriptor != null && descriptor.isSensitive())
+                    || (versionedDescriptor != null && versionedDescriptor.isSensitive());
 
                 String value;
-                if (descriptor != null && descriptor.getControllerServiceDefinition() != null ) {
+                if (descriptor != null && referencesService) {
                     // Need to determine if the component's property descriptor for this service is already set to an id
                     // of an existing service that is outside the current processor group, and if it is we want to leave
                     // the property set to that value
@@ -1293,11 +1299,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     if (existingExternalServiceId == null) {
                         final String serviceVersionedComponentId = proposedProperties.get(propertyName);
                         String instanceId = getServiceInstanceId(serviceVersionedComponentId, group);
-                        value = instanceId == null ? serviceVersionedComponentId : instanceId;
+                        value = (instanceId == null) ? serviceVersionedComponentId : instanceId;
                     } else {
                         value = existingExternalServiceId;
                     }
-
                 } else {
                     value = proposedProperties.get(propertyName);
                 }
@@ -1307,7 +1312,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 // populated value. The exception to this rule is if the currently configured value is a Parameter Reference and the Versioned Flow is empty. In this case, it implies
                 // that the Versioned Flow has changed from a Parameter Reference to an explicit value. In this case, we do in fact want to change the value of the Sensitive Property from
                 // the current parameter reference to an unset value.
-                if (descriptor.isSensitive() && value == null) {
+                if (sensitive && value == null) {
                     final PropertyConfiguration propertyConfiguration = componentNode.getProperty(descriptor);
                     if (propertyConfiguration == null) {
                         continue;
@@ -2533,7 +2538,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             processor.setPenalizationPeriod(proposed.getPenaltyDuration());
 
             final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(processor, proposed.getProperties(), proposed.getPropertyDescriptors().values());
-            final Map<String, String> properties = populatePropertiesMap(processor, proposed.getProperties(), processor.getProcessGroup());
+            final Map<String, String> properties = populatePropertiesMap(processor, proposed.getProperties(), proposed.getPropertyDescriptors(), processor.getProcessGroup());
             processor.setProperties(properties, true, sensitiveDynamicPropertyNames);
             processor.setRunDuration(proposed.getRunDurationMillis(), TimeUnit.MILLISECONDS);
             processor.setSchedulingStrategy(SchedulingStrategy.valueOf(proposed.getSchedulingStrategy()));
