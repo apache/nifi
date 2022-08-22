@@ -90,9 +90,10 @@
 
     <appender name="DEPRECATION_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${org.apache.nifi.bootstrap.config.log.dir}/nifi-deprecation.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${org.apache.nifi.bootstrap.config.log.dir}/nifi-deprecation_%d.log</fileNamePattern>
-            <maxHistory>30</maxHistory>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${org.apache.nifi.bootstrap.config.log.dir}/nifi-deprecation_%d.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>10</maxHistory>
         </rollingPolicy>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <pattern>%date %level [%thread] %logger %msg%n</pattern>
@@ -108,7 +109,7 @@
     <!-- valid logging levels: TRACE, DEBUG, INFO, WARN, ERROR -->
 
     <!-- Deprecation Log -->
-    <logger name="deprecation" level="WARN">
+    <logger name="deprecation" level="WARN" additivity="false">
         <appender-ref ref="DEPRECATION_FILE"/>
     </logger>
 
