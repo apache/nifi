@@ -150,6 +150,11 @@
         <cve>CVE-2020-13955</cve>
     </suppress>
     <suppress>
+        <notes>CVE-2020-13955 applies to Apache Calcite Core not Apache Calcite Avatica subproject</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.calcite\.avatica\/avatica(-metrics)?@.*$</packageUrl>
+        <cve>CVE-2020-13955</cve>
+    </suppress>
+    <suppress>
         <notes>OpenTSDB vulnerabilities do not apply to HBase Async library</notes>
         <packageUrl regex="true">^pkg:maven/org\.hbase/asynchbase@.*$</packageUrl>
         <cpe>cpe:/a:opentsdb:opentsdb</cpe>
