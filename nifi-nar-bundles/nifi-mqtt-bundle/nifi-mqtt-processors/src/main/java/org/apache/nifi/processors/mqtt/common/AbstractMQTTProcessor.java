@@ -300,15 +300,15 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             try {
                 logger.info("Disconnecting client");
                 mqttClient.disconnect(DISCONNECT_TIMEOUT);
-            } catch (MqttException me) {
-                logger.error("Error disconnecting MQTT client due to {}", new Object[]{me.getMessage()}, me);
+            } catch (Exception e) {
+                logger.error("Error disconnecting MQTT client due to {}", new Object[]{e.getMessage()}, e);
             }
 
             try {
                 logger.info("Closing client");
                 mqttClient.close();
-            } catch (MqttException me) {
-                logger.error("Error closing MQTT client due to {}", new Object[]{me.getMessage()}, me);
+            } catch (Exception e) {
+                logger.error("Error closing MQTT client due to {}", new Object[]{e.getMessage()}, e);
             }
 
             mqttClient = null;
