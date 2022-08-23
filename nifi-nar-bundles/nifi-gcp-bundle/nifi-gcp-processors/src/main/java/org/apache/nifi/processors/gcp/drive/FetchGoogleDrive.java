@@ -43,9 +43,11 @@ import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -145,48 +147,61 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
             return;
         }
 
-        if (context.getProperty(RECORD_READER).isSet()) {
+        String fileId = context.getProperty(FILE_ID).evaluateAttributeExpressions(flowFile).getValue();
+
+        if (StringUtils.isEmpty(fileId)) {
             RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
-            try (InputStream inFlowFile = session.read(flowFile)) {
+            final List<Map<String, String>> attributesForAllRecords = new ArrayList<>();
+            boolean allRecordsProcessed = false;
+            try (InputStream inFlowFileStream = session.read(flowFile)) {
                 final Map<String, String> flowFileAttributes = flowFile.getAttributes();
-                final RecordReader reader = recordReaderFactory.createRecordReader(flowFileAttributes, inFlowFile, flowFile.getSize(), getLogger());
+                final RecordReader reader = recordReaderFactory.createRecordReader(flowFileAttributes, inFlowFileStream, flowFile.getSize(), getLogger());
 
                 Record record;
                 while ((record = reader.nextRecord()) != null) {
-                    String fileId = record.getAsString(GoogleDriveFileInfo.ID);
-                    FlowFile outFlowFile = session.create(flowFile);
-                    try {
-                        addAttributes(session, outFlowFile, record);
+                    Map<String, String> attributes = getAttributes(record);
 
-                        fetchFile(fileId, session, outFlowFile);
-
-                        session.transfer(outFlowFile, REL_SUCCESS);
-                    } catch (GoogleJsonResponseException e) {
-                        handleErrorResponse(session, fileId, outFlowFile, e);
-                    } catch (Exception e) {
-                        handleUnexpectedError(session, outFlowFile, fileId, e);
-                    }
+                    attributesForAllRecords.add(attributes);
                 }
-                session.remove(flowFile);
+                allRecordsProcessed = true;
             } catch (IOException | MalformedRecordException | SchemaNotFoundException e) {
                 getLogger().error("Couldn't read file metadata content as records from incoming flowfile", e);
 
-                session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
+                flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
 
                 session.transfer(flowFile, REL_INPUT_FAILURE);
             } catch (Exception e) {
                 getLogger().error("Unexpected error while processing incoming flowfile", e);
 
-                session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
+                flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
 
                 session.transfer(flowFile, REL_INPUT_FAILURE);
             }
+
+            if (allRecordsProcessed) {
+                for (Map<String, String> attributes : attributesForAllRecords) {
+                    FlowFile outFlowFile = session.create(flowFile);
+                    outFlowFile = session.putAllAttributes(outFlowFile, attributes);
+
+                    String fileIdInRecord = attributes.get(GoogleDriveFileInfo.ID);
+
+                    try {
+                        outFlowFile = fetchFile(fileIdInRecord, session, outFlowFile);
+
+                        session.transfer(outFlowFile, REL_SUCCESS);
+                    } catch (GoogleJsonResponseException e) {
+                        handleErrorResponse(session, fileIdInRecord, outFlowFile, e);
+                    } catch (Exception e) {
+                        handleUnexpectedError(session, outFlowFile, fileIdInRecord, e);
+                    }
+                }
+                session.remove(flowFile);
+            }
         } else {
-            String fileId = context.getProperty(FILE_ID).evaluateAttributeExpressions(flowFile).getValue();
             FlowFile outFlowFile = flowFile;
             try {
-                fetchFile(fileId, session, outFlowFile);
+                outFlowFile = fetchFile(fileId, session, outFlowFile);
 
                 session.transfer(outFlowFile, REL_SUCCESS);
             } catch (GoogleJsonResponseException e) {
@@ -195,10 +210,9 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
                 handleUnexpectedError(session, flowFile, fileId, e);
             }
         }
-        session.commitAsync();
     }
 
-    private void addAttributes(ProcessSession session, FlowFile outFlowFile, Record record) {
+    Map<String, String> getAttributes(Record record) {
         Map<String, String> attributes = new HashMap<>();
 
         for (GoogleDriveFlowFileAttribute attribute : GoogleDriveFlowFileAttribute.values()) {
@@ -206,23 +220,25 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
                     .ifPresent(value -> attributes.put(attribute.getName(), value));
         }
 
-        session.putAllAttributes(outFlowFile, attributes);
+        return attributes;
     }
 
-    void fetchFile(String fileId, ProcessSession session, FlowFile outFlowFile) throws IOException {
+    FlowFile fetchFile(String fileId, ProcessSession session, FlowFile outFlowFile) throws IOException {
         InputStream driveFileInputStream = driveService
                 .files()
                 .get(fileId)
                 .executeMediaAsInputStream();
 
-        session.importFrom(driveFileInputStream, outFlowFile);
+        outFlowFile = session.importFrom(driveFileInputStream, outFlowFile);
+
+        return outFlowFile;
     }
 
     private void handleErrorResponse(ProcessSession session, String fileId, FlowFile outFlowFile, GoogleJsonResponseException e) {
         getLogger().error("Couldn't fetch file with id '{}'", fileId, e);
 
-        session.putAttribute(outFlowFile, ERROR_CODE_ATTRIBUTE, "" + e.getStatusCode());
-        session.putAttribute(outFlowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
+        outFlowFile = session.putAttribute(outFlowFile, ERROR_CODE_ATTRIBUTE, "" + e.getStatusCode());
+        outFlowFile = session.putAttribute(outFlowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
 
         session.transfer(outFlowFile, REL_FAILURE);
     }
@@ -230,8 +246,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
     private void handleUnexpectedError(ProcessSession session, FlowFile flowFile, String fileId, Exception e) {
         getLogger().error("Unexpected error while fetching and processing file with id '{}'", fileId, e);
 
-        session.putAttribute(flowFile, ERROR_CODE_ATTRIBUTE, "N/A");
-        session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
+        flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
 
         session.transfer(flowFile, REL_FAILURE);
     }

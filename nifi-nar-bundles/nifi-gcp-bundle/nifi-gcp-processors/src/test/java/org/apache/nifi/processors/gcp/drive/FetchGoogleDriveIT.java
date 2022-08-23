@@ -19,13 +19,21 @@ package org.apache.nifi.processors.gcp.drive;
 import com.google.api.services.drive.model.File;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.json.JsonTreeReader;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,6 +42,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static org.mockito.Mockito.doAnswer;
 
 /**
  * See Javadoc {@link AbstractGoogleDriveIT} for instructions how to run this test.
@@ -126,10 +136,7 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
         };
 
         Set<Map<String, String>> expectedFailureAttributes = new HashSet<>(Arrays.asList(
-                new HashMap<String, String>() {{
-                    putAll(inputFlowFileAttributes);
-                    put("error.code", "N/A");
-                }}
+                inputFlowFileAttributes
         ));
 
         // WHEN
@@ -244,7 +251,20 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
     @Test
     void testThrowExceptionBeforeRecordsAreProcessed() throws Exception {
         // GIVEN
-        addJsonRecordReaderFactory();
+        RecordReaderFactory recordReader = new JsonTreeReader() {
+            @Override
+            public RecordReader createRecordReader(
+                    Map<String, String> variables,
+                    InputStream in,
+                    long inputLength,
+                    ComponentLog logger
+            ) throws MalformedRecordException, IOException, SchemaNotFoundException {
+                throw new RuntimeException("Intentional exception before processing records");
+            }
+        };
+        testRunner.addControllerService("record_reader", recordReader);
+        testRunner.enableControllerService(recordReader);
+        testRunner.setProperty(FetchGoogleDrive.RECORD_READER, "record_reader");
 
         File file = createFile("test_file.txt", mainFolderId);
 
@@ -255,22 +275,73 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
                 "}" +
                 "]";
 
-        MockFlowFile input = new MockFlowFile(1) {
-            @Override
-            public Map<String, String> getAttributes() {
-                throw new RuntimeException("Intentional exception");
-            }
+        List<String> expectedContents = Arrays.asList(validInputContent);
 
+        // WHEN
+        testRunner.enqueue(validInputContent);
+        testRunner.run();
+
+        // THEN
+        testRunner.assertTransferCount(FetchGoogleDrive.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(FetchGoogleDrive.REL_FAILURE, 0);
+
+        checkContent(FetchGoogleDrive.REL_INPUT_FAILURE, expectedContents);
+    }
+
+    @Test
+    void testFailToReadRecordsAfterSomeWereReadSuccessfully() throws Exception {
+        // GIVEN
+        RecordReaderFactory recordReader = new JsonTreeReader() {
             @Override
-            public String getContent() {
-                return validInputContent;
+            public RecordReader createRecordReader(
+                    Map<String, String> variables,
+                    InputStream in,
+                    long inputLength,
+                    ComponentLog logger
+            ) throws MalformedRecordException, IOException, SchemaNotFoundException {
+                RecordReader recordReader = Mockito.spy(super.createRecordReader(variables, in, inputLength, logger));
+
+                Answer<Record> throwExceptionForThirdRecord = invocation -> {
+                    Record record = (Record) invocation.callRealMethod();
+
+                    if (record != null && record.getAsString("filename").equals("test_file_3.txt")) {
+                        throw new RuntimeException("Intentional exception when processing third record");
+                    }
+
+                    return record;
+                };
+                doAnswer(throwExceptionForThirdRecord).when(recordReader).nextRecord();
+
+                return recordReader;
             }
         };
+        testRunner.addControllerService("record_reader", recordReader);
+        testRunner.enableControllerService(recordReader);
+        testRunner.setProperty(FetchGoogleDrive.RECORD_READER, "record_reader");
+
+        File file1 = createFile("test_file_1.txt", "test_content_1", mainFolderId);
+        File file2 = createFile("test_file_2.txt", "test_content_2", mainFolderId);
+        File file3 = createFile("test_file_3.txt", "test_content_3", mainFolderId);
+
+        String validInputContent = "[" +
+                "{" +
+                "\"drive.id\":\"" + file1.getId() + "\"," +
+                "\"filename\":\"" + file1.getName() + "\"" +
+                "}," +
+                "{" +
+                "\"drive.id\":\"" + file2.getId() + "\"," +
+                "\"filename\":\"" + file2.getName() + "\"" +
+                "}," +
+                "{" +
+                "\"drive.id\":\"" + file3.getId() + "\"," +
+                "\"filename\":\"" + file3.getName() + "\"" +
+                "}" +
+                "]";
 
         List<String> expectedContents = Arrays.asList(validInputContent);
 
         // WHEN
-        testRunner.enqueue(input);
+        testRunner.enqueue(validInputContent);
         testRunner.run();
 
         // THEN
@@ -287,11 +358,11 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
 
         testSubject = new FetchGoogleDrive() {
             @Override
-            void fetchFile(String fileId, ProcessSession session, FlowFile outFlowFile) throws IOException {
+            FlowFile fetchFile(String fileId, ProcessSession session, FlowFile outFlowFile) throws IOException {
                 if (fileId.equals(fileIdToThrowException.get())) {
                     throw new RuntimeException(fileId + " intentionally forces exception");
                 }
-                super.fetchFile(fileId, session, outFlowFile);
+                return super.fetchFile(fileId, session, outFlowFile);
             }
         };
         testRunner = createTestRunner();
@@ -326,7 +397,6 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
                 new HashMap<String, String>() {{
                     put("drive.id", file2.getId());
                     put("filename", file2.getName());
-                    put(FetchGoogleDrive.ERROR_CODE_ATTRIBUTE, "N/A");
                 }}
         ));
 

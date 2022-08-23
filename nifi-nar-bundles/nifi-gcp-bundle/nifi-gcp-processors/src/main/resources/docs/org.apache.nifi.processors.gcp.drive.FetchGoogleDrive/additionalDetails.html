@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+
+<head>
+    <meta charset="utf-8"/>
+    <title>ListGCSBucket</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+</head>
+<body>
+
+<h1>Processing input as records</h1>
+
+<p>
+    FetchGoogleDrive can fetch multiple files based on a single incoming FlowFile when that FlowFile contains the necessary metadata for the files to fetch
+    as records. In this case the 'Record Reader' property needs to be set.
+</p>
+
+<p>
+    This setup is usually used when the incoming FlowFile is created by the 'ListGoogleDrive' processor. However, the records can have a different source,
+    provided they follow a predefined structure - see example below:
+</p>
+
+<code>
+    <pre>
+[ {
+  "drive.id" : "drive.id.1",
+  "filename" : "file_1.txt",
+  "drive.size" : 1024,
+  "drive.timestamp" : 111,
+  "mime.type" : "application/vnd.google-apps.document"
+}, {
+  "drive.id" : "drive.id.2",
+  "filename" : "file_2.txt",
+  "drive.size" : 1024,
+  "drive.timestamp" : 222,
+  "mime.type" : "application/vnd.google-apps.document"
+} ]
+    </pre>
+</code>
+
+<p>
+    In case not all records can be processed successfully the incoming FlowFile will be sent to the 'input_failure' relationship. Other relationships are
+    receiving any FlowFiles.
+</p>
+
+<p>
+    If all records could be processed successfully the processor will try to fetch all corresponding files and sends a FlowFile for each attempt to the 'success' or the 'failure'
+    relationship. Each FlowFile will have attributes that correlate to the recognized fields in the corresponding original record. Non-recognized fields
+    will not be carried over as attributes.
+</p>
+
+</body>
+</html>
