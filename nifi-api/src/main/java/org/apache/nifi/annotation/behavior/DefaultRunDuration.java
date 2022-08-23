@@ -35,6 +35,6 @@ public enum DefaultRunDuration {
     }
 
     public Duration getDuration() {
-        return Duration.ofMillis(1000);
+        return duration;
     }
 }
