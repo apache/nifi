@@ -26,6 +26,17 @@ import static org.apache.nifi.processor.util.StandardValidators.DATA_SIZE_VALIDA
 import static org.apache.nifi.processor.util.StandardValidators.NON_BLANK_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.TIME_PERIOD_VALIDATOR;
+import static org.apache.nifi.services.smb.SmbListableEntity.ABSOLUTE_PATH;
+import static org.apache.nifi.services.smb.SmbListableEntity.ALLOCATION_SIZE;
+import static org.apache.nifi.services.smb.SmbListableEntity.CHANGE_TIME;
+import static org.apache.nifi.services.smb.SmbListableEntity.LAST_MODIFIED;
+import static org.apache.nifi.services.smb.SmbListableEntity.CREATION_TIME;
+import static org.apache.nifi.services.smb.SmbListableEntity.FILENAME;
+import static org.apache.nifi.services.smb.SmbListableEntity.LAST_ACCESS_TIME;
+import static org.apache.nifi.services.smb.SmbListableEntity.PATH;
+import static org.apache.nifi.services.smb.SmbListableEntity.SERVICE_LOCATION;
+import static org.apache.nifi.services.smb.SmbListableEntity.SHORT_NAME;
+import static org.apache.nifi.services.smb.SmbListableEntity.SIZE;
 
 import java.io.IOException;
 import java.net.URI;
@@ -79,31 +90,31 @@ import org.apache.nifi.services.smb.SmbListableEntity;
         "previous node left off without duplicating all of the data.")
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @WritesAttributes({
-        @WritesAttribute(attribute = "filename", description = "The name of the file that was read from filesystem."),
-        @WritesAttribute(attribute = "shortname", description = "The short name of the file that was read from filesystem."),
-        @WritesAttribute(attribute = "path", description =
+        @WritesAttribute(attribute = FILENAME, description = "The name of the file that was read from filesystem."),
+        @WritesAttribute(attribute = SHORT_NAME, description = "The short name of the file that was read from filesystem."),
+        @WritesAttribute(attribute = PATH, description =
                 "The path is set to the relative path of the file's directory "
                         + "on filesystem compared to the Share and Input Directory properties and the configured host "
                         + "and port inherited from the configured connection pool controller service. For example, for "
                         + "a given remote location smb://HOSTNAME:PORT/SHARE/DIRECTORY, and a file is being listed from "
                         + "smb://HOSTNAME:PORT/SHARE/DIRECTORY/sub/folder/file then the path attribute will be set to \"sub/folder/file\"."),
-        @WritesAttribute(attribute = "absolute.path", description =
+        @WritesAttribute(attribute = ABSOLUTE_PATH, description =
                 "The absolute.path is set to the absolute path of the file's directory on the remote location. For example, "
                         + "given a remote location smb://HOSTNAME:PORT/SHARE/DIRECTORY, and a file is being listen from "
                         + "SHARE/DIRECTORY/sub/folder/file then the absolute.path attribute will be set to "
                         + "SHARE/DIRECTORY/sub/folder/file."),
-        @WritesAttribute(attribute = "serviceLocation", description =
-                "The serviceLocation is set to the host and port of the remote smb server."),
-        @WritesAttribute(attribute = "timestamp", description =
+        @WritesAttribute(attribute = SERVICE_LOCATION, description =
+                "The SMB URL of the share"),
+        @WritesAttribute(attribute = LAST_MODIFIED, description =
                 "The timestamp of when the file's content changed in the filesystem as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
-        @WritesAttribute(attribute = "createTime", description =
+        @WritesAttribute(attribute = CREATION_TIME, description =
                 "The timestamp of when the file was created in the filesystem as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
-        @WritesAttribute(attribute = "lastAccessTime", description =
+        @WritesAttribute(attribute = LAST_ACCESS_TIME, description =
                 "The timestamp of when the file was accessed in the filesystem as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
-        @WritesAttribute(attribute = "changeTime", description =
+        @WritesAttribute(attribute = CHANGE_TIME, description =
                 "The timestamp of when the file's attributes was changed in the filesystem as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
-        @WritesAttribute(attribute = "size", description = "The number of bytes in the source file"),
-        @WritesAttribute(attribute = "allocationSize", description = "The number of bytes allocated for the file on the server"),
+        @WritesAttribute(attribute = SIZE, description = "The number of bytes in the source file"),
+        @WritesAttribute(attribute = ALLOCATION_SIZE, description = "The number of bytes allocated for the file on the server"),
 })
 @Stateful(scopes = {Scope.CLUSTER}, description =
         "After performing a listing of files, the state of the previous listing can be stored in order to list files "
@@ -183,10 +194,10 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = unmodifiableList(asList(
-            SMB_LISTING_STRATEGY,
             SMB_CLIENT_PROVIDER_SERVICE,
-            DIRECTORY,
             AbstractListProcessor.RECORD_WRITER,
+            SMB_LISTING_STRATEGY,
+            DIRECTORY,
             FILE_NAME_SUFFIX_FILTER,
             MINIMUM_AGE,
             MAXIMUM_AGE,
@@ -208,17 +219,17 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
         final Map<String, String> attributes = new TreeMap<>();
         final SmbClientProviderService clientProviderService =
                 context.getProperty(SMB_CLIENT_PROVIDER_SERVICE).asControllerService(SmbClientProviderService.class);
-        attributes.put("filename", entity.getName());
-        attributes.put("shortname", entity.getShortName());
-        attributes.put("path", entity.getPath());
-        attributes.put("absolute.path", entity.getPathWithName());
-        attributes.put("serviceLocation", clientProviderService.getServiceLocation().toString());
-        attributes.put("timestamp", formatTimeStamp(entity.getTimestamp()));
-        attributes.put("creationTime", formatTimeStamp(entity.getCreationTime()));
-        attributes.put("lastAccessTime", formatTimeStamp(entity.getLastAccessTime()));
-        attributes.put("changeTime", formatTimeStamp(entity.getChangeTime()));
-        attributes.put("size", String.valueOf(entity.getSize()));
-        attributes.put("allocationSize", String.valueOf(entity.getAllocationSize()));
+        attributes.put(FILENAME, entity.getName());
+        attributes.put(SHORT_NAME, entity.getShortName());
+        attributes.put(PATH, entity.getPath());
+        attributes.put(ABSOLUTE_PATH, entity.getPathWithName());
+        attributes.put(SERVICE_LOCATION, clientProviderService.getServiceLocation().toString());
+        attributes.put(LAST_MODIFIED, formatTimeStamp(entity.getTimestamp()));
+        attributes.put(CREATION_TIME, formatTimeStamp(entity.getCreationTime()));
+        attributes.put(LAST_ACCESS_TIME, formatTimeStamp(entity.getLastAccessTime()));
+        attributes.put(CHANGE_TIME, formatTimeStamp(entity.getChangeTime()));
+        attributes.put(SIZE, String.valueOf(entity.getSize()));
+        attributes.put(ALLOCATION_SIZE, String.valueOf(entity.getAllocationSize()));
         return unmodifiableMap(attributes);
     }
 

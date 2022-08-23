@@ -37,6 +37,7 @@ import com.hierynomus.smbj.share.File;
 import com.hierynomus.smbj.share.Share;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URI;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.stream.Stream;
@@ -47,14 +48,16 @@ public class SmbjClientService implements SmbClientService {
 
     final private AuthenticationContext authenticationContext;
     final private SMBClient smbClient;
+    final private URI serviceLocation;
 
     private Connection connection;
     private Session session;
     private DiskShare share;
 
-    public SmbjClientService(SMBClient smbClient, AuthenticationContext authenticationContext) {
+    public SmbjClientService(SMBClient smbClient, AuthenticationContext authenticationContext, URI serviceLocation) {
         this.smbClient = smbClient;
         this.authenticationContext = authenticationContext;
+        this.serviceLocation = serviceLocation;
     }
 
     public void connectToShare(String hostname, int port, String shareName) throws IOException {
@@ -106,7 +109,7 @@ public class SmbjClientService implements SmbClientService {
         return Stream.of(filePath).flatMap(path -> {
             final Directory directory = openDirectory(path);
             return stream(directory::spliterator, 0, false)
-                    .map(entity -> buildSmbListableEntity(entity, path))
+                    .map(entity -> buildSmbListableEntity(entity, path, serviceLocation))
                     .filter(entity -> !specialDirectory(entity))
                     .flatMap(listable -> listable.isDirectory() ? listRemoteFiles(listable.getPathWithName())
                             : Stream.of(listable))
@@ -126,7 +129,7 @@ public class SmbjClientService implements SmbClientService {
     }
 
     @Override
-    public void read(String fileName, OutputStream outputStream) throws IOException {
+    public void readFile(String fileName, OutputStream outputStream) throws IOException {
         try (File f = share.openFile(
                 fileName,
                 EnumSet.of(AccessMask.GENERIC_READ),
@@ -145,7 +148,7 @@ public class SmbjClientService implements SmbClientService {
         }
     }
 
-    private SmbListableEntity buildSmbListableEntity(FileIdBothDirectoryInformation info, String path) {
+    private SmbListableEntity buildSmbListableEntity(FileIdBothDirectoryInformation info, String path, URI serviceLocation) {
         return SmbListableEntity.builder()
                 .setName(info.getFileName())
                 .setShortName(info.getShortName())
@@ -157,6 +160,7 @@ public class SmbjClientService implements SmbClientService {
                 .setDirectory((info.getFileAttributes() & FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue()) != 0)
                 .setSize(info.getEndOfFile())
                 .setAllocationSize(info.getAllocationSize())
+                .setServiceLocation(serviceLocation)
                 .build();
     }
 

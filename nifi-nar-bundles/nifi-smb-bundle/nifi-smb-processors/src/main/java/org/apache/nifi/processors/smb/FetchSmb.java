@@ -17,15 +17,23 @@
 package org.apache.nifi.processors.smb;
 
 import static java.util.Arrays.asList;
-import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_EL_VALIDATOR;
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toMap;
+import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
+import static org.apache.nifi.processor.util.StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -34,8 +42,6 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -67,22 +73,12 @@ public class FetchSmb extends AbstractProcessor {
     public static final PropertyDescriptor REMOTE_FILE = new PropertyDescriptor
             .Builder().name("remote-file")
             .displayName("Remote File")
-            .description("The full path of the file to be retrieved from the remote server.")
+            .description(
+                    "The full path of the file to be retrieved from the remote server. EL is supported when record reader is not used.")
             .required(true)
-            .defaultValue("${absolute.path}/${filename}")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(NON_EMPTY_EL_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor REMOTE_FILE_FIELD = new PropertyDescriptor
-            .Builder().name("remote-file-field")
-            .displayName("Remote File Field")
-            .description("The name of the filed in a record to use as the remote file name. This field is being used "
-                    + "when record reader is set.")
-            .required(true)
-            .defaultValue("identifier")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(NON_EMPTY_EL_VALIDATOR)
+            .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
+            .defaultValue("${path}/${filename}")
+            .addValidator(ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor SMB_CLIENT_PROVIDER_SERVICE = new Builder()
@@ -92,7 +88,27 @@ public class FetchSmb extends AbstractProcessor {
             .required(true)
             .identifiesControllerService(SmbClientProviderService.class)
             .build();
-
+    public static final Relationship REL_SUCCESS =
+            new Relationship.Builder()
+                    .name("success")
+                    .description("A flowfile will be routed here for each successfully fetched File.")
+                    .build();
+    public static final Relationship REL_FAILURE =
+            new Relationship.Builder().name("failure")
+                    .description(
+                            "A flowfile will be routed here for each File for which fetch was attempted but failed.")
+                    .build();
+    public static final Relationship REL_INPUT_FAILURE =
+            new Relationship.Builder().name("input_failure")
+                    .description("The incoming flowfile will be routed here if its content could not be processed.")
+                    .build();
+    public static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(asList(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_INPUT_FAILURE
+    )));
+    public static final String UNCATEGORIZED_ERROR = "-2";
+    public static final String FILE_NAME = "filename";
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("record-reader")
             .displayName("Record Reader")
@@ -104,34 +120,10 @@ public class FetchSmb extends AbstractProcessor {
             .required(false)
             .build();
 
-    public static final Relationship REL_SUCCESS =
-            new Relationship.Builder()
-                    .name("success")
-                    .description("A flowfile will be routed here for each successfully fetched File.")
-                    .build();
-
-    public static final Relationship REL_FAILURE =
-            new Relationship.Builder().name("failure")
-                    .description(
-                            "A flowfile will be routed here for each File for which fetch was attempted but failed.")
-                    .build();
-
-    public static final Relationship REL_INPUT_FAILURE =
-            new Relationship.Builder().name("input_failure")
-                    .description("The incoming flowfile will be routed here if its content could not be processed.")
-                    .build();
-
-    public static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(asList(
-            REL_SUCCESS,
-            REL_FAILURE,
-            REL_INPUT_FAILURE
-    )));
-
     private static final List<PropertyDescriptor> PROPERTIES = asList(
-            REMOTE_FILE,
-            REMOTE_FILE_FIELD,
             SMB_CLIENT_PROVIDER_SERVICE,
-            RECORD_READER
+            RECORD_READER,
+            REMOTE_FILE
     );
 
     @Override
@@ -140,68 +132,90 @@ public class FetchSmb extends AbstractProcessor {
     }
 
     @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
-    }
-
-    @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
 
-        boolean shouldDeleteFlowFile = false;
+        final List<Map<String, String>> attributes;
+        try {
+            attributes = collectAttributes(context, session, flowFile);
+            attributes.stream()
+                    .map(attribute -> findFileName(context, attribute))
+                    .forEach(this::validateFileName);
+        } catch (Exception e) {
+            handleInputError(e, session, flowFile);
+            return;
+        }
 
         final SmbClientProviderService clientProviderService =
                 context.getProperty(SMB_CLIENT_PROVIDER_SERVICE).asControllerService(SmbClientProviderService.class);
 
         try (SmbClientService client = clientProviderService.getClient()) {
-
-            if (context.getProperty(RECORD_READER).isSet()) {
-                final RecordReaderFactory recordReaderFactory =
-                        context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-
-                try (InputStream inFlowFile = session.read(flowFile);
-                        RecordReader reader = recordReaderFactory.createRecordReader(flowFile, inFlowFile, getLogger())
-                ) {
-                    final String fieldName = context.getProperty(REMOTE_FILE_FIELD).getValue();
-                    Record record;
-                    while ((record = reader.nextRecord()) != null) {
-                        final String fileName = record.getAsString(fieldName);
-                        final FlowFile outFlowFile = session.create(flowFile);
-                        fetchAndTransfer(session, client, outFlowFile, fileName);
-                    }
-                    shouldDeleteFlowFile = true;
-                } catch (Exception e) {
-                    handleInputError(e, session, flowFile);
-                }
-            } else {
-                PropertyValue property = context.getProperty(REMOTE_FILE);
-                final String fileName = property.evaluateAttributeExpressions(flowFile).getValue();
-                fetchAndTransfer(session, client, flowFile, fileName);
-            }
-        } catch (Exception e) {
-            getLogger().error("Couldn't connect to smb due to "+ e.getMessage());
-            flowFile = session.putAttribute(flowFile, ERROR_CODE_ATTRIBUTE, getErrorCode(e));
-            flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
-            session.transfer(flowFile, REL_FAILURE);
-        }
-        if (shouldDeleteFlowFile) {
+            attributes.forEach(attribute -> fetchAndTransfer(session, context, client, attribute));
             session.remove(flowFile);
+        } catch (Exception e) {
+            getLogger().error("Couldn't connect to smb due to " + e.getMessage());
+            session.rollback();
+            FlowFile outFlowFile = session.get();
+            outFlowFile = session.putAttribute(outFlowFile, ERROR_CODE_ATTRIBUTE, getErrorCode(e));
+            outFlowFile = session.putAttribute(outFlowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
+            session.transfer(outFlowFile, REL_INPUT_FAILURE);
         }
 
     }
 
-    private void fetchAndTransfer(ProcessSession session, SmbClientService client, FlowFile flowFile, String fileName) {
-        try {
-            if (fileName == null || fileName.isEmpty()) {
-                throw new IllegalArgumentException("Couldn't find filename in flowfile");
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return PROPERTIES;
+    }
+
+    private boolean shouldReadRecords(ProcessContext context) {
+        return context.getProperty(RECORD_READER).isSet();
+    }
+
+    private String findFileName(ProcessContext context, Map<String, String> attributes) {
+        return shouldReadRecords(context) ?
+                Stream.of("path", "filename")
+                        .map(attributes::get)
+                        .filter(Objects::nonNull)
+                        .collect(joining("/")) :
+                context.getProperty(REMOTE_FILE).evaluateAttributeExpressions(attributes).getValue();
+    }
+
+    private List<Map<String, String>> collectAttributes(ProcessContext context, ProcessSession session,
+            FlowFile flowFile)
+            throws Exception {
+        final List<Map<String, String>> result = new LinkedList<>();
+        if (shouldReadRecords(context)) {
+            final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER)
+                    .asControllerService(RecordReaderFactory.class);
+            try (InputStream inFlowFile = session.read(flowFile);
+                    final RecordReader reader = recordReaderFactory.createRecordReader(flowFile, inFlowFile,
+                            getLogger())) {
+                Record record;
+                while ((record = reader.nextRecord()) != null) {
+                    result.add(record.getRawFieldNames().stream()
+                            .collect(toMap(identity(), record::getAsString)));
+                }
             }
-            flowFile = session.write(flowFile, outputStream -> client.read(fileName, outputStream));
+        } else {
+            result.add(flowFile.getAttributes());
+        }
+        return result;
+    }
+
+    private void fetchAndTransfer(ProcessSession session, ProcessContext context, SmbClientService client,
+            Map<String, String> attributes) {
+        FlowFile flowFile = session.create();
+        flowFile = session.putAllAttributes(flowFile, attributes);
+        final String filename = findFileName(context, attributes);
+        try {
+            flowFile = session.write(flowFile, outputStream -> client.readFile(filename, outputStream));
             session.transfer(flowFile, REL_SUCCESS);
         } catch (Exception e) {
-            getLogger().error("Couldn't fetch file {} due to {}", fileName, e.getMessage());
+            getLogger().error("Couldn't fetch file {} due to {}", filename, e.getMessage());
             flowFile = session.putAttribute(flowFile, ERROR_CODE_ATTRIBUTE, getErrorCode(e));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
             session.transfer(flowFile, REL_FAILURE);
@@ -215,15 +229,24 @@ public class FetchSmb extends AbstractProcessor {
         } else {
             getLogger().error("Failed to read input {}", flowFile, exception);
         }
-        session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, exception.getMessage());
+        session.rollback(false);
+        flowFile = session.get();
+        flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE,
+                Optional.ofNullable(exception.getMessage()).orElse(exception.getClass().getSimpleName()));
         session.transfer(flowFile, REL_INPUT_FAILURE);
+    }
+
+    private void validateFileName(String fileName) {
+        if (fileName == null || fileName.isEmpty() || fileName.endsWith("/")) {
+            throw new IllegalArgumentException("Couldn't find filename in flowfile");
+        }
     }
 
     private String getErrorCode(Exception exception) {
         return Optional.ofNullable(exception instanceof SmbException ? (SmbException) exception : null)
                 .map(SmbException::getErrorCode)
                 .map(String::valueOf)
-                .orElse("-2");
+                .orElse(UNCATEGORIZED_ERROR);
     }
 
 }

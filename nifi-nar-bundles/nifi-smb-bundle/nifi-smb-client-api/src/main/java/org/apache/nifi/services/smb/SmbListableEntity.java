@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.services.smb;
 
+import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,17 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 
 public class SmbListableEntity implements ListableEntity {
 
+    public static final String FILENAME = "filename";
+    public static final String SHORT_NAME = "shortName";
+    public static final String PATH = "path";
+    public static final String SERVICE_LOCATION = "serviceLocation";
+    public static final String ABSOLUTE_PATH = "absolute.path";
+    public static final String CREATION_TIME = "creationTime";
+    public static final String LAST_ACCESS_TIME = "lastAccessTime";
+    public static final String CHANGE_TIME = "changeTime";
+    public static final String LAST_MODIFIED = "lastModified";
+    public static final String SIZE = "size";
+    public static final String ALLOCATION_SIZE = "allocationSize";
     private final String name;
     private final String shortName;
     private final String path;
@@ -39,10 +51,11 @@ public class SmbListableEntity implements ListableEntity {
     private final boolean directory;
     private final long size;
     private final long allocationSize;
+    private final URI serviceLocation;
 
     private SmbListableEntity(String name, String shortName, String path, long timestamp, long creationTime,
             long lastAccessTime, long changeTime, boolean directory,
-            long size, long allocationSize) {
+            long size, long allocationSize, URI serviceLocation) {
         this.name = name;
         this.shortName = shortName;
         this.path = path;
@@ -53,6 +66,7 @@ public class SmbListableEntity implements ListableEntity {
         this.directory = directory;
         this.size = size;
         this.allocationSize = allocationSize;
+        this.serviceLocation = serviceLocation;
     }
 
     public static SimpleRecordSchema getRecordSchema() {
@@ -60,7 +74,7 @@ public class SmbListableEntity implements ListableEntity {
                 new RecordField("filename", RecordFieldType.STRING.getDataType(), false),
                 new RecordField("shortName", RecordFieldType.STRING.getDataType(), false),
                 new RecordField("path", RecordFieldType.STRING.getDataType(), false),
-                new RecordField("identifier", RecordFieldType.STRING.getDataType(), false),
+                new RecordField("absolute.path", RecordFieldType.STRING.getDataType(), false),
                 new RecordField("timestamp", RecordFieldType.LONG.getDataType(), false),
                 new RecordField("creationTime", RecordFieldType.LONG.getDataType(), false),
                 new RecordField("lastAccessTime", RecordFieldType.LONG.getDataType(), false),
@@ -152,16 +166,22 @@ public class SmbListableEntity implements ListableEntity {
     @Override
     public Record toRecord() {
         final Map<String, Object> record = new TreeMap<>();
-        record.put("filename", getName());
-        record.put("shortName", getShortName());
-        record.put("path", getPath());
-        record.put("identifier", getPathWithName());
-        record.put("timestamp", getTimestamp());
-        record.put("creationTime", getCreationTime());
-        record.put("lastAccessTime", getLastAccessTime());
-        record.put("size", getSize());
-        record.put("allocationSize", getAllocationSize());
+        record.put(FILENAME, getName());
+        record.put(SHORT_NAME, getShortName());
+        record.put(PATH, getPath());
+        record.put(SERVICE_LOCATION, getServiceLocation().toString());
+        record.put(ABSOLUTE_PATH, getPathWithName());
+        record.put(CREATION_TIME, getCreationTime());
+        record.put(LAST_ACCESS_TIME, getLastAccessTime());
+        record.put(LAST_MODIFIED, getTimestamp());
+        record.put(CHANGE_TIME, getChangeTime());
+        record.put(SIZE, getSize());
+        record.put(ALLOCATION_SIZE, getAllocationSize());
         return new MapRecord(getRecordSchema(), record);
+    }
+
+    private URI getServiceLocation() {
+        return serviceLocation;
     }
 
     public static class SmbListableEntityBuilder {
@@ -176,6 +196,7 @@ public class SmbListableEntity implements ListableEntity {
         private boolean directory = false;
         private long size = 0;
         private long allocationSize = 0;
+        private URI serviceLocation;
 
         public SmbListableEntityBuilder setName(String name) {
             this.name = name;
@@ -227,9 +248,14 @@ public class SmbListableEntity implements ListableEntity {
             return this;
         }
 
+        public SmbListableEntityBuilder setServiceLocation(URI serviceLocation) {
+            this.serviceLocation = serviceLocation;
+            return this;
+        }
+
         public SmbListableEntity build() {
             return new SmbListableEntity(name, shortName, path, timestamp, creationTime, lastAccessTime, changeTime,
-                    directory, size, allocationSize);
+                    directory, size, allocationSize, serviceLocation);
         }
     }
 
