@@ -66,8 +66,8 @@ public class AllowListClassLoader extends ClassLoader {
             return super.loadClass(name, resolve);
         }
 
-        final Class<?> found = super.loadClass(name, false);
-        if (found != null) {
+        try {
+            final Class<?> found = super.loadClass(name, false);
             final boolean allowed = isClassAllowed(name, found);
             if (allowed) {
                 if (resolve) {
@@ -76,6 +76,8 @@ public class AllowListClassLoader extends ClassLoader {
 
                 return found;
             }
+        } catch (final NoClassDefFoundError ncdfe) {
+            // Allow the code to 'fall through' to the ClassNotFoundException below.
         }
 
         throw new ClassNotFoundException(name + " was blocked by AllowListClassLoader");

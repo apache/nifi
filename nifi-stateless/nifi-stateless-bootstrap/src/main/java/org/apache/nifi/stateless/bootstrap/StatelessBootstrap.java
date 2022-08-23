@@ -53,7 +53,6 @@ import java.util.function.Predicate;
 import java.util.jar.JarFile;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 public class StatelessBootstrap {
     private static final Logger logger = LoggerFactory.getLogger(StatelessBootstrap.class);
@@ -267,7 +266,7 @@ public class StatelessBootstrap {
         }
 
         final String filename = file.getName();
-        if (filename.endsWith(".jar") || filename.endsWith(".jmod")) {
+        if (filename.endsWith(".jar")) {
             loadable.add(file);
         }
     }
@@ -276,8 +275,6 @@ public class StatelessBootstrap {
         final String filename = file.getName();
         if (filename.endsWith(".jar")) {
             findClassNamesInJar(file, classNames);
-        } else if (filename.endsWith(".jmod")) {
-            findClassesInJmod(file, classNames);
         }
     }
 
@@ -328,26 +325,6 @@ public class StatelessBootstrap {
             final String className = relativePath.substring(0, lastIndex).replace(File.separator, ".");
             classNames.add(className);
             fileNames.add(filename);
-        }
-    }
-
-    private static void findClassesInJmod(final File file, final Set<String> classNames) throws IOException {
-        if (!file.getName().endsWith(".jmod") || !file.isFile() || !file.exists()) {
-            return;
-        }
-
-        try (final ZipFile zipFile = new ZipFile(file)) {
-            final Enumeration<? extends ZipEntry> enumeration = zipFile.entries();
-            while (enumeration.hasMoreElements()) {
-                final ZipEntry zipEntry = enumeration.nextElement();
-                final String entryName = zipEntry.getName();
-
-                if (entryName.startsWith("classes/") && entryName.endsWith(".class")) {
-                    final int lastIndex = entryName.lastIndexOf(".class");
-                    final String className = entryName.substring(8, lastIndex).replace("/", ".");
-                    classNames.add(className);
-                }
-            }
         }
     }
 
