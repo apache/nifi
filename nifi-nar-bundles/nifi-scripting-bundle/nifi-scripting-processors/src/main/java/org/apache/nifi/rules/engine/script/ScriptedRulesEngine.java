@@ -78,9 +78,9 @@ public class ScriptedRulesEngine extends AbstractScriptedControllerService imple
     public void setup() {
         if (scriptNeedsReload.get() || rulesEngine.get() == null) {
             if (ScriptingComponentHelper.isFile(scriptingComponentHelper.getScriptPath())) {
-                scriptNeedsReload.set(reloadScriptFile(scriptingComponentHelper.getScriptPath()));
+                scriptNeedsReload.set(!reloadScriptFile(scriptingComponentHelper.getScriptPath()));
             } else {
-                scriptNeedsReload.set(reloadScriptBody(scriptingComponentHelper.getScriptBody()));
+                scriptNeedsReload.set(!reloadScriptBody(scriptingComponentHelper.getScriptBody()));
             }
         }
     }
