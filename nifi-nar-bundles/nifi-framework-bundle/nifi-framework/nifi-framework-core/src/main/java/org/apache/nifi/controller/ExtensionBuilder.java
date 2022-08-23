@@ -372,7 +372,7 @@ public class ExtensionBuilder {
                 processorNode.setRunDuration(sb.defaultDuration().getDuration().toMillis(), TimeUnit.MILLISECONDS);
             }
         } catch (final Exception ex) {
-            logger.error("Error while setting default run duration from SupportsBatching annotation: {}", ex.toString(), ex);
+            logger.error("Set Default Run Duration failed", ex);
         }
     }
 

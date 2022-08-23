@@ -19,19 +19,19 @@ package org.apache.nifi.annotation.behavior;
 import java.time.Duration;
 
 public enum DefaultRunDuration {
-    NO_BATCHING(0),
-    TWENTY_FIVE_MILLIS(25),
-    FIFTY_MILLIS(50),
-    ONE_HUNDRED_MILLIS(100),
-    TWO_HUNDRED_FIFTY_MILLIS(250),
-    FIVE_HUNDRED_MILLIS(500),
-    ONE_SECOND(1000),
-    TWO_SECONDS(2000);
+    NO_BATCHING(Duration.ZERO),
+    TWENTY_FIVE_MILLIS(Duration.ofMillis(25)),
+    FIFTY_MILLIS(Duration.ofMillis(50)),
+    ONE_HUNDRED_MILLIS(Duration.ofMillis(100)),
+    TWO_HUNDRED_FIFTY_MILLIS(Duration.ofMillis(250)),
+    FIVE_HUNDRED_MILLIS(Duration.ofMillis(500)),
+    ONE_SECOND(Duration.ofSeconds(1)),
+    TWO_SECONDS(Duration.ofSeconds(2));
 
-    private final long millis;
+    private final Duration duration;
 
-    DefaultRunDuration(final long millis) {
-        this.millis = millis;
+    DefaultRunDuration(final Duration duration) {
+        this.duration = duration;
     }
 
     public Duration getDuration() {
