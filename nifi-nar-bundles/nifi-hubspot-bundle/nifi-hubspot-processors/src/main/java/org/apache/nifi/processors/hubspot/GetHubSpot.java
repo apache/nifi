@@ -42,8 +42,10 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
+import org.apache.nifi.web.client.api.HttpResponseStatus;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
@@ -73,8 +75,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 @DefaultSettings(yieldDuration = "10 sec")
 public class GetHubSpot extends AbstractProcessor {
 
+    static final PropertyDescriptor CRM_ENDPOINT = new PropertyDescriptor.Builder()
+            .name("crm-endpoint")
+            .displayName("HubSpot CRM API Endpoint")
+            .description("The HubSpot CRM API endpoint to which the Processor will send requests")
+            .required(true)
+            .allowableValues(CrmEndpoint.class)
+            .build();
+
     static final PropertyDescriptor ACCESS_TOKEN = new PropertyDescriptor.Builder()
-            .name("admin-api-access-token")
+            .name("access-token")
             .displayName("Access Token")
             .description("Access Token to authenticate requests")
             .required(true)
@@ -83,18 +93,10 @@ public class GetHubSpot extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
-    static final PropertyDescriptor CRM_ENDPOINT = new PropertyDescriptor.Builder()
-            .name("crm-endpoint")
-            .displayName("HubSpot CRM API Endpoint")
-            .description("The HubSpot CRM API endpoint to get")
-            .required(true)
-            .allowableValues(CrmEndpoint.class)
-            .build();
-
     static final PropertyDescriptor LIMIT = new PropertyDescriptor.Builder()
             .name("crm-limit")
             .displayName("Limit")
-            .description("The maximum number of results to display per page")
+            .description("The maximum number of results to request for each invocation of the Processor")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
@@ -122,22 +124,23 @@ public class GetHubSpot extends AbstractProcessor {
     private static final String HTTPS = "https";
     private static final String CURSOR_PARAMETER = "after";
     private static final String LIMIT_PARAMETER = "limit";
+    private static final int TOO_MANY_REQUESTS = 429;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final JsonFactory JSON_FACTORY = OBJECT_MAPPER.getFactory();
 
     private volatile WebClientServiceProvider webClientServiceProvider;
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
-            ACCESS_TOKEN,
             CRM_ENDPOINT,
+            ACCESS_TOKEN,
             LIMIT,
             WEB_CLIENT_SERVICE_PROVIDER
     ));
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            REL_SUCCESS,
-            REL_FAILURE
-    )));
+    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(
+            Collections.singletonList(
+                    REL_SUCCESS
+            )));
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
@@ -165,15 +168,34 @@ public class GetHubSpot extends AbstractProcessor {
         final HttpResponseEntity response = getHttpResponseEntity(accessToken, uri);
         final AtomicInteger objectCountHolder = new AtomicInteger();
 
-        FlowFile flowFile = session.create();
-        flowFile = session.putAttribute(flowFile, "statusCode", String.valueOf(response.statusCode()));
+        if (response.statusCode() == HttpResponseStatus.OK.getCode()) {
+            FlowFile flowFile = session.create();
+            flowFile = session.putAttribute(flowFile, "statusCode", String.valueOf(response.statusCode()));
+            flowFile = session.write(flowFile, parseHttpResponse(context, endpoint, state, response, objectCountHolder));
+            if (objectCountHolder.get() > 0) {
+                session.transfer(flowFile, REL_SUCCESS);
+            } else {
+                getLogger().debug("Empty response when requested HubSpot endpoint: [{}]", endpoint);
+            }
+        } else if (response.statusCode() >= 400) {
+            if (response.statusCode() == TOO_MANY_REQUESTS) {
+                context.yield();
+                throw new ProcessException(String.format("Rate limit exceeded, yielding before retrying request. HTTP %d error for requested URI [%s]", response.statusCode(), uri));
+            } else {
+                getLogger().warn("HTTP {} error for requested URI [{}]", response.statusCode(), uri);
+            }
+        }
+    }
 
-        flowFile = session.write(flowFile, out -> {
+    private OutputStreamCallback parseHttpResponse(ProcessContext context, String endpoint, StateMap state,
+            HttpResponseEntity response, AtomicInteger objectCountHolder) {
+        return out -> {
 
             try (JsonParser jsonParser = JSON_FACTORY.createParser(response.body());
-                 final JsonGenerator jsonGenerator = JSON_FACTORY.createGenerator(out, JsonEncoding.UTF8)) {
+                    final JsonGenerator jsonGenerator = JSON_FACTORY.createGenerator(out, JsonEncoding.UTF8)) {
                 while (jsonParser.nextToken() != null) {
-                    if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName().equals("results")) {
+                    if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName()
+                            .equals("results")) {
                         jsonParser.nextToken();
                         jsonGenerator.copyCurrentStructure(jsonParser);
                         objectCountHolder.incrementAndGet();
@@ -188,28 +210,7 @@ public class GetHubSpot extends AbstractProcessor {
                     }
                 }
             }
-        });
-        if (response.statusCode() >= 400) {
-            if (response.statusCode() == 429) {
-                context.yield();
-                throw new ProcessException("Rate limit exceeded, yielding for 10 seconds before retrying request.");
-            } else {
-                getLogger().warn("HTTP [{}] client error occurred at endpoint [{}]", response.statusCode(), endpoint);
-                session.transfer(flowFile, REL_FAILURE);
-            }
-        } else if (objectCountHolder.get() > 0) {
-            session.transfer(flowFile, REL_SUCCESS);
-        } else {
-            getLogger().debug("Empty response when requested HubSpot endpoint: [{}]", endpoint);
-        }
-    }
-
-    HttpResponseEntity getHttpResponseEntity(final String accessToken, final URI uri) {
-        return webClientServiceProvider.getWebClientService()
-                .get()
-                .uri(uri)
-                .header("Authorization", "Bearer " + accessToken)
-                .retrieve();
+        };
     }
 
     HttpUriBuilder getBaseUri(final ProcessContext context) {
@@ -220,7 +221,15 @@ public class GetHubSpot extends AbstractProcessor {
                 .encodedPath(path);
     }
 
-    URI createUri(final ProcessContext context, final StateMap state) {
+    private HttpResponseEntity getHttpResponseEntity(final String accessToken, final URI uri) {
+        return webClientServiceProvider.getWebClientService()
+                .get()
+                .uri(uri)
+                .header("Authorization", "Bearer " + accessToken)
+                .retrieve();
+    }
+
+    private URI createUri(final ProcessContext context, final StateMap state) {
         final String path = context.getProperty(CRM_ENDPOINT).getValue();
         final HttpUriBuilder uriBuilder = getBaseUri(context);
 

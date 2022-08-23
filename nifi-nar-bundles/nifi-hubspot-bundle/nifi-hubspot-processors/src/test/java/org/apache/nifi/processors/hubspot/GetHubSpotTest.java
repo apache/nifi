@@ -81,7 +81,7 @@ class GetHubSpotTest {
 
         runner.setProperty(GetHubSpot.WEB_CLIENT_SERVICE_PROVIDER, standardWebClientServiceProvider.getIdentifier());
         runner.setProperty(GetHubSpot.ACCESS_TOKEN, "testToken");
-        runner.setProperty(GetHubSpot.CRM_ENDPOINT, CrmEndpoint.COMPANIES.getAllowableValue());
+        runner.setProperty(GetHubSpot.CRM_ENDPOINT, CrmEndpoint.COMPANIES.getValue());
         runner.setProperty(GetHubSpot.LIMIT, "1");
 
         runner.run(1);
@@ -105,7 +105,7 @@ class GetHubSpotTest {
 
         runner.setProperty(GetHubSpot.WEB_CLIENT_SERVICE_PROVIDER, standardWebClientServiceProvider.getIdentifier());
         runner.setProperty(GetHubSpot.ACCESS_TOKEN, "testToken");
-        runner.setProperty(GetHubSpot.CRM_ENDPOINT, CrmEndpoint.COMPANIES.getAllowableValue());
+        runner.setProperty(GetHubSpot.CRM_ENDPOINT, CrmEndpoint.COMPANIES.getValue());
         runner.setProperty(GetHubSpot.LIMIT, "1");
 
         runner.getStateManager().setState(Collections.singletonMap(CrmEndpoint.COMPANIES.getValue(), "12345"), Scope.CLUSTER);
@@ -131,7 +131,7 @@ class GetHubSpotTest {
 
         runner.setProperty(GetHubSpot.WEB_CLIENT_SERVICE_PROVIDER, standardWebClientServiceProvider.getIdentifier());
         runner.setProperty(GetHubSpot.ACCESS_TOKEN, "testToken");
-        runner.setProperty(GetHubSpot.CRM_ENDPOINT, CrmEndpoint.COMPANIES.getAllowableValue());
+        runner.setProperty(GetHubSpot.CRM_ENDPOINT, CrmEndpoint.COMPANIES.getValue());
         runner.setProperty(GetHubSpot.LIMIT, "1");
 
         runner.run(1);
@@ -166,7 +166,7 @@ class GetHubSpotTest {
 
         runner.setProperty(GetHubSpot.WEB_CLIENT_SERVICE_PROVIDER, standardWebClientServiceProvider.getIdentifier());
         runner.setProperty(GetHubSpot.ACCESS_TOKEN, "testToken");
-        runner.setProperty(GetHubSpot.CRM_ENDPOINT, CrmEndpoint.COMPANIES.getAllowableValue());
+        runner.setProperty(GetHubSpot.CRM_ENDPOINT, CrmEndpoint.COMPANIES.getValue());
         runner.setProperty(GetHubSpot.LIMIT, "1");
 
         runner.run(1);

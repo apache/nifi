@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.hubspot;
 
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.DescribedValue;
 
 public enum CrmEndpoint implements DescribedValue {
@@ -125,9 +124,5 @@ public enum CrmEndpoint implements DescribedValue {
     @Override
     public String getDescription() {
         return description;
-    }
-
-    public AllowableValue getAllowableValue() {
-        return new AllowableValue(value, displayName, description);
     }
 }
