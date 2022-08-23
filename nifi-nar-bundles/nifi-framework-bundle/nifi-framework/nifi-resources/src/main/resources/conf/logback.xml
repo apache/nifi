@@ -94,6 +94,7 @@
             <fileNamePattern>${org.apache.nifi.bootstrap.config.log.dir}/nifi-deprecation_%d.%i.log</fileNamePattern>
             <maxFileSize>10MB</maxFileSize>
             <maxHistory>10</maxHistory>
+            <totalSizeCap>100MB</totalSizeCap>
         </rollingPolicy>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <pattern>%date %level [%thread] %logger %msg%n</pattern>
