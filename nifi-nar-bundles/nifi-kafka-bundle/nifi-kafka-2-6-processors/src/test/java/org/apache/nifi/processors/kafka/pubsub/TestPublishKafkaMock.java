@@ -28,6 +28,7 @@ import org.apache.kafka.common.header.Headers;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -37,11 +38,15 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -280,6 +285,8 @@ public class TestPublishKafkaMock {
         final RecordReaderFactory readerService = new JsonTreeReader();
         final String writerId = "record-writer";
         final RecordSetWriterFactory writerService = new JsonRecordSetWriter();
+        final String keyWriterId = "record-key-writer";
+        final RecordSetWriterFactory keyWriterService = new JsonRecordSetWriter();
         final PublishKafkaRecord_2_6 processor = new PublishKafkaRecord_2_6() {
             @Override
             protected PublisherPool createPublisherPool(final ProcessContext context) {
@@ -287,21 +294,49 @@ public class TestPublishKafkaMock {
             }
         };
         final TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.setValidateExpressionUsage(false);
         runner.addControllerService(readerId, readerService);
         runner.enableControllerService(readerService);
         runner.setProperty(readerId, readerId);
         runner.addControllerService(writerId, writerService);
         runner.enableControllerService(writerService);
         runner.setProperty(writerId, writerId);
+        runner.addControllerService(keyWriterId, keyWriterService);
+        runner.enableControllerService(keyWriterService);
+        runner.setProperty(keyWriterId, keyWriterId);
         return runner;
     }
 
     private PublisherPool getPublisherPool(final Collection<ProducerRecord<byte[], byte[]>> producedRecords,
                                            final ProcessContext context) {
-        final PublisherPool publisherPool = mock(PublisherPool.class);
-        final PublisherLease publisherLease = getPublisherLease(producedRecords, context);
-        when(publisherPool.obtainPublisher()).thenReturn(publisherLease);
-        return publisherPool;
+        final int maxMessageSize = context.getProperty("max.request.size").asDataSize(DataUnit.B).intValue();
+        final long maxAckWaitMillis = context.getProperty("ack.wait.time").asTimePeriod(TimeUnit.MILLISECONDS);
+        final String attributeNameRegex = context.getProperty("attribute-name-regex").getValue();
+        final Pattern attributeNamePattern = attributeNameRegex == null ? null : Pattern.compile(attributeNameRegex);
+        final boolean useTransactions = context.getProperty("use-transactions").asBoolean();
+        final String transactionalIdPrefix = context.getProperty("transactional-id-prefix").evaluateAttributeExpressions().getValue();
+        Supplier<String> transactionalIdSupplier = KafkaProcessorUtils.getTransactionalIdSupplier(transactionalIdPrefix);
+        final PublishStrategy publishStrategy = PublishStrategy.valueOf(context.getProperty("publish-strategy").getValue());
+        final String charsetName = context.getProperty("message-header-encoding").evaluateAttributeExpressions().getValue();
+        final Charset charset = Charset.forName(charsetName);
+        final RecordSetWriterFactory recordKeyWriterFactory = context.getProperty("record-key-writer").asControllerService(RecordSetWriterFactory.class);
+
+        return new PublisherPool(
+                Collections.emptyMap(),
+                mock(ComponentLog.class),
+                maxMessageSize,
+                maxAckWaitMillis,
+                useTransactions,
+                transactionalIdSupplier,
+                attributeNamePattern,
+                charset,
+                publishStrategy,
+                recordKeyWriterFactory) {
+            @Override
+            public PublisherLease obtainPublisher() {
+                return getPublisherLease(producedRecords, context);
+            }
+        };
     }
 
     public interface ProducerBB extends Producer<byte[], byte[]> {

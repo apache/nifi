@@ -206,13 +206,12 @@ public class PublisherLease implements Closeable {
                 final byte[] messageContent;
                 final byte[] messageKey;
                 if (PublishStrategy.USE_WRAPPER.equals(publishStrategy)) {
-                    headers = toHeaders(flowFile, new HashMap<>());
-                    final Record recordWrapper = toWrapperRecord(record, headers, messageKeyField, topic);
-                    final Object key = recordWrapper.getValue("key");
-                    final Object value = recordWrapper.getValue("value");
+                    headers = toHeadersWrapper(record.getValue("headers"));
+                    final Object key = record.getValue("key");
+                    final Object value = record.getValue("value");
                     logger.trace("Key: {}", key);
                     logger.trace("Value: {}", value);
-                    messageContent = toByteArray("value", recordWrapper, writerFactory, flowFile);
+                    messageContent = toByteArray("value", value, writerFactory, flowFile);
                     messageKey = toByteArray("key", key, recordKeyWriterFactory, flowFile);
                 } else {
                     try (final RecordSetWriter writer = writerFactory.createWriter(logger, schema, baos, flowFile)) {
@@ -248,6 +247,18 @@ public class PublisherLease implements Closeable {
         }
     }
 
+    private List<Header> toHeadersWrapper(final Object fieldHeaders) {
+        final List<Header> headers = new ArrayList<>();
+        if (fieldHeaders instanceof Record) {
+            final Record recordHeaders = (Record) fieldHeaders;
+            for (String fieldName : recordHeaders.getRawFieldNames()) {
+                final String fieldValue = recordHeaders.getAsString(fieldName);
+                headers.add(new RecordHeader(fieldName, fieldValue.getBytes(StandardCharsets.UTF_8)));
+            }
+        }
+        return headers;
+    }
+
     private static final RecordField FIELD_TOPIC = new RecordField("topic", RecordFieldType.STRING.getDataType());
     private static final RecordField FIELD_PARTITION = new RecordField("partition", RecordFieldType.INT.getDataType());
     private static final RecordField FIELD_TIMESTAMP = new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType());
@@ -259,13 +270,14 @@ public class PublisherLease implements Closeable {
     private Record toWrapperRecord(final Record record, final List<Header> headers,
                                    final String messageKeyField, final String topic) {
         final Record recordKey = (Record) record.getValue(messageKeyField);
-        final RecordField fieldKey = new RecordField("key", RecordFieldType.RECORD.getRecordDataType(recordKey.getSchema()));
+        final RecordSchema recordSchemaKey = ((recordKey == null) ? null : recordKey.getSchema());
+        final RecordField fieldKey = new RecordField("key", RecordFieldType.RECORD.getRecordDataType(recordSchemaKey));
         final RecordField fieldValue = new RecordField("value", RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
         final RecordSchema schemaWrapper = new SimpleRecordSchema(Arrays.asList(FIELD_METADATA, FIELD_HEADERS, fieldKey, fieldValue));
 
         final Map<String, Object> valuesMetadata = new HashMap<>();
         valuesMetadata.put("topic", topic);
-        valuesMetadata.put("timestamp", System.currentTimeMillis());
+        valuesMetadata.put("timestamp", getTimestamp());
         final Record recordMetadata = new MapRecord(SCHEMA_METADATA, valuesMetadata);
 
         final Map<String, Object> valuesHeaders = new HashMap<>();
@@ -279,6 +291,10 @@ public class PublisherLease implements Closeable {
         valuesWrapper.put("key", record.getValue(messageKeyField));
         valuesWrapper.put("value", record);
         return new MapRecord(schemaWrapper, valuesWrapper);
+    }
+
+    protected long getTimestamp() {
+        return System.currentTimeMillis();
     }
 
     private List<Header> toHeaders(final FlowFile flowFile, final Map<String, ?> additionalAttributes) {
