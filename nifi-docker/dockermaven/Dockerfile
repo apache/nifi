@@ -78,14 +78,6 @@ RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -
 
 COPY --chown=nifi:nifi --from=artifactbase $NIFI_BASE_DIR $NIFI_BASE_DIR
 
-VOLUME ${NIFI_LOG_DIR} \
-       ${NIFI_HOME}/conf \
-       ${NIFI_HOME}/database_repository \
-       ${NIFI_HOME}/flowfile_repository \
-       ${NIFI_HOME}/content_repository \
-       ${NIFI_HOME}/provenance_repository \
-       ${NIFI_HOME}/state
-
 USER nifi
 
 # Clear nifi-env.sh in favour of configuring all environment variables in the Dockerfile
