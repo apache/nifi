@@ -153,33 +153,44 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
             RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
             final List<Map<String, String>> attributesForAllRecords = new ArrayList<>();
-            boolean allRecordsProcessed = false;
+            boolean hasRecords = false;
             try (InputStream inFlowFileStream = session.read(flowFile)) {
                 final Map<String, String> flowFileAttributes = flowFile.getAttributes();
                 final RecordReader reader = recordReaderFactory.createRecordReader(flowFileAttributes, inFlowFileStream, flowFile.getSize(), getLogger());
 
                 Record record;
                 while ((record = reader.nextRecord()) != null) {
+                    hasRecords = true;
+
                     Map<String, String> attributes = getAttributes(record);
 
                     attributesForAllRecords.add(attributes);
                 }
-                allRecordsProcessed = true;
             } catch (IOException | MalformedRecordException | SchemaNotFoundException e) {
                 getLogger().error("Couldn't read file metadata content as records from incoming flowfile", e);
 
                 flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
 
                 session.transfer(flowFile, REL_INPUT_FAILURE);
+
+                return;
             } catch (Exception e) {
                 getLogger().error("Unexpected error while processing incoming flowfile", e);
 
                 flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
 
                 session.transfer(flowFile, REL_INPUT_FAILURE);
+
+                return;
             }
 
-            if (allRecordsProcessed) {
+            if (!hasRecords) {
+                getLogger().error("No records found in FlowFile");
+
+                flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, "No records found");
+
+                session.transfer(flowFile, REL_INPUT_FAILURE);
+            } else {
                 for (Map<String, String> attributes : attributesForAllRecords) {
                     FlowFile outFlowFile = session.create(flowFile);
                     outFlowFile = session.putAllAttributes(outFlowFile, attributes);

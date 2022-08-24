@@ -198,6 +198,25 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
     }
 
     @Test
+    void testEmptyInputRecords() throws Exception {
+        // GIVEN
+        addJsonRecordReaderFactory();
+
+        List<String> expectedContents = Arrays.asList("");
+
+        // WHEN
+        testRunner.enqueue(new MockFlowFile(1));
+        testRunner.run();
+
+        // THEN
+        testRunner.assertTransferCount(FetchGoogleDrive.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(FetchGoogleDrive.REL_FAILURE, 0);
+        testRunner.assertTransferCount(FetchGoogleDrive.REL_INPUT_FAILURE, 1);
+
+        checkContent(FetchGoogleDrive.REL_INPUT_FAILURE, expectedContents);
+    }
+
+    @Test
     void testInputRecordReferencesMissingFile() throws Exception {
         // GIVEN
         addJsonRecordReaderFactory();
