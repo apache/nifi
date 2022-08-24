@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.mqtt.common;
 
+import org.apache.nifi.ssl.SSLContextService;
+
 import java.net.URI;
 
 public class MqttClientProperties {
@@ -23,6 +25,22 @@ public class MqttClientProperties {
     private String clientId;
 
     private MqttVersion mqttVersion;
+
+    private int keepAliveInterval;
+    private int connectionTimeout;
+
+    private boolean cleanSession;
+    private Long sessionExpiryInterval;
+
+    private SSLContextService sslContextService;
+
+    private String lastWillTopic;
+    private String lastWillMessage;
+    private Boolean lastWillRetain;
+    private Integer lastWillQOS;
+
+    private String username;
+    private String password;
 
     public String getBroker() {
         return brokerUri.toString();
@@ -54,5 +72,93 @@ public class MqttClientProperties {
 
     public void setMqttVersion(MqttVersion mqttVersion) {
         this.mqttVersion = mqttVersion;
+    }
+
+    public int getKeepAliveInterval() {
+        return keepAliveInterval;
+    }
+
+    public void setKeepAliveInterval(int keepAliveInterval) {
+        this.keepAliveInterval = keepAliveInterval;
+    }
+
+    public int getConnectionTimeout() {
+        return connectionTimeout;
+    }
+
+    public void setConnectionTimeout(int connectionTimeout) {
+        this.connectionTimeout = connectionTimeout;
+    }
+
+    public boolean isCleanSession() {
+        return cleanSession;
+    }
+
+    public void setCleanSession(boolean cleanSession) {
+        this.cleanSession = cleanSession;
+    }
+
+    public Long getSessionExpiryInterval() {
+        return sessionExpiryInterval;
+    }
+
+    public void setSessionExpiryInterval(Long sessionExpiryInterval) {
+        this.sessionExpiryInterval = sessionExpiryInterval;
+    }
+
+    public SSLContextService getSslContextService() {
+        return sslContextService;
+    }
+
+    public void setSslContextService(SSLContextService sslContextService) {
+        this.sslContextService = sslContextService;
+    }
+
+    public String getLastWillTopic() {
+        return lastWillTopic;
+    }
+
+    public void setLastWillTopic(String lastWillTopic) {
+        this.lastWillTopic = lastWillTopic;
+    }
+
+    public String getLastWillMessage() {
+        return lastWillMessage;
+    }
+
+    public void setLastWillMessage(String lastWillMessage) {
+        this.lastWillMessage = lastWillMessage;
+    }
+
+    public Boolean getLastWillRetain() {
+        return lastWillRetain;
+    }
+
+    public void setLastWillRetain(Boolean lastWillRetain) {
+        this.lastWillRetain = lastWillRetain;
+    }
+
+    public Integer getLastWillQOS() {
+        return lastWillQOS;
+    }
+
+    public void setLastWillQOS(Integer lastWillQOS) {
+        this.lastWillQOS = lastWillQOS;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 }

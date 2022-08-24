@@ -17,7 +17,7 @@
 package org.apache.nifi.processors.mqtt.adapters;
 
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processors.mqtt.common.MqttConnectionProperties;
+import org.apache.nifi.processors.mqtt.common.MqttClientProperties;
 import org.apache.nifi.processors.mqtt.common.MqttCallback;
 import org.apache.nifi.processors.mqtt.common.MqttClient;
 import org.apache.nifi.processors.mqtt.common.MqttException;
@@ -28,16 +28,21 @@ import org.eclipse.paho.client.mqttv3.IMqttClient;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import java.util.Properties;
 
 public class PahoMqttClientAdapter implements MqttClient {
 
+    public static final int DISCONNECT_TIMEOUT = 5000;
+
     private final IMqttClient client;
+    private final MqttClientProperties clientProperties;
     private final ComponentLog logger;
 
-    public PahoMqttClientAdapter(org.eclipse.paho.client.mqttv3.MqttClient client, ComponentLog logger) {
-        this.client = client;
+    public PahoMqttClientAdapter(MqttClientProperties clientProperties, ComponentLog logger) {
+        this.client = createClient(clientProperties, logger);
+        this.clientProperties = clientProperties;
         this.logger = logger;
     }
 
@@ -47,32 +52,32 @@ public class PahoMqttClientAdapter implements MqttClient {
     }
 
     @Override
-    public void connect(MqttConnectionProperties connectionProperties) {
+    public void connect() {
         logger.debug("Connecting to broker");
 
         try {
             final MqttConnectOptions connectOptions = new MqttConnectOptions();
 
-            connectOptions.setCleanSession(connectionProperties.isCleanSession());
-            connectOptions.setKeepAliveInterval(connectionProperties.getKeepAliveInterval());
-            connectOptions.setMqttVersion(connectionProperties.getMqttVersion().getVersionCode());
-            connectOptions.setConnectionTimeout(connectionProperties.getConnectionTimeout());
+            connectOptions.setCleanSession(clientProperties.isCleanSession());
+            connectOptions.setKeepAliveInterval(clientProperties.getKeepAliveInterval());
+            connectOptions.setMqttVersion(clientProperties.getMqttVersion().getVersionCode());
+            connectOptions.setConnectionTimeout(clientProperties.getConnectionTimeout());
 
-            final SSLContextService sslContextService = connectionProperties.getSslContextService();
+            final SSLContextService sslContextService = clientProperties.getSslContextService();
             if (sslContextService != null) {
                 connectOptions.setSSLProperties(transformSSLContextService(sslContextService));
             }
 
-            final String lastWillTopic = connectionProperties.getLastWillTopic();
+            final String lastWillTopic = clientProperties.getLastWillTopic();
             if (lastWillTopic != null) {
-                boolean lastWillRetain = connectionProperties.getLastWillRetain() != null && connectionProperties.getLastWillRetain();
-                connectOptions.setWill(lastWillTopic, connectionProperties.getLastWillMessage().getBytes(), connectionProperties.getLastWillQOS(), lastWillRetain);
+                boolean lastWillRetain = clientProperties.getLastWillRetain() != null && clientProperties.getLastWillRetain();
+                connectOptions.setWill(lastWillTopic, clientProperties.getLastWillMessage().getBytes(), clientProperties.getLastWillQOS(), lastWillRetain);
             }
 
-            final String username = connectionProperties.getUsername();
+            final String username = clientProperties.getUsername();
             if (username != null) {
                 connectOptions.setUserName(username);
-                connectOptions.setPassword(connectionProperties.getPassword().toCharArray());
+                connectOptions.setPassword(clientProperties.getPassword().toCharArray());
             }
 
             client.connect(connectOptions);
@@ -82,13 +87,13 @@ public class PahoMqttClientAdapter implements MqttClient {
     }
 
     @Override
-    public void disconnect(long disconnectTimeout) {
-        logger.debug("Disconnecting client with timeout: {}", disconnectTimeout);
+    public void disconnect() {
+        logger.debug("Disconnecting client with timeout: {}", DISCONNECT_TIMEOUT);
 
         try {
-            client.disconnect(disconnectTimeout);
+            client.disconnect(DISCONNECT_TIMEOUT);
         } catch (org.eclipse.paho.client.mqttv3.MqttException e) {
-            throw new MqttException("An error has occurred during disconnecting client with timeout: " + disconnectTimeout, e);
+            throw new MqttException("An error has occurred during disconnecting client with timeout: " + DISCONNECT_TIMEOUT, e);
         }
     }
 
@@ -171,6 +176,16 @@ public class PahoMqttClientAdapter implements MqttClient {
             properties.setProperty("com.ibm.ssl.trustStoreType", sslContextService.getTrustStoreType());
         }
         return  properties;
+    }
+
+    private static org.eclipse.paho.client.mqttv3.MqttClient createClient(MqttClientProperties clientProperties, ComponentLog logger) {
+        logger.debug("Creating Mqtt v3 client");
+
+        try {
+            return new org.eclipse.paho.client.mqttv3.MqttClient(clientProperties.getBroker(), clientProperties.getClientId(), new MemoryPersistence());
+        } catch (org.eclipse.paho.client.mqttv3.MqttException e) {
+            throw new MqttException("An error has occurred during creating adapter for MQTT v3 client", e);
+        }
     }
 
 }

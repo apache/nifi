@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.mqtt.common;
 
+/**
+ * Represents a MQTT message.
+ */
 public class StandardMqttMessage {
     private byte[] payload;
     private int qos;

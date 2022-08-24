@@ -17,11 +17,53 @@
 package org.apache.nifi.processors.mqtt.common;
 
 public interface MqttClient {
+
+    /**
+     * Determines if this client is currently connected to an MQTT broker.
+     *
+     * @return whether the client is connected.
+     */
     boolean isConnected();
-    void connect(MqttConnectionProperties connectionProperties);
-    void disconnect(long disconnectTimeout);
+
+    /**
+     * Connects the client to an MQTT broker.
+     */
+    void connect();
+
+    /**
+     * Disconnects client from an MQTT broker.
+     */
+    void disconnect();
+
+    /**
+     * Releases all resource associated with the client. After the client has
+     * been closed it cannot be reused. For instance attempts to connect will fail.
+     */
     void close();
+
+    /**
+     * Publishes a message to a topic on the MQTT broker.
+     *
+     * @param topic to deliver the message to, for example "pipe-1/flow-rate"
+     * @param message to deliver to the MQTT broker
+     */
     void publish(String topic, StandardMqttMessage message);
+
+    /**
+     * Subscribe to a topic.
+     *
+     * @param topicFilter the topic to subscribe to, which can include wildcards.
+     * @param qos the maximum quality of service at which to subscribe. Messages
+     *            published at a lower quality of service will be received at the published
+     *            QoS. Messages published at a higher quality of service will be received using
+     *            the QoS specified on the subscribe.
+     */
     void subscribe(String topicFilter, int qos);
+
+    /**
+     * Sets a callback listener to use for events that happen asynchronously.
+     *
+     * @param callback for matching events
+     */
     void setCallback(MqttCallback callback);
 }

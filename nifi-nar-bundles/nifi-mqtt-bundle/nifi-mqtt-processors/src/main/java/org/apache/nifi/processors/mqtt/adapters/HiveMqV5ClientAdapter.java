@@ -18,30 +18,41 @@ package org.apache.nifi.processors.mqtt.adapters;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
+import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
+import com.hivemq.client.mqtt.mqtt5.Mqtt5ClientBuilder;
 import com.hivemq.client.mqtt.mqtt5.message.connect.Mqtt5Connect;
 import com.hivemq.client.mqtt.mqtt5.message.connect.Mqtt5ConnectBuilder;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAck;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.mqtt.common.MqttCallback;
 import org.apache.nifi.processors.mqtt.common.MqttClient;
-import org.apache.nifi.processors.mqtt.common.MqttConnectionProperties;
+import org.apache.nifi.processors.mqtt.common.MqttClientProperties;
 import org.apache.nifi.processors.mqtt.common.MqttException;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
 import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
+import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TlsException;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+import static org.apache.nifi.processors.mqtt.common.MqttProtocolScheme.SSL;
+import static org.apache.nifi.processors.mqtt.common.MqttProtocolScheme.WS;
+import static org.apache.nifi.processors.mqtt.common.MqttProtocolScheme.WSS;
 
 public class HiveMqV5ClientAdapter implements MqttClient {
 
     private final Mqtt5BlockingClient mqtt5BlockingClient;
+    private final MqttClientProperties clientProperties;
     private final ComponentLog logger;
 
     private MqttCallback callback;
 
-    public HiveMqV5ClientAdapter(Mqtt5BlockingClient mqtt5BlockingClient, ComponentLog logger) {
-        this.mqtt5BlockingClient = mqtt5BlockingClient;
+    public HiveMqV5ClientAdapter(MqttClientProperties clientProperties, ComponentLog logger) throws TlsException {
+        this.mqtt5BlockingClient = createClient(clientProperties, logger);
+        this.clientProperties = clientProperties;
         this.logger = logger;
     }
 
@@ -51,33 +62,33 @@ public class HiveMqV5ClientAdapter implements MqttClient {
     }
 
     @Override
-    public void connect(MqttConnectionProperties connectionProperties) {
+    public void connect() {
         logger.debug("Connecting to broker");
 
         final Mqtt5ConnectBuilder connectBuilder = Mqtt5Connect.builder()
-                .keepAlive(connectionProperties.getKeepAliveInterval());
+                .keepAlive(clientProperties.getKeepAliveInterval());
 
-        final boolean cleanSession = connectionProperties.isCleanSession();
+        final boolean cleanSession = clientProperties.isCleanSession();
         connectBuilder.cleanStart(cleanSession);
         if (!cleanSession) {
-            connectBuilder.sessionExpiryInterval(connectionProperties.getSessionExpiryInterval());
+            connectBuilder.sessionExpiryInterval(clientProperties.getSessionExpiryInterval());
         }
 
-        final String lastWillTopic = connectionProperties.getLastWillTopic();
+        final String lastWillTopic = clientProperties.getLastWillTopic();
         if (lastWillTopic != null) {
             connectBuilder.willPublish()
                     .topic(lastWillTopic)
-                    .payload(connectionProperties.getLastWillMessage().getBytes())
-                    .retain(connectionProperties.getLastWillRetain())
-                    .qos(MqttQos.fromCode(connectionProperties.getLastWillQOS()))
+                    .payload(clientProperties.getLastWillMessage().getBytes())
+                    .retain(clientProperties.getLastWillRetain())
+                    .qos(MqttQos.fromCode(clientProperties.getLastWillQOS()))
                     .applyWillPublish();
         }
 
-        final String username = connectionProperties.getUsername();
-        final String password = connectionProperties.getPassword();
+        final String username = clientProperties.getUsername();
+        final String password = clientProperties.getPassword();
         if (username != null && password != null) {
             connectBuilder.simpleAuth()
-                    .username(connectionProperties.getUsername())
+                    .username(clientProperties.getUsername())
                     .password(password.getBytes(StandardCharsets.UTF_8))
                     .applySimpleAuth();
         }
@@ -87,9 +98,9 @@ public class HiveMqV5ClientAdapter implements MqttClient {
     }
 
     @Override
-    public void disconnect(long disconnectTimeout) {
+    public void disconnect() {
         logger.debug("Disconnecting client");
-        // Currently it is not possible to set timeout for disconnect with HiveMQ Client. (Only connect timeout exists.)
+        // Currently it is not possible to set timeout for disconnect with HiveMQ Client.
         mqtt5BlockingClient.disconnect();
     }
 
@@ -116,7 +127,7 @@ public class HiveMqV5ClientAdapter implements MqttClient {
 
         logger.debug("Subscribing to {} with QoS: {}", topicFilter, qos);
 
-        CompletableFuture<Mqtt5SubAck> ack = mqtt5BlockingClient.toAsync().subscribeWith()
+        CompletableFuture<Mqtt5SubAck> futureAck = mqtt5BlockingClient.toAsync().subscribeWith()
                 .topicFilter(topicFilter)
                 .qos(Objects.requireNonNull(MqttQos.fromCode(qos)))
                 .callback(mqtt5Publish -> {
@@ -131,13 +142,12 @@ public class HiveMqV5ClientAdapter implements MqttClient {
 
         // Setting "listener" callback is only possible with async client, though sending subscribe message
         // should happen in a blocking way to make sure the processor is blocked until ack is not arrived.
-        ack.whenComplete((mqtt5SubAck, throwable) -> {
-            logger.debug("Received mqtt5 subscribe ack: {}", mqtt5SubAck.toString());
-
-            if (throwable != null) {
-                throw new MqttException("An error has occurred during sending subscribe message to broker", throwable);
-            }
-        });
+        try {
+            Mqtt5SubAck ack = futureAck.get(clientProperties.getConnectionTimeout(), TimeUnit.SECONDS);
+            logger.debug("Received mqtt5 subscribe ack: {}", ack.toString());
+        } catch (Exception e) {
+            throw new MqttException("An error has occurred during sending subscribe message to broker", e);
+        }
     }
 
     @Override
@@ -145,4 +155,46 @@ public class HiveMqV5ClientAdapter implements MqttClient {
         this.callback = callback;
     }
 
+    private static Mqtt5BlockingClient createClient(MqttClientProperties clientProperties, ComponentLog logger) throws TlsException {
+        logger.debug("Creating Mqtt v5 client");
+
+        Mqtt5ClientBuilder mqtt5ClientBuilder = Mqtt5Client.builder()
+                .identifier(clientProperties.getClientId())
+                .serverHost(clientProperties.getBrokerUri().getHost());
+
+        int port = clientProperties.getBrokerUri().getPort();
+        if (port != -1) {
+            mqtt5ClientBuilder.serverPort(port);
+        }
+
+        // default is tcp
+        if (WS.equals(clientProperties.getScheme()) || WSS.equals(clientProperties.getScheme())) {
+            mqtt5ClientBuilder.webSocketConfig().applyWebSocketConfig();
+        }
+
+        if (SSL.equals(clientProperties.getScheme())) {
+            if (clientProperties.getSslContextService().getTrustStoreFile() != null) {
+                mqtt5ClientBuilder
+                        .sslConfig()
+                        .trustManagerFactory(KeyStoreUtils.loadTrustManagerFactory(
+                                clientProperties.getSslContextService().getTrustStoreFile(),
+                                clientProperties.getSslContextService().getTrustStorePassword(),
+                                clientProperties.getSslContextService().getTrustStoreType()))
+                        .applySslConfig();
+            }
+
+            if (clientProperties.getSslContextService().getKeyStoreFile() != null) {
+                mqtt5ClientBuilder
+                        .sslConfig()
+                        .keyManagerFactory(KeyStoreUtils.loadKeyManagerFactory(
+                                clientProperties.getSslContextService().getKeyStoreFile(),
+                                clientProperties.getSslContextService().getKeyStorePassword(),
+                                null,
+                                clientProperties.getSslContextService().getKeyStoreType()))
+                        .applySslConfig();
+            }
+        }
+
+        return mqtt5ClientBuilder.buildBlocking();
+    }
 }

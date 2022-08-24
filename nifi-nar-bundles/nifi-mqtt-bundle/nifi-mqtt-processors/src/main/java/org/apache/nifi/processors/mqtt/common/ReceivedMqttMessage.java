@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.mqtt.common;
 
+/**
+ * Represents a received MQTT message
+ */
 public class ReceivedMqttMessage extends StandardMqttMessage {
 
     private String topic;

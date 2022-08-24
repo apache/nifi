@@ -44,12 +44,12 @@ public class MqttTestClient implements MqttClient {
     }
 
     @Override
-    public void connect(MqttConnectionProperties connectionProperties) {
+    public void connect() {
         connected.set(true);
     }
 
     @Override
-    public void disconnect(long disconnectTimeout) {
+    public void disconnect() {
         connected.set(false);
     }
 

@@ -42,7 +42,6 @@ import org.apache.nifi.processors.mqtt.common.MqttCallback;
 import org.apache.nifi.processors.mqtt.common.MqttException;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
 import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
-import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 
@@ -197,9 +196,9 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
             }
 
             if (!mqttClient.isConnected()) {
-                mqttClient.connect(connectionProperties);
+                mqttClient.connect();
             }
-        } catch (MqttException | TlsException e) {
+        } catch (Exception e) {
             logger.error("Connection to {} lost (or was never connected) and connection failed. Yielding processor", clientProperties.getBroker(), e);
             context.yield();
         }

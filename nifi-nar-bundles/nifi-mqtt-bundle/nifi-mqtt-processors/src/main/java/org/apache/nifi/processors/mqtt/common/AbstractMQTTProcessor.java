@@ -56,14 +56,11 @@ import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VAL
 
 public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProcessor {
 
-    public static final int DISCONNECT_TIMEOUT = 5000;
-
-    private static final long SESSION_EXPIRY_INTERVAL_IN_SECONDS = 3600;
+    private static final long DEFAULT_SESSION_EXPIRY_INTERVAL_IN_SECONDS = 3600;
 
     protected ComponentLog logger;
 
     protected MqttClientProperties clientProperties;
-    protected MqttConnectionProperties connectionProperties;
 
     protected MqttClientFactory mqttClientFactory = new MqttClientFactory();
     protected MqttClient mqttClient;
@@ -206,7 +203,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .dependsOn(PROP_MQTT_VERSION, ALLOWABLE_VALUE_MQTT_VERSION_500)
             .dependsOn(PROP_CLEAN_SESSION, ALLOWABLE_VALUE_CLEAN_SESSION_FALSE)
-            .defaultValue(SESSION_EXPIRY_INTERVAL_IN_SECONDS + " secs")
+            .defaultValue(DEFAULT_SESSION_EXPIRY_INTERVAL_IN_SECONDS + " secs")
             .build();
 
     public static final PropertyDescriptor PROP_CONN_TIMEOUT = new PropertyDescriptor.Builder()
@@ -290,7 +287,6 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
     protected void onScheduled(final ProcessContext context) {
         clientProperties = getMqttClientProperties(context);
-        connectionProperties = getMqttConnectionProperties(context);
     }
 
     protected void onStopped() {
@@ -299,7 +295,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         if (mqttClient != null) {
             try {
                 logger.info("Disconnecting client");
-                mqttClient.disconnect(DISCONNECT_TIMEOUT);
+                mqttClient.disconnect();
             } catch (Exception e) {
                 logger.error("Error disconnecting MQTT client due to {}", new Object[]{e.getMessage()}, e);
             }
@@ -316,7 +312,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
     }
 
     protected MqttClient createMqttClient() throws TlsException {
-        return mqttClientFactory.create(clientProperties, connectionProperties, getLogger());
+        return mqttClientFactory.create(clientProperties, getLogger());
     }
 
 
@@ -359,38 +355,30 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
         clientProperties.setMqttVersion(MqttVersion.fromVersionCode(context.getProperty(PROP_MQTT_VERSION).asInteger()));
 
-        return clientProperties;
-    }
+        clientProperties.setCleanSession(context.getProperty(PROP_CLEAN_SESSION).asBoolean());
+        clientProperties.setSessionExpiryInterval(context.getProperty(PROP_SESSION_EXPIRY_INTERVAL).asTimePeriod(TimeUnit.SECONDS));
 
-    private MqttConnectionProperties getMqttConnectionProperties(final ProcessContext context) {
-        final MqttConnectionProperties connectionProperties = new MqttConnectionProperties();
-
-        connectionProperties.setCleanSession(context.getProperty(PROP_CLEAN_SESSION).asBoolean());
-        connectionProperties.setSessionExpiryInterval(context.getProperty(PROP_SESSION_EXPIRY_INTERVAL).asTimePeriod(TimeUnit.SECONDS));
-
-        connectionProperties.setKeepAliveInterval(context.getProperty(PROP_KEEP_ALIVE_INTERVAL).asInteger());
-        connectionProperties.setMqttVersion(MqttVersion.fromVersionCode(context.getProperty(PROP_MQTT_VERSION).asInteger()));
-        connectionProperties.setConnectionTimeout(context.getProperty(PROP_CONN_TIMEOUT).asInteger());
+        clientProperties.setKeepAliveInterval(context.getProperty(PROP_KEEP_ALIVE_INTERVAL).asInteger());
+        clientProperties.setConnectionTimeout(context.getProperty(PROP_CONN_TIMEOUT).asInteger());
 
         final PropertyValue sslProp = context.getProperty(PROP_SSL_CONTEXT_SERVICE);
         if (sslProp.isSet()) {
-            connectionProperties.setSslContextService((SSLContextService) sslProp.asControllerService());
+            clientProperties.setSslContextService((SSLContextService) sslProp.asControllerService());
         }
 
-        connectionProperties.setLastWillTopic(context.getProperty(PROP_LAST_WILL_TOPIC).getValue());
-        connectionProperties.setLastWillMessage(context.getProperty(PROP_LAST_WILL_MESSAGE).getValue());
+        clientProperties.setLastWillTopic(context.getProperty(PROP_LAST_WILL_TOPIC).getValue());
+        clientProperties.setLastWillMessage(context.getProperty(PROP_LAST_WILL_MESSAGE).getValue());
         final PropertyValue lastWillRetain = context.getProperty(PROP_LAST_WILL_RETAIN);
-        connectionProperties.setLastWillRetain(lastWillRetain.isSet() ? lastWillRetain.asBoolean() : false);
-        connectionProperties.setLastWillQOS(context.getProperty(PROP_LAST_WILL_QOS).asInteger());
+        clientProperties.setLastWillRetain(lastWillRetain.isSet() ? lastWillRetain.asBoolean() : false);
+        clientProperties.setLastWillQOS(context.getProperty(PROP_LAST_WILL_QOS).asInteger());
 
         final PropertyValue usernameProp = context.getProperty(PROP_USERNAME);
         if (usernameProp.isSet()) {
-            connectionProperties.setUsername(usernameProp.evaluateAttributeExpressions().getValue());
+            clientProperties.setUsername(usernameProp.evaluateAttributeExpressions().getValue());
         }
 
-        connectionProperties.setPassword(context.getProperty(PROP_PASSWORD).getValue());
+        clientProperties.setPassword(context.getProperty(PROP_PASSWORD).getValue());
 
-        return connectionProperties;
+        return clientProperties;
     }
-
 }

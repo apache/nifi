@@ -47,7 +47,6 @@ import org.apache.nifi.processors.mqtt.common.AbstractMQTTProcessor;
 import org.apache.nifi.processors.mqtt.common.MqttCallback;
 import org.apache.nifi.processors.mqtt.common.MqttException;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
-import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -404,11 +403,12 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
             }
 
             if (!mqttClient.isConnected()) {
-                mqttClient.connect(connectionProperties);
+                mqttClient.connect();
                 mqttClient.subscribe(topicPrefix + topicFilter, qos);
             }
-        } catch (MqttException | TlsException e) {
+        } catch (Exception e) {
             logger.error("Connection to {} lost (or was never connected) and connection failed. Yielding processor", new Object[]{clientProperties.getBroker()}, e);
+            mqttClient = null; // prevent stucked processor when subscribe fails
             context.yield();
         }
     }
