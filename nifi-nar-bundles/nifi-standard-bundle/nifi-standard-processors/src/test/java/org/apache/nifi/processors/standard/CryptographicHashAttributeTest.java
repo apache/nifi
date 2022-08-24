@@ -23,6 +23,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.Charset;
@@ -39,28 +40,30 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CryptographicHashAttributeTest {
+    private TestRunner runner;
+
     @BeforeAll
     static void setUpOnce() {
         Security.addProvider(new BouncyCastleProvider());
     }
 
+    @BeforeEach
+    void setupRunner() {
+        runner = TestRunners.newTestRunner(new CryptographicHashAttribute());
+    }
+
     @Test
     void testShouldCalculateHashOfPresentAttribute() {
-        final HashAlgorithm[] algorithms = HashAlgorithm.values();
-
-        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashAttribute());
-
         // Create attributes for username and date
-
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("username", "alopresto");
         attributes.put("date", ZonedDateTime.now().format(DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ss.SSS Z")));
 
         final Set<String> attributeKeys = attributes.keySet();
 
-        for (final HashAlgorithm algorithm : algorithms) {
-            final String EXPECTED_USERNAME_HASH = HashService.hashValue(algorithm, attributes.get("username"));
-            final String EXPECTED_DATE_HASH = HashService.hashValue(algorithm, attributes.get("date"));
+        for (final HashAlgorithm algorithm : HashAlgorithm.values()) {
+            final String expectedUsernameHash = HashService.hashValue(algorithm, attributes.get("username"));
+            final String expectedDateHash = HashService.hashValue(algorithm, attributes.get("date"));
 
             // Reset the processor
             runner.clearProperties();
@@ -87,20 +90,14 @@ public class CryptographicHashAttributeTest {
 
             // Extract the generated attributes from the flowfile
             MockFlowFile flowFile = successfulFlowfiles.get(0);
-            String hashedUsername = flowFile.getAttribute(String.format("username_%s", algorithm.getName()));
-            String hashedDate = flowFile.getAttribute(String.format("date_%s", algorithm.getName()));
 
-            assertEquals(EXPECTED_USERNAME_HASH, hashedUsername);
-            assertEquals(EXPECTED_DATE_HASH, hashedDate);
+            flowFile.assertAttributeEquals(String.format("username_%s", algorithm.getName()), expectedUsernameHash);
+            flowFile.assertAttributeEquals(String.format("date_%s", algorithm.getName()), expectedDateHash);
         }
     }
 
     @Test
     void testShouldCalculateHashOfMissingAttribute() {
-        final HashAlgorithm[] algorithms = HashAlgorithm.values();
-
-        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashAttribute());
-
         // Create attributes for username (empty string) and date (null)
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("username", "");
@@ -108,9 +105,9 @@ public class CryptographicHashAttributeTest {
 
         final Set<String> attributeKeys = attributes.keySet();
 
-        for (final HashAlgorithm algorithm: algorithms) {
-            final String EXPECTED_USERNAME_HASH = HashService.hashValue(algorithm, attributes.get("username"));
-            final String EXPECTED_DATE_HASH = null;
+        for (final HashAlgorithm algorithm: HashAlgorithm.values()) {
+            final String expectedUsernameHash = HashService.hashValue(algorithm, attributes.get("username"));
+            final String expectedDateHash = null;
 
             // Reset the processor
             runner.clearProperties();
@@ -137,20 +134,14 @@ public class CryptographicHashAttributeTest {
 
             // Extract the generated attributes from the flowfile
             MockFlowFile flowFile = successfulFlowfiles.get(0);
-            String hashedUsername = flowFile.getAttribute(String.format("username_%s", algorithm.getName()));
-            String hashedDate = flowFile.getAttribute(String.format("date_%s", algorithm.getName()));
 
-            assertEquals(EXPECTED_USERNAME_HASH, hashedUsername);
-            assertEquals(EXPECTED_DATE_HASH, hashedDate);
+            flowFile.assertAttributeEquals(String.format("username_%s", algorithm.getName()), expectedUsernameHash);
+            flowFile.assertAttributeEquals(String.format("date_%s", algorithm.getName()), expectedDateHash);
         }
     }
 
     @Test
     void testShouldRouteToFailureOnProhibitedMissingAttribute() {
-        final HashAlgorithm[] algorithms = HashAlgorithm.values();
-
-        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashAttribute());
-
         // Create attributes for username (empty string) and date (null)
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("username", "");
@@ -158,7 +149,7 @@ public class CryptographicHashAttributeTest {
 
         final Set<String> attributeKeys = attributes.keySet();
 
-        for (final HashAlgorithm algorithm: algorithms) {
+        for (final HashAlgorithm algorithm: HashAlgorithm.values()) {
             // Reset the processor
             runner.clearProperties();
             runner.clearProvenanceEvents();
@@ -195,10 +186,6 @@ public class CryptographicHashAttributeTest {
 
     @Test
     void testShouldRouteToFailureOnEmptyAttributes() {
-        final HashAlgorithm[] algorithms = HashAlgorithm.values();
-
-        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashAttribute());
-
         // Create attributes for username (empty string) and date (null)
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("username", "");
@@ -206,7 +193,7 @@ public class CryptographicHashAttributeTest {
 
         final Set<String> attributeKeys = attributes.keySet();
 
-        for (final HashAlgorithm algorithm: algorithms) {
+        for (final HashAlgorithm algorithm: HashAlgorithm.values()) {
             // Reset the processor
             runner.clearProperties();
             runner.clearProvenanceEvents();
@@ -238,17 +225,13 @@ public class CryptographicHashAttributeTest {
 
     @Test
     void testShouldRouteToSuccessOnAllowPartial() {
-        final HashAlgorithm[] algorithms = HashAlgorithm.values();
-
-        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashAttribute());
-
         // Create attributes for username (empty string) and date (null)
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("username", "");
 
         final Set<String> attributeKeys = attributes.keySet();
 
-        for (final HashAlgorithm algorithm: algorithms) {
+        for (final HashAlgorithm algorithm: HashAlgorithm.values()) {
             // Reset the processor
             runner.clearProperties();
             runner.clearProvenanceEvents();
@@ -285,8 +268,6 @@ public class CryptographicHashAttributeTest {
 
     @Test
     void testShouldCalculateHashWithVariousCharacterEncodings() {
-        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashAttribute());
-
         // Create attributes
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("test_attribute", "apachenifi");
@@ -335,9 +316,8 @@ public class CryptographicHashAttributeTest {
 
             // Extract the generated attributes from the flowfile
             MockFlowFile flowFile = successfulFlowfiles.get(0);
-            final String hashedAttribute = flowFile.getAttribute(String.format("test_attribute_%s", algorithm.getName()));
 
-            assertEquals(EXPECTED_HASH, hashedAttribute);
+            flowFile.assertAttributeEquals(String.format("test_attribute_%s", algorithm.getName()), EXPECTED_HASH);
         }
     }
 }

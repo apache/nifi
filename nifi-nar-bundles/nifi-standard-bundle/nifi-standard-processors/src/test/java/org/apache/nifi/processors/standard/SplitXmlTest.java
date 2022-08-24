@@ -18,30 +18,35 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Paths;
 
 public class SplitXmlTest {
+    private TestRunner runner;
+
+    @BeforeEach
+    void setupRunner() {
+        runner = TestRunners.newTestRunner(new SplitXml());
+    }
+
     @Test
     void testShouldHandleXXEInTemplate() throws IOException {
-        final String XXE_TEMPLATE_FILEPATH = "src/test/resources/xxe_template.xml";
-        final TestRunner runner = TestRunners.newTestRunner(new SplitXml());
-        runner.setProperty(SplitXml.SPLIT_DEPTH, "3");
-        runner.enqueue(Paths.get(XXE_TEMPLATE_FILEPATH));
-
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(SplitXml.REL_FAILURE);
+        final String xxeTemplateFilepath = "src/test/resources/xxe_template.xml";
+        assertExternalEntitiesFailure(xxeTemplateFilepath);
     }
 
     @Test
     void testShouldHandleRemoteCallXXE() throws IOException {
-        final String XXE_TEMPLATE_FILEPATH = "src/test/resources/xxe_from_report.xml";
-        final TestRunner runner = TestRunners.newTestRunner(new SplitXml());
+        final String xxeTemplateFilepath = "src/test/resources/xxe_from_report.xml";
+        assertExternalEntitiesFailure(xxeTemplateFilepath);
+    }
+
+    private void assertExternalEntitiesFailure(final String filePath) throws IOException {
         runner.setProperty(SplitXml.SPLIT_DEPTH, "3");
-        runner.enqueue(Paths.get(XXE_TEMPLATE_FILEPATH));
+        runner.enqueue(Paths.get(filePath));
 
         runner.run();
 

@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -36,9 +37,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestFlattenJson {
     private static final ObjectMapper mapper = new ObjectMapper();
 
+    private TestRunner testRunner;
+
+    @BeforeEach
+    void setupRunner() {
+        testRunner = TestRunners.newTestRunner(FlattenJson.class);
+    }
+
     @Test
     void testFlatten() throws JsonProcessingException {
-        final TestRunner testRunner = TestRunners.newTestRunner(FlattenJson.class);
         final String json = "{\n" +
                 "    \"test\": {\n" +
                 "        \"msg\": \"Hello, world\"\n" +
@@ -62,35 +69,8 @@ public class TestFlattenJson {
                 "Three level block doesn't exist.");
     }
 
-    private Object baseTest(TestRunner testRunner, String json, int keyCount) throws JsonProcessingException {
-        return baseTest(testRunner, json, Collections.emptyMap(), keyCount);
-    }
-
-    private Object baseTest(TestRunner testRunner, String json, Map attrs, int keyCount) throws JsonProcessingException {
-        testRunner.enqueue(json, attrs);
-        testRunner.run(1, true);
-        testRunner.assertTransferCount(FlattenJson.REL_FAILURE, 0);
-        testRunner.assertTransferCount(FlattenJson.REL_SUCCESS, 1);
-
-        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FlattenJson.REL_SUCCESS);
-        final byte[] content = testRunner.getContentAsByteArray(flowFiles.get(0));
-        final String asJson = new String(content);
-        if (asJson.startsWith("[")) {
-            final List parsed;
-            parsed = mapper.readValue(asJson, List.class);
-            assertEquals(keyCount, parsed.size(), "Too many keys");
-            return parsed;
-        } else {
-            final Map parsed;
-            parsed = mapper.readValue(asJson, Map.class);
-            assertEquals(keyCount, parsed.size(), "Too many keys");
-            return parsed;
-        }
-    }
-
     @Test
     void testFlattenRecordSet() throws JsonProcessingException {
-        final TestRunner testRunner = TestRunners.newTestRunner(FlattenJson.class);
         final String json = "[\n" +
                 "    {\n" +
                 "        \"first\": {\n" +
@@ -115,7 +95,6 @@ public class TestFlattenJson {
 
     @Test
     void testDifferentSeparator() throws JsonProcessingException {
-        final TestRunner testRunner = TestRunners.newTestRunner(FlattenJson.class);
         final String json = "{\n" +
                 "    \"first\": {\n" +
                 "        \"second\": {\n" +
@@ -139,7 +118,6 @@ public class TestFlattenJson {
 
     @Test
     void testExpressionLanguage() throws JsonProcessingException {
-        final TestRunner testRunner = TestRunners.newTestRunner(FlattenJson.class);
         final String json = "{\n" +
                 "    \"first\": {\n" +
                 "        \"second\": {\n" +
@@ -164,7 +142,6 @@ public class TestFlattenJson {
 
     @Test
     void testFlattenModeNormal() throws JsonProcessingException {
-        final TestRunner testRunner = TestRunners.newTestRunner(FlattenJson.class);
         final String json = "{\n" +
                 "    \"first\": {\n" +
                 "        \"second\": {\n" +
@@ -186,7 +163,6 @@ public class TestFlattenJson {
 
     @Test
     void testFlattenModeKeepArrays() throws JsonProcessingException {
-        final TestRunner testRunner = TestRunners.newTestRunner(FlattenJson.class);
         final String json = "{\n" +
                 "    \"first\": {\n" +
                 "        \"second\": [\n" +
@@ -230,7 +206,6 @@ public class TestFlattenJson {
 
     @Test
     void testFlattenModeKeepPrimitiveArrays() throws JsonProcessingException {
-        final TestRunner testRunner = TestRunners.newTestRunner(FlattenJson.class);
         final String json = "{\n" +
                 "    \"first\": {\n" +
                 "        \"second\": [\n" +
@@ -277,7 +252,6 @@ public class TestFlattenJson {
 
     @Test
     void testFlattenModeDotNotation() throws JsonProcessingException {
-        final TestRunner testRunner = TestRunners.newTestRunner(FlattenJson.class);
         final String json = "{\n" +
                 "    \"first\": {\n" +
                 "        \"second\": {\n" +
@@ -299,7 +273,6 @@ public class TestFlattenJson {
 
     @Test
     void testFlattenSlash() throws JsonProcessingException {
-        final TestRunner testRunner = TestRunners.newTestRunner(FlattenJson.class);
         final String json = "{\n" +
                 "    \"first\": {\n" +
                 "        \"second\": {\n" +
@@ -318,7 +291,6 @@ public class TestFlattenJson {
 
     @Test
     void testEscapeForJson() throws JsonProcessingException {
-        final TestRunner testRunner = TestRunners.newTestRunner(FlattenJson.class);
         final String json = "{\n" +
                 "    \"name\": \"Jos\\u00e9\"\n" +
                 "}";
@@ -330,7 +302,6 @@ public class TestFlattenJson {
 
     @Test
     void testUnFlatten() throws JsonProcessingException {
-        final TestRunner testRunner = TestRunners.newTestRunner(FlattenJson.class);
         final String json = "{\n" +
                 "    \"test.msg\": \"Hello, world\",\n" +
                 "    \"first.second.third\": [\n" +
@@ -351,7 +322,6 @@ public class TestFlattenJson {
 
     @Test
     void testUnFlattenWithDifferentSeparator() throws JsonProcessingException {
-        final TestRunner testRunner = TestRunners.newTestRunner(FlattenJson.class);
         final String json = "{\n" +
                 "    \"first_second_third\": [\n" +
                 "        \"one\",\n" +
@@ -371,7 +341,6 @@ public class TestFlattenJson {
 
     @Test
     void testUnFlattenForKeepArraysMode() throws JsonProcessingException {
-        final TestRunner testRunner = TestRunners.newTestRunner(FlattenJson.class);
         final String json = "{\n" +
                 "    \"a.b\": 1,\n" +
                 "    \"a.c\": [\n" +
@@ -397,7 +366,6 @@ public class TestFlattenJson {
 
     @Test
     void testUnFlattenForKeepPrimitiveArraysMode() throws JsonProcessingException {
-        final TestRunner testRunner = TestRunners.newTestRunner(FlattenJson.class);
         final String json = "{\n" +
                 "    \"first.second[0].x\": 1,\n" +
                 "    \"first.second[0].y\": 2,\n" +
@@ -432,7 +400,6 @@ public class TestFlattenJson {
 
     @Test
     void testUnFlattenForDotNotationMode() throws JsonProcessingException {
-        final TestRunner testRunner = TestRunners.newTestRunner(FlattenJson.class);
         final String json = "{\n" +
                 "    \"first.second.third.0\": [\n" +
                 "        \"one\",\n" +
@@ -453,7 +420,6 @@ public class TestFlattenJson {
 
     @Test
     void testFlattenWithIgnoreReservedCharacters() throws JsonProcessingException {
-        final TestRunner testRunner = TestRunners.newTestRunner(FlattenJson.class);
         final String json = "{\n" +
                 "    \"first\": {\n" +
                 "        \"second.third\": \"Hello\",\n" +
@@ -470,7 +436,6 @@ public class TestFlattenJson {
 
     @Test
     void testFlattenRecordSetWithIgnoreReservedCharacters() throws JsonProcessingException {
-        final TestRunner testRunner = TestRunners.newTestRunner(FlattenJson.class);
         final String json = "[\n" +
                 "    {\n" +
                 "        \"first\": {\n" +
@@ -496,7 +461,6 @@ public class TestFlattenJson {
 
     @Test
     void testFlattenModeNormalWithIgnoreReservedCharacters() throws JsonProcessingException {
-        final TestRunner testRunner = TestRunners.newTestRunner(FlattenJson.class);
         final String json = "[\n" +
                 "    {\n" +
                 "        \"first\": {\n" +
@@ -516,5 +480,31 @@ public class TestFlattenJson {
         final Map parsed = (Map) baseTest(testRunner, json, 2);
         assertEquals("Hello", parsed.get("[0]_first_second_third"), "Separator not applied.");
         assertEquals("World", parsed.get("[1]_first_second_third"), "Separator not applied.");
+    }
+
+    private Object baseTest(TestRunner testRunner, String json, int keyCount) throws JsonProcessingException {
+        return baseTest(testRunner, json, Collections.emptyMap(), keyCount);
+    }
+
+    private Object baseTest(TestRunner testRunner, String json, Map attrs, int keyCount) throws JsonProcessingException {
+        testRunner.enqueue(json, attrs);
+        testRunner.run(1, true);
+        testRunner.assertTransferCount(FlattenJson.REL_FAILURE, 0);
+        testRunner.assertTransferCount(FlattenJson.REL_SUCCESS, 1);
+
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FlattenJson.REL_SUCCESS);
+        final byte[] content = testRunner.getContentAsByteArray(flowFiles.get(0));
+        final String asJson = new String(content);
+        if (asJson.startsWith("[")) {
+            final List parsed;
+            parsed = mapper.readValue(asJson, List.class);
+            assertEquals(keyCount, parsed.size(), "Too many keys");
+            return parsed;
+        } else {
+            final Map parsed;
+            parsed = mapper.readValue(asJson, Map.class);
+            assertEquals(keyCount, parsed.size(), "Too many keys");
+            return parsed;
+        }
     }
 }

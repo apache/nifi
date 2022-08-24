@@ -24,6 +24,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -38,22 +39,25 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 public class CryptographicHashContentTest {
+    private TestRunner runner;
+
     @BeforeAll
     static void setUpOnce() {
         Security.addProvider(new BouncyCastleProvider());
     }
 
+    @BeforeEach
+    void setupRunner() {
+        runner = TestRunners.newTestRunner(new CryptographicHashContent());
+    }
+
     @Test
     void testShouldCalculateHashOfPresentContent() throws IOException {
-        final HashAlgorithm[] algorithms = HashAlgorithm.values();
-
         // Generate some long content (90 KB)
-        final String LONG_CONTENT = StringUtils.repeat("apachenifi ", 8192);
+        final String longContent = StringUtils.repeat("apachenifi ", 8192);
 
-        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashContent());
-
-        for (final HashAlgorithm algorithm : algorithms) {
-            final String EXPECTED_CONTENT_HASH = HashService.hashValueStreaming(algorithm, new ByteArrayInputStream(LONG_CONTENT.getBytes()));
+        for (final HashAlgorithm algorithm : HashAlgorithm.values()) {
+            final String expectedContentHash = HashService.hashValueStreaming(algorithm, new ByteArrayInputStream(longContent.getBytes()));
 
             // Reset the processor
             runner.clearProperties();
@@ -64,8 +68,8 @@ public class CryptographicHashContentTest {
             runner.setProperty(CryptographicHashContent.HASH_ALGORITHM, algorithm.getName());
 
             // Insert the content in the mock flowfile
-            runner.enqueue(LONG_CONTENT.getBytes(StandardCharsets.UTF_8),
-                    Collections.singletonMap("size", String.valueOf(LONG_CONTENT.length())));
+            runner.enqueue(longContent.getBytes(StandardCharsets.UTF_8),
+                    Collections.singletonMap("size", String.valueOf(longContent.length())));
 
             runner.run(1);
 
@@ -78,23 +82,16 @@ public class CryptographicHashContentTest {
             MockFlowFile flowFile = successfulFlowfiles.get(0);
             String hashAttribute = String.format("content_%s", algorithm.getName());
             flowFile.assertAttributeExists(hashAttribute);
-
-            String hashedContent = flowFile.getAttribute(hashAttribute);
-
-            assertEquals(EXPECTED_CONTENT_HASH, hashedContent);
+            flowFile.assertAttributeEquals(hashAttribute, expectedContentHash);
         }
     }
 
     @Test
     void testShouldCalculateHashOfEmptyContent() throws IOException {
-        final HashAlgorithm[] algorithms = HashAlgorithm.values();
+        final String emptyContent = "";
 
-        final String EMPTY_CONTENT = "";
-
-        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashContent());
-
-        for (final HashAlgorithm algorithm : algorithms) {
-            final String EXPECTED_CONTENT_HASH = HashService.hashValueStreaming(algorithm, new ByteArrayInputStream(EMPTY_CONTENT.getBytes()));
+        for (final HashAlgorithm algorithm : HashAlgorithm.values()) {
+            final String expectedContentHash = HashService.hashValueStreaming(algorithm, new ByteArrayInputStream(emptyContent.getBytes()));
 
             // Reset the processor
             runner.clearProperties();
@@ -105,7 +102,7 @@ public class CryptographicHashContentTest {
             runner.setProperty(CryptographicHashContent.HASH_ALGORITHM, algorithm.getName());
 
             // Insert the content in the mock flowfile
-            runner.enqueue(EMPTY_CONTENT.getBytes(StandardCharsets.UTF_8), Collections.singletonMap("size", "0"));
+            runner.enqueue(emptyContent.getBytes(StandardCharsets.UTF_8), Collections.singletonMap("size", "0"));
 
             runner.run(1);
 
@@ -121,7 +118,7 @@ public class CryptographicHashContentTest {
 
             String hashedContent = flowFile.getAttribute(hashAttribute);
 
-            assertEquals(EXPECTED_CONTENT_HASH, hashedContent);
+            assertEquals(expectedContentHash, hashedContent);
         }
     }
 
@@ -131,14 +128,12 @@ public class CryptographicHashContentTest {
      */
     @Test
     void testShouldCalculateHashOfContentWithIncorrectSizeAttribute() throws IOException {
-        final HashAlgorithm[] algorithms = HashAlgorithm.values();
-
-        final String NON_EMPTY_CONTENT = "apachenifi";
+        final String nonEmptyContent = "apachenifi";
 
         final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashContent());
 
-        for (final HashAlgorithm algorithm : algorithms) {
-            final String EXPECTED_CONTENT_HASH = HashService.hashValueStreaming(algorithm, new ByteArrayInputStream(NON_EMPTY_CONTENT.getBytes()));
+        for (final HashAlgorithm algorithm : HashAlgorithm.values()) {
+            final String expectedContentHash = HashService.hashValueStreaming(algorithm, new ByteArrayInputStream(nonEmptyContent.getBytes()));
 
             // Reset the processor
             runner.clearProperties();
@@ -149,7 +144,7 @@ public class CryptographicHashContentTest {
             runner.setProperty(CryptographicHashContent.HASH_ALGORITHM, algorithm.getName());
 
             // Insert the content in the mock flowfile (with the wrong size attribute)
-            runner.enqueue(NON_EMPTY_CONTENT.getBytes(StandardCharsets.UTF_8), Collections.singletonMap("size", "0"));
+            runner.enqueue(nonEmptyContent.getBytes(StandardCharsets.UTF_8), Collections.singletonMap("size", "0"));
 
             runner.run(1);
 
@@ -162,31 +157,26 @@ public class CryptographicHashContentTest {
             MockFlowFile flowFile = successfulFlowfiles.get(0);
             String hashAttribute = String.format("content_%s", algorithm.getName());
             flowFile.assertAttributeExists(hashAttribute);
-
-            String hashedContent = flowFile.getAttribute(hashAttribute);
-
-            assertEquals(EXPECTED_CONTENT_HASH, hashedContent);
+            flowFile.assertAttributeEquals(hashAttribute, expectedContentHash);
         }
     }
 
     @Test
     void testShouldOverwriteExistingAttribute() {
-        final String NON_EMPTY_CONTENT = "apachenifi";
-        final String OLD_HASH_ATTRIBUTE_VALUE = "OLD VALUE";
+        final String nonEmptyContent = "apachenifi";
+        final String oldHashAttributeValue = "OLD VALUE";
 
         HashAlgorithm algorithm = HashAlgorithm.SHA256;
 
-        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashContent());
-
-        final String EXPECTED_CONTENT_HASH = HashService.hashValue(algorithm, NON_EMPTY_CONTENT);
+        final String expectedContentHash = HashService.hashValue(algorithm, nonEmptyContent);
 
         // Set the algorithm
         runner.setProperty(CryptographicHashContent.HASH_ALGORITHM, algorithm.getName());
 
         // Insert the content in the mock flowfile (with an existing attribute)
         final Map<String, String> oldAttributes = Collections.singletonMap(String.format("content_%s", algorithm.getName()),
-                OLD_HASH_ATTRIBUTE_VALUE);
-        runner.enqueue(NON_EMPTY_CONTENT.getBytes(StandardCharsets.UTF_8),
+                oldHashAttributeValue);
+        runner.enqueue(nonEmptyContent.getBytes(StandardCharsets.UTF_8),
                 oldAttributes);
 
         runner.run(1);
@@ -203,19 +193,15 @@ public class CryptographicHashContentTest {
 
         String hashedContent = flowFile.getAttribute(hashAttribute);
 
-        assertNotEquals(OLD_HASH_ATTRIBUTE_VALUE, hashedContent);
-        assertEquals(EXPECTED_CONTENT_HASH, hashedContent);
+        assertNotEquals(oldHashAttributeValue, hashedContent);
+        assertEquals(expectedContentHash, hashedContent);
     }
 
     @Test
-    void testShouldRouteToFailureOnEmptyContent() throws IOException {
-        final HashAlgorithm[] algorithms = HashAlgorithm.values();
+    void testShouldRouteToFailureOnEmptyContent() {
+        final String emptyContent = "";
 
-        final String EMPTY_CONTENT = "";
-
-        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashContent());
-
-        for (final HashAlgorithm algorithm : algorithms) {
+        for (final HashAlgorithm algorithm : HashAlgorithm.values()) {
             // Reset the processor
             runner.clearProperties();
             runner.clearProvenanceEvents();
@@ -228,7 +214,7 @@ public class CryptographicHashContentTest {
             runner.setProperty(CryptographicHashContent.HASH_ALGORITHM, algorithm.getName());
 
             // Insert the content in the mock flowfile
-            runner.enqueue(EMPTY_CONTENT.getBytes(StandardCharsets.UTF_8));
+            runner.enqueue(emptyContent.getBytes(StandardCharsets.UTF_8));
 
             runner.run(1);
 

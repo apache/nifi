@@ -17,12 +17,11 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.util.MockComponentLog;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -30,7 +29,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.Security;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,16 +44,16 @@ public class CountTextTest {
     private static final String TLNEC = "text.line.nonempty.count";
     private static final String TWC = "text.word.count";
     private static final String TCC = "text.character.count";
+    private TestRunner runner;
 
-    @BeforeAll
-    static void setUpOnce() {
-        Security.addProvider(new BouncyCastleProvider());
+    @BeforeEach
+    void setupRunner() {
+        runner = TestRunners.newTestRunner(CountText.class);
     }
+
 
     @Test
     void testShouldCountAllMetrics() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(CountText.class);
-
         runner.setProperty(CountText.TEXT_LINE_COUNT_PD, "true");
         runner.setProperty(CountText.TEXT_LINE_NONEMPTY_COUNT_PD, "true");
         runner.setProperty(CountText.TEXT_WORD_COUNT_PD, "true");
@@ -74,19 +72,16 @@ public class CountTextTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1);
-        FlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).get(0);
         for (final Map.Entry<String, String> entry: expectedValues.entrySet()) {
             final String attribute = entry.getKey();
             final String expectedValue = entry.getValue();
-
-            assertEquals(expectedValue, flowFile.getAttribute(attribute));
+            flowFile.assertAttributeEquals(attribute, expectedValue);
         }
     }
 
     @Test
     void testShouldCountEachMetric() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(CountText.class);
-
         final Path inputPath = Paths.get("src/test/resources/TestCountText/jabberwocky.txt");
 
         final Map<String, String> expectedValues = new HashMap<>();
@@ -121,13 +116,13 @@ public class CountTextTest {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1);
-            FlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).get(0);
+            MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).get(0);
             for (final Map.Entry<String, String> entry: expectedValues.entrySet()) {
                 final String attribute = entry.getKey();
                 final String expectedValue = entry.getValue();
 
                 if (flowFile.getAttributes().containsKey(attribute)) {
-                    assertEquals(expectedValue, flowFile.getAttribute(attribute));
+                    flowFile.assertAttributeEquals(attribute, expectedValue);
                 }
             }
         }
@@ -135,7 +130,6 @@ public class CountTextTest {
 
     @Test
     void testShouldCountWordsSplitOnSymbol() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(CountText.class);
         final Path inputPath = Paths.get("src/test/resources/TestCountText/jabberwocky.txt");
 
         final String EXPECTED_WORD_COUNT = "167";
@@ -154,13 +148,12 @@ public class CountTextTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1);
-        FlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).get(0);
-        assertEquals(EXPECTED_WORD_COUNT, flowFile.getAttribute(CountText.TEXT_WORD_COUNT));
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals(CountText.TEXT_WORD_COUNT, EXPECTED_WORD_COUNT);
     }
 
     @Test
     void testShouldCountIndependentlyPerFlowFile() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(CountText.class);
         final Path inputPath = Paths.get("src/test/resources/TestCountText/jabberwocky.txt");
 
         final Map<String, String> expectedValues = new HashMap<>();
@@ -183,19 +176,18 @@ public class CountTextTest {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1);
-            FlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).get(0);
+            MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).get(0);
             for (final Map.Entry<String, String> entry: expectedValues.entrySet()) {
                 final String attribute = entry.getKey();
                 final String expectedValue = entry.getValue();
 
-                assertEquals(expectedValue, flowFile.getAttribute(attribute));
+                flowFile.assertAttributeEquals(attribute, expectedValue);
             }
         }
     }
 
     @Test
     void testShouldTrackSessionCountersAcrossMultipleFlowfiles() throws IOException, NoSuchFieldException, IllegalAccessException {
-        final TestRunner runner = TestRunners.newTestRunner(CountText.class);
         final Path inputPath = Paths.get("src/test/resources/TestCountText/jabberwocky.txt");
 
         final Map<String, String> expectedValues = new HashMap<>();
@@ -218,12 +210,12 @@ public class CountTextTest {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1);
-            FlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).get(0);
+            MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).get(0);
             for (final Map.Entry<String, String> entry: expectedValues.entrySet()) {
                 final String attribute = entry.getKey();
                 final String expectedValue = entry.getValue();
 
-                assertEquals(expectedValue, flowFile.getAttribute(attribute));
+                flowFile.assertAttributeEquals(attribute, expectedValue);
             }
         }
 
@@ -262,8 +254,6 @@ public class CountTextTest {
 
     @Test
     void testShouldIgnoreWhitespaceWordsWhenCounting() {
-        // Arrange
-        final TestRunner runner = TestRunners.newTestRunner(CountText.class);
         final String INPUT_TEXT = "a  b  c";
 
         final String EXPECTED_WORD_COUNT = "3";
@@ -282,8 +272,8 @@ public class CountTextTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1);
-        FlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).get(0);
-        assertEquals(EXPECTED_WORD_COUNT, flowFile.getAttribute(CountText.TEXT_WORD_COUNT));
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals(CountText.TEXT_WORD_COUNT, EXPECTED_WORD_COUNT);
     }
 
     @Test
@@ -309,8 +299,9 @@ public class CountTextTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1);
-        FlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).get(0);
-        assertEquals(EXPECTED_WORD_COUNT, flowFile.getAttribute(CountText.TEXT_WORD_COUNT));
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).get(0);
+
+        flowFile.assertAttributeEquals(CountText.TEXT_WORD_COUNT, EXPECTED_WORD_COUNT);
     }
 
 }
