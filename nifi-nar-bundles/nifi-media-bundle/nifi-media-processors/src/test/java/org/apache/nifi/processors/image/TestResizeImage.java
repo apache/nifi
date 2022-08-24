@@ -157,4 +157,48 @@ public class TestResizeImage {
         final File out = new File("target/mspaint-8x10resized.png");
         ImageIO.write(img, "PNG", out);
     }
+
+    @Test
+    public void testResizeBiggerPNGWithRatio() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ResizeImage());
+        runner.setProperty(ResizeImage.IMAGE_HEIGHT, "64");
+        runner.setProperty(ResizeImage.IMAGE_WIDTH, "64");
+        runner.setProperty(ResizeImage.SCALING_ALGORITHM, ResizeImage.RESIZE_SMOOTH);
+        runner.setProperty(ResizeImage.KEEP_RATIO, "true");
+
+        runner.enqueue(Paths.get("src/test/resources/mspaint-8x10.png"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ResizeImage.REL_SUCCESS, 1);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(ResizeImage.REL_SUCCESS).get(0);
+        final byte[] data = mff.toByteArray();
+
+        final BufferedImage img = ImageIO.read(new ByteArrayInputStream(data));
+        assertEquals(42, img.getWidth());
+        assertEquals(64, img.getHeight());
+        final File out = new File("target/mspaint-8x10resized.png");
+        ImageIO.write(img, "PNG", out);
+    }
+
+    @Test
+    public void testResizeSmallerPNGWithRatio() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ResizeImage());
+        runner.setProperty(ResizeImage.IMAGE_HEIGHT, "5");
+        runner.setProperty(ResizeImage.IMAGE_WIDTH, "5");
+        runner.setProperty(ResizeImage.SCALING_ALGORITHM, ResizeImage.RESIZE_SMOOTH);
+        runner.setProperty(ResizeImage.KEEP_RATIO, "true");
+
+        runner.enqueue(Paths.get("src/test/resources/mspaint-8x10.png"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ResizeImage.REL_SUCCESS, 1);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(ResizeImage.REL_SUCCESS).get(0);
+        final byte[] data = mff.toByteArray();
+
+        final BufferedImage img = ImageIO.read(new ByteArrayInputStream(data));
+        assertEquals(3, img.getWidth());
+        assertEquals(5, img.getHeight());
+        final File out = new File("target/mspaint-8x10resized.png");
+        ImageIO.write(img, "PNG", out);
+    }
 }
