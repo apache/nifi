@@ -21,20 +21,24 @@
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'nf.Dialog',
-                'nf.Common'],
-            function ($, nfDialog, nfCommon) {
-                return (nf.ErrorHandler = factory($, nfDialog, nfCommon));
+                'nf.Common',
+                'nf.AuthorizationStorage'],
+            function ($, nfDialog, nfCommon, nfAuthorizationStorage) {
+                return (nf.ErrorHandler = factory($, nfDialog, nfCommon, nfAuthorizationStorage));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ErrorHandler = factory(require('jquery'),
             require('nf.Dialog'),
-            require('nf.Common')));
+            require('nf.Common'),
+            require('nf.AuthorizationStorage')
+        ));
     } else {
         nf.ErrorHandler = factory(root.$,
             root.nf.Dialog,
-            root.nf.Common);
+            root.nf.Common,
+            root.nf.AuthorizationStorage);
     }
-}(this, function ($, nfDialog, nfCommon) {
+}(this, function ($, nfDialog, nfCommon, nfAuthorizationStorage) {
     'use strict';
 
     var self = {
@@ -47,6 +51,9 @@
          */
         handleAjaxError: function (xhr, status, error) {
             if (status === 'canceled') {
+                // Remove Token from storage for session expiration
+                nfAuthorizationStorage.removeToken();
+
                 if ($('#splash').is(':visible')) {
                     $('#message-title').text('Session Expired');
                     $('#message-content').text('Your session has expired. Please reload to log in again.');
@@ -63,6 +70,13 @@
                     });
                 }
                 return;
+            }
+
+            // Remove Token from storage when REST API returns WWW-Authenticate Bearer indicating authorization errors
+            var authenticateHeader = xhr.getResponseHeader('WWW-Authenticate');
+            var bearerPattern = new RegExp('^Bearer.*$');
+            if (bearerPattern.test(authenticateHeader)) {
+                nfAuthorizationStorage.removeToken();
             }
 
             // if an error occurs while the splash screen is visible close the canvas show the error message
