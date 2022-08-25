@@ -22,7 +22,19 @@
  *
  *
  */
-(function ($) {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery', 'nf.Common'],
+            function ($, nfCommon) {
+                return (nf.CanvasUtils = factory($, nfCommon));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.CanvasUtils = factory(require('d3'), require('nf.Common')));
+    } else {
+        nf.CanvasUtils = factory(root.$, root.nf.Common);
+    }
+}(this, function ($, nfCommon) {
+
 
     // static key path variables
     var PROCESSOR_ID_KEY = 'component.id',
@@ -264,7 +276,7 @@
             var bar = $(this),
                 processorId,
                 obj,
-                bulletinList = $("<ul></ul>"),
+                bulletinList,
                 runStatus,
                 activeThreadCount,
                 bulletins;
@@ -291,11 +303,16 @@
 
             // set the bulletins
             if (isDefinedAndNotNull(bulletins) && Array.isArray(bulletins)) {
+                var bulletinsToFormat = [];
                 $.each(bulletins, function(i,item){
                     if(item.canRead){
-                        bulletinList.append($('<li>'+item.bulletin.timestamp+' '+item.bulletin.level+'<br/>'+item.bulletin.message+'<br>&nbsp;</li>'));
+                        bulletinsToFormat.push(item);
                     }
                 });
+
+                var formattedBulletins = nfCommon.getFormattedBulletins(bulletinsToFormat);
+                bulletinList = nfCommon.formatUnorderedList(formattedBulletins);
+
                 var bulletinCount = bulletinList.find('li').length;
                 bar.find('.dialog-status-bar-bulletins-content').html((bulletinCount > 0)?bulletinList:'');
                 bar.find('.dialog-status-bar-bulletins').attr('count',bulletinCount);
@@ -319,4 +336,4 @@
         }
     };
 
-})(jQuery);
+}));
