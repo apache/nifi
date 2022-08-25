@@ -17,8 +17,6 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -30,7 +28,6 @@ public enum OperandType {
     MANIFEST,
     REPOSITORY;
 
-    @JsonCreator
     public static Optional<OperandType> fromString(String value) {
         return Arrays.stream(values())
             .filter(operandType -> operandType.name().equalsIgnoreCase(value))
@@ -42,4 +39,3 @@ public enum OperandType {
         return super.toString().toLowerCase();
     }
 }
-

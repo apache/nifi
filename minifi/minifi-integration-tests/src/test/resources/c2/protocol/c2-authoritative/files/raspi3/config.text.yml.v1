@@ -23,7 +23,9 @@ Core Properties:
   administrative yield duration: 30 sec
   bored yield duration: 10 millis
   max concurrent threads: 1
+  variable registry properties: ''
 FlowFile Repository:
+  implementation: org.apache.nifi.controller.repository.WriteAheadFlowFileRepository
   partitions: 256
   checkpoint interval: 2 mins
   always sync: false
@@ -34,11 +36,20 @@ FlowFile Repository:
     out period: 5 sec
     out threads: 4
 Content Repository:
+  implementation: org.apache.nifi.controller.repository.FileSystemRepository
   content claim max appendable size: 10 MB
   content claim max flow files: 100
+  content repository archive enabled: false
+  content repository archive max retention period: 12 hours
+  content repository archive max usage percentage: 50%
   always sync: false
 Provenance Repository:
   provenance rollover time: 1 min
+  implementation: org.apache.nifi.provenance.WriteAheadProvenanceRepository
+  provenance index shard size: 500 MB
+  provenance max storage size: 1 GB
+  provenance max storage time: 24 hours
+  provenance buffer size: 10000
 Component Status Repository:
   buffer size: 1440
   snapshot frequency: 1 min
@@ -53,11 +64,66 @@ Security Properties:
   ssl protocol: ''
   Sensitive Props:
     key: ''
-    algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
-    provider: BC
-Processors: []
-Process Groups: []
-Funnels: []
-Connections: []
-Remote Process Groups: []
-NiFi Properties Overrides: {}
+    algorithm: NIFI_PBKDF2_AES_GCM_256
+Processors:
+- id: c6a06b10-0af2-423b-9927-0bb8e6e04bc3
+  name: GenerateTestText
+  class: org.apache.nifi.processors.standard.GenerateFlowFile
+  max concurrent tasks: 1
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 1000 ms
+  penalization period: 30000 ms
+  yield period: 1000 ms
+  run duration nanos: 0
+  auto-terminated relationships list: [
+    ]
+  Properties:
+    Batch Size: '1'
+    Data Format: Text
+    File Size: 0B
+    Unique FlowFiles: 'false'
+    character-set: UTF-8
+    generate-ff-custom-text: __testText__
+- id: 186322b1-4778-40e4-ba9d-a0a511d762f7
+  name: LogAttribute
+  class: org.apache.nifi.processors.standard.LogAttribute
+  max concurrent tasks: 1
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 1000 ms
+  penalization period: 30000 ms
+  yield period: 1000 ms
+  run duration nanos: 0
+  auto-terminated relationships list:
+  - success
+  Properties:
+    Log FlowFile Properties: 'true'
+    Log Level: info
+    Log Payload: 'true'
+    Output Format: Line per Attribute
+    attributes-to-log-regex: .*
+    character-set: UTF-8
+Controller Services: [
+  ]
+Process Groups: [
+  ]
+Input Ports: [
+  ]
+Output Ports: [
+  ]
+Funnels: [
+  ]
+Connections:
+- id: 641b0183-8653-4988-9a74-bcf9780b1397
+  name: GenerateTestText/success/LogAttribute
+  source id: c6a06b10-0af2-423b-9927-0bb8e6e04bc3
+  source relationship names:
+  - success
+  destination id: 186322b1-4778-40e4-ba9d-a0a511d762f7
+  max work queue size: 10000
+  max work queue data size: 10 MB
+  flowfile expiration: 0 seconds
+  queue prioritizer class: ''
+Remote Process Groups: [
+  ]
+NiFi Properties Overrides: {
+  }

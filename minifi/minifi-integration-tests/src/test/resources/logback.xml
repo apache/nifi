@@ -56,6 +56,7 @@
     <!-- valid logging levels: TRACE, DEBUG, INFO, WARN, ERROR -->
     
     <logger name="org.apache.nifi" level="INFO"/>
+    <logger name="org.apache.nifi.c2.client.http.C2HttpClient" level="DEBUG"/>
     <logger name="org.apache.nifi.processors" level="WARN"/>
     <logger name="org.apache.nifi.processors.standard.LogAttribute" level="INFO"/>
     <logger name="org.apache.nifi.controller.repository.StandardProcessSession" level="DEBUG" />
@@ -96,7 +97,6 @@
         <appender-ref ref="CONSOLE" />
         <appender-ref ref="BOOTSTRAP_FILE" />
     </logger>
-
 
     <root level="DEBUG">
         <appender-ref ref="APP_FILE"/>
