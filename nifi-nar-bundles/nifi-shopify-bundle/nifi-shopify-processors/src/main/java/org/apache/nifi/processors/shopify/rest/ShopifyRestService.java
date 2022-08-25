@@ -21,7 +21,6 @@ import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.api.WebClientService;
 
-import java.io.InputStream;
 import java.net.URI;
 import java.util.Locale;
 
@@ -53,16 +52,13 @@ public class ShopifyRestService {
         this.incrementalLoadingParameter = incrementalLoadingParameter;
     }
 
-    public InputStream getShopifyObjects(final String fromDateTime) {
+    public HttpResponseEntity getShopifyObjects(final String fromDateTime) {
         final URI url = getUri(fromDateTime);
-
-        final HttpResponseEntity response = webClientService
+        return webClientService
                 .get()
                 .uri(url)
                 .header(ACCESS_TOKEN_KEY, accessToken)
                 .retrieve();
-
-        return response.body();
     }
 
     protected HttpUriBuilder getBaseUri() {

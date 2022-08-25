@@ -16,7 +16,25 @@
  */
 package org.apache.nifi.processors.shopify;
 
-import org.apache.commons.io.IOUtils;
+import com.fasterxml.jackson.core.JsonEncoding;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -36,39 +54,31 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.shopify.model.IncrementalLoadingParameter;
 import org.apache.nifi.processors.shopify.model.ResourceDirectory;
 import org.apache.nifi.processors.shopify.model.ResourceType;
 import org.apache.nifi.processors.shopify.model.ShopifyResource;
 import org.apache.nifi.processors.shopify.rest.ShopifyRestService;
+import org.apache.nifi.web.client.api.HttpResponseEntity;
+import org.apache.nifi.web.client.api.HttpResponseStatus;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.api.WebClientService;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
-
-import java.io.BufferedOutputStream;
-import java.io.IOException;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @PrimaryNodeOnly
 @TriggerSerially
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"shopify"})
-@Stateful(scopes = Scope.CLUSTER, description = "For a few resources the processors support incremental loading. The list of the resources with the supported parameters" +
-        "can be found in additional details. State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is" +
-        " selected, the new node can pick up where the previous node left off, without duplicating the data.")
-@CapabilityDescription("Retrieves object from a custom Shopify store.")
+@Stateful(scopes = Scope.CLUSTER, description =
+        "For a few resources the processors support incremental loading. The list of the resources with the supported parameters"
+                +
+                "can be found in additional details. State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is"
+                +
+                " selected, the new node can pick up where the previous node left off, without duplicating the data.")
+@CapabilityDescription("Retrieves object from a custom Shopify store. The processor yield time must be set to the account's rate limit accordingly.")
 public class GetShopify extends AbstractProcessor {
 
     public static final PropertyDescriptor WEB_CLIENT_PROVIDER = new PropertyDescriptor.Builder()
@@ -105,7 +115,7 @@ public class GetShopify extends AbstractProcessor {
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .defaultValue("2022-07")
+            .defaultValue("2022-10")
             .build();
 
     static final PropertyDescriptor RESOURCE_TYPE = new PropertyDescriptor.Builder()
@@ -151,13 +161,18 @@ public class GetShopify extends AbstractProcessor {
         return Collections.unmodifiableList(propertyDescriptors);
     }
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonFactory JSON_FACTORY = OBJECT_MAPPER.getFactory();
+    private static final int TOO_MANY_REQUESTS = 429;
+
     private volatile ShopifyRestService shopifyRestService;
     private volatile ShopifyResource shopifyResource;
     private volatile String resourceName;
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        final WebClientServiceProvider webClientServiceProvider = context.getProperty(WEB_CLIENT_PROVIDER).asControllerService(WebClientServiceProvider.class);
+        final WebClientServiceProvider webClientServiceProvider =
+                context.getProperty(WEB_CLIENT_PROVIDER).asControllerService(WebClientServiceProvider.class);
         final WebClientService webClientService = webClientServiceProvider.getWebClientService();
         final HttpUriBuilder uriBuilder = webClientServiceProvider.getHttpUriBuilder();
 
@@ -171,11 +186,14 @@ public class GetShopify extends AbstractProcessor {
 
         shopifyResource = ResourceDirectory.getResourceTypeDto(resourceType, resourceName);
 
-        shopifyRestService = getShopifyRestService(webClientService, uriBuilder, apiVersion, baseUrl, accessToken, resourceName, shopifyResource.getIncrementalLoadingParameter());
+        shopifyRestService =
+                getShopifyRestService(webClientService, uriBuilder, apiVersion, baseUrl, accessToken, resourceName,
+                        shopifyResource.getIncrementalLoadingParameter());
     }
 
-    ShopifyRestService getShopifyRestService(WebClientService webClientService, HttpUriBuilder uriBuilder, String apiVersion,
-                                             String baseUrl, String accessToken, String resourceName, IncrementalLoadingParameter incrementalLoadingParameter) {
+    ShopifyRestService getShopifyRestService(final WebClientService webClientService, final HttpUriBuilder uriBuilder,
+            final String apiVersion, final String baseUrl, final String accessToken, final String resourceName,
+            final IncrementalLoadingParameter incrementalLoadingParameter) {
         return new ShopifyRestService(
                 webClientService,
                 uriBuilder,
@@ -204,15 +222,30 @@ public class GetShopify extends AbstractProcessor {
         final StateMap state = getState(context);
         final String fromDateTime = state.get(resourceName);
 
-        FlowFile flowFile = session.create();
+        final HttpResponseEntity response = shopifyRestService.getShopifyObjects(fromDateTime);
+        final AtomicInteger objectCountHolder = new AtomicInteger();
 
-        flowFile = session.write(flowFile, rawOut -> {
-            try (BufferedOutputStream out = new BufferedOutputStream(rawOut)) {
-                IOUtils.copyLarge(shopifyRestService.getShopifyObjects(fromDateTime), out);
+        if (response.statusCode() == HttpResponseStatus.OK.getCode()) {
+            FlowFile flowFile = session.create();
+            flowFile = session.write(flowFile, parseHttpResponse(response, objectCountHolder));
+            if (objectCountHolder.get() > 0) {
+                session.transfer(flowFile, REL_SUCCESS);
+            } else {
+                getLogger().debug("Empty response when requested Shopify resource: [{}]", resourceName);
+                session.remove(flowFile);
             }
-        });
-
-        session.transfer(flowFile, REL_SUCCESS);
+        } else if (response.statusCode() >= 400) {
+            if (response.statusCode() == TOO_MANY_REQUESTS) {
+                context.yield();
+                throw new ProcessException(String.format(
+                        "Rate limit exceeded, yielding before retrying request. HTTP %d error for requested URI [%s]",
+                        response.statusCode(), resourceName));
+            } else {
+                context.yield();
+                getLogger().warn("HTTP {} error for requested Shopify resource [{}]", response.statusCode(),
+                        resourceName);
+            }
+        }
 
         Map<String, String> newState = new HashMap<>(state.toMap());
         if (shopifyResource.getIncrementalLoadingParameter() != IncrementalLoadingParameter.NONE) {
@@ -221,11 +254,28 @@ public class GetShopify extends AbstractProcessor {
         }
     }
 
+    private OutputStreamCallback parseHttpResponse(final HttpResponseEntity response,
+            final AtomicInteger objectCountHolder) {
+        return out -> {
+            try (JsonParser jsonParser = JSON_FACTORY.createParser(response.body());
+                    final JsonGenerator jsonGenerator = JSON_FACTORY.createGenerator(out, JsonEncoding.UTF8)) {
+                while (jsonParser.nextToken() != null) {
+                    if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName()
+                            .equals(resourceName)) {
+                        jsonParser.nextToken();
+                        jsonGenerator.copyCurrentStructure(jsonParser);
+                        objectCountHolder.incrementAndGet();
+                    }
+                }
+            }
+        };
+    }
+
     String getCurrentExecutionTime() {
         return Instant.now().toString();
     }
 
-    private StateMap getState(ProcessContext context) {
+    private StateMap getState(final ProcessContext context) {
         StateMap state;
         try {
             state = context.getStateManager().getState(Scope.CLUSTER);

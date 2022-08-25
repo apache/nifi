@@ -21,23 +21,14 @@ import org.apache.nifi.components.DescribedValue;
 
 public enum ResourceType implements DescribedValue {
 
-    ACCESS("Access", "Access resources to query"),
-    ANALYTICS("Analytics", "Analytics resources to query"),
-    BILLING("Billing", "Billing resources to query"),
     CUSTOMERS("Customers", "Customer resources to query"),
     DISCOUNTS("Discounts", "Discount resources to query"),
-    EVENTS("Events", "Event resources to query"),
     INVENTORY("Inventory", "Inventory resources to query"),
-    MARKETING_EVENT("Marketing Events", "Marketing Event resources to query"),
-    METAFIELDS("Metafields", "Metafield resources to query"),
     ONLINE_STORE("Online Store", "Online Store resources to query"),
     ORDERS("Orders", "Order resources to query"),
-    PLUS("Plus", "Gift cards and user resources to query"),
     PRODUCT("Products", "Product resources to query"),
     SALES_CHANNELS("Sales Channels", "Sales Channel resources to query"),
-    SHIPPING_AND_FULFILLMENTS("Shipping and Fulfillments", "Shipping and Fulfillment resources to query"),
-    STORE_PROPERTIES("Store Properties", "Store Property resources to query"),
-    TENDER_TRANSACTIONS("Tender Transactions", "Tender Transaction resources to query");
+    STORE_PROPERTIES("Store Properties", "Store Property resources to query");
 
     private final String displayName;
     private final String description;

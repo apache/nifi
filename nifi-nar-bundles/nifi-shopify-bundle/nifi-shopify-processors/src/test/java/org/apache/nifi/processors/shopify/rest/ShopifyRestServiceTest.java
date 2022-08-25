@@ -16,22 +16,6 @@
  */
 package org.apache.nifi.processors.shopify.rest;
 
-import org.apache.nifi.web.client.api.HttpRequestBodySpec;
-import org.apache.nifi.web.client.api.HttpRequestHeadersSpec;
-import org.apache.nifi.web.client.api.HttpRequestUriSpec;
-import org.apache.nifi.web.client.api.HttpResponseEntity;
-import org.apache.nifi.web.client.api.HttpUriBuilder;
-import org.apache.nifi.web.client.api.WebClientService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.net.URI;
-import java.time.Instant;
-import java.util.Locale;
-
 import static org.apache.nifi.processors.shopify.model.IncrementalLoadingParameter.CREATED_AT_MIN;
 import static org.apache.nifi.processors.shopify.model.IncrementalLoadingParameter.NONE;
 import static org.apache.nifi.processors.shopify.rest.ShopifyRestService.ACCESS_TOKEN_KEY;
@@ -41,6 +25,20 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+
+import java.net.URI;
+import java.time.Instant;
+import java.util.Locale;
+import org.apache.nifi.web.client.api.HttpRequestBodySpec;
+import org.apache.nifi.web.client.api.HttpRequestUriSpec;
+import org.apache.nifi.web.client.api.HttpResponseEntity;
+import org.apache.nifi.web.client.api.HttpUriBuilder;
+import org.apache.nifi.web.client.api.WebClientService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class ShopifyRestServiceTest {
@@ -117,7 +115,6 @@ class ShopifyRestServiceTest {
 
         final HttpRequestUriSpec mockHttpRequestUriSpec = mock(HttpRequestUriSpec.class);
         final HttpRequestBodySpec mockHttpRequestBodySpec = mock(HttpRequestBodySpec.class);
-        final HttpRequestHeadersSpec mockHttpRequestHeadersSpec = mock(HttpRequestHeadersSpec.class);
         final HttpResponseEntity mockHttpResponseEntity = mock(HttpResponseEntity.class);
 
         doReturn(mockHttpRequestUriSpec).when(webClientService).get();
@@ -129,6 +126,5 @@ class ShopifyRestServiceTest {
 
         verify(mockHttpRequestUriSpec).uri(URI.create(TEST_URL));
         verify(mockHttpRequestBodySpec).header(ACCESS_TOKEN_KEY, TEST_ACCESS_TOKEN);
-        verify(mockHttpResponseEntity).body();
     }
 }
