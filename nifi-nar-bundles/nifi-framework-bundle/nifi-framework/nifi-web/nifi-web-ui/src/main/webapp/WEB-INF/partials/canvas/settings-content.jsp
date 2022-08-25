@@ -63,6 +63,7 @@
                 <div id="reporting-tasks-table" class="settings-table"></div>
             </div>
             <div id="registries-tab-content" class="configuration-tab controller-settings-table">
+                <div class="registry-properties"></div>
                 <div id="registries-table" class="settings-table"></div>
             </div>
             <div id="parameter-providers-tab-content" class="configuration-tab controller-settings-table">

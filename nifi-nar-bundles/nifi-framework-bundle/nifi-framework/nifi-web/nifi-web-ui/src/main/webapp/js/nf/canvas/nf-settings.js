@@ -91,7 +91,8 @@
             registries: '../nifi-api/controller/registry-clients',
             createParameterProvider: '../nifi-api/controller/parameter-providers',
             parameterProviderTypes: '../nifi-api/flow/parameter-provider-types',
-            parameterProviders: '../nifi-api/flow/parameter-providers'
+            parameterProviders: '../nifi-api/flow/parameter-providers',
+            registryTypes: '../nifi-api/controller/registry-types'
         }
     };
 
@@ -634,9 +635,10 @@
     };
 
     /**
-     * Adds the specified entity.
+     * Adds the specified registry entity.
      */
     var addRegistry = function () {
+        var selectedRegistryType = $('#new-registry-type-combo').combo('getSelectedOption');
         var registryEntity = {
             'revision': nfClient.getRevision({
                 'revision': {
@@ -645,9 +647,9 @@
             }),
             'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
             'component': {
-                'name': $('#registry-name').val(),
-                'uri': $('#registry-location').val(),
-                'description': $('#registry-description').val()
+                'name': $('#new-registry-name').val(),
+                'description': $('#new-registry-description').val(),
+                'type': selectedRegistryType.value
             }
         };
 
@@ -677,6 +679,7 @@
 
             // hide the dialog
             $('#registry-configuration-dialog').modal('hide');
+            $('#new-registry-client-dialog').modal('hide');
         }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
 
 
@@ -744,6 +747,7 @@
     var updateRegistry = function (registryId) {
         var registriesGrid = $('#registries-table').data('gridInstance');
         var registriesData = registriesGrid.getData();
+        var properties = $('#registry-properties').propertytable('marshalProperties');
 
         var registryEntity = registriesData.getItemById(registryId);
         var requestRegistryEntity = {
@@ -751,11 +755,14 @@
             'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
             'component': {
                 'id': registryId,
-                'name': $('#registry-name').val(),
-                'uri': $('#registry-location').val(),
-                'description': $('#registry-description').val()
+                'name': $('#registry-name').val()
             }
         };
+
+        // set the properties
+        if ($.isEmptyObject(properties) === false) {
+            requestRegistryEntity['component']['properties'] = properties;
+        }
 
         // add the new reporting task
         var updateRegistry = $.ajax({
@@ -1913,8 +1920,42 @@
             return markup;
         };
 
+        var moreRegistryDetails = function (row, cell, value, columnDef, dataContext) {
+            if (!dataContext.permissions.canRead) {
+                return '';
+            }
+
+            var markup = '';
+
+            var hasErrors = !nfCommon.isEmpty(dataContext.component.validationErrors);
+            var hasBulletins = !nfCommon.isEmpty(dataContext.bulletins);
+
+            if (hasErrors) {
+                markup += '<div class="pointer has-errors fa fa-warning"></div>';
+            }
+
+            if (hasBulletins) {
+                markup += '<div class="has-bulletins fa fa-sticky-note-o"></div>';
+            }
+
+            if (hasErrors || hasBulletins) {
+                markup += '<span class="hidden row-id">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
+            }
+
+            return markup;
+        };
+
         // define the column model for the reporting tasks table
         var registriesColumnModel = [
+            {
+                id: 'moreDetails',
+                name: '&nbsp;',
+                resizable: false,
+                formatter: moreRegistryDetails,
+                sortable: true,
+                width: 90,
+                maxWidth: 90
+            },
             {
                 id: 'name',
                 name: 'Name',
@@ -1974,6 +2015,38 @@
                 columnId: args.sortCol.id,
                 sortAsc: args.sortAsc
             }, registriesData);
+        });
+
+        // add tooltip for validation errors
+        $('#registries-table').data('gridInstance', registriesGrid).on('mouseenter', 'div.slick-cell', function (e) {
+            var errorIcon = $(this).find('div.has-errors');
+            if (errorIcon.length && !errorIcon.data('qtip')) {
+                var registryId = $(this).find('span.row-id').text();
+
+                // get the registry
+                var registryEntity = registriesData.getItemById(registryId);
+
+                // format the errors
+                var tooltip = nfCommon.formatUnorderedList(registryEntity.component.validationErrors);
+
+                // show the tooltip
+                if (nfCommon.isDefinedAndNotNull(tooltip)) {
+                    errorIcon.qtip($.extend({},
+                        nfCommon.config.tooltipConfig,
+                        {
+                            content: tooltip,
+                            position: {
+                                target: 'mouse',
+                                viewport: $('#shell-container'),
+                                adjust: {
+                                    x: 8,
+                                    y: 8,
+                                    method: 'flipinvert flipinvert'
+                                }
+                            }
+                        }));
+                }
+            }
         });
 
         // configure a click listener
@@ -2288,11 +2361,18 @@
      * @param registryEntity
      */
     var editRegistry = function (registryEntity) {
+        // get the controller service history
+        var loadConfig = $.ajax({
+            type: 'GET',
+            url: '../nifi-api/controller/registry-clients/' + encodeURIComponent(registryEntity.id),
+            dataType: 'json'
+        }).done();
+
         // populate the dialog
-        $('#registry-id').text(registryEntity.id);
-        $('#registry-name').val(registryEntity.component.name);
-        $('#registry-location').val(registryEntity.component.uri);
-        $('#registry-description').val(registryEntity.component.description);
+        $('#registry-id-config').text(registryEntity.id);
+        $('#registry-name-config').text(registryEntity.component.name);
+        $('#registry-type-config').text(registryEntity.component.type);
+        $('#registry-description-config').text(registryEntity.component.description);
 
         // show the dialog
         $('#registry-configuration-dialog').modal('setHeaderText', 'Edit Registry Client').modal('setButtonModel', [{
@@ -2320,6 +2400,14 @@
                 }
             }
         }]).modal('show');
+
+        // load the properties
+        $.when(loadConfig).done(function (loadConfigResponse) {
+            var properties = loadConfigResponse.component.properties;
+            var descriptors = loadConfigResponse.component.descriptors;
+            $('#registry-properties').propertytable('clear');
+            $('#registry-properties').propertytable('loadProperties', properties, descriptors);
+        });
     };
 
     /**
@@ -2533,6 +2621,30 @@
     };
 
     /**
+     * Loads available registry types.
+     */
+    var loadRegistryTypes = function () {
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.registryTypes,
+            dataType: 'json'
+        }).done(function (response) {
+            var regTypeOptions = [];
+            response.flowRegistryClientTypes.forEach((type) => {
+                regTypeOptions.push({
+                    text: type.type,
+                    value: type.type,
+                    description: type.description || ''
+                })
+            });
+
+            $('#new-registry-type-combo').combo({
+                options: regTypeOptions
+            });
+        }
+    )};
+
+    /**
      * Shows the process group configuration.
      */
     var showSettings = function () {
@@ -2662,7 +2774,7 @@
                     // set the initial focus
                     $('#reporting-task-type-filter').focus();
                 } else if (selectedTab === 'Registry Clients') {
-                    $('#registry-configuration-dialog').modal('setHeaderText', 'Add Registry Client').modal('setButtonModel', [{
+                    $('#new-registry-client-dialog').modal('setHeaderText', 'Add Registry Client').modal('setButtonModel', [{
                         buttonText: 'Add',
                         color: {
                             base: '#728E9B',
@@ -2688,6 +2800,8 @@
                         }
                     }]).modal('show');
 
+                    loadRegistryTypes();
+
                     // set the initial focus
                     $('#registry-name').focus();
                 } else if (selectedTab === 'Parameter Providers') {
@@ -2708,6 +2822,34 @@
 
                     // set the initial focus
                     $('#parameter-provider-type-filter').focus();
+                }
+            });
+
+            // what limitations does a registry client have
+            // ex can a registry client use a controller service, support dynamic props, reference parameters
+            $('#registry-properties').propertytable({
+                readOnly: false,
+                dialogContainer: '#new-registry-property-container',
+            });
+
+            // initialize the settings tabs
+            $('#registry-configuration-tabs').tabbs({
+                tabStyle: 'tab',
+                selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
+                tabs: [{
+                    name: 'Settings',
+                    tabContentId: 'registry-configuration-settings-tab-content'
+                }, {
+                    name: 'Properties',
+                    tabContentId: 'registry-configuration-properties-tab-content'
+                }],
+                select: function () {
+                    var tab = $(this).text();
+                    if (tab = 'Properties') {
+                        // $('#registry-configuration-dialog').modal('show');
+                        $('#registry-properties').propertytable('resetTableSize');
+                    }
                 }
             });
 

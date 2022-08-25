@@ -438,6 +438,10 @@ div.slick-cell div.overridden {
     height: 85px;
 }
 
+#new-registry-description {
+    height: 85px;
+}
+
 /*
     General dialog styles.
 */

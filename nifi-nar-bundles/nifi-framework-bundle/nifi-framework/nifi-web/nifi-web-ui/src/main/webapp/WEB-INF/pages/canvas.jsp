@@ -129,6 +129,7 @@
         <jsp:include page="/WEB-INF/partials/canvas/revert-local-changes-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/show-local-changes-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/registry-configuration-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/new-registry-client-dialog.jsp"/>
         <div id="canvas-container" class="unselectable"></div>
         <div id="canvas-tooltips">
             <div id="processor-tooltips"></div>

@@ -1107,6 +1107,8 @@
                     // set the button model
                     $('#processor-configuration').modal('setButtonModel', buttons);
 
+                    console.log('processor.config.properties', processor.config.properties);
+                    console.log('processor.config.descriptors', processor.config.descriptors);
                     // load the property table
                     $('#processor-properties')
                         .propertytable('setGroupId', processor.parentGroupId)

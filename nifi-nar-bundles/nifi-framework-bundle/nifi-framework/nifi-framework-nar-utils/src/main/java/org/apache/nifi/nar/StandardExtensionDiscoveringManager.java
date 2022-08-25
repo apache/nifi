@@ -637,7 +637,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
     public void logClassLoaderMapping() {
         final StringBuilder builder = new StringBuilder();
 
-        builder.append("Extension Type Mapping to Bundle:");
+        builder.append("Extension Type Mapping to Bundle: TEST");
         for (final Map.Entry<Class, Set<ExtensionDefinition>> entry : definitionMap.entrySet()) {
             builder.append("\n\t=== ").append(entry.getKey().getSimpleName()).append(" Type ===");
 

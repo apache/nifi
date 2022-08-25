@@ -1783,7 +1783,10 @@
 
                 // get the history
                 var history = table.data('history');
-                var propertyHistory = history[property];
+                var propertyHistory;
+                if (history) {
+                    propertyHistory = history[property];
+                }
 
                 // format the tooltip
                 var propertyTooltip = nfCommon.formatPropertyTooltip(propertyDescriptor, propertyHistory);
