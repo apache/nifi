@@ -68,6 +68,10 @@ public class AllowableValue implements DescribedValue {
         this.description = description;
     }
 
+    public static AllowableValue ofDescribedValue(final DescribedValue describedValue) {
+        return new AllowableValue(describedValue.getValue(), describedValue.getDisplayName(), describedValue.getDescription());
+    }
+
     /**
      * @return the value of this AllowableValue
      */

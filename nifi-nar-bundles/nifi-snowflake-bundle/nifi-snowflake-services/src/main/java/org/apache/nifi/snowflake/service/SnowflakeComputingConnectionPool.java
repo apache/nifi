@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.snowflake.service;
 
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import net.snowflake.client.jdbc.SnowflakeDriver;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -30,17 +38,15 @@ import org.apache.nifi.dbcp.AbstractDBCPConnectionPool;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
-
-import java.sql.Driver;
-import java.sql.DriverManager;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.snowflake.SnowflakeConnectionProviderService;
+import org.apache.nifi.processors.snowflake.SnowflakeConnectionWrapper;
+import org.apache.nifi.snowflake.service.util.CommonProperties;
+import org.apache.nifi.snowflake.service.util.ConnectionUrlFormat;
 
 /**
- * Implementation of Database Connection Pooling Service for Snowflake.
- * Apache DBCP is used for connection pooling functionality.
+ * Implementation of Database Connection Pooling Service for Snowflake. Apache DBCP is used for connection pooling
+ * functionality.
  */
 @Tags({"snowflake", "dbcp", "jdbc", "database", "connection", "pooling", "store"})
 @CapabilityDescription("Provides Snowflake Connection Pooling Service. Connections can be asked from pool and returned after usage.")
@@ -55,34 +61,106 @@ import java.util.List;
         description = "Snowflake JDBC driver property name prefixed with 'SENSITIVE.' handled as a sensitive property.")
 })
 @RequiresInstanceClassLoading
-public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool implements DBCPService {
+public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool implements SnowflakeConnectionProviderService, DBCPService {
+
+    public static final PropertyDescriptor CONNECTION_URL_FORMAT = new PropertyDescriptor.Builder()
+            .name("connection-url-format")
+            .displayName("Connection URL Format")
+            .description("The way the connection URL is provided")
+            .allowableValues(ConnectionUrlFormat.class)
+            .required(true)
+            .defaultValue(ConnectionUrlFormat.FULL_URL.getValue())
+            .build();
 
     public static final PropertyDescriptor SNOWFLAKE_URL = new PropertyDescriptor.Builder()
-        .fromPropertyDescriptor(AbstractDBCPConnectionPool.DATABASE_URL)
-        .displayName("Snowflake URL")
-        .description("Example connection string: jdbc:snowflake://[account].[region].snowflakecomputing.com/?[connection_params]" +
-            " The connection parameters can include db=DATABASE_NAME to avoid using qualified table names such as DATABASE_NAME.PUBLIC.TABLE_NAME")
-        .build();
+            .fromPropertyDescriptor(AbstractDBCPConnectionPool.DATABASE_URL)
+            .displayName("Snowflake URL")
+            .description("Example connection string: jdbc:snowflake://[account].[region].snowflakecomputing.com/?[connection_params]" +
+                    " The connection parameters can include db=DATABASE_NAME to avoid using qualified table names such as DATABASE_NAME.PUBLIC.TABLE_NAME")
+            .required(true)
+            .dependsOn(CONNECTION_URL_FORMAT, ConnectionUrlFormat.FULL_URL)
+            .build();
+
+    public static final PropertyDescriptor SNOWFLAKE_ACCOUNT_LOCATOR = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(CommonProperties.ACCOUNT_LOCATOR)
+            .dependsOn(CONNECTION_URL_FORMAT, ConnectionUrlFormat.ACCOUNT_LOCATOR)
+            .build();
+
+    public static final PropertyDescriptor SNOWFLAKE_CLOUD_REGION = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(CommonProperties.CLOUD_REGION)
+            .dependsOn(CONNECTION_URL_FORMAT, ConnectionUrlFormat.ACCOUNT_LOCATOR)
+            .build();
+
+    public static final PropertyDescriptor SNOWFLAKE_CLOUD_TYPE = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(CommonProperties.CLOUD_TYPE)
+            .dependsOn(CONNECTION_URL_FORMAT, ConnectionUrlFormat.ACCOUNT_LOCATOR)
+            .build();
+
+    public static final PropertyDescriptor SNOWFLAKE_ORGANIZATION_NAME = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(CommonProperties.ORGANIZATION_NAME)
+            .dependsOn(CONNECTION_URL_FORMAT, ConnectionUrlFormat.ACCOUNT_NAME)
+            .build();
+
+    public static final PropertyDescriptor SNOWFLAKE_ACCOUNT_NAME = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(CommonProperties.ACCOUNT_NAME)
+            .dependsOn(CONNECTION_URL_FORMAT, ConnectionUrlFormat.ACCOUNT_NAME)
+            .build();
 
     public static final PropertyDescriptor SNOWFLAKE_USER = new PropertyDescriptor.Builder()
-        .fromPropertyDescriptor(AbstractDBCPConnectionPool.DB_USER)
-        .displayName("Snowflake User")
-        .description("The Snowflake user name")
-        .build();
+            .fromPropertyDescriptor(AbstractDBCPConnectionPool.DB_USER)
+            .displayName("Snowflake User")
+            .description("The Snowflake user name")
+            .required(true)
+            .build();
 
     public static final PropertyDescriptor SNOWFLAKE_PASSWORD = new PropertyDescriptor.Builder()
-        .fromPropertyDescriptor(AbstractDBCPConnectionPool.DB_PASSWORD)
-        .displayName("Snowflake Password")
-        .description("The password for the Snowflake user")
-        .build();
+            .fromPropertyDescriptor(AbstractDBCPConnectionPool.DB_PASSWORD)
+            .displayName("Snowflake Password")
+            .description("The password for the Snowflake user")
+            .required(true)
+            .build();
+
+    public static final PropertyDescriptor SNOWFLAKE_DATABASE = new PropertyDescriptor.Builder()
+            .name("database")
+            .displayName("Database")
+            .description("The database to use by default. The same as passing 'db=DATABASE_NAME' to the connection string")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor SNOWFLAKE_SCHEMA = new PropertyDescriptor.Builder()
+            .name("schema")
+            .displayName("Schema")
+            .description("The schema to use by default. The same as passing 'schema=SCHEMA' to the connection string")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .defaultValue("PUBLIC")
+            .build();
+
+    public static final PropertyDescriptor SNOWFLAKE_WAREHOUSE = new PropertyDescriptor.Builder()
+            .name("warehouse")
+            .displayName("Warehouse")
+            .description("The warehouse to use by default. The same as passing 'warehouse=WAREHOUSE' to the connection string")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
 
     private static final List<PropertyDescriptor> PROPERTIES;
 
     static {
         final List<PropertyDescriptor> props = new ArrayList<>();
+        props.add(CONNECTION_URL_FORMAT);
         props.add(SNOWFLAKE_URL);
+        props.add(SNOWFLAKE_ACCOUNT_LOCATOR);
+        props.add(SNOWFLAKE_CLOUD_REGION);
+        props.add(SNOWFLAKE_CLOUD_TYPE);
+        props.add(SNOWFLAKE_ORGANIZATION_NAME);
+        props.add(SNOWFLAKE_ACCOUNT_NAME);
         props.add(SNOWFLAKE_USER);
         props.add(SNOWFLAKE_PASSWORD);
+        props.add(SNOWFLAKE_DATABASE);
+        props.add(SNOWFLAKE_SCHEMA);
+        props.add(SNOWFLAKE_WAREHOUSE);
         props.add(VALIDATION_QUERY);
         props.add(MAX_WAIT_TIME);
         props.add(MAX_TOTAL_CONNECTIONS);
@@ -108,13 +186,9 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
 
     @Override
     protected String getUrl(final ConfigurationContext context) {
-        String snowflakeUrl = context.getProperty(SNOWFLAKE_URL).evaluateAttributeExpressions().getValue();
-
-        if (!snowflakeUrl.startsWith("jdbc:snowflake")) {
-            snowflakeUrl = "jdbc:snowflake://" + snowflakeUrl;
-        }
-
-        return snowflakeUrl;
+        final ConnectionUrlFormat connectionUrlFormat = ConnectionUrlFormat.forName(context.getProperty(CONNECTION_URL_FORMAT)
+                .getValue());
+        return connectionUrlFormat.buildConnectionUrl(context);
     }
 
     @Override
@@ -125,5 +199,25 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
         } catch (Exception e) {
             throw new ProcessException("Snowflake driver unavailable or incompatible connection URL", e);
         }
+    }
+
+    @Override
+    protected Map<String, String> getConnectionProperties(final ConfigurationContext context) {
+        final String database = context.getProperty(SNOWFLAKE_DATABASE).evaluateAttributeExpressions().getValue();
+        final String schema = context.getProperty(SNOWFLAKE_SCHEMA).evaluateAttributeExpressions().getValue();
+        final String warehouse = context.getProperty(SNOWFLAKE_WAREHOUSE).evaluateAttributeExpressions().getValue();
+
+        final Map<String, String> connectionProperties = new HashMap<>();
+        connectionProperties.put("db", database);
+        connectionProperties.put("schema", schema);
+        if (warehouse != null) {
+            connectionProperties.put("warehouse", warehouse);
+        }
+        return connectionProperties;
+    }
+
+    @Override
+    public SnowflakeConnectionWrapper getSnowflakeConnection() {
+        return new SnowflakeConnectionWrapper(getConnection());
     }
 }

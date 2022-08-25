@@ -29,3 +29,15 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       snowflake-jdbc
       Copyright (c) 2013-2018 Snowflake Computing, Inc.
+
+************
+Bouncy Castle (MIT style)
+************
+
+The following binary components are provided under the Bouncy Castle (an MIT style) license.
+
+  Bouncy Castle PKIX, CMS, EAC, TSP, PKCS, OCSP, CMP, and CRMF APIs
+  Bouncy Castle Provider
+  Bouncy Castle ASN.1 Extension and Utility APIs
+    The following NOTICE information applies:
+      Copyright (c) 2000 - 2021 The Legion of the Bouncy Castle Inc. (https://www.bouncycastle.org)
