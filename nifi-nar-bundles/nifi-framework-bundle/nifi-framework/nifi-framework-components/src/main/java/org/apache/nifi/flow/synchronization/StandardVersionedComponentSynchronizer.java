@@ -1122,7 +1122,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             final Set<ControllerServiceNode> servicesToRestart = new HashSet<>();
 
             try {
-                stopControllerService(controllerService, proposed, timeout, synchronizationOptions.getComponentStopTimeoutAction(), referencesToRestart, servicesToRestart);
+                stopControllerService(controllerService, proposed, timeout, synchronizationOptions.getComponentStopTimeoutAction(),
+                        referencesToRestart, servicesToRestart, synchronizationOptions);
                 verifyCanSynchronize(controllerService, proposed);
 
                 try {
@@ -1152,10 +1153,12 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             } finally {
                 // Re-enable the controller service if necessary
                 serviceProvider.enableControllerServicesAsync(servicesToRestart);
+                servicesToRestart.forEach(synchronizationOptions.getCallback()::onScheduledStateChange);
 
                 // Restart any components that need to be restarted.
                 if (controllerService != null) {
                     serviceProvider.scheduleReferencingComponents(controllerService, referencesToRestart, context.getComponentScheduler());
+                    referencesToRestart.forEach(componentNode -> notifyScheduledStateChange(componentNode, synchronizationOptions));
                 }
             }
         } finally {
@@ -1429,7 +1432,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     final Set<ControllerServiceNode> referencingServices = referenceManager.getControllerServicesReferencing(parameterContext, paramName);
 
                     for (final ControllerServiceNode referencingService : referencingServices) {
-                        stopControllerService(referencingService, null, timeout, synchronizationOptions.getComponentStopTimeoutAction(), componentsToRestart, servicesToRestart);
+                        stopControllerService(referencingService, null, timeout, synchronizationOptions.getComponentStopTimeoutAction(), componentsToRestart, servicesToRestart,
+                                synchronizationOptions);
                         servicesToRestart.add(referencingService);
                     }
                 }
@@ -1483,6 +1487,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 for (final ComponentNode stoppedComponent : componentsToRestart) {
                     if (stoppedComponent instanceof Connectable) {
                         context.getComponentScheduler().startComponent((Connectable) stoppedComponent);
+                        notifyScheduledStateChange(stoppedComponent, synchronizationOptions);
                     }
                 }
             }
@@ -1536,7 +1541,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 waitFor(timeout, () -> isDoneProcessing(processGroup));
 
                 // Disable all Controller Services
-                final Future<Void> disableServicesFuture = context.getControllerServiceProvider().disableControllerServicesAsync(processGroup.findAllControllerServices());
+                final Collection<ControllerServiceNode> controllerServices = processGroup.findAllControllerServices();
+                final Future<Void> disableServicesFuture = context.getControllerServiceProvider().disableControllerServicesAsync(controllerServices);
+                controllerServices.forEach(synchronizationOptions.getCallback()::onScheduledStateChange);
                 try {
                     disableServicesFuture.get(timeout, TimeUnit.MILLISECONDS);
                 } catch (final ExecutionException ee) {
@@ -1639,6 +1646,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
                 // Stop all necessary enabled/active Controller Services
                 final Future<Void> serviceDisableFuture = context.getControllerServiceProvider().disableControllerServicesAsync(controllerServicesToStop);
+                controllerServicesToStop.forEach(synchronizationOptions.getCallback()::onScheduledStateChange);
                 try {
                     serviceDisableFuture.get(timeout - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
                 } catch (ExecutionException e) {
@@ -1666,9 +1674,11 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             } finally {
                 // Re-enable all Controller Services that we disabled and restart all processors
                 context.getControllerServiceProvider().enableControllerServicesAsync(controllerServicesToStop);
+                controllerServicesToStop.forEach(synchronizationOptions.getCallback()::onScheduledStateChange);
 
                 for (final ProcessorNode processor : processorsToStop) {
                     processor.getProcessGroup().startProcessor(processor, false);
+                    synchronizationOptions.getCallback().onScheduledStateChange(processor);
                 }
             }
         } finally {
@@ -2062,9 +2072,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             }
         } finally {
             // Restart any components that need to be restarted.
-            for (final Connectable stoppedComponent : toRestart) {
-                context.getComponentScheduler().startComponent(stoppedComponent);
-            }
+            startComponents(toRestart, synchronizationOptions);
         }
     }
 
@@ -2189,12 +2197,17 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 }
             } finally {
                 // Restart any components that need to be restarted.
-                for (final Connectable stoppedComponent : toRestart) {
-                    context.getComponentScheduler().startComponent(stoppedComponent);
-                }
+                startComponents(toRestart, synchronizationOptions);
             }
         } finally {
             synchronizationOptions.getComponentScheduler().resume();
+        }
+    }
+
+    private void startComponents(final Collection<Connectable> stoppedComponents, final FlowSynchronizationOptions synchronizationOptions) {
+        for (final Connectable stoppedComponent : stoppedComponents) {
+            context.getComponentScheduler().startComponent(stoppedComponent);
+            notifyScheduledStateChange(stoppedComponent, synchronizationOptions);
         }
     }
 
@@ -2375,9 +2388,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 }
             } finally {
                 // Restart any components that need to be restarted.
-                for (final Connectable stoppedComponent : toRestart) {
-                    context.getComponentScheduler().startComponent(stoppedComponent);
-                }
+                startComponents(toRestart, synchronizationOptions);
             }
         } finally {
             synchronizationOptions.getComponentScheduler().resume();
@@ -2429,6 +2440,24 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         return stoppedComponents;
     }
 
+    private void notifyScheduledStateChange(final Connectable component, final FlowSynchronizationOptions synchronizationOptions) {
+        if (component instanceof ProcessorNode) {
+            synchronizationOptions.getCallback().onScheduledStateChange((ProcessorNode) component);
+        } else if (component instanceof Port) {
+            synchronizationOptions.getCallback().onScheduledStateChange((Port) component);
+        }
+    }
+
+    private void notifyScheduledStateChange(final ComponentNode component, final FlowSynchronizationOptions synchronizationOptions) {
+        if (component instanceof ProcessorNode) {
+            synchronizationOptions.getCallback().onScheduledStateChange((ProcessorNode) component);
+        } else if (component instanceof Port) {
+            synchronizationOptions.getCallback().onScheduledStateChange((Port) component);
+        } else if (component instanceof ControllerServiceNode) {
+            synchronizationOptions.getCallback().onScheduledStateChange((Port) component);
+        }
+    }
+
     private boolean stopOrTerminate(final Connectable component, final long timeout, final FlowSynchronizationOptions synchronizationOptions) throws TimeoutException, FlowSynchronizationException {
         if (!component.isRunning()) {
             return false;
@@ -2437,13 +2466,18 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         final ConnectableType connectableType = component.getConnectableType();
         switch (connectableType) {
             case INPUT_PORT:
-                component.getProcessGroup().stopInputPort((Port) component);
+                final Port inputPort = (Port) component;
+                component.getProcessGroup().stopInputPort(inputPort);
+                synchronizationOptions.getCallback().onScheduledStateChange(inputPort);
                 return true;
             case OUTPUT_PORT:
-                component.getProcessGroup().stopOutputPort((Port) component);
+                final Port outputPort = (Port) component;
+                component.getProcessGroup().stopOutputPort(outputPort);
+                synchronizationOptions.getCallback().onScheduledStateChange(outputPort);
                 return true;
             case PROCESSOR:
-                return stopOrTerminate((ProcessorNode) component, timeout, synchronizationOptions);
+                final ProcessorNode processorNode = (ProcessorNode) component;
+                return stopOrTerminate(processorNode, timeout, synchronizationOptions);
             default:
                 return false;
         }
@@ -2452,6 +2486,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     private boolean stopOrTerminate(final ProcessorNode processor, final long timeout, final FlowSynchronizationOptions synchronizationOptions) throws TimeoutException, FlowSynchronizationException {
         try {
             LOG.debug("Stopping {} in order to synchronize it with proposed version", processor);
+
             return stopProcessor(processor, timeout);
         } catch (final TimeoutException te) {
             switch (synchronizationOptions.getComponentStopTimeoutAction()) {
@@ -2462,6 +2497,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     processor.terminate();
                     return true;
             }
+        } finally {
+            synchronizationOptions.getCallback().onScheduledStateChange(processor);
         }
     }
 
@@ -2484,7 +2521,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     private void stopControllerService(final ControllerServiceNode controllerService, final VersionedControllerService proposed, final long timeout,
                                        final FlowSynchronizationOptions.ComponentStopTimeoutAction timeoutAction, final Set<ComponentNode> referencesStopped,
-                                       final Set<ControllerServiceNode> servicesDisabled) throws FlowSynchronizationException,
+                                       final Set<ControllerServiceNode> servicesDisabled, final FlowSynchronizationOptions synchronizationOptions) throws FlowSynchronizationException,
         TimeoutException, InterruptedException {
         final ControllerServiceProvider serviceProvider = context.getControllerServiceProvider();
         if (controllerService == null) {
@@ -2499,6 +2536,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             final Future<Void> future = entry.getValue();
 
             waitForStopCompletion(future, component, timeout, timeoutAction);
+            notifyScheduledStateChange(component, synchronizationOptions);
         }
 
         if (controllerService.isActive()) {
@@ -2522,6 +2560,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             // Disable the service and wait for completion, up to the timeout allowed
             final Future<Void> future = serviceProvider.disableControllerServicesAsync(servicesToStop);
             waitForStopCompletion(future, controllerService, timeout, timeoutAction);
+            servicesToStop.forEach(synchronizationOptions.getCallback()::onScheduledStateChange);
         }
     }
 
@@ -2616,13 +2655,14 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         synchronizationOptions.getComponentScheduler().pause();
         try {
-            // Stop the processor, if necessary, in order to update it.
+            // Stop the rpg, if necessary, in order to update it.
             final Set<Connectable> toRestart = new HashSet<>();
             if (rpg != null) {
                 if (rpg.isTransmitting()) {
                     final Set<RemoteGroupPort> transmitting = getTransmittingPorts(rpg);
 
                     final Future<?> future = rpg.stopTransmitting();
+                    transmitting.forEach(port -> synchronizationOptions.getCallback().onScheduledStateChange(port));
                     waitForStopCompletion(future, rpg, timeout, synchronizationOptions.getComponentStopTimeoutAction());
 
                     final boolean proposedTransmitting = isTransmitting(proposed);
@@ -2661,9 +2701,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 throw new FlowSynchronizationException("Failed to synchronize " + rpg + " with proposed version", e);
             } finally {
                 // Restart any components that need to be restarted.
-                for (final Connectable stoppedComponent : toRestart) {
-                    context.getComponentScheduler().startComponent(stoppedComponent);
-                }
+                startComponents(toRestart, synchronizationOptions);
             }
         } finally {
             synchronizationOptions.getComponentScheduler().resume();
@@ -2919,7 +2957,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             }
 
             LOG.info("Components upstream of {} did not stop in time. Will terminate {}", connection, upstream);
-            terminateComponents(upstream);
+            terminateComponents(upstream, synchronizationOptions);
             stoppedComponents = upstream;
         }
 
@@ -2959,9 +2997,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         } finally {
             // If not removing the connection, restart any component that we stopped.
             if (proposedConnection != null) {
-                for (final Connectable component : stoppedComponents) {
-                    context.getComponentScheduler().startComponent(component);
-                }
+                startComponents(stoppedComponents, synchronizationOptions);
             }
         }
     }
@@ -2983,7 +3019,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
     }
 
-    private void terminateComponents(final Set<Connectable> components) {
+    private void terminateComponents(final Set<Connectable> components, final FlowSynchronizationOptions synchronizationOptions) {
         for (final Connectable component : components) {
             if (!(component instanceof ProcessorNode)) {
                 continue;
@@ -2996,6 +3032,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
             processor.getProcessGroup().stopProcessor(processor);
             processor.terminate();
+            synchronizationOptions.getCallback().onScheduledStateChange(processor);
         }
     }
 

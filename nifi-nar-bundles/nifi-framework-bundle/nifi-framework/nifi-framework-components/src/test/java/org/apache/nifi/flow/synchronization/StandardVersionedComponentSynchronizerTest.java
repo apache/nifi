@@ -26,6 +26,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReloadComponent;
+import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
@@ -48,6 +49,7 @@ import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.groups.ComponentIdGenerator;
 import org.apache.nifi.groups.ComponentScheduler;
+import org.apache.nifi.groups.FlowSynchronizationCallback;
 import org.apache.nifi.groups.FlowSynchronizationOptions;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogLevel;
@@ -76,6 +78,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -123,6 +126,7 @@ public class StandardVersionedComponentSynchronizerTest {
     private ControllerServiceProvider controllerServiceProvider;
     private ParameterContextManager parameterContextManager;
     private ParameterReferenceManager parameterReferenceManager;
+    private CapturingFlowSynchronizationCallback synchronizationCallback;
 
     private final Set<String> queuesWithData = Collections.synchronizedSet(new HashSet<>());
     private final Bundle bundle = new Bundle("group", "artifact", "version 1.0");
@@ -190,10 +194,13 @@ public class StandardVersionedComponentSynchronizerTest {
         when(group.getInputPorts()).thenReturn(Collections.singleton(inputPort));
         when(group.getOutputPorts()).thenReturn(Collections.singleton(outputPort));
 
+        synchronizationCallback = new CapturingFlowSynchronizationCallback();
+
         synchronizationOptions = new FlowSynchronizationOptions.Builder()
             .componentIdGenerator(componentIdGenerator)
             .componentComparisonIdLookup(VersionedComponent::getIdentifier)
             .componentScheduler(componentScheduler)
+            .callback(synchronizationCallback)
             .build();
 
         synchronizer = new StandardVersionedComponentSynchronizer(context);
@@ -206,6 +213,7 @@ public class StandardVersionedComponentSynchronizerTest {
             .componentIdGenerator(componentIdGenerator)
             .componentComparisonIdLookup(VersionedComponent::getIdentifier)
             .componentScheduler(componentScheduler)
+            .callback(synchronizationCallback)
             .componentStopTimeout(Duration.ofMillis(10))
             .componentStopTimeoutAction(timeoutAction)
             .build();
@@ -375,6 +383,8 @@ public class StandardVersionedComponentSynchronizerTest {
 
         verify(connectionAB, times(1)).setName("Hello");
         verify(connectionAB, times(1)).setRelationships(Collections.singleton(new Relationship.Builder().name("success").build()));
+
+        synchronizationCallback.assertNumProcessorUpdates(0);
     }
 
     @Test
@@ -392,6 +402,8 @@ public class StandardVersionedComponentSynchronizerTest {
         // Ensure that the source was stopped and restarted
         verifyStopped(processorA);
         verifyRestarted(processorA);
+
+        verifyCallbackIndicatedRestart(processorA);
     }
 
     @Test
@@ -413,6 +425,8 @@ public class StandardVersionedComponentSynchronizerTest {
         // Ensure that the source was stopped and restarted
         verifyStopped(processorA);
         verifyRestarted(processorA);
+
+        verifyCallbackIndicatedRestart(processorA);
     }
 
     @Test
@@ -437,6 +451,29 @@ public class StandardVersionedComponentSynchronizerTest {
         // Ensure that the source was stopped and restarted
         verifyStopped(processorA);
         verifyNotRestarted(processorA);
+        verifyCallbackIndicatedStopOnly(processorA);
+    }
+
+    private void verifyCallbackIndicatedRestart(final ProcessorNode... processors) {
+        for (final ProcessorNode processor : processors) {
+            synchronizationCallback.assertProcessorUpdates(new ScheduledStateUpdate<>(processor, org.apache.nifi.controller.ScheduledState.STOPPED),
+                    new ScheduledStateUpdate<>(processor, org.apache.nifi.controller.ScheduledState.RUNNING));
+        }
+        synchronizationCallback.assertNumProcessorUpdates(processors.length * 2);
+    }
+
+    private void verifyCallbackIndicatedStopOnly(final ProcessorNode... processors) {
+        for (final ProcessorNode processor : processors) {
+            synchronizationCallback.assertProcessorUpdates(new ScheduledStateUpdate<>(processor, org.apache.nifi.controller.ScheduledState.STOPPED));
+        }
+        synchronizationCallback.assertNumProcessorUpdates(processors.length);
+    }
+
+    private void verifyCallbackIndicatedStartOnly(final ProcessorNode... processors) {
+        for (final ProcessorNode processor : processors) {
+            synchronizationCallback.assertProcessorUpdates(new ScheduledStateUpdate<>(processor, org.apache.nifi.controller.ScheduledState.RUNNING));
+        }
+        synchronizationCallback.assertNumProcessorUpdates(processors.length);
     }
 
     @Test
@@ -449,6 +486,7 @@ public class StandardVersionedComponentSynchronizerTest {
         verifyStopped(processorA);
         verifyNotRestarted(processorA);
         verify(group).removeConnection(connectionAB);
+        verifyCallbackIndicatedStopOnly(processorA);
     }
 
     @Test
@@ -470,6 +508,7 @@ public class StandardVersionedComponentSynchronizerTest {
         // can be removed.
         verifyStopped(processorA);
         verifyNotRestarted(processorA);
+        verifyCallbackIndicatedStopOnly(processorA);
     }
 
     @Test
@@ -506,6 +545,7 @@ public class StandardVersionedComponentSynchronizerTest {
         // Ensure that the source was stopped, destination was stopped, and the connection was removed.
         verifyStopped(processorA);
         verifyNotRestarted(processorA);
+        verifyCallbackIndicatedStopOnly(processorB, processorA);
         verifyStopped(processorB);
         verifyNotRestarted(processorB);
         verify(group, times(1)).removeConnection(connectionAB);
@@ -1024,5 +1064,74 @@ public class StandardVersionedComponentSynchronizerTest {
         versionedPort.setConcurrentlySchedulableTaskCount(1);
 
         return versionedPort;
+    }
+
+    private class ScheduledStateUpdate<T> {
+        private T component;
+        private org.apache.nifi.controller.ScheduledState state;
+
+        public ScheduledStateUpdate(T component, org.apache.nifi.controller.ScheduledState state) {
+            this.component = component;
+            this.state = state;
+        }
+    }
+
+    private class ControllerServiceStateUpdate {
+        private ControllerServiceNode controllerService;
+        private ControllerServiceState state;
+
+        public ControllerServiceStateUpdate(ControllerServiceNode controllerService, ControllerServiceState state) {
+            this.controllerService = controllerService;
+            this.state = state;
+        }
+    }
+
+    private class CapturingFlowSynchronizationCallback implements FlowSynchronizationCallback {
+
+        private List<ScheduledStateUpdate<ProcessorNode>> processorUpdates = new ArrayList<>();
+        private List<ScheduledStateUpdate<Port>> portUpdates = new ArrayList<>();
+        private List<ControllerServiceStateUpdate> serviceUpdates = new ArrayList<>();
+        private List<ScheduledStateUpdate<ReportingTaskNode>> reportingTaskUpdates = new ArrayList<>();
+
+        @Override
+        public void onScheduledStateChange(final ProcessorNode processor) {
+            processorUpdates.add(new ScheduledStateUpdate<>(processor, processor.getScheduledState()));
+        }
+
+        @Override
+        public void onScheduledStateChange(ControllerServiceNode controllerService) {
+            serviceUpdates.add(new ControllerServiceStateUpdate(controllerService, controllerService.getState()));
+        }
+
+        @Override
+        public void onScheduledStateChange(ReportingTaskNode reportingTask) {
+            reportingTaskUpdates.add(new ScheduledStateUpdate<>(reportingTask, reportingTask.getScheduledState()));
+        }
+
+        @Override
+        public void onScheduledStateChange(final Port port) {
+            portUpdates.add(new ScheduledStateUpdate<>(port, port.getScheduledState()));
+        }
+
+        void assertNumProcessorUpdates(int expectedNum) {
+            assertEquals("Expected " + expectedNum + " processor state changes", expectedNum, processorUpdates.size());
+        }
+
+        void assertProcessorUpdates(final ScheduledStateUpdate<ProcessorNode>... updates) {
+            final Iterator<ScheduledStateUpdate<ProcessorNode>> it = processorUpdates.iterator();
+            for (final ScheduledStateUpdate<ProcessorNode> expectedUpdate : updates) {
+                final ScheduledStateUpdate<ProcessorNode> capturedUpdate = it.next();
+                assertEquals(expectedUpdate.component.getName(), capturedUpdate.component.getName());
+                if (expectedUpdate.state == org.apache.nifi.controller.ScheduledState.RUNNING) {
+                    verifyRestarted(capturedUpdate.component);
+                } else if (expectedUpdate.state == org.apache.nifi.controller.ScheduledState.STOPPED) {
+                    verifyStopped(capturedUpdate.component);
+                }
+            }
+        }
+
+        void assertNumPortUpdates(int expectedNum) {
+            assertEquals("Expected " + expectedNum + " port state changes", expectedNum, portUpdates.size());
+        }
     }
 }

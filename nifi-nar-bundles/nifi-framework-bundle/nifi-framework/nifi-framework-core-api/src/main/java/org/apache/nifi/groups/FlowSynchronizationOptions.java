@@ -35,6 +35,7 @@ public class FlowSynchronizationOptions {
     private final boolean updateRpgUrls;
     private final Duration componentStopTimeout;
     private final ComponentStopTimeoutAction timeoutAction;
+    private final FlowSynchronizationCallback callback;
 
     private FlowSynchronizationOptions(final Builder builder) {
         this.componentIdGenerator = builder.componentIdGenerator;
@@ -49,6 +50,7 @@ public class FlowSynchronizationOptions {
         this.updateRpgUrls = builder.updateRpgUrls;
         this.componentStopTimeout = builder.componentStopTimeout;
         this.timeoutAction = builder.timeoutAction;
+        this.callback = builder.callback;
     }
 
     public ComponentIdGenerator getComponentIdGenerator() {
@@ -99,6 +101,10 @@ public class FlowSynchronizationOptions {
         return timeoutAction;
     }
 
+    public FlowSynchronizationCallback getCallback() {
+        return callback;
+    }
+
     public static class Builder {
         private ComponentIdGenerator componentIdGenerator;
         private Function<VersionedComponent, String> componentComparisonIdLookup;
@@ -109,6 +115,7 @@ public class FlowSynchronizationOptions {
         private boolean updateGroupVersionControlSnapshot = true;
         private boolean updateExistingVariables = false;
         private boolean updateRpgUrls = false;
+        private FlowSynchronizationCallback callback = FlowSynchronizationCallback.EMPTY;
         private PropertyDecryptor propertyDecryptor = value -> value;
         private Duration componentStopTimeout = Duration.ofSeconds(30);
         private ComponentStopTimeoutAction timeoutAction = ComponentStopTimeoutAction.THROW_TIMEOUT_EXCEPTION;
@@ -247,6 +254,15 @@ public class FlowSynchronizationOptions {
             return this;
         }
 
+        /**
+         * Specifies a callback whose methods will be called when various updates are made to the flow
+         * @param callback the FlowSynchronizationCallback to use
+         * @return the builder
+         */
+        public Builder callback(final FlowSynchronizationCallback callback) {
+            this.callback = callback;
+            return this;
+        }
 
         public FlowSynchronizationOptions build() {
             if (componentIdGenerator == null) {
@@ -257,6 +273,9 @@ public class FlowSynchronizationOptions {
             }
             if (componentScheduler == null) {
                 throw new IllegalStateException("Must set Component Scheduler");
+            }
+            if (callback == null) {
+                throw new IllegalStateException("Callback must not be null");
             }
 
             return new FlowSynchronizationOptions(this);
@@ -276,6 +295,7 @@ public class FlowSynchronizationOptions {
             builder.propertyDecryptor = options.getPropertyDecryptor();
             builder.componentStopTimeout = options.getComponentStopTimeout();
             builder.timeoutAction = options.getComponentStopTimeoutAction();
+            builder.callback = options.getCallback();
 
             return builder;
         }
