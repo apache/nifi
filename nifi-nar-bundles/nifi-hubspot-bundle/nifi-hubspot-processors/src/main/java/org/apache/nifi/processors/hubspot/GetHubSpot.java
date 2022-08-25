@@ -170,7 +170,6 @@ public class GetHubSpot extends AbstractProcessor {
 
         if (response.statusCode() == HttpResponseStatus.OK.getCode()) {
             FlowFile flowFile = session.create();
-            flowFile = session.putAttribute(flowFile, "statusCode", String.valueOf(response.statusCode()));
             flowFile = session.write(flowFile, parseHttpResponse(context, endpoint, state, response, objectCountHolder));
             if (objectCountHolder.get() > 0) {
                 session.transfer(flowFile, REL_SUCCESS);
@@ -187,12 +186,10 @@ public class GetHubSpot extends AbstractProcessor {
         }
     }
 
-    private OutputStreamCallback parseHttpResponse(ProcessContext context, String endpoint, StateMap state,
-            HttpResponseEntity response, AtomicInteger objectCountHolder) {
+    private OutputStreamCallback parseHttpResponse(ProcessContext context, String endpoint, StateMap state, HttpResponseEntity response, AtomicInteger objectCountHolder) {
         return out -> {
-
             try (JsonParser jsonParser = JSON_FACTORY.createParser(response.body());
-                    final JsonGenerator jsonGenerator = JSON_FACTORY.createGenerator(out, JsonEncoding.UTF8)) {
+                 final JsonGenerator jsonGenerator = JSON_FACTORY.createGenerator(out, JsonEncoding.UTF8)) {
                 while (jsonParser.nextToken() != null) {
                     if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName()
                             .equals("results")) {
