@@ -24,5 +24,20 @@
     <modules>
         <module>nifi-snowflake-services</module>
         <module>nifi-snowflake-services-nar</module>
+        <module>nifi-snowflake-processors</module>
+        <module>nifi-snowflake-processors-nar</module>
+        <module>nifi-snowflake-services-api</module>
+        <module>nifi-snowflake-services-api-nar</module>
     </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- snowflake-ingest-sdk contains snowflake-jdbc -->
+            <dependency>
+                <groupId>net.snowflake</groupId>
+                <artifactId>snowflake-ingest-sdk</artifactId>
+                <version>1.0.2-beta.6</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>
