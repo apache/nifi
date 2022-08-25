@@ -289,7 +289,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         clientProperties = getMqttClientProperties(context);
     }
 
-    protected void onStopped() {
+    protected void disconnectAndDeallocateClient() {
         // Since client is created in the onTrigger method it can happen that it never will be created because of an initialization error.
         // We are preventing additional nullPtrException here, but the clean solution would be to create the client in the onScheduled method.
         if (mqttClient != null) {
@@ -370,7 +370,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         clientProperties.setLastWillMessage(context.getProperty(PROP_LAST_WILL_MESSAGE).getValue());
         final PropertyValue lastWillRetain = context.getProperty(PROP_LAST_WILL_RETAIN);
         clientProperties.setLastWillRetain(lastWillRetain.isSet() ? lastWillRetain.asBoolean() : false);
-        clientProperties.setLastWillQOS(context.getProperty(PROP_LAST_WILL_QOS).asInteger());
+        clientProperties.setLastWillQos(context.getProperty(PROP_LAST_WILL_QOS).asInteger());
 
         final PropertyValue usernameProp = context.getProperty(PROP_USERNAME);
         if (usernameProp.isSet()) {

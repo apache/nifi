@@ -80,7 +80,7 @@ public class HiveMqV5ClientAdapter implements MqttClient {
                     .topic(lastWillTopic)
                     .payload(clientProperties.getLastWillMessage().getBytes())
                     .retain(clientProperties.getLastWillRetain())
-                    .qos(MqttQos.fromCode(clientProperties.getLastWillQOS()))
+                    .qos(MqttQos.fromCode(clientProperties.getLastWillQos()))
                     .applyWillPublish();
         }
 

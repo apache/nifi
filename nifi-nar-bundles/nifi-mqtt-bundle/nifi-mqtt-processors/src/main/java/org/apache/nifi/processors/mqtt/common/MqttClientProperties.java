@@ -37,7 +37,7 @@ public class MqttClientProperties {
     private String lastWillTopic;
     private String lastWillMessage;
     private Boolean lastWillRetain;
-    private Integer lastWillQOS;
+    private Integer lastWillQos;
 
     private String username;
     private String password;
@@ -138,12 +138,12 @@ public class MqttClientProperties {
         this.lastWillRetain = lastWillRetain;
     }
 
-    public Integer getLastWillQOS() {
-        return lastWillQOS;
+    public Integer getLastWillQos() {
+        return lastWillQos;
     }
 
-    public void setLastWillQOS(Integer lastWillQOS) {
-        this.lastWillQOS = lastWillQOS;
+    public void setLastWillQos(Integer lastWillQos) {
+        this.lastWillQos = lastWillQos;
     }
 
     public String getUsername() {

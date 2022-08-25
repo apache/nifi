@@ -71,7 +71,7 @@ public class PahoMqttClientAdapter implements MqttClient {
             final String lastWillTopic = clientProperties.getLastWillTopic();
             if (lastWillTopic != null) {
                 boolean lastWillRetain = clientProperties.getLastWillRetain() != null && clientProperties.getLastWillRetain();
-                connectOptions.setWill(lastWillTopic, clientProperties.getLastWillMessage().getBytes(), clientProperties.getLastWillQOS(), lastWillRetain);
+                connectOptions.setWill(lastWillTopic, clientProperties.getLastWillMessage().getBytes(), clientProperties.getLastWillQos(), lastWillRetain);
             }
 
             final String username = clientProperties.getUsername();

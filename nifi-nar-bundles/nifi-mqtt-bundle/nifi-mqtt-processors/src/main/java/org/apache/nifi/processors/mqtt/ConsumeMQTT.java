@@ -342,7 +342,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
     public void onUnscheduled(final ProcessContext context) {
         scheduled.set(false);
         synchronized (this) {
-            super.onStopped();
+            disconnectAndDeallocateClient();
         }
     }
 
