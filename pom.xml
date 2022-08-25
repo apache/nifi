@@ -859,6 +859,8 @@
                                         <exclude>org.apache.logging.log4j:log4j-core:*</exclude>
                                         <!-- Commons Logging excluded in favor of jcl-over-slf4j -->
                                         <exclude>commons-logging:commons-logging:*</exclude>
+                                        <!-- Apache Xalan is no longer maintained and is bundled in the standard JRE -->
+                                        <exclude>xalan:xalan</exclude>
                                     </excludes>
                                     <includes>
                                         <!-- Versions of JSR305 after 3.0.1 are allowed https://github.com/findbugsproject/findbugs/issues/128 -->
