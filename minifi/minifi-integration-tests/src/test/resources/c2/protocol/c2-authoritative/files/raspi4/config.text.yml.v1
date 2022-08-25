@@ -1,21 +1,6 @@
-# Licensed to the Apache Software Foundation (ASF) under one or more
-# contributor license agreements.  See the NOTICE file distributed with
-# this work for additional information regarding copyright ownership.
-# The ASF licenses this file to You under the Apache License, Version 2.0
-# (the \"License\"); you may not use this file except in compliance with
-# the License.  You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an \"AS IS\" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 MiNiFi Config Version: 3
 Flow Controller:
-  name: Edge raspi3 v1.0
+  name: Edge raspi4 v1.0
   comment: ''
 Core Properties:
   flow controller graceful shutdown period: 10 sec
@@ -66,8 +51,8 @@ Security Properties:
     key: ''
     algorithm: NIFI_PBKDF2_AES_GCM_256
 Processors:
-- id: c6a06b10-0af2-423b-9927-0bb8e6e04bc3
-  name: GenerateTestText
+- id: 6ef15904-e69e-425b-b4a9-427c367220a3
+  name: GenerateFlowFile
   class: org.apache.nifi.processors.standard.GenerateFlowFile
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
@@ -83,13 +68,13 @@ Processors:
     File Size: 0B
     Unique FlowFiles: 'false'
     character-set: UTF-8
-    generate-ff-custom-text: __testTextRaspi3__
-- id: 186322b1-4778-40e4-ba9d-a0a511d762f7
+    generate-ff-custom-text: __testTextRaspi4__
+- id: 26f9038d-2cd9-4df3-a174-c48dda90fce7
   name: LogAttribute
   class: org.apache.nifi.processors.standard.LogAttribute
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
-  scheduling period: 1000 ms
+  scheduling period: 0 ms
   penalization period: 30000 ms
   yield period: 1000 ms
   run duration nanos: 0
@@ -113,12 +98,12 @@ Output Ports: [
 Funnels: [
   ]
 Connections:
-- id: 641b0183-8653-4988-9a74-bcf9780b1397
-  name: GenerateTestText/success/LogAttribute
-  source id: c6a06b10-0af2-423b-9927-0bb8e6e04bc3
+- id: 68ebc161-1b82-472b-a2f6-ee4173033f60
+  name: GenerateFlowFile/success/LogAttribute
+  source id: 6ef15904-e69e-425b-b4a9-427c367220a3
   source relationship names:
   - success
-  destination id: 186322b1-4778-40e4-ba9d-a0a511d762f7
+  destination id: 26f9038d-2cd9-4df3-a174-c48dda90fce7
   max work queue size: 10000
   max work queue data size: 10 MB
   flowfile expiration: 0 seconds

@@ -44,7 +44,9 @@ import java.util.List;
 public class C2ProtocolIntegrationTest {
     private static final String AGENT_1 = "minifi-edge1";
     private static final String AGENT_2 = "minifi-edge2";
-    private static final String AGENT_CLASS = "raspi3";
+    private static final String AGENT_3 = "minifi-edge3";
+    private static final String AGENT_CLASS_1 = "raspi3";
+    private static final String AGENT_CLASS_2 = "raspi4";
     private static final String SERVICE = "c2-authoritative";
     private static final String CONFIG_YAML = "config.text.yml.v2";
     private static Path certificatesDirectory;
@@ -54,12 +56,14 @@ public class C2ProtocolIntegrationTest {
             .file("target/test-classes/docker-compose-c2-protocol.yml")
             .waitingForService(AGENT_1, HealthChecks.toRespond2xxOverHttp(8000, dockerPort -> "http://" + dockerPort.getIp() + ":" + dockerPort.getExternalPort()))
             .waitingForService(AGENT_2, HealthChecks.toRespond2xxOverHttp(8000, dockerPort -> "http://" + dockerPort.getIp() + ":" + dockerPort.getExternalPort()))
+            .waitingForService(AGENT_3, HealthChecks.toRespond2xxOverHttp(8000, dockerPort -> "http://" + dockerPort.getIp() + ":" + dockerPort.getExternalPort()))
             .build();
 
     private static Path resourceDirectory;
     private static Path authoritativeFiles;
     private static Path minifiEdge1Version2;
     private static Path minifiEdge2Version2;
+    private static Path minifiEdge3Version2;
 
     /**
      * Generates certificates with the tls-toolkit and then starts up the docker compose file
@@ -70,8 +74,9 @@ public class C2ProtocolIntegrationTest {
                 .getResource("docker-compose-c2-protocol.yml").getFile()).getParent();
         certificatesDirectory = resourceDirectory.toAbsolutePath().resolve("certificates-c2-protocol");
         authoritativeFiles = resourceDirectory.resolve("c2").resolve("protocol").resolve(SERVICE).resolve("files");
-        minifiEdge1Version2 = authoritativeFiles.resolve("edge1").resolve(AGENT_CLASS).resolve(CONFIG_YAML);
-        minifiEdge2Version2 = authoritativeFiles.resolve("edge2").resolve(AGENT_CLASS).resolve(CONFIG_YAML);
+        minifiEdge1Version2 = authoritativeFiles.resolve("edge1").resolve(AGENT_CLASS_1).resolve(CONFIG_YAML);
+        minifiEdge2Version2 = authoritativeFiles.resolve("edge2").resolve(AGENT_CLASS_1).resolve(CONFIG_YAML);
+        minifiEdge3Version2 = authoritativeFiles.resolve("edge3").resolve(AGENT_CLASS_2).resolve(CONFIG_YAML);
 
         if (Files.exists(minifiEdge1Version2)) {
             Files.delete(minifiEdge1Version2);
@@ -79,9 +84,12 @@ public class C2ProtocolIntegrationTest {
         if (Files.exists(minifiEdge2Version2)) {
             Files.delete(minifiEdge2Version2);
         }
+        if (Files.exists(minifiEdge3Version2)) {
+            Files.delete(minifiEdge3Version2);
+        }
 
         List<String> toolkitCommandLine = new ArrayList<>(Arrays.asList("-O", "-o", certificatesDirectory.toFile().getAbsolutePath(), "-S", "badKeystorePass", "-P", "badTrustPass"));
-        for (String serverHostname : Arrays.asList(SERVICE, AGENT_1, AGENT_2)) {
+        for (String serverHostname : Arrays.asList(SERVICE, AGENT_1, AGENT_2, AGENT_3)) {
             toolkitCommandLine.add("-n");
             toolkitCommandLine.add(serverHostname);
         }
@@ -110,5 +118,6 @@ public class C2ProtocolIntegrationTest {
     public void testFlowPublishThroughC2Protocol() throws Exception {
         LogUtil.verifyLogEntries("c2/protocol/minifi-edge1/expected.json", docker.containers().container(AGENT_1));
         LogUtil.verifyLogEntries("c2/protocol/minifi-edge2/expected.json", docker.containers().container(AGENT_2));
+        LogUtil.verifyLogEntries("c2/protocol/minifi-edge3/expected.json", docker.containers().container(AGENT_3));
     }
 }

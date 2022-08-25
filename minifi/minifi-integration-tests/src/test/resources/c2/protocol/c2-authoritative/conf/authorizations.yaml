@@ -26,6 +26,10 @@ Paths:
       Query Parameters:
         class: raspi3
       Action: allow
+    - Authorization: EDGE_3
+      Query Parameters:
+        class: raspi4
+      Action: allow
 
   /c2/config/heartbeat:
     Default Action: deny
@@ -34,6 +38,8 @@ Paths:
         Action: allow
       - Authorization: EDGE_2
         Action: allow
+      - Authorization: EDGE_3
+        Action: allow
 
   /c2/config/acknowledge:
     Default Action: deny
@@ -41,4 +47,6 @@ Paths:
       - Authorization: EDGE_1
         Action: allow
       - Authorization: EDGE_2
+        Action: allow
+      - Authorization: EDGE_3
         Action: allow

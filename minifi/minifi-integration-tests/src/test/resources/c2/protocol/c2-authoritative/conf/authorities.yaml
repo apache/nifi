@@ -17,3 +17,5 @@ CN=minifi-edge1, OU=NIFI:
   - EDGE_1
 CN=minifi-edge2, OU=NIFI:
   - EDGE_2
+CN=minifi-edge3, OU=NIFI:
+  - EDGE_3
