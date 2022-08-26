@@ -30,10 +30,5 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.dropbox.core</groupId>
-            <artifactId>dropbox-core-sdk</artifactId>
-            <version>${dropbox.client.version}</version>
-        </dependency>
     </dependencies>
 </project>

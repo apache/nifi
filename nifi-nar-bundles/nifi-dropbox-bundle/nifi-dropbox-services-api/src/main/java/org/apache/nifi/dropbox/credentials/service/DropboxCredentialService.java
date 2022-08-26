@@ -16,27 +16,26 @@
  */
 package org.apache.nifi.dropbox.credentials.service;
 
-import com.dropbox.core.oauth.DbxCredential;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.exception.ProcessException;
 
 /**
- * DropboxCredentialService interface to support getting Dropbox
- * DbxCredential used for instantiating Dropbox client.
+ * DropboxCredentialService interface to support getting Dropbox credentials (app key, app secret, access token, refresh token)
  *
  *
  * @see <a href="https://www.dropbox.com/developers/reference/getting-started">Dropbox Developers Getting Started</a>
  * @see <a href="https://dropbox.github.io/dropbox-sdk-java/api-docs/v4.0.0/com/dropbox/core/oauth/DbxCredential.html">DbxCredential</a>
  */
 @Tags({"dropbox", "credentials", "auth", "session"})
-@CapabilityDescription("Provides DbxCredential.")
+@CapabilityDescription("Provides DropboxCredentialDetails.")
 public interface DropboxCredentialService extends ControllerService {
     /**
-     * Get Dropbox Credential
-     * @return Valid Dropbox Credential suitable for authorizing requests on the platform.
+     * Get Dropbox credentials
+     * @return  DropboxCredentialDetails object which contains app key, app secret, access and refresh tokens for authorizing
+     * requests on the Dropbox platform.
      * @throws ProcessException process exception in case there is problem in getting credentials
      */
-    DbxCredential getDropboxCredential() throws ProcessException;
+    DropboxCredentialDetails getDropboxCredential() throws ProcessException;
 }

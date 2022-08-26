@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.services.dropbox;
 
-import com.dropbox.core.oauth.DbxCredential;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -26,6 +25,7 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.dropbox.credentials.service.DropboxCredentialDetails;
 import org.apache.nifi.dropbox.credentials.service.DropboxCredentialService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -89,7 +89,7 @@ public class DropboxCredentialControllerService extends AbstractControllerServic
         properties = Collections.unmodifiableList(props);
     }
 
-    private DbxCredential credential;
+    private DropboxCredentialDetails credential;
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -103,11 +103,11 @@ public class DropboxCredentialControllerService extends AbstractControllerServic
         final String accessToken = context.getProperty(ACCESS_TOKEN).evaluateAttributeExpressions().getValue();
         final String refreshToken = context.getProperty(REFRESH_TOKEN).evaluateAttributeExpressions().getValue();
 
-        this.credential = new DbxCredential(accessToken, -1L, refreshToken, appKey, appSecret);
+        this.credential = new DropboxCredentialDetails(appKey, appSecret, accessToken, refreshToken);
     }
 
     @Override
-    public DbxCredential getDropboxCredential() throws ProcessException {
+    public DropboxCredentialDetails getDropboxCredential() throws ProcessException {
         return credential;
     }
 }

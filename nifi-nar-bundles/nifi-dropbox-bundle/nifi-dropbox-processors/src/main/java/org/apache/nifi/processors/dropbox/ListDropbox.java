@@ -16,8 +16,11 @@
  */
 package org.apache.nifi.processors.dropbox;
 
+import static java.lang.String.format;
+
 import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxRequestConfig;
+import com.dropbox.core.oauth.DbxCredential;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.ListFolderBuilder;
@@ -26,13 +29,11 @@ import com.dropbox.core.v2.files.Metadata;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -48,10 +49,9 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.dropbox.credentials.service.DropboxCredentialDetails;
 import org.apache.nifi.dropbox.credentials.service.DropboxCredentialService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
@@ -63,9 +63,9 @@ import org.apache.nifi.serialization.record.RecordSchema;
 @PrimaryNodeOnly
 @TriggerSerially
 @Tags({"dropbox", "storage"})
-@CapabilityDescription("Lists concrete files in Dropbox folder." +
-        " Each listed file may result in one flowfile, the metadata being written as flowfile attributes." +
-        " Or - in case the 'Record Writer' property is set - the entire result is written as records to a single flowfile." +
+@CapabilityDescription("Retrieves a listing of files from Dropbox." +
+        " Each listed file may result in one FlowFile, the metadata being written as Flowfile attributes." +
+        " When the 'Record Writer' property is set - the entire result is written as records to a single FlowFile." +
         " This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the" +
         " previous node left off without duplicating all of the data.")
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -76,9 +76,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
         @WritesAttribute(attribute = DropboxFileInfo.TIMESTAMP, description = "The server modified time, when the file was uploaded to Dropbox"),
         @WritesAttribute(attribute = DropboxFileInfo.REVISION, description = "Revision of the file")})
 @Stateful(scopes = {Scope.CLUSTER}, description = "The processor stores necessary data to be able to keep track what files have been listed already. " +
-        "What exactly needs to be stored depends on the 'Listing Strategy'." +
-        " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up" +
-        " where the previous node left off, without duplicating the data.")
+        "What exactly needs to be stored depends on the 'Listing Strategy'.")
 public class ListDropbox extends AbstractListProcessor<DropboxFileInfo>  {
 
     public static final PropertyDescriptor FOLDER_NAME = new PropertyDescriptor.Builder()
@@ -86,7 +84,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo>  {
             .displayName("Folder Name")
             .description("The name of the folder from which to pull list of files."+
                     " Providing empty string as folder lists files from user root directory." +
-                    " Folder name should match the following regexp: (/(.|[\\r\\n])*)?|id:.*|(ns:[0-9]+(/.*)?) ")
+                    " Folder name should match the following regular expression pattern: (/(.|[\\r\\n])*)?|id:.*|(ns:[0-9]+(/.*)?) ")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("(/(.|[\\r\\n])*)?|id:.*|(ns:[0-9]+(/.*)?)")))
             .build();
@@ -94,8 +92,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo>  {
     public static final PropertyDescriptor RECURSIVE_SEARCH = new PropertyDescriptor.Builder()
             .name("recursive-search")
             .displayName("Search Recursively")
-            .description("When 'true', will include list of files from concrete sub-folders." +
-                    " Otherwise, will return only files that have the defined 'Folder Name' as their parent directly.")
+            .description("Indicates whether to list files from subfolders of the Dropbox folder")
             .required(true)
             .defaultValue("true")
             .allowableValues("true", "false")
@@ -104,7 +101,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo>  {
     public static final PropertyDescriptor MIN_AGE = new PropertyDescriptor.Builder()
             .name("min-age")
             .displayName("Minimum File Age")
-            .description("The minimum age a file must be in order to be considered; any files younger than this will be ignored.")
+            .description("The minimum age a file must be in order to be considered; any files newer than this will be ignored.")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("0 sec")
@@ -159,10 +156,6 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo>  {
     }
 
     @Override
-    protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
-    }
-
-    @Override
     protected Map<String, String> createAttributes(
             final DropboxFileInfo entity,
             final ProcessContext context) {
@@ -189,8 +182,10 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo>  {
     protected DbxClientV2 getDropboxApiClient(ProcessContext context) {
         final DropboxCredentialService credentialService = context.getProperty(CREDENTIAL_SERVICE)
                 .asControllerService(DropboxCredentialService.class);
-        DbxRequestConfig config = new DbxRequestConfig("nifi" + UUID.randomUUID());
-        return new DbxClientV2(config, credentialService.getDropboxCredential());
+        DbxRequestConfig config = new DbxRequestConfig(format("%s-%s", getClass().getSimpleName(), getIdentifier()));
+        DropboxCredentialDetails credential = credentialService.getDropboxCredential();
+        return new DbxClientV2(config, new DbxCredential(credential.getAccessToken(), -1L,
+                credential.getRefreshToken(), credential.getAppKey(), credential.getAppSecret()));
     }
 
     @Override
@@ -270,7 +265,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo>  {
 
     @Override
     protected String getListingContainerName(final ProcessContext context) {
-        return String.format("Dropbox Folder [%s]", getPath(context));
+        return format("Dropbox Folder [%s]", getPath(context));
     }
 
     private List<Metadata> filterMetadata(ListFolderResult result, Predicate<Metadata> filterByTimestamp) {

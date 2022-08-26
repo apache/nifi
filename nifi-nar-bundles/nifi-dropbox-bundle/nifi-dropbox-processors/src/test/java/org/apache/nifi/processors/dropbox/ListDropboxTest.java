@@ -19,9 +19,6 @@ package org.apache.nifi.processors.dropbox;
 
 import static org.apache.nifi.util.EqualsWrapper.wrapList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Answers.RETURNS_DEEP_STUBS;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.dropbox.core.v2.DbxClientV2;
@@ -36,27 +33,32 @@ import java.util.List;
 import java.util.function.Function;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.EqualsWrapper;
+import org.apache.nifi.util.MockPropertyValue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class ListDropboxTest {
 
     private ListDropbox testSubject;
 
+    @Mock
     private ProcessContext mockProcessContext;
+    @Mock
     private DbxClientV2 mockDbxClient;
+    @Mock
     private DbxUserFilesRequests mockDbxUserFilesRequest;
+    @Mock
     private ListFolderResult mockListFolderResult;
+    @Mock
     private ListFolderBuilder mockListFolderBuilder;
 
 
     @BeforeEach
     void setUp() {
-        mockProcessContext = mock(ProcessContext.class, RETURNS_DEEP_STUBS);
-        mockDbxClient = mock(DbxClientV2.class, RETURNS_DEEP_STUBS);
-        mockDbxUserFilesRequest = mock(DbxUserFilesRequests.class, RETURNS_DEEP_STUBS);
-        mockListFolderResult = mock(ListFolderResult.class, RETURNS_DEEP_STUBS);
-        mockListFolderBuilder = mock(ListFolderBuilder.class, RETURNS_DEEP_STUBS);
         testSubject = new ListDropbox() {
 
             @Override
@@ -64,13 +66,11 @@ public class ListDropboxTest {
                 return mockDbxClient;
             }
         };
-
         testSubject.onScheduled(mockProcessContext);
     }
 
     @Test
     void testCreatedListableEntityContainsCorrectDataOldItemFiltered() throws Exception {
-        // GIVEN
         long minTimestamp = 1659707000;
 
         String id1 = "id:11111";
@@ -82,10 +82,19 @@ public class ListDropboxTest {
         long createdTime = 1659707000;
         String revision = "5e4ddb1320676a5c29261";
 
+        boolean isRecursive = true;
+        String folderName = "test_folder";
+
+        when(mockProcessContext.getProperty(ListDropbox.FOLDER_NAME)).thenReturn(new MockPropertyValue(folderName));
+        when(mockProcessContext.getProperty(ListDropbox.RECURSIVE_SEARCH))
+                .thenReturn(new MockPropertyValue(String.valueOf(isRecursive)));
+        when(mockProcessContext.getProperty(ListDropbox.MIN_AGE)).thenReturn(new MockPropertyValue("0 sec"));
+
         when(mockDbxClient.files()).thenReturn(mockDbxUserFilesRequest);
-        when(mockDbxUserFilesRequest.listFolderBuilder(any())).thenReturn(mockListFolderBuilder);
-        when(mockListFolderBuilder.withRecursive(any())).thenReturn(mockListFolderBuilder);
+        when(mockDbxUserFilesRequest.listFolderBuilder(folderName)).thenReturn(mockListFolderBuilder);
+        when(mockListFolderBuilder.withRecursive(isRecursive)).thenReturn(mockListFolderBuilder);
         when(mockListFolderBuilder.start()).thenReturn(mockListFolderResult);
+
         when(mockListFolderResult.getEntries()).thenReturn(Arrays.asList(
                 createFileMetaData(filename1, id1, createdTime, revision, size),
                 createFileMetaData(old_file_name, id2, oldCreatedTime, revision, size)
@@ -102,10 +111,8 @@ public class ListDropboxTest {
                         .build()
         );
 
-        // WHEN
         List<DropboxFileInfo> actual = testSubject.performListing(mockProcessContext, minTimestamp, null);
 
-        // THEN
         List<Function<DropboxFileInfo, Object>> propertyProviders = Arrays.asList(
                 DropboxFileInfo::getId,
                 DropboxFileInfo::getName,
