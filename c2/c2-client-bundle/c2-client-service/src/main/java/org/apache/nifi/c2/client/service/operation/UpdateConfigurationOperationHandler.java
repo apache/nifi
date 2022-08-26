@@ -110,9 +110,9 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
     }
 
     private String getFlowId(Map<String, String> args, String updateLocation) {
-        Optional<String> flowId = Optional.ofNullable(args)
-                .map(map -> map.get(FLOW_ID));
-        return flowId.orElseGet(() -> parseFlowId(updateLocation));
+        return Optional.ofNullable(args)
+        .map(map -> map.get(FLOW_ID))
+        .orElseGet(() -> parseFlowId(updateLocation));
     }
 
     private String parseFlowId(String flowUpdateUrl) {

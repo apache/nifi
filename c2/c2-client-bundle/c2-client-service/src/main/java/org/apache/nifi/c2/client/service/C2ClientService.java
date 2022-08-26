@@ -41,8 +41,8 @@ public class C2ClientService {
     }
 
     public void sendHeartbeat(RuntimeInfoWrapper runtimeInfoWrapper) {
-            C2Heartbeat c2Heartbeat = c2HeartbeatFactory.create(runtimeInfoWrapper);
-            client.publishHeartbeat(c2Heartbeat).ifPresent(this::processResponse);
+        C2Heartbeat c2Heartbeat = c2HeartbeatFactory.create(runtimeInfoWrapper);
+        client.publishHeartbeat(c2Heartbeat).ifPresent(this::processResponse);
     }
 
     private void processResponse(C2HeartbeatResponse response) {
