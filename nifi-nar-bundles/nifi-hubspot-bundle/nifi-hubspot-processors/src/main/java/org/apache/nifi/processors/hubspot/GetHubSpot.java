@@ -22,6 +22,15 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.net.URI;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -48,17 +57,6 @@ import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.HttpResponseStatus;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
-
-import java.io.IOException;
-import java.net.URI;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -115,11 +113,6 @@ public class GetHubSpot extends AbstractProcessor {
             .description("For FlowFiles created as a result of a successful HTTP request.")
             .build();
 
-    static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("In case of HTTP client errors the flowfile will be routed to this relationship")
-            .build();
-
     private static final String API_BASE_URI = "api.hubapi.com";
     private static final String HTTPS = "https";
     private static final String CURSOR_PARAMETER = "after";
@@ -137,10 +130,7 @@ public class GetHubSpot extends AbstractProcessor {
             WEB_CLIENT_SERVICE_PROVIDER
     ));
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(
-            Collections.singletonList(
-                    REL_SUCCESS
-            )));
+    private static final Set<Relationship> RELATIONSHIPS = Collections.singleton(REL_SUCCESS);
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
@@ -175,6 +165,7 @@ public class GetHubSpot extends AbstractProcessor {
                 session.transfer(flowFile, REL_SUCCESS);
             } else {
                 getLogger().debug("Empty response when requested HubSpot endpoint: [{}]", endpoint);
+                session.remove(flowFile);
             }
         } else if (response.statusCode() >= 400) {
             if (response.statusCode() == TOO_MANY_REQUESTS) {
@@ -182,13 +173,14 @@ public class GetHubSpot extends AbstractProcessor {
                 throw new ProcessException(String.format("Rate limit exceeded, yielding before retrying request. HTTP %d error for requested URI [%s]", response.statusCode(), uri));
             } else {
                 getLogger().warn("HTTP {} error for requested URI [{}]", response.statusCode(), uri);
+                context.yield();
             }
         }
     }
 
     private OutputStreamCallback parseHttpResponse(ProcessContext context, String endpoint, StateMap state, HttpResponseEntity response, AtomicInteger objectCountHolder) {
         return out -> {
-            try (JsonParser jsonParser = JSON_FACTORY.createParser(response.body());
+            try (final JsonParser jsonParser = JSON_FACTORY.createParser(response.body());
                  final JsonGenerator jsonGenerator = JSON_FACTORY.createGenerator(out, JsonEncoding.UTF8)) {
                 while (jsonParser.nextToken() != null) {
                     if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName()
@@ -197,7 +189,7 @@ public class GetHubSpot extends AbstractProcessor {
                         jsonGenerator.copyCurrentStructure(jsonParser);
                         objectCountHolder.incrementAndGet();
                     }
-                    String fieldName = jsonParser.getCurrentName();
+                    final String fieldName = jsonParser.getCurrentName();
                     if (CURSOR_PARAMETER.equals(fieldName)) {
                         jsonParser.nextToken();
                         Map<String, String> newStateMap = new HashMap<>(state.toMap());
@@ -230,7 +222,7 @@ public class GetHubSpot extends AbstractProcessor {
         final String path = context.getProperty(CRM_ENDPOINT).getValue();
         final HttpUriBuilder uriBuilder = getBaseUri(context);
 
-        final boolean isLimitSet = context.getProperty(LIMIT).isSet();
+        final boolean isLimitSet = context.getProperty(LIMIT).evaluateAttributeExpressions().isSet();
         if (isLimitSet) {
             final String limit = context.getProperty(LIMIT).getValue();
             uriBuilder.addQueryParameter(LIMIT_PARAMETER, limit);

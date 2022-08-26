@@ -48,14 +48,30 @@ class GetHubSpotTest {
 
     public static final String BASE_URL = "/test/hubspot";
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    public static final String RESPONSE_WITHOUT_PAGING_CURSOR_JSON = "response-without-paging-cursor.json";
+    public static final String RESPONSE_WITH_PAGING_CURSOR_JSON = "response-with-paging-cursor.json";
     private static MockWebServer server;
     private static HttpUrl baseUrl;
 
+    private TestRunner runner;
+
     @BeforeEach
-    void setup() throws IOException {
+    void setup() throws IOException, InitializationException {
         server = new MockWebServer();
         server.start();
         baseUrl = server.url(BASE_URL);
+
+        final StandardWebClientServiceProvider standardWebClientServiceProvider = new StandardWebClientServiceProvider();
+        final MockGetHubSpot mockGetHubSpot = new MockGetHubSpot();
+
+        runner = TestRunners.newTestRunner(mockGetHubSpot);
+        runner.addControllerService("standardWebClientServiceProvider", standardWebClientServiceProvider);
+        runner.enableControllerService(standardWebClientServiceProvider);
+
+        runner.setProperty(GetHubSpot.WEB_CLIENT_SERVICE_PROVIDER, standardWebClientServiceProvider.getIdentifier());
+        runner.setProperty(GetHubSpot.ACCESS_TOKEN, "testToken");
+        runner.setProperty(GetHubSpot.CRM_ENDPOINT, CrmEndpoint.COMPANIES.getValue());
+        runner.setProperty(GetHubSpot.LIMIT, "1");
     }
 
     @AfterEach
@@ -69,20 +85,8 @@ class GetHubSpotTest {
     @Test
     void testLimitIsAddedToUrl() throws InitializationException, InterruptedException, IOException {
 
-        final String response = getResourceAsString("response-without-paging-cursor.json");
+        final String response = getResourceAsString(RESPONSE_WITHOUT_PAGING_CURSOR_JSON);
         server.enqueue(new MockResponse().setResponseCode(200).setBody(response));
-
-        final StandardWebClientServiceProvider standardWebClientServiceProvider = new StandardWebClientServiceProvider();
-        final MockGetHubSpot mockGetHubSpot = new MockGetHubSpot();
-
-        TestRunner runner = TestRunners.newTestRunner(mockGetHubSpot);
-        runner.addControllerService("standardWebClientServiceProvider", standardWebClientServiceProvider);
-        runner.enableControllerService(standardWebClientServiceProvider);
-
-        runner.setProperty(GetHubSpot.WEB_CLIENT_SERVICE_PROVIDER, standardWebClientServiceProvider.getIdentifier());
-        runner.setProperty(GetHubSpot.ACCESS_TOKEN, "testToken");
-        runner.setProperty(GetHubSpot.CRM_ENDPOINT, CrmEndpoint.COMPANIES.getValue());
-        runner.setProperty(GetHubSpot.LIMIT, "1");
 
         runner.run(1);
 
@@ -93,20 +97,8 @@ class GetHubSpotTest {
     @Test
     void testPageCursorIsAddedToUrlFromState() throws InitializationException, InterruptedException, IOException {
 
-        final String response = getResourceAsString("response-without-paging-cursor.json");
+        final String response = getResourceAsString(RESPONSE_WITHOUT_PAGING_CURSOR_JSON);
         server.enqueue(new MockResponse().setBody(response));
-
-        final StandardWebClientServiceProvider standardWebClientServiceProvider = new StandardWebClientServiceProvider();
-        final MockGetHubSpot mockGetHubSpot = new MockGetHubSpot();
-
-        TestRunner runner = TestRunners.newTestRunner(mockGetHubSpot);
-        runner.addControllerService("standardWebClientServiceProvider", standardWebClientServiceProvider);
-        runner.enableControllerService(standardWebClientServiceProvider);
-
-        runner.setProperty(GetHubSpot.WEB_CLIENT_SERVICE_PROVIDER, standardWebClientServiceProvider.getIdentifier());
-        runner.setProperty(GetHubSpot.ACCESS_TOKEN, "testToken");
-        runner.setProperty(GetHubSpot.CRM_ENDPOINT, CrmEndpoint.COMPANIES.getValue());
-        runner.setProperty(GetHubSpot.LIMIT, "1");
 
         runner.getStateManager().setState(Collections.singletonMap(CrmEndpoint.COMPANIES.getValue(), "12345"), Scope.CLUSTER);
 
@@ -117,22 +109,10 @@ class GetHubSpotTest {
     }
 
     @Test
-    void testFlowFileContainsResultsArray() throws InitializationException, IOException {
+    void testFlowFileContainsResultsArray() throws IOException {
 
-        final String response = getResourceAsString("response-with-paging-cursor.json");
+        final String response = getResourceAsString(RESPONSE_WITH_PAGING_CURSOR_JSON);
         server.enqueue(new MockResponse().setBody(response));
-
-        final StandardWebClientServiceProvider standardWebClientServiceProvider = new StandardWebClientServiceProvider();
-        final MockGetHubSpot mockGetHubSpot = new MockGetHubSpot();
-
-        TestRunner runner = TestRunners.newTestRunner(mockGetHubSpot);
-        runner.addControllerService("standardWebClientServiceProvider", standardWebClientServiceProvider);
-        runner.enableControllerService(standardWebClientServiceProvider);
-
-        runner.setProperty(GetHubSpot.WEB_CLIENT_SERVICE_PROVIDER, standardWebClientServiceProvider.getIdentifier());
-        runner.setProperty(GetHubSpot.ACCESS_TOKEN, "testToken");
-        runner.setProperty(GetHubSpot.CRM_ENDPOINT, CrmEndpoint.COMPANIES.getValue());
-        runner.setProperty(GetHubSpot.LIMIT, "1");
 
         runner.run(1);
 
@@ -146,9 +126,9 @@ class GetHubSpotTest {
     }
 
     @Test
-    void testStateIsStoredWhenPagingCursorFound() throws InitializationException, IOException {
+    void testStateIsStoredWhenPagingCursorFound() throws IOException {
 
-        final String response = getResourceAsString("response-with-paging-cursor.json");
+        final String response = getResourceAsString(RESPONSE_WITH_PAGING_CURSOR_JSON);
         final String expectedPagingCursor = OBJECT_MAPPER.readTree(response)
                 .path("paging")
                 .path("next")
@@ -156,18 +136,6 @@ class GetHubSpotTest {
                 .asText();
 
         server.enqueue(new MockResponse().setBody(response));
-
-        final StandardWebClientServiceProvider standardWebClientServiceProvider = new StandardWebClientServiceProvider();
-        final MockGetHubSpot mockGetHubSpot = new MockGetHubSpot();
-
-        TestRunner runner = TestRunners.newTestRunner(mockGetHubSpot);
-        runner.addControllerService("standardWebClientServiceProvider", standardWebClientServiceProvider);
-        runner.enableControllerService(standardWebClientServiceProvider);
-
-        runner.setProperty(GetHubSpot.WEB_CLIENT_SERVICE_PROVIDER, standardWebClientServiceProvider.getIdentifier());
-        runner.setProperty(GetHubSpot.ACCESS_TOKEN, "testToken");
-        runner.setProperty(GetHubSpot.CRM_ENDPOINT, CrmEndpoint.COMPANIES.getValue());
-        runner.setProperty(GetHubSpot.LIMIT, "1");
 
         runner.run(1);
 
