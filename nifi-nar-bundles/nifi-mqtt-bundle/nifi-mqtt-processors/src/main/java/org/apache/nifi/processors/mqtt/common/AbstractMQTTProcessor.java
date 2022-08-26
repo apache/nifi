@@ -289,7 +289,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         clientProperties = getMqttClientProperties(context);
     }
 
-    protected void disconnectAndDeallocateClient() {
+    protected void stopClient() {
         // Since client is created in the onTrigger method it can happen that it never will be created because of an initialization error.
         // We are preventing additional nullPtrException here, but the clean solution would be to create the client in the onScheduled method.
         if (mqttClient != null) {

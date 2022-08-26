@@ -26,7 +26,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -131,10 +131,10 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
         super.onScheduled(context);
     }
 
-    @OnUnscheduled
-    public void onUnscheduled(final ProcessContext context) {
+    @OnStopped
+    public void onStopped(final ProcessContext context) {
         synchronized (this) {
-            disconnectAndDeallocateClient();
+            stopClient();
         }
     }
 
