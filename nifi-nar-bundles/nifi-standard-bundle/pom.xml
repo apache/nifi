@@ -33,7 +33,7 @@
     </modules>
     <properties>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
-        <jolt.version>0.1.1</jolt.version>
+        <jolt.version>0.1.7</jolt.version>
     </properties>
     <dependencyManagement>
         <dependencies>
