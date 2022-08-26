@@ -418,6 +418,10 @@
             <artifactId>json-flattener</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.networknt</groupId>
+            <artifactId>json-schema-validator</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.bval</groupId>
             <artifactId>bval-jsr</artifactId>
         </dependency>
@@ -704,6 +708,10 @@
                         <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-expected.csv</exclude>
                         <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-original.csv</exclude>
                         <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-rename-expected.csv</exclude>
+                        <exclude>src/test/resources/TestValidateJson/schema-simple-example-missing-required.json</exclude>
+                        <exclude>src/test/resources/TestValidateJson/schema-simple-example-unmatched-pattern.json</exclude>
+                        <exclude>src/test/resources/TestValidateJson/schema-simple-example.json</exclude>
+                        <exclude>src/test/resources/TestValidateJson/simple-example.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>
