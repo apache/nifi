@@ -38,23 +38,13 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
 import org.apache.nifi.processors.gcp.util.GoogleUtils;
 import org.apache.nifi.proxy.ProxyConfiguration;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.MalformedRecordException;
-import org.apache.nifi.serialization.RecordReader;
-import org.apache.nifi.serialization.RecordReaderFactory;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -79,15 +69,6 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .name("record-reader")
-            .displayName("Record Reader")
-            .description("Specifies the Controller Service to use for reading incoming Google Driver File meta-data as NiFi Records."
-                    + " If not set, the Processor expects as attributes of a separate flowfile for each File to fetch.")
-            .identifiesControllerService(RecordReaderFactory.class)
-            .required(false)
-            .build();
-
     public static final Relationship REL_SUCCESS =
             new Relationship.Builder()
                     .name("success")
@@ -107,7 +88,6 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE,
             FILE_ID,
-            RECORD_READER,
             ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxyAwareTransportFactory.PROXY_SPECS)
     ));
 
@@ -149,89 +129,16 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
 
         String fileId = context.getProperty(FILE_ID).evaluateAttributeExpressions(flowFile).getValue();
 
-        if (StringUtils.isEmpty(fileId)) {
-            RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+        FlowFile outFlowFile = flowFile;
+        try {
+            outFlowFile = fetchFile(fileId, session, outFlowFile);
 
-            final List<Map<String, String>> attributesForAllRecords = new ArrayList<>();
-            boolean hasRecords = false;
-            try (InputStream inFlowFileStream = session.read(flowFile)) {
-                final Map<String, String> flowFileAttributes = flowFile.getAttributes();
-                final RecordReader reader = recordReaderFactory.createRecordReader(flowFileAttributes, inFlowFileStream, flowFile.getSize(), getLogger());
-
-                Record record;
-                while ((record = reader.nextRecord()) != null) {
-                    hasRecords = true;
-
-                    Map<String, String> attributes = getAttributes(record);
-
-                    attributesForAllRecords.add(attributes);
-                }
-            } catch (IOException | MalformedRecordException | SchemaNotFoundException e) {
-                getLogger().error("Couldn't read file metadata content as records from incoming flowfile", e);
-
-                flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
-
-                session.transfer(flowFile, REL_INPUT_FAILURE);
-
-                return;
-            } catch (Exception e) {
-                getLogger().error("Unexpected error while processing incoming flowfile", e);
-
-                flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
-
-                session.transfer(flowFile, REL_INPUT_FAILURE);
-
-                return;
-            }
-
-            if (!hasRecords) {
-                getLogger().error("No records found in FlowFile");
-
-                flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, "No records found");
-
-                session.transfer(flowFile, REL_INPUT_FAILURE);
-            } else {
-                for (Map<String, String> attributes : attributesForAllRecords) {
-                    FlowFile outFlowFile = session.create(flowFile);
-                    outFlowFile = session.putAllAttributes(outFlowFile, attributes);
-
-                    String fileIdInRecord = attributes.get(GoogleDriveFileInfo.ID);
-
-                    try {
-                        outFlowFile = fetchFile(fileIdInRecord, session, outFlowFile);
-
-                        session.transfer(outFlowFile, REL_SUCCESS);
-                    } catch (GoogleJsonResponseException e) {
-                        handleErrorResponse(session, fileIdInRecord, outFlowFile, e);
-                    } catch (Exception e) {
-                        handleUnexpectedError(session, outFlowFile, fileIdInRecord, e);
-                    }
-                }
-                session.remove(flowFile);
-            }
-        } else {
-            FlowFile outFlowFile = flowFile;
-            try {
-                outFlowFile = fetchFile(fileId, session, outFlowFile);
-
-                session.transfer(outFlowFile, REL_SUCCESS);
-            } catch (GoogleJsonResponseException e) {
-                handleErrorResponse(session, fileId, flowFile, e);
-            } catch (Exception e) {
-                handleUnexpectedError(session, flowFile, fileId, e);
-            }
+            session.transfer(outFlowFile, REL_SUCCESS);
+        } catch (GoogleJsonResponseException e) {
+            handleErrorResponse(session, fileId, flowFile, e);
+        } catch (Exception e) {
+            handleUnexpectedError(session, flowFile, fileId, e);
         }
-    }
-
-    Map<String, String> getAttributes(Record record) {
-        Map<String, String> attributes = new HashMap<>();
-
-        for (GoogleDriveFlowFileAttribute attribute : GoogleDriveFlowFileAttribute.values()) {
-            Optional.ofNullable(attribute.getValue(record))
-                    .ifPresent(value -> attributes.put(attribute.getName(), value));
-        }
-
-        return attributes;
     }
 
     FlowFile fetchFile(String fileId, ProcessSession session, FlowFile outFlowFile) throws IOException {
