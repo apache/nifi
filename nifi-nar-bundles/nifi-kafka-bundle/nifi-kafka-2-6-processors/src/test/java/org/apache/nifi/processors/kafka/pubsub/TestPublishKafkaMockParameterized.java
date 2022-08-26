@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.kafka.pubsub;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.util.DefaultIndenter;
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -119,7 +121,9 @@ public class TestPublishKafkaMockParameterized {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_SUCCESS, 1);
         assertEquals(1, producedRecords.size());
         final ProducerRecord<byte[], byte[]> kafkaRecord = producedRecords.iterator().next();
-        final String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(kafkaRecord);
+        final DefaultPrettyPrinter prettyPrinter = new DefaultPrettyPrinter()
+                .withObjectIndenter(new DefaultIndenter().withLinefeed("\n"));
+        final String json = mapper.writer(prettyPrinter).writeValueAsString(kafkaRecord);
         logger.trace(json);
 
         final String kafkaRecordExpected = IOUtils.toString(Objects.requireNonNull(
