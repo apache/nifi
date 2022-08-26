@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.adx;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.adx.AdxConnectionService;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestionMapping;
@@ -38,6 +39,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -50,10 +52,7 @@ import java.io.*;
 import java.net.URISyntaxException;
 import java.util.*;
 
-import static com.microsoft.azure.kusto.ingest.IngestionProperties.IngestionReportMethod.QueueAndTable;
-import static com.microsoft.azure.kusto.ingest.IngestionProperties.IngestionReportMethod.Table;
-
-@Tags({"azure", "adx"})
+@Tags({"azure", "adx", "microsoft", "data", "explorer"})
 @CapabilityDescription("The Azure ADX Processor sends FlowFiles using the ADX-Service to the provided Azure Data" +
         "Explorer Ingest Endpoint.")
 @SeeAlso({})
@@ -222,7 +221,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             .displayName("IngestionMappingKind")
             .description("The type of the ingestion mapping related to the table in ADX.")
             .required(true)
-            .allowableValues(IM_KIND_AVRO, IM_KIND_APACHEAVRO, IM_KIND_CSV, IM_KIND_JSON, IM_KIND_ORC, IM_KIND_PARQUET, IM_KIND_UNKNOWN)
+            .allowableValues(IM_KIND_AVRO, IM_KIND_APACHEAVRO, IM_KIND_CSV, IM_KIND_JSON, IM_KIND_ORC, IM_KIND_PARQUET)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -313,10 +312,13 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+
         FlowFile flowFile = session.get();
         if ( flowFile == null ) {
             return;
         }
+
+        final ComponentLog logger = getLogger();
 
         AdxConnectionService service = context.getProperty(ADX_SERVICE).asControllerService(AdxConnectionService.class);
 
@@ -331,50 +333,50 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             switch(context.getProperty(IM_KIND).getValue())
             {
                 case "IM_KIND_AVRO": ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
-                        IngestionMapping.IngestionMappingKind.Avro); break;
+                        IngestionMapping.IngestionMappingKind.AVRO); break;
                 case "IM_KIND_APACHEAVRO": ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
-                        IngestionMapping.IngestionMappingKind.ApacheAvro); break;
+                        IngestionMapping.IngestionMappingKind.APACHEAVRO); break;
                 case "IM_KIND_CSV": ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
-                        IngestionMapping.IngestionMappingKind.Csv); break;
+                        IngestionMapping.IngestionMappingKind.CSV); break;
                 case "IM_KIND_JSON": ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
-                        IngestionMapping.IngestionMappingKind.Json); break;
+                        IngestionMapping.IngestionMappingKind.JSON); break;
                 case "IM_KIND_ORC": ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
-                        IngestionMapping.IngestionMappingKind.Orc); break;
+                        IngestionMapping.IngestionMappingKind.ORC); break;
                 case "IM_KIND_PARQUET": ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
-                        IngestionMapping.IngestionMappingKind.Parquet); break;
-                case "IM_KIND_UNKNOWN": ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
-                        IngestionMapping.IngestionMappingKind.unknown); break;
+                        IngestionMapping.IngestionMappingKind.PARQUET); break;
+                /*case "IM_KIND_UNKNOWN": ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
+                        IngestionMapping.IngestionMappingKind); break;*/
             }
 
             switch(context.getProperty(DATA_FORMAT).getValue()) {
-                case "AVRO": ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.avro); break;
-                case "APACHEAVRO": ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.apacheavro); break;
-                case "CSV": ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.csv); break;
-                case "JSON": ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json); break;
-                case "MULTIJSON": ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.multijson); break;
-                case "ORC": ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.orc); break;
-                case "PARQUET": ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.parquet); break;
-                case "PSV": ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.psv); break;
-                case "SCSV": ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.scsv); break;
-                case "SOHSV": ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.sohsv); break;
-                case "TSV": ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.tsv); break;
-                case "TSVE": ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.tsve); break;
-                case "TXT": ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.txt); break;
+                case "AVRO": ingestionProperties.setDataFormat(IngestionProperties.DataFormat.AVRO); break;
+                case "APACHEAVRO": ingestionProperties.setDataFormat(IngestionProperties.DataFormat.APACHEAVRO); break;
+                case "CSV": ingestionProperties.setDataFormat(IngestionProperties.DataFormat.CSV); break;
+                case "JSON": ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON); break;
+                case "MULTIJSON": ingestionProperties.setDataFormat(IngestionProperties.DataFormat.MULTIJSON); break;
+                case "ORC": ingestionProperties.setDataFormat(IngestionProperties.DataFormat.ORC); break;
+                case "PARQUET": ingestionProperties.setDataFormat(IngestionProperties.DataFormat.PARQUET); break;
+                case "PSV": ingestionProperties.setDataFormat(IngestionProperties.DataFormat.PSV); break;
+                case "SCSV": ingestionProperties.setDataFormat(IngestionProperties.DataFormat.SCSV); break;
+                case "SOHSV": ingestionProperties.setDataFormat(IngestionProperties.DataFormat.SOHSV); break;
+                case "TSV": ingestionProperties.setDataFormat(IngestionProperties.DataFormat.TSV); break;
+                case "TSVE": ingestionProperties.setDataFormat(IngestionProperties.DataFormat.TSVE); break;
+                case "TXT": ingestionProperties.setDataFormat(IngestionProperties.DataFormat.TXT); break;
             }
 
             switch(context.getProperty(IR_LEVEL).getValue()) {
-                case "IRL_NONE": ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.None); break;
-                case "IRL_FAIL": ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FailuresOnly); break;
-                case "IRL_FAS": ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FailuresAndSuccesses); break;
+                case "IRL_NONE": ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.NONE); break;
+                case "IRL_FAIL": ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FAILURES_ONLY); break;
+                case "IRL_FAS": ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FAILURES_AND_SUCCESSES); break;
             }
 
             switch (context.getProperty(IR_METHOD).getValue()) {
-                case "IRM_TABLE": ingestionProperties.setReportMethod(Table); break;
-                case "IRM_QUEUE": ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.Queue); break;
-                case "IRM_TABLEANDQUEUE": ingestionProperties.setReportMethod(QueueAndTable); break;
+                case "IRM_TABLE": ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE); break;
+                case "IRM_QUEUE": ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.QUEUE); break;
+                case "IRM_TABLEANDQUEUE": ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.QUEUE_AND_TABLE); break;
             }
 
-            if (context.getProperty(FLUSH_IMMEDIATE).getValue().equals("true"))
+            if (StringUtils.equalsIgnoreCase(context.getProperty(FLUSH_IMMEDIATE).getValue(),"true"))
             {
                 ingestionProperties.setFlushImmediately(true);
             }
@@ -382,7 +384,8 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                 ingestionProperties.setFlushImmediately(false);
             }
 
-            getLogger().info("Ingesting with: " + ingestionProperties.getDataFormat() +
+            logger.info("Ingesting with: "
+                    + "dataFormat - "+ ingestionProperties.getDataFormat() +
                     "|" + ingestionProperties.getIngestionMapping().getIngestionMappingReference() +
                     "|" + ingestionProperties.getReportLevel() +
                     "|" + ingestionProperties.getReportMethod() +
@@ -397,7 +400,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
 
             List<IngestionStatus> statuses = result.getIngestionStatusCollection();
 
-            if(context.getProperty(WAIT_FOR_STATUS).getValue().equals("ST_SUCCESS"))
+            if(StringUtils.equalsIgnoreCase(context.getProperty(WAIT_FOR_STATUS).getValue(),"ST_SUCCESS"))
             {
                 while (statuses.get(0).status == OperationStatus.Pending) {
                     Thread.sleep(50);
@@ -414,7 +417,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                 statuses.set(0, status);
             }
 
-            getLogger().info("Operation status: " + statuses.get(0).details);
+            logger.info("Operation status: " + statuses.get(0).details);
 
             if(statuses.get(0).status == OperationStatus.Succeeded)
             {
@@ -428,13 +431,13 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                 session.transfer(flowFile, RL_FAILED);
             }
 
-        } catch (IOException e) {
-            throw new ProcessException(e);
-        } catch (IngestionClientException | IngestionServiceException | StorageException | URISyntaxException e) {
-            e.printStackTrace();
+        } catch (IOException | IngestionClientException | IngestionServiceException | StorageException |
+                 URISyntaxException e) {
+            logger.error("Exception occurred while ingesting data into ADX "+e);
             throw new ProcessException(e);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            getLogger().error("Interrupted exception occurred while ingesting data into ADX "+e);
+            throw new ProcessException(e);
         }
 
     }

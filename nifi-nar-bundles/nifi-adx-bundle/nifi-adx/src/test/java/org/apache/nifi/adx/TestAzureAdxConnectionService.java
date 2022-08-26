@@ -16,32 +16,65 @@
  */
 package org.apache.nifi.adx;
 
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestAzureAdxConnectionService {
 
-    @Before
-    public void init() {
+    private TestRunner runner;
+
+    private AzureAdxConnectionService service;
+
+    private static final String MOCK_URI = "https://mockURI:443/";
+    private static final String MOCK_APP_ID = "mockAppId";
+
+    private static final String MOCK_APP_KEY = "mockAppKey";
+
+    private static final String MOCK_APP_TENANT = "mockAppTenant";
+
+    @BeforeEach
+    public void setup() throws InitializationException {
+        runner = TestRunners.newTestRunner(TestAzureAdxIngestProcessor.class);
+
+        service = new AzureAdxConnectionService();
+        runner.addControllerService("test-good", service);
 
     }
 
     @Test
-    public void testService() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(TestAzureAdxIngestProcessor.class);
-        final AzureAdxConnectionService service = new AzureAdxConnectionService();
-        runner.addControllerService("test-good", service);
-
-        runner.setProperty(service, AzureAdxConnectionService.INGEST_URL, "http://test.com");
-        runner.setProperty(service, AzureAdxConnectionService.APP_ID, "1234");
-        runner.setProperty(service, AzureAdxConnectionService.APP_KEY, "1234");
-        runner.setProperty(service, AzureAdxConnectionService.APP_TENANT, "1234");
-        runner.enableControllerService(service);
+    public void testValidWithURIandDBAccessKey() {
+        configureIngestURL();
+        configureAppId();
+        configureAppKey();
+        configureAppTenant();
 
         runner.assertValid(service);
+    }
+
+    private void configureIngestURL() {
+        runner.setProperty(service, AzureAdxConnectionService.INGEST_URL, MOCK_URI);
+    }
+
+    private void configureAppId() {
+        runner.setProperty(service, AzureAdxConnectionService.APP_ID, MOCK_APP_ID);
+    }
+
+    private void configureAppKey() {
+        runner.setProperty(service, AzureAdxConnectionService.APP_KEY, MOCK_APP_KEY);
+    }
+
+    private void configureAppTenant() {
+        runner.setProperty(service, AzureAdxConnectionService.APP_TENANT, MOCK_APP_TENANT);
+    }
+
+    @Test
+    public void testCreateIngestClient(){
+
     }
 
 }

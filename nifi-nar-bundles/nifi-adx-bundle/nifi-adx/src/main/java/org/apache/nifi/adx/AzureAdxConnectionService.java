@@ -18,10 +18,12 @@ package org.apache.nifi.adx;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
+
+import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -74,22 +76,20 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> properties;
-
-    static {
-        final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(INGEST_URL);
-        props.add(APP_ID);
-        props.add(APP_KEY);
-        props.add(APP_TENANT);
-        properties = Collections.unmodifiableList(props);
-    }
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(
+            Arrays.asList(
+                    INGEST_URL,
+                    APP_ID,
+                    APP_KEY,
+                    APP_TENANT
+            )
+    );
 
     private IngestClient _ingestClient;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTY_DESCRIPTORS;
     }
 
     /**
@@ -99,7 +99,7 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
      *             if unable to create a database connection
      */
     @OnEnabled
-    public void onEnabled(final ConfigurationContext context) throws InitializationException {
+    public void onEnabled(final ConfigurationContext context) throws ProcessException {
         ComponentLog log = getLogger();
 
         log.info("Starting Azure ADX Connection Service...");
@@ -129,33 +129,22 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
         }
     }
 
-    @OnDisabled
-    public void shutdown() {
-
-    }
-
     @Override
     public void execute() throws ProcessException {
 
     }
 
-    protected IngestClient createAdxClient(String ingestUrl, String appId, String appKey, String appTenant)
-    {
-        IngestClient client;
 
-        try {
-            ConnectionStringBuilder csb =
-                    ConnectionStringBuilder.createWithAadApplicationCredentials(ingestUrl, appId, appKey, appTenant);
+    protected IngestClient createAdxClient(final String ingestUrl,final String appId,final String appKey,final String appTenant) {
+        IngestClient client;
+        ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(ingestUrl, appId, appKey, appTenant);
 
             try {
                 client = IngestClientFactory.createClient(csb);
             } catch (Exception e) {
+                getLogger().error("Exception occured while creation of ADX client");
                 throw new ProcessException(e);
             }
-
-        } catch (Exception e) {
-            throw new ProcessException(e);
-        }
 
         return client;
     }

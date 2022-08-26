@@ -16,24 +16,71 @@
  */
 package org.apache.nifi.processors.adx;
 
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.apache.nifi.adx.AzureAdxConnectionService;
+import org.apache.nifi.mock.MockComponentLogger;
+import org.apache.nifi.util.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.concurrent.atomic.AtomicLong;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 
 public class AzureAdxIngestProcessorTest {
 
     private TestRunner testRunner;
 
-    @Before
-    public void init() {
-        testRunner = TestRunners.newTestRunner(AzureAdxIngestProcessor.class);
+    private AzureAdxIngestProcessor azureAdxIngestProcessor;
+
+    private MockProcessContext mockProcessContext;
+
+    private MockProcessSession mockProcessSession;
+
+    private MockComponentLog mockComponentLog;
+
+    private static final String MOCK_DB_NAME= "mockDBName";
+
+    private static final String MOCK_TABLE_NAME= "mockTableName";
+
+    private static final String MOCK_MAPPING_NAME= "mockMappingName";
+
+
+    private AzureAdxIngestProcessorTest adxIngestProcessorTest;
+
+    @BeforeEach
+    public void setup() {
+        adxIngestProcessorTest = new AzureAdxIngestProcessorTest();
+        azureAdxIngestProcessor = new MockAzureAdxIngestProcessor();
+        mockProcessContext = new MockProcessContext(azureAdxIngestProcessor);
+        mockProcessContext.setProperty(AzureAdxIngestProcessor.DB_NAME,MOCK_DB_NAME);
+        mockProcessContext.setProperty(AzureAdxIngestProcessor.TABLE_NAME,MOCK_DB_NAME);
+
+        SharedSessionState sharedState = new SharedSessionState(azureAdxIngestProcessor, new AtomicLong(0));
+
+        mockProcessSession = new MockProcessSession(sharedState,azureAdxIngestProcessor);
+
+        testRunner = TestRunners.newTestRunner(AzureAdxIngestProcessor.class,mockComponentLog);
     }
 
     @Test
-    public void testProcessor() {
+    public void testAzureAdxIngestProcessor() {
+        setup();
+        azureAdxIngestProcessor.onTrigger(mockProcessContext,mockProcessSession);
+
+
+
+        //TestVerification.assertDatatFlowMetrics(collectedMetrics);
+    }
+
+    class MockAzureAdxIngestProcessor extends AzureAdxIngestProcessor{
+
+        AzureAdxConnectionService azureAdxConnectionService = mock(AzureAdxConnectionService.class);
+
 
     }
+
+
 
 }
