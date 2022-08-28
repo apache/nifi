@@ -22,15 +22,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
-import java.net.URI;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -58,25 +50,35 @@ import org.apache.nifi.web.client.api.HttpResponseStatus;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
 @PrimaryNodeOnly
 @TriggerSerially
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"hubspot"})
 @CapabilityDescription("Retrieves JSON data from a private HubSpot application."
-        + " Supports incremental retrieval: Users can set the \"limit\" property which serves as the upper limit of the retrieved objects."
-        + " When this property is set the processor will retrieve new records. This processor is intended to be run on the Primary Node only.")
+        + " Configuring the Result Limit property enables incremental retrieval of results. When this property is set the processor will"
+        + " retrieve new records. This processor is intended to be run on the Primary Node only.")
 @Stateful(scopes = Scope.CLUSTER, description = "When the 'Limit' attribute is set, the paging cursor is saved after executing a request."
-        + " Only the objects after the paging cursor will be retrieved. The maximum number of retrieved objects is the 'Limit' attribute."
-        + " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected,"
-        + " the new node can pick up where the previous node left off, without duplicating the data.")
+        + " Only the objects after the paging cursor will be retrieved. The maximum number of retrieved objects is the 'Limit' attribute.")
 @DefaultSettings(yieldDuration = "10 sec")
 public class GetHubSpot extends AbstractProcessor {
 
-    static final PropertyDescriptor CRM_ENDPOINT = new PropertyDescriptor.Builder()
-            .name("crm-endpoint")
-            .displayName("HubSpot CRM API Endpoint")
-            .description("The HubSpot CRM API endpoint to which the Processor will send requests")
+    static final PropertyDescriptor OBJECT_TYPE = new PropertyDescriptor.Builder()
+            .name("object-type")
+            .displayName("Object Type")
+            .description("The HubSpot Object Type requested")
             .required(true)
             .allowableValues(CrmEndpoint.class)
             .build();
@@ -91,12 +93,12 @@ public class GetHubSpot extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
-    static final PropertyDescriptor LIMIT = new PropertyDescriptor.Builder()
-            .name("crm-limit")
-            .displayName("Limit")
+    static final PropertyDescriptor RESULT_LIMIT = new PropertyDescriptor.Builder()
+            .name("result-limit")
+            .displayName("Result Limit")
             .description("The maximum number of results to request for each invocation of the Processor")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .required(true)
+            .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -124,9 +126,9 @@ public class GetHubSpot extends AbstractProcessor {
     private volatile WebClientServiceProvider webClientServiceProvider;
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
-            CRM_ENDPOINT,
+            OBJECT_TYPE,
             ACCESS_TOKEN,
-            LIMIT,
+            RESULT_LIMIT,
             WEB_CLIENT_SERVICE_PROVIDER
     ));
 
@@ -150,7 +152,7 @@ public class GetHubSpot extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final String accessToken = context.getProperty(ACCESS_TOKEN).getValue();
-        final String endpoint = context.getProperty(CRM_ENDPOINT).getValue();
+        final String endpoint = context.getProperty(OBJECT_TYPE).getValue();
 
         final StateMap state = getStateMap(context);
         final URI uri = createUri(context, state);
@@ -167,14 +169,21 @@ public class GetHubSpot extends AbstractProcessor {
                 getLogger().debug("Empty response when requested HubSpot endpoint: [{}]", endpoint);
                 session.remove(flowFile);
             }
-        } else if (response.statusCode() >= 400) {
-            if (response.statusCode() == TOO_MANY_REQUESTS) {
-                context.yield();
-                throw new ProcessException(String.format("Rate limit exceeded, yielding before retrying request. HTTP %d error for requested URI [%s]", response.statusCode(), uri));
-            } else {
-                getLogger().warn("HTTP {} error for requested URI [{}]", response.statusCode(), uri);
-                context.yield();
-            }
+        } else if (response.statusCode() == TOO_MANY_REQUESTS) {
+            context.yield();
+            throw new ProcessException(String.format("Rate limit exceeded, yielding before retrying request. HTTP %d error for requested URI [%s]", response.statusCode(), uri));
+        } else {
+            final String responseBody = getResponseBodyAsString(context, response, uri);
+            getLogger().warn("HTTP {} error for requested URI [{}] with response [{}]", response.statusCode(), uri, responseBody);
+        }
+    }
+
+    private String getResponseBodyAsString(final ProcessContext context, final HttpResponseEntity response, final URI uri) {
+        try {
+            return IOUtils.toString(response.body(), StandardCharsets.UTF_8.name());
+        } catch (IOException e) {
+            context.yield();
+            throw new UncheckedIOException(String.format("Reading HTTP response body for requested URI [%s] failed", uri), e);
         }
     }
 
@@ -203,7 +212,7 @@ public class GetHubSpot extends AbstractProcessor {
     }
 
     HttpUriBuilder getBaseUri(final ProcessContext context) {
-        final String path = context.getProperty(CRM_ENDPOINT).getValue();
+        final String path = context.getProperty(OBJECT_TYPE).getValue();
         return webClientServiceProvider.getHttpUriBuilder()
                 .scheme(HTTPS)
                 .host(API_BASE_URI)
@@ -219,12 +228,12 @@ public class GetHubSpot extends AbstractProcessor {
     }
 
     private URI createUri(final ProcessContext context, final StateMap state) {
-        final String path = context.getProperty(CRM_ENDPOINT).getValue();
+        final String path = context.getProperty(OBJECT_TYPE).getValue();
         final HttpUriBuilder uriBuilder = getBaseUri(context);
 
-        final boolean isLimitSet = context.getProperty(LIMIT).evaluateAttributeExpressions().isSet();
+        final boolean isLimitSet = context.getProperty(RESULT_LIMIT).evaluateAttributeExpressions().isSet();
         if (isLimitSet) {
-            final String limit = context.getProperty(LIMIT).getValue();
+            final String limit = context.getProperty(RESULT_LIMIT).getValue();
             uriBuilder.addQueryParameter(LIMIT_PARAMETER, limit);
         }
 

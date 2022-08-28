@@ -70,8 +70,8 @@ class GetHubSpotTest {
 
         runner.setProperty(GetHubSpot.WEB_CLIENT_SERVICE_PROVIDER, standardWebClientServiceProvider.getIdentifier());
         runner.setProperty(GetHubSpot.ACCESS_TOKEN, "testToken");
-        runner.setProperty(GetHubSpot.CRM_ENDPOINT, CrmEndpoint.COMPANIES.getValue());
-        runner.setProperty(GetHubSpot.LIMIT, "1");
+        runner.setProperty(GetHubSpot.OBJECT_TYPE, CrmEndpoint.COMPANIES.getValue());
+        runner.setProperty(GetHubSpot.RESULT_LIMIT, "1");
     }
 
     @AfterEach
