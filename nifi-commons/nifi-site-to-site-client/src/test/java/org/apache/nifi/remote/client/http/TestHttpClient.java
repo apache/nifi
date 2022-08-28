@@ -1068,7 +1068,7 @@ public class TestHttpClient {
 
             assertNotNull(transaction);
 
-            serverChecksum = "1071206772";
+            serverChecksum = "40272532";
 
 
             for (int i = 0; i < 20; i++) {
@@ -1102,7 +1102,7 @@ public class TestHttpClient {
 
             assertNotNull(transaction);
 
-            serverChecksum = "3882825556";
+            serverChecksum = "3203143366";
 
 
             for (int i = 0; i < 3; i++) {
