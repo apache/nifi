@@ -80,11 +80,6 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
                     .description("A flowfile will be routed here for each File for which fetch was attempted but failed.")
                     .build();
 
-    public static final Relationship REL_INPUT_FAILURE =
-            new Relationship.Builder().name("input_failure")
-                    .description("The incoming flowfile will be routed here if it's content could not be processed.")
-                    .build();
-
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE,
             FILE_ID,
@@ -93,8 +88,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
 
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             REL_SUCCESS,
-            REL_FAILURE,
-            REL_INPUT_FAILURE
+            REL_FAILURE
     )));
 
     private volatile Drive driveService;

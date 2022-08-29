@@ -57,7 +57,6 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
 
         // THEN
         testRunner.assertTransferCount(FetchGoogleDrive.REL_FAILURE, 0);
-        testRunner.assertTransferCount(FetchGoogleDrive.REL_INPUT_FAILURE, 0);
 
         checkAttributes(FetchGoogleDrive.REL_SUCCESS, expectedAttributes);
         checkContent(FetchGoogleDrive.REL_SUCCESS, expectedContent);
@@ -84,7 +83,6 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
 
         // THEN
         testRunner.assertTransferCount(FetchGoogleDrive.REL_SUCCESS, 0);
-        testRunner.assertTransferCount(FetchGoogleDrive.REL_INPUT_FAILURE, 0);
 
         checkAttributes(FetchGoogleDrive.REL_FAILURE, expectedFailureAttributes);
     }
@@ -128,7 +126,6 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
 
         // THEN
         testRunner.assertTransferCount(FetchGoogleDrive.REL_SUCCESS, 0);
-        testRunner.assertTransferCount(FetchGoogleDrive.REL_INPUT_FAILURE, 0);
 
         checkAttributes(FetchGoogleDrive.REL_FAILURE, expectedFailureAttributes);
     }
