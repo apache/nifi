@@ -88,6 +88,7 @@ import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -600,7 +601,7 @@ public class TestHttpClient {
     }
 
     private static class DataPacketBuilder {
-        private final Map<String, String> attributes = new HashMap<>();
+        private final Map<String, String> attributes = new LinkedHashMap<>();
         private String contents;
 
         private DataPacketBuilder attr(final String k, final String v) {
@@ -803,7 +804,7 @@ public class TestHttpClient {
     private void testSend(SiteToSiteClient client) throws Exception {
 
         testSendIgnoreProxyError(client, transaction -> {
-            serverChecksum = "1071206772";
+            serverChecksum = "40272532";
 
             for (int i = 0; i < 20; i++) {
                 DataPacket packet = new DataPacketBuilder()
@@ -1380,3 +1381,4 @@ public class TestHttpClient {
         tlsConfiguration = new TemporaryKeyStoreBuilder().build();
     }
 }
+
