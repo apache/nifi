@@ -47,7 +47,7 @@ public interface Record {
     boolean isDropUnknownFields();
 
     /**
-     * Updates the Record's schema to to incorporate all of the fields in the given schema. If both schemas have a
+     * Updates the Record's schema to incorporate all of the fields in the given schema. If both schemas have a
      * field with the same name but a different type, then the existing schema will be updated to have a
      * {@link RecordFieldType#CHOICE} field with both types as choices. If two fields have the same name but different
      * default values, then the default value that is already in place will remain the default value, unless the current

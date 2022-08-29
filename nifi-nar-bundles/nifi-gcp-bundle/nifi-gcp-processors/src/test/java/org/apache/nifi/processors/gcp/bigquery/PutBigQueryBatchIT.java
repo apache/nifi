@@ -32,6 +32,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * @deprecated {@link PutBigQueryIT} is covering the needed validation for the new class.
+ */
+@Deprecated
 public class PutBigQueryBatchIT extends AbstractBigQueryIT {
 
     private static final String TABLE_SCHEMA_STRING = "[\n" +

@@ -63,6 +63,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * A processor for batch loading data into a Google BigQuery table
+ * @deprecated use {@link PutBigQuery} instead which uses the Write API
  */
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({ "google", "google cloud", "bq", "bigquery" })
@@ -79,6 +80,7 @@ import java.util.concurrent.TimeUnit;
         @WritesAttribute(attribute = BigQueryAttributes.JOB_ERROR_LOCATION_ATTR, description = BigQueryAttributes.JOB_ERROR_LOCATION_DESC),
         @WritesAttribute(attribute = BigQueryAttributes.JOB_NB_RECORDS_ATTR, description = BigQueryAttributes.JOB_NB_RECORDS_DESC)
 })
+@Deprecated
 public class PutBigQueryBatch extends AbstractBigQueryProcessor {
 
     private static final List<String> TYPES = Arrays.asList(FormatOptions.json().getType(), FormatOptions.csv().getType(), FormatOptions.avro().getType());

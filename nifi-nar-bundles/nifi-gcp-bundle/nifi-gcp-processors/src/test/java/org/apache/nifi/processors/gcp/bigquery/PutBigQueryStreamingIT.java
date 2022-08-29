@@ -47,6 +47,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * @deprecated {@link PutBigQueryIT} is covering the needed validation for the new class.
+ */
+@Deprecated
 public class PutBigQueryStreamingIT extends AbstractBigQueryIT {
 
     private Schema schema;
@@ -260,8 +264,8 @@ public class PutBigQueryStreamingIT extends AbstractBigQueryIT {
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, recordSchema);
         runner.setProperty(jsonReader, DateTimeUtils.DATE_FORMAT, "MM/dd/yyyy");
-        runner.setProperty(jsonReader, DateTimeUtils.TIME_FORMAT, "HH:mm:ss");
-        runner.setProperty(jsonReader, DateTimeUtils.TIMESTAMP_FORMAT, "MM-dd-yyyy HH:mm:ss");
+        runner.setProperty(jsonReader, DateTimeUtils.TIME_FORMAT, "HH:mm:ss Z");
+        runner.setProperty(jsonReader, DateTimeUtils.TIMESTAMP_FORMAT, "MM-dd-yyyy HH:mm:ss Z");
         runner.enableControllerService(jsonReader);
 
         runner.setProperty(BigQueryAttributes.RECORD_READER_ATTR, "reader");

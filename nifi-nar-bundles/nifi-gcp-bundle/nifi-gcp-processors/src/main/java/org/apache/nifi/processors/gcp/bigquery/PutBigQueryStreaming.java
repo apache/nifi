@@ -67,6 +67,8 @@ import java.util.Map;
  * output table to periodically clean these rare duplicates. Alternatively, using the Batch insert
  * method does guarantee no duplicates, though the latency for the insert into BigQuery will be much
  * higher.
+ *
+ * @deprecated use {@link PutBigQuery} instead which uses the Write API
  */
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({ "google", "google cloud", "bq", "gcp", "bigquery", "record" })
@@ -78,7 +80,11 @@ import java.util.Map;
 @WritesAttributes({
         @WritesAttribute(attribute = BigQueryAttributes.JOB_NB_RECORDS_ATTR, description = BigQueryAttributes.JOB_NB_RECORDS_DESC)
 })
+@Deprecated
 public class PutBigQueryStreaming extends AbstractBigQueryProcessor {
+
+    private static final DateTimeFormatter timestampFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
+    private static final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSS");
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name(BigQueryAttributes.RECORD_READER_ATTR)
@@ -97,9 +103,6 @@ public class PutBigQueryStreaming extends AbstractBigQueryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("false")
             .build();
-
-    private static final DateTimeFormatter timestampFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
-    private static final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSS");
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -182,8 +185,8 @@ public class PutBigQueryStreaming extends AbstractBigQueryProcessor {
             if (obj instanceof MapRecord) {
                 result.put(key, convertMapRecord(((MapRecord) obj).toMap()));
             } else if (obj instanceof Object[]
-                    && ((Object[]) obj).length > 0
-                    && ((Object[]) obj)[0] instanceof MapRecord) {
+                && ((Object[]) obj).length > 0
+                && ((Object[]) obj)[0] instanceof MapRecord) {
                 List<Map<String, Object>> lmapr = new ArrayList<Map<String, Object>>();
                 for (Object mapr : ((Object[]) obj)) {
                     lmapr.add(convertMapRecord(((MapRecord) mapr).toMap()));
@@ -198,7 +201,7 @@ public class PutBigQueryStreaming extends AbstractBigQueryProcessor {
                 // ZoneOffset.UTC time zone is necessary due to implicit time zone conversion in Record Readers from
                 // the local system time zone to the GMT time zone
                 LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(((Time) obj).getTime()), ZoneOffset.UTC);
-                result.put(key, dateTime.format(timeFormatter) );
+                result.put(key, dateTime.format(timeFormatter));
             } else if (obj instanceof Date) {
                 result.put(key, obj.toString());
             } else {
