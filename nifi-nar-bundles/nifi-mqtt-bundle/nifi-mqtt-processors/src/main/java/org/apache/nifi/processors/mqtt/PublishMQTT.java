@@ -206,7 +206,7 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
     @Override
     public void connectionLost(Throwable cause) {
-        logger.error("Connection to {} lost due to: {}", new Object[]{clientProperties.getBroker(), cause.getMessage()}, cause);
+        logger.error("Connection to {} lost", clientProperties.getBroker(), cause);
     }
 
     @Override
@@ -219,7 +219,7 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
     @Override
     public void deliveryComplete(String token) {
         // Client.publish waits for message to be delivered so this token will always have a null message and is useless in this application.
-        logger.trace("Received 'delivery complete' message from broker for:" + token);
+        logger.trace("Received 'delivery complete' message from broker. Token: [{}]", token);
     }
 
 }

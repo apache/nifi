@@ -295,13 +295,13 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
         final boolean writerIsSet = context.getProperty(RECORD_WRITER).isSet();
         if ((readerIsSet && !writerIsSet) || (!readerIsSet && writerIsSet)) {
             results.add(new ValidationResult.Builder().subject("Reader and Writer").valid(false)
-                    .explanation("Both Record Reader and Writer must be set when used").build());
+                    .explanation("both Record Reader and Writer must be set when used.").build());
         }
 
         final boolean demarcatorIsSet = context.getProperty(MESSAGE_DEMARCATOR).isSet();
         if (readerIsSet && demarcatorIsSet) {
             results.add(new ValidationResult.Builder().subject("Reader and Writer").valid(false)
-                    .explanation("You cannot use both a demarcator and a Reader/Writer").build());
+                    .explanation("Message Demarcator and Record Reader/Writer cannot be used at the same time.").build());
         }
 
         return results;
@@ -635,7 +635,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
     @Override
     public void connectionLost(Throwable cause) {
-        logger.error("Connection to {} lost due to: {}", new Object[]{clientProperties.getBroker(), cause.getMessage()}, cause);
+        logger.error("Connection to {} lost", clientProperties.getBroker(), cause);
     }
 
     @Override
@@ -663,6 +663,6 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
     public void deliveryComplete(String token) {
         // Unlikely situation. Api uses the same callback for publisher and consumer as well.
         // That's why we have this log message here to indicate something really messy thing happened.
-        logger.error("Received MQTT 'delivery complete' message to subscriber: " + token);
+        logger.error("Received MQTT 'delivery complete' message to subscriber. Token: [{}]", token);
     }
 }

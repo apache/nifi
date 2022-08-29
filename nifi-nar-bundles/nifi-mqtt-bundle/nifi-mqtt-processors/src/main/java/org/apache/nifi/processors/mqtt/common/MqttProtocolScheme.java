@@ -16,15 +16,9 @@
  */
 package org.apache.nifi.processors.mqtt.common;
 
-import java.util.Arrays;
-
 public enum MqttProtocolScheme {
     TCP,
     SSL,
     WS,
-    WSS;
-
-    public static String getValuesAsString(String delimiter) {
-        return String.join(delimiter, Arrays.stream(values()).map(value -> value.name().toLowerCase()).toArray(String[]::new));
-    }
+    WSS
 }

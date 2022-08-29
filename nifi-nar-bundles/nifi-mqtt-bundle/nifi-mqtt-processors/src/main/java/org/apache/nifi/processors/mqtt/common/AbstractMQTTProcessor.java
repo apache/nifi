@@ -37,6 +37,7 @@ import org.apache.nifi.ssl.SSLContextService;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -70,7 +71,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
     public static final Validator QOS_VALIDATOR = (subject, input, context) -> {
         Integer inputInt = Integer.parseInt(input);
         if (inputInt < 0 || inputInt > 2) {
-            return new ValidationResult.Builder().subject(subject).valid(false).explanation("QoS must be an integer between 0 and 2").build();
+            return new ValidationResult.Builder().subject(subject).valid(false).explanation("QoS must be an integer between 0 and 2.").build();
         }
         return new ValidationResult.Builder().subject(subject).valid(true).build();
     };
@@ -79,17 +80,21 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         try {
             URI brokerURI = new URI(input);
             if (!EMPTY.equals(brokerURI.getPath())) {
-                return new ValidationResult.Builder().subject(subject).valid(false).explanation("the broker URI cannot have a path. It currently is:" + brokerURI.getPath()).build();
+                return new ValidationResult.Builder().subject(subject).valid(false).explanation("the broker URI cannot have a path. It currently is: " + brokerURI.getPath()).build();
             }
             if (!isValidEnumIgnoreCase(MqttProtocolScheme.class, brokerURI.getScheme())) {
                 return new ValidationResult.Builder().subject(subject).valid(false)
-                        .explanation("invalid scheme! supported schemes are: " + MqttProtocolScheme.getValuesAsString(", ")).build();
+                        .explanation("scheme is invalid. Supported schemes are: " + getSupportedSchemeList()).build();
             }
         } catch (URISyntaxException e) {
             return new ValidationResult.Builder().subject(subject).valid(false).explanation("it is not valid URI syntax.").build();
         }
         return new ValidationResult.Builder().subject(subject).valid(true).build();
     };
+
+    private static String getSupportedSchemeList() {
+        return String.join(", ", Arrays.stream(MqttProtocolScheme.values()).map(value -> value.name().toLowerCase()).toArray(String[]::new));
+    }
 
     public static final Validator RETAIN_VALIDATOR = (subject, input, context) -> {
         if ("true".equalsIgnoreCase(input) || "false".equalsIgnoreCase(input)) {
@@ -253,7 +258,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         final boolean passwordSet = validationContext.getProperty(PROP_PASSWORD).isSet();
 
         if ((usernameSet && !passwordSet) || (!usernameSet && passwordSet)) {
-            results.add(new ValidationResult.Builder().subject("Username and Password").valid(false).explanation("if username or password is set, both must be set").build());
+            results.add(new ValidationResult.Builder().subject("Username and Password").valid(false).explanation("if username or password is set, both must be set.").build());
         }
 
         final boolean lastWillTopicSet = validationContext.getProperty(PROP_LAST_WILL_TOPIC).isSet();
@@ -297,14 +302,14 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
                 logger.info("Disconnecting client");
                 mqttClient.disconnect();
             } catch (Exception e) {
-                logger.error("Error disconnecting MQTT client due to {}", new Object[]{e.getMessage()}, e);
+                logger.error("Error disconnecting MQTT client", e);
             }
 
             try {
                 logger.info("Closing client");
                 mqttClient.close();
             } catch (Exception e) {
-                logger.error("Error closing MQTT client due to {}", new Object[]{e.getMessage()}, e);
+                logger.error("Error closing MQTT client", e);
             }
 
             mqttClient = null;
@@ -344,7 +349,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         try {
             clientProperties.setBrokerUri(new URI(context.getProperty(PROP_BROKER_URI).evaluateAttributeExpressions().getValue()));
         } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException("Invalid Broker URI", e);
         }
 
         String clientId = context.getProperty(PROP_CLIENTID).evaluateAttributeExpressions().getValue();
@@ -363,7 +368,8 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
         final PropertyValue sslProp = context.getProperty(PROP_SSL_CONTEXT_SERVICE);
         if (sslProp.isSet()) {
-            clientProperties.setSslContextService((SSLContextService) sslProp.asControllerService());
+            final SSLContextService sslContextService = (SSLContextService) sslProp.asControllerService();
+            clientProperties.setTlsConfiguration(sslContextService.createTlsConfiguration());
         }
 
         clientProperties.setLastWillTopic(context.getProperty(PROP_LAST_WILL_TOPIC).getValue());

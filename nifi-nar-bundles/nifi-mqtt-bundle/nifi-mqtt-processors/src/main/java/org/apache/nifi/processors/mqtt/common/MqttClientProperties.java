@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.mqtt.common;
 
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.security.util.TlsConfiguration;
 
 import java.net.URI;
 
@@ -32,7 +32,7 @@ public class MqttClientProperties {
     private boolean cleanSession;
     private Long sessionExpiryInterval;
 
-    private SSLContextService sslContextService;
+    private TlsConfiguration tlsConfiguration;
 
     private String lastWillTopic;
     private String lastWillMessage;
@@ -106,12 +106,12 @@ public class MqttClientProperties {
         this.sessionExpiryInterval = sessionExpiryInterval;
     }
 
-    public SSLContextService getSslContextService() {
-        return sslContextService;
+    public TlsConfiguration getTlsConfiguration() {
+        return tlsConfiguration;
     }
 
-    public void setSslContextService(SSLContextService sslContextService) {
-        this.sslContextService = sslContextService;
+    public void setTlsConfiguration(TlsConfiguration tlsConfiguration) {
+        this.tlsConfiguration = tlsConfiguration;
     }
 
     public String getLastWillTopic() {

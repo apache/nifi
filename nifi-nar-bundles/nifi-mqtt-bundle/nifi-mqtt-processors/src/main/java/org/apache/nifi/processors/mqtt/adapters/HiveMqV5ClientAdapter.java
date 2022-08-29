@@ -144,7 +144,7 @@ public class HiveMqV5ClientAdapter implements MqttClient {
         // should happen in a blocking way to make sure the processor is blocked until ack is not arrived.
         try {
             Mqtt5SubAck ack = futureAck.get(clientProperties.getConnectionTimeout(), TimeUnit.SECONDS);
-            logger.debug("Received mqtt5 subscribe ack: {}", ack.toString());
+            logger.debug("Received mqtt5 subscribe ack: {}", ack);
         } catch (Exception e) {
             throw new MqttException("An error has occurred during sending subscribe message to broker", e);
         }
@@ -173,24 +173,24 @@ public class HiveMqV5ClientAdapter implements MqttClient {
         }
 
         if (SSL.equals(clientProperties.getScheme())) {
-            if (clientProperties.getSslContextService().getTrustStoreFile() != null) {
+            if (clientProperties.getTlsConfiguration().getTruststorePath() != null) {
                 mqtt5ClientBuilder
                         .sslConfig()
                         .trustManagerFactory(KeyStoreUtils.loadTrustManagerFactory(
-                                clientProperties.getSslContextService().getTrustStoreFile(),
-                                clientProperties.getSslContextService().getTrustStorePassword(),
-                                clientProperties.getSslContextService().getTrustStoreType()))
+                                clientProperties.getTlsConfiguration().getTruststorePath(),
+                                clientProperties.getTlsConfiguration().getTruststorePassword(),
+                                clientProperties.getTlsConfiguration().getTruststoreType().getType()))
                         .applySslConfig();
             }
 
-            if (clientProperties.getSslContextService().getKeyStoreFile() != null) {
+            if (clientProperties.getTlsConfiguration().getKeystorePath() != null) {
                 mqtt5ClientBuilder
                         .sslConfig()
                         .keyManagerFactory(KeyStoreUtils.loadKeyManagerFactory(
-                                clientProperties.getSslContextService().getKeyStoreFile(),
-                                clientProperties.getSslContextService().getKeyStorePassword(),
+                                clientProperties.getTlsConfiguration().getKeystorePath(),
+                                clientProperties.getTlsConfiguration().getKeystorePassword(),
                                 null,
-                                clientProperties.getSslContextService().getKeyStoreType()))
+                                clientProperties.getTlsConfiguration().getKeystoreType().getType()))
                         .applySslConfig();
             }
         }

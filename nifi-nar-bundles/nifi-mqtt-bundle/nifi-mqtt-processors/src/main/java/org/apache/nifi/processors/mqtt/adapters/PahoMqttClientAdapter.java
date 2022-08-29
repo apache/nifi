@@ -17,13 +17,13 @@
 package org.apache.nifi.processors.mqtt.adapters;
 
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processors.mqtt.common.MqttClientProperties;
 import org.apache.nifi.processors.mqtt.common.MqttCallback;
 import org.apache.nifi.processors.mqtt.common.MqttClient;
+import org.apache.nifi.processors.mqtt.common.MqttClientProperties;
 import org.apache.nifi.processors.mqtt.common.MqttException;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
 import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.eclipse.paho.client.mqttv3.IMqttClient;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
@@ -63,9 +63,9 @@ public class PahoMqttClientAdapter implements MqttClient {
             connectOptions.setMqttVersion(clientProperties.getMqttVersion().getVersionCode());
             connectOptions.setConnectionTimeout(clientProperties.getConnectionTimeout());
 
-            final SSLContextService sslContextService = clientProperties.getSslContextService();
-            if (sslContextService != null) {
-                connectOptions.setSSLProperties(transformSSLContextService(sslContextService));
+            final TlsConfiguration tlsConfiguration = clientProperties.getTlsConfiguration();
+            if (tlsConfiguration != null) {
+                connectOptions.setSSLProperties(transformSSLContextService(tlsConfiguration));
             }
 
             final String lastWillTopic = clientProperties.getLastWillTopic();
@@ -152,28 +152,28 @@ public class PahoMqttClientAdapter implements MqttClient {
         });
     }
 
-    public static Properties transformSSLContextService(SSLContextService sslContextService) {
+    public static Properties transformSSLContextService(TlsConfiguration tlsConfiguration) {
         final Properties properties = new Properties();
-        if (sslContextService.getSslAlgorithm() != null) {
-            properties.setProperty("com.ibm.ssl.protocol", sslContextService.getSslAlgorithm());
+        if (tlsConfiguration.getProtocol() != null) {
+            properties.setProperty("com.ibm.ssl.protocol", tlsConfiguration.getProtocol());
         }
-        if (sslContextService.getKeyStoreFile() != null) {
-            properties.setProperty("com.ibm.ssl.keyStore", sslContextService.getKeyStoreFile());
+        if (tlsConfiguration.getKeystorePath() != null) {
+            properties.setProperty("com.ibm.ssl.keyStore", tlsConfiguration.getKeystorePath());
         }
-        if (sslContextService.getKeyStorePassword() != null) {
-            properties.setProperty("com.ibm.ssl.keyStorePassword", sslContextService.getKeyStorePassword());
+        if (tlsConfiguration.getKeystorePassword() != null) {
+            properties.setProperty("com.ibm.ssl.keyStorePassword", tlsConfiguration.getKeystorePassword());
         }
-        if (sslContextService.getKeyStoreType() != null) {
-            properties.setProperty("com.ibm.ssl.keyStoreType", sslContextService.getKeyStoreType());
+        if (tlsConfiguration.getKeystoreType() != null) {
+            properties.setProperty("com.ibm.ssl.keyStoreType", tlsConfiguration.getKeystoreType().getType());
         }
-        if (sslContextService.getTrustStoreFile() != null) {
-            properties.setProperty("com.ibm.ssl.trustStore", sslContextService.getTrustStoreFile());
+        if (tlsConfiguration.getTruststorePath() != null) {
+            properties.setProperty("com.ibm.ssl.trustStore", tlsConfiguration.getTruststorePath());
         }
-        if (sslContextService.getTrustStorePassword() != null) {
-            properties.setProperty("com.ibm.ssl.trustStorePassword", sslContextService.getTrustStorePassword());
+        if (tlsConfiguration.getTruststorePassword() != null) {
+            properties.setProperty("com.ibm.ssl.trustStorePassword", tlsConfiguration.getTruststorePassword());
         }
-        if (sslContextService.getTrustStoreType() != null) {
-            properties.setProperty("com.ibm.ssl.trustStoreType", sslContextService.getTrustStoreType());
+        if (tlsConfiguration.getTruststoreType() != null) {
+            properties.setProperty("com.ibm.ssl.trustStoreType", tlsConfiguration.getTruststoreType().getType());
         }
         return  properties;
     }
