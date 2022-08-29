@@ -20,8 +20,6 @@ import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 
 import com.dropbox.core.DbxException;
-import com.dropbox.core.DbxRequestConfig;
-import com.dropbox.core.oauth.DbxCredential;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.ListFolderBuilder;
@@ -45,25 +43,26 @@ import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.dropbox.credentials.service.DropboxCredentialDetails;
-import org.apache.nifi.dropbox.credentials.service.DropboxCredentialService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 @PrimaryNodeOnly
 @TriggerSerially
 @Tags({"dropbox", "storage"})
 @CapabilityDescription("Retrieves a listing of files from Dropbox (shortcuts are ignored)." +
-        " Each listed file may result in one FlowFile, the metadata being written as Flowfile attributes." +
+        " Each listed file may result in one FlowFile, the metadata being written as FlowFile attributes." +
         " When the 'Record Writer' property is set, the entire result is written as records to a single FlowFile." +
         " This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the" +
         " previous node left off without duplicating all of the data.")
@@ -76,8 +75,8 @@ import org.apache.nifi.serialization.record.RecordSchema;
         @WritesAttribute(attribute = DropboxFileInfo.REVISION, description = "Revision of the file")})
 @Stateful(scopes = {Scope.CLUSTER}, description = "The processor stores necessary data to be able to keep track what files have been listed already. " +
         "What exactly needs to be stored depends on the 'Listing Strategy'.")
-public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> {
-
+@SeeAlso(FetchDropbox.class)
+public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implements DropboxTrait {
     public static final PropertyDescriptor FOLDER = new PropertyDescriptor.Builder()
             .name("folder")
             .displayName("Folder")
@@ -109,15 +108,6 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> {
             .defaultValue("0 sec")
             .build();
 
-    public static final PropertyDescriptor CREDENTIAL_SERVICE = new PropertyDescriptor.Builder()
-            .name("dropbox-credential-service")
-            .displayName("Dropbox Credential Service")
-            .description("Controller Service used to obtain Dropbox credentials (App Key, App Secret, Access Token, Refresh Token)." +
-                    " See controller service's Additional Details for more information.")
-            .identifiesControllerService(DropboxCredentialService.class)
-            .required(true)
-            .build();
-
     public static final PropertyDescriptor LISTING_STRATEGY = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AbstractListProcessor.LISTING_STRATEGY)
             .allowableValues(BY_TIMESTAMPS, BY_ENTITIES, BY_TIME_WINDOW, NO_TRACKING)
@@ -147,14 +137,17 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> {
             TRACKING_STATE_CACHE,
             TRACKING_TIME_WINDOW,
             INITIAL_LISTING_TARGET,
-            RECORD_WRITER
+            RECORD_WRITER,
+            ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxySpec.HTTP_AUTH)
     ));
 
     private DbxClientV2 dropboxApiClient;
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        dropboxApiClient = getDropboxApiClient(context);
+        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
+        String dropboxClientId = format("%s-%s", getClass().getSimpleName(), getIdentifier());
+        dropboxApiClient = getDropboxApiClient(context, proxyConfiguration, dropboxClientId);
     }
 
     @Override
@@ -179,15 +172,6 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> {
     @Override
     protected String getPath(final ProcessContext context) {
         return context.getProperty(FOLDER).evaluateAttributeExpressions().getValue();
-    }
-
-    protected DbxClientV2 getDropboxApiClient(ProcessContext context) {
-        final DropboxCredentialService credentialService = context.getProperty(CREDENTIAL_SERVICE)
-                .asControllerService(DropboxCredentialService.class);
-        DbxRequestConfig config = new DbxRequestConfig(format("%s-%s", getClass().getSimpleName(), getIdentifier()));
-        DropboxCredentialDetails credential = credentialService.getDropboxCredential();
-        return new DbxClientV2(config, new DbxCredential(credential.getAccessToken(), -1L,
-                credential.getRefreshToken(), credential.getAppKey(), credential.getAppSecret()));
     }
 
     @Override
