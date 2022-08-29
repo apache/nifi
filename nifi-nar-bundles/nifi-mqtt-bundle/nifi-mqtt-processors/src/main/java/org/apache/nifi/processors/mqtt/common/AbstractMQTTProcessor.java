@@ -56,7 +56,7 @@ import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VAL
 
 public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProcessor {
 
-    private static final long DEFAULT_SESSION_EXPIRY_INTERVAL_IN_SECONDS = 3600;
+    private static final String DEFAULT_SESSION_EXPIRY_INTERVAL = "24 hrs";
 
     protected ComponentLog logger;
 
@@ -203,7 +203,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .dependsOn(PROP_MQTT_VERSION, ALLOWABLE_VALUE_MQTT_VERSION_500)
             .dependsOn(PROP_CLEAN_SESSION, ALLOWABLE_VALUE_CLEAN_SESSION_FALSE)
-            .defaultValue(DEFAULT_SESSION_EXPIRY_INTERVAL_IN_SECONDS + " secs")
+            .defaultValue(DEFAULT_SESSION_EXPIRY_INTERVAL)
             .build();
 
     public static final PropertyDescriptor PROP_CONN_TIMEOUT = new PropertyDescriptor.Builder()
