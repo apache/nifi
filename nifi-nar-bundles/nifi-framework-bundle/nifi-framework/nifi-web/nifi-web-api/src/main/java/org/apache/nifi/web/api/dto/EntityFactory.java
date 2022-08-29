@@ -576,13 +576,12 @@ public final class EntityFactory {
 
     public ParameterProviderReferencingComponentEntity createParameterProviderReferencingComponentEntity(final String id, final ParameterProviderReferencingComponentDTO dto,
                                                                                                          final RevisionDTO revision, final PermissionsDTO permissions,
-                                                                                                         final PermissionsDTO operatePermissions, final List<BulletinDTO> bulletins) {
+                                                                                                         final List<BulletinDTO> bulletins) {
         final ParameterProviderReferencingComponentEntity entity = new ParameterProviderReferencingComponentEntity();
         entity.setId(id);
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
-            entity.setOperatePermissions(operatePermissions);
             entity.setId(dto.getId());
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
@@ -600,12 +599,11 @@ public final class EntityFactory {
     }
 
     public ParameterProviderEntity createParameterProviderEntity(final ParameterProviderDTO dto, final RevisionDTO revision,
-                                                                 final PermissionsDTO permissions, final PermissionsDTO operatePermissions, final List<BulletinEntity> bulletins) {
+                                                                 final PermissionsDTO permissions, final List<BulletinEntity> bulletins) {
         final ParameterProviderEntity entity = new ParameterProviderEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
-            entity.setOperatePermissions(operatePermissions);
             entity.setId(dto.getId());
 
             if (permissions != null && permissions.getCanRead()) {

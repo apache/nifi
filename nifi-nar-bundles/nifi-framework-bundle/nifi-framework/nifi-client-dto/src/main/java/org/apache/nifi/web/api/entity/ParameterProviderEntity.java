@@ -27,10 +27,10 @@ import javax.xml.bind.annotation.XmlRootElement;
  * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a parameter provider.
  */
 @XmlRootElement(name = "parameterProviderEntity")
-public class ParameterProviderEntity extends ComponentEntity implements Permissible<ParameterProviderDTO>, OperationPermissible {
+public class ParameterProviderEntity extends ComponentEntity implements Permissible<ParameterProviderDTO> {
 
     private ParameterProviderDTO component;
-    private PermissionsDTO operatePermissions;
+    private PermissionsDTO permissions;
 
     /**
      * @return parameter provider that is being serialized
@@ -49,15 +49,15 @@ public class ParameterProviderEntity extends ComponentEntity implements Permissi
      * @return The permissions for this component operations
      */
     @ApiModelProperty(
-            value = "The permissions for this component operations."
+            value = "The permissions for this component."
     )
     @Override
-    public PermissionsDTO getOperatePermissions() {
-        return operatePermissions;
+    public PermissionsDTO getPermissions() {
+        return permissions;
     }
 
     @Override
-    public void setOperatePermissions(PermissionsDTO permissions) {
-        this.operatePermissions = permissions;
+    public void setPermissions(PermissionsDTO permissions) {
+        this.permissions = permissions;
     }
 }

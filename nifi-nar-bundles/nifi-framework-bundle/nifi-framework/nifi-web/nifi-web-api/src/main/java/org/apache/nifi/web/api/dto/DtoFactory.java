@@ -1678,12 +1678,7 @@ public final class DtoFactory {
         dto.setMultipleVersionsAvailable(compatibleBundles.size() > 1);
 
         // sort a copy of the properties
-        final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
-            @Override
-            public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
-                return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
-            }
-        });
+        final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>((o1, o2) -> Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName()));
         sortedProperties.putAll(parameterProviderNode.getRawPropertyValues());
 
         // get the property order from the parameter provider
@@ -1729,13 +1724,9 @@ public final class DtoFactory {
 
         final Set<ParameterProviderReferencingComponentEntity> referencingParameterContexts = new HashSet<>();
         for (final ParameterContext parameterContext : parameterProviderNode.getReferences()) {
-            final ParameterProviderReferencingComponentDTO referenceDto = new ParameterProviderReferencingComponentDTO();
-            referenceDto.setName(parameterContext.getName());
-            referenceDto.setId(parameterContext.getIdentifier());
-            final ParameterProviderReferencingComponentEntity referenceEntity = new ParameterProviderReferencingComponentEntity();
-            referenceEntity.setId(parameterContext.getIdentifier());
-            referenceEntity.setComponent(referenceDto);
-
+            final ParameterProviderReferencingComponentDTO referenceDto = createParameterProviderReferencingComponentDTO(parameterContext);
+            final ParameterProviderReferencingComponentEntity referenceEntity = entityFactory.createParameterProviderReferencingComponentEntity(parameterContext.getIdentifier(),
+                    referenceDto, null, createPermissionsDto(parameterContext, NiFiUserUtils.getNiFiUser()), Collections.emptyList());
             referencingParameterContexts.add(referenceEntity);
         }
         if (!referencingParameterContexts.isEmpty()) {

@@ -29,8 +29,8 @@ import java.util.List;
  * which a ParameterContext can be populated.
  *
  * <p>
- * <code>ParameterProvider</code>s are discovered using Java's
- * <code>ServiceLoader</code> mechanism. As a result, all implementations must
+ * <code>ParameterProvider</code>s are discovered following Java's
+ * <code>ServiceLoader</code> pattern. As a result, all implementations must
  * follow these rules:
  *
  * <ul>

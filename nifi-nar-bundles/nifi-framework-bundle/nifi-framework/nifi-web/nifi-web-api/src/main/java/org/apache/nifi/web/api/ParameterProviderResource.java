@@ -765,7 +765,6 @@ public class ParameterProviderResource extends AbstractParameterResource {
                     // authorize parameter provider
                     final ComponentAuthorizable authorizable = lookup.getParameterProvider(fetchParametersEntity.getId());
                     authorizable.getAuthorizable().authorize(authorizer, RequestAction.READ, user);
-                    authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, user);
 
                     references.forEach(reference -> lookup.getParameterContext(reference.getComponent().getId()).authorize(authorizer, RequestAction.READ, user));
                     // Verify READ permission for user, for every component that is currently referenced by relevant parameter contexts
@@ -912,10 +911,15 @@ public class ParameterProviderResource extends AbstractParameterResource {
                 requestWrapper,
                 requestRevision,
                 lookup -> {
-                    // Verify READ and WRITE permissions for user, for the Parameter Provider itself
+                    // Verify READ permissions for user, for the Parameter Provider itself
                     final ComponentAuthorizable parameterProvider = lookup.getParameterProvider(parameterProviderId);
                     parameterProvider.getAuthorizable().authorize(authorizer, RequestAction.READ, user);
-                    parameterProvider.getAuthorizable().authorize(authorizer, RequestAction.WRITE, user);
+
+                    parameterContextUpdates.forEach(context -> {
+                        final Authorizable parameterContext = lookup.getParameterContext(context.getComponent().getId());
+                        parameterContext.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                        parameterContext.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    });
 
                     // Verify READ and WRITE permissions for user, for every component that is affected
                     affectedComponents.forEach(component -> parameterUpdateManager.authorizeAffectedComponent(component, lookup, user, true, true));

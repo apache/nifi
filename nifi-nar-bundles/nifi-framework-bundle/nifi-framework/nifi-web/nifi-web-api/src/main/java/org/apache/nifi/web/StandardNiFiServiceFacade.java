@@ -101,6 +101,7 @@ import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
+import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConfigurableComponent;
 import org.apache.nifi.flow.VersionedConnection;
@@ -141,7 +142,6 @@ import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.registry.flow.RestBasedFlowRegistry;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlow;
@@ -3373,10 +3373,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final ParameterProviderNode parameterProvider = parameterProviderDAO.getParameterProvider(parameterProviderDTO.getId());
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(parameterProvider);
-        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(parameterProvider));
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(parameterProvider.getIdentifier()));
         final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
-        return entityFactory.createParameterProviderEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions, bulletinEntities);
+        return entityFactory.createParameterProviderEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, bulletinEntities);
     }
 
     @Override
@@ -3395,7 +3394,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(parameterProvider));
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(parameterProvider.getIdentifier()));
         final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
-        return entityFactory.createParameterProviderEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions, bulletinEntities);
+        return entityFactory.createParameterProviderEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, bulletinEntities);
     }
 
     @Override
@@ -3422,7 +3421,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 true,
                 dtoFactory.createParameterProviderDto(parameterProvider));
 
-        return entityFactory.createParameterProviderEntity(snapshot, null, permissions, operatePermissions, null);
+        return entityFactory.createParameterProviderEntity(snapshot, null, permissions, null);
     }
 
     @Override
@@ -4847,7 +4846,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(parameterProvider.getIdentifier()));
         final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
         return entityFactory.createParameterProviderEntity(dtoFactory.createParameterProviderDto(parameterProvider),
-                revision, permissions, operatePermissions, bulletinEntities);
+                revision, permissions, bulletinEntities);
     }
 
     @Override
@@ -4899,7 +4898,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Set<ParameterProviderReferencingComponentEntity> componentEntities = new HashSet<>();
         for (final ParameterContext reference : references) {
             final PermissionsDTO permissions = dtoFactory.createPermissionsDto(reference);
-            final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(reference));
 
             final Revision revision = revisions.get(reference.getIdentifier());
             final FlowModification flowMod = new FlowModification(revision, modifier);
@@ -4907,7 +4905,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final ParameterProviderReferencingComponentDTO dto = dtoFactory.createParameterProviderReferencingComponentDTO(reference);
 
             final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(reference.getIdentifier()));
-            componentEntities.add(entityFactory.createParameterProviderReferencingComponentEntity(reference.getIdentifier(), dto, revisionDto, permissions, operatePermissions, bulletins));
+            componentEntities.add(entityFactory.createParameterProviderReferencingComponentEntity(reference.getIdentifier(), dto, revisionDto, permissions, bulletins));
         }
 
         final ParameterProviderReferencingComponentsEntity entity = new ParameterProviderReferencingComponentsEntity();

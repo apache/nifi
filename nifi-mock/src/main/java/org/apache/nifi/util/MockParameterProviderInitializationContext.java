@@ -19,6 +19,7 @@ package org.apache.nifi.util;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
+import org.apache.nifi.kerberos.KerberosContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parameter.ParameterProviderInitializationContext;
 
@@ -32,11 +33,17 @@ public class MockParameterProviderInitializationContext extends MockControllerSe
     private final String name;
     private final Map<PropertyDescriptor, String> properties = new HashMap<>();
     private final ComponentLog logger;
+    private final KerberosContext kerberosContext;
 
     public MockParameterProviderInitializationContext(final String identifier, final String name, final ComponentLog logger) {
+        this(identifier, name, logger, null);
+    }
+
+    public MockParameterProviderInitializationContext(final String identifier, final String name, final ComponentLog logger, final KerberosContext kerberosContext) {
         this.identifier = identifier;
         this.name = name;
         this.logger = logger;
+        this.kerberosContext = kerberosContext;
     }
 
     @Override
@@ -74,16 +81,16 @@ public class MockParameterProviderInitializationContext extends MockControllerSe
 
     @Override
     public String getKerberosServicePrincipal() {
-        return null; //this needs to be wired in.
+        return kerberosContext != null ? kerberosContext.getKerberosServicePrincipal() : null;
     }
 
     @Override
     public File getKerberosServiceKeytab() {
-        return null; //this needs to be wired in.
+        return kerberosContext != null ? kerberosContext.getKerberosServiceKeytab() : null;
     }
 
     @Override
     public File getKerberosConfigurationFile() {
-        return null; //this needs to be wired in.
+        return kerberosContext != null ? kerberosContext.getKerberosConfigurationFile() : null;
     }
 }

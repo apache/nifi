@@ -61,7 +61,7 @@
       <id>fb9b40ce-608f-4a2f-9822-3899f695f699</id>
       <name>ParameterProvider</name>
       <comment/>
-      <class>org.apache.nifi.parameter.mock.DummyParameterProvider</class>
+      <class>org.apache.nifi.parameter.mock.PlaceholderParameterProvider</class>
       <property>
         <name>Controller Service</name>
         <value>ddf22ee5-376a-46dc-a38a-919351124457</value>

@@ -204,7 +204,6 @@ public class FileParameterProvider extends AbstractParameterProvider implements 
                 final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(parameterName).build();
                 parameters.add(new Parameter(parameterDescriptor, parameterValue, null, true));
             } catch (final IOException e) {
-                getLogger().error("Failed to read file [{}]", new Object[] { file }, e);
                 throw new RuntimeException(String.format("Failed to read file [%s]", file), e);
             }
         }

@@ -69,7 +69,7 @@ import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
-import org.apache.nifi.parameter.mock.DummyParameterProvider;
+import org.apache.nifi.parameter.mock.PlaceholderParameterProvider;
 import org.apache.nifi.persistence.FlowConfigurationArchiveManager;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.MockProvenanceRepository;
@@ -998,17 +998,17 @@ public class TestFlowController {
     public void testReloadParameterProvider() throws ParameterProviderInstantiationException {
         final String id = "ParameterProvider" + System.currentTimeMillis();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
-        final ParameterProviderNode node = controller.getFlowManager().createParameterProvider(DummyParameterProvider.class.getName(), id, coordinate, true);
+        final ParameterProviderNode node = controller.getFlowManager().createParameterProvider(PlaceholderParameterProvider.class.getName(), id, coordinate, true);
         final String originalName = node.getName();
 
         assertEquals(id, node.getIdentifier());
         assertEquals(id, node.getComponent().getIdentifier());
         assertEquals(coordinate.getCoordinate(), node.getBundleCoordinate().getCoordinate());
-        assertEquals(DummyParameterProvider.class.getCanonicalName(), node.getCanonicalClassName());
-        assertEquals(DummyParameterProvider.class.getSimpleName(), node.getComponentType());
-        assertEquals(DummyParameterProvider.class.getCanonicalName(), node.getComponent().getClass().getCanonicalName());
+        assertEquals(PlaceholderParameterProvider.class.getCanonicalName(), node.getCanonicalClassName());
+        assertEquals(PlaceholderParameterProvider.class.getSimpleName(), node.getComponentType());
+        assertEquals(PlaceholderParameterProvider.class.getCanonicalName(), node.getComponent().getClass().getCanonicalName());
 
-        controller.getReloadComponent().reload(node, DummyParameterProvider.class.getName(), coordinate, Collections.emptySet());
+        controller.getReloadComponent().reload(node, PlaceholderParameterProvider.class.getName(), coordinate, Collections.emptySet());
 
         // ids and coordinate should stay the same
         assertEquals(id, node.getIdentifier());
@@ -1019,9 +1019,9 @@ public class TestFlowController {
         // but in the running application the DAO layer would call verifyCanUpdateBundle and would prevent this so
         // for the sake of this test it is ok that the canonical class name hasn't changed
         assertEquals(originalName, node.getName());
-        assertEquals(DummyParameterProvider.class.getCanonicalName(), node.getCanonicalClassName());
-        assertEquals(DummyParameterProvider.class.getSimpleName(), node.getComponentType());
-        assertEquals(DummyParameterProvider.class.getCanonicalName(), node.getComponent().getClass().getCanonicalName());
+        assertEquals(PlaceholderParameterProvider.class.getCanonicalName(), node.getCanonicalClassName());
+        assertEquals(PlaceholderParameterProvider.class.getSimpleName(), node.getComponentType());
+        assertEquals(PlaceholderParameterProvider.class.getCanonicalName(), node.getComponent().getClass().getCanonicalName());
     }
 
     @Test

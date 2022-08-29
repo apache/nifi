@@ -21,15 +21,15 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockParameterProviderInitializationContext;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestEnvironmentVariableParameterProvider {
     private ParameterProvider getParameterProvider() {

@@ -31,7 +31,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class DummyParameterProvider extends AbstractParameterProvider implements ParameterProvider {
+public class PlaceholderParameterProvider extends AbstractParameterProvider implements ParameterProvider {
 
     private static final String[] STATIC_PARAMETERS = new String[] { "Parameter One", "Parameter Two" };
 

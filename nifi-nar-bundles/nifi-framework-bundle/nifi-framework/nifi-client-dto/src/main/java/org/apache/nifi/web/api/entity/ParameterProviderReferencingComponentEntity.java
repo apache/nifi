@@ -28,10 +28,10 @@ import javax.xml.bind.annotation.XmlRootElement;
  * This particular entity holds a reference to component that references a parameter providers.
  */
 @XmlRootElement(name = "parameterProviderReferencingComponentEntity")
-public class ParameterProviderReferencingComponentEntity extends ComponentEntity implements OperationPermissible {
+public class ParameterProviderReferencingComponentEntity extends ComponentEntity {
 
     private ParameterProviderReferencingComponentDTO component;
-    private PermissionsDTO operatePermissions;
+    private PermissionsDTO permissions;
 
     /**
      * @return parameter provider referencing components that is being serialized
@@ -45,18 +45,18 @@ public class ParameterProviderReferencingComponentEntity extends ComponentEntity
     }
 
     /**
-     * @return The permissions for this component operations
+     * @return The permissions for this component
      */
     @ApiModelProperty(
-            value = "The permissions for this component operations."
+            value = "The permissions for this component."
     )
     @Override
-    public PermissionsDTO getOperatePermissions() {
-        return operatePermissions;
+    public PermissionsDTO getPermissions() {
+        return permissions;
     }
 
     @Override
-    public void setOperatePermissions(PermissionsDTO permissions) {
-        this.operatePermissions = permissions;
+    public void setPermissions(PermissionsDTO permissions) {
+        this.permissions = permissions;
     }
 }
