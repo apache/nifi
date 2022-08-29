@@ -155,7 +155,7 @@ public class ListDropboxTest {
     }
 
     @Test
-    void testOnlyFilesAreListedFolderIsFiltered() throws Exception {
+    void testOnlyFilesAreListedFolderShortcutAreFiltered() throws Exception {
         mockFileListing();
 
         testRunner.setProperty(ListDropbox.FOLDER, TEST_FOLDER);
@@ -163,7 +163,8 @@ public class ListDropboxTest {
         when(mockDbxUserFilesRequest.listFolderBuilder(TEST_FOLDER)).thenReturn(mockListFolderBuilder);
         when(mockListFolderResult.getEntries()).thenReturn(Arrays.asList(
                 createFileMetaData(FILENAME_1, TEST_FOLDER, ID_1, CREATED_TIME),
-                createFolderMetaData("testFolder1", TEST_FOLDER)
+                createFolderMetaData("testFolder1", TEST_FOLDER),
+                createFileMetaData(FILENAME_2, TEST_FOLDER, ID_2, CREATED_TIME, false)
         ));
 
         testRunner.run();
@@ -231,13 +232,23 @@ public class ListDropboxTest {
             String filename,
             String parent,
             String id,
-            long createdTime) {
+            long createdTime,
+            boolean isDownloadable) {
         return FileMetadata.newBuilder(filename, id,
                         new Date(createdTime),
                         new Date(createdTime),
                         REVISION, SIZE)
                 .withPathDisplay(parent + "/" + filename)
+                .withIsDownloadable(isDownloadable)
                 .build();
+    }
+
+    private FileMetadata createFileMetaData(
+            String filename,
+            String parent,
+            String id,
+            long createdTime) {
+        return createFileMetaData(filename, parent, id, createdTime, true);
     }
 
     private Metadata createFolderMetaData(String folderName, String parent) {

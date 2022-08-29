@@ -45,6 +45,7 @@ import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -76,8 +77,8 @@ import org.apache.nifi.serialization.record.RecordSchema;
         @WritesAttribute(attribute = DropboxFileInfo.REVISION, description = "Revision of the file")})
 @Stateful(scopes = {Scope.CLUSTER}, description = "The processor stores necessary data to be able to keep track what files have been listed already. " +
         "What exactly needs to be stored depends on the 'Listing Strategy'.")
+@SeeAlso(FetchDropbox.class)
 public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> {
-
     public static final PropertyDescriptor FOLDER = new PropertyDescriptor.Builder()
             .name("folder")
             .displayName("Folder")
