@@ -99,9 +99,9 @@ public abstract class AbstractDropboxIT<T extends Processor> {
         }
     }
 
-    protected FileMetadata createFile(String name, String fileContent, String folder) throws Exception {
+    protected FileMetadata createFile(String folder, String filename, String fileContent) throws Exception {
         ByteArrayInputStream content = new ByteArrayInputStream(fileContent.getBytes(StandardCharsets.UTF_8));
-        return client.files().upload(folder + "/" + name).uploadAndFinish(content);
+        return client.files().upload(folder.equals("/") ?  "/" + filename : folder + "/" + filename).uploadAndFinish(content);
     }
 
     private String createFolder(String path) throws Exception {
