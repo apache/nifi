@@ -16,17 +16,11 @@
  */
 package org.apache.nifi.processors.smb;
 
-import static java.util.stream.Collectors.toList;
 import static org.apache.nifi.processors.smb.FetchSmb.ERROR_CODE_ATTRIBUTE;
 import static org.apache.nifi.processors.smb.FetchSmb.ERROR_MESSAGE_ATTRIBUTE;
-import static org.apache.nifi.processors.smb.FetchSmb.RECORD_READER;
 import static org.apache.nifi.processors.smb.FetchSmb.REL_FAILURE;
-import static org.apache.nifi.processors.smb.FetchSmb.REL_INPUT_FAILURE;
 import static org.apache.nifi.processors.smb.FetchSmb.REL_SUCCESS;
-import static org.apache.nifi.processors.smb.FetchSmb.REMOTE_FILE;
 import static org.apache.nifi.processors.smb.ListSmb.SMB_CLIENT_PROVIDER_SERVICE;
-import static org.apache.nifi.services.smb.SmbListableEntity.FILENAME;
-import static org.apache.nifi.services.smb.SmbListableEntity.PATH;
 import static org.apache.nifi.util.TestRunners.newTestRunner;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,46 +28,27 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Stream;
 import org.apache.commons.io.IOUtils;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.MalformedRecordException;
-import org.apache.nifi.serialization.RecordReader;
-import org.apache.nifi.serialization.RecordReaderFactory;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.services.smb.SmbClientProviderService;
 import org.apache.nifi.services.smb.SmbClientService;
 import org.apache.nifi.services.smb.SmbException;
-import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 class FetchSmbTest {
 
     public static final String CLIENT_SERVICE_PROVIDER_ID = "client-provider-service-id";
-    public static final String RECORD_READER_SERVICE_ID = "record-reader-id";
-    public static final String CONCAT_PATH_FILENAME = "concat(/path, '/', /filename)";
 
     @Mock
     SmbClientService mockNifiSmbClientService;
@@ -81,138 +56,12 @@ class FetchSmbTest {
     @Mock
     SmbClientProviderService clientProviderService;
 
-    @Mock
-    RecordReaderFactory recordReaderFactory;
-
-    private static Stream<Arguments> schemaExceptions() {
-        final String msg = "test exception";
-        return Stream.of(
-                new IOException(msg),
-                new MalformedRecordException(msg),
-                new SchemaNotFoundException(msg),
-                new RuntimeException(msg)
-        ).map(Arguments::of);
-    }
-
     @BeforeEach
     public void beforeEach() throws Exception {
         MockitoAnnotations.initMocks(this);
         when(clientProviderService.getClient()).thenReturn(mockNifiSmbClientService);
         when(clientProviderService.getIdentifier()).thenReturn(CLIENT_SERVICE_PROVIDER_ID);
         when(clientProviderService.getServiceLocation()).thenReturn(URI.create("smb://localhost:445/share"));
-        when(recordReaderFactory.getIdentifier()).thenReturn(RECORD_READER_SERVICE_ID);
-    }
-
-    @ParameterizedTest
-    @MethodSource("schemaExceptions")
-    public void shouldAddErrorMessageToAttributeWhenRecordReaderThrowsException(Exception exception) throws Exception {
-        final TestRunner testRunner = createRunner();
-
-        final MockFlowFile flowFile = new MockFlowFile(100L);
-        flowFile.setData("records".getBytes());
-
-        when(recordReaderFactory.createRecordReader(eq(flowFile), any(InputStream.class), eq(testRunner.getLogger())))
-                .thenThrow(exception);
-        testRunner.setProperty(RECORD_READER, RECORD_READER_SERVICE_ID);
-        testRunner.addControllerService(RECORD_READER_SERVICE_ID, recordReaderFactory);
-        testRunner.enableControllerService(recordReaderFactory);
-        testRunner.enqueue(flowFile);
-        testRunner.run();
-        testRunner.assertTransferCount(REL_SUCCESS, 0);
-        testRunner.assertTransferCount(REL_INPUT_FAILURE, 1);
-        assertEquals("test exception",
-                testRunner.getFlowFilesForRelationship(REL_INPUT_FAILURE).get(0).getAttribute(ERROR_MESSAGE_ATTRIBUTE));
-        assertEquals("records",
-                testRunner.getFlowFilesForRelationship(REL_INPUT_FAILURE).get(0).getContent());
-    }
-
-    @Test
-    public void shouldAddErrorMessageToAttributeWhenSmbClientServiceThrowsException() throws Exception {
-        final TestRunner testRunner = createRunner();
-
-        final MockFlowFile flowFile = new MockFlowFile(100L);
-
-        RecordReader reader = mock(RecordReader.class);
-        testRunner.setProperty(RECORD_READER, RECORD_READER_SERVICE_ID);
-        testRunner.addControllerService(RECORD_READER_SERVICE_ID, recordReaderFactory);
-        testRunner.enableControllerService(recordReaderFactory);
-        when(recordReaderFactory.createRecordReader(eq(flowFile), any(InputStream.class), eq(testRunner.getLogger())))
-                .thenReturn(reader);
-
-        final Record firstRecord = createRecord("testDirectory/cannotReadThis");
-        final Record secondRecord = createRecord("testDirectory/canReadThis");
-
-        when(reader.nextRecord()).thenReturn(firstRecord).thenReturn(secondRecord).thenReturn(null);
-        mockNifiSmbClientService();
-
-        testRunner.setProperty(REMOTE_FILE, CONCAT_PATH_FILENAME);
-        testRunner.enqueue(flowFile);
-        testRunner.run();
-        testRunner.assertTransferCount(REL_SUCCESS, 1);
-        testRunner.assertTransferCount(REL_FAILURE, 1);
-        assertEquals("content", testRunner.getFlowFilesForRelationship(REL_SUCCESS).get(0).getContent());
-        assertEquals("test exception",
-                testRunner.getFlowFilesForRelationship(REL_FAILURE).get(0).getAttribute(ERROR_MESSAGE_ATTRIBUTE));
-        assertEquals("1",
-                testRunner.getFlowFilesForRelationship(REL_FAILURE).get(0).getAttribute(ERROR_CODE_ATTRIBUTE));
-
-    }
-
-    @Test
-    public void shouldAddErrorMessageToAttributeWhenNextRecordThrowsException() throws Exception {
-        final TestRunner testRunner = createRunner();
-
-        final MockFlowFile flowFile = new MockFlowFile(100L);
-        flowFile.setData("content".getBytes());
-
-        RecordReader reader = mock(RecordReader.class);
-        testRunner.setProperty(RECORD_READER, RECORD_READER_SERVICE_ID);
-        testRunner.addControllerService(RECORD_READER_SERVICE_ID, recordReaderFactory);
-        testRunner.enableControllerService(recordReaderFactory);
-        when(recordReaderFactory.createRecordReader(eq(flowFile), any(InputStream.class), eq(testRunner.getLogger())))
-                .thenReturn(reader);
-
-        final Record record = createRecord("testDirectory/canReadThis");
-
-        when(reader.nextRecord()).thenReturn(record).thenThrow(new IOException("test exception"));
-        mockNifiSmbClientService();
-
-        testRunner.setProperty(REMOTE_FILE, CONCAT_PATH_FILENAME);
-        testRunner.enqueue(flowFile);
-        testRunner.run();
-        testRunner.assertTransferCount(REL_SUCCESS, 0);
-        testRunner.assertTransferCount(REL_INPUT_FAILURE, 1);
-        assertEquals("test exception",
-                testRunner.getFlowFilesForRelationship(REL_INPUT_FAILURE).get(0).getAttribute(ERROR_MESSAGE_ATTRIBUTE));
-        assertEquals("content",
-                testRunner.getFlowFilesForRelationship(REL_INPUT_FAILURE).get(0).getContent());
-    }
-
-    @Test
-    public void missingRemoteFileFieldInRecordsShouldResultInInputFailure() throws Exception {
-        final TestRunner testRunner = createRunner();
-
-        final MockFlowFile flowFile = new MockFlowFile(100L);
-
-        final RecordReader reader = mock(RecordReader.class);
-        testRunner.setProperty(RECORD_READER, RECORD_READER_SERVICE_ID);
-        testRunner.addControllerService(RECORD_READER_SERVICE_ID, recordReaderFactory);
-        testRunner.enableControllerService(recordReaderFactory);
-        when(recordReaderFactory.createRecordReader(eq(flowFile), any(InputStream.class), eq(testRunner.getLogger())))
-                .thenReturn(reader);
-
-        final Record firstRecord = mock(Record.class);
-        when(firstRecord.getAsString(anyString())).thenReturn(null);
-
-        when(reader.nextRecord()).thenReturn(firstRecord).thenReturn(null);
-        mockNifiSmbClientService();
-
-        testRunner.setProperty(REMOTE_FILE, "/invalid_field");
-        testRunner.enqueue(flowFile);
-        testRunner.run();
-        testRunner.assertTransferCount(REL_SUCCESS, 0);
-        testRunner.assertTransferCount(REL_INPUT_FAILURE, 1);
-        testRunner.assertTransferCount(REL_FAILURE, 0);
     }
 
     @Test
@@ -247,23 +96,6 @@ class FetchSmbTest {
         testRunner.run();
         testRunner.assertTransferCount(REL_SUCCESS, 0);
         testRunner.assertTransferCount(REL_FAILURE, 1);
-        testRunner.assertTransferCount(REL_INPUT_FAILURE, 0);
-    }
-
-    private Record createRecord(String absolutePath) {
-        final int lastDirectorySeparator = absolutePath.lastIndexOf('/');
-        final String path = absolutePath.substring(0, lastDirectorySeparator);
-        final String filename = absolutePath.substring(lastDirectorySeparator + 1);
-
-        final Map<String, Object> recordFields = new HashMap<>();
-        recordFields.put(PATH, path);
-        recordFields.put(FILENAME, filename);
-
-        final RecordSchema recordSchema = new SimpleRecordSchema(Stream.of(PATH, FILENAME)
-                .map(fieldName -> new RecordField(fieldName, RecordFieldType.STRING.getDataType()))
-                .collect(toList()));
-
-        return new MapRecord(recordSchema, recordFields);
     }
 
     private void mockNifiSmbClientService() throws IOException {
@@ -280,7 +112,6 @@ class FetchSmbTest {
 
     private TestRunner createRunner() throws Exception {
         final TestRunner testRunner = newTestRunner(FetchSmb.class);
-        //testRunner.setValidateExpressionUsage(false);
         testRunner.setProperty(SMB_CLIENT_PROVIDER_SERVICE, CLIENT_SERVICE_PROVIDER_ID);
         testRunner.addControllerService(CLIENT_SERVICE_PROVIDER_ID, clientProviderService);
         testRunner.enableControllerService(clientProviderService);

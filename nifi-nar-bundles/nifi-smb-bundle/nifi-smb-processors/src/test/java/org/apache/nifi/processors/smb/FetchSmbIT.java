@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.processors.smb;
 
-import static java.util.Arrays.asList;
-import static java.util.stream.Collectors.toSet;
-import static org.apache.nifi.processors.smb.FetchSmb.RECORD_READER;
 import static org.apache.nifi.processors.smb.FetchSmb.REL_FAILURE;
 import static org.apache.nifi.processors.smb.FetchSmb.REL_SUCCESS;
 import static org.apache.nifi.processors.smb.FetchSmb.REMOTE_FILE;
@@ -26,11 +23,8 @@ import static org.apache.nifi.util.TestRunners.newTestRunner;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.services.smb.SmbjClientProviderService;
-import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.Test;
 
@@ -51,27 +45,6 @@ public class FetchSmbIT extends SambaTestcontinerIT {
         testRunner.run();
         testRunner.assertTransferCount(REL_SUCCESS, 1);
         assertEquals("test_content", testRunner.getFlowFilesForRelationship(REL_SUCCESS).get(0).getContent());
-        testRunner.assertValid();
-    }
-
-    @Test
-    public void fetchFilesUsingRecordReader() throws Exception {
-        writeFile("/test_file1", "test_content_1");
-        writeFile("/test_file2", "test_content_2");
-        TestRunner testRunner = newTestRunner(FetchSmb.class);
-        SmbjClientProviderService smbjClientProviderService = configureTestRunnerForSambaDockerContainer(testRunner);
-        JsonTreeReader jsonTreeReader = new JsonTreeReader();
-        testRunner.addControllerService("record-reader", jsonTreeReader);
-        testRunner.setProperty(RECORD_READER, "record-reader");
-        testRunner.enableControllerService(jsonTreeReader);
-        testRunner.enableControllerService(smbjClientProviderService);
-
-        testRunner.enqueue("{\"filename\": \"test_file1\"}\n{\"filename\": \"test_file2\"}\n");
-        testRunner.run();
-        testRunner.assertTransferCount(REL_SUCCESS, 2);
-        assertEquals(new HashSet<>(asList("test_content_1", "test_content_2")),
-                testRunner.getFlowFilesForRelationship(REL_SUCCESS).stream().map(
-                        MockFlowFile::getContent).collect(toSet()));
         testRunner.assertValid();
     }
 
