@@ -17,23 +17,15 @@
 package org.apache.nifi.processors.smb;
 
 import static java.util.Arrays.asList;
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toMap;
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.processor.util.StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -48,11 +40,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.MalformedRecordException;
-import org.apache.nifi.serialization.RecordReader;
-import org.apache.nifi.serialization.RecordReaderFactory;
-import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.services.smb.SmbClientProviderService;
 import org.apache.nifi.services.smb.SmbClientService;
 import org.apache.nifi.services.smb.SmbException;
@@ -102,7 +89,7 @@ public class FetchSmb extends AbstractProcessor {
             REL_SUCCESS,
             REL_FAILURE
     )));
-
+    public static final String UNCATEGORIZED_ERROR = "-2";
     private static final List<PropertyDescriptor> PROPERTIES = asList(
             SMB_CLIENT_PROVIDER_SERVICE,
             REMOTE_FILE
@@ -112,8 +99,6 @@ public class FetchSmb extends AbstractProcessor {
     public Set<Relationship> getRelationships() {
         return relationships;
     }
-
-    public static final String UNCATEGORIZED_ERROR = "-2";
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
