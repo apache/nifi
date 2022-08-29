@@ -48,9 +48,14 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Tags({"azure", "adx", "microsoft", "data", "explorer"})
 @CapabilityDescription("The Azure ADX Processor sends FlowFiles using the ADX-Service to the provided Azure Data" +
@@ -322,16 +327,14 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
 
         AdxConnectionService service = context.getProperty(ADX_SERVICE).asControllerService(AdxConnectionService.class);
 
-        try (final InputStream in = session.read(flowFile))
-        {
+        try (final InputStream in = session.read(flowFile)) {
             IngestClient client = service.getAdxClient();
 
             IngestionProperties ingestionProperties = new IngestionProperties(context.getProperty(DB_NAME).getValue(),
                     context.getProperty(TABLE_NAME).getValue());
 
 
-            switch(context.getProperty(IM_KIND).getValue())
-            {
+            switch(context.getProperty(IM_KIND).getValue()) {
                 case "IM_KIND_AVRO": ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
                         IngestionMapping.IngestionMappingKind.AVRO); break;
                 case "IM_KIND_APACHEAVRO": ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
@@ -376,11 +379,9 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                 case "IRM_TABLEANDQUEUE": ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.QUEUE_AND_TABLE); break;
             }
 
-            if (StringUtils.equalsIgnoreCase(context.getProperty(FLUSH_IMMEDIATE).getValue(),"true"))
-            {
+            if (StringUtils.equalsIgnoreCase(context.getProperty(FLUSH_IMMEDIATE).getValue(),"true")) {
                 ingestionProperties.setFlushImmediately(true);
-            }
-            else {
+            } else {
                 ingestionProperties.setFlushImmediately(false);
             }
 
@@ -400,8 +401,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
 
             List<IngestionStatus> statuses = result.getIngestionStatusCollection();
 
-            if(StringUtils.equalsIgnoreCase(context.getProperty(WAIT_FOR_STATUS).getValue(),"ST_SUCCESS"))
-            {
+            if(StringUtils.equalsIgnoreCase(context.getProperty(WAIT_FOR_STATUS).getValue(),"ST_SUCCESS")) {
                 while (statuses.get(0).status == OperationStatus.Pending) {
                     Thread.sleep(50);
                     statuses = result.getIngestionStatusCollection();
@@ -419,20 +419,17 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
 
             logger.info("Operation status: " + statuses.get(0).details);
 
-            if(statuses.get(0).status == OperationStatus.Succeeded)
-            {
+            if(statuses.get(0).status == OperationStatus.Succeeded) {
                 getLogger().info(statuses.get(0).status.toString());
                 session.transfer(flowFile, RL_SUCCEEDED);
             }
 
-            if(statuses.get(0).status == OperationStatus.Failed)
-            {
+            if(statuses.get(0).status == OperationStatus.Failed) {
                 getLogger().error(statuses.get(0).status.toString());
                 session.transfer(flowFile, RL_FAILED);
             }
 
-        } catch (IOException | IngestionClientException | IngestionServiceException | StorageException |
-                 URISyntaxException e) {
+        } catch (IOException | IngestionClientException | IngestionServiceException | StorageException | URISyntaxException e) {
             logger.error("Exception occurred while ingesting data into ADX "+e);
             throw new ProcessException(e);
         } catch (InterruptedException e) {

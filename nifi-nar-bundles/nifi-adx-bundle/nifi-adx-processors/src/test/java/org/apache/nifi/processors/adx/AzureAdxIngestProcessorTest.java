@@ -16,16 +16,15 @@
  */
 package org.apache.nifi.processors.adx;
 
-import org.apache.nifi.adx.AzureAdxConnectionService;
-import org.apache.nifi.mock.MockComponentLogger;
-import org.apache.nifi.util.*;
+
+import org.apache.nifi.util.MockComponentLog;
+import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.MockProcessSession;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.concurrent.atomic.AtomicLong;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 
 public class AzureAdxIngestProcessorTest {
@@ -60,7 +59,6 @@ public class AzureAdxIngestProcessorTest {
         //SharedSessionState sharedState = new SharedSessionState(azureAdxIngestProcessor, new AtomicLong(0));
 
         //mockProcessSession = new MockProcessSession(sharedState,azureAdxIngestProcessor);
-
         testRunner = TestRunners.newTestRunner(AzureAdxIngestProcessor.class,mockComponentLog);
     }
 
