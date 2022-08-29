@@ -68,6 +68,7 @@ import static org.apache.nifi.ldap.tenants.LdapUserGroupProvider.PROP_USER_SEARC
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -95,34 +96,34 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test(expected = AuthorizerCreationException.class)
-    public void testNoSearchBasesSpecified() throws Exception {
+    public void testNoSearchBasesSpecified() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(null, null);
         ldapUserGroupProvider.onConfigured(configurationContext);
     }
 
     @Test(expected = AuthorizerCreationException.class)
-    public void testUserSearchBaseSpecifiedButNoUserObjectClass() throws Exception {
+    public void testUserSearchBaseSpecifiedButNoUserObjectClass() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, null);
         when(configurationContext.getProperty(PROP_USER_OBJECT_CLASS)).thenReturn(new StandardPropertyValue(null, null, ParameterLookup.EMPTY));
         ldapUserGroupProvider.onConfigured(configurationContext);
     }
 
     @Test(expected = AuthorizerCreationException.class)
-    public void testUserSearchBaseSpecifiedButNoUserSearchScope() throws Exception {
+    public void testUserSearchBaseSpecifiedButNoUserSearchScope() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, null);
         when(configurationContext.getProperty(PROP_USER_SEARCH_SCOPE)).thenReturn(new StandardPropertyValue(null, null, ParameterLookup.EMPTY));
         ldapUserGroupProvider.onConfigured(configurationContext);
     }
 
     @Test(expected = AuthorizerCreationException.class)
-    public void testInvalidUserSearchScope() throws Exception {
+    public void testInvalidUserSearchScope() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, null);
         when(configurationContext.getProperty(PROP_USER_SEARCH_SCOPE)).thenReturn(new StandardPropertyValue("not-valid", null, ParameterLookup.EMPTY));
         ldapUserGroupProvider.onConfigured(configurationContext);
     }
 
     @Test
-    public void testSearchUsersWithNoIdentityAttribute() throws Exception {
+    public void testSearchUsersWithNoIdentityAttribute() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, null);
         ldapUserGroupProvider.onConfigured(configurationContext);
 
@@ -132,7 +133,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchUsersWithUidIdentityAttribute() throws Exception {
+    public void testSearchUsersWithUidIdentityAttribute() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, null);
         when(configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE)).thenReturn(new StandardPropertyValue("uid", null, ParameterLookup.EMPTY));
         ldapUserGroupProvider.onConfigured(configurationContext);
@@ -143,7 +144,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchUsersWithCnIdentityAttribute() throws Exception {
+    public void testSearchUsersWithCnIdentityAttribute() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, null);
         when(configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE)).thenReturn(new StandardPropertyValue("cn", null, ParameterLookup.EMPTY));
         ldapUserGroupProvider.onConfigured(configurationContext);
@@ -154,7 +155,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchUsersObjectSearchScope() throws Exception {
+    public void testSearchUsersObjectSearchScope() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, null);
         when(configurationContext.getProperty(PROP_USER_SEARCH_SCOPE)).thenReturn(new StandardPropertyValue(SearchScope.OBJECT.name(), null, ParameterLookup.EMPTY));
         ldapUserGroupProvider.onConfigured(configurationContext);
@@ -164,7 +165,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchUsersSubtreeSearchScope() throws Exception {
+    public void testSearchUsersSubtreeSearchScope() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration("o=nifi", null);
         when(configurationContext.getProperty(PROP_USER_SEARCH_SCOPE)).thenReturn(new StandardPropertyValue(SearchScope.SUBTREE.name(), null, ParameterLookup.EMPTY));
         ldapUserGroupProvider.onConfigured(configurationContext);
@@ -174,7 +175,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchUsersWithFilter() throws Exception {
+    public void testSearchUsersWithFilter() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, null);
         when(configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE)).thenReturn(new StandardPropertyValue("uid", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_USER_SEARCH_FILTER)).thenReturn(new StandardPropertyValue("(uid=user1)", null, ParameterLookup.EMPTY));
@@ -186,7 +187,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchUsersWithPaging() throws Exception {
+    public void testSearchUsersWithPaging() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, null);
         when(configurationContext.getProperty(PROP_PAGE_SIZE)).thenReturn(new StandardPropertyValue("1", null, ParameterLookup.EMPTY));
         ldapUserGroupProvider.onConfigured(configurationContext);
@@ -196,7 +197,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchUsersWithGroupingNoGroupName() throws Exception {
+    public void testSearchUsersWithGroupingNoGroupName() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, null);
         when(configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE)).thenReturn(new StandardPropertyValue("uid", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_USER_GROUP_ATTRIBUTE)).thenReturn(new StandardPropertyValue("description", null, ParameterLookup.EMPTY)); // using description in lieu of memberof
@@ -238,7 +239,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchUsersWithGroupingAndGroupName() throws Exception {
+    public void testSearchUsersWithGroupingAndGroupName() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, null);
         when(configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE)).thenReturn(new StandardPropertyValue("uid", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_USER_GROUP_ATTRIBUTE)).thenReturn(new StandardPropertyValue("description", null, ParameterLookup.EMPTY)); // using description in lieu of memberof
@@ -255,13 +256,13 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test(expected = AuthorizerCreationException.class)
-    public void testSearchGroupsWithoutMemberAttribute() throws Exception {
+    public void testSearchGroupsWithoutMemberAttribute() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(null, GROUP_SEARCH_BASE);
         ldapUserGroupProvider.onConfigured(configurationContext);
     }
 
     @Test(expected = AuthorizerCreationException.class)
-    public void testGroupSearchBaseSpecifiedButNoGroupObjectClass() throws Exception {
+    public void testGroupSearchBaseSpecifiedButNoGroupObjectClass() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(null, GROUP_SEARCH_BASE);
         when(configurationContext.getProperty(PROP_GROUP_MEMBER_ATTRIBUTE)).thenReturn(new StandardPropertyValue("member", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_GROUP_OBJECT_CLASS)).thenReturn(new StandardPropertyValue(null, null, ParameterLookup.EMPTY));
@@ -269,7 +270,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test(expected = AuthorizerCreationException.class)
-    public void testUserSearchBaseSpecifiedButNoGroupSearchScope() throws Exception {
+    public void testUserSearchBaseSpecifiedButNoGroupSearchScope() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(null, GROUP_SEARCH_BASE);
         when(configurationContext.getProperty(PROP_GROUP_MEMBER_ATTRIBUTE)).thenReturn(new StandardPropertyValue("member", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_GROUP_SEARCH_SCOPE)).thenReturn(new StandardPropertyValue(null, null, ParameterLookup.EMPTY));
@@ -277,7 +278,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test(expected = AuthorizerCreationException.class)
-    public void testInvalidGroupSearchScope() throws Exception {
+    public void testInvalidGroupSearchScope() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(null, GROUP_SEARCH_BASE);
         when(configurationContext.getProperty(PROP_GROUP_MEMBER_ATTRIBUTE)).thenReturn(new StandardPropertyValue("member", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_GROUP_SEARCH_SCOPE)).thenReturn(new StandardPropertyValue("not-valid", null, ParameterLookup.EMPTY));
@@ -285,7 +286,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchGroupsWithNoNameAttribute() throws Exception {
+    public void testSearchGroupsWithNoNameAttribute() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(null, GROUP_SEARCH_BASE);
         when(configurationContext.getProperty(PROP_GROUP_MEMBER_ATTRIBUTE)).thenReturn(new StandardPropertyValue("member", null, ParameterLookup.EMPTY));
         ldapUserGroupProvider.onConfigured(configurationContext);
@@ -296,7 +297,25 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchGroupsWithPaging() throws Exception {
+    public void testSearchGroupsWithNoNameAttributeCaptureGroupBlank() {
+        final Properties props = new Properties();
+        props.setProperty("nifi.security.identity.mapping.pattern.dn1", "^cn=User( )\\d,ou=.*?,o=.*?$");
+        props.setProperty("nifi.security.identity.mapping.value.dn1", "$1");
+        props.setProperty("nifi.security.identity.mapping.transform.dn1", "UPPER");
+
+        final NiFiProperties properties = getNiFiProperties(props);
+        ldapUserGroupProvider.setNiFiProperties(properties);
+
+        final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(null, GROUP_SEARCH_BASE);
+        when(configurationContext.getProperty(PROP_GROUP_MEMBER_ATTRIBUTE)).thenReturn(new StandardPropertyValue("member", null, ParameterLookup.EMPTY));
+
+        final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> ldapUserGroupProvider.onConfigured(configurationContext));
+        final String message = exception.getMessage();
+        assertTrue("Distinguished Name not found", message.contains("o=nifi"));
+    }
+
+    @Test
+    public void testSearchGroupsWithPaging() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(null, GROUP_SEARCH_BASE);
         when(configurationContext.getProperty(PROP_GROUP_MEMBER_ATTRIBUTE)).thenReturn(new StandardPropertyValue("member", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_PAGE_SIZE)).thenReturn(new StandardPropertyValue("1", null, ParameterLookup.EMPTY));
@@ -306,7 +325,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchGroupsObjectSearchScope() throws Exception {
+    public void testSearchGroupsObjectSearchScope() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(null, GROUP_SEARCH_BASE);
         when(configurationContext.getProperty(PROP_GROUP_MEMBER_ATTRIBUTE)).thenReturn(new StandardPropertyValue("member", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_GROUP_SEARCH_SCOPE)).thenReturn(new StandardPropertyValue(SearchScope.OBJECT.name(), null, ParameterLookup.EMPTY));
@@ -317,7 +336,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchGroupsSubtreeSearchScope() throws Exception {
+    public void testSearchGroupsSubtreeSearchScope() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(null, "o=nifi");
         when(configurationContext.getProperty(PROP_GROUP_MEMBER_ATTRIBUTE)).thenReturn(new StandardPropertyValue("member", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_GROUP_SEARCH_SCOPE)).thenReturn(new StandardPropertyValue(SearchScope.SUBTREE.name(), null, ParameterLookup.EMPTY));
@@ -327,7 +346,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchGroupsWithNameAttribute() throws Exception {
+    public void testSearchGroupsWithNameAttribute() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(null, GROUP_SEARCH_BASE);
         when(configurationContext.getProperty(PROP_GROUP_MEMBER_ATTRIBUTE)).thenReturn(new StandardPropertyValue("member", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_GROUP_NAME_ATTRIBUTE)).thenReturn(new StandardPropertyValue("cn", null, ParameterLookup.EMPTY));
@@ -345,7 +364,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchGroupsWithNoNameAndUserIdentityUidAttribute() throws Exception {
+    public void testSearchGroupsWithNoNameAndUserIdentityUidAttribute() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(null, GROUP_SEARCH_BASE);
         when(configurationContext.getProperty(PROP_GROUP_MEMBER_ATTRIBUTE)).thenReturn(new StandardPropertyValue("member", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE)).thenReturn(new StandardPropertyValue("uid", null, ParameterLookup.EMPTY));
@@ -363,7 +382,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchGroupsWithNameAndUserIdentityCnAttribute() throws Exception {
+    public void testSearchGroupsWithNameAndUserIdentityCnAttribute() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(null, GROUP_SEARCH_BASE);
         when(configurationContext.getProperty(PROP_GROUP_MEMBER_ATTRIBUTE)).thenReturn(new StandardPropertyValue("member", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_GROUP_NAME_ATTRIBUTE)).thenReturn(new StandardPropertyValue("cn", null, ParameterLookup.EMPTY));
@@ -382,7 +401,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchGroupsWithFilter() throws Exception {
+    public void testSearchGroupsWithFilter() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(null, GROUP_SEARCH_BASE);
         when(configurationContext.getProperty(PROP_GROUP_MEMBER_ATTRIBUTE)).thenReturn(new StandardPropertyValue("member", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_GROUP_SEARCH_FILTER)).thenReturn(new StandardPropertyValue("(cn=admins)", null, ParameterLookup.EMPTY));
@@ -394,7 +413,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchUsersAndGroupsNoMembership() throws Exception {
+    public void testSearchUsersAndGroupsNoMembership() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, GROUP_SEARCH_BASE);
         ldapUserGroupProvider.onConfigured(configurationContext);
 
@@ -406,7 +425,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchUsersAndGroupsMembershipThroughUsers() throws Exception {
+    public void testSearchUsersAndGroupsMembershipThroughUsers() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, GROUP_SEARCH_BASE);
         when(configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE)).thenReturn(new StandardPropertyValue("uid", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_USER_GROUP_ATTRIBUTE)).thenReturn(new StandardPropertyValue("description", null, ParameterLookup.EMPTY)); // using description in lieu of memberof
@@ -434,7 +453,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchUsersAndGroupsMembershipThroughGroups() throws Exception {
+    public void testSearchUsersAndGroupsMembershipThroughGroups() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, GROUP_SEARCH_BASE);
         when(configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE)).thenReturn(new StandardPropertyValue("uid", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_GROUP_MEMBER_ATTRIBUTE)).thenReturn(new StandardPropertyValue("member", null, ParameterLookup.EMPTY));
@@ -476,7 +495,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchUsersAndGroupsMembershipThroughUsersAndGroups() throws Exception {
+    public void testSearchUsersAndGroupsMembershipThroughUsersAndGroups() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, GROUP_SEARCH_BASE);
         when(configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE)).thenReturn(new StandardPropertyValue("uid", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_USER_GROUP_ATTRIBUTE)).thenReturn(new StandardPropertyValue("description", null, ParameterLookup.EMPTY)); // using description in lieu of memberof
@@ -519,7 +538,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testUserIdentityMapping() throws Exception {
+    public void testUserIdentityMapping() {
         final Properties props = new Properties();
         props.setProperty("nifi.security.identity.mapping.pattern.dn1", "^cn=(.*?),o=(.*?)$");
         props.setProperty("nifi.security.identity.mapping.value.dn1", "$1");
@@ -536,7 +555,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testUserIdentityMappingWithTransforms() throws Exception {
+    public void testUserIdentityMappingWithTransforms() {
         final Properties props = new Properties();
         props.setProperty("nifi.security.identity.mapping.pattern.dn1", "^cn=(.*?),ou=(.*?),o=(.*?)$");
         props.setProperty("nifi.security.identity.mapping.value.dn1", "$1");
@@ -554,7 +573,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testUserIdentityAndGroupMappingWithTransforms() throws Exception {
+    public void testUserIdentityAndGroupMappingWithTransforms() {
         final Properties props = new Properties();
         props.setProperty("nifi.security.identity.mapping.pattern.dn1", "^cn=(.*?),ou=(.*?),o=(.*?)$");
         props.setProperty("nifi.security.identity.mapping.value.dn1", "$1");
@@ -579,14 +598,14 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test(expected = AuthorizerCreationException.class)
-    public void testReferencedGroupAttributeWithoutGroupSearchBase() throws Exception {
+    public void testReferencedGroupAttributeWithoutGroupSearchBase() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration("ou=users-2,o=nifi", null);
         when(configurationContext.getProperty(PROP_USER_GROUP_REFERENCED_GROUP_ATTRIBUTE)).thenReturn(new StandardPropertyValue("cn", null, ParameterLookup.EMPTY));
         ldapUserGroupProvider.onConfigured(configurationContext);
     }
 
     @Test
-    public void testReferencedGroupWithoutDefiningReferencedAttribute() throws Exception {
+    public void testReferencedGroupWithoutDefiningReferencedAttribute() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration("ou=users-2,o=nifi", "ou=groups-2,o=nifi");
         when(configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE)).thenReturn(new StandardPropertyValue("uid", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_USER_OBJECT_CLASS)).thenReturn(new StandardPropertyValue("room", null, ParameterLookup.EMPTY)); // using room due to reqs of groupOfNames
@@ -604,7 +623,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testReferencedGroupUsingReferencedAttribute() throws Exception {
+    public void testReferencedGroupUsingReferencedAttribute() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration("ou=users-2,o=nifi", "ou=groups-2,o=nifi");
         when(configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE)).thenReturn(new StandardPropertyValue("uid", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_USER_GROUP_ATTRIBUTE)).thenReturn(new StandardPropertyValue("description", null, ParameterLookup.EMPTY)); // using description in lieu of member
@@ -625,14 +644,14 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test(expected = AuthorizerCreationException.class)
-    public void testReferencedUserWithoutUserSearchBase() throws Exception {
+    public void testReferencedUserWithoutUserSearchBase() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(null, "ou=groups-2,o=nifi");
         when(configurationContext.getProperty(PROP_GROUP_MEMBER_REFERENCED_USER_ATTRIBUTE)).thenReturn(new StandardPropertyValue("uid", null, ParameterLookup.EMPTY));
         ldapUserGroupProvider.onConfigured(configurationContext);
     }
 
     @Test
-    public void testReferencedUserWithoutDefiningReferencedAttribute() throws Exception {
+    public void testReferencedUserWithoutDefiningReferencedAttribute() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration("ou=users-2,o=nifi", "ou=groups-2,o=nifi");
         when(configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE)).thenReturn(new StandardPropertyValue("uid", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_GROUP_OBJECT_CLASS)).thenReturn(new StandardPropertyValue("room", null, ParameterLookup.EMPTY)); // using room due to reqs of groupOfNames
@@ -649,7 +668,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testReferencedUserUsingReferencedAttribute() throws Exception {
+    public void testReferencedUserUsingReferencedAttribute() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration("ou=users-2,o=nifi", "ou=groups-2,o=nifi");
         when(configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE)).thenReturn(new StandardPropertyValue("sn", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_GROUP_OBJECT_CLASS)).thenReturn(new StandardPropertyValue("room", null, ParameterLookup.EMPTY)); // using room due to reqs of groupOfNames
@@ -671,7 +690,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchUsersAndGroupsMembershipThroughGroupsCaseInsensitive() throws Exception {
+    public void testSearchUsersAndGroupsMembershipThroughGroupsCaseInsensitive() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, GROUP_SEARCH_BASE);
         when(configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE)).thenReturn(new StandardPropertyValue("uid", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_GROUP_MEMBER_ATTRIBUTE)).thenReturn(new StandardPropertyValue("member", null, ParameterLookup.EMPTY));
@@ -696,7 +715,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchUsersAndGroupsMembershipThroughGroupsCaseSensitive() throws Exception {
+    public void testSearchUsersAndGroupsMembershipThroughGroupsCaseSensitive() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, GROUP_SEARCH_BASE);
         when(configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE)).thenReturn(new StandardPropertyValue("uid", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_GROUP_MEMBER_ATTRIBUTE)).thenReturn(new StandardPropertyValue("member", null, ParameterLookup.EMPTY));
@@ -717,7 +736,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
-    public void testSearchUsersAndGroupsMembershipThroughUsersCaseInsensitive() throws Exception {
+    public void testSearchUsersAndGroupsMembershipThroughUsersCaseInsensitive() {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, GROUP_SEARCH_BASE);
         when(configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE)).thenReturn(new StandardPropertyValue("uid", null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(PROP_USER_GROUP_ATTRIBUTE)).thenReturn(new StandardPropertyValue("description", null, ParameterLookup.EMPTY)); // using description in lieu of memberof
