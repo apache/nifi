@@ -104,9 +104,14 @@ public class TestPrometheusRecordSink {
 
 
         final String content = getMetrics();
-        assertTrue(content.contains("field1{field3=\"Hello\",} 15.0\nfield1{field3=\"World!\",} 6.0\n"));
-        assertTrue(content.contains("field2{field3=\"Hello\",} 12.34567\nfield2{field3=\"World!\",} 0.12345678901234568\n"));
-
+        assertTrue(content.contains("field1{field3=\"World!\",} 6.0\nfield1{field3=\"Hello\",} 15.0\n") 
+        || content.contains("field1{field3=\"World!\",} 15.0\nfield1{field3=\"Hello\",} 6.0\n") 
+        || content.contains("field1{field3=\"Hello\",} 6.0\nfield1{field3=\"World!\",} 15.0\n")
+        ||content.contains("field1{field3=\"Hello\",} 15.0\nfield1{field3=\"World!\",} 6.0\n"));
+        assertTrue(content.contains("field2{field3=\"Hello\",} 12.34567\nfield2{field3=\"World!\",} 0.12345678901234568\n") 
+        || content.contains("field2{field3=\"World!\",} 0.12345678901234568\nfield2{field3=\"Hello\",} 12.34567\n") 
+        || content.contains("field2{field3=\"Hello\",} 0.12345678901234568\nfield2{field3=\"World!\",} 12.34567\n")
+        ||content.contains("field2{field3=\"World!\",} 12.34567\nfield2{field3=\"Hello\",} 0.12345678901234568\n"));
         try {
             sink.onStopped();
         } catch (Exception e) {
