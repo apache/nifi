@@ -26,9 +26,12 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -252,11 +255,16 @@ public class TestGeoEnrichIP {
         testRunner.setProperty(GeoEnrichIP.IP_ADDRESS_ATTRIBUTE, "ip");
 
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put("ip", "somenonexistentdomain.comm");
+        final String domainBad = "somenonexistentdomain.comm";
+        attributes.put("ip", domainBad);
 
         testRunner.enqueue(new byte[0], attributes);
 
-        testRunner.run();
+        try (final MockedStatic<InetAddress> mockedInetAddress = Mockito.mockStatic(InetAddress.class)) {
+            mockedInetAddress.when(() -> InetAddress.getByName(domainBad))
+                    .thenThrow(new UnknownHostException(domainBad));
+            testRunner.run();
+        }
 
         List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_NOT_FOUND);
         List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_FOUND);
