@@ -24,13 +24,16 @@ import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory;
 import org.apache.nifi.properties.scheme.PropertyProtectionScheme;
 import org.apache.nifi.properties.scheme.ProtectionScheme;
 import org.apache.nifi.registry.properties.util.NiFiRegistryBootstrapPropertiesLoader;
-import org.apache.nifi.serde.PropertiesWriter;
+import org.apache.nifi.security.util.KeyDerivationFunction;
+import org.apache.nifi.security.util.crypto.SecureHasherFactory;
+import org.apache.nifi.serde.StandardPropertiesWriter;
 import org.apache.nifi.util.NiFiBootstrapPropertiesLoader;
-import org.apache.nifi.util.crypto.CryptographyUtils;
+import org.apache.nifi.util.file.ConfigurationFileResolver;
+import org.apache.nifi.util.file.NiFiConfigurationFileResolver;
+import org.apache.nifi.util.file.NiFiRegistryConfigurationFileResolver;
 import org.apache.nifi.xml.XmlDecryptor;
 import org.apache.nifi.xml.XmlEncryptor;
-import org.apache.nifi.util.file.ConfigurationFileResolver;
-import org.apache.nifi.util.file.FileUtilities;
+import org.apache.nifi.util.file.ConfigurationFileUtils;
 import org.apache.nifi.properties.ApplicationProperties;
 import org.apache.nifi.properties.NiFiPropertiesLoader;
 import org.apache.nifi.properties.PropertiesLoader;
@@ -55,69 +58,51 @@ public class PropertyEncryptorMain {
     private final List<File> configurationFiles;
     private String hexKey;
     private final Path confDirectory;
+    private final static String TEMP_FILE_PREFIX = "tmp";
 
     public PropertyEncryptorMain(final Path baseDirectory, final String passphrase) throws PropertyEncryptorException {
-        confDirectory = FileUtilities.resolveAbsoluteConfDirectory(baseDirectory);
+        confDirectory = ConfigurationFileUtils.resolveAbsoluteConfDirectory(baseDirectory);
         try {
             bootstrapLoader = getBootstrapPropertiesLoader(confDirectory);
-            fileResolver = new ConfigurationFileResolver(confDirectory);
-            final File applicationProperties = FileUtilities.resolvePropertiesFile(confDirectory);
+            fileResolver = getConfigurationFileResolver(confDirectory);
+            final File applicationProperties = ConfigurationFileUtils.resolvePropertiesFile(confDirectory);
             propertiesLoader = getPropertiesLoader(confDirectory);
             configurationFiles = fileResolver.resolveConfigurationFilesFromApplicationProperties(propertiesLoader.load(applicationProperties));
-            hexKey = getKeyHex(confDirectory, passphrase);
+            hexKey = getEncodedRootKey(confDirectory, passphrase);
         } catch (final Exception e) {
             throw new PropertyEncryptorException("Failed to run property encryptor", e);
-        }
-    }
-
-    private AbstractBootstrapPropertiesLoader getBootstrapPropertiesLoader(final Path baseDirectory) {
-        if (FileUtilities.isNiFiRegistryConfDirectory(baseDirectory)) {
-            return new NiFiRegistryBootstrapPropertiesLoader();
-        } else if (FileUtilities.isNiFiConfDirectory(baseDirectory)) {
-            return new NiFiBootstrapPropertiesLoader();
-        } else {
-            throw new PropertyEncryptorException("The base directory provided does not contain a recognized bootstrap.conf file");
-        }
-    }
-
-    private PropertiesLoader<ApplicationProperties> getPropertiesLoader(final Path baseDirectory) {
-        if (FileUtilities.isNiFiRegistryConfDirectory(baseDirectory)) {
-            return new NiFiRegistryPropertiesLoader();
-        } else if (FileUtilities.isNiFiConfDirectory(baseDirectory)) {
-            return new NiFiPropertiesLoader();
-        } else {
-            throw new PropertyEncryptorException("The base directory provided does not contain a recognized .properties file");
         }
     }
 
     /**
      * @param baseDirectory The base directory of a NiFi / NiFi Registry installation that should be encrypted
      */
-    public int encryptConfigurationFiles(final Path baseDirectory, final PropertyProtectionScheme scheme) {
+    public void encryptConfigurationFiles(final Path baseDirectory, final PropertyProtectionScheme scheme) {
         XmlEncryptor encryptor = getXmlEncryptor(scheme);
         try {
             encryptConfigurationFiles(configurationFiles, encryptor);
             outputKeyToBootstrap();
             logger.info("The Property Encryptor successfully encrypted configuration files in the [{}] directory with the scheme [{}]", baseDirectory, scheme.getPath());
-            return 0;
         } catch (Exception e) {
             logger.error("The Property Encryptor failed to encrypt configuration files in the [{}] directory with the scheme [{}]", baseDirectory, scheme.getPath(), e);
-            return 1;
         }
     }
 
     private void outputKeyToBootstrap() throws IOException {
         final File bootstrapFile = bootstrapLoader.getBootstrapFileWithinConfDirectory(confDirectory);
-        File tempBootstrapFile = FileUtilities.getTemporaryOutputFile("tmp", bootstrapFile);
+        File tempBootstrapFile = ConfigurationFileUtils.getTemporaryOutputFile(TEMP_FILE_PREFIX, bootstrapFile);
         final MutableBootstrapProperties bootstrapProperties = bootstrapLoader.loadMutableBootstrapProperties(bootstrapFile.getPath());
         bootstrapProperties.setProperty(BootstrapProperties.BootstrapPropertyKey.SENSITIVE_KEY.getKey(), hexKey);
-        PropertiesWriter.writePropertiesFile(new FileInputStream(bootstrapFile), new FileOutputStream(tempBootstrapFile), bootstrapProperties);
-        logger.info("Output the bootstrap key to {}", tempBootstrapFile);
+        try (InputStream inputStream = new FileInputStream(bootstrapFile);
+             FileOutputStream outputStream = new FileOutputStream(tempBootstrapFile)) {
+            new StandardPropertiesWriter().writePropertiesFile(inputStream, outputStream, bootstrapProperties);
+            logger.info("Output the bootstrap key to {}", tempBootstrapFile);
+        }
     }
 
-    private int encryptConfigurationFiles(final List<File> configurationFiles, final XmlEncryptor encryptor) throws IOException {
+    private void encryptConfigurationFiles(final List<File> configurationFiles, final XmlEncryptor encryptor) throws IOException {
         for (final File configurationFile : configurationFiles) {
-            File temp = FileUtilities.getTemporaryOutputFile("tmp", configurationFile);
+            File temp = ConfigurationFileUtils.getTemporaryOutputFile(TEMP_FILE_PREFIX, configurationFile);
             try (InputStream inputStream = new FileInputStream(configurationFile);
                 FileOutputStream outputStream = new FileOutputStream(temp)) {
                 encryptor.encrypt(inputStream, outputStream);
@@ -128,17 +113,14 @@ public class PropertyEncryptorMain {
 
             //Files.copy(temp.toPath(), configurationFile.toPath());
         }
-        return 0;
     }
 
-    public int migrateConfigurationFiles(final File baseDirectory) {
+    public void migrateConfigurationFiles(final File baseDirectory) {
         logger.info("Not yet implemented.");
-        return 0;
     }
 
-    public int encryptFlowDefinition(final File baseDirectory) {
+    public void encryptFlowDefinition(final File baseDirectory) {
         logger.info("Not yet implemented.");
-        return 0;
     }
 
     private XmlEncryptor getXmlEncryptor(final PropertyProtectionScheme scheme) {
@@ -150,24 +132,54 @@ public class PropertyEncryptorMain {
         return new XmlDecryptor(providerFactory, scheme);
     }
 
-    private String getKeyHex(final Path confDirectory, final String passphrase) {
-        String keyHex;
+    private String getEncodedRootKey(final Path confDirectory, final String passphrase) {
+        String encodedRootKey;
 
         try {
             final File bootstrapConf = bootstrapLoader.getBootstrapFileWithinConfDirectory(confDirectory);
-            keyHex = bootstrapLoader.extractKeyFromBootstrapFile(bootstrapConf.getAbsolutePath());
+            encodedRootKey = bootstrapLoader.extractKeyFromBootstrapFile(bootstrapConf.getAbsolutePath());
         } catch (IOException e) {
             throw new PropertyEncryptorException("Failed to get key hex from bootstrap file", e);
         }
 
-        if (keyHex.isEmpty()) {
+        if (encodedRootKey.isEmpty()) {
             try {
-                keyHex = CryptographyUtils.deriveKeyFromPassphrase(passphrase);
+                encodedRootKey = SecureHasherFactory.getSecureHasher(KeyDerivationFunction.SCRYPT.getKdfName()).hashHex(passphrase).toUpperCase();
             } catch (Exception e) {
                 throw new PropertyEncryptorException("Failed to derive an encryption key from the provided passphrase", e);
             }
         }
 
-        return keyHex;
+        return encodedRootKey;
+    }
+
+    private AbstractBootstrapPropertiesLoader getBootstrapPropertiesLoader(final Path baseDirectory) {
+        if (ConfigurationFileUtils.isNiFiRegistryConfDirectory(baseDirectory)) {
+            return new NiFiRegistryBootstrapPropertiesLoader();
+        } else if (ConfigurationFileUtils.isNiFiConfDirectory(baseDirectory)) {
+            return new NiFiBootstrapPropertiesLoader();
+        } else {
+            throw new PropertyEncryptorException(String.format("The base directory [%s] does not contain a recognized bootstrap.conf file", baseDirectory));
+        }
+    }
+
+    private PropertiesLoader<ApplicationProperties> getPropertiesLoader(final Path baseDirectory) {
+        if (ConfigurationFileUtils.isNiFiRegistryConfDirectory(baseDirectory)) {
+            return new NiFiRegistryPropertiesLoader();
+        } else if (ConfigurationFileUtils.isNiFiConfDirectory(baseDirectory)) {
+            return new NiFiPropertiesLoader();
+        } else {
+            throw new PropertyEncryptorException(String.format("The base directory [%s] does not contain a recognized .properties file", baseDirectory));
+        }
+    }
+
+    private ConfigurationFileResolver getConfigurationFileResolver(final Path baseDirectory) {
+        if (ConfigurationFileUtils.isNiFiRegistryConfDirectory(baseDirectory)) {
+            return new NiFiRegistryConfigurationFileResolver(baseDirectory);
+        } else if (ConfigurationFileUtils.isNiFiConfDirectory(baseDirectory)) {
+            return new NiFiConfigurationFileResolver(baseDirectory);
+        } else {
+            throw new PropertyEncryptorException(String.format("The base directory [%s] does not contain a recognized .properties file", baseDirectory));
+        }
     }
 }

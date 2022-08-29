@@ -20,9 +20,6 @@ import org.apache.nifi.properties.SensitivePropertyProviderFactory;
 import org.apache.nifi.properties.scheme.ProtectionScheme;
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLEventFactory;
-import javax.xml.stream.XMLEventReader;
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.Characters;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
@@ -80,7 +77,7 @@ public class XmlDecryptor extends XmlCryptoParser {
         }
     }
 
-    public boolean isEncryptedElement(final XMLEvent xmlEvent) {
+    private boolean isEncryptedElement(final XMLEvent xmlEvent) {
         return xmlEvent.isStartElement()
                 && xmlEvent.asStartElement().getName().toString().equals(PROPERTY_ELEMENT)
                 && elementHasEncryptionAttribute(xmlEvent.asStartElement());
@@ -92,13 +89,5 @@ public class XmlDecryptor extends XmlCryptoParser {
 
     private boolean xmlElementHasAttribute(final StartElement xmlEvent, final String attributeName) {
         return !Objects.isNull(xmlEvent.getAttributeByName(new QName(attributeName)));
-    }
-
-    public XMLEventReader getXMLReader(final InputStream fileStream) throws XMLStreamException {
-        XMLInputFactory xmlInputFactory = XMLInputFactory.newFactory();
-        xmlInputFactory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
-        xmlInputFactory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
-
-        return xmlInputFactory.createXMLEventReader(fileStream);
     }
 }

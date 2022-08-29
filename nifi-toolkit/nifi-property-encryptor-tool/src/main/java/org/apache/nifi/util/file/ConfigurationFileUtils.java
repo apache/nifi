@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 
-public class FileUtilities {
+public class ConfigurationFileUtils {
 
     public static String DEFAULT_CONF_DIR = "conf";
     public static String NIFI_PROPERTIES_DEFAULT_NAME = "nifi.properties";
@@ -98,5 +98,16 @@ public class FileUtilities {
 
     private static File getDefaultConfDirectory(final Path baseDirectory) {
         return baseDirectory.resolve(DEFAULT_CONF_DIR).toFile();
+    }
+
+    /**
+     * Return a configuration file absolute path based on the confDirectory rather than Java's working path
+     */
+    public static File getAbsoluteFile(final File confDirectory, final File relativeFile) {
+        if (relativeFile.isAbsolute() ) {
+            return relativeFile;
+        } else {
+            return new File(confDirectory.getParent(), relativeFile.getPath());
+        }
     }
 }

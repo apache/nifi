@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.encryptor;
 
-import org.apache.nifi.util.crypto.CryptographyUtils;
-import org.apache.nifi.util.file.FileUtilities;
+import org.apache.nifi.util.file.ConfigurationFileUtils;
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory;
 import org.apache.nifi.properties.scheme.ProtectionScheme;
 import org.apache.nifi.properties.scheme.StandardProtectionScheme;
@@ -41,7 +40,6 @@ class XmlEncryptorTest {
     private static final String KEY_HEX_128 = "0123456789ABCDEFFEDCBA9876543210";
     private static final String KEY_HEX_256 = KEY_HEX_128 + KEY_HEX_128;
     static final ProtectionScheme DEFAULT_PROTECTION_SCHEME = new StandardProtectionScheme("aes/gcm");
-    public static final String KEY_HEX = CryptographyUtils.isUnlimitedStrengthCryptoAvailable() ? KEY_HEX_256 : KEY_HEX_128;
     private static final String PASSWORD = "thisIsABadPassword";
 
     @Test
@@ -49,7 +47,7 @@ class XmlEncryptorTest {
         String encryptedXmlFilename = "/login-identity-providers-populated-encrypted.xml";
         XmlDecryptor decryptor = intializeXmlDecryptor();
         File encryptedXmlFile = new File(XmlEncryptorTest.class.getResource(encryptedXmlFilename).toURI());
-        File temporaryOutputFile = FileUtilities.getTemporaryOutputFile("decrypted", encryptedXmlFile);
+        File temporaryOutputFile = ConfigurationFileUtils.getTemporaryOutputFile("decrypted", encryptedXmlFile);
 
         try (InputStream inputStream = new FileInputStream(encryptedXmlFile);
              FileOutputStream outputStream = new FileOutputStream(temporaryOutputFile)) {
@@ -64,7 +62,7 @@ class XmlEncryptorTest {
         String unencryptedXmlFilename = "/login-identity-providers-populated-unecrypted.xml";
         XmlEncryptor encryptor = intializeXmlEncryptor();
         File unencryptedXmlFile = new File(XmlEncryptorTest.class.getResource(unencryptedXmlFilename).toURI());
-        File temporaryOutputFile = FileUtilities.getTemporaryOutputFile("encrypted", unencryptedXmlFile);
+        File temporaryOutputFile = ConfigurationFileUtils.getTemporaryOutputFile("encrypted", unencryptedXmlFile);
 
         try (InputStream inputStream = new FileInputStream(unencryptedXmlFile);
              FileOutputStream outputStream = new FileOutputStream(temporaryOutputFile)) {
@@ -79,7 +77,7 @@ class XmlEncryptorTest {
         String unencryptedXmlFilename = "/authorizers-populated-unencrypted.xml";
         XmlEncryptor encryptor = intializeXmlEncryptor();
         File unencryptedXmlFile = new File(XmlEncryptorTest.class.getResource(unencryptedXmlFilename).toURI());
-        File temporaryOutputFile = FileUtilities.getTemporaryOutputFile("encrypted", unencryptedXmlFile);
+        File temporaryOutputFile = ConfigurationFileUtils.getTemporaryOutputFile("encrypted", unencryptedXmlFile);
 
         try (InputStream inputStream = new FileInputStream(unencryptedXmlFile);
              FileOutputStream outputStream = new FileOutputStream(temporaryOutputFile)) {
@@ -90,11 +88,11 @@ class XmlEncryptorTest {
     }
 
     private XmlEncryptor intializeXmlEncryptor() {
-        return new XmlEncryptor(StandardSensitivePropertyProviderFactory.withKey(KEY_HEX), DEFAULT_PROTECTION_SCHEME);
+        return new XmlEncryptor(StandardSensitivePropertyProviderFactory.withKey(KEY_HEX_256), DEFAULT_PROTECTION_SCHEME);
     }
 
     private XmlDecryptor intializeXmlDecryptor() {
-        return new XmlDecryptor(StandardSensitivePropertyProviderFactory.withKey(KEY_HEX), DEFAULT_PROTECTION_SCHEME);
+        return new XmlDecryptor(StandardSensitivePropertyProviderFactory.withKey(KEY_HEX_256), DEFAULT_PROTECTION_SCHEME);
     }
 
     private int verifyFileContains(final File fileToCheck, final String fileContent) throws IOException {
