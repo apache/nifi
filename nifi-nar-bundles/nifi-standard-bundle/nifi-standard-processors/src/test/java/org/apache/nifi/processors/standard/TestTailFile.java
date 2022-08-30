@@ -1089,6 +1089,40 @@ public class TestTailFile {
         assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("firstLine\n")));
         assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("newFile\n")));
 
+        assertNumberOfStateMapEntries(2);
+        runner.shutdown();
+    }
+
+    @Test
+    public void testDetectRemovedFile() throws IOException, InterruptedException {
+        runner.setProperty(TailFile.BASE_DIRECTORY, "target");
+        runner.setProperty(TailFile.MODE, TailFile.MODE_MULTIFILE);
+        runner.setProperty(TailFile.LOOKUP_FREQUENCY, "1 sec");
+        runner.setProperty(TailFile.FILENAME, "log_[0-9]*\\.txt");
+        runner.setProperty(TailFile.RECURSIVE, "false");
+
+        initializeFile("target/log_1.txt", "firstLine\n");
+        initializeFile("target/log_2.txt", "secondLine\n");
+
+        Runnable task = () -> {
+            try {
+                deleteFile("target/log_2.txt");
+            } catch (Exception e) {
+                fail();
+            }
+        };
+
+        ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+        executor.schedule(task, 2, TimeUnit.SECONDS);
+
+        runner.setRunSchedule(2000);
+        runner.run(3);
+
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 2);
+        assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("firstLine\n")));
+        assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("secondLine\n")));
+
+        assertNumberOfStateMapEntries(1);
         runner.shutdown();
     }
 
@@ -1338,6 +1372,12 @@ public class TestTailFile {
         runner.assertTransferCount(TailFile.REL_SUCCESS, 0);
     }
 
+    private void assertNumberOfStateMapEntries(int expectedNumberOfLogFiles) throws IOException {
+        final int numberOfStateKeysPerFile = 6;
+        StateMap states = runner.getStateManager().getState(Scope.LOCAL);
+        assertEquals(numberOfStateKeysPerFile * expectedNumberOfLogFiles, states.toMap().size());
+    }
+
     private void cleanFiles(String directory) {
         final File targetDir = new File(directory);
         if(targetDir.exists()) {
@@ -1369,6 +1409,11 @@ public class TestTailFile {
         randomAccessFile.write(data.getBytes());
         randomAccessFile.close();
         return randomAccessFile;
+    }
+
+    private void deleteFile(String path) throws IOException {
+        File file = new File(path);
+        assertTrue(file.delete());
     }
 
 }
