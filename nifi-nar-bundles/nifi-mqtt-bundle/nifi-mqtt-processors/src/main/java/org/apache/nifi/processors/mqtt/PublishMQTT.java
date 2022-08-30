@@ -39,18 +39,30 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.mqtt.common.AbstractMQTTProcessor;
 import org.apache.nifi.processors.mqtt.common.MqttCallback;
-import org.apache.nifi.processors.mqtt.common.MqttException;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
 import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 
+import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static java.util.Optional.ofNullable;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -86,6 +98,16 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
             .addValidator(RETAIN_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(BASE_RECORD_READER)
+            .description("The Record Reader to use for parsing the incoming FlowFile into Records.")
+            .build();
+
+    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(BASE_RECORD_WRITER)
+            .description("The Record Writer to use for serializing Records before publishing them as an MQTT Message.")
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles that are sent successfully to the destination are transferred to this relationship.")
@@ -103,6 +125,8 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
         innerDescriptorsList.add(PROP_TOPIC);
         innerDescriptorsList.add(PROP_QOS);
         innerDescriptorsList.add(PROP_RETAIN);
+        innerDescriptorsList.add(RECORD_READER);
+        innerDescriptorsList.add(RECORD_WRITER);
         descriptors = Collections.unmodifiableList(innerDescriptorsList);
 
         final Set<Relationship> innerRelationshipsSet = new HashSet<>();
@@ -111,9 +135,17 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
         relationships = Collections.unmodifiableSet(innerRelationshipsSet);
     }
 
+    static final String PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE = "Publish failed after %d successfully published records.";
+    static final String PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER = "Successfully finished publishing previously failed records. Total record count: %d";
+    static final String PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS = "Successfully published all records. Total record count: %d";
+
+    static final String ATTR_PUBLISH_FAILED_INDEX_SUFFIX = ".mqtt.publish.failed.index";
+    private String publishFailedIndexAttributeName;
+
     @Override
     protected void init(final ProcessorInitializationContext context) {
         logger = getLogger();
+        publishFailedIndexAttributeName = getIdentifier() + ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
     }
 
     @Override
@@ -162,28 +194,105 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
             return;
         }
 
-        // do the read
-        final byte[] messageContent = new byte[(int) flowfile.getSize()];
-        session.read(flowfile, in -> StreamUtils.fillBuffer(in, messageContent, true));
+        if (context.getProperty(RECORD_READER).isSet()) {
+            processRecordSet(context, session, flowfile, topic);
+        } else {
+            processStandardFlowFile(context, session, flowfile, topic);
+        }
+    }
 
+    private void processRecordSet(ProcessContext context, ProcessSession session, final FlowFile flowfile, String topic) {
+        final StopWatch stopWatch = new StopWatch(true);
+        final AtomicInteger processedRecords = new AtomicInteger();
+
+        try {
+            final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+            final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+
+            final Long previousProcessFailedAt = ofNullable(flowfile.getAttribute(publishFailedIndexAttributeName)).map(Long::valueOf).orElse(null);
+
+            session.read(flowfile, in -> {
+                try (final RecordReader reader = readerFactory.createRecordReader(flowfile, in, logger)) {
+                    final RecordSet recordSet = reader.createRecordSet();
+
+                    final RecordSchema schema = writerFactory.getSchema(flowfile.getAttributes(), recordSet.getSchema());
+
+                    final ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
+
+                    Record record;
+                    while ((record = recordSet.next()) != null) {
+                        if (previousProcessFailedAt != null && processedRecords.get() < previousProcessFailedAt) {
+                            processedRecords.getAndIncrement();
+                            continue;
+                        }
+
+                        baos.reset();
+
+                        try (final RecordSetWriter writer = writerFactory.createWriter(logger, schema, baos, flowfile)) {
+                            writer.write(record);
+                            writer.flush();
+                        }
+
+                        final byte[] messageContent = baos.toByteArray();
+
+                        publishMessage(context, flowfile, topic, messageContent);
+                        processedRecords.getAndIncrement();
+                    }
+                } catch (SchemaNotFoundException | MalformedRecordException e) {
+                    throw new ProcessException("An error happened during creating components for serialization.", e);
+                }
+            });
+
+            FlowFile successFlowFile = flowfile;
+
+            String provenanceEventDetails;
+            if (previousProcessFailedAt != null) {
+                successFlowFile = session.removeAttribute(flowfile, publishFailedIndexAttributeName);
+                provenanceEventDetails = String.format(PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER, processedRecords.get());
+            } else {
+                provenanceEventDetails = String.format(PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS, processedRecords.get());
+            }
+
+            session.getProvenanceReporter().send(flowfile, clientProperties.getBroker(), provenanceEventDetails, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.transfer(successFlowFile, REL_SUCCESS);
+        } catch (Exception e) {
+            logger.error("An error happened during publishing records. Routing to failure.", e);
+
+            FlowFile failedFlowFile = session.putAttribute(flowfile, publishFailedIndexAttributeName, String.valueOf(processedRecords.get()));
+
+            if (processedRecords.get() > 0) {
+                session.getProvenanceReporter().send(
+                        failedFlowFile,
+                        clientProperties.getBroker(),
+                        String.format(PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE, processedRecords.get()),
+                        stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            }
+
+            session.transfer(failedFlowFile, REL_FAILURE);
+        }
+    }
+
+    private void processStandardFlowFile(ProcessContext context, ProcessSession session, FlowFile flowfile, String topic) {
+        try {
+            final byte[] messageContent = new byte[(int) flowfile.getSize()];
+            session.read(flowfile, in -> StreamUtils.fillBuffer(in, messageContent, true));
+
+            final StopWatch stopWatch = new StopWatch(true);
+            publishMessage(context, flowfile, topic, messageContent);
+            session.getProvenanceReporter().send(flowfile, clientProperties.getBroker(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.transfer(flowfile, REL_SUCCESS);
+        } catch (Exception e) {
+            logger.error("An error happened during publishing a message. Routing to failure.", e);
+            session.transfer(flowfile, REL_FAILURE);
+        }
+    }
+
+    private void publishMessage(ProcessContext context, FlowFile flowfile, String topic, byte[] messageContent) {
         int qos = context.getProperty(PROP_QOS).evaluateAttributeExpressions(flowfile).asInteger();
         boolean retained = context.getProperty(PROP_RETAIN).evaluateAttributeExpressions(flowfile).asBoolean();
         final StandardMqttMessage mqttMessage = new StandardMqttMessage(messageContent, qos, retained);
 
-        try {
-            final StopWatch stopWatch = new StopWatch(true);
-            /*
-             * Underlying method waits for the message to publish (according to set QoS), so it executes synchronously:
-             *     MqttClient.java:361 aClient.publish(topic, message, null, null).waitForCompletion(getTimeToWait());
-             */
-            mqttClient.publish(topic, mqttMessage);
-
-            session.getProvenanceReporter().send(flowfile, clientProperties.getBroker(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            session.transfer(flowfile, REL_SUCCESS);
-        } catch (MqttException me) {
-            logger.error("Failed to publish message.", me);
-            session.transfer(flowfile, REL_FAILURE);
-        }
+        mqttClient.publish(topic, mqttMessage);
     }
 
     private void initializeClient(ProcessContext context) {
