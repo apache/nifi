@@ -161,22 +161,6 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .name("record-reader")
-            .displayName("Record Reader")
-            .description("The Record Reader to use for received messages")
-            .identifiesControllerService(RecordReaderFactory.class)
-            .required(false)
-            .build();
-
-    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-            .name("record-writer")
-            .displayName("Record Writer")
-            .description("The Record Writer to use in order to serialize the data before writing it to a FlowFile")
-            .identifiesControllerService(RecordSetWriterFactory.class)
-            .required(false)
-            .build();
-
     public static final PropertyDescriptor ADD_ATTRIBUTES_AS_FIELDS = new PropertyDescriptor.Builder()
             .name("add-attributes-as-fields")
             .displayName("Add attributes as fields")
@@ -229,8 +213,6 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
         innerDescriptorsList.add(PROP_TOPIC_FILTER);
         innerDescriptorsList.add(PROP_QOS);
         innerDescriptorsList.add(PROP_MAX_QUEUE_SIZE);
-        innerDescriptorsList.add(RECORD_READER);
-        innerDescriptorsList.add(RECORD_WRITER);
         innerDescriptorsList.add(ADD_ATTRIBUTES_AS_FIELDS);
         innerDescriptorsList.add(MESSAGE_DEMARCATOR);
         descriptors = Collections.unmodifiableList(innerDescriptorsList);
@@ -292,16 +274,10 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
         }
 
         final boolean readerIsSet = context.getProperty(RECORD_READER).isSet();
-        final boolean writerIsSet = context.getProperty(RECORD_WRITER).isSet();
-        if ((readerIsSet && !writerIsSet) || (!readerIsSet && writerIsSet)) {
-            results.add(new ValidationResult.Builder().subject("Reader and Writer").valid(false)
-                    .explanation("both Record Reader and Writer must be set when used.").build());
-        }
-
         final boolean demarcatorIsSet = context.getProperty(MESSAGE_DEMARCATOR).isSet();
         if (readerIsSet && demarcatorIsSet) {
             results.add(new ValidationResult.Builder().subject("Reader and Writer").valid(false)
-                    .explanation("Message Demarcator and Record Reader/Writer cannot be used at the same time.").build());
+                    .explanation("message Demarcator and Record Reader/Writer cannot be used at the same time.").build());
         }
 
         return results;
@@ -461,7 +437,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
     private FlowFile createFlowFileAndPopulateAttributes(ProcessSession session, ReceivedMqttMessage mqttMessage) {
         FlowFile messageFlowfile = session.create();
 
-        Map<String, String> attrs = new HashMap<>();
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put(BROKER_ATTRIBUTE_KEY, clientProperties.getBroker());
         attrs.put(TOPIC_ATTRIBUTE_KEY, mqttMessage.getTopic());
         attrs.put(QOS_ATTRIBUTE_KEY, String.valueOf(mqttMessage.getQos()));
@@ -476,7 +452,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-        FlowFile flowFile = session.create();
+        final FlowFile flowFile = session.create();
         session.putAttribute(flowFile, BROKER_ATTRIBUTE_KEY, clientProperties.getBroker());
 
         final Map<String, String> attributes = new HashMap<>();

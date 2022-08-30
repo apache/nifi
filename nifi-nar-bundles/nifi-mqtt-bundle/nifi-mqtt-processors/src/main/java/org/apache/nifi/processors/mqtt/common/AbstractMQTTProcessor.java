@@ -32,6 +32,8 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.ssl.SSLContextService;
 
 import java.net.URI;
@@ -42,6 +44,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static org.apache.commons.lang3.EnumUtils.isValidEnumIgnoreCase;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
@@ -93,7 +96,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
     };
 
     private static String getSupportedSchemeList() {
-        return String.join(", ", Arrays.stream(MqttProtocolScheme.values()).map(value -> value.name().toLowerCase()).toArray(String[]::new));
+        return Arrays.stream(MqttProtocolScheme.values()).map(value -> value.name().toLowerCase()).collect(Collectors.joining(", "));
     }
 
     public static final Validator RETAIN_VALIDATOR = (subject, input, context) -> {
@@ -232,6 +235,22 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+            .name("record-reader")
+            .displayName("Record Reader")
+            .description("The Record Reader to use for received messages")
+            .identifiesControllerService(RecordReaderFactory.class)
+            .required(false)
+            .build();
+
+    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+            .name("record-writer")
+            .displayName("Record Writer")
+            .description("The Record Writer to use in order to serialize the data before writing it to a FlowFile")
+            .identifiesControllerService(RecordSetWriterFactory.class)
+            .required(false)
+            .build();
+
     public static List<PropertyDescriptor> getAbstractPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(PROP_BROKER_URI);
@@ -248,6 +267,8 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         descriptors.add(PROP_MQTT_VERSION);
         descriptors.add(PROP_CONN_TIMEOUT);
         descriptors.add(PROP_KEEP_ALIVE_INTERVAL);
+        descriptors.add(RECORD_READER);
+        descriptors.add(RECORD_WRITER);
         return descriptors;
     }
 
@@ -285,6 +306,13 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             }
         } catch (URISyntaxException e) {
             results.add(new ValidationResult.Builder().subject(PROP_BROKER_URI.getName()).valid(false).explanation("it is not valid URI syntax.").build());
+        }
+
+        final boolean readerIsSet = validationContext.getProperty(RECORD_READER).isSet();
+        final boolean writerIsSet = validationContext.getProperty(RECORD_WRITER).isSet();
+        if ((readerIsSet && !writerIsSet) || (!readerIsSet && writerIsSet)) {
+            results.add(new ValidationResult.Builder().subject("Reader and Writer").valid(false)
+                    .explanation("both Record Reader and Writer must be set when used.").build());
         }
 
         return results;
@@ -366,9 +394,8 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         clientProperties.setKeepAliveInterval(context.getProperty(PROP_KEEP_ALIVE_INTERVAL).asInteger());
         clientProperties.setConnectionTimeout(context.getProperty(PROP_CONN_TIMEOUT).asInteger());
 
-        final PropertyValue sslProp = context.getProperty(PROP_SSL_CONTEXT_SERVICE);
-        if (sslProp.isSet()) {
-            final SSLContextService sslContextService = (SSLContextService) sslProp.asControllerService();
+        final SSLContextService sslContextService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        if (sslContextService != null) {
             clientProperties.setTlsConfiguration(sslContextService.createTlsConfiguration());
         }
 

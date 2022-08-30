@@ -17,22 +17,25 @@
 
 package org.apache.nifi.processors.mqtt.common;
 
+import org.apache.commons.lang3.tuple.Pair;
+
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MqttTestClient implements MqttClient {
+
+    private final Queue<Pair<String, StandardMqttMessage>> publishedMessages = new LinkedList<>();
 
     public AtomicBoolean connected = new AtomicBoolean(false);
 
     public MqttCallback mqttCallback;
     public ConnectType type;
-    public enum ConnectType {Publisher, Subscriber}
 
-    private StandardMqttMessage lastPublishedMessage;
-    private String lastPublishedTopic;
+    public enum ConnectType {Publisher, Subscriber}
 
     public String subscribedTopic;
     public int subscribedQos;
-
 
     public MqttTestClient(ConnectType type) {
         this.type = type;
@@ -62,8 +65,7 @@ public class MqttTestClient implements MqttClient {
     public void publish(String topic, StandardMqttMessage message) {
         switch (type) {
             case Publisher:
-                lastPublishedMessage = message;
-                lastPublishedTopic = topic;
+                publishedMessages.add(Pair.of(topic, message));
                 break;
             case Subscriber:
                 mqttCallback.messageArrived(new ReceivedMqttMessage(message.getPayload(), message.getQos(), message.isRetained(), topic));
@@ -82,11 +84,7 @@ public class MqttTestClient implements MqttClient {
         this.mqttCallback = callback;
     }
 
-    public StandardMqttMessage getLastPublishedMessage() {
-        return lastPublishedMessage;
-    }
-
-    public String getLastPublishedTopic() {
-        return lastPublishedTopic;
+    public Pair<String, StandardMqttMessage> getLastPublished() {
+        return publishedMessages.poll();
     }
 }
