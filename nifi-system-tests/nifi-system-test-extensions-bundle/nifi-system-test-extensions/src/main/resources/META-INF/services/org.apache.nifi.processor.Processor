@@ -17,6 +17,7 @@ org.apache.nifi.processors.tests.system.CountEvents
 org.apache.nifi.processors.tests.system.CountFlowFiles
 org.apache.nifi.processors.tests.system.ConcatenateFlowFiles
 org.apache.nifi.processors.tests.system.ConcatenateRangeOfFlowFiles
+org.apache.nifi.processors.tests.system.CyclicDependOnProperties
 org.apache.nifi.processors.tests.system.DependOnProperties
 org.apache.nifi.processors.tests.system.DoNotTransferFlowFile
 org.apache.nifi.processors.tests.system.Duplicate
@@ -45,5 +46,6 @@ org.apache.nifi.processors.tests.system.ValidateFileExists
 org.apache.nifi.processors.tests.system.VerifyContents
 org.apache.nifi.processors.tests.system.WriteFlowFileCountToFile
 org.apache.nifi.processors.tests.system.WriteLifecycleEvents
+org.apache.nifi.processors.tests.system.WriteRuntimePropertiesToFlowFile
 org.apache.nifi.processors.tests.system.WriteToFile
 org.apache.nifi.processors.tests.system.SplitTextByLine

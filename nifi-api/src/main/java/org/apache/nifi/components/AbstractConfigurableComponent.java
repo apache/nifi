@@ -17,6 +17,7 @@
 package org.apache.nifi.components;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -89,6 +90,17 @@ public abstract class AbstractConfigurableComponent implements ConfigurableCompo
 
     @Override
     public final Collection<ValidationResult> validate(final ValidationContext context) {
+        // resolves properties that are missing a dependency
+        context.resolveIrrelevantProperties(this::getPropertyDescriptor);
+
+        // if a cyclic dependency exists, component is always invalid
+        if (context.containsCyclicDependencies()) {
+            return Arrays.asList(new ValidationResult.Builder()
+                    .valid(false)
+                    .explanation("Contains cyclic dependencies")
+                    .build());
+        }
+
         // goes through context properties, should match supported properties + supported dynamic properties
         final Collection<ValidationResult> results = new ArrayList<>();
         final Set<PropertyDescriptor> contextDescriptors = context.getProperties().keySet();
@@ -127,6 +139,8 @@ public abstract class AbstractConfigurableComponent implements ConfigurableCompo
         // only run customValidate if regular validation is successful. This allows Processor developers to not have to check
         // if values are null or invalid so that they can focus only on the interaction between the properties, etc.
         if (results.isEmpty()) {
+            // the following function call ensures that the irrelevant properties are null-ed in any attempt to fetch the configured value
+            // in a custom validation call
             final Collection<ValidationResult> customResults = customValidate(context);
             if (null != customResults) {
                 for (final ValidationResult result : customResults) {

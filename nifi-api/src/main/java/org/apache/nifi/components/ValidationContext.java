@@ -147,4 +147,21 @@ public interface ValidationContext extends PropertyContext {
     default boolean isValidateConnections() {
         return true;
     }
+
+    /**
+     * Resolve irrelevant properties using the given properties map. Irrelevant properties are properties that are missing any dependency.
+     * When some component attempts to fetch a property value that has been marked as irrelevant, it should return null.
+     * @param propertyDescriptorLookup a lookup for converting from a property name to the property descriptor with that name
+     */
+    default void resolveIrrelevantProperties(Function<String, PropertyDescriptor> propertyDescriptorLookup) {}
+
+    /**
+     * Determines whether or not there exists cyclic property dependencies. Any component that contains cyclic property dependencies
+     * should always be invalid.
+     *
+     * @return <code>true</code> if cyclic dependencies have been evaluated to exist, <code>false</code> otherwise
+     */
+    default boolean containsCyclicDependencies() {
+        return false;
+    }
 }

@@ -20,6 +20,7 @@ import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.components.PropertyDependency;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.resource.ResourceContext;
@@ -62,6 +63,7 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     private final NodeTypeProvider nodeTypeProvider;
     private final Map<PropertyDescriptor, String> properties;
     private final String annotationData;
+    private final Set<PropertyDescriptor> irrelevantProperties;
 
 
     public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final PropertyEncryptor propertyEncryptor,
@@ -89,8 +91,9 @@ public class StandardProcessContext implements ProcessContext, ControllerService
         this.taskTermination = taskTermination;
         this.nodeTypeProvider = nodeTypeProvider;
         this.annotationData = annotationData;
+        this.irrelevantProperties = new HashSet<>();
 
-        properties = Collections.unmodifiableMap(propertyValues);
+        properties = Collections.unmodifiableMap(removeIrrelevantProperties(propertyValues));
 
         preparedQueries = new HashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
@@ -137,19 +140,7 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     @Override
     public PropertyValue getProperty(final PropertyDescriptor descriptor) {
         verifyTaskActive();
-
-        final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), descriptor);
-
-        final String setPropertyValue = properties.get(descriptor);
-        if (setPropertyValue != null) {
-            return new StandardPropertyValue(resourceContext, setPropertyValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor), procNode.getVariableRegistry());
-        }
-
-        // Get the "canonical" Property Descriptor from the Processor
-        final PropertyDescriptor canonicalDescriptor = procNode.getPropertyDescriptor(descriptor.getName());
-        final String defaultValue = canonicalDescriptor.getDefaultValue();
-
-        return new StandardPropertyValue(resourceContext, defaultValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor), procNode.getVariableRegistry());
+        return getPropertyValue(descriptor);
     }
 
     /**
@@ -164,11 +155,7 @@ public class StandardProcessContext implements ProcessContext, ControllerService
         if (descriptor == null) {
             return null;
         }
-
-        final String setPropertyValue = properties.get(descriptor);
-        final String propValue = (setPropertyValue == null) ? descriptor.getDefaultValue() : setPropertyValue;
-        final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), descriptor);
-        return new StandardPropertyValue(resourceContext, propValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor), procNode.getVariableRegistry());
+        return getPropertyValue(descriptor);
     }
 
     @Override
@@ -355,5 +342,99 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     @Override
     public int getRetryCount() {
         return procNode.getRetryCount();
+    }
+
+    private PropertyValue getPropertyValue(final PropertyDescriptor descriptor) {
+        final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), descriptor);
+
+        final String setPropertyValue = properties.get(descriptor);
+        if (setPropertyValue != null) {
+            return new StandardPropertyValue(resourceContext, setPropertyValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor), procNode.getVariableRegistry());
+        }
+
+        // Get the "canonical" Property Descriptor from the Processor
+        final PropertyDescriptor canonicalDescriptor = procNode.getPropertyDescriptor(descriptor.getName());
+        final boolean isRelevantProperty = !irrelevantProperties.contains(descriptor);
+        final String defaultValue = isRelevantProperty ? canonicalDescriptor.getDefaultValue() : null;
+
+        return new StandardPropertyValue(resourceContext, defaultValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor), procNode.getVariableRegistry());
+    }
+
+    /**
+     * Utility function to null the values of properties that are missing dependencies
+     * @param properties properties map with descriptors and their evaluated values
+     * @return a properties map with properties which are missing dependencies effectively null-ed
+     */
+    private Map<PropertyDescriptor, String> removeIrrelevantProperties(final Map<PropertyDescriptor, String> properties) {
+        final Map<PropertyDescriptor, String> resolvedProperties = new HashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            final String effectiveValue = isRelevant(descriptor, properties) ? entry.getValue() : null;
+            resolvedProperties.put(descriptor, effectiveValue);
+        }
+        return resolvedProperties;
+    }
+
+    /**
+     * Evaluates whether a property is relevant. For a property to be relevant it must satisfy one of the following conditions:
+     * 1. Property has no dependencies, or
+     * 2. Property has dependencies and all the dependencies are satisfied.
+     * NOTE (important): Properties in use here are already validated meaning they should not have any circular dependencies.
+     * @param descriptor the descriptor to evaluate
+     * @param effectivePropertyValues the effective property values that have been passed into the ProcessContext from the flow configuration
+     * @return true if the property is "relevant" meaning all the dependencies (if any) are satisfied, false otherwise
+     */
+    private boolean isRelevant(final PropertyDescriptor descriptor, final Map<PropertyDescriptor, String> effectivePropertyValues) {
+        return isRelevant(descriptor, effectivePropertyValues, new HashSet<>());
+    }
+
+    private boolean isRelevant(final PropertyDescriptor descriptor, final Map<PropertyDescriptor, String> effectivePropertyValues,
+                               final Set<PropertyDescriptor> seen) {
+        // avoiding cycles
+        if (seen.contains(descriptor)) {
+            return false;
+        }
+
+        seen.add(descriptor);
+
+        // property may already have been evaluated
+        if (irrelevantProperties.contains(descriptor)) {
+            return false;
+        }
+
+        final Set<PropertyDependency> dependencies = descriptor.getDependencies();
+        if (dependencies.isEmpty()) {
+            return true;
+        }
+
+        for (final PropertyDependency dependency : dependencies) {
+            final PropertyDescriptor dependencyDescriptor = procNode.getPropertyDescriptor(dependency.getPropertyName());
+
+            // if a dependency is irrelevant, then a property is irrelevant
+            if (!isRelevant(dependencyDescriptor, effectivePropertyValues, seen)) {
+                irrelevantProperties.add(descriptor);
+                return false;
+            }
+
+            // if the dependency has specific values the given property is dependent on,
+            // then we have to check that the specific dependency has the value set
+            final Set<String> dependentValues = dependency.getDependentValues();
+            if (dependentValues != null && !dependentValues.isEmpty()) {
+                final String dependencyValue = effectivePropertyValues.get(dependencyDescriptor);
+                if (!dependentValues.contains(dependencyValue)) {
+                    irrelevantProperties.add(descriptor);
+                    return false;
+                }
+            } else if (dependentValues == null) {
+                final String dependencyValue = effectivePropertyValues.get(dependencyDescriptor);
+                if (dependencyValue == null) {
+                    irrelevantProperties.add(descriptor);
+                    return false;
+                }
+            }
+        }
+
+        // property is relevant
+        return true;
     }
 }

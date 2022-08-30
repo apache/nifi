@@ -98,4 +98,28 @@ public class DependentPropertyValidationIT extends NiFiSystemIT {
         getClientUtil().waitForValidProcessor(processor.getId());
     }
 
+    @Timeout(20)
+    @Test
+    public void testPropertyDependenciesWithCustomValidation() throws NiFiClientException, IOException, InterruptedException {
+        final ProcessorEntity processor = getClientUtil().createProcessor("DependOnProperties");
+        getClientUtil().updateProcessorProperties(processor, Collections.singletonMap("Always Required", "foo"));
+
+        getClientUtil().waitForValidProcessor(processor.getId());
+
+        getClientUtil().updateProcessorProperties(processor, Collections.singletonMap("Required If Optional Property Set", "test-value"));
+        getClientUtil().waitForValidProcessor(processor.getId());
+    }
+
+    @Timeout(20)
+    @Test
+    public void testCyclicPropertyDependencyShouldBeInvalid() throws NiFiClientException, IOException, InterruptedException {
+        final ProcessorEntity processor = getClientUtil().createProcessor("CyclicDependOnProperties");
+
+        getClientUtil().updateProcessorProperties(processor, Collections.singletonMap("Cyclic Dependency Root", "foo"));
+        getClientUtil().updateProcessorProperties(processor, Collections.singletonMap("Cyclic Dependency Property", "bar"));
+
+        // even though there is a cyclic dependency, the processor should be valid, because the validation in
+        // AbstractConfigurableComponent should disregard properties in a cyclic dependency chain
+        getClientUtil().waitForInvalidProcessor(processor.getId());
+    }
 }

@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class StandardValidationContext extends AbstractValidationContext implements ValidationContext {
@@ -129,7 +130,8 @@ public class StandardValidationContext extends AbstractValidationContext impleme
     @Override
     public PropertyValue getProperty(final PropertyDescriptor property) {
         final PropertyConfiguration configuredValue = properties.get(property);
-        final String effectiveValue = configuredValue == null ? property.getDefaultValue() : configuredValue.getEffectiveValue(parameterContext);
+        final String effectiveValue = irrelevantProperties.contains(property) ? null :
+                configuredValue == null ? property.getDefaultValue() : configuredValue.getEffectiveValue(parameterContext);
         final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), property);
         return new StandardPropertyValue(resourceContext, effectiveValue, controllerServiceProvider, parameterContext, preparedQueries.get(property), variableRegistry);
     }
@@ -145,7 +147,8 @@ public class StandardValidationContext extends AbstractValidationContext impleme
         for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : this.properties.entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
             final PropertyConfiguration configuration = entry.getValue();
-            final String value = configuration == null ? descriptor.getDefaultValue() : configuration.getEffectiveValue(parameterContext);
+            final String value = irrelevantProperties.contains(descriptor) ? null :
+                    configuration == null ? descriptor.getDefaultValue() : configuration.getEffectiveValue(parameterContext);
 
             valueMap.put(entry.getKey(), value);
         }
@@ -159,7 +162,10 @@ public class StandardValidationContext extends AbstractValidationContext impleme
     public Map<String, String> getAllProperties() {
         final Map<String,String> propValueMap = new LinkedHashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
-            propValueMap.put(entry.getKey().getName(), entry.getValue());
+            final PropertyDescriptor descriptor = entry.getKey();
+            final String propertyValue = entry.getValue();
+            final String effectiveValue = irrelevantProperties.contains(descriptor) ? null : propertyValue;
+            propValueMap.put(descriptor.getName(), effectiveValue);
         }
         return propValueMap;
     }
@@ -251,5 +257,10 @@ public class StandardValidationContext extends AbstractValidationContext impleme
     @Override
     public String toString() {
         return "StandardValidationContext[componentId=" + componentId + ", properties=" + properties + "]";
+    }
+
+    @Override
+    public void resolveIrrelevantProperties(final Function<String, PropertyDescriptor> propertyDescriptorLookup) {
+        super.resolveIrrelevantProperties(propertyDescriptorLookup);
     }
 }

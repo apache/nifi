@@ -17,11 +17,15 @@
 
 package org.apache.nifi.processors.tests.system;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -107,7 +111,27 @@ public class DependOnProperties extends AbstractProcessor {
             REQUIRED_IF_OPTIONAL_IS_FOO,
             REQUIRED_IF_ALWAYS_REQUIRED_IS_BAR_OR_BAZ,
             SECOND_LEVEL_DEPENDENCY,
-            MULTIPLE_DEPENDENCIES);
+            MULTIPLE_DEPENDENCIES
+        );
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>();
+        final String alwaysOptionalValue = validationContext.getProperty(ALWAYS_OPTIONAL).getValue();
+        final String requiredIfOptionalPropertySetValue = validationContext.getProperty(REQUIRED_IF_OPTIONAL_PROPERTY_SET).getValue();
+        if (alwaysOptionalValue == null && requiredIfOptionalPropertySetValue != null) {
+            // it should be verified that this never happens since validationContext should ignore properties missing dependencies
+            final String subject = REQUIRED_IF_OPTIONAL_PROPERTY_SET.getName();
+            final ValidationResult result = new ValidationResult.Builder()
+                    .subject(subject)
+                    .input(requiredIfOptionalPropertySetValue)
+                    .valid(false)
+                    .build();
+            results.add(result);
+        }
+
+        return results;
     }
 
     @Override

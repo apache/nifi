@@ -36,14 +36,21 @@ public abstract class AbstractValidationContext implements ValidationContext {
 
     private final ParameterLookup parameterLookup;
     private final Map<PropertyDescriptor, PropertyConfiguration> properties;
+    protected Set<PropertyDescriptor> irrelevantProperties;
+    private boolean hasCyclicDependencies;
 
     public AbstractValidationContext(final ParameterLookup parameterLookup, final Map<PropertyDescriptor, PropertyConfiguration> properties) {
         this.parameterLookup = parameterLookup;
         this.properties = properties;
+        this.irrelevantProperties = new HashSet<>();
+        this.hasCyclicDependencies = false;
     }
 
 
     public boolean isDependencySatisfied(final PropertyDescriptor propertyDescriptor, final Function<String, PropertyDescriptor> propertyDescriptorLookup) {
+        if (irrelevantProperties.contains(propertyDescriptor)) {
+            return false;
+        }
         return isDependencySatisfied(propertyDescriptor, propertyDescriptorLookup, new HashSet<>());
     }
 
@@ -56,6 +63,7 @@ public abstract class AbstractValidationContext implements ValidationContext {
 
         final boolean added = propertiesSeen.add(propertyDescriptor.getName());
         if (!added) {
+            hasCyclicDependencies = true;
             logger.debug("Dependency for {} is not satisifed because its dependency chain contains a loop: {}", propertyDescriptor, propertiesSeen);
             return false;
         }
@@ -102,5 +110,21 @@ public abstract class AbstractValidationContext implements ValidationContext {
         } finally {
             propertiesSeen.remove(propertyDescriptor.getName());
         }
+    }
+
+    @Override
+    public void resolveIrrelevantProperties(final Function<String, PropertyDescriptor> propertyDescriptorLookup) {
+        // reset irrelevant properties to start from a fresh slate everytime this function is called
+        irrelevantProperties = new HashSet<>();
+        for (final PropertyDescriptor descriptor : properties.keySet()) {
+            if (!isDependencySatisfied(descriptor, propertyDescriptorLookup)) {
+                irrelevantProperties.add(descriptor);
+            }
+        }
+    }
+
+    @Override
+    public boolean containsCyclicDependencies() {
+        return hasCyclicDependencies;
     }
 }
