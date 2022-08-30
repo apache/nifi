@@ -34,17 +34,16 @@ public class SmbListableEntity implements ListableEntity {
     public static final String SHORT_NAME = "shortName";
     public static final String PATH = "path";
     public static final String SERVICE_LOCATION = "serviceLocation";
-    public static final String ABSOLUTE_PATH = "absolute.path";
     public static final String CREATION_TIME = "creationTime";
     public static final String LAST_ACCESS_TIME = "lastAccessTime";
     public static final String CHANGE_TIME = "changeTime";
-    public static final String LAST_MODIFIED = "lastModified";
+    public static final String LAST_MODIFIED_TIME = "lastModifiedTime";
     public static final String SIZE = "size";
     public static final String ALLOCATION_SIZE = "allocationSize";
     private final String name;
     private final String shortName;
     private final String path;
-    private final long timestamp;
+    private final long lastModifiedTime;
     private final long creationTime;
     private final long lastAccessTime;
     private final long changeTime;
@@ -53,13 +52,13 @@ public class SmbListableEntity implements ListableEntity {
     private final long allocationSize;
     private final URI serviceLocation;
 
-    private SmbListableEntity(String name, String shortName, String path, long timestamp, long creationTime,
+    private SmbListableEntity(String name, String shortName, String path, long lastModifiedTime, long creationTime,
             long lastAccessTime, long changeTime, boolean directory,
             long size, long allocationSize, URI serviceLocation) {
         this.name = name;
         this.shortName = shortName;
         this.path = path;
-        this.timestamp = timestamp;
+        this.lastModifiedTime = lastModifiedTime;
         this.creationTime = creationTime;
         this.lastAccessTime = lastAccessTime;
         this.changeTime = changeTime;
@@ -75,7 +74,7 @@ public class SmbListableEntity implements ListableEntity {
                 new RecordField("shortName", RecordFieldType.STRING.getDataType(), false),
                 new RecordField("path", RecordFieldType.STRING.getDataType(), false),
                 new RecordField("absolute.path", RecordFieldType.STRING.getDataType(), false),
-                new RecordField("timestamp", RecordFieldType.LONG.getDataType(), false),
+                new RecordField("lastModifiedTime", RecordFieldType.LONG.getDataType(), false),
                 new RecordField("creationTime", RecordFieldType.LONG.getDataType(), false),
                 new RecordField("lastAccessTime", RecordFieldType.LONG.getDataType(), false),
                 new RecordField("changeTime", RecordFieldType.LONG.getDataType(), false),
@@ -129,7 +128,7 @@ public class SmbListableEntity implements ListableEntity {
 
     @Override
     public long getTimestamp() {
-        return timestamp;
+        return lastModifiedTime;
     }
 
     @Override
@@ -160,7 +159,7 @@ public class SmbListableEntity implements ListableEntity {
 
     @Override
     public String toString() {
-        return getPathWithName() + " (last write: " + timestamp + " size: " + size + ")";
+        return getPathWithName() + " (last write: " + lastModifiedTime + " size: " + size + ")";
     }
 
     @Override
@@ -170,10 +169,9 @@ public class SmbListableEntity implements ListableEntity {
         record.put(SHORT_NAME, getShortName());
         record.put(PATH, getPath());
         record.put(SERVICE_LOCATION, getServiceLocation().toString());
-        record.put(ABSOLUTE_PATH, getPathWithName());
         record.put(CREATION_TIME, getCreationTime());
         record.put(LAST_ACCESS_TIME, getLastAccessTime());
-        record.put(LAST_MODIFIED, getTimestamp());
+        record.put(LAST_MODIFIED_TIME, getTimestamp());
         record.put(CHANGE_TIME, getChangeTime());
         record.put(SIZE, getSize());
         record.put(ALLOCATION_SIZE, getAllocationSize());
@@ -189,7 +187,7 @@ public class SmbListableEntity implements ListableEntity {
         private String name;
         private String shortName;
         private String path = "";
-        private long timestamp;
+        private long lastModifiedTime;
         private long creationTime;
         private long lastAccessTime;
         private long changeTime;
@@ -213,8 +211,8 @@ public class SmbListableEntity implements ListableEntity {
             return this;
         }
 
-        public SmbListableEntityBuilder setTimestamp(long timestamp) {
-            this.timestamp = timestamp;
+        public SmbListableEntityBuilder setLastModifiedTime(long lastModifiedTime) {
+            this.lastModifiedTime = lastModifiedTime;
             return this;
         }
 
@@ -254,7 +252,7 @@ public class SmbListableEntity implements ListableEntity {
         }
 
         public SmbListableEntity build() {
-            return new SmbListableEntity(name, shortName, path, timestamp, creationTime, lastAccessTime, changeTime,
+            return new SmbListableEntity(name, shortName, path, lastModifiedTime, creationTime, lastAccessTime, changeTime,
                     directory, size, allocationSize, serviceLocation);
         }
     }

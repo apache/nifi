@@ -16,20 +16,21 @@
  */
 package org.apache.nifi.processors.smb;
 
+import static java.time.ZoneOffset.UTC;
 import static java.time.format.DateTimeFormatter.ISO_DATE_TIME;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.nifi.components.state.Scope.CLUSTER;
 import static org.apache.nifi.processor.util.StandardValidators.DATA_SIZE_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.NON_BLANK_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.TIME_PERIOD_VALIDATOR;
-import static org.apache.nifi.services.smb.SmbListableEntity.ABSOLUTE_PATH;
 import static org.apache.nifi.services.smb.SmbListableEntity.ALLOCATION_SIZE;
 import static org.apache.nifi.services.smb.SmbListableEntity.CHANGE_TIME;
-import static org.apache.nifi.services.smb.SmbListableEntity.LAST_MODIFIED;
+import static org.apache.nifi.services.smb.SmbListableEntity.LAST_MODIFIED_TIME;
 import static org.apache.nifi.services.smb.SmbListableEntity.CREATION_TIME;
 import static org.apache.nifi.services.smb.SmbListableEntity.FILENAME;
 import static org.apache.nifi.services.smb.SmbListableEntity.LAST_ACCESS_TIME;
@@ -41,13 +42,11 @@ import static org.apache.nifi.services.smb.SmbListableEntity.SIZE;
 import java.io.IOException;
 import java.net.URI;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -98,21 +97,16 @@ import org.apache.nifi.services.smb.SmbListableEntity;
                         + "and port inherited from the configured connection pool controller service. For example, for "
                         + "a given remote location smb://HOSTNAME:PORT/SHARE/DIRECTORY, and a file is being listed from "
                         + "smb://HOSTNAME:PORT/SHARE/DIRECTORY/sub/folder/file then the path attribute will be set to \"sub/folder/file\"."),
-        @WritesAttribute(attribute = ABSOLUTE_PATH, description =
-                "The absolute.path is set to the absolute path of the file's directory on the remote location. For example, "
-                        + "given a remote location smb://HOSTNAME:PORT/SHARE/DIRECTORY, and a file is being listen from "
-                        + "SHARE/DIRECTORY/sub/folder/file then the absolute.path attribute will be set to "
-                        + "SHARE/DIRECTORY/sub/folder/file."),
         @WritesAttribute(attribute = SERVICE_LOCATION, description =
                 "The SMB URL of the share"),
-        @WritesAttribute(attribute = LAST_MODIFIED, description =
-                "The timestamp of when the file's content changed in the filesystem as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
+        @WritesAttribute(attribute = LAST_MODIFIED_TIME, description =
+                "The timestamp of when the file's content changed in the filesystem as 'yyyy-MM-dd'T'HH:mm:ss'"),
         @WritesAttribute(attribute = CREATION_TIME, description =
-                "The timestamp of when the file was created in the filesystem as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
+                "The timestamp of when the file was created in the filesystem as 'yyyy-MM-dd'T'HH:mm:ss'"),
         @WritesAttribute(attribute = LAST_ACCESS_TIME, description =
-                "The timestamp of when the file was accessed in the filesystem as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
+                "The timestamp of when the file was accessed in the filesystem as 'yyyy-MM-dd'T'HH:mm:ss'"),
         @WritesAttribute(attribute = CHANGE_TIME, description =
-                "The timestamp of when the file's attributes was changed in the filesystem as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
+                "The timestamp of when the file's attributes was changed in the filesystem as 'yyyy-MM-dd'T'HH:mm:ss'"),
         @WritesAttribute(attribute = SIZE, description = "The number of bytes in the source file"),
         @WritesAttribute(attribute = ALLOCATION_SIZE, description = "The number of bytes allocated for the file on the server"),
 })
@@ -195,10 +189,10 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
 
     private static final List<PropertyDescriptor> PROPERTIES = unmodifiableList(asList(
             SMB_CLIENT_PROVIDER_SERVICE,
-            AbstractListProcessor.RECORD_WRITER,
             SMB_LISTING_STRATEGY,
             DIRECTORY,
             FILE_NAME_SUFFIX_FILTER,
+            AbstractListProcessor.RECORD_WRITER,
             MINIMUM_AGE,
             MAXIMUM_AGE,
             MINIMUM_SIZE,
@@ -222,9 +216,8 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
         attributes.put(FILENAME, entity.getName());
         attributes.put(SHORT_NAME, entity.getShortName());
         attributes.put(PATH, entity.getPath());
-        attributes.put(ABSOLUTE_PATH, entity.getPathWithName());
         attributes.put(SERVICE_LOCATION, clientProviderService.getServiceLocation().toString());
-        attributes.put(LAST_MODIFIED, formatTimeStamp(entity.getTimestamp()));
+        attributes.put(LAST_MODIFIED_TIME, formatTimeStamp(entity.getTimestamp()));
         attributes.put(CREATION_TIME, formatTimeStamp(entity.getCreationTime()));
         attributes.put(LAST_ACCESS_TIME, formatTimeStamp(entity.getLastAccessTime()));
         attributes.put(CHANGE_TIME, formatTimeStamp(entity.getChangeTime()));
@@ -298,7 +291,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
 
     private String formatTimeStamp(long timestamp) {
         return ISO_DATE_TIME.format(
-                LocalDateTime.ofEpochSecond(TimeUnit.MILLISECONDS.toSeconds(timestamp), 0, ZoneOffset.UTC));
+                LocalDateTime.ofEpochSecond(MILLISECONDS.toSeconds(timestamp), 0, UTC));
     }
 
     private boolean isExecutionStopped(ListingMode listingMode) {
@@ -307,9 +300,9 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
 
     private Predicate<SmbListableEntity> createFileFilter(ProcessContext context, Long minTimestampOrNull) {
 
-        final Long minimumAge = context.getProperty(MINIMUM_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final Long minimumAge = context.getProperty(MINIMUM_AGE).asTimePeriod(MILLISECONDS);
         final Long maximumAgeOrNull = context.getProperty(MAXIMUM_AGE).isSet() ? context.getProperty(MAXIMUM_AGE)
-                .asTimePeriod(TimeUnit.MILLISECONDS) : null;
+                .asTimePeriod(MILLISECONDS) : null;
         final Double minimumSizeOrNull =
                 context.getProperty(MINIMUM_SIZE).isSet() ? context.getProperty(MINIMUM_SIZE).asDataSize(DataUnit.B)
                         : null;

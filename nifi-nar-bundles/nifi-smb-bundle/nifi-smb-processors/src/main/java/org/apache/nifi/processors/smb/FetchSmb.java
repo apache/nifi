@@ -17,10 +17,10 @@
 package org.apache.nifi.processors.smb;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.unmodifiableSet;
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.processor.util.StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -60,8 +60,7 @@ public class FetchSmb extends AbstractProcessor {
     public static final PropertyDescriptor REMOTE_FILE = new PropertyDescriptor
             .Builder().name("remote-file")
             .displayName("Remote File")
-            .description(
-                    "The full path of the file to be retrieved from the remote server. EL is supported when record reader is not used.")
+            .description("The full path of the file to be retrieved from the remote server. Expression language is supported.")
             .required(true)
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
             .defaultValue("${path}/${filename}")
@@ -85,7 +84,7 @@ public class FetchSmb extends AbstractProcessor {
                     .description(
                             "A flowfile will be routed here for each File for which fetch was attempted but failed.")
                     .build();
-    public static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(asList(
+    public static final Set<Relationship>   RELATIONSHIPS = unmodifiableSet(new HashSet<>(asList(
             REL_SUCCESS,
             REL_FAILURE
     )));
@@ -97,7 +96,7 @@ public class FetchSmb extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return   RELATIONSHIPS;
     }
 
     @Override
@@ -113,7 +112,7 @@ public class FetchSmb extends AbstractProcessor {
         try (SmbClientService client = clientProviderService.getClient()) {
             fetchAndTransfer(session, context, client, flowFile);
         } catch (Exception e) {
-            getLogger().error("Couldn't connect to smb due to " + e.getMessage());
+            getLogger().error("Couldn't connect to smb.", e);
             flowFile = session.putAttribute(flowFile, ERROR_CODE_ATTRIBUTE, getErrorCode(e));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
             session.transfer(flowFile, REL_FAILURE);
@@ -135,7 +134,7 @@ public class FetchSmb extends AbstractProcessor {
             flowFile = session.write(flowFile, outputStream -> client.readFile(filename, outputStream));
             session.transfer(flowFile, REL_SUCCESS);
         } catch (Exception e) {
-            getLogger().error("Couldn't fetch file {} due to {}", filename, e.getMessage());
+            getLogger().error("Couldn't fetch file {}.", filename, e);
             flowFile = session.putAttribute(flowFile, ERROR_CODE_ATTRIBUTE, getErrorCode(e));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
             session.transfer(flowFile, REL_FAILURE);

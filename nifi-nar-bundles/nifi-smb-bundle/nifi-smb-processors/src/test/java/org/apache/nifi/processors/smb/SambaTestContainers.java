@@ -38,10 +38,10 @@ import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
-public class SambaTestcontinerIT {
+public class SambaTestContainers {
 
     protected final static Integer DEFAULT_SAMBA_PORT = 445;
-    protected final static Logger logger = LoggerFactory.getLogger(ListSmbTest.class);
+    protected final static Logger logger = LoggerFactory.getLogger(SambaTestContainers.class);
     protected final GenericContainer<?> sambaContainer = new GenericContainer<>(DockerImageName.parse("dperson/samba"))
             .withExposedPorts(DEFAULT_SAMBA_PORT, 139)
             .waitingFor(Wait.forListeningPort())

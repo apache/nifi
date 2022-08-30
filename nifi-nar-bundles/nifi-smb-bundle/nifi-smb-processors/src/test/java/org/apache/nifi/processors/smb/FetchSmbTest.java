@@ -65,7 +65,7 @@ class FetchSmbTest {
     }
 
     @Test
-    public void shouldUseSmbClientProperlyWhenNoRecordReaderConfigured() throws Exception {
+    public void shouldUseSmbClientProperly() throws Exception {
         final TestRunner testRunner = createRunner();
         mockNifiSmbClientService();
         Map<String, String> attributes = new HashMap<>();
@@ -84,10 +84,12 @@ class FetchSmbTest {
                 testRunner.getFlowFilesForRelationship(REL_FAILURE).get(0).getAttribute(ERROR_CODE_ATTRIBUTE));
         testRunner.run();
         testRunner.assertTransferCount(REL_SUCCESS, 1);
+        assertEquals("content",
+                testRunner.getFlowFilesForRelationship(REL_SUCCESS).get(0).getContent());
     }
 
     @Test
-    public void noSuchAttriubteReferencedInELShouldResultInFailure() throws Exception {
+    public void noSuchAttributeReferencedInELShouldResultInFailure() throws Exception {
         final TestRunner testRunner = createRunner();
         mockNifiSmbClientService();
         Map<String, String> attributes = new HashMap<>();

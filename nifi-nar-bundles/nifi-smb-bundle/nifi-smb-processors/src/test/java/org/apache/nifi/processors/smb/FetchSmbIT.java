@@ -28,7 +28,7 @@ import org.apache.nifi.services.smb.SmbjClientProviderService;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.Test;
 
-public class FetchSmbIT extends SambaTestcontinerIT {
+public class FetchSmbIT extends SambaTestContainers {
 
     @Test
     public void fetchFilesUsingEL() throws Exception {

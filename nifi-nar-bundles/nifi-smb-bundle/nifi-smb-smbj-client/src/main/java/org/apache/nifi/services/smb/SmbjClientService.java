@@ -45,6 +45,7 @@ import java.util.stream.Stream;
 public class SmbjClientService implements SmbClientService {
 
     private static final List<String> SPECIAL_DIRECTORIES = asList(".", "..");
+    private static final long UNCATEGORISED_ERROR = -1L;
 
     final private AuthenticationContext authenticationContext;
     final private SMBClient smbClient;
@@ -136,13 +137,13 @@ public class SmbjClientService implements SmbClientService {
                 EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
                 EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ),
                 SMB2CreateDisposition.FILE_OPEN,
-                EnumSet.of(SMB2CreateOptions.FILE_SEQUENTIAL_ONLY));
+                EnumSet.of(SMB2CreateOptions.FILE_SEQUENTIAL_ONLY))
         ) {
             f.read(outputStream);
         } catch (SMBApiException a) {
             throw new SmbException(a.getMessage(), a.getStatusCode(), a);
         } catch (Exception e) {
-            throw new SmbException(e.getMessage(), -1L, e);
+            throw new SmbException(e.getMessage(), UNCATEGORISED_ERROR, e);
         } finally {
             outputStream.close();
         }
@@ -153,7 +154,7 @@ public class SmbjClientService implements SmbClientService {
                 .setName(info.getFileName())
                 .setShortName(info.getShortName())
                 .setPath(path)
-                .setTimestamp(info.getLastWriteTime().toEpochMillis())
+                .setLastModifiedTime(info.getLastWriteTime().toEpochMillis())
                 .setCreationTime(info.getCreationTime().toEpochMillis())
                 .setChangeTime(info.getChangeTime().toEpochMillis())
                 .setLastAccessTime(info.getLastAccessTime().toEpochMillis())

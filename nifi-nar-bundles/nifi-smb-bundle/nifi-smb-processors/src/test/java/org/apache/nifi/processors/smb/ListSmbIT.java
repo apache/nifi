@@ -46,7 +46,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-public class ListSmbIT extends SambaTestcontinerIT {
+public class ListSmbIT extends SambaTestContainers {
 
     @ParameterizedTest
     @ValueSource(ints = {4, 50, 45000})

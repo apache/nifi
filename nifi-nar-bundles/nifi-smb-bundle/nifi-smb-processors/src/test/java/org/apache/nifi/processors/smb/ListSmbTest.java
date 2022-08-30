@@ -288,7 +288,7 @@ class ListSmbTest {
     private SmbListableEntity listableEntity(String name, long timeStamp) {
         return SmbListableEntity.builder()
                 .setName(name)
-                .setTimestamp(timeStamp)
+                .setLastModifiedTime(timeStamp)
                 .build();
     }
 
