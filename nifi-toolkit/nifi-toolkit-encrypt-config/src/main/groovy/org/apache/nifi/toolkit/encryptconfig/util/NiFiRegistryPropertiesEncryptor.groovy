@@ -33,13 +33,15 @@ class NiFiRegistryPropertiesEncryptor extends PropertiesEncryptor {
     private static final String SECURITY_KEYSTORE_PASSWD = "nifi.registry.security.keystorePasswd"
     private static final String SECURITY_KEY_PASSWD = "nifi.registry.security.keyPasswd"
     private static final String SECURITY_TRUSTSTORE_PASSWD = "nifi.registry.security.truststorePasswd"
+    private static final String SECURITY_USER_OIDC_CLIENT_SECRET = "nifi.registry.security.user.oidc.client.secret"
 
     // Defined in nifi-registry-properties: org.apache.nifi.registry.properties.ProtectedNiFiRegistryProperties
     private static final String ADDITIONAL_SENSITIVE_PROPERTIES_KEY = "nifi.registry.sensitive.props.additional.keys"
     private static final String[] DEFAULT_SENSITIVE_PROPERTIES = [
             SECURITY_KEYSTORE_PASSWD,
             SECURITY_KEY_PASSWD,
-            SECURITY_TRUSTSTORE_PASSWD
+            SECURITY_TRUSTSTORE_PASSWD,
+            SECURITY_USER_OIDC_CLIENT_SECRET
     ]
 
     NiFiRegistryPropertiesEncryptor(SensitivePropertyProvider encryptionProvider, SensitivePropertyProvider decryptionProvider) {
