@@ -742,8 +742,8 @@ public class TailFile extends AbstractProcessor {
     private List<String> collectKeysToBeRemoved(Map<String, String> sessionStates) {
         List<String> keysToRemove = new ArrayList<>();
         List<String> filesToRemove = sessionStates.entrySet().stream()
-                .filter(entry -> entry.getKey().endsWith("filename") &&
-                        !states.keySet().contains(entry.getValue()))
+                .filter(entry -> entry.getKey().endsWith("filename")
+                        && !states.keySet().contains(entry.getValue()))
                 .map(Entry::getKey)
                 .collect(toList());
 
