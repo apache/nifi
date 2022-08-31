@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.util.console;
 
-import org.apache.nifi.PropertyEncryptorMain;
+import org.apache.nifi.PropertyEncryptorCommand;
 import org.apache.nifi.properties.scheme.PropertyProtectionScheme;
 import org.apache.nifi.util.console.utils.BaseCommandParameters;
 import org.slf4j.Logger;
@@ -40,10 +40,10 @@ class ConfigSubcommand extends BaseCommandParameters implements Runnable {
 
     @Override
     public void run() {
-        final PropertyEncryptorMain propertyEncryptorMain = new PropertyEncryptorMain(baseDirectory, passphrase);
+        final PropertyEncryptorCommand propertyEncryptorCommand = new PropertyEncryptorCommand(baseDirectory, passphrase);
         if (parent instanceof PropertyEncryptorEncrypt) {
             logger.info(runMessage, "encrypt", baseDirectory);
-            propertyEncryptorMain.encryptConfigurationFiles(baseDirectory, scheme);
+            propertyEncryptorCommand.encryptConfigurationFiles(baseDirectory, scheme);
         } else if (parent instanceof PropertyEncryptorDecrypt) {
             logger.info(runMessage, "decrypt", baseDirectory);
         } else if (parent instanceof PropertyEncryptorMigrate) {

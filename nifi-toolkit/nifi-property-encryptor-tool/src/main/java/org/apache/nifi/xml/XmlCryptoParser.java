@@ -68,8 +68,7 @@ public abstract class XmlCryptoParser {
 
     protected void cryptographicXmlOperation(final InputStream encryptedXmlContent, final OutputStream decryptedOutputStream) {
         final XMLOutputFactory factory = XMLOutputFactory.newInstance();
-        factory.setProperty("com.ctc.wstx.outputValidateStructure", false);
-
+        
         try {
             final XMLEventReader eventReader = new StandardXMLEventReaderProvider().getEventReader(new StreamSource(encryptedXmlContent));
             final XMLEventWriter xmlWriter = factory.createXMLEventWriter(decryptedOutputStream);

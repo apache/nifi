@@ -49,9 +49,9 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
 
-public class PropertyEncryptorMain {
+public class PropertyEncryptorCommand {
 
-    private static final Logger logger = LoggerFactory.getLogger(PropertyEncryptorMain.class);
+    private static final Logger logger = LoggerFactory.getLogger(PropertyEncryptorCommand.class);
     private final AbstractBootstrapPropertiesLoader bootstrapLoader;
     private final PropertiesLoader<ApplicationProperties> propertiesLoader;
     private final ConfigurationFileResolver fileResolver;
@@ -60,7 +60,7 @@ public class PropertyEncryptorMain {
     private final Path confDirectory;
     private final static String TEMP_FILE_PREFIX = "tmp";
 
-    public PropertyEncryptorMain(final Path baseDirectory, final String passphrase) throws PropertyEncryptorException {
+    public PropertyEncryptorCommand(final Path baseDirectory, final String passphrase) throws PropertyEncryptorException {
         confDirectory = ConfigurationFileUtils.resolveAbsoluteConfDirectory(baseDirectory);
         try {
             bootstrapLoader = getBootstrapPropertiesLoader(confDirectory);
