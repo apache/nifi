@@ -21,7 +21,6 @@ import org.apache.nifi.properties.BootstrapProperties;
 import org.apache.nifi.properties.MutableBootstrapProperties;
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory;
-import org.apache.nifi.properties.scheme.PropertyProtectionScheme;
 import org.apache.nifi.properties.scheme.ProtectionScheme;
 import org.apache.nifi.registry.properties.util.NiFiRegistryBootstrapPropertiesLoader;
 import org.apache.nifi.security.util.KeyDerivationFunction;
@@ -77,7 +76,7 @@ public class PropertyEncryptorCommand {
     /**
      * @param baseDirectory The base directory of a NiFi / NiFi Registry installation that should be encrypted
      */
-    public void encryptConfigurationFiles(final Path baseDirectory, final PropertyProtectionScheme scheme) {
+    public void encryptConfigurationFiles(final Path baseDirectory, final ProtectionScheme scheme) {
         XmlEncryptor encryptor = getXmlEncryptor(scheme);
         try {
             encryptConfigurationFiles(configurationFiles, encryptor);
@@ -123,7 +122,7 @@ public class PropertyEncryptorCommand {
         logger.info("Not yet implemented.");
     }
 
-    private XmlEncryptor getXmlEncryptor(final PropertyProtectionScheme scheme) {
+    private XmlEncryptor getXmlEncryptor(final ProtectionScheme scheme) {
         final SensitivePropertyProviderFactory providerFactory = StandardSensitivePropertyProviderFactory.withKey(hexKey);
         return new XmlEncryptor(providerFactory, scheme);
     }

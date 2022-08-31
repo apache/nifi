@@ -17,8 +17,10 @@
 package org.apache.nifi.util.console;
 
 import org.apache.nifi.PropertyEncryptorCommand;
-import org.apache.nifi.properties.scheme.PropertyProtectionScheme;
+import org.apache.nifi.properties.scheme.ProtectionScheme;
 import org.apache.nifi.util.console.utils.BaseCommandParameters;
+import org.apache.nifi.util.console.utils.SchemeCandidates;
+import org.apache.nifi.util.console.utils.SchemeConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
@@ -35,8 +37,11 @@ class ConfigSubcommand extends BaseCommandParameters implements Runnable {
     @CommandLine.ParentCommand
     private BaseCLICommand parent;
 
-    @CommandLine.Parameters(description="The encryption scheme to use, from one of the following schemes: [@|bold ${COMPLETION-CANDIDATES}|@]")
-    PropertyProtectionScheme scheme;
+    @CommandLine.Parameters(
+            completionCandidates = SchemeCandidates.class,
+            converter = SchemeConverter.class,
+            description="The encryption scheme to use, from one of the following schemes: [@|bold ${COMPLETION-CANDIDATES}|@]")
+    ProtectionScheme scheme;
 
     @Override
     public void run() {
