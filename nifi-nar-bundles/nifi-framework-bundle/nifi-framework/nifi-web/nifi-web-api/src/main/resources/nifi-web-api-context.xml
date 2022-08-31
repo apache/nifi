@@ -560,6 +560,7 @@
         <property name="clusterCoordinator" ref="clusterCoordinator"/>
         <property name="requestReplicator" ref="requestReplicator" />
         <property name="flowController" ref="flowController" />
+        <property name="authorizer" ref="authorizer" />
     </bean>
     <bean id="countersResource" class="org.apache.nifi.web.api.CountersResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>

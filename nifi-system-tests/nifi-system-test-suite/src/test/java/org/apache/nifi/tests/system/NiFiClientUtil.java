@@ -1399,5 +1399,4 @@ public class NiFiClientUtil {
 
         return nifiClient.getReportingTasksClient().updateReportingTask(entity);
     }
-
 }

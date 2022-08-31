@@ -3336,6 +3336,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return controllerFacade.submitReplay(eventId);
     }
 
+    @Override
+    public ProvenanceEventDTO submitReplayLastEvent(final String componentId) {
+        return controllerFacade.submitReplayLastEvent(componentId);
+    }
+
     // -----------------------------------------
     // Read Operations
     // -----------------------------------------

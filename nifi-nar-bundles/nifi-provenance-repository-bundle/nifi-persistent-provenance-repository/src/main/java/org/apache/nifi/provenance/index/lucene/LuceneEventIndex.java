@@ -107,6 +107,7 @@ public class LuceneEventIndex implements EventIndex {
     private final EventReporter eventReporter;
 
     private final List<CachedQuery> cachedQueries = new ArrayList<>();
+    private LatestEventsPerProcessorQuery latestEventsPerProcessorQuery; // effectively final
 
     private ScheduledExecutorService maintenanceExecutor; // effectively final
     private ScheduledExecutorService cacheWarmerExecutor;
@@ -163,7 +164,8 @@ public class LuceneEventIndex implements EventIndex {
         maintenanceExecutor.scheduleWithFixedDelay(this::purgeObsoleteQueries, 30, 30, TimeUnit.SECONDS);
 
         cachedQueries.add(new LatestEventsQuery());
-        cachedQueries.add(new LatestEventsPerProcessorQuery());
+        latestEventsPerProcessorQuery = new LatestEventsPerProcessorQuery();
+        cachedQueries.add(latestEventsPerProcessorQuery);
 
         triggerReindexOfDefunctIndices();
         triggerCacheWarming();
@@ -667,6 +669,24 @@ public class LuceneEventIndex implements EventIndex {
         return submission;
     }
 
+    @Override
+    public Optional<ProvenanceEventRecord> getLatestCachedEvent(final String componentId) throws IOException {
+        final List<Long> eventIds = latestEventsPerProcessorQuery.getLatestEventIds(componentId);
+        if (eventIds.isEmpty()) {
+            logger.info("There are no recent Provenance Events cached for Component with ID {}", componentId);
+            return Optional.empty();
+        }
+
+        final Long latestEventId = eventIds.get(eventIds.size() - 1);
+        final Optional<ProvenanceEventRecord> latestEvent = eventStore.getEvent(latestEventId);
+        if (latestEvent.isPresent()) {
+            logger.info("Returning {} as the most recent Provenance Events cached for Component with ID {}", latestEvent.get(), componentId);
+        } else {
+            logger.info("There are no recent Provenance Events cached for Component with ID {}", componentId);
+        }
+
+        return latestEvent;
+    }
 
     @Override
     public ComputeLineageSubmission submitLineageComputation(final String flowFileUuid, final NiFiUser user, final EventAuthorizer eventAuthorizer) {

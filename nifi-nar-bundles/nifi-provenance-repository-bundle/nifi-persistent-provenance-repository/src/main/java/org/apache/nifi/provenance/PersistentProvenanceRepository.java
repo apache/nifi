@@ -99,6 +99,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -2059,6 +2060,11 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         }
 
         return result;
+    }
+
+    @Override
+    public Optional<ProvenanceEventRecord> getLatestCachedEvent(final String componentId) throws IOException {
+        return Optional.empty();
     }
 
     /**

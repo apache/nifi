@@ -57,6 +57,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 
@@ -255,6 +256,11 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
     @Override
     public QuerySubmission submitQuery(final Query query, final NiFiUser user) {
         return eventIndex.submitQuery(query, createEventAuthorizer(user), user == null ? null : user.getIdentity());
+    }
+
+    @Override
+    public Optional<ProvenanceEventRecord> getLatestCachedEvent(final String componentId) throws IOException {
+        return eventIndex.getLatestCachedEvent(componentId);
     }
 
     @Override

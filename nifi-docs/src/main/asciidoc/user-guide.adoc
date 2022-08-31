@@ -304,6 +304,7 @@ NOTE: For Processors, Ports, Remote Process Groups, Connections and Labels, it i
 - *Run Once*: This option allows the user to run a selected Processor exactly once. If the Processor is prevented from executing (e.g., there are no incoming FlowFiles or the outgoing connection has back pressure applied) the Processor won't get triggered. *Execution* settings apply (i.e., *Primary Node* and *All Nodes* settings will result in running the Processor only once on the Primary Node or one time on each of the nodes, respectively). Works only with *Timer driven* and *CRON driven* scheduling strategies.
 - *Enable* or *Disable*: This option allows the user to enable or disable a Processor; the option will be either Enable or Disable, depending on the current state of the Processor.
 - *View data provenance*: This option displays the NiFi Data Provenance table, with information about data provenance events for the FlowFiles routed through that Processor (see <<data_provenance>>).
+- *Replay last event*: This option will replay the last Provenance event, effectively requeuing the last FlowFile that was processed by the Processor (see <<replay_flowfile>>).
 - *View status history*: This option opens a graphical representation of the Processor's statistical information over time.
 - *View usage*: This option takes the user to the Processor's usage documentation.
 - *View connections->Upstream*: This option allows the user to see and "jump to" upstream connections that are coming into the Processor. This is particularly useful when processors connect into and out of other Process Groups.
@@ -2834,13 +2835,21 @@ a result of the processing event, the user may select the checkbox next to "Only
 
 image:event-attributes.png["Event Attributes", width=700]
 
+[[replay_flowfile]]
 === Replaying a FlowFile
 
 A DFM may need to inspect a FlowFile's content at some point in the dataflow to ensure that it is being processed as expected. And if it
-is not being processed properly, the DFM may need to make adjustments to the dataflow and replay the FlowFile again. The Content tab of the View Details dialog window is where the DFM can do these things. The Content tab shows information about the FlowFile's content, such as its location in the Content Repository
+is not being processed properly, the DFM may need to make adjustments to the dataflow and replay the FlowFile again.
+This can be achieved from the Content tab of the View Details dialog window. The Content tab shows information
+about the FlowFile's content, such as its location in the Content Repository
 and its size. In addition, it is here that the user may click the "Download" button to download a copy of the FlowFile's content as it existed
 at this point in the flow. The user may also click the "Submit" button to replay the FlowFile at this point in the flow. Upon clicking "Submit",
 the FlowFile is sent to the connection feeding the component that produced this processing event.
+
+When a user is developing a dataflow, it can be very beneficial to have easy access to replaying a FlowFile, as well. For example, a user may configure
+a Processor, run a FlowFile through it, and find that the configuration needs to be modified. The user can then update the configuration, and run the
+same FlowFile through again to verify the results. In order to ease this process, the user can right-click on a Processor and choose the "Replay last event"
+item. From here, the user can choose to either replay the last event from just the Primary Node or from all nodes.
 
 image:event-content.png["Event Content", width=700]
 

@@ -132,6 +132,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TimeZone;
@@ -1351,6 +1352,39 @@ public class ControllerFacade implements Authorizable {
 
             // replay the flow file
             final ProvenanceEventRecord event = flowController.replayFlowFile(originalEvent, user);
+
+            // convert the event record
+            return createProvenanceEventDto(event, false);
+        } catch (final IOException ioe) {
+            throw new NiFiCoreException("An error occurred while getting the specified event.", ioe);
+        }
+    }
+
+    /**
+     * Submits for replay the latest provenance event that is cached for the component with the given ID
+     * @param componentId the ID of the component
+     * @return the ProvenanceEventDTO representing the event that was replayed, or <code>null</code> if the no event was available
+     * @throws AccessDeniedException if an event is available but the current user is not permitted to replay the event
+     */
+    public ProvenanceEventDTO submitReplayLastEvent(String componentId) {
+        try {
+            final NiFiUser user = NiFiUserUtils.getNiFiUser();
+            if (user == null) {
+                throw new WebApplicationException(new Throwable("Unable to access details for current user."));
+            }
+
+            // lookup the original event
+            final Optional<ProvenanceEventRecord> optionalEvent = flowController.getProvenanceRepository().getLatestCachedEvent(componentId);
+            if (!optionalEvent.isPresent()) {
+                return null;
+            }
+
+            // Authorize the replay
+            final ProvenanceEventRecord event = optionalEvent.get();
+            authorizeReplay(event);
+
+            // Replay the FlowFile
+            flowController.replayFlowFile(event, user);
 
             // convert the event record
             return createProvenanceEventDto(event, false);
