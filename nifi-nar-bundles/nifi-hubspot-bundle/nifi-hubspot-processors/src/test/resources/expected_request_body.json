@@ -1,0 +1,14 @@
+{
+  "filters": [
+    {
+      "propertyName": "hs_lastmodifieddate",
+      "operator": "LT",
+      "value": "1662665562616"
+    },
+    {
+      "propertyName": "hs_lastmodifieddate",
+      "operator": "GT",
+      "value": "1662665562605"
+    }
+  ]
+}

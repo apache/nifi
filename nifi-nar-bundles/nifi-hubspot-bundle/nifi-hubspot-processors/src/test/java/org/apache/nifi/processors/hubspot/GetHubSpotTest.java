@@ -18,42 +18,50 @@ package org.apache.nifi.processors.hubspot;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import okhttp3.HttpUrl;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.client.StandardHttpUriBuilder;
-import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.provider.service.StandardWebClientServiceProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
+import static org.apache.nifi.processors.hubspot.GetHubSpot.CURSOR_KEY;
+import static org.apache.nifi.processors.hubspot.GetHubSpot.END_INCREMENTAL_KEY;
+import static org.apache.nifi.processors.hubspot.GetHubSpot.START_INCREMENTAL_KEY;
+import static org.apache.nifi.processors.hubspot.HubSpotObjectType.COMPANIES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GetHubSpotTest {
 
-    public static final String BASE_URL = "/test/hubspot";
-    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    public static final String RESPONSE_WITHOUT_PAGING_CURSOR_JSON = "response-without-paging-cursor.json";
-    public static final String RESPONSE_WITH_PAGING_CURSOR_JSON = "response-with-paging-cursor.json";
+    private static final long TEST_EPOCH_TIME = 1662665787;
+    private static final String BASE_URL = "/test/hubspot";
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static MockWebServer server;
     private static HttpUrl baseUrl;
-
     private TestRunner runner;
 
     @BeforeEach
@@ -63,7 +71,7 @@ class GetHubSpotTest {
         baseUrl = server.url(BASE_URL);
 
         final StandardWebClientServiceProvider standardWebClientServiceProvider = new StandardWebClientServiceProvider();
-        final MockGetHubSpot mockGetHubSpot = new MockGetHubSpot();
+        final MockGetHubSpot mockGetHubSpot = new MockGetHubSpot(TEST_EPOCH_TIME);
 
         runner = TestRunners.newTestRunner(mockGetHubSpot);
         runner.addControllerService("standardWebClientServiceProvider", standardWebClientServiceProvider);
@@ -71,8 +79,7 @@ class GetHubSpotTest {
 
         runner.setProperty(GetHubSpot.WEB_CLIENT_SERVICE_PROVIDER, standardWebClientServiceProvider.getIdentifier());
         runner.setProperty(GetHubSpot.ACCESS_TOKEN, "testToken");
-        runner.setProperty(GetHubSpot.OBJECT_TYPE, HubSpotObjectType.COMPANIES.getValue());
-        runner.setProperty(GetHubSpot.RESULT_LIMIT, "1");
+        runner.setProperty(GetHubSpot.OBJECT_TYPE, COMPANIES.getValue());
     }
 
     @AfterEach
@@ -84,77 +91,160 @@ class GetHubSpotTest {
     }
 
     @Test
-    void testLimitIsAddedToUrl() throws InterruptedException, IOException {
-
-        final String response = getResourceAsString(RESPONSE_WITHOUT_PAGING_CURSOR_JSON);
-        server.enqueue(new MockResponse().setResponseCode(200).setBody(response));
-
-        runner.run(1);
-
-        RecordedRequest request = server.takeRequest();
-        assertEquals(BASE_URL + "?limit=1", request.getPath());
-    }
-
-    @Test
-    void testPageCursorIsAddedToUrlFromState() throws InterruptedException, IOException {
-
-        final String response = getResourceAsString(RESPONSE_WITHOUT_PAGING_CURSOR_JSON);
-        server.enqueue(new MockResponse().setBody(response));
-
-        runner.getStateManager().setState(Collections.singletonMap(HubSpotObjectType.COMPANIES.getValue(), "12345"), Scope.CLUSTER);
-
-        runner.run(1);
-
-        RecordedRequest request = server.takeRequest();
-        assertEquals(BASE_URL + "?limit=1&after=12345", request.getPath());
-    }
-
-    @Test
     void testFlowFileContainsResultsArray() throws IOException {
 
-        final String response = getResourceAsString(RESPONSE_WITH_PAGING_CURSOR_JSON);
+        final String response = getResourceAsString("simple_response.json");
         server.enqueue(new MockResponse().setBody(response));
 
         runner.run(1);
 
-        final List<MockFlowFile> flowFile = runner.getFlowFilesForRelationship(GetHubSpot.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHubSpot.REL_SUCCESS);
         final String expectedFlowFileContent = getResourceAsString("expected_flowfile_content.json");
 
         final JsonNode expectedJsonNode = OBJECT_MAPPER.readTree(expectedFlowFileContent);
-        final JsonNode actualJsonNode = OBJECT_MAPPER.readTree(flowFile.get(0).getContent());
+        final JsonNode actualJsonNode = OBJECT_MAPPER.readTree(flowFiles.get(0).getContent());
 
         assertEquals(expectedJsonNode, actualJsonNode);
     }
 
     @Test
-    void testStateIsStoredWhenPagingCursorFound() throws IOException {
+    void testFlowFileNotCreatedWhenZeroResult() throws IOException {
 
-        final String response = getResourceAsString(RESPONSE_WITH_PAGING_CURSOR_JSON);
-        final String expectedPagingCursor = OBJECT_MAPPER.readTree(response)
-                .path("paging")
-                .path("next")
-                .path("after")
-                .asText();
-
+        final String response = getResourceAsString("zero_result.json");
         server.enqueue(new MockResponse().setBody(response));
 
         runner.run(1);
 
-        final StateMap state = runner.getStateManager().getState(Scope.CLUSTER);
-        final String actualPagingCursor = state.get(HubSpotObjectType.COMPANIES.getValue());
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHubSpot.REL_SUCCESS);
 
-        assertEquals(expectedPagingCursor, actualPagingCursor);
+        assertTrue(flowFiles.isEmpty());
     }
 
+    @Test
+    void testExceptionIsThrownWhenTooManyRequest() throws IOException {
+
+        final String response = getResourceAsString("zero_result.json");
+        server.enqueue(new MockResponse().setBody(response).setResponseCode(429));
+
+        assertThrows(AssertionError.class, () -> runner.run(1));
+    }
+
+    @Test
+    void testSimpleIncrementalLoadingFilter() throws IOException, InterruptedException {
+        final String response = getResourceAsString("simple_response.json");
+        server.enqueue(new MockResponse().setBody(response));
+
+        final String limit = "2";
+        final int defaultDelay = 3000;
+        final String endTime = String.valueOf(Instant.now().toEpochMilli());
+        final Map<String, String> stateMap = new HashMap<>();
+        stateMap.put(END_INCREMENTAL_KEY, endTime);
+
+        runner.getStateManager().setState(stateMap, Scope.CLUSTER);
+        runner.setProperty(GetHubSpot.IS_INCREMENTAL, "true");
+        runner.setProperty(GetHubSpot.RESULT_LIMIT, limit);
+
+        runner.run(1);
+
+        final String requestBodyString = new String(server.takeRequest().getBody().readByteArray());
+
+        final ObjectNode startTimeNode = OBJECT_MAPPER.createObjectNode();
+        startTimeNode.put("propertyName", "hs_lastmodifieddate");
+        startTimeNode.put("operator", "GTE");
+        startTimeNode.put("value", endTime);
+
+        final ObjectNode endTimeNode = OBJECT_MAPPER.createObjectNode();
+        endTimeNode.put("propertyName", "hs_lastmodifieddate");
+        endTimeNode.put("operator", "LT");
+        endTimeNode.put("value", String.valueOf(TEST_EPOCH_TIME - defaultDelay));
+
+        final ArrayNode filtersNode = OBJECT_MAPPER.createArrayNode();
+        filtersNode.add(startTimeNode);
+        filtersNode.add(endTimeNode);
+
+        final ObjectNode root = OBJECT_MAPPER.createObjectNode();
+        root.put("limit", limit);
+        root.set("filters", filtersNode);
+
+        final String expectedJsonString = root.toString();
+
+        assertEquals(OBJECT_MAPPER.readTree(expectedJsonString), OBJECT_MAPPER.readTree(requestBodyString));
+    }
+
+    @Test
+    void testIncrementalLoadingFilterWithPagingCursor() throws IOException, InterruptedException {
+        final String response = getResourceAsString("simple_response.json");
+        server.enqueue(new MockResponse().setBody(response));
+
+        final String limit = "2";
+        final String after = "nextPage";
+        final String objectType = COMPANIES.getValue();
+        final String cursorKey = String.format(CURSOR_KEY, objectType);
+        final Instant now = Instant.now();
+        final String startTime = String.valueOf(now.toEpochMilli());
+        final String endTime = String.valueOf(now.plus(2, ChronoUnit.MINUTES).toEpochMilli());
+        final Map<String, String> stateMap = new HashMap<>();
+        stateMap.put(cursorKey, after);
+        stateMap.put(START_INCREMENTAL_KEY, startTime);
+        stateMap.put(END_INCREMENTAL_KEY, endTime);
+
+        runner.getStateManager().setState(stateMap, Scope.CLUSTER);
+        runner.setProperty(GetHubSpot.IS_INCREMENTAL, "true");
+        runner.setProperty(GetHubSpot.RESULT_LIMIT, limit);
+
+        runner.run(1);
+
+        final String requestBodyString = new String(server.takeRequest().getBody().readByteArray());
+
+        final ObjectNode startTimeNode = OBJECT_MAPPER.createObjectNode();
+        startTimeNode.put("propertyName", "hs_lastmodifieddate");
+        startTimeNode.put("operator", "GTE");
+        startTimeNode.put("value", startTime);
+
+        final ObjectNode endTimeNode = OBJECT_MAPPER.createObjectNode();
+        endTimeNode.put("propertyName", "hs_lastmodifieddate");
+        endTimeNode.put("operator", "LT");
+        endTimeNode.put("value", endTime);
+
+        final ArrayNode filtersNode = OBJECT_MAPPER.createArrayNode();
+        filtersNode.add(startTimeNode);
+        filtersNode.add(endTimeNode);
+
+        final ObjectNode root = OBJECT_MAPPER.createObjectNode();
+        root.put("limit", limit);
+        root.put("after", after);
+        root.set("filters", filtersNode);
+
+        final String expectedJsonString = root.toString();
+
+        assertEquals(OBJECT_MAPPER.readTree(expectedJsonString), OBJECT_MAPPER.readTree(requestBodyString));
+    }
 
     static class MockGetHubSpot extends GetHubSpot {
+
+        private final long currentEpochTime;
+
+        public MockGetHubSpot(long currentEpochTime) {
+            this.currentEpochTime = currentEpochTime;
+        }
+
         @Override
-        HttpUriBuilder getBaseUri(ProcessContext context) {
+        URI getBaseUri(ProcessContext context) {
             return new StandardHttpUriBuilder()
                     .scheme(baseUrl.scheme())
                     .host(baseUrl.host())
                     .port(baseUrl.port())
-                    .encodedPath(baseUrl.encodedPath());
+                    .encodedPath(baseUrl.encodedPath())
+                    .build();
+        }
+
+        @Override
+        long getCurrentEpochTime() {
+            return currentEpochTime;
+        }
+
+        @Override
+        public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         }
     }
 
