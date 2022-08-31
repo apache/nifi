@@ -65,6 +65,7 @@ import org.apache.nifi.cluster.coordination.http.endpoints.ProvenanceQueryEndpoi
 import org.apache.nifi.cluster.coordination.http.endpoints.RemoteProcessGroupEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.RemoteProcessGroupStatusEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.RemoteProcessGroupsEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ReplayLastEventEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTaskEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTaskTypesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTasksEndpointMerger;
@@ -173,6 +174,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         endpointMergers.add(new ParameterContextUpdateEndpointMerger());
         endpointMergers.add(new VerifyConfigEndpointMerger());
         endpointMergers.add(new RuntimeManifestEndpointMerger());
+        endpointMergers.add(new ReplayLastEventEndpointMerger());
     }
 
     @Override

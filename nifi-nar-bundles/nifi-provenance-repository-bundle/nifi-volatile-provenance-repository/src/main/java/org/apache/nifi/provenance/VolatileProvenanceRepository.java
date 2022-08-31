@@ -50,6 +50,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -488,6 +489,17 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         queryExecService.submit(new QueryRunnable(ringBuffer, createFilter(query, user), query.getMaxResults(), result));
 
         return result;
+    }
+
+    @Override
+    public Optional<ProvenanceEventRecord> getLatestCachedEvent(final String componentId) throws IOException {
+        final List<ProvenanceEventRecord> matches = ringBuffer.getSelectedElements(event -> componentId.equals(event.getComponentId()));
+
+        if (matches.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(matches.get(matches.size() - 1));
     }
 
     @Override

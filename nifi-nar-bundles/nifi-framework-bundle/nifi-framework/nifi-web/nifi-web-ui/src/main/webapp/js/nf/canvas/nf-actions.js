@@ -676,6 +676,96 @@
             }
         },
 
+        replayLastProvenanceEvent: function(selection, nodes) {
+            if (selection.size() === 1) {
+                var selectionData = selection.datum();
+
+                // submit replay event
+                var entity = {
+                    'componentId': selectionData.id,
+                    'nodes': nodes
+                };
+
+                $.ajax({
+                    type: 'POST',
+                    url: config.urls.api + '/provenance-events/latest/replays',
+                    data: JSON.stringify(entity),
+                    dataType: 'json',
+                    contentType: 'application/json'
+                }).fail(function (xhr, status, error) {
+                    nfDialog.showOkDialog({
+                        headerText: 'Failed to Replay Event',
+                        dialogContent: nfCommon.escapeHtml(xhr.responseText)
+                    });
+                }).done(function (response) {
+                    if (nfCommon.isDefinedAndNotNull(response.aggregateSnapshot.failureExplanation)) {
+                        nfDialog.showOkDialog({
+                            headerText: 'Replay Event Failure',
+                            dialogContent: response.aggregateSnapshot.failureExplanation
+                        });
+                    } else if (response.aggregateSnapshot.eventAvailable !== true) {
+                        nfDialog.showOkDialog({
+                            headerText: 'No Event Available',
+                            dialogContent: 'There was no recent event available to be replayed.'
+                        });
+                    } else if (nfCommon.isDefinedAndNotNull(response.nodeSnapshots)) {
+                        var replayedCount = 0;
+                        var unavailableCount = 0;
+
+                        for (var i = 0; i < response.nodeSnapshots.length; i++) {
+                            var nodeResponse = response.nodeSnapshots[i];
+                            if (nodeResponse.snapshot.eventAvailable) {
+                                replayedCount++;
+                            } else {
+                                unavailableCount++;
+                            }
+                        }
+
+                        var messageText;
+                        if (unavailableCount === 0) {
+                            messageText = 'All nodes successfully replayed the latest event.';
+                        } else {
+                            messageText = replayedCount + ' nodes successfully replayed the latest event but ' + unavailableCount + ' had no recent event avaialble to be replayed.';
+                        }
+
+                        nfDialog.showOkDialog({
+                            headerText: 'Events Replayed',
+                            dialogContent: messageText
+                        });
+                    } else {
+                        nfDialog.showOkDialog({
+                            headerText: 'Event Replayed',
+                            dialogContent: 'Successfully replayed the latest event.'
+                        });
+                    }
+
+                    var componentConnections = nfConnection.getComponentConnections(selectionData.id);
+                    for (var i=0; i < componentConnections.length; i++) {
+                        var connection = componentConnections[i];
+                        nfConnection.reload(connection.id);
+                    }
+                });
+            }
+        },
+
+        /**
+         * Submits a request to replay the last provenance event on all nodes in the cluster.
+         *
+         * @argument {selection} selection The selection
+         */
+        replayLastAllNodes: function (selection) {
+            this.replayLastProvenanceEvent(selection, 'ALL');
+        },
+
+        /**
+         * Submits a request to replay the last provenance event on the primary node in the cluster.
+         *
+         * @argument {selection} selection The selection
+         */
+        replayLastPrimaryNode: function (selection) {
+            this.replayLastProvenanceEvent(selection, 'PRIMARY');
+        },
+
         /**
          * Starts the components in the specified selection.
          *
