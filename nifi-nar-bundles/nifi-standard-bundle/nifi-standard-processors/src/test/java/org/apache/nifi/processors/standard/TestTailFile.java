@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.util.Collections;
+import java.util.Map.Entry;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.processors.standard.TailFile.TailFileState;
@@ -1089,12 +1091,11 @@ public class TestTailFile {
         assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("firstLine\n")));
         assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("newFile\n")));
 
-        assertNumberOfStateMapEntries(2);
         runner.shutdown();
     }
 
     @Test
-    public void testDetectRemovedFile() throws IOException {
+    public void testHandleRemovedFile() throws IOException {
         runner.setProperty(TailFile.BASE_DIRECTORY, "target");
         runner.setProperty(TailFile.MODE, TailFile.MODE_MULTIFILE);
         runner.setProperty(TailFile.LOOKUP_FREQUENCY, "1 sec");
@@ -1104,25 +1105,21 @@ public class TestTailFile {
         initializeFile("target/log_1.txt", "firstLine\n");
         initializeFile("target/log_2.txt", "secondLine\n");
 
-        Runnable task = () -> {
-            try {
-                deleteFile("target/log_2.txt");
-            } catch (Exception e) {
-                fail();
-            }
-        };
-
-        ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
-        executor.schedule(task, 2, TimeUnit.SECONDS);
-
-        runner.setRunSchedule(3000);
-        runner.run(2);
+        runner.run(1);
 
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 2);
         assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("firstLine\n")));
         assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("secondLine\n")));
+        assertNumberOfStateMapEntries(2);
+        assertFilenamesInStateMap(Arrays.asList("target/log_1.txt", "target/log_2.txt"));
+
+        deleteFile("target/log_2.txt");
+
+        runner.run(1);
 
         assertNumberOfStateMapEntries(1);
+        assertFilenamesInStateMap(Collections.singletonList("target/log_1.txt"));
+
         runner.shutdown();
     }
 
@@ -1376,6 +1373,15 @@ public class TestTailFile {
         final int numberOfStateKeysPerFile = 6;
         StateMap states = runner.getStateManager().getState(Scope.LOCAL);
         assertEquals(numberOfStateKeysPerFile * expectedNumberOfLogFiles, states.toMap().size());
+    }
+
+    private void assertFilenamesInStateMap(List<String> expectedFilenames) throws IOException {
+        StateMap states = runner.getStateManager().getState(Scope.LOCAL);
+        List<String> filenames = states.toMap().entrySet().stream()
+                .filter(entry -> entry.getKey().endsWith("filename"))
+                .map(Entry::getValue)
+                .collect(Collectors.toList());
+        assertEquals(expectedFilenames, filenames);
     }
 
     private void cleanFiles(String directory) {
