@@ -283,10 +283,10 @@ public class TailFile extends AbstractProcessor {
         .dependsOn(LINE_START_PATTERN)
         .build();
 
-    static final PropertyDescriptor BUFFER_LENGTH = new Builder()
-            .name("Buffer Size")
-            .displayName("Buffer Size")
-            .description("Processor will allocate this amount of data for byte buffer")
+    static final PropertyDescriptor PRE_ALLOCATED_BUFFER_SIZE = new Builder()
+            .name("pre-allocated-buffer-size")
+            .displayName("Pre-Allocated Buffer Size")
+            .description("Sets the amount of memory that is pre-allocated for each tailed file.")
             .required(true)
             .addValidator(DATA_SIZE_VALIDATOR)
             .expressionLanguageSupported(NONE)
@@ -306,7 +306,7 @@ public class TailFile extends AbstractProcessor {
     private volatile ByteArrayOutputStream linesBuffer = new ByteArrayOutputStream();
     private volatile Pattern lineStartPattern;
     private volatile long maxBufferBytes;
-    private volatile int bufferBytes;
+    private volatile int preAllocatedBufferSize;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -323,7 +323,7 @@ public class TailFile extends AbstractProcessor {
         properties.add(MAXIMUM_AGE);
         properties.add(REREAD_ON_NUL);
         properties.add(LINE_START_PATTERN);
-        properties.add(BUFFER_LENGTH);
+        properties.add(PRE_ALLOCATED_BUFFER_SIZE);
         properties.add(MAX_BUFFER_LENGTH);
         return properties;
     }
@@ -396,7 +396,7 @@ public class TailFile extends AbstractProcessor {
         lineStartPattern = (regex == null) ? null : Pattern.compile(regex);
 
         this.maxBufferBytes = context.getProperty(MAX_BUFFER_LENGTH).asDataSize(DataUnit.B).longValue();
-        this.bufferBytes = context.getProperty(BUFFER_LENGTH).asDataSize(DataUnit.B).intValue();
+        this.preAllocatedBufferSize = context.getProperty(PRE_ALLOCATED_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
     }
 
     @OnScheduled
@@ -457,7 +457,7 @@ public class TailFile extends AbstractProcessor {
                 for (String key : statesMap.keySet()) {
                     if (key.endsWith(TailFileState.StateKeys.FILENAME) && filesToTail.contains(statesMap.get(key))) {
                         int index = Integer.parseInt(key.split("\\.")[1]);
-                        states.put(statesMap.get(key), new TailFileObject(index, statesMap));
+                        states.put(statesMap.get(key), new TailFileObject(index, statesMap, preAllocatedBufferSize));
                     }
                 }
             }
@@ -484,7 +484,7 @@ public class TailFile extends AbstractProcessor {
 
         for (String filename : filesToTail) {
             if (isCleared || !states.containsKey(filename)) {
-                final TailFileState tailFileState = new TailFileState(filename, null, null, 0L, 0L, 0L, null, ByteBuffer.allocate(bufferBytes));
+                final TailFileState tailFileState = new TailFileState(filename, null, null, 0L, 0L, 0L, null, ByteBuffer.allocate(preAllocatedBufferSize));
                 states.put(filename, new TailFileObject(fileIndex, tailFileState));
 
                 fileIndex++;
@@ -626,7 +626,7 @@ public class TailFile extends AbstractProcessor {
                         + "this indicates that the file has rotated. Will begin tailing current file from beginning.", new Object[]{existingTailFile.length(), position});
             }
 
-            states.get(filePath).setState(new TailFileState(filePath, tailFile, reader, position, timestamp, length, checksum, ByteBuffer.allocate(bufferBytes)));
+            states.get(filePath).setState(new TailFileState(filePath, tailFile, reader, position, timestamp, length, checksum, ByteBuffer.allocate(preAllocatedBufferSize)));
         } else {
             resetState(filePath);
         }
@@ -636,7 +636,7 @@ public class TailFile extends AbstractProcessor {
 
     private void resetState(final String filePath) {
         states.get(filePath).setExpectedRecoveryChecksum(null);
-        states.get(filePath).setState(new TailFileState(filePath, null, null, 0L, 0L, 0L, null, ByteBuffer.allocate(bufferBytes)));
+        states.get(filePath).setState(new TailFileState(filePath, null, null, 0L, 0L, 0L, null, ByteBuffer.allocate(preAllocatedBufferSize)));
     }
 
     @OnStopped
@@ -1454,7 +1454,7 @@ public class TailFile extends AbstractProcessor {
 
             final TailFileState currentState = tfo.getState();
             final Checksum checksum = currentState.getChecksum() == null ? new CRC32() : currentState.getChecksum();
-            final ByteBuffer buffer = currentState.getBuffer() == null ? ByteBuffer.allocate(bufferBytes) : currentState.getBuffer();
+            final ByteBuffer buffer = currentState.getBuffer() == null ? ByteBuffer.allocate(preAllocatedBufferSize) : currentState.getBuffer();
             final FileChannel channel = fis.getChannel();
             final long timestamp = fileToTail.lastModified();
 
@@ -1585,7 +1585,7 @@ public class TailFile extends AbstractProcessor {
             this.state = fileState;
         }
 
-        public TailFileObject(int index, Map<String, String> statesMap) {
+        public TailFileObject(int index, Map<String, String> statesMap, int preAllocatedBufferSize) {
             this.filenameIndex = index;
             this.tailFileChanged = false;
             final String prefix = MAP_PREFIX + index + '.';
@@ -1594,7 +1594,7 @@ public class TailFile extends AbstractProcessor {
             final long timestamp = Long.parseLong(statesMap.get(prefix + TailFileState.StateKeys.TIMESTAMP));
             final long length = Long.parseLong(statesMap.get(prefix + TailFileState.StateKeys.LENGTH));
             final boolean tailingPostRollover = Boolean.parseBoolean(prefix + StateKeys.TAILING_POST_ROLLOVER);
-            this.state = new TailFileState(filename, new File(filename), null, position, timestamp, length, null, ByteBuffer.allocate(65536), tailingPostRollover);
+            this.state = new TailFileState(filename, new File(filename), null, position, timestamp, length, null, ByteBuffer.allocate(preAllocatedBufferSize), tailingPostRollover);
         }
 
         public int getFilenameIndex() {

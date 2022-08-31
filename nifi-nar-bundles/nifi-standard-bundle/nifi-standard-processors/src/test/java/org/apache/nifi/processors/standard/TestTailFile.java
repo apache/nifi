@@ -1094,7 +1094,7 @@ public class TestTailFile {
     }
 
     @Test
-    public void testDetectRemovedFile() throws IOException, InterruptedException {
+    public void testDetectRemovedFile() throws IOException {
         runner.setProperty(TailFile.BASE_DIRECTORY, "target");
         runner.setProperty(TailFile.MODE, TailFile.MODE_MULTIFILE);
         runner.setProperty(TailFile.LOOKUP_FREQUENCY, "1 sec");
@@ -1115,8 +1115,8 @@ public class TestTailFile {
         ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
         executor.schedule(task, 2, TimeUnit.SECONDS);
 
-        runner.setRunSchedule(2000);
-        runner.run(3);
+        runner.setRunSchedule(3000);
+        runner.run(2);
 
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 2);
         assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("firstLine\n")));
