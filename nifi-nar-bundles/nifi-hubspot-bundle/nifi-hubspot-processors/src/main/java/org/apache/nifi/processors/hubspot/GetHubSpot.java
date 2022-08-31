@@ -22,6 +22,8 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -33,6 +35,7 @@ import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
@@ -47,20 +50,24 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.HttpResponseStatus;
-import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -74,6 +81,10 @@ import java.util.concurrent.atomic.AtomicInteger;
         + " Only the objects after the paging cursor will be retrieved. The maximum number of retrieved objects is the 'Limit' attribute.")
 @DefaultSettings(yieldDuration = "10 sec")
 public class GetHubSpot extends AbstractProcessor {
+
+    static final AllowableValue CREATE_DATE = new AllowableValue("createDate", "Create Date", "The time of the field was created");
+    static final AllowableValue LAST_MODIFIED_DATE = new AllowableValue("lastModifiedDate", "Last Modified Date",
+            "The time of the field was last modified");
 
     static final PropertyDescriptor OBJECT_TYPE = new PropertyDescriptor.Builder()
             .name("object-type")
@@ -99,7 +110,39 @@ public class GetHubSpot extends AbstractProcessor {
             .description("The maximum number of results to request for each invocation of the Processor")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .addValidator(StandardValidators.createLongValidator(1, 100, true))
+            .build();
+
+    static final PropertyDescriptor IS_INCREMENTAL = new PropertyDescriptor.Builder()
+            .name("is-incremental")
+            .displayName("Incremental Loading")
+            .description("The processor can incrementally load the queried objects so that each object is queried exactly once." +
+                    " For each query, the processor queries objects which were created or modified after the previous run time" +
+                    " but before the current time.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
+    static final PropertyDescriptor INCREMENTAL_DELAY = new PropertyDescriptor.Builder()
+            .name("incremental-delay")
+            .displayName("Incremental Delay")
+            .description("The ending timestamp of the time window will be adjusted earlier by the amount configured in this property." +
+                    " For example, with a property value of 10 seconds, an ending timestamp of 12:30:45 would be changed to 12:30:35.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .dependsOn(IS_INCREMENTAL, "true")
+            .build();
+
+    static final PropertyDescriptor INITIAL_INCREMENTAL_FILTER = new PropertyDescriptor.Builder()
+            .name("initial-incremental-filter")
+            .displayName("Initial Incremental Start Time")
+            .description("This property specifies the start time as Epoch Time that the processor applies when running the first request.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
+            .dependsOn(IS_INCREMENTAL, "true")
             .build();
 
     static final PropertyDescriptor WEB_CLIENT_SERVICE_PROVIDER = new PropertyDescriptor.Builder()
@@ -117,11 +160,18 @@ public class GetHubSpot extends AbstractProcessor {
 
     private static final String API_BASE_URI = "api.hubapi.com";
     private static final String HTTPS = "https";
-    private static final String CURSOR_PARAMETER = "after";
-    private static final String LIMIT_PARAMETER = "limit";
     private static final int TOO_MANY_REQUESTS = 429;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final JsonFactory JSON_FACTORY = OBJECT_MAPPER.getFactory();
+    private static final Map<String, HubSpotObjectType> objectTypeLookupMap = createObjectTypeLookupMap();
+    private static final String NO_PAGING = "no paging";
+    private static final String PAGING_CURSOR = "after";
+    private static final String CURSOR_KEY_PATTERN = "paging_next: %s";
+
+    private static Map<String, HubSpotObjectType> createObjectTypeLookupMap() {
+        return Arrays.stream(HubSpotObjectType.values())
+                .collect(Collectors.toMap(HubSpotObjectType::getValue, Function.identity()));
+    }
 
     private volatile WebClientServiceProvider webClientServiceProvider;
 
@@ -129,6 +179,9 @@ public class GetHubSpot extends AbstractProcessor {
             OBJECT_TYPE,
             ACCESS_TOKEN,
             RESULT_LIMIT,
+            IS_INCREMENTAL,
+            INCREMENTAL_DELAY,
+            INITIAL_INCREMENTAL_FILTER,
             WEB_CLIENT_SERVICE_PROVIDER
     ));
 
@@ -154,17 +207,20 @@ public class GetHubSpot extends AbstractProcessor {
         final String accessToken = context.getProperty(ACCESS_TOKEN).getValue();
         final String endpoint = context.getProperty(OBJECT_TYPE).getValue();
 
-        final StateMap state = getStateMap(context);
-        final URI uri = createUri(context, state);
+        final URI uri = getBaseUri(context);
 
-        final HttpResponseEntity response = getHttpResponseEntity(accessToken, uri);
-        final AtomicInteger objectCountHolder = new AtomicInteger();
+        final AtomicInteger total = new AtomicInteger(-1);
+        final StateMap state = getStateMap(context);
+        final Map<String, String> stateMap = new HashMap<>(state.toMap());
+        final String filters = createIncrementalFilters(context, stateMap);
+        final HttpResponseEntity response = getHttpResponseEntity(accessToken, uri, filters);
 
         if (response.statusCode() == HttpResponseStatus.OK.getCode()) {
             FlowFile flowFile = session.create();
-            flowFile = session.write(flowFile, parseHttpResponse(context, endpoint, state, response, objectCountHolder));
-            if (objectCountHolder.get() > 0) {
+            flowFile = session.write(flowFile, parseHttpResponse(context, response, total, stateMap));
+            if (total.get() > 0) {
                 session.transfer(flowFile, REL_SUCCESS);
+                updateState(context, stateMap);
             } else {
                 getLogger().debug("Empty response when requested HubSpot endpoint: [{}]", endpoint);
                 session.remove(flowFile);
@@ -187,61 +243,122 @@ public class GetHubSpot extends AbstractProcessor {
         }
     }
 
-    private OutputStreamCallback parseHttpResponse(ProcessContext context, String endpoint, StateMap state, HttpResponseEntity response, AtomicInteger objectCountHolder) {
+    private OutputStreamCallback parseHttpResponse(final ProcessContext context, final HttpResponseEntity response, final AtomicInteger total,
+                                                   final Map<String, String> stateMap) {
         return out -> {
             try (final JsonParser jsonParser = JSON_FACTORY.createParser(response.body());
                  final JsonGenerator jsonGenerator = JSON_FACTORY.createGenerator(out, JsonEncoding.UTF8)) {
+                boolean isCursorAvailable = false;
+                final String objectType = context.getProperty(OBJECT_TYPE).getValue();
+                final String cursorKey = String.format(CURSOR_KEY_PATTERN, objectType);
                 while (jsonParser.nextToken() != null) {
+                    if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName()
+                            .equals("total")) {
+                        jsonParser.nextToken();
+                        total.set(jsonParser.getIntValue());
+                    }
                     if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName()
                             .equals("results")) {
                         jsonParser.nextToken();
                         jsonGenerator.copyCurrentStructure(jsonParser);
-                        objectCountHolder.incrementAndGet();
                     }
                     final String fieldName = jsonParser.getCurrentName();
-                    if (CURSOR_PARAMETER.equals(fieldName)) {
+                    if (PAGING_CURSOR.equals(fieldName)) {
+                        isCursorAvailable = true;
                         jsonParser.nextToken();
-                        Map<String, String> newStateMap = new HashMap<>(state.toMap());
-                        newStateMap.put(endpoint, jsonParser.getText());
-                        updateState(context, newStateMap);
+                        stateMap.put(cursorKey, jsonParser.getText());
                         break;
                     }
+                }
+                if (!isCursorAvailable) {
+                    stateMap.put(cursorKey, NO_PAGING);
                 }
             }
         };
     }
 
-    HttpUriBuilder getBaseUri(final ProcessContext context) {
+    URI getBaseUri(final ProcessContext context) {
         final String path = context.getProperty(OBJECT_TYPE).getValue();
         return webClientServiceProvider.getHttpUriBuilder()
                 .scheme(HTTPS)
                 .host(API_BASE_URI)
-                .encodedPath(path);
+                .encodedPath(path + "/search")
+                .build();
     }
 
-    private HttpResponseEntity getHttpResponseEntity(final String accessToken, final URI uri) {
+    private HttpResponseEntity getHttpResponseEntity(final String accessToken, final URI uri, final String filters) {
+        final JsonInputStreamConverter converter = new JsonInputStreamConverter(filters);
         return webClientServiceProvider.getWebClientService()
-                .get()
+                .post()
                 .uri(uri)
                 .header("Authorization", "Bearer " + accessToken)
+                .header("Content-Type", "application/json")
+                .body(converter.getInputStream(), OptionalLong.of(converter.getByteSize()))
                 .retrieve();
     }
 
-    private URI createUri(final ProcessContext context, final StateMap state) {
-        final String path = context.getProperty(OBJECT_TYPE).getValue();
-        final HttpUriBuilder uriBuilder = getBaseUri(context);
+    String createIncrementalFilters(final ProcessContext context, final Map<String, String> stateMap) {
+        final String limit = context.getProperty(RESULT_LIMIT).getValue();
+        final String objectType = context.getProperty(OBJECT_TYPE).getValue();
+        final HubSpotObjectType hubSpotObjectType = objectTypeLookupMap.get(objectType);
+        final Long incrDelayMs = context.getProperty(INCREMENTAL_DELAY).asTimePeriod(TimeUnit.MILLISECONDS);
+        final String startIncrementalKey = String.format("start: %s", objectType);
+        final String endIncrementalKey = String.format("end: %s", objectType);
+        final String cursorKey = String.format(CURSOR_KEY_PATTERN, objectType);
 
-        final boolean isLimitSet = context.getProperty(RESULT_LIMIT).evaluateAttributeExpressions().isSet();
-        if (isLimitSet) {
-            final String limit = context.getProperty(RESULT_LIMIT).getValue();
-            uriBuilder.addQueryParameter(LIMIT_PARAMETER, limit);
-        }
+        final ObjectNode root = OBJECT_MAPPER.createObjectNode();
+        root.put("limit", limit);
 
-        final String cursor = state.get(path);
-        if (cursor != null) {
-            uriBuilder.addQueryParameter(CURSOR_PARAMETER, cursor);
+        final String cursor = stateMap.get(cursorKey);
+        if (cursor != null && !NO_PAGING.equals(cursor)) {
+            root.put(PAGING_CURSOR, stateMap.get(cursorKey));
         }
-        return uriBuilder.build();
+        final boolean isIncremental = context.getProperty(IS_INCREMENTAL).asBoolean();
+        if (isIncremental) {
+
+            final String hubspotSpecificIncrementalFieldName = hubSpotObjectType.getLastModifiedDateType().getValue();
+            final String lastStartTime = stateMap.get(startIncrementalKey);
+            final String lastEndTime = stateMap.getOrDefault(endIncrementalKey, context.getProperty(INITIAL_INCREMENTAL_FILTER).getValue());
+
+            String currentStartTime;
+            String currentEndTime;
+
+            if (cursor != null && !NO_PAGING.equals(cursor)) {
+                currentStartTime = lastStartTime;
+                // lastEndTime can be null if incremental loading was turned off beforehand
+                currentEndTime = lastEndTime != null ? lastEndTime : String.valueOf(getCurrentEpochTime());
+            } else {
+                currentStartTime = lastEndTime;
+                final long delayedCurrentEndTime = incrDelayMs != null ? getCurrentEpochTime() - incrDelayMs : getCurrentEpochTime();
+                currentEndTime = String.valueOf(delayedCurrentEndTime);
+
+                stateMap.put(startIncrementalKey, currentStartTime);
+                stateMap.put(endIncrementalKey, currentEndTime);
+            }
+
+            final ArrayNode filters = OBJECT_MAPPER.createArrayNode();
+
+            if (currentStartTime != null) {
+                final ObjectNode greaterThanFilterNode = OBJECT_MAPPER.createObjectNode();
+                greaterThanFilterNode.put("propertyName", hubspotSpecificIncrementalFieldName);
+                greaterThanFilterNode.put("operator", "GT");
+                greaterThanFilterNode.put("value", currentStartTime);
+                filters.add(greaterThanFilterNode);
+            }
+
+            final ObjectNode lessThanFilterNode = OBJECT_MAPPER.createObjectNode();
+            lessThanFilterNode.put("propertyName", hubspotSpecificIncrementalFieldName);
+            lessThanFilterNode.put("operator", "LT");
+            lessThanFilterNode.put("value", currentEndTime);
+            filters.add(lessThanFilterNode);
+
+            root.set("filters", filters);
+        }
+        return root.toString();
+    }
+
+    long getCurrentEpochTime() {
+        return Instant.now().toEpochMilli();
     }
 
     private StateMap getStateMap(final ProcessContext context) {
