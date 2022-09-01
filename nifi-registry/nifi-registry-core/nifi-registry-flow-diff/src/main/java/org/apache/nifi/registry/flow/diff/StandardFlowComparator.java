@@ -21,6 +21,7 @@ import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
+import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.flow.VersionedFunnel;
 import org.apache.nifi.flow.VersionedLabel;
 import org.apache.nifi.flow.VersionedParameterProvider;
@@ -87,6 +88,7 @@ public class StandardFlowComparator implements FlowComparator {
         differences.addAll(compareComponents(flowA.getReportingTasks(), flowB.getReportingTasks(), this::compare));
         differences.addAll(compareComponents(flowA.getParameterProviders(), flowB.getParameterProviders(), this::compare));
         differences.addAll(compareComponents(flowA.getParameterContexts(), flowB.getParameterContexts(), this::compare));
+        differences.addAll(compareComponents(flowA.getFlowRegistryClients(), flowB.getFlowRegistryClients(), this::compare));
 
         return new StandardFlowComparison(flowA, flowB, differences);
     }
@@ -256,6 +258,17 @@ public class StandardFlowComparator implements FlowComparator {
 
             differences.add(difference(DifferenceType.PARAMETER_ADDED, contextA, contextB, name, name, null, parameter.isSensitive() ? "<Sensitive Value>" : parameter.getValue()));
         }
+    }
+
+    void compare(final VersionedFlowRegistryClient clientA, final VersionedFlowRegistryClient clientB, final Set<FlowDifference> differences) {
+        if (compareComponents(clientA, clientB, differences)) {
+            return;
+        }
+
+        addIfDifferent(differences, DifferenceType.DESCRIPTION_CHANGED, clientA, clientB, VersionedFlowRegistryClient::getDescription);
+        addIfDifferent(differences, DifferenceType.ANNOTATION_DATA_CHANGED, clientA, clientB, VersionedFlowRegistryClient::getAnnotationData);
+        addIfDifferent(differences, DifferenceType.BUNDLE_CHANGED, clientA, clientB, VersionedFlowRegistryClient::getBundle);
+        compareProperties(clientA, clientB, clientA.getProperties(), clientB.getProperties(), clientA.getPropertyDescriptors(), clientB.getPropertyDescriptors(), differences);
     }
 
     private Map<String, VersionedParameter> parametersByName(final Collection<VersionedParameter> parameters) {

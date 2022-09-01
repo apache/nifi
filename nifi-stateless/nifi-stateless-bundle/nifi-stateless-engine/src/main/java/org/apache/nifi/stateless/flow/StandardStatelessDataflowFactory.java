@@ -49,9 +49,7 @@ import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.provenance.IdentifierLookup;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.InMemoryFlowRegistry;
-import org.apache.nifi.registry.flow.StandardFlowRegistryClient;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.stateless.bootstrap.ExtensionDiscovery;
@@ -110,10 +108,11 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                 throw new IOException("Working Directory " + narExpansionDirectory + " does not exist and could not be created");
             }
 
+            // TODO-NIFI-10497
             final InMemoryFlowRegistry flowRegistry = new InMemoryFlowRegistry();
-            flowRegistry.addFlowSnapshot(dataflowDefinition.getVersionedExternalFlow());
-            final FlowRegistryClient flowRegistryClient = new StandardFlowRegistryClient();
-            flowRegistryClient.addFlowRegistry(flowRegistry);
+//            flowRegistry.registerFlowSnapshot(dataflowDefinition.getVersionedExternalFlow());
+//            final FlowFileEventRepositoryRegistryManager flowRegistryManager = new StandardFlowRegistryManager();
+//            flowRegistryManager.addFlowRegistry(flowRegistry); - or set props and extensionManager
 
             final NarClassLoaders narClassLoaders = new NarClassLoaders();
             final File extensionsWorkingDir = new File(narExpansionDirectory, "extensions");
@@ -185,7 +184,6 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                     .bulletinRepository(bulletinRepository)
                     .encryptor(lazyInitializedEncryptor)
                     .extensionManager(extensionManager)
-                    .flowRegistryClient(flowRegistryClient)
                     .stateManagerProvider(stateManagerProvider)
                     .variableRegistry(variableRegistry)
                     .processScheduler(processScheduler)

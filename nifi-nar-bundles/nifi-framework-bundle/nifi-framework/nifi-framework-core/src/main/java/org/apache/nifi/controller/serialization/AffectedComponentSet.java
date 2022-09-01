@@ -40,6 +40,7 @@ import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -80,6 +81,7 @@ public class AffectedComponentSet {
     private final Set<ControllerServiceNode> controllerServices = new HashSet<>();
     private final Set<ReportingTaskNode> reportingTasks = new HashSet<>();
     private final Set<ParameterProviderNode> parameterProviders = new HashSet<>();
+    private final Set<FlowRegistryClientNode> flowRegistryClients = new HashSet<>();
 
     public AffectedComponentSet(final FlowController flowController) {
         this.flowController = flowController;
@@ -152,6 +154,8 @@ public class AffectedComponentSet {
                 addReportingTask((ReportingTaskNode) reference);
             } else if (reference instanceof ParameterProviderNode) {
                 addParameterProvider((ParameterProviderNode) reference);
+            } else if (reference instanceof FlowRegistryClientNode) {
+                addFlowRegistryClient((FlowRegistryClientNode) reference);
             }
         }
     }
@@ -203,6 +207,24 @@ public class AffectedComponentSet {
     public boolean isParameterProviderAffected(final String parameterProviderId) {
         for (final ParameterProviderNode parameterProviderNode : parameterProviders) {
             if (parameterProviderNode.getIdentifier().equals(parameterProviderId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void addFlowRegistryClient(final FlowRegistryClientNode flowRegistryClient) {
+        if (flowRegistryClient == null) {
+            return;
+        }
+
+        flowRegistryClients.add(flowRegistryClient);
+    }
+
+    public boolean isFlowRegistryClientAffected(final String flowRegistryClientId) {
+        for (final FlowRegistryClientNode flowRegistryClientNode : flowRegistryClients) {
+            if (flowRegistryClientNode.getIdentifier().equals(flowRegistryClientId)) {
                 return true;
             }
         }
@@ -452,6 +474,8 @@ public class AffectedComponentSet {
                     addRemoteOutputPort(remoteOutputPort);
                 }
                 break;
+            case FLOW_REGISTRY_CLIENT:
+                addFlowRegistryClient(flowManager.getFlowRegistryClient(componentId));
             case REMOTE_PROCESS_GROUP:
                 addRemoteProcessGroup(flowManager.getRootGroup().findRemoteProcessGroup(componentId));
                 break;
@@ -519,6 +543,7 @@ public class AffectedComponentSet {
         processors.removeIf(filter::testProcessor);
         controllerServices.removeIf(filter::testControllerService);
         reportingTasks.removeIf(filter::testReportingTask);
+        flowRegistryClients.removeIf(filter::testFlowRegistryClient);
     }
 
     /**
@@ -539,6 +564,7 @@ public class AffectedComponentSet {
         processors.stream().filter(processor -> processor.getProcessGroup().getProcessor(processor.getIdentifier()) != null).forEach(existing::addProcessor);
         reportingTasks.stream().filter(task -> flowController.getReportingTaskNode(task.getIdentifier()) != null).forEach(existing::addReportingTask);
         controllerServices.stream().filter(service -> serviceProvider.getControllerServiceNode(service.getIdentifier()) != null).forEach(existing::addControllerServiceWithoutReferences);
+        flowRegistryClients.stream().filter(client -> flowManager.getFlowRegistryClient(client.getIdentifier()) != null).forEach(existing::addFlowRegistryClient);
 
         return existing;
     }
@@ -678,6 +704,7 @@ public class AffectedComponentSet {
             ", remoteOutputPorts=" + remoteOutputPorts +
             ", processors=" + processors +
             ", parameterProviders=" + parameterProviders +
+            ", flowRegistryCliens=" + flowRegistryClients +
             ", controllerServices=" + controllerServices +
             ", reportingTasks=" + reportingTasks +
             "]";

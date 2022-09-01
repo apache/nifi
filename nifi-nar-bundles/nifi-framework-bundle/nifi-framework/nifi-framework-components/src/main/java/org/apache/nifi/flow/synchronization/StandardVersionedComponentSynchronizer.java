@@ -89,11 +89,12 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
-import org.apache.nifi.registry.client.NiFiRegistryException;
-import org.apache.nifi.registry.flow.FlowRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClientContextFactory;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
+import org.apache.nifi.registry.flow.FlowRegistryException;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
@@ -172,7 +173,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     @Override
     public void synchronize(final ProcessGroup group, final VersionedExternalFlow versionedExternalFlow, final FlowSynchronizationOptions options) {
         final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(context.getExtensionManager(), context.getFlowMappingOptions());
-        final VersionedProcessGroup versionedGroup = mapper.mapProcessGroup(group, context.getControllerServiceProvider(), context.getFlowRegistryClient(), true);
+        final VersionedProcessGroup versionedGroup = mapper.mapProcessGroup(group, context.getControllerServiceProvider(), context.getFlowManager(), true);
 
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Currently Loaded Flow", versionedGroup);
         final ComparableDataFlow proposedFlow = new StandardComparableDataFlow("Proposed Flow", versionedExternalFlow.getFlowContents());
@@ -308,12 +309,12 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         if (remoteCoordinates == null) {
             group.disconnectVersionControl(false);
         } else {
-            final String registryId = context.getFlowRegistryClient().getFlowRegistryId(remoteCoordinates.getRegistryUrl());
+            final String registryId = remoteCoordinates.getRegistryId();
             final String bucketId = remoteCoordinates.getBucketId();
             final String flowId = remoteCoordinates.getFlowId();
             final int version = remoteCoordinates.getVersion();
 
-            final FlowRegistry flowRegistry = context.getFlowRegistryClient().getFlowRegistry(registryId);
+            final FlowRegistryClientNode flowRegistry = context.getFlowManager().getFlowRegistryClient(registryId);
             final String registryName = flowRegistry == null ? registryId : flowRegistry.getName();
 
             final VersionedFlowState flowState;
@@ -2065,12 +2066,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private Map<String, VersionedParameterContext> getVersionedParameterContexts(final VersionedFlowCoordinates versionedFlowCoordinates) {
-        final String registryId = context.getFlowRegistryClient().getFlowRegistryId(versionedFlowCoordinates.getRegistryUrl());
-        if (registryId == null) {
-            throw new ResourceNotFoundException("Could not find any Flow Registry registered with url: " + versionedFlowCoordinates.getRegistryUrl());
-        }
+        final String registryId = versionedFlowCoordinates.getRegistryId();
 
-        final FlowRegistry flowRegistry = context.getFlowRegistryClient().getFlowRegistry(registryId);
+        final FlowRegistryClientNode flowRegistry = context.getFlowManager().getFlowRegistryClient(registryId);
         if (flowRegistry == null) {
             throw new ResourceNotFoundException("Could not find any Flow Registry registered with identifier " + registryId);
         }
@@ -2080,9 +2078,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         final int flowVersion = versionedFlowCoordinates.getVersion();
 
         try {
-            final VersionedFlowSnapshot childSnapshot = flowRegistry.getFlowContents(bucketId, flowId, flowVersion, false);
+            final RegisteredFlowSnapshot childSnapshot = flowRegistry.getFlowContents(FlowRegistryClientContextFactory.getAnonymousContext(), bucketId, flowId, flowVersion, false);
             return childSnapshot.getParameterContexts();
-        } catch (final NiFiRegistryException e) {
+        } catch (final FlowRegistryException e) {
             throw new IllegalArgumentException("The Flow Registry with ID " + registryId + " reports that no Flow exists with Bucket "
                 + bucketId + ", Flow " + flowId + ", Version " + flowVersion, e);
         } catch (final IOException ioe) {

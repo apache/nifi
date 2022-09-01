@@ -22,7 +22,7 @@ import org.apache.nifi.web.api.dto.VersionedFlowUpdateRequestDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "versionedFlowUpdateRequestEntity")
+@XmlRootElement(name = "registeredFlowUpdateRequestEntity")
 public class VersionedFlowUpdateRequestEntity extends FlowUpdateRequestEntity<VersionedFlowUpdateRequestDTO> {
 
     @ApiModelProperty("The Flow Update Request")

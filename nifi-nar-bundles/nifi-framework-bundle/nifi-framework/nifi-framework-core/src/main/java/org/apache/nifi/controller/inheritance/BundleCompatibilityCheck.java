@@ -20,6 +20,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.VersionedDataflow;
+import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedControllerService;
@@ -101,6 +102,20 @@ public class BundleCompatibilityCheck implements FlowInheritabilityCheck {
                             task.getInstanceIdentifier(), task.getType(), task.getBundle()));
                 }
             }
+        }
+
+        if (dataflow.getRegistries() != null) {
+            for (final VersionedFlowRegistryClient registryClient : dataflow.getRegistries()) {
+                if (missingComponents.contains(registryClient.getInstanceIdentifier())) {
+                    continue;
+                }
+
+                if (isMissing(registryClient.getBundle(), extensionManager)) {
+                    return FlowInheritability.notInheritable(String.format("Flow Registry Client with ID %s and type %s requires bundle %s, but that bundle cannot be found in this NiFi instance",
+                            registryClient.getInstanceIdentifier(), registryClient.getType(), registryClient.getBundle()));
+                }
+            }
+
         }
 
         return checkBundles(dataflow.getRootGroup(), extensionManager, missingComponents);

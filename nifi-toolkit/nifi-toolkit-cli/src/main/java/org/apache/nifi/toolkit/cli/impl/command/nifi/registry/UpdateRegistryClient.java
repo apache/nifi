@@ -26,7 +26,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
-import org.apache.nifi.web.api.entity.RegistryClientEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -61,7 +61,7 @@ public class UpdateRegistryClient extends AbstractNiFiCommand<VoidResult> {
 
         final String id = getRequiredArg(properties, CommandOption.REGISTRY_CLIENT_ID);
 
-        final RegistryClientEntity existingRegClient = controllerClient.getRegistryClient(id);
+        final FlowRegistryClientEntity existingRegClient = controllerClient.getRegistryClient(id);
         if (existingRegClient == null) {
             throw new CommandException("Registry client does not exist for id " + id);
         }
@@ -78,9 +78,9 @@ public class UpdateRegistryClient extends AbstractNiFiCommand<VoidResult> {
             existingRegClient.getComponent().setName(name);
         }
 
-        if (StringUtils.isNotBlank(url)) {
-            existingRegClient.getComponent().setUri(url);
-        }
+//        if (StringUtils.isNotBlank(url)) {
+//            existingRegClient.getComponent().setUri(url);
+//        }
 
         if (StringUtils.isNotBlank(desc)) {
             existingRegClient.getComponent().setDescription(desc);

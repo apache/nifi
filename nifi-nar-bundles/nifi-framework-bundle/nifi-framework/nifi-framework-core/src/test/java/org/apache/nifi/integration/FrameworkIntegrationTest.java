@@ -95,8 +95,6 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.provenance.WriteAheadProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.registry.flow.StandardFlowRegistryClient;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.services.FlowService;
@@ -148,7 +146,6 @@ public class FrameworkIntegrationTest {
 
     private FlowEngine flowEngine;
     private FlowController flowController;
-    private FlowRegistryClient flowRegistryClient = createFlowRegistryClient();
     private ProcessorNode nopProcessor;
     private ProcessorNode terminateProcessor;
     private ProcessorNode terminateAllProcessor;
@@ -199,13 +196,6 @@ public class FrameworkIntegrationTest {
 
         final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(getNiFiPropertiesFilename(), propertyOverrides);
         initialize(nifiProperties);
-    }
-
-    /**
-     * This method exists for subclasses to override and return a different implementation.
-     */
-    protected FlowRegistryClient createFlowRegistryClient() {
-        return new StandardFlowRegistryClient();
     }
 
     protected final void initialize(final NiFiProperties nifiProperties) throws IOException {
@@ -273,7 +263,7 @@ public class FrameworkIntegrationTest {
             Mockito.when(clusterCoordinator.getLocalNodeIdentifier()).thenReturn(localNodeId);
 
             flowController = FlowController.createClusteredInstance(flowFileEventRepository, nifiProperties, authorizer, auditService, encryptor, protocolSender,
-                    bulletinRepo, clusterCoordinator, heartbeatMonitor, leaderElectionManager, VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY, flowRegistryClient,
+                    bulletinRepo, clusterCoordinator, heartbeatMonitor, leaderElectionManager, VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY,
                     extensionManager, Mockito.mock(RevisionManager.class), statusHistoryRepository);
 
             flowController.setClustered(true, UUID.randomUUID().toString());
@@ -282,7 +272,7 @@ public class FrameworkIntegrationTest {
             flowController.setConnectionStatus(new NodeConnectionStatus(localNodeId, NodeConnectionState.CONNECTED));
         } else {
             flowController = FlowController.createStandaloneInstance(flowFileEventRepository, nifiProperties, authorizer, auditService, encryptor, bulletinRepo,
-                VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY, flowRegistryClient, extensionManager, statusHistoryRepository);
+                VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY, extensionManager, statusHistoryRepository);
         }
 
         processScheduler = new StandardProcessScheduler(flowEngine, flowController, flowController.getStateManagerProvider(), nifiProperties);

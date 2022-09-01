@@ -57,7 +57,6 @@ import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.processor.StandardValidationContext;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -107,7 +106,6 @@ public class StandardStatelessEngine implements StatelessEngine {
     private final BulletinRepository bulletinRepository;
     private final StatelessStateManagerProvider stateManagerProvider;
     private final PropertyEncryptor propertyEncryptor;
-    private final FlowRegistryClient flowRegistryClient;
     private final VariableRegistry rootVariableRegistry;
     private final ProcessScheduler processScheduler;
     private final KerberosConfig kerberosConfig;
@@ -133,7 +131,6 @@ public class StandardStatelessEngine implements StatelessEngine {
         this.bulletinRepository = requireNonNull(builder.bulletinRepository, "Bulletin Repository must be provided");
         this.stateManagerProvider = requireNonNull(builder.stateManagerProvider, "State Manager Provider must be provided");
         this.propertyEncryptor = requireNonNull(builder.propertyEncryptor, "Encryptor must be provided");
-        this.flowRegistryClient = requireNonNull(builder.flowRegistryClient, "Flow Registry Client must be provided");
         this.rootVariableRegistry = requireNonNull(builder.variableRegistry, "Variable Registry must be provided");
         this.processScheduler = requireNonNull(builder.processScheduler, "Process Scheduler must be provided");
         this.kerberosConfig = requireNonNull(builder.kerberosConfig, "Kerberos Configuration must be provided");
@@ -608,11 +605,6 @@ public class StandardStatelessEngine implements StatelessEngine {
     }
 
     @Override
-    public FlowRegistryClient getFlowRegistryClient() {
-        return flowRegistryClient;
-    }
-
-    @Override
     public VariableRegistry getRootVariableRegistry() {
         return rootVariableRegistry;
     }
@@ -672,7 +664,6 @@ public class StandardStatelessEngine implements StatelessEngine {
         private BulletinRepository bulletinRepository = null;
         private StatelessStateManagerProvider stateManagerProvider = null;
         private PropertyEncryptor propertyEncryptor = null;
-        private FlowRegistryClient flowRegistryClient = null;
         private VariableRegistry variableRegistry = null;
         private ProcessScheduler processScheduler = null;
         private KerberosConfig kerberosConfig = null;
@@ -699,11 +690,6 @@ public class StandardStatelessEngine implements StatelessEngine {
 
         public Builder encryptor(final PropertyEncryptor propertyEncryptor) {
             this.propertyEncryptor = propertyEncryptor;
-            return this;
-        }
-
-        public Builder flowRegistryClient(final FlowRegistryClient flowRegistryClient) {
-            this.flowRegistryClient = flowRegistryClient;
             return this;
         }
 

@@ -30,6 +30,7 @@ import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.TerminationAwareLogger;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.flowrepository.FlowRepositoryClientInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceInvocationHandler;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
@@ -41,6 +42,7 @@ import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessContext;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
@@ -256,5 +258,10 @@ public class StatelessReloadComponent implements ReloadComponent {
         existingNode.refreshProperties();
 
         logger.debug("Successfully reloaded {}", existingNode);
+    }
+
+    @Override
+    public void reload(FlowRegistryClientNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) throws FlowRepositoryClientInstantiationException {
+        // TODO-NIFI-10497
     }
 }

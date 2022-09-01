@@ -18,7 +18,7 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi.pg;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.cli.MissingOptionException;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
@@ -65,7 +65,7 @@ public class PGReplace extends AbstractNiFiCommand<VoidResult> {
         final String contents = getInputSourceContent(inputFile);
 
         final ObjectMapper objectMapper = JacksonUtils.getObjectMapper();
-        final VersionedFlowSnapshot deserializedSnapshot = objectMapper.readValue(contents, VersionedFlowSnapshot.class);
+        final RegisteredFlowSnapshot deserializedSnapshot = objectMapper.readValue(contents, RegisteredFlowSnapshot.class);
         if (deserializedSnapshot == null) {
             throw new IOException("Unable to deserialize flow version from " + inputFile);
         }

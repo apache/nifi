@@ -64,7 +64,6 @@ import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -143,7 +142,6 @@ public class StandardVersionedComponentSynchronizerTest {
         controllerServiceProvider = Mockito.mock(ControllerServiceProvider.class);
         final Function<ProcessorNode, ProcessContext> processContextFactory = proc -> Mockito.mock(ProcessContext.class);
         final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
-        final FlowRegistryClient flowRegistryClient = Mockito.mock(FlowRegistryClient.class);
         componentIdGenerator = (proposed, instance, group) -> proposed == null ? instance : proposed;
         componentScheduler = Mockito.mock(ComponentScheduler.class);
         parameterContextManager = new StandardParameterContextManager();
@@ -188,7 +186,6 @@ public class StandardVersionedComponentSynchronizerTest {
             .flowMappingOptions(FlowMappingOptions.DEFAULT_OPTIONS)
             .processContextFactory(processContextFactory)
             .reloadComponent(reloadComponent)
-            .flowRegistryClient(flowRegistryClient)
             .build();
 
         group = Mockito.mock(ProcessGroup.class);

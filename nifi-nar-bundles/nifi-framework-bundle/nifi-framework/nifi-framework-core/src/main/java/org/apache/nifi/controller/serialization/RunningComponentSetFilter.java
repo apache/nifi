@@ -21,6 +21,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.flow.VersionedDataflow;
+import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedControllerService;
@@ -30,6 +31,7 @@ import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.remote.RemoteGroupPort;
 
 import java.util.HashMap;
@@ -39,6 +41,7 @@ public class RunningComponentSetFilter implements ComponentSetFilter {
     private final Map<String, VersionedControllerService> controllerServices = new HashMap<>();
     private final Map<String, VersionedProcessor> processors = new HashMap<>();
     private final Map<String, VersionedReportingTask> reportingTasks = new HashMap<>();
+    private final Map<String, VersionedFlowRegistryClient> flowRegistryClients = new HashMap<>();
     private final Map<String, VersionedPort> inputPorts = new HashMap<>();
     private final Map<String, VersionedPort> outputPorts = new HashMap<>();
     private final Map<String, VersionedRemoteGroupPort> remoteInputPorts = new HashMap<>();
@@ -47,6 +50,7 @@ public class RunningComponentSetFilter implements ComponentSetFilter {
     public RunningComponentSetFilter(final VersionedDataflow dataflow) {
         dataflow.getControllerServices().forEach(service -> controllerServices.put(service.getInstanceIdentifier(), service));
         dataflow.getReportingTasks().forEach(task -> reportingTasks.put(task.getInstanceIdentifier(), task));
+        dataflow.getRegistries().forEach(client -> flowRegistryClients.put(client.getInstanceIdentifier(), client));
         flatten(dataflow.getRootGroup());
     }
 
@@ -113,5 +117,10 @@ public class RunningComponentSetFilter implements ComponentSetFilter {
     public boolean testRemoteOutputPort(final RemoteGroupPort port) {
         final VersionedRemoteGroupPort versionedPort = remoteOutputPorts.get(port.getIdentifier());
         return versionedPort != null && versionedPort.getScheduledState() == ScheduledState.RUNNING;
+    }
+
+    @Override
+    public boolean testFlowRegistryClient(final FlowRegistryClientNode flowRegistryClient) {
+       return false;
     }
 }

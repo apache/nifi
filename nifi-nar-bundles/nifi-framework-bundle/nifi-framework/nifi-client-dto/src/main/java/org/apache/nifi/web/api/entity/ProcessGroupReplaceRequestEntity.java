@@ -18,7 +18,7 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.web.api.dto.ProcessGroupReplaceRequestDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
@@ -28,14 +28,14 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @XmlRootElement(name = "processGroupReplaceRequestEntity")
 public class ProcessGroupReplaceRequestEntity extends FlowUpdateRequestEntity<ProcessGroupReplaceRequestDTO> {
-    private VersionedFlowSnapshot versionedFlowSnapshot;
+    private RegisteredFlowSnapshot versionedFlowSnapshot;
 
     @ApiModelProperty(value = "Returns the Versioned Flow to replace with", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
-    public VersionedFlowSnapshot getVersionedFlowSnapshot() {
+    public RegisteredFlowSnapshot getVersionedFlowSnapshot() {
         return versionedFlowSnapshot;
     }
 
-    public void setVersionedFlowSnapshot(VersionedFlowSnapshot versionedFlowSnapshot) {
+    public void setVersionedFlowSnapshot(RegisteredFlowSnapshot versionedFlowSnapshot) {
         this.versionedFlowSnapshot = versionedFlowSnapshot;
     }
 

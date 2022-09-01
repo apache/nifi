@@ -168,7 +168,6 @@ import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.provenance.StandardProvenanceAuthorizableFactory;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
@@ -312,7 +311,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     private final Set<RemoteGroupPort> startRemoteGroupPortsAfterInitialization;
     private final LeaderElectionManager leaderElectionManager;
     private final ClusterCoordinator clusterCoordinator;
-    private final FlowRegistryClient flowRegistryClient;
     private final FlowEngine validationThreadPool;
     private final ValidationTrigger validationTrigger;
     private final ReloadComponent reloadComponent;
@@ -397,7 +395,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final PropertyEncryptor encryptor,
             final BulletinRepository bulletinRepo,
             final VariableRegistry variableRegistry,
-            final FlowRegistryClient flowRegistryClient,
             final ExtensionManager extensionManager,
             final StatusHistoryRepository statusHistoryRepository) {
 
@@ -414,7 +411,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 /* heartbeat monitor */ null,
                 /* leader election manager */ null,
                 /* variable registry */ variableRegistry,
-                flowRegistryClient,
                 extensionManager,
                 null,
                 statusHistoryRepository);
@@ -432,7 +428,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final HeartbeatMonitor heartbeatMonitor,
             final LeaderElectionManager leaderElectionManager,
             final VariableRegistry variableRegistry,
-            final FlowRegistryClient flowRegistryClient,
             final ExtensionManager extensionManager,
             final RevisionManager revisionManager,
             final StatusHistoryRepository statusHistoryRepository) {
@@ -450,7 +445,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 heartbeatMonitor,
                 leaderElectionManager,
                 variableRegistry,
-                flowRegistryClient,
                 extensionManager,
                 revisionManager,
                 statusHistoryRepository);
@@ -472,7 +466,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final HeartbeatMonitor heartbeatMonitor,
             final LeaderElectionManager leaderElectionManager,
             final VariableRegistry variableRegistry,
-            final FlowRegistryClient flowRegistryClient,
             final ExtensionManager extensionManager,
             final RevisionManager revisionManager,
             final StatusHistoryRepository statusHistoryRepository) {
@@ -489,7 +482,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         this.authorizer = authorizer;
         this.auditService = auditService;
         this.configuredForClustering = configuredForClustering;
-        this.flowRegistryClient = flowRegistryClient;
         this.revisionManager = revisionManager;
         this.statusHistoryRepository = statusHistoryRepository;
 
@@ -596,7 +588,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         this.reloadComponent = new StandardReloadComponent(this);
 
         final ProcessGroup rootGroup = new StandardProcessGroup(ComponentIdGenerator.generateId().toString(), controllerServiceProvider, processScheduler,
-                encryptor, extensionManager, stateManagerProvider, flowManager, flowRegistryClient, reloadComponent, new MutableVariableRegistry(this.variableRegistry), this,
+                encryptor, extensionManager, stateManagerProvider, flowManager, reloadComponent, new MutableVariableRegistry(this.variableRegistry), this,
                 nifiProperties);
         rootGroup.setName(FlowManager.DEFAULT_ROOT_GROUP_NAME);
         setRootGroup(rootGroup);
@@ -973,7 +965,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
                     for (final ProcessGroup group : allGroups) {
                         try {
-                            group.synchronizeWithFlowRegistry(flowRegistryClient);
+                            group.synchronizeWithFlowRegistry(flowManager);
                         } catch (final Exception e) {
                             LOG.error("Failed to synchronize {} with Flow Registry", group, e);
                         }
@@ -2091,11 +2083,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     @Override
     public void removeReportingTask(final ReportingTaskNode reportingTaskNode) {
         flowManager.removeReportingTask(reportingTaskNode);
-    }
-
-
-    public FlowRegistryClient getFlowRegistryClient() {
-        return flowRegistryClient;
     }
 
     public ControllerServiceProvider getControllerServiceProvider() {

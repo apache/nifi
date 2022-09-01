@@ -18,6 +18,7 @@
 package org.apache.nifi.controller.flow;
 
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
@@ -29,7 +30,7 @@ import java.util.Set;
 public class VersionedDataflow {
     private VersionedFlowEncodingVersion encodingVersion;
     private int maxTimerDrivenThreadCount;
-    private List<VersionedRegistry> registries;
+    private List<VersionedFlowRegistryClient> registries;
     private List<VersionedParameterContext> parameterContexts;
     private List<VersionedParameterProvider> parameterProviders;
     private List<VersionedControllerService> controllerServices;
@@ -53,11 +54,11 @@ public class VersionedDataflow {
         this.maxTimerDrivenThreadCount = maxTimerDrivenThreadCount;
     }
 
-    public List<VersionedRegistry> getRegistries() {
+    public List<VersionedFlowRegistryClient> getRegistries() {
         return registries;
     }
 
-    public void setRegistries(final List<VersionedRegistry> registries) {
+    public void setRegistries(final List<VersionedFlowRegistryClient> registries) {
         this.registries = registries;
     }
 

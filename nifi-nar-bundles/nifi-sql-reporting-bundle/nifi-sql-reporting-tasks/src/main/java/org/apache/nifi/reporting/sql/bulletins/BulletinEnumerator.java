@@ -141,6 +141,7 @@ public class BulletinEnumerator implements Enumerator<Object> {
         fullBulletinList.addAll(bulletinRepo.findBulletins((new BulletinQuery.Builder()).sourceType(ComponentType.REMOTE_PROCESS_GROUP).build()));
         fullBulletinList.addAll(bulletinRepo.findBulletins((new BulletinQuery.Builder()).sourceType(ComponentType.REPORTING_TASK).build()));
         fullBulletinList.addAll(bulletinRepo.findBulletins((new BulletinQuery.Builder()).sourceType(ComponentType.PARAMETER_PROVIDER).build()));
+        fullBulletinList.addAll(bulletinRepo.findBulletins((new BulletinQuery.Builder()).sourceType(ComponentType.FLOW_REGISTRY_CLIENT).build()));
         fullBulletinList.addAll(bulletinRepo.findBulletins((new BulletinQuery.Builder()).sourceType(ComponentType.CONTROLLER_SERVICE).build()));
 
         bulletinIterator = fullBulletinList.iterator();

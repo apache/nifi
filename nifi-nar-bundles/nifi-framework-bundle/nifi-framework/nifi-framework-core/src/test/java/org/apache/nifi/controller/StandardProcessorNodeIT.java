@@ -30,6 +30,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.flowrepository.FlowRepositoryClientInstantiationException;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
@@ -60,7 +61,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.registry.variable.StandardComponentVariableRegistry;
 import org.apache.nifi.test.processors.DynamicPropertiesTestProcessor;
@@ -228,7 +229,7 @@ public class StandardProcessorNodeIT {
         final FlowController flowController = FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), nifiProperties,
             mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
             new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths()),
-            mock(FlowRegistryClient.class), extensionManager, mock(StatusHistoryRepository.class));
+                extensionManager, mock(StatusHistoryRepository.class));
 
         // Init processor
         final PropertyDescriptor classpathProp = new PropertyDescriptor.Builder().name("Classpath Resources")
@@ -280,7 +281,7 @@ public class StandardProcessorNodeIT {
         final FlowController flowController = FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), nifiProperties,
                 mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
                 new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths()),
-                mock(FlowRegistryClient.class), extensionManager, mock(StatusHistoryRepository.class));
+                extensionManager, mock(StatusHistoryRepository.class));
 
         // Init processor
         final DynamicPropertiesTestProcessor processor = new DynamicPropertiesTestProcessor();
@@ -596,6 +597,11 @@ public class StandardProcessorNodeIT {
 
         @Override
         public void reload(ParameterProviderNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) throws ParameterProviderInstantiationException {
+            reload(newType, additionalUrls);
+        }
+
+        @Override
+        public void reload(FlowRegistryClientNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) throws FlowRepositoryClientInstantiationException {
             reload(newType, additionalUrls);
         }
 

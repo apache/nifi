@@ -28,58 +28,6 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriInfo;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.stream.XMLStreamReader;
-import javax.xml.transform.stream.StreamSource;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
@@ -103,15 +51,15 @@ import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.service.ControllerServiceState;
-import org.apache.nifi.parameter.ParameterContext;
-import org.apache.nifi.registry.bucket.Bucket;
-import org.apache.nifi.registry.client.NiFiRegistryException;
-import org.apache.nifi.registry.flow.FlowRegistryUtils;
-import org.apache.nifi.registry.flow.VersionedFlow;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.registry.client.NiFiRegistryException;
+import org.apache.nifi.registry.flow.FlowRegistryBucket;
+import org.apache.nifi.registry.flow.FlowRegistryUtils;
+import org.apache.nifi.registry.flow.RegisteredFlow;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
+import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateRequest;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateStep;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
@@ -181,6 +129,58 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriInfo;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.stream.StreamSource;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * RESTful endpoint for managing a Group.
@@ -370,7 +370,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         });
 
         // get the versioned flow
-        final VersionedFlowSnapshot currentVersionedFlowSnapshot = includeReferencedServices
+        final RegisteredFlowSnapshot currentVersionedFlowSnapshot = includeReferencedServices
             ? serviceFacade.getCurrentFlowSnapshotByGroupIdWithReferencedControllerServices(groupId)
             : serviceFacade.getCurrentFlowSnapshotByGroupId(groupId);
 
@@ -2011,7 +2011,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         if (versionControlInfo != null && requestProcessGroupEntity.getVersionedFlowSnapshot() == null) {
             // Step 1: Ensure that user has write permissions to the Process Group. If not, then immediately fail.
             // Step 2: Retrieve flow from Flow Registry
-            final VersionedFlowSnapshot flowSnapshot = getFlowFromRegistry(versionControlInfo);
+            final RegisteredFlowSnapshot flowSnapshot = getFlowFromRegistry(versionControlInfo);
 
             // Step 3: Resolve Bundle info
             serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
@@ -2027,7 +2027,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         }
 
         if (versionControlInfo != null) {
-            final VersionedFlowSnapshot flowSnapshot = requestProcessGroupEntity.getVersionedFlowSnapshot();
+            final RegisteredFlowSnapshot flowSnapshot = requestProcessGroupEntity.getVersionedFlowSnapshot();
             serviceFacade.verifyImportProcessGroup(versionControlInfo, flowSnapshot.getFlowContents(), groupId);
         }
 
@@ -2043,7 +2043,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                 requestProcessGroupEntity,
                 lookup -> authorizeAccess(groupId, requestProcessGroupEntity, lookup),
                 () -> {
-                    final VersionedFlowSnapshot versionedFlowSnapshot = requestProcessGroupEntity.getVersionedFlowSnapshot();
+                    final RegisteredFlowSnapshot versionedFlowSnapshot = requestProcessGroupEntity.getVersionedFlowSnapshot();
                     if (versionedFlowSnapshot != null) {
                         serviceFacade.verifyComponentTypes(versionedFlowSnapshot.getFlowContents());
                     }
@@ -2055,7 +2055,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     processGroup.setId(generateUuid());
 
                     // ensure the group name comes from the versioned flow
-                    final VersionedFlowSnapshot flowSnapshot = processGroupEntity.getVersionedFlowSnapshot();
+                    final RegisteredFlowSnapshot flowSnapshot = processGroupEntity.getVersionedFlowSnapshot();
                     if (flowSnapshot != null && StringUtils.isNotBlank(flowSnapshot.getFlowContents().getName()) && StringUtils.isBlank(processGroup.getName())) {
                         processGroup.setName(flowSnapshot.getFlowContents().getName());
                     }
@@ -2086,10 +2086,10 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         );
     }
 
-    private VersionedFlowSnapshot getFlowFromRegistry(final VersionControlInformationDTO versionControlInfo) {
-        final VersionedFlowSnapshot flowSnapshot = serviceFacade.getVersionedFlowSnapshot(versionControlInfo, true);
-        final Bucket bucket = flowSnapshot.getBucket();
-        final VersionedFlow flow = flowSnapshot.getFlow();
+    private RegisteredFlowSnapshot getFlowFromRegistry(final VersionControlInformationDTO versionControlInfo) {
+        final RegisteredFlowSnapshot flowSnapshot = serviceFacade.getVersionedFlowSnapshot(versionControlInfo, true);
+        final FlowRegistryBucket bucket = flowSnapshot.getBucket();
+        final RegisteredFlow flow = flowSnapshot.getFlow();
 
         versionControlInfo.setBucketName(bucket.getName());
         versionControlInfo.setFlowName(flow.getName());
@@ -4150,7 +4150,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             throw new IllegalStateException("Cannot replace a Process Group via import while it or its descendants are under Version Control.");
         }
 
-        final VersionedFlowSnapshot versionedFlowSnapshot = importEntity.getVersionedFlowSnapshot();
+        final RegisteredFlowSnapshot versionedFlowSnapshot = importEntity.getVersionedFlowSnapshot();
         if (versionedFlowSnapshot == null) {
             throw new IllegalArgumentException("Versioned Flow Snapshot must be supplied");
         }
@@ -4260,10 +4260,10 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         }
 
         // deserialize InputStream to a VersionedFlowSnapshot
-        VersionedFlowSnapshot deserializedSnapshot;
+        RegisteredFlowSnapshot deserializedSnapshot;
 
         try {
-            deserializedSnapshot = MAPPER.readValue(in, VersionedFlowSnapshot.class);
+            deserializedSnapshot = MAPPER.readValue(in, RegisteredFlowSnapshot.class);
         } catch (IOException e) {
             logger.warn("Deserialization of uploaded JSON failed", e);
             throw new IllegalArgumentException("Deserialization of uploaded JSON failed", e);
@@ -4367,7 +4367,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             throw new IllegalArgumentException("Process group details must be specified.");
         }
 
-        final VersionedFlowSnapshot versionedFlowSnapshot = processGroupUploadEntity.getFlowSnapshot();
+        final RegisteredFlowSnapshot versionedFlowSnapshot = processGroupUploadEntity.getFlowSnapshot();
 
         // clear Registry info
         sanitizeRegistryInfo(versionedFlowSnapshot.getFlowContents());
@@ -4396,7 +4396,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                 newProcessGroupEntity,
                 lookup -> authorizeAccess(groupId, newProcessGroupEntity, lookup),
                 () -> {
-                    final VersionedFlowSnapshot newVersionedFlowSnapshot = newProcessGroupEntity.getVersionedFlowSnapshot();
+                    final RegisteredFlowSnapshot newVersionedFlowSnapshot = newProcessGroupEntity.getVersionedFlowSnapshot();
                     if (newVersionedFlowSnapshot != null) {
                         serviceFacade.verifyComponentTypes(newVersionedFlowSnapshot.getFlowContents());
                     }
@@ -4408,7 +4408,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     processGroup.setId(generateUuid());
 
                     // get the versioned flow
-                    final VersionedFlowSnapshot flowSnapshot = processGroupEntity.getVersionedFlowSnapshot();
+                    final RegisteredFlowSnapshot flowSnapshot = processGroupEntity.getVersionedFlowSnapshot();
 
                     // create the process group contents
                     final Revision revision = new Revision((long) 0, processGroupUploadEntity.getRevisionDTO().getClientId(), processGroup.getId());
@@ -4485,7 +4485,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             throw new IllegalArgumentException("Process Group Revision must be specified.");
         }
 
-        final VersionedFlowSnapshot requestFlowSnapshot = importEntity.getVersionedFlowSnapshot();
+        final RegisteredFlowSnapshot requestFlowSnapshot = importEntity.getVersionedFlowSnapshot();
         if (requestFlowSnapshot == null) {
             throw new IllegalArgumentException("Versioned Flow Snapshot must be supplied.");
         }
@@ -4593,7 +4593,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
      */
     @Override
     protected ProcessGroupEntity performUpdateFlow(final String groupId, final Revision revision, final ProcessGroupImportEntity requestEntity,
-                                                   final VersionedFlowSnapshot flowSnapshot, final String idGenerationSeed,
+                                                   final RegisteredFlowSnapshot flowSnapshot, final String idGenerationSeed,
                                                    final boolean verifyNotModified, final boolean updateDescendantVersionedFlows) {
         logger.info("Replacing Process Group with ID {} with imported Process Group with ID {}", groupId, flowSnapshot.getFlowContents().getIdentifier());
 
@@ -4607,7 +4607,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
      */
     @Override
     protected Entity createReplicateUpdateFlowEntity(final Revision revision, final ProcessGroupImportEntity requestEntity,
-                                                     final VersionedFlowSnapshot flowSnapshot) {
+                                                     final RegisteredFlowSnapshot flowSnapshot) {
         return requestEntity;
     }
 
@@ -4632,7 +4632,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     protected void finalizeCompletedUpdateRequest(final ProcessGroupReplaceRequestEntity requestEntity) {
         final ProcessGroupReplaceRequestDTO updateRequestDto = requestEntity.getRequest();
         if (updateRequestDto.isComplete()) {
-            final VersionedFlowSnapshot versionedFlowSnapshot =
+            final RegisteredFlowSnapshot versionedFlowSnapshot =
                     serviceFacade.getCurrentFlowSnapshotByGroupId(updateRequestDto.getProcessGroupId());
             requestEntity.setVersionedFlowSnapshot(versionedFlowSnapshot);
         }
@@ -4681,7 +4681,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
      * @return a new ProcessGroupEntity
      */
     private ProcessGroupEntity createProcessGroupEntity(
-            String groupId, String groupName, PositionDTO positionDTO, VersionedFlowSnapshot deserializedSnapshot) {
+            String groupId, String groupName, PositionDTO positionDTO, RegisteredFlowSnapshot deserializedSnapshot) {
 
         final ProcessGroupEntity processGroupEntity = new ProcessGroupEntity();
 
@@ -4719,7 +4719,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
         // if any of the components is a Restricted Component, then we must authorize the user
         // for write access to the RestrictedComponents resource
-        final VersionedFlowSnapshot versionedFlowSnapshot = processGroupEntity.getVersionedFlowSnapshot();
+        final RegisteredFlowSnapshot versionedFlowSnapshot = processGroupEntity.getVersionedFlowSnapshot();
         if (versionedFlowSnapshot != null) {
             final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(versionedFlowSnapshot.getFlowContents(), serviceFacade);
             restrictedComponents.forEach(restrictedComponent -> {

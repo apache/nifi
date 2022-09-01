@@ -42,6 +42,7 @@ public class VolatileBulletinRepository implements BulletinRepository {
     private static final String CONTROLLER_BULLETIN_STORE_KEY = "CONTROLLER";
     private static final String SERVICE_BULLETIN_STORE_KEY = "SERVICE";
     private static final String REPORTING_TASK_BULLETIN_STORE_KEY = "REPORTING_TASK";
+    private static final String FLOW_REGISTRY_CLIENT_STORE_KEY = "FLOW_REGISTRY_CLIENT";
     private static final String PARAMETER_PROVIDER_BULLETIN_STORE_KEY = "PARAMETER_PROVIDER";
 
     private final ConcurrentMap<String, ConcurrentMap<String, RingBuffer<Bulletin>>> bulletinStoreMap = new ConcurrentHashMap<>();
@@ -302,6 +303,8 @@ public class VolatileBulletinRepository implements BulletinRepository {
                 return REPORTING_TASK_BULLETIN_STORE_KEY;
             case PARAMETER_PROVIDER:
                 return PARAMETER_PROVIDER_BULLETIN_STORE_KEY;
+            case FLOW_REGISTRY_CLIENT:
+                return FLOW_REGISTRY_CLIENT_STORE_KEY;
             default:
                 return bulletin.getGroupId();
         }
@@ -313,6 +316,7 @@ public class VolatileBulletinRepository implements BulletinRepository {
             case CONTROLLER_SERVICE:
             case REPORTING_TASK:
             case PARAMETER_PROVIDER:
+            case FLOW_REGISTRY_CLIENT:
                 return true;
             default:
                 return false;

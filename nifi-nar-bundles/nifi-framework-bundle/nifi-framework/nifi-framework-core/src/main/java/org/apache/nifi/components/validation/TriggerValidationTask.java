@@ -53,6 +53,10 @@ public class TriggerValidationTask implements Runnable {
             for (final ComponentNode node : flowManager.getRootGroup().findAllProcessors()) {
                 validationTrigger.trigger(node);
             }
+
+            for (final ComponentNode node : flowManager.getAllFlowRegistryClients()) {
+                validationTrigger.trigger(node);
+            }
         } catch (final Throwable t) {
             logger.error("Encountered unexpected error when attempting to validate components", t);
         }

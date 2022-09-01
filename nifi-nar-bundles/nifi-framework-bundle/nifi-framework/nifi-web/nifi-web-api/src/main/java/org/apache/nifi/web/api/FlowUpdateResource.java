@@ -30,7 +30,7 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.FlowRegistryUtils;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -105,14 +105,14 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
      * Perform actual flow update
      */
     protected abstract ProcessGroupEntity performUpdateFlow(final String groupId, final Revision revision, final T requestEntity,
-                                                            final VersionedFlowSnapshot flowSnapshot, final String idGenerationSeed,
+                                                            final RegisteredFlowSnapshot flowSnapshot, final String idGenerationSeed,
                                                             final boolean verifyNotModified, final boolean updateDescendantVersionedFlows);
 
     /**
      * Create the entity that is passed for update flow replication
      */
     protected abstract Entity createReplicateUpdateFlowEntity(final Revision revision, final T requestEntity,
-                                                              final VersionedFlowSnapshot flowSnapshot);
+                                                              final RegisteredFlowSnapshot flowSnapshot);
 
     /**
      * Create the entity that captures the status and result of an update request
@@ -139,7 +139,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
      */
     protected Response initiateFlowUpdate(final String groupId, final T requestEntity, final boolean allowDirtyFlowUpdate,
                                           final String requestType, final String replicateUriPath,
-                                          final Supplier<VersionedFlowSnapshot> flowSnapshotSupplier) {
+                                          final Supplier<RegisteredFlowSnapshot> flowSnapshotSupplier) {
         // Verify the request
         final RevisionDTO revisionDto = requestEntity.getProcessGroupRevision();
         if (revisionDto == null) {
@@ -184,7 +184,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         // 13. Re-Start all Processors, Funnels, Ports that are affected and not removed.
 
         // Step 0: Obtain the versioned flow snapshot to use for the update
-        final VersionedFlowSnapshot flowSnapshot = flowSnapshotSupplier.get();
+        final RegisteredFlowSnapshot flowSnapshot = flowSnapshotSupplier.get();
 
         // The new flow may not contain the same versions of components in existing flow. As a result, we need to update
         // the flow snapshot to contain compatible bundles.
@@ -221,14 +221,13 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
 
     /**
      * Authorize read/write permissions for the given user on every component of the given flow in support of flow update.
-     *
-     * @param lookup        A lookup instance to use for retrieving components for authorization purposes
+     *  @param lookup        A lookup instance to use for retrieving components for authorization purposes
      * @param user          the user to authorize
      * @param groupId       the id of the process group being evaluated
      * @param flowSnapshot  the new flow contents to examine for restricted components
      */
     protected void authorizeFlowUpdate(final AuthorizableLookup lookup, final NiFiUser user, final String groupId,
-                                       final VersionedFlowSnapshot flowSnapshot) {
+                                       final RegisteredFlowSnapshot flowSnapshot) {
         // Step 2: Verify READ and WRITE permissions for user, for every component.
         final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
         authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true,
@@ -322,7 +321,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
     private void updateFlow(final String groupId, final ComponentLifecycle componentLifecycle, final URI requestUri,
                             final Set<AffectedComponentEntity> affectedComponents, final boolean replicateRequest,
                             final String replicateUriPath, final Revision revision, final T requestEntity,
-                            final VersionedFlowSnapshot flowSnapshot, final AsynchronousWebRequest<T, T> asyncRequest,
+                            final RegisteredFlowSnapshot flowSnapshot, final AsynchronousWebRequest<T, T> asyncRequest,
                             final String idGenerationSeed, final boolean allowDirtyFlowUpdate)
             throws LifecycleManagementException, ResumeFlowException {
 
@@ -688,12 +687,12 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         private final String replicateUriPath;
         private final Set<AffectedComponentEntity> affectedComponents;
         private final boolean replicateRequest;
-        private final VersionedFlowSnapshot flowSnapshot;
+        private final RegisteredFlowSnapshot flowSnapshot;
 
         public InitiateUpdateFlowRequestWrapper(final T requestEntity, final ComponentLifecycle componentLifecycle,
                                                 final String requestType, final URI requestUri, final String replicateUriPath,
                                                 final Set<AffectedComponentEntity> affectedComponents,
-                                                final boolean replicateRequest, final VersionedFlowSnapshot flowSnapshot) {
+                                                final boolean replicateRequest, final RegisteredFlowSnapshot flowSnapshot) {
             this.requestEntity = requestEntity;
             this.componentLifecycle = componentLifecycle;
             this.requestType = requestType;
@@ -732,7 +731,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
             return replicateRequest;
         }
 
-        public VersionedFlowSnapshot getFlowSnapshot() {
+        public RegisteredFlowSnapshot getFlowSnapshot() {
             return flowSnapshot;
         }
     }

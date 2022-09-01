@@ -115,6 +115,7 @@
         <module>nifi-airtable-bundle</module>
         <module>nifi-workday-bundle</module>
         <module>nifi-box-bundle</module>
+        <module>nifi-flow-registry-client-bundle</module>
     </modules>
 
     <build>

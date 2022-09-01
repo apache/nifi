@@ -29,5 +29,6 @@ public enum UiExtensionType {
     ProcessorConfiguration,
     ControllerServiceConfiguration,
     ReportingTaskConfiguration,
-    ParameterProviderConfiguration
+    ParameterProviderConfiguration,
+    FlowRegistryClientConfiguration,
 }

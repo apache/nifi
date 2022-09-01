@@ -33,6 +33,7 @@ import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
@@ -143,6 +144,24 @@ public class FlowFromDOMFactory {
         dto.setSchedulingPeriod(getString(element, "schedulingPeriod"));
         dto.setState(getString(element, "scheduledState"));
         dto.setSchedulingStrategy(getString(element, "schedulingStrategy"));
+
+        dto.setSensitiveDynamicPropertyNames(getSensitivePropertyNames(element));
+        dto.setProperties(getProperties(element, encryptor, flowEncodingVersion));
+        dto.setAnnotationData(getString(element, "annotationData"));
+
+        return dto;
+    }
+
+    public static FlowRegistryClientDTO getFlowRegistryClient(final Element element, final PropertyEncryptor encryptor, final FlowEncodingVersion flowEncodingVersion) {
+        final FlowRegistryClientDTO dto = new FlowRegistryClientDTO();
+
+        dto.setId(getString(element, "id"));
+        dto.setName(getString(element, "name"));
+        dto.setDescription(getString(element, "description"));
+        dto.setUri(getString(element, "uri"));
+
+        dto.setType(getString(element, "class"));
+        dto.setBundle(getBundle(DomUtils.getChild(element, "bundle")));
 
         dto.setSensitiveDynamicPropertyNames(getSensitivePropertyNames(element));
         dto.setProperties(getProperties(element, encryptor, flowEncodingVersion));

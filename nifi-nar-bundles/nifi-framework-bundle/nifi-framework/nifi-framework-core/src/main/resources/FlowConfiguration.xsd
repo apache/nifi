@@ -54,8 +54,15 @@
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
             <xs:element name="name" type="NonEmptyStringType" />
-            <xs:element name="url" type="NonEmptyStringType" />
+            <xs:element name="url" type="xs:string" />
             <xs:element name="description" type="xs:string" />
+
+            <!-- "class" is the actual Java class that performs the type of processing desired-->
+            <xs:element name="class" type="NonEmptyStringType"/>
+            <xs:element name="bundle" type="BundleType" />
+
+            <xs:element name="property" type="PropertyType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="annotationData" type="xs:string" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
     </xs:complexType>
 

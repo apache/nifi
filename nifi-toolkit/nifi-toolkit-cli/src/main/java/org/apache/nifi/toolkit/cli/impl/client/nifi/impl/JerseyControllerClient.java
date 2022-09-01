@@ -24,8 +24,8 @@ import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
-import org.apache.nifi.web.api.entity.RegistryClientEntity;
-import org.apache.nifi.web.api.entity.RegistryClientsEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 
 import javax.ws.rs.client.Entity;
@@ -50,15 +50,15 @@ public class JerseyControllerClient extends AbstractJerseyClient implements Cont
     }
 
     @Override
-    public RegistryClientsEntity getRegistryClients() throws NiFiClientException, IOException {
+    public FlowRegistryClientsEntity getRegistryClients() throws NiFiClientException, IOException {
         return executeAction("Error retrieving registry clients", () -> {
             final WebTarget target = controllerTarget.path("registry-clients");
-            return getRequestBuilder(target).get(RegistryClientsEntity.class);
+            return getRequestBuilder(target).get(FlowRegistryClientsEntity.class);
         });
     }
 
     @Override
-    public RegistryClientEntity getRegistryClient(final String id) throws NiFiClientException, IOException {
+    public FlowRegistryClientEntity getRegistryClient(final String id) throws NiFiClientException, IOException {
         if (StringUtils.isBlank(id)) {
             throw new IllegalArgumentException("Registry client id cannot be null");
         }
@@ -67,11 +67,11 @@ public class JerseyControllerClient extends AbstractJerseyClient implements Cont
                 .path("registry-clients/{id}")
                 .resolveTemplate("id", id);
 
-        return getRequestBuilder(target).get(RegistryClientEntity.class);
+        return getRequestBuilder(target).get(FlowRegistryClientEntity.class);
     }
 
     @Override
-    public RegistryClientEntity createRegistryClient(final RegistryClientEntity registryClient) throws NiFiClientException, IOException {
+    public FlowRegistryClientEntity createRegistryClient(final FlowRegistryClientEntity registryClient) throws NiFiClientException, IOException {
         if (registryClient == null) {
             throw new IllegalArgumentException("Registry client entity cannot be null");
         }
@@ -81,13 +81,13 @@ public class JerseyControllerClient extends AbstractJerseyClient implements Cont
 
             return getRequestBuilder(target).post(
                     Entity.entity(registryClient, MediaType.APPLICATION_JSON),
-                    RegistryClientEntity.class
+                    FlowRegistryClientEntity.class
             );
         });
     }
 
     @Override
-    public RegistryClientEntity updateRegistryClient(final RegistryClientEntity registryClient) throws NiFiClientException, IOException {
+    public FlowRegistryClientEntity updateRegistryClient(final FlowRegistryClientEntity registryClient) throws NiFiClientException, IOException {
         if (registryClient == null) {
             throw new IllegalArgumentException("Registry client entity cannot be null");
         }
@@ -103,7 +103,7 @@ public class JerseyControllerClient extends AbstractJerseyClient implements Cont
 
             return getRequestBuilder(target).put(
                     Entity.entity(registryClient, MediaType.APPLICATION_JSON),
-                    RegistryClientEntity.class
+                    FlowRegistryClientEntity.class
             );
         });
     }

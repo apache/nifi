@@ -33,7 +33,8 @@ public enum ComponentType {
     REPORTING_TASK("Reporting Task"),
     PARAMETER_CONTEXT("Parameter Context"),
     PARAMETER_PROVIDER("Parameter Provider"),
-    TEMPLATE("Template");
+    TEMPLATE("Template"),
+    FLOW_REGISTRY_CLIENT("Flow Registry Client");
 
 
     private final String typeName;

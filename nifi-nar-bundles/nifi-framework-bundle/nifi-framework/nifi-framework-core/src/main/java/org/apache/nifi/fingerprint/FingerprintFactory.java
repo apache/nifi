@@ -31,6 +31,7 @@ import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.util.LoggingXmlParserErrorHandler;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.xml.processing.ProcessingException;
@@ -191,8 +192,30 @@ public class FingerprintFactory {
             if (flowRegistryElems.isEmpty()) {
                 builder.append("NO_VALUE");
             } else {
+                final List<FlowRegistryClientDTO> registryClientDtos = new ArrayList<>();
                 for (final Element flowRegistryElement : flowRegistryElems) {
-                    addFlowRegistryFingerprint(builder, flowRegistryElement);
+                    registryClientDtos.add(FlowFromDOMFactory.getFlowRegistryClient(flowRegistryElement, encryptor, encodingVersion));
+                }
+
+                Collections.sort(registryClientDtos, new Comparator<FlowRegistryClientDTO>() {
+                    @Override
+                    public int compare(final FlowRegistryClientDTO o1, final FlowRegistryClientDTO o2) {
+                        if (o1 == null && o2 == null) {
+                            return 0;
+                        }
+                        if (o1 == null && o2 != null) {
+                            return 1;
+                        }
+                        if (o1 != null && o2 == null) {
+                            return -1;
+                        }
+
+                        return o1.getId().compareTo(o2.getId());
+                    }
+                });
+
+                for (final FlowRegistryClientDTO registryClientDto : registryClientDtos) {
+                    addFlowRegistryFingerprint(builder, registryClientDto);
                 }
             }
         }
@@ -356,9 +379,22 @@ public class FingerprintFactory {
 
     }
 
-    private StringBuilder addFlowRegistryFingerprint(final StringBuilder builder, final Element flowRegistryElement) {
-        Stream.of("id", "name", "url", "description").forEach(elementName -> appendFirstValue(builder, DomUtils.getChildNodesByTagName(flowRegistryElement, elementName)));
-        return builder;
+    private void addFlowRegistryFingerprint(final StringBuilder builder, final FlowRegistryClientDTO dto) {
+        builder.append(dto.getId());
+        builder.append(dto.getName());
+        builder.append(dto.getDeprecated());
+        builder.append(dto.getUri());
+
+        builder.append(dto.getType());
+        addBundleFingerprint(builder, dto.getBundle());
+
+        // get the temp instance of the FlowRegistryClient so that we know the default property values
+        final BundleCoordinate coordinate = getCoordinate(dto.getType(), dto.getBundle());
+        final ConfigurableComponent configurableComponent = extensionManager.getTempComponent(dto.getType(), coordinate);
+        if (configurableComponent == null) {
+            logger.warn("Unable to get FlowRegistryClient of type {}; its default properties will be fingerprinted instead of being ignored.", dto.getType());
+        }
+        addPropertiesFingerprint(builder, configurableComponent, dto.getProperties());
     }
 
     StringBuilder addProcessGroupFingerprint(final StringBuilder builder, final Element processGroupElem, final FlowEncodingVersion encodingVersion) throws FingerprintException {

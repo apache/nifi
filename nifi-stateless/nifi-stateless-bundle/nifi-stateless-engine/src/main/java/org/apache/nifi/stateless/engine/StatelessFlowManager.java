@@ -66,6 +66,7 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.StandardProcessContext;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.StandardRemoteProcessGroup;
 import org.apache.nifi.reporting.BulletinRepository;
@@ -98,7 +99,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
     public StatelessFlowManager(final FlowFileEventRepository flowFileEventRepository, final ParameterContextManager parameterContextManager,
                                 final StatelessEngine statelessEngine, final BooleanSupplier flowInitializedCheck,
                                 final SSLContext sslContext, final BulletinRepository bulletinRepository) {
-        super(flowFileEventRepository, parameterContextManager, statelessEngine.getFlowRegistryClient(), flowInitializedCheck);
+        super(flowFileEventRepository, parameterContextManager, flowInitializedCheck);
 
         this.statelessEngine = statelessEngine;
         this.sslContext = sslContext;
@@ -228,8 +229,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
             statelessEngine.getExtensionManager(),
             statelessEngine.getStateManagerProvider(),
             this,
-            statelessEngine.getFlowRegistryClient(),
-            statelessEngine.getReloadComponent(),
+                statelessEngine.getReloadComponent(),
             mutableVariableRegistry,
             new StatelessNodeTypeProvider(),
             null);
@@ -321,6 +321,17 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
                                                          final boolean register) {
 
         throw new UnsupportedOperationException("Parameter Providers are not supported in Stateless NiFi");
+    }
+
+    @Override
+    public FlowRegistryClientNode createFlowRegistryClient(String type, String id, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls, boolean firstTimeAdded, boolean registerLogObserver, String classloaderIsolationKey) {
+        // TODO-NIFI-10497
+        return null;
+    }
+
+    @Override
+    public void removeFlowRegistryClientNode(FlowRegistryClientNode clientNode) {
+        // TODO-NIFI-10497 Add proper implementation
     }
 
     @Override

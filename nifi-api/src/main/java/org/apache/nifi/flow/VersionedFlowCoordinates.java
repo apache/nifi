@@ -22,17 +22,29 @@ import java.util.Objects;
 import io.swagger.annotations.ApiModelProperty;
 
 public class VersionedFlowCoordinates {
+    private String registryId;
     private String registryUrl;
     private String bucketId;
     private String flowId;
     private int version;
     private Boolean latest;
 
+    @ApiModelProperty("The identifier of the Flow Registry that contains the flow")
+    public String getRegistryId() {
+        return registryId;
+    }
+
+    public void setRegistryId(String registryId) {
+        this.registryId = registryId;
+    }
+
+    @Deprecated
     @ApiModelProperty("The URL of the Flow Registry that contains the flow")
     public String getRegistryUrl() {
         return registryUrl;
     }
 
+    @Deprecated
     public void setRegistryUrl(String registryUrl) {
         this.registryUrl = registryUrl;
     }
