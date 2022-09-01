@@ -1,0 +1,156 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.box.controllerservices;
+
+import com.box.sdk.BoxAPIConnection;
+import com.box.sdk.BoxConfig;
+import com.box.sdk.BoxDeveloperEditionAPIConnection;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.JsonValidator;
+import org.apache.nifi.processor.util.StandardValidators;
+
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
+@CapabilityDescription("Provides Box client objects through which Box API calls can be used.")
+@Tags({"box", "client", "provider"})
+public class JsonConfigBasedBoxClientService extends AbstractControllerService implements BoxClientService {
+    public static final PropertyDescriptor ACCOUNT_ID = new PropertyDescriptor.Builder()
+        .name("box-account-id")
+        .displayName("Account ID")
+        .description("The ID of the Box account who owns the accessed resource. Same as 'User Id' under 'App Info' in the App 'General Settings'.")
+        .required(true)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .build();
+
+    public static final PropertyDescriptor APP_CONFIG_FILE = new PropertyDescriptor.Builder()
+        .name("app-config-file")
+        .displayName("App Config File")
+        .description("Full path of an App config JSON file. See Additional Details for more information.")
+        .required(false)
+        .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .build();
+
+    public static final PropertyDescriptor APP_CONFIG_JSON = new PropertyDescriptor.Builder()
+        .name("app-config-json")
+        .displayName("App Config JSON")
+        .description("The raw JSON containing an App config. See Additional Details for more information.")
+        .required(false)
+        .sensitive(true)
+        .addValidator(JsonValidator.INSTANCE)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .build();
+
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+        ACCOUNT_ID,
+        APP_CONFIG_FILE,
+        APP_CONFIG_JSON
+    ));
+
+    private volatile BoxAPIConnection boxAPIConnection;
+
+    @Override
+    public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return PROPERTIES;
+    }
+
+    @OnEnabled
+    public void onEnabled(final ConfigurationContext context) {
+        boxAPIConnection = createBoxApiConnection(context);
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        Collection<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
+
+        if (validationContext.getProperty(APP_CONFIG_FILE).isSet() && validationContext.getProperty(APP_CONFIG_JSON).isSet()) {
+            validationResults.add(new ValidationResult.Builder()
+                .subject("App configuration")
+                .valid(false)
+                .explanation(String.format("'%s' and '%s' cannot be configured at the same time",
+                    APP_CONFIG_FILE.getDisplayName(),
+                    APP_CONFIG_JSON.getDisplayName())
+                )
+                .build());
+        }
+
+        if (!validationContext.getProperty(APP_CONFIG_FILE).isSet() && !validationContext.getProperty(APP_CONFIG_JSON).isSet()) {
+            validationResults.add(new ValidationResult.Builder()
+                .subject("App configuration")
+                .valid(false)
+                .explanation(String.format("either '%s' or '%s' must be configured",
+                    APP_CONFIG_FILE.getDisplayName(),
+                    APP_CONFIG_JSON.getDisplayName())
+                )
+                .build());
+        }
+
+        return validationResults;
+    }
+
+    @Override
+    public BoxAPIConnection getBoxApiConnection() {
+        return boxAPIConnection;
+    }
+
+    private BoxAPIConnection createBoxApiConnection(ConfigurationContext context) {
+        BoxAPIConnection api;
+
+        String accountId = context.getProperty(ACCOUNT_ID).evaluateAttributeExpressions().getValue();
+
+        BoxConfig boxConfig;
+        if (context.getProperty(APP_CONFIG_FILE).isSet()) {
+            String appConfigFile = context.getProperty(APP_CONFIG_FILE).evaluateAttributeExpressions().getValue();
+            try (
+                Reader reader = new FileReader(appConfigFile);
+            ) {
+                boxConfig = BoxConfig.readFrom(reader);
+            } catch (FileNotFoundException e) {
+                throw new ProcessException("Couldn't find Box config file", e);
+            } catch (IOException e) {
+                throw new ProcessException("Couldn't read Box config file", e);
+            }
+        } else {
+            String appConfig = context.getProperty(APP_CONFIG_JSON).evaluateAttributeExpressions().getValue();
+            boxConfig = BoxConfig.readFrom(appConfig);
+        }
+
+        api = BoxDeveloperEditionAPIConnection.getAppEnterpriseConnection(boxConfig);
+
+        api.asUser(accountId);
+
+        return api;
+    }
+}
