@@ -115,7 +115,6 @@ class ListSmbTest {
 
         testRunner.run();
         testRunner.assertTransferCount(REL_SUCCESS, 1);
-
         testRunner.assertValid();
     }
 
@@ -236,6 +235,7 @@ class ListSmbTest {
         when(mockNifiSmbClientService.listRemoteFiles(anyString())).thenThrow(new RuntimeException("test exception"));
         testRunner.run();
         assertEquals(1, testRunner.getLogger().getErrorMessages().size());
+        testRunner.assertValid();
     }
 
     @Test

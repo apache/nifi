@@ -34,9 +34,8 @@ public class FetchSmbIT extends SambaTestContainers {
     public void fetchFilesUsingEL() throws Exception {
         writeFile("/test_file", "test_content");
         TestRunner testRunner = newTestRunner(FetchSmb.class);
-        SmbjClientProviderService smbjClientProviderService = configureTestRunnerForSambaDockerContainer(testRunner);
         testRunner.setProperty(REMOTE_FILE, "${attribute_to_find_using_EL}");
-        testRunner.enableControllerService(smbjClientProviderService);
+        final SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, true);
 
         Map<String, String> attributes = new HashMap<>();
         attributes.put("attribute_to_find_using_EL", "test_file");
@@ -46,14 +45,14 @@ public class FetchSmbIT extends SambaTestContainers {
         testRunner.assertTransferCount(REL_SUCCESS, 1);
         assertEquals("test_content", testRunner.getFlowFilesForRelationship(REL_SUCCESS).get(0).getContent());
         testRunner.assertValid();
+        testRunner.disableControllerService(smbjClientProviderService);
     }
 
     @Test
     public void tryToFetchNonExistingFileEmitsFailure() throws Exception {
         TestRunner testRunner = newTestRunner(FetchSmb.class);
-        SmbjClientProviderService smbjClientProviderService = configureTestRunnerForSambaDockerContainer(testRunner);
         testRunner.setProperty(REMOTE_FILE, "${attribute_to_find_using_EL}");
-        testRunner.enableControllerService(smbjClientProviderService);
+        final SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, true);
 
         Map<String, String> attributes = new HashMap<>();
         attributes.put("attribute_to_find_using_EL", "non_existing_file");
@@ -61,6 +60,8 @@ public class FetchSmbIT extends SambaTestContainers {
         testRunner.enqueue("ignored", attributes);
         testRunner.run();
         testRunner.assertTransferCount(REL_FAILURE, 1);
+        testRunner.assertValid();
+        testRunner.disableControllerService(smbjClientProviderService);
     }
 
 }

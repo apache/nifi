@@ -36,7 +36,6 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.utility.DockerImageName;
-import org.testcontainers.utility.MountableFile;
 
 public class SambaTestContainers {
 
@@ -58,9 +57,9 @@ public class SambaTestContainers {
         sambaContainer.stop();
     }
 
-    protected SmbjClientProviderService configureTestRunnerForSambaDockerContainer(TestRunner testRunner)
+    protected SmbjClientProviderService configureSmbClient(TestRunner testRunner, boolean shouldEnableSmbClient)
             throws Exception {
-        SmbjClientProviderService smbjClientProviderService = new SmbjClientProviderService();
+        final SmbjClientProviderService smbjClientProviderService = new SmbjClientProviderService();
         testRunner.addControllerService("client-provider", smbjClientProviderService);
         testRunner.setProperty(SMB_CLIENT_PROVIDER_SERVICE, "client-provider");
         testRunner.setProperty(smbjClientProviderService, HOSTNAME, sambaContainer.getHost());
@@ -70,6 +69,9 @@ public class SambaTestContainers {
         testRunner.setProperty(smbjClientProviderService, PASSWORD, "password");
         testRunner.setProperty(smbjClientProviderService, SHARE, "share");
         testRunner.setProperty(smbjClientProviderService, DOMAIN, "domain");
+        if (shouldEnableSmbClient) {
+            testRunner.enableControllerService(smbjClientProviderService);
+        }
         return smbjClientProviderService;
     }
 
@@ -82,11 +84,6 @@ public class SambaTestContainers {
     protected void writeFile(String path, String content) {
         String containerPath = "/folder/" + path;
         sambaContainer.copyFileToContainer(Transferable.of(content), containerPath);
-    }
-
-    protected void copyFile(String classPath, String path) {
-        String containerPath = "/folder/" + path;
-        sambaContainer.copyFileToContainer(MountableFile.forClasspathResource(classPath), containerPath);
     }
 
 }

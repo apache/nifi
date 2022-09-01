@@ -121,6 +121,10 @@ public class SmbListableEntity implements ListableEntity {
         return path.isEmpty() ? name : path + "/" + name;
     }
 
+    public long getLastModifiedTime() {
+        return lastModifiedTime;
+    }
+
     @Override
     public String getIdentifier() {
         return getPathWithName();
@@ -128,7 +132,7 @@ public class SmbListableEntity implements ListableEntity {
 
     @Override
     public long getTimestamp() {
-        return lastModifiedTime;
+        return getLastModifiedTime();
     }
 
     @Override
@@ -171,7 +175,7 @@ public class SmbListableEntity implements ListableEntity {
         record.put(SERVICE_LOCATION, getServiceLocation().toString());
         record.put(CREATION_TIME, getCreationTime());
         record.put(LAST_ACCESS_TIME, getLastAccessTime());
-        record.put(LAST_MODIFIED_TIME, getTimestamp());
+        record.put(LAST_MODIFIED_TIME, getLastModifiedTime());
         record.put(CHANGE_TIME, getChangeTime());
         record.put(SIZE, getSize());
         record.put(ALLOCATION_SIZE, getAllocationSize());

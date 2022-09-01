@@ -86,6 +86,7 @@ class FetchSmbTest {
         testRunner.assertTransferCount(REL_SUCCESS, 1);
         assertEquals("content",
                 testRunner.getFlowFilesForRelationship(REL_SUCCESS).get(0).getContent());
+        testRunner.assertValid();
     }
 
     @Test
@@ -98,6 +99,7 @@ class FetchSmbTest {
         testRunner.run();
         testRunner.assertTransferCount(REL_SUCCESS, 0);
         testRunner.assertTransferCount(REL_FAILURE, 1);
+        testRunner.assertValid();
     }
 
     private void mockNifiSmbClientService() throws IOException {

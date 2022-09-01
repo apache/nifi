@@ -92,23 +92,23 @@ import org.apache.nifi.services.smb.SmbListableEntity;
         @WritesAttribute(attribute = FILENAME, description = "The name of the file that was read from filesystem."),
         @WritesAttribute(attribute = SHORT_NAME, description = "The short name of the file that was read from filesystem."),
         @WritesAttribute(attribute = PATH, description =
-                "The path is set to the relative path of the file's directory "
-                        + "on filesystem compared to the Share and Input Directory properties and the configured host "
-                        + "and port inherited from the configured connection pool controller service. For example, for "
-                        + "a given remote location smb://HOSTNAME:PORT/SHARE/DIRECTORY, and a file is being listed from "
-                        + "smb://HOSTNAME:PORT/SHARE/DIRECTORY/sub/folder/file then the path attribute will be set to \"sub/folder/file\"."),
+                "The path is set to the relative path of the file's directory on the remote filesystem compared to the "
+                        + "Share root directory. For example, for a given remote location"
+                        + "smb://HOSTNAME:PORT/SHARE/DIRECTORY, and a file is being listed from "
+                        + "smb://HOSTNAME:PORT/SHARE/DIRECTORY/sub/folder/file then the path attribute will be set to "
+                        + "\"DIRECTORY/sub/folder/file\"."),
         @WritesAttribute(attribute = SERVICE_LOCATION, description =
-                "The SMB URL of the share"),
+                "The SMB URL of the share."),
         @WritesAttribute(attribute = LAST_MODIFIED_TIME, description =
-                "The timestamp of when the file's content changed in the filesystem as 'yyyy-MM-dd'T'HH:mm:ss'"),
+                "The timestamp of when the file's content changed in the filesystem as 'yyyy-MM-dd'T'HH:mm:ss'."),
         @WritesAttribute(attribute = CREATION_TIME, description =
-                "The timestamp of when the file was created in the filesystem as 'yyyy-MM-dd'T'HH:mm:ss'"),
+                "The timestamp of when the file was created in the filesystem as 'yyyy-MM-dd'T'HH:mm:ss'."),
         @WritesAttribute(attribute = LAST_ACCESS_TIME, description =
-                "The timestamp of when the file was accessed in the filesystem as 'yyyy-MM-dd'T'HH:mm:ss'"),
+                "The timestamp of when the file was accessed in the filesystem as 'yyyy-MM-dd'T'HH:mm:ss'."),
         @WritesAttribute(attribute = CHANGE_TIME, description =
-                "The timestamp of when the file's attributes was changed in the filesystem as 'yyyy-MM-dd'T'HH:mm:ss'"),
-        @WritesAttribute(attribute = SIZE, description = "The number of bytes in the source file"),
-        @WritesAttribute(attribute = ALLOCATION_SIZE, description = "The number of bytes allocated for the file on the server"),
+                "The timestamp of when the file's attributes was changed in the filesystem as 'yyyy-MM-dd'T'HH:mm:ss'."),
+        @WritesAttribute(attribute = SIZE, description = "The size of the file in bytes."),
+        @WritesAttribute(attribute = ALLOCATION_SIZE, description = "The number of bytes allocated for the file on the server."),
 })
 @Stateful(scopes = {Scope.CLUSTER}, description =
         "After performing a listing of files, the state of the previous listing can be stored in order to list files "
@@ -141,7 +141,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     public static final PropertyDescriptor MAXIMUM_AGE = new PropertyDescriptor.Builder()
             .displayName("Maximum File Age")
             .name("max-file-age")
-            .description("Any file older than the given value will be omitted. ")
+            .description("Any file older than the given value will be omitted.")
             .required(false)
             .addValidator(TIME_PERIOD_VALIDATOR)
             .build();
@@ -217,7 +217,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
         attributes.put(SHORT_NAME, entity.getShortName());
         attributes.put(PATH, entity.getPath());
         attributes.put(SERVICE_LOCATION, clientProviderService.getServiceLocation().toString());
-        attributes.put(LAST_MODIFIED_TIME, formatTimeStamp(entity.getTimestamp()));
+        attributes.put(LAST_MODIFIED_TIME, formatTimeStamp(entity.getLastModifiedTime()));
         attributes.put(CREATION_TIME, formatTimeStamp(entity.getCreationTime()));
         attributes.put(LAST_ACCESS_TIME, formatTimeStamp(entity.getLastAccessTime()));
         attributes.put(CHANGE_TIME, formatTimeStamp(entity.getChangeTime()));
@@ -312,14 +312,14 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
         final String suffixOrNull = context.getProperty(FILE_NAME_SUFFIX_FILTER).getValue();
 
         final long now = getCurrentTime();
-        Predicate<SmbListableEntity> filter = entity -> now - entity.getTimestamp() >= minimumAge;
+        Predicate<SmbListableEntity> filter = entity -> now - entity.getLastModifiedTime() >= minimumAge;
 
         if (maximumAgeOrNull != null) {
-            filter = filter.and(entity -> now - entity.getTimestamp() <= maximumAgeOrNull);
+            filter = filter.and(entity -> now - entity.getLastModifiedTime() <= maximumAgeOrNull);
         }
 
         if (minTimestampOrNull != null) {
-            filter = filter.and(entity -> entity.getTimestamp() >= minTimestampOrNull);
+            filter = filter.and(entity -> entity.getLastModifiedTime() >= minTimestampOrNull);
         }
 
         if (minimumSizeOrNull != null) {
@@ -346,7 +346,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             try {
                 clientService.close();
             } catch (Exception e) {
-                throw new RuntimeException("Could not close samba client", e);
+                throw new RuntimeException("Could not close SMB client", e);
             }
         });
     }
@@ -354,7 +354,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     private String getDirectory(ProcessContext context) {
         final PropertyValue property = context.getProperty(DIRECTORY);
         final String directory = property.isSet() ? property.getValue().replace('\\', '/') : "";
-        return directory.equals("/") ? "" : directory;
+        return "/".equals(directory) ? "" : directory;
     }
 
     private static class MustNotContainDirectorySeparatorsValidator implements Validator {

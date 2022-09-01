@@ -35,8 +35,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.services.smb.SmbClientProviderService;
 import org.apache.nifi.services.smb.SmbjClientProviderService;
@@ -55,8 +53,7 @@ public class ListSmbIT extends SambaTestContainers {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
         testRunner.setProperty(LISTING_STRATEGY, "none");
         testRunner.setProperty(MINIMUM_AGE, "0 ms");
-        SmbjClientProviderService smbjClientProviderService = configureTestRunnerForSambaDockerContainer(testRunner);
-        testRunner.enableControllerService(smbjClientProviderService);
+        SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, true);
         testRunner.run();
         testRunner.assertTransferCount(REL_SUCCESS, 1);
         testRunner.getFlowFilesForRelationship(REL_SUCCESS)
@@ -71,8 +68,7 @@ public class ListSmbIT extends SambaTestContainers {
         testRunner.setProperty(LISTING_STRATEGY, "none");
         testRunner.setProperty(MINIMUM_AGE, "0 ms");
         testRunner.setProperty(DIRECTORY, "folderDoesNotExists");
-        SmbjClientProviderService smbjClientProviderService = configureTestRunnerForSambaDockerContainer(testRunner);
-        testRunner.enableControllerService(smbjClientProviderService);
+        SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, true);
         testRunner.run();
         assertEquals(1, testRunner.getLogger().getErrorMessages().size());
         testRunner.assertValid();
@@ -82,7 +78,7 @@ public class ListSmbIT extends SambaTestContainers {
     @Test
     public void shouldShowBulletinWhenShareIsInvalid() throws Exception {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
-        SmbjClientProviderService smbjClientProviderService = configureTestRunnerForSambaDockerContainer(testRunner);
+        SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, false);
         testRunner.setProperty(smbjClientProviderService, SHARE, "invalid_share");
         testRunner.enableControllerService(smbjClientProviderService);
         testRunner.run();
@@ -94,8 +90,7 @@ public class ListSmbIT extends SambaTestContainers {
     @Test
     public void shouldShowBulletinWhenSMBPortIsInvalid() throws Exception {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
-        final SmbClientProviderService smbClientProviderService =
-                configureTestRunnerForSambaDockerContainer(testRunner);
+        final SmbClientProviderService smbClientProviderService = configureSmbClient(testRunner, false);
         testRunner.setProperty(smbClientProviderService, PORT, "1");
         testRunner.enableControllerService(smbClientProviderService);
         testRunner.run();
@@ -107,12 +102,12 @@ public class ListSmbIT extends SambaTestContainers {
     @Test
     public void shouldShowBulletinWhenSMBHostIsInvalid() throws Exception {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
-        final SmbClientProviderService smbClientProviderService =
-                configureTestRunnerForSambaDockerContainer(testRunner);
+        final SmbClientProviderService smbClientProviderService = configureSmbClient(testRunner, false);
         testRunner.setProperty(smbClientProviderService, HOSTNAME, "this.host.should.not.exists");
         testRunner.enableControllerService(smbClientProviderService);
         testRunner.run();
         assertEquals(1, testRunner.getLogger().getErrorMessages().size());
+        testRunner.assertValid();
         testRunner.disableControllerService(smbClientProviderService);
     }
 
@@ -134,8 +129,7 @@ public class ListSmbIT extends SambaTestContainers {
         testRunner.setProperty(LISTING_STRATEGY, "none");
         testRunner.setProperty(RECORD_WRITER, "writer");
         testRunner.setProperty(MINIMUM_AGE, "0 ms");
-        SmbjClientProviderService smbjClientProviderService = configureTestRunnerForSambaDockerContainer(testRunner);
-        testRunner.enableControllerService(smbjClientProviderService);
+        final SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, true);
         testRunner.run();
         testRunner.assertTransferCount(REL_SUCCESS, 1);
         testRunner.assertValid();
@@ -149,8 +143,7 @@ public class ListSmbIT extends SambaTestContainers {
         ));
         testFiles.forEach(file -> writeFile(file, generateContentWithSize(4)));
         final TestRunner testRunner = newTestRunner(ListSmb.class);
-        final SmbjClientProviderService smbjClientProviderService =
-                configureTestRunnerForSambaDockerContainer(testRunner);
+        final SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, false);
         testRunner.setProperty(LISTING_STRATEGY, "none");
         testRunner.setProperty(MINIMUM_AGE, "0 sec");
         testRunner.enableControllerService(smbjClientProviderService);
@@ -160,11 +153,6 @@ public class ListSmbIT extends SambaTestContainers {
                 .stream()
                 .map(MockFlowFile::getAttributes)
                 .collect(toSet());
-
-        allAttributes.forEach(attribute -> assertEquals(
-                Stream.of(attribute.get("path"), attribute.get("filename")).filter(s -> !s.isEmpty()).collect(
-                        Collectors.joining("/")),
-                attribute.get("absolute.path")));
 
         final Set<String> fileNames = allAttributes.stream()
                 .map(attributes -> attributes.get("filename"))
@@ -179,9 +167,7 @@ public class ListSmbIT extends SambaTestContainers {
     @Test
     public void shouldFilterFilesBySizeCriteria() throws Exception {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
-        final SmbClientProviderService smbClientProviderService =
-                configureTestRunnerForSambaDockerContainer(testRunner);
-        testRunner.enableControllerService(smbClientProviderService);
+        final SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, true);
         testRunner.setProperty(MINIMUM_AGE, "0 ms");
         testRunner.setProperty(LISTING_STRATEGY, "none");
 
@@ -201,17 +187,15 @@ public class ListSmbIT extends SambaTestContainers {
         testRunner.setProperty(MINIMUM_SIZE, "50 B");
         testRunner.run();
         testRunner.assertTransferCount(REL_SUCCESS, 1);
-
-        testRunner.disableControllerService(smbClientProviderService);
+        testRunner.assertValid();
+        testRunner.disableControllerService(smbjClientProviderService);
 
     }
 
     @Test
     public void shouldFilterByGivenSuffix() throws Exception {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
-        final SmbClientProviderService smbClientProviderService =
-                configureTestRunnerForSambaDockerContainer(testRunner);
-        testRunner.enableControllerService(smbClientProviderService);
+        final SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, true);
         testRunner.setProperty(MINIMUM_AGE, "0 ms");
         testRunner.setProperty(FILE_NAME_SUFFIX_FILTER, ".suffix");
         testRunner.setProperty(LISTING_STRATEGY, "none");
@@ -219,7 +203,8 @@ public class ListSmbIT extends SambaTestContainers {
         writeFile("should_skip_this.suffix", generateContentWithSize(1));
         testRunner.run();
         testRunner.assertTransferCount(REL_SUCCESS, 1);
-        testRunner.disableControllerService(smbClientProviderService);
+        testRunner.assertValid();
+        testRunner.disableControllerService(smbjClientProviderService);
     }
 
 }

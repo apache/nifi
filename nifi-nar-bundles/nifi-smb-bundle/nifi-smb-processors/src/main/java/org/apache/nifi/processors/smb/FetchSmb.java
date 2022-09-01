@@ -45,12 +45,12 @@ import org.apache.nifi.services.smb.SmbClientService;
 import org.apache.nifi.services.smb.SmbException;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"samba, smb, cifs, files", "fetch"})
+@Tags({"samba", "smb", "cifs", "files", "fetch"})
 @CapabilityDescription("Fetches files from a SMB Share. Designed to be used in tandem with ListSmb.")
 @SeeAlso({ListSmb.class, PutSmbFile.class, GetSmbFile.class})
 @WritesAttributes({
-        @WritesAttribute(attribute = FetchSmb.ERROR_CODE_ATTRIBUTE, description = "The error code returned by SMB when the fetch of a file fails"),
-        @WritesAttribute(attribute = FetchSmb.ERROR_MESSAGE_ATTRIBUTE, description = "The error message returned by SMB when the fetch of a file fails")
+        @WritesAttribute(attribute = FetchSmb.ERROR_CODE_ATTRIBUTE, description = "The error code returned by SMB when the fetch of a file fails."),
+        @WritesAttribute(attribute = FetchSmb.ERROR_MESSAGE_ATTRIBUTE, description = "The error message returned by SMB when the fetch of a file fails.")
 })
 public class FetchSmb extends AbstractProcessor {
 
@@ -77,14 +77,14 @@ public class FetchSmb extends AbstractProcessor {
     public static final Relationship REL_SUCCESS =
             new Relationship.Builder()
                     .name("success")
-                    .description("A flowfile will be routed here for each successfully fetched File.")
+                    .description("A flowfile will be routed here for each successfully fetched file.")
                     .build();
     public static final Relationship REL_FAILURE =
             new Relationship.Builder().name("failure")
                     .description(
-                            "A flowfile will be routed here for each File for which fetch was attempted but failed.")
+                            "A flowfile will be routed here when failed to fetch its content.")
                     .build();
-    public static final Set<Relationship>   RELATIONSHIPS = unmodifiableSet(new HashSet<>(asList(
+    public static final Set<Relationship> RELATIONSHIPS = unmodifiableSet(new HashSet<>(asList(
             REL_SUCCESS,
             REL_FAILURE
     )));
@@ -96,7 +96,7 @@ public class FetchSmb extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return   RELATIONSHIPS;
+        return RELATIONSHIPS;
     }
 
     @Override
@@ -112,7 +112,7 @@ public class FetchSmb extends AbstractProcessor {
         try (SmbClientService client = clientProviderService.getClient()) {
             fetchAndTransfer(session, context, client, flowFile);
         } catch (Exception e) {
-            getLogger().error("Couldn't connect to smb.", e);
+            getLogger().error("Couldn't connect to SMB.", e);
             flowFile = session.putAttribute(flowFile, ERROR_CODE_ATTRIBUTE, getErrorCode(e));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
             session.transfer(flowFile, REL_FAILURE);
@@ -136,7 +136,7 @@ public class FetchSmb extends AbstractProcessor {
         } catch (Exception e) {
             getLogger().error("Couldn't fetch file {}.", filename, e);
             flowFile = session.putAttribute(flowFile, ERROR_CODE_ATTRIBUTE, getErrorCode(e));
-            flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
+            flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, getErrorMessage(e));
             session.transfer(flowFile, REL_FAILURE);
         }
     }
@@ -146,6 +146,11 @@ public class FetchSmb extends AbstractProcessor {
                 .map(SmbException::getErrorCode)
                 .map(String::valueOf)
                 .orElse(UNCATEGORIZED_ERROR);
+    }
+
+    private String getErrorMessage(Exception exception) {
+        return Optional.ofNullable(exception.getMessage())
+                .orElse(exception.getClass().getSimpleName());
     }
 
 }
