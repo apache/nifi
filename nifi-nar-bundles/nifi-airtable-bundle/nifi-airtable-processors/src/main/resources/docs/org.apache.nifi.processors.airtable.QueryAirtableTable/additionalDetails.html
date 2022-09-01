@@ -17,21 +17,6 @@
 
 <!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/html">
-<!--
-      Licensed to the Apache Software Foundation (ASF) under one or more
-      contributor license agreements.  See the NOTICE file distributed with
-      this work for additional information regarding copyright ownership.
-      The ASF licenses this file to You under the Apache License, Version 2.0
-      (the "License"); you may not use this file except in compliance with
-      the License.  You may obtain a copy of the License at
-          http://www.apache.org/licenses/LICENSE-2.0
-      Unless required by applicable law or agreed to in writing, software
-      distributed under the License is distributed on an "AS IS" BASIS,
-      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-      See the License for the specific language governing permissions and
-      limitations under the License.
-    -->
-
 <head>
     <meta charset="utf-8"/>
     <title>QueryAirtableTable</title>
@@ -56,9 +41,9 @@ td {text-align: left}
     It can also split large record sets to multiple FlowFiles and transfer them in batches just like a database processor.
 </p>
 
-<h3>API Token</h3>
+<h3>API Key</h3>
 <p>
-    Airtable REST API calls require a so-called "API Token" that can needs to be passed in a request. An Airtable account is required to generate such token.
+    Airtable REST API calls requires an API Key that needs to be passed in a request. An Airtable account is required to generate an API Key.
 </p>
 
 <h3>API rate limit</h3>
@@ -70,7 +55,7 @@ td {text-align: left}
 <h3>Metadata API</h3>
 <p>
     Currently the Metadata API of Airtable is unstable, and we don't provide a way to use it. Until it becomes stable the user should set up a JsonTreeReader service to provide a schema.
-    The JsonTreeReader is need to be set up in a specific way to properly work with the response of an Airtable REST API call.
+    The JsonTreeReader needs to be set up in a specific way to properly work with the response of an Airtable REST API call.
 </p>
 <ul>
     <li>"Starting Field Strategy" needs to be set to "Nested Field"</li>

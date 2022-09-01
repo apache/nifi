@@ -28,20 +28,20 @@ public class AirtableGetRecordsParameters {
     private final List<String> fields;
     private final Optional<String> modifiedAfter;
     private final Optional<String> modifiedBefore;
-    private final Optional<String> filterByFormula;
+    private final Optional<String> customFilter;
     private final Optional<String> offset;
     private final OptionalInt pageSize;
 
     public AirtableGetRecordsParameters(final List<String> fields,
             final Optional<String> modifiedAfter,
             final Optional<String> modifiedBefore,
-            final Optional<String> filterByFormula,
+            final Optional<String> customFilter,
             final Optional<String> offset,
             final OptionalInt pageSize) {
         this.fields = Objects.requireNonNull(fields);
         this.modifiedAfter = modifiedAfter;
         this.modifiedBefore = modifiedBefore;
-        this.filterByFormula = filterByFormula;
+        this.customFilter = customFilter;
         this.offset = offset;
         this.pageSize = pageSize;
     }
@@ -58,8 +58,8 @@ public class AirtableGetRecordsParameters {
         return modifiedBefore;
     }
 
-    public Optional<String> getFilterByFormula() {
-        return filterByFormula;
+    public Optional<String> getCustomFilter() {
+        return customFilter;
     }
 
     public Optional<String> getOffset() {
@@ -71,14 +71,14 @@ public class AirtableGetRecordsParameters {
     }
 
     public AirtableGetRecordsParameters withOffset(final String offset) {
-        return new AirtableGetRecordsParameters(fields, modifiedAfter, modifiedBefore, filterByFormula, Optional.of(offset), pageSize);
+        return new AirtableGetRecordsParameters(fields, modifiedAfter, modifiedBefore, customFilter, Optional.of(offset), pageSize);
     }
 
     public static class Builder {
         private List<String> fields = null;
         private String modifiedAfter = null;
         private String modifiedBefore = null;
-        private String filterByFormula = null;
+        private String customFilter = null;
         private String offset = null;
         private OptionalInt pageSize = OptionalInt.empty();
 
@@ -105,8 +105,8 @@ public class AirtableGetRecordsParameters {
             return this;
         }
 
-        public Builder filterByFormula(final String filterByFormula) {
-            this.filterByFormula = filterByFormula;
+        public Builder customFilter(final String customFilter) {
+            this.customFilter = customFilter;
             return this;
         }
 
@@ -121,10 +121,10 @@ public class AirtableGetRecordsParameters {
         }
 
         public AirtableGetRecordsParameters build() {
-            return new AirtableGetRecordsParameters(fields != null ? fields : new ArrayList<String>(),
+            return new AirtableGetRecordsParameters(fields != null ? fields : new ArrayList<>(),
                     Optional.ofNullable(modifiedAfter),
                     Optional.ofNullable(modifiedBefore),
-                    Optional.ofNullable(filterByFormula),
+                    Optional.ofNullable(customFilter),
                     Optional.ofNullable(offset),
                     pageSize);
         }

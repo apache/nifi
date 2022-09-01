@@ -17,22 +17,27 @@
 
 package org.apache.nifi.processors.airtable.record;
 
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.Option;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Optional;
 import org.apache.nifi.json.JsonTreeRowRecordReader;
 import org.apache.nifi.processors.airtable.service.AirtableGetRecordsParameters;
 import org.apache.nifi.processors.airtable.service.AirtableRestService;
-import org.apache.nifi.processors.airtable.service.AirtableRestService.RateLimitExceeded;
+import org.apache.nifi.processors.airtable.service.AirtableRestService.RateLimitExceededException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 
 public class AirtableRecordSet implements RecordSet, Closeable {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonFactory JSON_FACTORY = OBJECT_MAPPER.getFactory();
 
     final AirtableJsonTreeRowRecordReaderFactory recordReaderFactory;
     final AirtableRestService restService;
@@ -76,14 +81,12 @@ public class AirtableRecordSet implements RecordSet, Closeable {
             return record;
         }
 
-        final Configuration configuration = Configuration.defaultConfiguration()
-                .addOptions(Option.DEFAULT_PATH_LEAF_TO_NULL);
-        final String offset = JsonPath.using(configuration).parse(new ByteArrayInputStream(recordsJson)).read("$.offset");
-        if (offset != null) {
+        final Optional<String> offset = readOffsetFromJson();
+        if (offset.isPresent()) {
             try {
-                recordsJson = restService.getRecords(getRecordsParameters.withOffset(offset));
-            } catch (RateLimitExceeded e) {
-                throw new IOException(e);
+                recordsJson = restService.getRecords(getRecordsParameters.withOffset(offset.get()));
+            } catch (RateLimitExceededException e) {
+                throw new IOException("REST API rate limit exceeded while fetching Airtable records", e);
             }
             reader = null;
             return next();
@@ -97,5 +100,18 @@ public class AirtableRecordSet implements RecordSet, Closeable {
         if (reader != null) {
             reader.close();
         }
+    }
+
+    private Optional<String> readOffsetFromJson() throws IOException {
+        try (final JsonParser jsonParser = JSON_FACTORY.createParser(recordsJson)) {
+            while (jsonParser.nextToken() != null) {
+                if (jsonParser.getCurrentToken() != JsonToken.FIELD_NAME || !jsonParser.getCurrentName().equals("offset")) {
+                    continue;
+                }
+                jsonParser.nextToken();
+                return Optional.of(jsonParser.getValueAsString());
+            }
+        }
+        return Optional.empty();
     }
 }

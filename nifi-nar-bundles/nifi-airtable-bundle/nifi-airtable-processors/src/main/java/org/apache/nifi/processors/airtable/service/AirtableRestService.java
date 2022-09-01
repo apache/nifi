@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.ws.rs.core.UriBuilder;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.Range;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.WebClientService;
@@ -32,36 +33,39 @@ public class AirtableRestService {
 
     public static final String API_V0_BASE_URL = "https://api.airtable.com/v0";
 
+    private static final int TOO_MANY_REQUESTS = 429;
+    private static final Range<Integer> SUCCESSFUL_RESPONSE_RANGE = Range.between(200, 299);
+
     private final WebClientService webClientService;
     private final String apiUrl;
-    private final String apiToken;
+    private final String apiKey;
     private final String baseId;
     private final String tableId;
 
     public AirtableRestService(final WebClientService webClientService,
             final String apiUrl,
-            final String apiToken,
+            final String apiKey,
             final String baseId,
             final String tableId) {
         this.webClientService = webClientService;
         this.apiUrl = apiUrl;
-        this.apiToken = apiToken;
+        this.apiKey = apiKey;
         this.baseId = baseId;
         this.tableId = tableId;
     }
 
-    public byte[] getRecords(final AirtableGetRecordsParameters filter) throws RateLimitExceeded {
+    public byte[] getRecords(final AirtableGetRecordsParameters filter) throws RateLimitExceededException {
         final URI uri = buildUri(filter);
         try (final HttpResponseEntity response = webClientService.get()
                 .uri(uri)
-                .header("Authorization", "Bearer " + apiToken)
+                .header("Authorization", "Bearer " + apiKey)
                 .retrieve()) {
 
-            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+            if (SUCCESSFUL_RESPONSE_RANGE.contains(response.statusCode())) {
                 return IOUtils.toByteArray(response.body());
             }
-            if (response.statusCode() == 429) {
-                throw new RateLimitExceeded();
+            if (response.statusCode() == TOO_MANY_REQUESTS) {
+                throw new RateLimitExceededException();
             }
             final StringBuilder exceptionMessageBuilder = new StringBuilder("Invalid response. Code: " + response.statusCode());
             final String bodyText = IOUtils.toString(response.body(), StandardCharsets.UTF_8);
@@ -75,33 +79,33 @@ public class AirtableRestService {
         }
     }
 
-    public static class RateLimitExceeded extends Exception {
-        public RateLimitExceeded() {
+    public static class RateLimitExceededException extends Exception {
+        public RateLimitExceededException() {
             super("Airtable REST API rate limit exceeded");
         }
     }
 
-    private URI buildUri(AirtableGetRecordsParameters filter) {
+    private URI buildUri(AirtableGetRecordsParameters getRecordsParameters) {
         final UriBuilder uriBuilder = UriBuilder.fromUri(apiUrl).path(baseId).path(tableId);
 
-        for (final String field : filter.getFields()) {
+        for (final String field : getRecordsParameters.getFields()) {
             uriBuilder.queryParam("fields[]", field);
         }
 
-        final List<String> filtersByFormula = new ArrayList<>();
-        filter.getFilterByFormula()
-                .ifPresent(filtersByFormula::add);
-        filter.getModifiedAfter()
+        final List<String> filters = new ArrayList<>();
+        getRecordsParameters.getCustomFilter()
+                .ifPresent(filters::add);
+        getRecordsParameters.getModifiedAfter()
                 .map(modifiedAfter -> "IS_AFTER(LAST_MODIFIED_TIME(),DATETIME_PARSE(\"" + modifiedAfter + "\"))")
-                .ifPresent(filtersByFormula::add);
-        filter.getModifiedBefore()
+                .ifPresent(filters::add);
+        getRecordsParameters.getModifiedBefore()
                 .map(modifiedBefore -> "IS_BEFORE(LAST_MODIFIED_TIME(),DATETIME_PARSE(\"" + modifiedBefore + "\"))")
-                .ifPresent(filtersByFormula::add);
-        if (!filtersByFormula.isEmpty()) {
-            uriBuilder.queryParam("filterByFormula", "AND(" + String.join(",", filtersByFormula) + ")");
+                .ifPresent(filters::add);
+        if (!filters.isEmpty()) {
+            uriBuilder.queryParam("filterByFormula", "AND(" + String.join(",", filters) + ")");
         }
-        filter.getOffset().ifPresent(offset -> uriBuilder.queryParam("offset", offset));
-        filter.getPageSize().ifPresent(pageSize -> uriBuilder.queryParam("pageSize", pageSize));
+        getRecordsParameters.getOffset().ifPresent(offset -> uriBuilder.queryParam("offset", offset));
+        getRecordsParameters.getPageSize().ifPresent(pageSize -> uriBuilder.queryParam("pageSize", pageSize));
 
         return uriBuilder.build();
     }

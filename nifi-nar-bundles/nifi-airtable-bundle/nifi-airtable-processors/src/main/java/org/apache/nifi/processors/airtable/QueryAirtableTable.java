@@ -64,7 +64,7 @@ import org.apache.nifi.processors.airtable.record.AirtableRecordSet;
 import org.apache.nifi.processors.airtable.record.AirtableJsonTreeRowRecordReaderFactory;
 import org.apache.nifi.processors.airtable.service.AirtableGetRecordsParameters;
 import org.apache.nifi.processors.airtable.service.AirtableRestService;
-import org.apache.nifi.processors.airtable.service.AirtableRestService.RateLimitExceeded;
+import org.apache.nifi.processors.airtable.service.AirtableRestService.RateLimitExceededException;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.JsonRecordReaderFactory;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -106,6 +106,16 @@ public class QueryAirtableTable extends AbstractProcessor {
             .required(true)
             .build();
 
+    static final PropertyDescriptor API_KEY = new PropertyDescriptor.Builder()
+            .name("api-key")
+            .displayName("API Key")
+            .description("The REST API key to use in queries. Should be generated on Airtable's account page.")
+            .required(true)
+            .sensitive(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
     static final PropertyDescriptor BASE_ID = new PropertyDescriptor.Builder()
             .name("base-id")
             .displayName("Base ID")
@@ -121,16 +131,6 @@ public class QueryAirtableTable extends AbstractProcessor {
             .description("The name or the ID of the Airtable table to be queried.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .build();
-
-    static final PropertyDescriptor API_TOKEN = new PropertyDescriptor.Builder()
-            .name("api-token")
-            .displayName("API Token")
-            .description("The REST API token to use in queries. Should be generated on Airtable's account page.")
-            .required(true)
-            .sensitive(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -226,9 +226,9 @@ public class QueryAirtableTable extends AbstractProcessor {
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             API_URL,
+            API_KEY,
             BASE_ID,
             TABLE_ID,
-            API_TOKEN,
             FIELDS,
             CUSTOM_FILTER,
             PAGE_SIZE,
@@ -260,11 +260,11 @@ public class QueryAirtableTable extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         final String apiUrl = context.getProperty(API_URL).evaluateAttributeExpressions().getValue();
-        final String apiToken = context.getProperty(API_TOKEN).evaluateAttributeExpressions().getValue();
+        final String apiKey = context.getProperty(API_KEY).getValue();
         final String baseId = context.getProperty(BASE_ID).evaluateAttributeExpressions().getValue();
         final String tableId = context.getProperty(TABLE_ID).evaluateAttributeExpressions().getValue();
         final WebClientServiceProvider webClientServiceProvider = context.getProperty(WEB_CLIENT_SERVICE_PROVIDER).asControllerService(WebClientServiceProvider.class);
-        airtableRestService = new AirtableRestService(webClientServiceProvider.getWebClientService(), apiUrl, apiToken, baseId, tableId);
+        airtableRestService = new AirtableRestService(webClientServiceProvider.getWebClientService(), apiUrl, apiKey, baseId, tableId);
     }
 
     @Override
@@ -288,9 +288,9 @@ public class QueryAirtableTable extends AbstractProcessor {
         final byte[] recordsJson;
         try {
             recordsJson = airtableRestService.getRecords(getRecordsParameters);
-        } catch (RateLimitExceeded e) {
+        } catch (RateLimitExceededException e) {
             context.yield();
-            throw new ProcessException(e);
+            throw new ProcessException("REST API rate limit exceeded while fetching initial Airtable record set", e);
         }
 
         final FlowFile flowFile = session.create();
@@ -328,11 +328,11 @@ public class QueryAirtableTable extends AbstractProcessor {
                         recordCountHolder.set(writeResult.getRecordCount());
                     } catch (final IOException e) {
                         final Throwable cause = e.getCause();
-                        if (cause instanceof RateLimitExceeded) {
+                        if (cause instanceof RateLimitExceededException) {
                             context.yield();
-                            throw new ProcessException("Couldn't read records from input", cause);
+                            throw new ProcessException("REST API rate limit exceeded while reading Airtable records", cause);
                         }
-                        throw new ProcessException(e);
+                        throw new ProcessException("Couldn't read records from input", e);
                     } catch (final SchemaNotFoundException e) {
                         throw new ProcessException("Couldn't read records from input", e);
                     }
@@ -393,7 +393,7 @@ public class QueryAirtableTable extends AbstractProcessor {
         if (fieldsProperty != null) {
             getRecordsParametersBuilder.fields(Arrays.stream(fieldsProperty.split(",")).map(String::trim).collect(Collectors.toList()));
         }
-        getRecordsParametersBuilder.filterByFormula(customFilter);
+        getRecordsParametersBuilder.customFilter(customFilter);
         if (pageSize != null && pageSize > 0) {
             getRecordsParametersBuilder.pageSize(pageSize);
         }

@@ -77,7 +77,7 @@ public class QueryAirtableTableIT {
         runner.addControllerService("webClientService", webClientServiceProvider);
         runner.enableControllerService(webClientServiceProvider);
 
-        runner.setProperty(QueryAirtableTable.API_TOKEN, "???");
+        runner.setProperty(QueryAirtableTable.API_KEY, "???");
         runner.setProperty(QueryAirtableTable.BASE_ID, "appabcdefghijklmn");
         runner.setProperty(QueryAirtableTable.TABLE_ID, "tblabcdefghijklmn");
         runner.setProperty(QueryAirtableTable.SCHEMA_READER, schemaReader.getIdentifier());
