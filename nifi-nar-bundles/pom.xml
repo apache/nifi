@@ -114,6 +114,7 @@
         <module>nifi-dropbox-bundle</module>
         <module>nifi-airtable-bundle</module>
         <module>nifi-workday-bundle</module>
+        <module>nifi-box-bundle</module>
     </modules>
 
     <build>
