@@ -17,34 +17,33 @@
 
 package org.apache.nifi.processors.dropbox;
 
-import static java.util.Spliterators.spliteratorUnknownSize;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
-import java.util.Spliterator;
-import java.util.stream.StreamSupport;
-import org.apache.nifi.json.JsonRecordSetWriter;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.util.MockFlowFile;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class ListDropboxIT extends AbstractDropboxIT<ListDropbox>{
 
     private static final String YOUNG_FILE_NAME = "just_created" ;
+    public static final String NOT_MAIN_FOLDER = "/notMainFolder";
 
     @BeforeEach
     public void init() throws Exception {
         super.init();
-        testRunner.setProperty(ListDropbox.FOLDER_NAME, MAIN_FOLDER);
+        testRunner.setProperty(ListDropbox.FOLDER, MAIN_FOLDER);
+    }
+
+    @AfterEach
+    public void teardown() throws Exception {
+        super.teardown();
+        deleteFolderIfExists(NOT_MAIN_FOLDER);
     }
 
     @Override
@@ -59,10 +58,9 @@ public class ListDropboxIT extends AbstractDropboxIT<ListDropbox>{
         createFile("test_file11", "test_file_content11", MAIN_FOLDER + "/testFolder1");
         createFile("test_file112", "test_file_content112", MAIN_FOLDER + "/testFolder2");
 
-        createFile("test_file_not_in_main_folder", "test_file_content31", "/notMainFolder");
+        createFile("test_file_not_in_main_folder", "test_file_content31", NOT_MAIN_FOLDER);
 
-        List<String> expectedFileNames = Arrays.asList("test_file1", "test_file2", "test_file11",
-                "test_file112");
+        List<String> expectedFileNames = Arrays.asList("test_file1", "test_file2", "test_file11", "test_file112");
 
         waitForFileCreation();
 
@@ -70,9 +68,7 @@ public class ListDropboxIT extends AbstractDropboxIT<ListDropbox>{
 
         List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
 
-        List<String> actualFileNames = successFlowFiles.stream()
-                .map(flowFile -> flowFile.getAttribute("filename"))
-                .collect(toList());
+        List<String> actualFileNames = getFilenames(successFlowFiles);
 
         assertEquals(expectedFileNames, actualFileNames);
     }
@@ -83,80 +79,38 @@ public class ListDropboxIT extends AbstractDropboxIT<ListDropbox>{
 
         createFile(YOUNG_FILE_NAME, "test_file_content1", MAIN_FOLDER);
 
-        // Make sure the file 'arrives' and could be listed
-        Thread.sleep(5000);
+        waitForFileCreation();
 
         testRunner.run();
 
         List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
 
-        List<String> actualFileNames = successFlowFiles.stream()
-                .map(flowFile -> flowFile.getAttribute("filename"))
-                .collect(toList());
+        List<String> actualFileNames = getFilenames(successFlowFiles);
 
-        assertEquals(Collections.emptyList(), actualFileNames);
+        assertEquals(emptyList(), actualFileNames);
 
-        // Next, wait for another 10+ seconds for MIN_AGE to expire then list again
-
+        // Next, wait for another 10+ seconds for MIN_AGE to expire then list again.
         Thread.sleep(10000);
 
-        List<String> expectedFileNames = Collections.singletonList(YOUNG_FILE_NAME);
+        List<String> expectedFileNames = singletonList(YOUNG_FILE_NAME);
 
         testRunner.run();
 
         successFlowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
 
-        actualFileNames = successFlowFiles.stream()
-                .map(flowFile -> flowFile.getAttribute("filename"))
-                .collect(toList());
-
-        assertEquals(expectedFileNames, actualFileNames);
-    }
-
-    @Test
-    void testRecordOutput() throws Exception {
-        createFile("test_file1", "test_file_content1", MAIN_FOLDER);
-        createFile("test_file2", "test_file_content2", MAIN_FOLDER);
-
-        List<String> expectedFileNames = Arrays.asList("test_file1", "test_file2");
-
-        waitForFileCreation();
-
-        addJsonRecordSetWriterFactory();
-        testRunner.run();
-
-        List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
-        assertEquals(1, successFlowFiles.size());
-
-        List<String> actualFileNames = successFlowFiles.stream()
-                .map(MockFlowFile::getContent)
-                .map(this::getFilenames)
-                .flatMap(Collection::stream)
-                .collect(toList());
+        actualFileNames = getFilenames(successFlowFiles);
 
         assertEquals(expectedFileNames, actualFileNames);
     }
 
     private void waitForFileCreation() throws InterruptedException {
         // We need to wait since the creation of the files are not (completely) synchronized.
-        Thread.sleep(2000);
+        Thread.sleep(5000);
     }
 
-    private List<String> getFilenames(String flowFileContent) {
-        try {
-            JsonNode jsonNode = new ObjectMapper().readTree(flowFileContent);
-            return StreamSupport.stream(spliteratorUnknownSize(jsonNode.iterator(), Spliterator.ORDERED), false)
-                    .map(node -> node.get("filename").asText())
-                    .collect(toList());
-        } catch (JsonProcessingException e) {
-            return Collections.emptyList();
-        }
-    }
-
-    private void addJsonRecordSetWriterFactory() throws InitializationException {
-        RecordSetWriterFactory recordWriter = new JsonRecordSetWriter();
-        testRunner.addControllerService("record_writer", recordWriter);
-        testRunner.enableControllerService(recordWriter);
-        testRunner.setProperty(ListDropbox.RECORD_WRITER, "record_writer");
+    private List<String> getFilenames(List<MockFlowFile> flowFiles) {
+        return flowFiles.stream()
+                .map(flowFile -> flowFile.getAttribute("filename"))
+                .collect(toList());
     }
 }

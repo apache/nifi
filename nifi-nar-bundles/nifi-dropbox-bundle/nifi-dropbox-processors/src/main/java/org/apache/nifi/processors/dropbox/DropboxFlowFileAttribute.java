@@ -19,12 +19,11 @@ package org.apache.nifi.processors.dropbox;
 import java.util.function.Function;
 
 public enum DropboxFlowFileAttribute {
-
     ID(DropboxFileInfo.ID, DropboxFileInfo::getId),
     PATH(DropboxFileInfo.PATH, DropboxFileInfo::getPath),
-    FILE_NAME(DropboxFileInfo.FILENAME, DropboxFileInfo::getName),
+    FILENAME(DropboxFileInfo.FILENAME, DropboxFileInfo::getName),
     SIZE(DropboxFileInfo.SIZE, fileInfo -> String.valueOf(fileInfo.getSize())),
-    TIME_STAMP(DropboxFileInfo.TIMESTAMP, fileInfo ->  String.valueOf(fileInfo.getTimestamp())),
+    TIMESTAMP(DropboxFileInfo.TIMESTAMP, fileInfo ->  String.valueOf(fileInfo.getTimestamp())),
     REVISION(DropboxFileInfo.REVISION, DropboxFileInfo::getRevision);
 
     private final String name;

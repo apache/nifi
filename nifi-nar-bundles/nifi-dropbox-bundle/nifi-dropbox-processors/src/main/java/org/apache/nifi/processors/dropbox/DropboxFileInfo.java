@@ -31,19 +31,19 @@ import org.apache.nifi.serialization.record.RecordSchema;
 
 public class DropboxFileInfo implements ListableEntity {
     public static final String ID = "dropbox.id";
+    public static final String PATH = "path";
     public static final String FILENAME = "filename";
-    public static final String PATH = "dropbox.path";
     public static final String SIZE = "dropbox.size";
     public static final String TIMESTAMP = "dropbox.timestamp";
-    public static final String REVISION = "revision";
+    public static final String REVISION = "dropbox.revision";
 
     private static final RecordSchema SCHEMA;
 
     static {
         final List<RecordField> recordFields = new ArrayList<>();
         recordFields.add(new RecordField(ID, RecordFieldType.STRING.getDataType(), false));
-        recordFields.add(new RecordField(FILENAME, RecordFieldType.STRING.getDataType(), false));
         recordFields.add(new RecordField(PATH, RecordFieldType.STRING.getDataType(), false));
+        recordFields.add(new RecordField(FILENAME, RecordFieldType.STRING.getDataType(), false));
         recordFields.add(new RecordField(SIZE, RecordFieldType.LONG.getDataType(), false));
         recordFields.add(new RecordField(TIMESTAMP, RecordFieldType.LONG.getDataType(), false));
         recordFields.add(new RecordField(REVISION, RecordFieldType.STRING.getDataType(), false));

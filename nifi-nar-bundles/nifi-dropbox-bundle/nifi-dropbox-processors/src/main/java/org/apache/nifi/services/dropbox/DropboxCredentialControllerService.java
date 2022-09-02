@@ -78,7 +78,7 @@ public class DropboxCredentialControllerService extends AbstractControllerServic
             .required(true)
             .build();
 
-    private static final List<PropertyDescriptor> properties;
+    private static final List<PropertyDescriptor> PROPERTIES;
 
     static {
         final List<PropertyDescriptor> props = new ArrayList<>();
@@ -86,14 +86,14 @@ public class DropboxCredentialControllerService extends AbstractControllerServic
         props.add(APP_SECRET);
         props.add(ACCESS_TOKEN);
         props.add(REFRESH_TOKEN);
-        properties = Collections.unmodifiableList(props);
+        PROPERTIES = Collections.unmodifiableList(props);
     }
 
     private DropboxCredentialDetails credential;
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @OnEnabled

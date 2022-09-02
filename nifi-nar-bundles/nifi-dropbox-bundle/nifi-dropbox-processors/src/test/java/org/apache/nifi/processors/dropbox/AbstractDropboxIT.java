@@ -34,7 +34,7 @@ import org.junit.jupiter.api.BeforeEach;
 /**
  * Set the following constants before running: <br />
  * For App Key, App Secret, Access Token and Refresh Token generation please check
- * DropboxCredentialControllerService's usage documentation  <br />
+ * DropboxCredentialControllerService's usage documentation.  <br />
  *
  * NOTE: Since the integration test creates the test files you need "files.content.write" permission besides the "files.content.read"
  * permission mentioned in DropboxCredentialControllerService's usage documentation. <br />
@@ -55,21 +55,16 @@ public abstract class AbstractDropboxIT<T extends Processor> {
     public static final String APP_SECRET = "";
     public static final String ACCESS_TOKEN = "";
     public static final String REFRESH_TOKEN = "";
+
     public static final String MAIN_FOLDER = "/testFolder";
     protected T testSubject;
     protected TestRunner testRunner;
 
     private DbxClientV2 client;
 
-    public TestRunner getTestRunner() {
-        return testRunner;
-    }
-
     @AfterEach
     public void teardown() throws Exception {
-        if (folderExists(MAIN_FOLDER)) {
-            deleteFolder(MAIN_FOLDER);
-        }
+        deleteFolderIfExists(MAIN_FOLDER);
     }
 
     protected abstract T createTestSubject();
@@ -98,6 +93,12 @@ public abstract class AbstractDropboxIT<T extends Processor> {
         testRunner.setProperty(ListDropbox.CREDENTIAL_SERVICE, "dropbox_credential_provider_service");
 
         return testRunner;
+    }
+
+    protected void deleteFolderIfExists(String path) throws Exception {
+        if (folderExists(path)) {
+            client.files().deleteV2(path);
+        }
     }
 
     protected FileMetadata createFile(String name, String fileContent, String folder) throws Exception {

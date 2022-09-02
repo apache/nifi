@@ -63,9 +63,9 @@ import org.apache.nifi.serialization.record.RecordSchema;
 @PrimaryNodeOnly
 @TriggerSerially
 @Tags({"dropbox", "storage"})
-@CapabilityDescription("Retrieves a listing of files from Dropbox." +
+@CapabilityDescription("Retrieves a listing of files from Dropbox (shortcuts are ignored)." +
         " Each listed file may result in one FlowFile, the metadata being written as Flowfile attributes." +
-        " When the 'Record Writer' property is set - the entire result is written as records to a single FlowFile." +
+        " When the 'Record Writer' property is set, the entire result is written as records to a single FlowFile." +
         " This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the" +
         " previous node left off without duplicating all of the data.")
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -79,20 +79,23 @@ import org.apache.nifi.serialization.record.RecordSchema;
         "What exactly needs to be stored depends on the 'Listing Strategy'.")
 public class ListDropbox extends AbstractListProcessor<DropboxFileInfo>  {
 
-    public static final PropertyDescriptor FOLDER_NAME = new PropertyDescriptor.Builder()
-            .name("folder-name")
-            .displayName("Folder Name")
-            .description("The name of the folder from which to pull list of files."+
-                    " Providing empty string as folder lists files from user root directory." +
-                    " Folder name should match the following regular expression pattern: (/(.|[\\r\\n])*)?|id:.*|(ns:[0-9]+(/.*)?) ")
+    public static final PropertyDescriptor FOLDER = new PropertyDescriptor.Builder()
+            .name("folder")
+            .displayName("Folder")
+            .description("The Dropbox identifier or path of the folder from which to pull list of files."+
+                    " 'Folder' should match the following regular expression pattern: /.*|id:.* ." +
+                    " Example for folder identifier: id:odTlUvbpIEAAAAAAAAAGGQ." +
+                    " Example for folder path: /Team1/Task1.")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("(/(.|[\\r\\n])*)?|id:.*|(ns:[0-9]+(/.*)?)")))
+            .required(true)
+            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("/.*|id:.*")))
+            .defaultValue("/")
             .build();
 
     public static final PropertyDescriptor RECURSIVE_SEARCH = new PropertyDescriptor.Builder()
             .name("recursive-search")
             .displayName("Search Recursively")
-            .description("Indicates whether to list files from subfolders of the Dropbox folder")
+            .description("Indicates whether to list files from subfolders of the Dropbox folder.")
             .required(true)
             .defaultValue("true")
             .allowableValues("true", "false")
@@ -111,7 +114,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo>  {
             .name("dropbox-credential-service")
             .displayName("Dropbox Credential Service")
             .description("Controller Service used to obtain Dropbox credentials (App Key, App Secret, Access Token, Refresh Token)."+
-                    " See controller service's usage documentation for more details")
+                    " See controller service's usage documentation for more details.")
             .identifiesControllerService(DropboxCredentialService.class)
             .required(true)
             .build();
@@ -137,10 +140,10 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo>  {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            FOLDER_NAME,
+            CREDENTIAL_SERVICE,
+            FOLDER,
             RECURSIVE_SEARCH,
             MIN_AGE,
-            CREDENTIAL_SERVICE,
             LISTING_STRATEGY,
             TRACKING_STATE_CACHE,
             TRACKING_TIME_WINDOW,
@@ -171,7 +174,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo>  {
 
     @Override
     protected String getPath(final ProcessContext context) {
-        return context.getProperty(FOLDER_NAME).evaluateAttributeExpressions().getValue();
+        return context.getProperty(FOLDER).evaluateAttributeExpressions().getValue();
     }
 
     @OnScheduled
@@ -193,28 +196,17 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo>  {
             ListingMode listingMode) throws IOException {
         final List<DropboxFileInfo> listing = new ArrayList<>();
 
-        final String folderName = context.getProperty(FOLDER_NAME).evaluateAttributeExpressions().getValue();
+        final String folderName = getPath(context);
         final Boolean recursive = context.getProperty(RECURSIVE_SEARCH).asBoolean();
         final Long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
 
         try {
-            ListFolderBuilder listFolderBuilder = dropboxApiClient.files().listFolderBuilder(folderName);
+            Predicate<Metadata> metadataFilter = createMetadataFilter(minTimestamp, minAge);
+
+            ListFolderBuilder listFolderBuilder = dropboxApiClient.files().listFolderBuilder(convertFolderName(folderName));
             ListFolderResult result = listFolderBuilder
                     .withRecursive(recursive)
                     .start();
-
-            Predicate<Metadata> metadataFilter = metadata -> true;
-
-            if (minTimestamp != null && minTimestamp > 0) {
-                metadataFilter = metadataFilter.and(metadata ->
-                        ((FileMetadata) metadata).getServerModified().getTime()>= minTimestamp);
-            }
-
-            if (minAge != null && minAge > 0) {
-                long maxTimestamp = System.currentTimeMillis() - minAge;
-                metadataFilter = metadataFilter.and(metadata ->
-                        ((FileMetadata) metadata).getServerModified().getTime() < maxTimestamp);
-            }
 
             List<Metadata> metadataList = new ArrayList<>(filterMetadata(result, metadataFilter));
 
@@ -226,7 +218,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo>  {
             for (Metadata metadata : metadataList) {
                 DropboxFileInfo.Builder builder = new DropboxFileInfo.Builder()
                         .id(((FileMetadata) metadata).getId())
-                        .path(metadata.getPathLower())
+                        .path(getParentPath(metadata.getPathDisplay()))
                         .name(metadata.getName())
                         .size(((FileMetadata) metadata).getSize())
                         .timestamp(((FileMetadata) metadata).getServerModified().getTime())
@@ -244,7 +236,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo>  {
     @Override
     protected boolean isListingResetNecessary(final PropertyDescriptor property) {
         return LISTING_STRATEGY.equals(property)
-                || FOLDER_NAME.equals(property)
+                || FOLDER.equals(property)
                 || RECURSIVE_SEARCH.equals(property);
     }
 
@@ -268,10 +260,36 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo>  {
         return format("Dropbox Folder [%s]", getPath(context));
     }
 
+    private Predicate<Metadata> createMetadataFilter(Long minTimestamp, Long minAge) {
+        Predicate<Metadata> metadataFilter = metadata -> ((FileMetadata) metadata).getIsDownloadable();
+
+        if (minTimestamp != null && minTimestamp > 0) {
+            metadataFilter = metadataFilter.and(metadata ->
+                    ((FileMetadata) metadata).getServerModified().getTime()>= minTimestamp);
+        }
+
+        if (minAge != null && minAge > 0) {
+            long maxTimestamp = System.currentTimeMillis() - minAge;
+            metadataFilter = metadataFilter.and(metadata ->
+                    ((FileMetadata) metadata).getServerModified().getTime() < maxTimestamp);
+        }
+        return metadataFilter;
+    }
+
     private List<Metadata> filterMetadata(ListFolderResult result, Predicate<Metadata> filterByTimestamp) {
         return result.getEntries().stream()
                 .filter(metadata -> metadata instanceof FileMetadata)
                 .filter(filterByTimestamp)
                 .collect(Collectors.toList());
+    }
+
+    private String getParentPath(String fullPath) {
+        int idx = fullPath.lastIndexOf("/");
+        String parentPath = fullPath.substring(0, idx);
+        return  "".equals(parentPath) ? "/" : parentPath;
+    }
+
+    private String convertFolderName(String folderName) {
+        return  "/".equals(folderName) ? "" : folderName;
     }
 }
