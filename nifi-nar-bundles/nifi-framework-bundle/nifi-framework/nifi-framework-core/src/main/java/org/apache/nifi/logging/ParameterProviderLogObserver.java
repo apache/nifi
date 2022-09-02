@@ -42,4 +42,9 @@ public class ParameterProviderLogObserver implements LogObserver {
             parameterProviderNode.getName(), "Log Message", bulletinLevel, message.getMessage());
         bulletinRepository.addBulletin(bulletin);
     }
+
+    @Override
+    public String getComponentDescription() {
+        return parameterProviderNode.toString();
+    }
 }
