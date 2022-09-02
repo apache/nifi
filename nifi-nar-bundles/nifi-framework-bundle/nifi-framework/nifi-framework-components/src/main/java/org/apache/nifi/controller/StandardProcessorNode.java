@@ -407,7 +407,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public synchronized void setLossTolerant(final boolean lossTolerant) {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
+            throw new IllegalStateException("Cannot modify configuration of " + this + " while the Processor is running");
         }
         this.lossTolerant.set(lossTolerant);
     }
@@ -421,7 +421,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void setAutoTerminatedRelationships(final Set<Relationship> terminate) {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
+            throw new IllegalStateException("Cannot modify configuration of " + this + " while the Processor is running");
         }
 
         undefinedRelationshipsToTerminate.set(new HashSet<>(terminate));
@@ -516,7 +516,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public synchronized void setSchedulingPeriod(final String schedulingPeriod) {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
+            throw new IllegalStateException("Cannot modify configuration of " + this + " while the Processor is running");
         }
 
         //Before setting the new Configuration references, we need to remove the current ones from reference counts.
@@ -554,7 +554,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public synchronized void setRunDuration(final long duration, final TimeUnit timeUnit) {
         if (duration < 0) {
-            throw new IllegalArgumentException("Run Duration must be non-negative value; cannot set to "
+            throw new IllegalArgumentException("Run Duration of " + this + " cannot be set to a negative value; cannot set to "
                     + timeUnit.toSeconds(duration) + " seconds");
         }
 
@@ -575,11 +575,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public synchronized void setYieldPeriod(final String yieldPeriod) {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
+            throw new IllegalStateException("Cannot modify configuration of " + this + " while the Processor is running");
         }
         final long yieldNanos = FormatUtils.getTimeDuration(requireNonNull(yieldPeriod), TimeUnit.NANOSECONDS);
         if (yieldNanos < 0) {
-            throw new IllegalArgumentException("Yield duration must be positive");
+            throw new IllegalArgumentException("Yield duration of " + this + " cannot be set to a negative value: " + yieldNanos + " nanos");
         }
         this.yieldPeriod.set(yieldPeriod);
         this.yieldNanos = yieldNanos;
@@ -631,12 +631,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public synchronized void setPenalizationPeriod(final String penalizationPeriod) {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
+            throw new IllegalStateException("Cannot modify configuration of " + this + " while the Processor is running");
         }
 
         final long penalizationMillis = FormatUtils.getTimeDuration(requireNonNull(penalizationPeriod), TimeUnit.MILLISECONDS);
         if (penalizationMillis < 0) {
-            throw new IllegalArgumentException("Penalization duration must be positive");
+            throw new IllegalArgumentException("Penalization duration of " + this + " cannot be set to a negative value: " + penalizationMillis + " millis");
         }
 
         this.penalizationPeriod.set(penalizationPeriod);
@@ -654,12 +654,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public synchronized void setMaxConcurrentTasks(final int taskCount) {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
+            throw new IllegalStateException("Cannot modify configuration of " + this + " while the Processor is running");
         }
 
         if (taskCount < 1 && getSchedulingStrategy() != SchedulingStrategy.EVENT_DRIVEN) {
             throw new IllegalArgumentException("Cannot set Concurrent Tasks to " + taskCount + " for component "
-                    + getIdentifier() + " because Scheduling Strategy is not Event Driven");
+                    + this + " because Scheduling Strategy is not Event Driven");
         }
 
         if (!isTriggeredSerially()) {
@@ -717,8 +717,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         Objects.requireNonNull(connection, "connection cannot be null");
 
         if (!connection.getSource().equals(this) && !connection.getDestination().equals(this)) {
-            throw new IllegalStateException(
-                    "Cannot a connection to a ProcessorNode for which the ProcessorNode is neither the Source nor the Destination");
+            throw new IllegalStateException("Cannot add a connection to " + this + " because the ProcessorNode is neither the Source nor the Destination");
         }
 
         try {
@@ -803,7 +802,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                             // then it is not legal to remove this relationship from
                             // this connection.
                             throw new IllegalStateException("Cannot remove relationship " + rel.getName()
-                                + " from Connection because doing so would invalidate Processor " + this
+                                + " from Connection " + connection + " because doing so would invalidate " + this
                                 + ", which is currently running");
                         }
                     }
@@ -858,8 +857,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             for (final Relationship relationship : connection.getRelationships()) {
                 final Set<Connection> connectionsForRelationship = getConnections(relationship);
                 if ((connectionsForRelationship == null || connectionsForRelationship.size() <= 1) && isRunning()) {
-                    throw new IllegalStateException(
-                            "This connection cannot be removed because its source is running and removing it will invalidate this processor");
+                    throw new IllegalStateException(connection +  " cannot be removed because its source is running and removing it will invalidate " + this);
                 }
             }
 
@@ -881,8 +879,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
 
         if (!connectionRemoved) {
-            throw new IllegalArgumentException(
-                    "Cannot remove a connection from a ProcessorNode for which the ProcessorNode is not the Source");
+            throw new IllegalArgumentException("Cannot remove " + connection + " from " + this + " because the ProcessorNode is not the Source");
         }
 
         LOG.debug("Resetting Validation State of {} due to connection removed", this);
@@ -929,7 +926,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public synchronized void setProcessor(final LoggableComponent<Processor> processor) {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
+            throw new IllegalStateException("Cannot modify configuration of " + this + " while the Processor is running");
         }
 
         final ProcessorDetails processorDetails = new ProcessorDetails(processor);
@@ -1368,7 +1365,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void setAnnotationData(final String data) {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot set AnnotationData while processor is running");
+            throw new IllegalStateException("Cannot set AnnotationData on " + this + " while processor is running");
         }
         super.setAnnotationData(data);
     }
@@ -1381,7 +1378,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void verifyCanDelete(final boolean ignoreConnections) {
         if (isRunning()) {
-            throw new IllegalStateException(this.getIdentifier() + " is running");
+            throw new IllegalStateException("Cannot delete " + this + " because Processor is running");
         }
 
         if (!ignoreConnections) {
@@ -1395,7 +1392,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 if (connection.getSource().equals(this)) {
                     connection.verifyCanDelete();
                 } else {
-                    throw new IllegalStateException(this.getIdentifier() + " is the destination of another component");
+                    throw new IllegalStateException("Cannot delete " + this + " because it is the destination of another component");
                 }
             }
         }
@@ -1410,7 +1407,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public void verifyCanStart(final Set<ControllerServiceNode> ignoredReferences) {
         final ScheduledState currentState = getPhysicalScheduledState();
         if (currentState != ScheduledState.STOPPED && currentState != ScheduledState.DISABLED) {
-            throw new IllegalStateException(this.getIdentifier() + " cannot be started because it is not stopped. Current state is " + currentState.name());
+            throw new IllegalStateException(this + " cannot be started because it is not stopped. Current state is " + currentState.name());
         }
 
         verifyNoActiveThreads();
@@ -1419,33 +1416,33 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             case VALID:
                 return;
             case VALIDATING:
-                throw new IllegalStateException("Processor with ID " + getIdentifier() + " cannot be started because its validation is still being performed");
+                throw new IllegalStateException(this + " cannot be started because its validation is still being performed");
         }
 
         final Collection<ValidationResult> validationErrors = getValidationErrors(ignoredReferences);
         if (ignoredReferences != null && !validationErrors.isEmpty()) {
-            throw new IllegalStateException("Processor with ID " + getIdentifier() + " cannot be started because it is not currently valid");
+            throw new IllegalStateException(this + " cannot be started because it is not currently valid");
         }
     }
 
     @Override
     public void verifyCanStop() {
         if (getScheduledState() != ScheduledState.RUNNING) {
-            throw new IllegalStateException(this.getIdentifier() + " is not scheduled to run");
+            throw new IllegalStateException(this + " cannot be stopped because is not scheduled to run");
         }
     }
 
     @Override
     public void verifyCanUpdate() {
         if (isRunning()) {
-            throw new IllegalStateException(this.getIdentifier() + " is not stopped");
+            throw new IllegalStateException(this + " cannot be updated because it is not stopped");
         }
     }
 
     @Override
     public void verifyCanEnable() {
         if (getScheduledState() != ScheduledState.DISABLED) {
-            throw new IllegalStateException(this.getIdentifier() + " is not disabled");
+            throw new IllegalStateException(this + " cannot be enabled because is not disabled");
         }
 
         verifyNoActiveThreads();
@@ -1454,7 +1451,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void verifyCanDisable() {
         if (getScheduledState() != ScheduledState.STOPPED) {
-            throw new IllegalStateException(this.getIdentifier() + " is not stopped");
+            throw new IllegalStateException(this + " cannot be disabled because is not stopped");
         }
         verifyNoActiveThreads();
     }
@@ -1468,7 +1465,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         if (hasActiveThreads) {
             final int threadCount = getActiveThreadCount();
             if (threadCount > 0) {
-                throw new IllegalStateException(this.getIdentifier() + " has " + threadCount + " threads still active");
+                throw new IllegalStateException(this + " has " + threadCount + " threads still active");
             }
         }
     }
@@ -1476,7 +1473,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void verifyModifiable() throws IllegalStateException {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
+            throw new IllegalStateException("Cannot modify configuration of " + this +  " while the Processor is running");
         }
     }
 
@@ -1684,7 +1681,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void verifyCanTerminate() {
         if (getScheduledState() != ScheduledState.STOPPED && getScheduledState() != ScheduledState.RUN_ONCE) {
-            throw new IllegalStateException("Processor is not stopped");
+            throw new IllegalStateException("Cannot terminate " + this + " because Processor is not stopped");
         }
     }
 
@@ -1955,7 +1952,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void setRetryCount(Integer retryCount) {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
+            throw new IllegalStateException("Cannot modify configuration of " + this + " while the Processor is running");
         }
         this.retryCount = (retryCount == null) ? 0 : retryCount;
     }
@@ -1968,7 +1965,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void setRetriedRelationships(Set<String> retriedRelationships) {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
+            throw new IllegalStateException("Cannot modify configuration of " + this + " while the Processor is running");
         }
         this.retriedRelationships = (retriedRelationships == null) ? Collections.emptySet() : new HashSet<>(retriedRelationships);
     }
@@ -1990,7 +1987,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void setBackoffMechanism(BackoffMechanism backoffMechanism) {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
+            throw new IllegalStateException("Cannot modify configuration of " + this + " while the Processor is running");
         }
         this.backoffMechanism = (backoffMechanism == null) ? BackoffMechanism.PENALIZE_FLOWFILE : backoffMechanism;
     }
@@ -2003,14 +2000,14 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void setMaxBackoffPeriod(String maxBackoffPeriod) {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
+            throw new IllegalStateException("Cannot modify configuration of " + this + " while the Processor is running");
         }
         if (maxBackoffPeriod == null) {
             maxBackoffPeriod = DEFAULT_MAX_BACKOFF_PERIOD;
         }
         final long backoffNanos = FormatUtils.getTimeDuration(maxBackoffPeriod, TimeUnit.NANOSECONDS);
         if (backoffNanos < 0) {
-            throw new IllegalArgumentException("Max Backoff Period must be positive");
+            throw new IllegalArgumentException("Cannot set Max Backoff Period of " + this + " to negative value: " + backoffNanos + " nanos");
         }
         this.maxBackoffPeriod = maxBackoffPeriod;
     }

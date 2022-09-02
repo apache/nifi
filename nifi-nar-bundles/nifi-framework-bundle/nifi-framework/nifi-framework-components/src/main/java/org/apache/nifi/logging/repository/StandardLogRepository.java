@@ -166,7 +166,8 @@ public class StandardLogRepository implements LogRepository {
         try {
             // ensure observer does not exists
             if (observerLookup.containsKey(observerIdentifier)) {
-                throw new IllegalStateException("The specified observer identifier (" + observerIdentifier + ") already exists.");
+                throw new IllegalStateException("Cannot add Log Observer for " + observer.getComponentDescription() +
+                    " because the specified observer identifier (" + observerIdentifier + ") already exists.");
             }
 
             final LogLevel[] allLevels = LogLevel.values();

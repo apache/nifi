@@ -705,6 +705,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
     public String toString() {
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getComponent().getIdentifier())) {
             return getComponent().toString();
+        } catch (final Throwable t) {
+            return getClass().getSimpleName() + "[id=" + getIdentifier() + "]";
         }
     }
 
