@@ -44,4 +44,9 @@ public class ProcessorLogObserver implements LogObserver {
         bulletinRepository.addBulletin(BulletinFactory.createBulletin(processorNode, CATEGORY, bulletinLevel, message.getMessage(), message.getFlowFileUuid()));
     }
 
+    @Override
+    public String getComponentDescription() {
+        return processorNode.toString();
+    }
+
 }
