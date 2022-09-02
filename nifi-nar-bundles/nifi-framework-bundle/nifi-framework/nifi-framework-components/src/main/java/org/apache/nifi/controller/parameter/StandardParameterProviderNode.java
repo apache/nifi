@@ -266,8 +266,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
     public void verifyCanFetchParameters() {
         final ValidationStatus validationStatus = performValidation();
         if (validationStatus != ValidationStatus.VALID) {
-            throw new IllegalStateException(String.format("Parameter Provider [%s] cannot fetch parameters while validation state is %s",
-                    getIdentifier(), validationStatus));
+            throw new IllegalStateException(String.format("Cannot fetch parameters for %s while validation state is %s", this, validationStatus));
         }
     }
 
@@ -279,7 +278,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getExtensionManager(), parameterProvider.getClass(), parameterProvider.getIdentifier())) {
             fetchedParameterGroups = parameterProvider.fetchParameters(configurationContext);
         } catch (final IOException e) {
-            throw new RuntimeException(String.format("Error fetching parameters for Parameter Provider [%s]", getName()), e);
+            throw new RuntimeException(String.format("Error fetching parameters for %s", this), e);
         }
 
         if (fetchedParameterGroups == null || fetchedParameterGroups.isEmpty()) {
@@ -294,7 +293,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
             for (final ParameterGroup group : fetchedParameterGroups) {
                 final String groupName = group.getGroupName();
                 if (parameterGroupNames.contains(groupName)) {
-                    throw new IllegalStateException(String.format("Parameter group [%s] is provided twice, which is not allowed", groupName));
+                    throw new IllegalStateException(String.format("Cannot fetch parameters for %s: Parameter group [%s] is provided twice, which is not allowed", this, groupName));
                 }
                 final Collection<Parameter> parameters = group.getParameters();
 
@@ -306,12 +305,12 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
                 for (final Parameter parameter : parameters) {
                     final ParameterDescriptor descriptor = parameter.getDescriptor();
                     if (descriptor == null) {
-                        throw new IllegalStateException("All fetched parameters require a ParameterDescriptor");
+                        throw new IllegalStateException("Cannot fetch parameters for " + this + ": a Parameter is missing a ParameterDescriptor in the fetch response");
                     }
                     final String parameterName = descriptor.getName();
                     if (parameterNames.contains(parameterName)) {
-                        throw new IllegalStateException(String.format("Parameter [%s] is provided in group [%s] twice, which is not allowed",
-                                parameterName, groupName));
+                        throw new IllegalStateException(String.format("Cannot fetch parameters for %s: Parameter [%s] is provided in group [%s] twice, which is not allowed",
+                                this, parameterName, groupName));
                     }
 
                     if (parameter.getValue() == null) {
@@ -362,7 +361,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
             final String contextNameList = getReferences().stream()
                     .map(ParameterContext::getName)
                     .collect(Collectors.joining(", "));
-            throw new IllegalStateException(String.format("Cannot delete Parameter Provider [%s] while it is referenced by Contexts: [%s]", getIdentifier(), contextNameList));
+            throw new IllegalStateException(String.format("Cannot delete %s while it is referenced by Contexts: [%s]", this, contextNameList));
         }
     }
 
