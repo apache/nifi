@@ -14,12 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.logging;
 
-public interface LogObserver {
+package org.apache.nifi.controller.label;
 
-    void onLogMessage(LogMessage message);
+import org.junit.jupiter.api.Test;
 
-    String getComponentDescription();
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+public class TestStandardLabel {
+    @Test
+    public void testToString() {
+        final StandardLabel nullValue = new StandardLabel("id", null);
+        assertEquals("StandardLabel[id=id, text=]", nullValue.toString());
+
+        final StandardLabel shortValue = new StandardLabel("id", "short");
+        assertEquals("StandardLabel[id=id, text=short]", shortValue.toString());
+
+        final StandardLabel longValue = new StandardLabel("id", "123456789012345678901234567890123456789012345678901234567890");
+        assertEquals("StandardLabel[id=id, text=12345678901234567890123456789012345678901234567890...]", longValue.toString());
+    }
 }

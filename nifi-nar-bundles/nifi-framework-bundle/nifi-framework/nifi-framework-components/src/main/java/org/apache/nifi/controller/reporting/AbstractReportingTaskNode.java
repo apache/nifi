@@ -165,7 +165,7 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
     @Override
     public void setReportingTask(final LoggableComponent<ReportingTask> reportingTask) {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot modify Reporting Task configuration while Reporting Task is running");
+            throw new IllegalStateException("Cannot modify configuration of " + this + " while Reporting Task is running");
         }
         this.reportingTaskRef.set(new ReportingTaskDetails(reportingTask));
     }
@@ -200,7 +200,7 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
     @Override
     public void verifyModifiable() throws IllegalStateException {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot modify Reporting Task while the Reporting Task is running");
+            throw new IllegalStateException("Cannot modify " + this + " while the Reporting Task is running");
         }
     }
 
@@ -231,37 +231,37 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
     @Override
     public void verifyCanDelete() {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot delete " + getReportingTask().getIdentifier() + " because it is currently running");
+            throw new IllegalStateException("Cannot delete " + this + " because it is currently running");
         }
     }
 
     @Override
     public void verifyCanDisable() {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot disable " + getReportingTask().getIdentifier() + " because it is currently running");
+            throw new IllegalStateException("Cannot disable " + this + " because it is currently running");
         }
 
         if (isDisabled()) {
-            throw new IllegalStateException("Cannot disable " + getReportingTask().getIdentifier() + " because it is already disabled");
+            throw new IllegalStateException("Cannot disable " + this + " because it is already disabled");
         }
     }
 
     @Override
     public void verifyCanEnable() {
         if (!isDisabled()) {
-            throw new IllegalStateException("Cannot enable " + getReportingTask().getIdentifier() + " because it is not disabled");
+            throw new IllegalStateException("Cannot enable " + this + " because it is not disabled");
         }
     }
 
     @Override
     public void verifyCanStart() {
         if (isDisabled()) {
-            throw new IllegalStateException("Cannot start " + getReportingTask().getIdentifier() + " because it is currently disabled");
+            throw new IllegalStateException("Cannot start " + this + " because it is currently disabled");
         }
 
         final ValidationState validationState = getValidationState();
         if (validationState.getStatus() == ValidationStatus.INVALID) {
-            throw new IllegalStateException("Cannot start " + getReportingTask().getIdentifier() +
+            throw new IllegalStateException("Cannot start " + this +
                 " because it is invalid with the following validation errors: " + validationState.getValidationErrors());
         }
     }
@@ -269,14 +269,14 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
     @Override
     public void verifyCanStop() {
         if (!isRunning()) {
-            throw new IllegalStateException("Cannot stop " + getReportingTask().getIdentifier() + " because it is not running");
+            throw new IllegalStateException("Cannot stop " + this + " because it is not running");
         }
     }
 
     @Override
     public void verifyCanUpdate() {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot update " + getReportingTask().getIdentifier() + " because it is currently running");
+            throw new IllegalStateException("Cannot update " + this + " because it is currently running");
         }
     }
 
@@ -289,26 +289,26 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
     public void verifyCanStart(final Set<ControllerServiceNode> ignoredReferences) {
         switch (getScheduledState()) {
             case DISABLED:
-                throw new IllegalStateException(this.getIdentifier() + " cannot be started because it is disabled");
+                throw new IllegalStateException(this + " cannot be started because it is disabled");
             case RUNNING:
-                throw new IllegalStateException(this.getIdentifier() + " cannot be started because it is already running");
+                throw new IllegalStateException(this + " cannot be started because it is already running");
             case STOPPED:
                 break;
         }
         final int activeThreadCount = getActiveThreadCount();
         if (activeThreadCount > 0) {
-            throw new IllegalStateException(this.getIdentifier() + " cannot be started because it has " + activeThreadCount + " active threads already");
+            throw new IllegalStateException(this + " cannot be started because it has " + activeThreadCount + " active threads already");
         }
 
         final Collection<ValidationResult> validationResults = getValidationErrors(ignoredReferences);
         if (!validationResults.isEmpty()) {
-            throw new IllegalStateException(this.getIdentifier() + " cannot be started because it is not currently valid");
+            throw new IllegalStateException(this + " cannot be started because it is not currently valid");
         }
     }
 
     @Override
     public String toString() {
-        return "ReportingTask[id=" + getIdentifier() + "]";
+        return "ReportingTask[id=" + getIdentifier() + ", name=" + getName() + "]";
     }
 
     @Override
@@ -324,7 +324,7 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
     @Override
     public void verifyCanPerformVerification() {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot perform verification because Reporting Task is not fully stopped");
+            throw new IllegalStateException("Cannot perform verification of " + this + " because Reporting Task is not fully stopped");
         }
     }
 
