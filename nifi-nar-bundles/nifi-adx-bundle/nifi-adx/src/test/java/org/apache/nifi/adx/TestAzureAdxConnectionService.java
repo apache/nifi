@@ -50,6 +50,8 @@ public class TestAzureAdxConnectionService {
         configureAppId();
         configureAppKey();
         configureAppTenant();
+        configureIsStreamingEnabled();
+
 
         runner.assertValid(service);
     }
@@ -68,6 +70,10 @@ public class TestAzureAdxConnectionService {
 
     private void configureAppTenant() {
         runner.setProperty(service, AzureAdxConnectionService.APP_TENANT, MOCK_APP_TENANT);
+    }
+
+    private void configureIsStreamingEnabled() {
+        runner.setProperty(service, AzureAdxConnectionService.IS_STREAMING_ENABLED, "true");
     }
 
     @Test

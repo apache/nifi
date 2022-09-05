@@ -25,8 +25,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 @Tags({"azure", "adx"})
 @CapabilityDescription("Connection-Service to Azure ADX (Kusto) ingestion cluster.")
 public interface AdxConnectionService extends ControllerService {
-
-    void execute()  throws ProcessException;
     IngestClient getAdxClient();
 
 }

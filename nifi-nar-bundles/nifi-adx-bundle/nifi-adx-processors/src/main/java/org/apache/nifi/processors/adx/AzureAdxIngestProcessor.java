@@ -320,10 +320,9 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
 
         FlowFile flowFile = session.get();
         if ( flowFile == null ) {
+            context.yield();
             return;
         }
-
-        final ComponentLog logger = getLogger();
 
         AdxConnectionService service = context.getProperty(ADX_SERVICE).asControllerService(AdxConnectionService.class);
 
@@ -385,14 +384,14 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                 ingestionProperties.setFlushImmediately(false);
             }
 
-            logger.info("Ingesting with: "
-                    + "dataFormat - "+ ingestionProperties.getDataFormat() +
-                    "|" + ingestionProperties.getIngestionMapping().getIngestionMappingReference() +
-                    "|" + ingestionProperties.getReportLevel() +
-                    "|" + ingestionProperties.getReportMethod() +
-                    "|" + ingestionProperties.getDatabaseName() +
-                    "|" + ingestionProperties.getTableName() +
-                    "|" + ingestionProperties.getFlushImmediately()
+            getLogger().info("Ingesting with: "
+                    + "dataFormat - "+ ingestionProperties.getDataFormat() + "|"
+                    + "ingestionMapping - " + ingestionProperties.getIngestionMapping().getIngestionMappingReference() + "|"
+                    + "reportLevel - " + ingestionProperties.getReportLevel() + "|"
+                    + "reportMethod - " + ingestionProperties.getReportMethod() + "|"
+                    + "databaseName - " + ingestionProperties.getDatabaseName() + "|"
+                    + "tableName - " + ingestionProperties.getTableName() + "|"
+                    + "flushImmediately - " + ingestionProperties.getFlushImmediately()
             );
 
             StreamSourceInfo info = new StreamSourceInfo(in);
@@ -417,7 +416,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                 statuses.set(0, status);
             }
 
-            logger.info("Operation status: " + statuses.get(0).details);
+            getLogger().info("Operation status: " + statuses.get(0).details);
 
             if(statuses.get(0).status == OperationStatus.Succeeded) {
                 getLogger().info(statuses.get(0).status.toString());
@@ -430,7 +429,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             }
 
         } catch (IOException | IngestionClientException | IngestionServiceException | StorageException | URISyntaxException e) {
-            logger.error("Exception occurred while ingesting data into ADX "+e);
+            getLogger().error("Exception occurred while ingesting data into ADX "+e);
             throw new ProcessException(e);
         } catch (InterruptedException e) {
             getLogger().error("Interrupted exception occurred while ingesting data into ADX "+e);

@@ -74,12 +74,31 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor IS_STREAMING_ENABLED = new PropertyDescriptor
+            .Builder().name("IS_STREAMING_ENABLED")
+            .displayName("Is Streaming enabled")
+            .description("Do we want to stream data to ADX-Cluster")
+            .required(false)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .defaultValue("false")
+            .build();
+
+    public static final PropertyDescriptor CLUSTER_URL = new PropertyDescriptor
+            .Builder().name("CLUSTER_URL")
+            .displayName("Cluster URL")
+            .description("Endpoint of ADX cluster. This is required only when streaming data to ADX cluster is enabled.")
+            .required(false)
+            .addValidator(StandardValidators.URL_VALIDATOR)
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(
             Arrays.asList(
                     INGEST_URL,
                     APP_ID,
                     APP_KEY,
-                    APP_TENANT
+                    APP_TENANT,
+                    IS_STREAMING_ENABLED,
+                    CLUSTER_URL
             )
     );
 
@@ -106,12 +125,14 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
         final String app_id = context.getProperty(APP_ID).evaluateAttributeExpressions().getValue();
         final String app_key = context.getProperty(APP_KEY).evaluateAttributeExpressions().getValue();
         final String app_tenant = context.getProperty(APP_TENANT).evaluateAttributeExpressions().getValue();
+        final Boolean isStreamingEnabled = context.getProperty(IS_STREAMING_ENABLED).evaluateAttributeExpressions().asBoolean();
+        final String kustoEngineUrl = context.getProperty(CLUSTER_URL).evaluateAttributeExpressions().getValue();
 
         if(this._ingestClient != null) {
             onStopped();
         }
 
-        this._ingestClient = createAdxClient(ingestUrl, app_id, app_key, app_tenant);
+        this._ingestClient = createAdxClient(ingestUrl, app_id, app_key, app_tenant,isStreamingEnabled,kustoEngineUrl);
     }
 
     @OnStopped
@@ -127,18 +148,25 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
         }
     }
 
-    @Override
-    public void execute() throws ProcessException {
 
-    }
-
-
-    protected IngestClient createAdxClient(final String ingestUrl,final String appId,final String appKey,final String appTenant) {
+    protected IngestClient createAdxClient(final String ingestUrl,final String appId,final String appKey,final String appTenant, final Boolean isStreamingEnabled, final String kustoEngineUrl) {
         IngestClient client;
-        ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(ingestUrl, appId, appKey, appTenant);
+        ConnectionStringBuilder kcsb = ConnectionStringBuilder.createWithAadApplicationCredentials(ingestUrl, appId, appKey, appTenant);
+        kcsb.setClientVersionForTracing(Version.CLIENT_NAME + ":" + Version.getVersion());
 
             try {
-                client = IngestClientFactory.createClient(csb);
+                if(isStreamingEnabled){
+
+                    ConnectionStringBuilder engineKcsb = ConnectionStringBuilder.createWithAadApplicationCredentials(
+                            kustoEngineUrl,
+                            appId,
+                            appKey,
+                            appTenant
+                    );
+                    client = IngestClientFactory.createManagedStreamingIngestClient(kcsb, engineKcsb);
+                }else{
+                    client = IngestClientFactory.createClient(kcsb);
+                }
             } catch (Exception e) {
                 getLogger().error("Exception occured while creation of ADX client");
                 throw new ProcessException(e);
