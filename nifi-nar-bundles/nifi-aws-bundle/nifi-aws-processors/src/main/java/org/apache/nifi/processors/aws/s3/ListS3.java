@@ -79,6 +79,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.FormatUtils;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -223,6 +224,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             .description("The maximum age that an S3 object must be in order to be considered; any object older than this amount of time (according to last modification date) will be ignored")
             .required(false)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .addValidator(createMaxAgeValidator())
             .build();
 
     public static final PropertyDescriptor WRITE_OBJECT_TAGS = new Builder()
@@ -368,6 +370,23 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             }
         };
     }
+    
+    private static Validator createMaxAgeValidator() {
+        return new Validator() {
+            @Override
+            public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+                Double  maxAge = input != null ? FormatUtils.getPreciseTimeDuration(input, TimeUnit.MILLISECONDS) : null;
+                long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+                boolean valid = input != null && maxAge > minAge;
+                return new ValidationResult.Builder()
+                        .input(input)
+                        .subject(subject)
+                        .valid(valid)
+                        .explanation(valid ? null : "'Maximum Age' must be greater than 'Minimum Age' ")
+                        .build();
+            }
+        };
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -455,7 +474,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
         final long startNanos = System.nanoTime();
         final long minAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
-        final long maxAgeMilliseconds = context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final Long maxAgeMilliseconds = context.getProperty(MAX_AGE) != null ? context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS) : null;
         final long listingTimestamp = System.currentTimeMillis();
 
         final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
@@ -488,7 +507,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                     long lastModified = versionSummary.getLastModified().getTime();
                     if (lastModified < currentTimestamp
                         || lastModified == currentTimestamp && currentKeys.contains(versionSummary.getKey())
-                        || lastModified < (listingTimestamp - maxAgeMilliseconds)
+                        || (maxAgeMilliseconds != null && (lastModified < (listingTimestamp - maxAgeMilliseconds)))
                         || lastModified > (listingTimestamp - minAgeMilliseconds)) {
                         continue;
                     }
@@ -1111,7 +1130,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         final List<ConfigVerificationResult> results = new ArrayList<>(super.verify(context, logger, attributes));
         final String bucketName = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
         final long minAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
-        final long maxAgeMilliseconds = context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final Long maxAgeMilliseconds = context.getProperty(MAX_AGE) != null ? context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS) : null;
 
         if (bucketName == null || bucketName.trim().isEmpty()) {
             results.add(new ConfigVerificationResult.Builder()
@@ -1135,7 +1154,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                 versionListing = bucketLister.listVersions();
                 for (final S3VersionSummary versionSummary : versionListing.getVersionSummaries()) {
                     long lastModified = versionSummary.getLastModified().getTime();
-                    if (lastModified < (listingTimestamp - maxAgeMilliseconds) 
+                    if ((maxAgeMilliseconds != null && (lastModified < (listingTimestamp - maxAgeMilliseconds))) 
                     || lastModified > (listingTimestamp - minAgeMilliseconds)) {
                         continue;
                     }

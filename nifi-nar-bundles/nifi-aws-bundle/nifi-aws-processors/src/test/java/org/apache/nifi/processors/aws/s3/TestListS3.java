@@ -507,9 +507,9 @@ public class TestListS3 {
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
         MockFlowFile ff0 = flowFiles.get(0);
-        ff0.assertAttributeEquals("filename", "minus-1hour");
+        ff0.assertAttributeEquals("filename", "now");
         ff0.assertAttributeEquals("s3.bucket", "test-bucket");
-        String lastModifiedTimestamp = String.valueOf(lastModifiedMinus1Hour.getTime());
+        String lastModifiedTimestamp = String.valueOf(lastModifiedNow.getTime());
         ff0.assertAttributeEquals("s3.lastModified", lastModifiedTimestamp);
         runner.getStateManager().assertStateEquals(ListS3.CURRENT_TIMESTAMP, lastModifiedTimestamp, Scope.CLUSTER);
     }
