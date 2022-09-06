@@ -783,6 +783,7 @@ public class MergeContent extends BinFiles {
                         try (final OutputStream bufferedOut = new BufferedOutputStream(rawOut);
                             final TarArchiveOutputStream out = new TarArchiveOutputStream(bufferedOut)) {
                             out.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
+                            out.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX);
                             for (final FlowFile flowFile : contents) {
                                 final String path = keepPath ? getPath(flowFile) : "";
                                 final String entryName = path + flowFile.getAttribute(CoreAttributes.FILENAME.key());
