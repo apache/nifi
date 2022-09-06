@@ -286,6 +286,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES;
+    private static final Integer MASKED_VALUE_LENGTH = 8;
 
     static {
         List<PropertyDescriptor> props = new ArrayList<>();
@@ -375,6 +376,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         }
 
         final ArrayList<String> args = new ArrayList<>();
+        final ArrayList<String> argumentAttributeValue = new ArrayList<>();
         final boolean putToAttribute = context.getProperty(PUT_OUTPUT_IN_ATTRIBUTE).isSet();
         final PropertyValue argumentsStrategyPropertyValue = context.getProperty(ARGUMENTS_STRATEGY);
         final boolean useDynamicPropertyArguments = argumentsStrategyPropertyValue.isSet() && argumentsStrategyPropertyValue.getValue().equals(DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
@@ -420,28 +422,27 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                 }
                 return 0;
             });
+
             for (final PropertyDescriptor descriptor : propertyDescriptors) {
                 if (descriptor.isSensitive()) {
-                    String value = context.getProperty(descriptor.getName()).evaluateAttributeExpressions(inputFlowFile).getValue();
-                    String maskedValue = IntStream.rangeClosed(0, value.length()).mapToObj(i -> "*").collect(Collectors.joining());
-                    args.add(maskedValue);
+                    String maskedValue = IntStream.rangeClosed(0, MASKED_VALUE_LENGTH).mapToObj(i -> "*").collect(Collectors.joining());
+                    argumentAttributeValue.add(maskedValue);
                 } else {
-                    args.add(context.getProperty(descriptor.getName()).evaluateAttributeExpressions(inputFlowFile).getValue());
+                    argumentAttributeValue.add(context.getProperty(descriptor.getName()).evaluateAttributeExpressions(inputFlowFile).getValue());
                 }
+                args.add(context.getProperty(descriptor.getName()).evaluateAttributeExpressions(inputFlowFile).getValue());
 
             }
-            if (args.size() > 0) {
+            if (argumentAttributeValue.size() > 0) {
                 final StringBuilder builder = new StringBuilder();
-
-                for (int i = 1; i < args.size(); i++) {
-                    builder.append(args.get(i)).append("\t");
+                for (String s : argumentAttributeValue) {
+                    builder.append(s).append("\t");
                 }
                 commandArguments = builder.toString().trim();
             } else {
                 commandArguments = "";
             }
         }
-
         final String workingDir = context.getProperty(WORKING_DIR).evaluateAttributeExpressions(inputFlowFile).getValue();
 
         final ProcessBuilder builder = new ProcessBuilder();
