@@ -721,7 +721,10 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         try {
-            ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, service);
+            // Create a config context to pass into the controller service's OnDisabled method (it will be ignored if the controller service has no arguments)
+            final MockConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context, variableRegistry);
+            configContext.setValidateExpressions(validateExpressionUsage);
+            ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, service, configContext);
         } catch (final Exception e) {
             e.printStackTrace();
             Assertions.fail("Failed to disable Controller Service " + service + " due to " + e);

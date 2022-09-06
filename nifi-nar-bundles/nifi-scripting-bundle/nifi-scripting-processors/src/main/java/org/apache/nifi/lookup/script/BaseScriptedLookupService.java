@@ -21,7 +21,9 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceReferences;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
@@ -35,6 +37,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.script.AbstractScriptedControllerService;
 import org.apache.nifi.script.ScriptingComponentHelper;
 import org.apache.nifi.script.ScriptingComponentUtils;
+import org.apache.nifi.script.impl.FilteredPropertiesValidationContextAdapter;
 
 import javax.script.Invocable;
 import javax.script.ScriptContext;
@@ -46,6 +49,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -105,7 +109,7 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
                 }
             } catch (final Throwable t) {
                 final ComponentLog logger = getLogger();
-                final String message = "Unable to get property descriptors from Processor: " + t;
+                final String message = "Unable to get property descriptors from LookupService: " + t;
 
                 logger.error(message);
                 if (logger.isDebugEnabled()) {
@@ -148,16 +152,29 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
      */
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        validationResults.set(new HashSet<>());
+
         final ComponentLog logger = getLogger();
-        final ConfigurableComponent instance = lookupService.get();
+        final LookupService<?> instance = lookupService.get();
 
         if (ScriptingComponentUtils.SCRIPT_FILE.equals(descriptor)
                 || ScriptingComponentUtils.SCRIPT_BODY.equals(descriptor)
                 || ScriptingComponentUtils.MODULES.equals(descriptor)
                 || scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
+
+            // Update the ScriptingComponentHelper's value(s)
+            if (ScriptingComponentUtils.SCRIPT_FILE.equals(descriptor)) {
+                scriptingComponentHelper.setScriptPath(newValue);
+            } else if (ScriptingComponentUtils.SCRIPT_BODY.equals(descriptor)) {
+                scriptingComponentHelper.setScriptBody(newValue);
+            } else if (scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
+                scriptingComponentHelper.setScriptEngineName(newValue);
+            }
+
             scriptNeedsReload.set(true);
+            scriptRunner = null; //reset engine. This happens only when the controller service is disabled, so there won't be any performance impact in run-time.
         } else if (instance != null) {
-            // If the script provides a ConfigurableComponent, call its onPropertyModified() method
+            // If the script provides a LookupService, call its onPropertyModified() method
             try {
                 instance.onPropertyModified(descriptor, oldValue, newValue);
             } catch (final Exception e) {
@@ -165,6 +182,71 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
                 logger.error(message, e);
             }
         }
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+        Collection<ValidationResult> commonValidationResults = super.customValidate(context);
+        if (!commonValidationResults.isEmpty()) {
+            return commonValidationResults;
+        }
+
+        // do not try to build processor/compile/etc until onPropertyModified clear the validation error/s
+        // and don't print anything into log.
+        if (!validationResults.get().isEmpty()) {
+            return validationResults.get();
+        }
+
+        Collection<ValidationResult> scriptingComponentHelperResults = scriptingComponentHelper.customValidate(context);
+        if (scriptingComponentHelperResults != null && !scriptingComponentHelperResults.isEmpty()) {
+            validationResults.set(scriptingComponentHelperResults);
+            return scriptingComponentHelperResults;
+        }
+
+        scriptingComponentHelper.setScriptEngineName(context.getProperty(scriptingComponentHelper.SCRIPT_ENGINE).getValue());
+        scriptingComponentHelper.setScriptPath(context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue());
+        scriptingComponentHelper.setScriptBody(context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue());
+        final ResourceReferences resourceReferences = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().asResources();
+        scriptingComponentHelper.setModules(resourceReferences);
+        setup();
+
+        // Now that the component is validated, we can call validate on the scripted lookup service
+        final LookupService<?> instance = lookupService.get();
+        final Collection<ValidationResult> currentValidationResults = validationResults.get();
+
+        // if there was existing validation errors and the processor loaded successfully
+        if (currentValidationResults.isEmpty() && instance != null) {
+            try {
+                // defer to the underlying controller service for validation, without the
+                // lookup service's properties
+                final Set<PropertyDescriptor> innerPropertyDescriptor = new HashSet<>(scriptingComponentHelper.getDescriptors());
+
+                ValidationContext innerValidationContext = new FilteredPropertiesValidationContextAdapter(context, innerPropertyDescriptor);
+                final Collection<ValidationResult> instanceResults = instance.validate(innerValidationContext);
+
+                if (instanceResults != null && instanceResults.size() > 0) {
+                    // return the validation results from the underlying instance
+                    return instanceResults;
+                }
+            } catch (final Exception e) {
+                final ComponentLog logger = getLogger();
+                final String message = "Unable to validate the scripted LookupService: " + e;
+                logger.error(message, e);
+
+                // return a new validation message
+                final Collection<ValidationResult> results = new HashSet<>();
+                results.add(new ValidationResult.Builder()
+                        .subject("Validation")
+                        .valid(false)
+                        .explanation("An error occurred calling validate in the configured scripted LookupService.")
+                        .input(context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).getValue())
+                        .build());
+                return results;
+            }
+        }
+
+        return currentValidationResults;
+
     }
 
     @Override
@@ -226,7 +308,8 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
                             }
                         }
                     } else {
-                        throw new ScriptException("No LookupService was defined by the script.");
+                        // This might be due to an error during compilation, log it rather than throwing an exception
+                        getLogger().warn("No LookupService was defined by the script.");
                     }
                 } catch (ScriptException se) {
                     throw new ProcessException("Error executing onDisabled(context) method", se);
@@ -235,6 +318,10 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
         } else {
             throw new ProcessException("Error creating ScriptRunner");
         }
+
+        scriptingComponentHelper.stop();
+        lookupService.set(null);
+        scriptRunner = null;
     }
 
     @Override
@@ -262,7 +349,7 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
         final Collection<ValidationResult> results = new HashSet<>();
 
         try {
-            // Create a single script engine, the Processor object is reused by each task
+            // Create a single script engine, the LookupService object is reused by each task
             if (scriptRunner == null) {
                 scriptingComponentHelper.setupScriptRunners(1, scriptBody, getLogger());
                 scriptRunner = scriptingComponentHelper.scriptRunnerQ.poll();

@@ -236,7 +236,7 @@ public class ScriptingComponentHelper {
             }
 
             // Get a list of URLs from the configurator (if present), or just convert modules from Strings to URLs
-            final String[] locations = modules.asLocations().toArray(new String[0]);
+            final String[] locations = (modules == null) ? new String[0] : modules.asLocations().toArray(new String[0]);
             final URL[] additionalClasspathURLs = ScriptRunnerFactory.getInstance().getModuleURLsForClasspath(scriptEngineName, locations, log);
 
 
