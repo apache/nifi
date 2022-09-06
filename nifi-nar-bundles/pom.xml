@@ -110,6 +110,7 @@
         <module>nifi-snowflake-bundle</module>
         <module>nifi-salesforce-bundle</module>
         <module>nifi-rocksdb-bundle</module>
+        <module>nifi-zendesk-bundle</module>
         <module>nifi-hubspot-bundle</module>
         <module>nifi-dropbox-bundle</module>
         <module>nifi-airtable-bundle</module>
