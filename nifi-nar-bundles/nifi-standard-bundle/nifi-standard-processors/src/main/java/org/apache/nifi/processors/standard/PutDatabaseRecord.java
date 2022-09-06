@@ -952,7 +952,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         }
     }
 
-    private String generateTableName(final DMLSettings settings, final String catalog, final String schemaName, final String tableName, final TableSchema tableSchema) {
+    String generateTableName(final DMLSettings settings, final String catalog, final String schemaName, final String tableName, final TableSchema tableSchema) {
         final StringBuilder tableNameBuilder = new StringBuilder();
         if (catalog != null) {
             if (settings.quoteTableName) {
@@ -1399,7 +1399,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         private Map<String, ColumnDescription> columns;
         private String quotedIdentifierString;
 
-        private TableSchema(final List<ColumnDescription> columnDescriptions, final boolean translateColumnNames,
+        TableSchema(final List<ColumnDescription> columnDescriptions, final boolean translateColumnNames,
                             final Set<String> primaryKeyColumnNames, final String quotedIdentifierString) {
             this.columns = new LinkedHashMap<>();
             this.primaryKeyColumnNames = primaryKeyColumnNames;
@@ -1688,7 +1688,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         // Quote table name?
         private final boolean quoteTableName;
 
-        private DMLSettings(ProcessContext context) {
+        DMLSettings(ProcessContext context) {
             translateFieldNames = context.getProperty(TRANSLATE_FIELD_NAMES).asBoolean();
             ignoreUnmappedFields = IGNORE_UNMATCHED_FIELD.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_FIELD_BEHAVIOR).getValue());
 

@@ -612,6 +612,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         try {
             // Unique port check within the same group.
             verifyPortUniqueness(port, inputPorts, this::getInputPortByName);
+            ensureUniqueVersionControlId(port, getInputPorts());
 
             port.setProcessGroup(this);
             inputPorts.put(requireNonNull(port).getIdentifier(), port);
@@ -695,6 +696,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         try {
             // Unique port check within the same group.
             verifyPortUniqueness(port, outputPorts, this::getOutputPortByName);
+            ensureUniqueVersionControlId(port, getOutputPorts());
 
             port.setProcessGroup(this);
             outputPorts.put(port.getIdentifier(), port);
@@ -770,6 +772,8 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         writeLock.lock();
         try {
+            ensureUniqueVersionControlId(group, getProcessGroups());
+
             group.setParent(this);
             group.getVariableRegistry().setParent(getVariableRegistry());
 
@@ -877,6 +881,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException("RemoteProcessGroup already exists with ID " + remoteGroup.getIdentifier());
             }
 
+            ensureUniqueVersionControlId(remoteGroup, getRemoteProcessGroups());
             remoteGroup.setProcessGroup(this);
             remoteGroups.put(Objects.requireNonNull(remoteGroup).getIdentifier(), remoteGroup);
             onComponentModified();
@@ -958,6 +963,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException("A processor is already registered to this ProcessGroup with ID " + processorId);
             }
 
+            ensureUniqueVersionControlId(processor, getProcessors());
+
             processor.setProcessGroup(this);
             processor.getVariableRegistry().setParent(getVariableRegistry());
             processors.put(processorId, processor);
@@ -970,6 +977,50 @@ public final class StandardProcessGroup implements ProcessGroup {
             writeLock.unlock();
         }
     }
+
+    /**
+     * A component's Versioned Component ID is used to link a component on the canvas to a component in a versioned flow.
+     * There may, however, be multiple instances of the same versioned flow in a single NiFi instance. In this case, we will have
+     * multiple components with the same Versioned Component ID. This is acceptable as long as no two components within the same Process Group
+     * have the same Versioned Component ID. However, it is not acceptable to have two components within the same Process Group that have the same
+     * Versioned Component ID. If this happens, we will have no way to know which component in our flow maps to which component in the versioned flow.
+     * We don't have an issue with this when a flow is imported, etc. because it is always imported to a new Process Group. However, because it's possible
+     * to move most components between groups, we can have a situation in which a component is moved to a higher group, and that can result in a conflict.
+     * In such a case, we handle this by nulling out the Versioned Component ID if there is a conflict. This essentially makes NiFi behave as if a component
+     * is copied & pasted instead of being moved whenever a conflict occurs.
+     *
+     * @param component the component whose Versioned Component ID should be nulled if there's a conflict
+     * @param componentsToCheck the components to check to determine if there's a conflict
+     */
+    private void ensureUniqueVersionControlId(final org.apache.nifi.components.VersionedComponent component,
+                                              final Collection<? extends org.apache.nifi.components.VersionedComponent> componentsToCheck) {
+        final Optional<String> optionalVersionControlId = component.getVersionedComponentId();
+        if (!optionalVersionControlId.isPresent()) {
+            return;
+        }
+
+        final String versionControlId = optionalVersionControlId.get();
+        final boolean duplicateId = containsVersionedComponentId(componentsToCheck, versionControlId);
+
+        if (duplicateId) {
+            LOG.debug("Adding {} to {}, found conflicting Version Component ID {} so marking Version Component ID of {} as null", component, this, versionControlId, component);
+            component.setVersionedComponentId(null);
+        } else {
+            LOG.debug("Adding {} to {}, found no conflicting Version Component ID for ID {}", component, this, versionControlId);
+        }
+    }
+
+    private boolean containsVersionedComponentId(final Collection<? extends org.apache.nifi.components.VersionedComponent> components, final String id) {
+        for (final org.apache.nifi.components.VersionedComponent component : components) {
+            final Optional<String> optionalConnectableId = component.getVersionedComponentId();
+            if (optionalConnectableId.isPresent() && Objects.equals(optionalConnectableId.get(), id)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 
     /**
      * Looks for any property that is configured on the given component that references a Controller Service.
@@ -1146,45 +1197,79 @@ public final class StandardProcessGroup implements ProcessGroup {
             if (isInputPort(source)) { // if source is an input port, its destination must be in the same group unless it's an input port
                 if (isInputPort(destination)) { // if destination is input port, it must be in a child group.
                     if (!processGroups.containsKey(destinationGroup.getIdentifier())) {
-                        throw new IllegalStateException("Cannot add Connection to Process Group because destination is an Input Port that does not belong to a child Process Group");
+                        throw new IllegalStateException("Cannot add Connection for Input Port[" + source.getIdentifier() +
+                                "] from Process Group [" + sourceGroup.getIdentifier() +
+                                "] to Process Group [" + destinationGroup.getIdentifier() +
+                                "] because destination [" + destination.getIdentifier() +
+                                "] is an Input Port that does not belong to a child Process Group");
                     }
                 } else if (sourceGroup != this || destinationGroup != this) {
-                    throw new IllegalStateException("Cannot add Connection to Process Group because source and destination are not both in this Process Group");
+                    throw new IllegalStateException("Cannot add Connection for Input Port[" + source.getIdentifier() +
+                            "] from Process Group [" + sourceGroup.getIdentifier() +
+                            "] to Process Group [" + destinationGroup.getIdentifier() +
+                            "] destination [" + destination.getIdentifier() +
+                            "] because source and destination are not both in this Process Group");
                 }
             } else if (isOutputPort(source)) {
                 // if source is an output port, its group must be a child of this group, and its destination must be in this
                 // group (processor/output port) or a child group (input port)
                 if (!processGroups.containsKey(sourceGroup.getIdentifier())) {
-                    throw new IllegalStateException("Cannot add Connection to Process Group because source is an Output Port that does not belong to a child Process Group");
+                    throw new IllegalStateException("Cannot add Connection for Output Port[" + source.getIdentifier() +
+                            "] from Process Group [" + sourceGroup.getIdentifier() +
+                            "] to Process Group [" + destinationGroup.getIdentifier() +
+                            "] destination [" + destination.getIdentifier() +
+                            "] because source is an Output Port that does not belong to a child Process Group");
                 }
 
                 if (isInputPort(destination)) {
                     if (!processGroups.containsKey(destinationGroup.getIdentifier())) {
-                        throw new IllegalStateException("Cannot add Connection to Process Group because its destination is an Input Port that does not belong to a child Process Group");
+                        throw new IllegalStateException("Cannot add Connection for Output Port[" + source.getIdentifier() +
+                                "] from Process Group [" + sourceGroup.getIdentifier() +
+                                "] to Process Group [" + destinationGroup.getIdentifier() +
+                                "] because destination [" + destination.getIdentifier() +
+                                "] is an Input Port that does not belong to a child Process Group");
                     }
                 } else if (destinationGroup != this) {
-                    throw new IllegalStateException("Cannot add Connection to Process Group because its destination does not belong to this Process Group");
+                    throw new IllegalStateException("Cannot add Connection for Output Port[" + source.getIdentifier() +
+                            "] from Process Group [" + sourceGroup.getIdentifier() +
+                            "] to Process Group [" + destinationGroup.getIdentifier() +
+                            "] because its destination [" + destination.getIdentifier() +
+                            "] does not belong to this Process Group");
                 }
             } else { // source is not a port
                 if (sourceGroup != this) {
-                    throw new IllegalStateException("Cannot add Connection to Process Group because the source does not belong to this Process Group");
+                    throw new IllegalStateException("Cannot add Connection from " + source.getConnectableType().name() + "[" + source.getIdentifier() +
+                            "] from Process Group [" + sourceGroup.getIdentifier() +
+                            "] to Process Group [" + destinationGroup.getIdentifier() +
+                            "] because the source does not belong to this Process Group");
                 }
 
                 if (isOutputPort(destination)) {
                     if (destinationGroup != this) {
-                        throw new IllegalStateException("Cannot add Connection to Process Group because its destination is an Output Port but does not belong to this Process Group");
+                        throw new IllegalStateException("Cannot add Connection from " + source.getConnectableType().name() + "[" + source.getIdentifier() +
+                                "] from Process Group [" + sourceGroup.getIdentifier() +
+                                "] to Process Group [" + destinationGroup.getIdentifier() +
+                                "] because its destination [" + destination.getIdentifier() +
+                                "] is an Output Port that does not belong to this Process Group");
                     }
                 } else if (isInputPort(destination)) {
                     if (!processGroups.containsKey(destinationGroup.getIdentifier())) {
-                        throw new IllegalStateException("Cannot add Connection to Process Group because its destination is an Input "
-                            + "Port but the Input Port does not belong to a child Process Group");
+                        throw new IllegalStateException("Cannot add Connection from " + source.getConnectableType().name() + "[" + source.getIdentifier() +
+                                "] from Process Group [" + sourceGroup.getIdentifier() +
+                                "] to Process Group [" + destinationGroup.getIdentifier() +
+                                "] because its destination [" + destination.getIdentifier() +
+                                "] is an Input Port but the Input Port does not belong to a child Process Group");
                     }
                 } else if (destinationGroup != this) {
-                    throw new IllegalStateException("Cannot add Connection between " + source.getIdentifier() + " and " + destination.getIdentifier()
-                        + " because they are in different Process Groups and neither is an Input Port or Output Port");
+                    throw new IllegalStateException("Cannot add Connection from " + source.getConnectableType().name() + "[" + source.getIdentifier() +
+                            "] from Process Group [" + sourceGroup.getIdentifier() +
+                            "] to Process Group [" + destinationGroup.getIdentifier() +
+                            "] destination " + destination.getConnectableType().name() + "[" + destination.getIdentifier() +
+                            "] because they are in different Process Groups and neither is an Input Port or Output Port");
                 }
             }
 
+            ensureUniqueVersionControlId(connection, getConnections());
             connection.setProcessGroup(this);
             source.addConnection(connection);
             if (source != destination) {  // don't call addConnection twice if it's a self-looping connection.
@@ -1401,6 +1486,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException("A label already exists in this ProcessGroup with ID " + label.getIdentifier());
             }
 
+            ensureUniqueVersionControlId(label, getLabels());
             label.setProcessGroup(this);
             labels.put(label.getIdentifier(), label);
             onComponentModified();
@@ -2150,6 +2236,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             if (existing != null) {
                 throw new IllegalStateException("A funnel already exists in this ProcessGroup with ID " + funnel.getIdentifier());
             }
+
+            ensureUniqueVersionControlId(funnel, getFunnels());
 
             funnel.setProcessGroup(this);
             funnels.put(funnel.getIdentifier(), funnel);

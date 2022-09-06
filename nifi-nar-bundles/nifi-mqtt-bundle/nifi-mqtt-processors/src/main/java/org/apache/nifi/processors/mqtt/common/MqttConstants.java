@@ -18,7 +18,11 @@
 package org.apache.nifi.processors.mqtt.common;
 
 import org.apache.nifi.components.AllowableValue;
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+
+import static org.apache.nifi.processors.mqtt.common.MqttVersion.MQTT_VERSION_3_1;
+import static org.apache.nifi.processors.mqtt.common.MqttVersion.MQTT_VERSION_3_1_1;
+import static org.apache.nifi.processors.mqtt.common.MqttVersion.MQTT_VERSION_3_AUTO;
+import static org.apache.nifi.processors.mqtt.common.MqttVersion.MQTT_VERSION_5_0;
 
 public class MqttConstants {
 
@@ -66,15 +70,16 @@ public class MqttConstants {
       ------------------------------------------
      */
     public static final AllowableValue ALLOWABLE_VALUE_MQTT_VERSION_AUTO =
-            new AllowableValue(String.valueOf(MqttConnectOptions.MQTT_VERSION_DEFAULT),
-                    "AUTO",
+            new AllowableValue(String.valueOf(MQTT_VERSION_3_AUTO.getVersionCode()), MQTT_VERSION_3_AUTO.getDisplayName(),
                     "Start with v3.1.1 and fallback to v3.1.0 if not supported by a broker");
 
+    public static final AllowableValue ALLOWABLE_VALUE_MQTT_VERSION_500 =
+            new AllowableValue(String.valueOf(MQTT_VERSION_5_0.getVersionCode()), MQTT_VERSION_5_0.getDisplayName());
+
     public static final AllowableValue ALLOWABLE_VALUE_MQTT_VERSION_311 =
-            new AllowableValue(String.valueOf(MqttConnectOptions.MQTT_VERSION_3_1_1),
-                    "v3.1.1");
+            new AllowableValue(String.valueOf(MQTT_VERSION_3_1_1.getVersionCode()), MQTT_VERSION_3_1_1.getDisplayName());
 
     public static final AllowableValue ALLOWABLE_VALUE_MQTT_VERSION_310 =
-            new AllowableValue(String.valueOf(MqttConnectOptions.MQTT_VERSION_3_1),
-                    "v3.1.0");
+            new AllowableValue(String.valueOf(MQTT_VERSION_3_1.getVersionCode()), MQTT_VERSION_3_1.getDisplayName());
+
 }

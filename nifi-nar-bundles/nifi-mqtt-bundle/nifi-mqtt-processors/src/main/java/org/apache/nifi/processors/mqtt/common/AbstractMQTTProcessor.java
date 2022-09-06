@@ -31,25 +31,25 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.SSLContextService;
-import org.eclipse.paho.client.mqttv3.IMqttClient;
-import org.eclipse.paho.client.mqttv3.MqttClient;
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
-import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
+import static org.apache.commons.lang3.EnumUtils.isValidEnumIgnoreCase;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_CLEAN_SESSION_FALSE;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_CLEAN_SESSION_TRUE;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_MQTT_VERSION_310;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_MQTT_VERSION_311;
+import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_MQTT_VERSION_500;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_MQTT_VERSION_AUTO;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_QOS_0;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_QOS_1;
@@ -57,62 +57,67 @@ import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VAL
 
 public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProcessor {
 
-    public static int DISCONNECT_TIMEOUT = 5000;
+    private static final String DEFAULT_SESSION_EXPIRY_INTERVAL = "24 hrs";
 
     protected ComponentLog logger;
-    protected IMqttClient mqttClient;
-    protected volatile String broker;
-    protected volatile String brokerUri;
-    protected volatile String clientID;
-    protected MqttConnectOptions connOpts;
-    protected MemoryPersistence persistence = new MemoryPersistence();
+
+    protected MqttClientProperties clientProperties;
+
+    protected MqttClientFactory mqttClientFactory = new MqttClientFactory();
+    protected MqttClient mqttClient;
 
     public ProcessSessionFactory processSessionFactory;
 
-    public static final Validator QOS_VALIDATOR = new Validator() {
+    public static final Validator QOS_VALIDATOR = (subject, input, context) -> {
+        Integer inputInt = Integer.parseInt(input);
+        if (inputInt < 0 || inputInt > 2) {
+            return new ValidationResult.Builder().subject(subject).valid(false).explanation("QoS must be an integer between 0 and 2.").build();
+        }
+        return new ValidationResult.Builder().subject(subject).valid(true).build();
+    };
 
-        @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
-            Integer inputInt = Integer.parseInt(input);
-            if (inputInt < 0 || inputInt > 2) {
-                return new ValidationResult.Builder().subject(subject).valid(false).explanation("QoS must be an integer between 0 and 2").build();
+    public static final Validator BROKER_VALIDATOR = (subject, input, context) -> {
+        try {
+            URI brokerURI = new URI(input);
+            if (!EMPTY.equals(brokerURI.getPath())) {
+                return new ValidationResult.Builder().subject(subject).valid(false).explanation("the broker URI cannot have a path. It currently is: " + brokerURI.getPath()).build();
             }
+            if (!isValidEnumIgnoreCase(MqttProtocolScheme.class, brokerURI.getScheme())) {
+                return new ValidationResult.Builder().subject(subject).valid(false)
+                        .explanation("scheme is invalid. Supported schemes are: " + getSupportedSchemeList()).build();
+            }
+        } catch (URISyntaxException e) {
+            return new ValidationResult.Builder().subject(subject).valid(false).explanation("it is not valid URI syntax.").build();
+        }
+        return new ValidationResult.Builder().subject(subject).valid(true).build();
+    };
+
+    private static String getSupportedSchemeList() {
+        return String.join(", ", Arrays.stream(MqttProtocolScheme.values()).map(value -> value.name().toLowerCase()).toArray(String[]::new));
+    }
+
+    public static final Validator RETAIN_VALIDATOR = (subject, input, context) -> {
+        if ("true".equalsIgnoreCase(input) || "false".equalsIgnoreCase(input)) {
             return new ValidationResult.Builder().subject(subject).valid(true).build();
+        } else {
+            return StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.BOOLEAN, false)
+                    .validate(subject, input, context);
         }
+
     };
 
-    public static final Validator BROKER_VALIDATOR = new Validator() {
-
-        @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
-            try{
-                URI brokerURI = new URI(input);
-                if (!"".equals(brokerURI.getPath())) {
-                    return new ValidationResult.Builder().subject(subject).valid(false).explanation("the broker URI cannot have a path. It currently is:" + brokerURI.getPath()).build();
-                }
-                if (!("tcp".equals(brokerURI.getScheme()) || "ssl".equals(brokerURI.getScheme()) || "ws".equals(brokerURI.getScheme()) || "wss".equals(brokerURI.getScheme()))) {
-                    return new ValidationResult.Builder().subject(subject).valid(false).explanation("only the 'tcp', 'ssl', 'ws' and 'wss' schemes are supported.").build();
-                }
-            } catch (URISyntaxException e) {
-                return new ValidationResult.Builder().subject(subject).valid(false).explanation("it is not valid URI syntax.").build();
-            }
-            return new ValidationResult.Builder().subject(subject).valid(true).build();
-        }
-    };
-
-    public static final Validator RETAIN_VALIDATOR = new Validator() {
-
-        @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
-            if("true".equalsIgnoreCase(input) || "false".equalsIgnoreCase(input)){
-                return new ValidationResult.Builder().subject(subject).valid(true).build();
-            } else{
-                return StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.BOOLEAN, false)
-                        .validate(subject, input, context);
-            }
-
-        }
-    };
+    public static final PropertyDescriptor PROP_MQTT_VERSION = new PropertyDescriptor.Builder()
+            .name("MQTT Specification Version")
+            .description("The MQTT specification version when connecting with the broker. See the allowable value descriptions for more details.")
+            .allowableValues(
+                    ALLOWABLE_VALUE_MQTT_VERSION_AUTO,
+                    ALLOWABLE_VALUE_MQTT_VERSION_500,
+                    ALLOWABLE_VALUE_MQTT_VERSION_311,
+                    ALLOWABLE_VALUE_MQTT_VERSION_310
+            )
+            .defaultValue(ALLOWABLE_VALUE_MQTT_VERSION_AUTO.getValue())
+            .required(true)
+            .build();
 
     public static final PropertyDescriptor PROP_BROKER_URI = new PropertyDescriptor.Builder()
             .name("Broker URI")
@@ -122,7 +127,6 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(BROKER_VALIDATOR)
             .build();
-
 
     public static final PropertyDescriptor PROP_CLIENTID = new PropertyDescriptor.Builder()
             .name("Client ID")
@@ -155,7 +159,6 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .identifiesControllerService(SSLContextService.class)
             .build();
 
-
     public static final PropertyDescriptor PROP_LAST_WILL_TOPIC = new PropertyDescriptor.Builder()
             .name("Last Will Topic")
             .description("The topic to send the client's Last Will to. If the Last Will topic and message are not set then a Last Will will not be sent.")
@@ -174,7 +177,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .name("Last Will Retain")
             .description("Whether to retain the client's Last Will. If the Last Will topic and message are not set then a Last Will will not be sent.")
             .required(false)
-            .allowableValues("true","false")
+            .allowableValues("true", "false")
             .build();
 
     public static final PropertyDescriptor PROP_LAST_WILL_QOS = new PropertyDescriptor.Builder()
@@ -190,7 +193,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
     public static final PropertyDescriptor PROP_CLEAN_SESSION = new PropertyDescriptor.Builder()
             .name("Session state")
-            .description("Whether to start afresh or resume previous flows. See the allowable value descriptions for more details.")
+            .description("Whether to start a fresh or resume previous flows. See the allowable value descriptions for more details.")
             .required(true)
             .allowableValues(
                     ALLOWABLE_VALUE_CLEAN_SESSION_TRUE,
@@ -199,16 +202,13 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .defaultValue(ALLOWABLE_VALUE_CLEAN_SESSION_TRUE.getValue())
             .build();
 
-    public static final PropertyDescriptor PROP_MQTT_VERSION = new PropertyDescriptor.Builder()
-            .name("MQTT Specification Version")
-            .description("The MQTT specification version when connecting with the broker. See the allowable value descriptions for more details.")
-            .allowableValues(
-                    ALLOWABLE_VALUE_MQTT_VERSION_AUTO,
-                    ALLOWABLE_VALUE_MQTT_VERSION_311,
-                    ALLOWABLE_VALUE_MQTT_VERSION_310
-            )
-            .defaultValue(ALLOWABLE_VALUE_MQTT_VERSION_AUTO.getValue())
-            .required(true)
+    public static final PropertyDescriptor PROP_SESSION_EXPIRY_INTERVAL = new PropertyDescriptor.Builder()
+            .name("Session Expiry Interval")
+            .description("After this interval the broker will expire the client and clear the session state.")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .dependsOn(PROP_MQTT_VERSION, ALLOWABLE_VALUE_MQTT_VERSION_500)
+            .dependsOn(PROP_CLEAN_SESSION, ALLOWABLE_VALUE_CLEAN_SESSION_FALSE)
+            .defaultValue(DEFAULT_SESSION_EXPIRY_INTERVAL)
             .build();
 
     public static final PropertyDescriptor PROP_CONN_TIMEOUT = new PropertyDescriptor.Builder()
@@ -232,8 +232,8 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
-    public static List<PropertyDescriptor> getAbstractPropertyDescriptors(){
-        final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
+    public static List<PropertyDescriptor> getAbstractPropertyDescriptors() {
+        final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(PROP_BROKER_URI);
         descriptors.add(PROP_CLIENTID);
         descriptors.add(PROP_USERNAME);
@@ -244,6 +244,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         descriptors.add(PROP_LAST_WILL_RETAIN);
         descriptors.add(PROP_LAST_WILL_QOS);
         descriptors.add(PROP_CLEAN_SESSION);
+        descriptors.add(PROP_SESSION_EXPIRY_INTERVAL);
         descriptors.add(PROP_MQTT_VERSION);
         descriptors.add(PROP_CONN_TIMEOUT);
         descriptors.add(PROP_KEEP_ALIVE_INTERVAL);
@@ -257,7 +258,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         final boolean passwordSet = validationContext.getProperty(PROP_PASSWORD).isSet();
 
         if ((usernameSet && !passwordSet) || (!usernameSet && passwordSet)) {
-            results.add(new ValidationResult.Builder().subject("Username and Password").valid(false).explanation("if username or password is set, both must be set").build());
+            results.add(new ValidationResult.Builder().subject("Username and Password").valid(false).explanation("if username or password is set, both must be set.").build());
         }
 
         final boolean lastWillTopicSet = validationContext.getProperty(PROP_LAST_WILL_TOPIC).isSet();
@@ -269,7 +270,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         // If any of the Last Will Properties are set
         if (lastWillTopicSet || lastWillMessageSet || lastWillRetainSet || lastWillQosSet) {
             // And any are not set
-            if(!(lastWillTopicSet && lastWillMessageSet && lastWillRetainSet && lastWillQosSet)){
+            if (!(lastWillTopicSet && lastWillMessageSet && lastWillRetainSet && lastWillQosSet)) {
                 // Then mark as invalid
                 results.add(new ValidationResult.Builder().subject("Last Will Properties").valid(false).explanation("if any of the Last Will Properties (message, topic, retain and QoS) are " +
                         "set, all must be set.").build());
@@ -289,88 +290,34 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         return results;
     }
 
-    public static Properties transformSSLContextService(SSLContextService sslContextService){
-        Properties properties = new Properties();
-        if (sslContextService.getSslAlgorithm() != null) {
-            properties.setProperty("com.ibm.ssl.protocol", sslContextService.getSslAlgorithm());
-        }
-        if (sslContextService.getKeyStoreFile() != null) {
-            properties.setProperty("com.ibm.ssl.keyStore", sslContextService.getKeyStoreFile());
-        }
-        if (sslContextService.getKeyStorePassword() != null) {
-            properties.setProperty("com.ibm.ssl.keyStorePassword", sslContextService.getKeyStorePassword());
-        }
-        if (sslContextService.getKeyStoreType() != null) {
-            properties.setProperty("com.ibm.ssl.keyStoreType", sslContextService.getKeyStoreType());
-        }
-        if (sslContextService.getTrustStoreFile() != null) {
-            properties.setProperty("com.ibm.ssl.trustStore", sslContextService.getTrustStoreFile());
-        }
-        if (sslContextService.getTrustStorePassword() != null) {
-            properties.setProperty("com.ibm.ssl.trustStorePassword", sslContextService.getTrustStorePassword());
-        }
-        if (sslContextService.getTrustStoreType() != null) {
-            properties.setProperty("com.ibm.ssl.trustStoreType", sslContextService.getTrustStoreType());
-        }
-        return  properties;
+    protected void onScheduled(final ProcessContext context) {
+        clientProperties = getMqttClientProperties(context);
     }
 
-    protected void onScheduled(final ProcessContext context){
-        broker = context.getProperty(PROP_BROKER_URI).evaluateAttributeExpressions().getValue();
-        brokerUri = broker.endsWith("/") ? broker : broker + "/";
-        clientID = context.getProperty(PROP_CLIENTID).evaluateAttributeExpressions().getValue();
+    protected void stopClient() {
+        // Since client is created in the onTrigger method it can happen that it never will be created because of an initialization error.
+        // We are preventing additional nullPtrException here, but the clean solution would be to create the client in the onScheduled method.
+        if (mqttClient != null) {
+            try {
+                logger.info("Disconnecting client");
+                mqttClient.disconnect();
+            } catch (Exception e) {
+                logger.error("Error disconnecting MQTT client", e);
+            }
 
-        if (clientID == null) {
-            clientID = UUID.randomUUID().toString();
-        }
+            try {
+                logger.info("Closing client");
+                mqttClient.close();
+            } catch (Exception e) {
+                logger.error("Error closing MQTT client", e);
+            }
 
-        connOpts = new MqttConnectOptions();
-        connOpts.setCleanSession(context.getProperty(PROP_CLEAN_SESSION).asBoolean());
-        connOpts.setKeepAliveInterval(context.getProperty(PROP_KEEP_ALIVE_INTERVAL).asInteger());
-        connOpts.setMqttVersion(context.getProperty(PROP_MQTT_VERSION).asInteger());
-        connOpts.setConnectionTimeout(context.getProperty(PROP_CONN_TIMEOUT).asInteger());
-
-        PropertyValue sslProp = context.getProperty(PROP_SSL_CONTEXT_SERVICE);
-        if (sslProp.isSet()) {
-            Properties sslProps = transformSSLContextService((SSLContextService) sslProp.asControllerService());
-            connOpts.setSSLProperties(sslProps);
-        }
-
-        PropertyValue lastWillTopicProp = context.getProperty(PROP_LAST_WILL_TOPIC);
-        if (lastWillTopicProp.isSet()){
-            String lastWillMessage = context.getProperty(PROP_LAST_WILL_MESSAGE).getValue();
-            PropertyValue lastWillRetain = context.getProperty(PROP_LAST_WILL_RETAIN);
-            Integer lastWillQOS = context.getProperty(PROP_LAST_WILL_QOS).asInteger();
-            connOpts.setWill(lastWillTopicProp.getValue(), lastWillMessage.getBytes(), lastWillQOS, lastWillRetain.isSet() ? lastWillRetain.asBoolean() : false);
-        }
-
-
-        PropertyValue usernameProp = context.getProperty(PROP_USERNAME);
-        if(usernameProp.isSet()) {
-            connOpts.setUserName(usernameProp.evaluateAttributeExpressions().getValue());
-            connOpts.setPassword(context.getProperty(PROP_PASSWORD).getValue().toCharArray());
-        }
-    }
-
-    protected void onStopped() {
-        try {
-            logger.info("Disconnecting client");
-            mqttClient.disconnect(DISCONNECT_TIMEOUT);
-        } catch(MqttException me) {
-            logger.error("Error disconnecting MQTT client due to {}", new Object[]{me.getMessage()}, me);
-        }
-
-        try {
-            logger.info("Closing client");
-            mqttClient.close();
             mqttClient = null;
-        } catch (MqttException me) {
-            logger.error("Error closing MQTT client due to {}", new Object[]{me.getMessage()}, me);
         }
     }
 
-    protected IMqttClient createMqttClient(String broker, String clientID, MemoryPersistence persistence) throws MqttException {
-        return new MqttClient(broker, clientID, persistence);
+    protected MqttClient createMqttClient() throws TlsException {
+        return mqttClientFactory.create(clientProperties, getLogger());
     }
 
 
@@ -384,7 +331,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             onTrigger(context, session);
             session.commitAsync();
         } catch (final Throwable t) {
-            getLogger().error("{} failed to process due to {}; rolling back session", new Object[]{this, t});
+            getLogger().error("{} failed to process due to {}; rolling back session", this, t);
             session.rollback(true);
             throw t;
         }
@@ -392,8 +339,52 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
     public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
 
-    protected boolean isConnected(){
+    protected boolean isConnected() {
         return (mqttClient != null && mqttClient.isConnected());
     }
 
+    protected MqttClientProperties getMqttClientProperties(final ProcessContext context) {
+        final MqttClientProperties clientProperties = new MqttClientProperties();
+
+        try {
+            clientProperties.setBrokerUri(new URI(context.getProperty(PROP_BROKER_URI).evaluateAttributeExpressions().getValue()));
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("Invalid Broker URI", e);
+        }
+
+        String clientId = context.getProperty(PROP_CLIENTID).evaluateAttributeExpressions().getValue();
+        if (clientId == null) {
+            clientId = UUID.randomUUID().toString();
+        }
+        clientProperties.setClientId(clientId);
+
+        clientProperties.setMqttVersion(MqttVersion.fromVersionCode(context.getProperty(PROP_MQTT_VERSION).asInteger()));
+
+        clientProperties.setCleanSession(context.getProperty(PROP_CLEAN_SESSION).asBoolean());
+        clientProperties.setSessionExpiryInterval(context.getProperty(PROP_SESSION_EXPIRY_INTERVAL).asTimePeriod(TimeUnit.SECONDS));
+
+        clientProperties.setKeepAliveInterval(context.getProperty(PROP_KEEP_ALIVE_INTERVAL).asInteger());
+        clientProperties.setConnectionTimeout(context.getProperty(PROP_CONN_TIMEOUT).asInteger());
+
+        final PropertyValue sslProp = context.getProperty(PROP_SSL_CONTEXT_SERVICE);
+        if (sslProp.isSet()) {
+            final SSLContextService sslContextService = (SSLContextService) sslProp.asControllerService();
+            clientProperties.setTlsConfiguration(sslContextService.createTlsConfiguration());
+        }
+
+        clientProperties.setLastWillTopic(context.getProperty(PROP_LAST_WILL_TOPIC).getValue());
+        clientProperties.setLastWillMessage(context.getProperty(PROP_LAST_WILL_MESSAGE).getValue());
+        final PropertyValue lastWillRetain = context.getProperty(PROP_LAST_WILL_RETAIN);
+        clientProperties.setLastWillRetain(lastWillRetain.isSet() ? lastWillRetain.asBoolean() : false);
+        clientProperties.setLastWillQos(context.getProperty(PROP_LAST_WILL_QOS).asInteger());
+
+        final PropertyValue usernameProp = context.getProperty(PROP_USERNAME);
+        if (usernameProp.isSet()) {
+            clientProperties.setUsername(usernameProp.evaluateAttributeExpressions().getValue());
+        }
+
+        clientProperties.setPassword(context.getProperty(PROP_PASSWORD).getValue());
+
+        return clientProperties;
+    }
 }

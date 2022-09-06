@@ -33,7 +33,7 @@
     </modules>
     <properties>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
-        <jolt.version>0.1.1</jolt.version>
+        <jolt.version>0.1.7</jolt.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -147,6 +147,11 @@
                 <groupId>com.github.jponge</groupId>
                 <artifactId>lzma-java</artifactId>
                 <version>1.3</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.luben</groupId>
+                <artifactId>zstd-jni</artifactId>
+                <version>1.5.2-3</version>
             </dependency>
             <dependency>
                 <groupId>org.tukaani</groupId>
