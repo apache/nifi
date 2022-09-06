@@ -112,18 +112,9 @@ class TestScriptedLookupService {
         runner.addControllerService("lookupService", scriptedLookupService)
         runner.setProperty(scriptedLookupService, "Script Engine", "Groovy")
         runner.setProperty(scriptedLookupService, ScriptingComponentUtils.SCRIPT_BODY, (String) null)
-        runner.setProperty(scriptedLookupService, ScriptingComponentUtils.SCRIPT_FILE, ALTERNATE_TARGET_PATH.toString())
+        runner.setProperty(scriptedLookupService, ScriptingComponentUtils.SCRIPT_FILE, TARGET_PATH.toString())
         runner.setProperty(scriptedLookupService, ScriptingComponentUtils.MODULES, (String) null)
-        // This call to setup should fail loading the script but should mark that the script should be reloaded
-        scriptedLookupService.setup()
-        // This prevents the (lookupService == null) check from passing, in order to force the reload from the
-        // scriptNeedsReload variable specifically
-        scriptedLookupService.lookupService.set(new MockScriptedLookupService())
-
         runner.enableControllerService(scriptedLookupService)
-
-        MockFlowFile mockFlowFile = new MockFlowFile(1L)
-        InputStream inStream = new ByteArrayInputStream('Flow file content not used'.bytes)
 
         Optional opt = scriptedLookupService.lookup(['key':'Hello'])
         assertTrue(opt.present)
@@ -131,6 +122,20 @@ class TestScriptedLookupService {
         opt = scriptedLookupService.lookup(['key':'World'])
         assertTrue(opt.present)
         assertEquals('there', opt.get())
+        opt = scriptedLookupService.lookup(['key':'Not There'])
+        assertFalse(opt.present)
+
+        // Disable and load different script
+        runner.disableControllerService(scriptedLookupService)
+        runner.setProperty(scriptedLookupService, ScriptingComponentUtils.SCRIPT_FILE, ALTERNATE_TARGET_PATH.toString())
+        runner.enableControllerService(scriptedLookupService)
+
+        opt = scriptedLookupService.lookup(['key':'Hello'])
+        assertTrue(opt.present)
+        assertEquals('Goodbye', opt.get())
+        opt = scriptedLookupService.lookup(['key':'World'])
+        assertTrue(opt.present)
+        assertEquals('Stranger', opt.get())
         opt = scriptedLookupService.lookup(['key':'Not There'])
         assertFalse(opt.present)
     }
