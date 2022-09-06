@@ -370,7 +370,6 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             }
         };
     }
-    
     private static Validator createMaxAgeValidator() {
         return new Validator() {
             @Override
@@ -1154,7 +1153,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                 versionListing = bucketLister.listVersions();
                 for (final S3VersionSummary versionSummary : versionListing.getVersionSummaries()) {
                     long lastModified = versionSummary.getLastModified().getTime();
-                    if ((maxAgeMilliseconds != null && (lastModified < (listingTimestamp - maxAgeMilliseconds))) 
+                    if ((maxAgeMilliseconds != null && (lastModified < (listingTimestamp - maxAgeMilliseconds)))
                     || lastModified > (listingTimestamp - minAgeMilliseconds)) {
                         continue;
                     }

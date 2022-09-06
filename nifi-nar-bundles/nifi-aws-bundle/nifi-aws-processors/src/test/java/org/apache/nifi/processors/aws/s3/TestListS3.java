@@ -468,7 +468,6 @@ public class TestListS3 {
         runner.setProperty(ListS3.REGION, "eu-west-1");
         runner.setProperty(ListS3.BUCKET, "test-bucket");
         runner.setProperty(ListS3.MAX_AGE, "30 sec");
-
         Date lastModifiedNow = new Date();
         Date lastModifiedMinus1Hour = DateUtils.addHours(lastModifiedNow, -1);
         Date lastModifiedMinus3Hour = DateUtils.addHours(lastModifiedNow, -3);
@@ -495,9 +494,7 @@ public class TestListS3 {
         stateMap.put(ListS3.CURRENT_TIMESTAMP, previousTimestamp);
         stateMap.put(ListS3.CURRENT_KEY_PREFIX + "0", "minus-3hour");
         runner.getStateManager().setState(stateMap, Scope.CLUSTER);
-
         runner.run();
-
         ArgumentCaptor<ListObjectsRequest> captureRequest = ArgumentCaptor.forClass(ListObjectsRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).listObjects(captureRequest.capture());
         ListObjectsRequest request = captureRequest.getValue();
