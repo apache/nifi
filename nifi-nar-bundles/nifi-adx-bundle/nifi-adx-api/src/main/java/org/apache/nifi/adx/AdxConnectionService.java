@@ -20,7 +20,6 @@ import com.microsoft.azure.kusto.ingest.IngestClient;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.processor.exception.ProcessException;
 
 @Tags({"azure", "adx"})
 @CapabilityDescription("Connection-Service to Azure ADX (Kusto) ingestion cluster.")

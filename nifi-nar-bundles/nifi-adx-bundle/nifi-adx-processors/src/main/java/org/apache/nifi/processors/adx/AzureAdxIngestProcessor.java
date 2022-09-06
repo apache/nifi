@@ -39,7 +39,6 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -279,6 +278,8 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
 
     private Set<Relationship> relationships;
 
+    private AdxConnectionService service;
+
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
@@ -312,7 +313,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-
+        service = context.getProperty(ADX_SERVICE).asControllerService(AdxConnectionService.class);
     }
 
     @Override
@@ -323,8 +324,6 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             context.yield();
             return;
         }
-
-        AdxConnectionService service = context.getProperty(ADX_SERVICE).asControllerService(AdxConnectionService.class);
 
         try (final InputStream in = session.read(flowFile)) {
             IngestClient client = service.getAdxClient();
@@ -346,8 +345,6 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                         IngestionMapping.IngestionMappingKind.ORC); break;
                 case "IM_KIND_PARQUET": ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
                         IngestionMapping.IngestionMappingKind.PARQUET); break;
-                /*case "IM_KIND_UNKNOWN": ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
-                        IngestionMapping.IngestionMappingKind); break;*/
             }
 
             switch(context.getProperty(DATA_FORMAT).getValue()) {

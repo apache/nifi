@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.adx;
 
 
-import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import org.apache.nifi.adx.AdxConnectionService;
@@ -28,7 +27,6 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockComponentLog;
-import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
 import org.apache.nifi.util.TestRunner;
@@ -42,8 +40,6 @@ import org.opentest4j.AssertionFailedError;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
@@ -218,10 +214,11 @@ public class AzureAdxIngestProcessorTest {
 
         testRunner.enableControllerService(azureAdxConnectionService);
         testRunner.assertValid(azureAdxConnectionService);
-        AssertionFailedError assertionFailedError = assertThrows(AssertionFailedError.class,()->{testRunner.run(1);});
+        AssertionFailedError assertionFailedError = assertThrows(AssertionFailedError.class,()->{
+            testRunner.run(1);
+        });
         assertTrue(assertionFailedError.getMessage().contains("Table Name"));
         assertTrue(assertionFailedError.getMessage().contains("invalid"));
-
     }
 
     @Test
