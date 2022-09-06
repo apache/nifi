@@ -28,7 +28,6 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.dropbox.credentials.service.DropboxCredentialDetails;
 import org.apache.nifi.dropbox.credentials.service.DropboxCredentialService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 @CapabilityDescription("Defines credentials for Dropbox processors.")
@@ -39,7 +38,7 @@ public class DropboxCredentialControllerService extends AbstractControllerServic
             .name("app-key")
             .displayName("App Key")
             .description("App Key of the user's Dropbox app."+
-                    " See controller service's usage documentation for more details about App Key")
+                    " See controller service's usage documentation for more details about App Key.")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
@@ -49,7 +48,7 @@ public class DropboxCredentialControllerService extends AbstractControllerServic
             .name("app-secret")
             .displayName("App Secret")
             .description("App Secret of the user's Dropbox app."+
-                    " See controller service's usage documentation for more details about App Secret")
+                    " See controller service's usage documentation for more details about App Secret.")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -60,7 +59,7 @@ public class DropboxCredentialControllerService extends AbstractControllerServic
             .name("access-token")
             .displayName("Access Token")
             .description("Access Token of the user's Dropbox app." +
-                    " See controller service's usage documentation for more details about Access Token generation")
+                    " See controller service's usage documentation for more details about Access Token generation.")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -71,7 +70,7 @@ public class DropboxCredentialControllerService extends AbstractControllerServic
             .name("refresh-token")
             .displayName("Refresh Token")
             .description("Refresh Token of the user's Dropbox app."+
-                    " See controller service's usage documentation for more details about Refresh Token generation")
+                    " See controller service's usage documentation for more details about Refresh Token generation.")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -107,7 +106,7 @@ public class DropboxCredentialControllerService extends AbstractControllerServic
     }
 
     @Override
-    public DropboxCredentialDetails getDropboxCredential() throws ProcessException {
+    public DropboxCredentialDetails getDropboxCredential() {
         return credential;
     }
 }

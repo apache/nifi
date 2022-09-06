@@ -1,6 +1,5 @@
-<?xml version="1.0"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <!--
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
   Licensed to the Apache Software Foundation (ASF) under one or more
   contributor license agreements. See the NOTICE file distributed with
   this work for additional information regarding copyright ownership.
@@ -14,28 +13,33 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <artifactId>nifi-nar-bundles</artifactId>
         <groupId>org.apache.nifi</groupId>
+        <artifactId>nifi-dropbox-bundle</artifactId>
         <version>1.18.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-dropbox-bundle</artifactId>
-    <version>1.18.0-SNAPSHOT</version>
-    <packaging>pom</packaging>
-
+    <artifactId>nifi-dropbox-processors-nar</artifactId>
+    <packaging>nar</packaging>
     <properties>
-        <dropbox.client.version>4.0.1</dropbox.client.version>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <source.skip>true</source.skip>
     </properties>
 
-    <modules>
-        <module>nifi-dropbox-services-api</module>
-        <module>nifi-dropbox-services-api-nar</module>
-        <module>nifi-dropbox-processors</module>
-        <module>nifi-dropbox-processors-nar</module>
-        <module>nifi-dropbox-services</module>
-        <module>nifi-dropbox-services-nar</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-dropbox-services-api-nar</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-dropbox-processors</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
 </project>

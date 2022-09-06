@@ -19,7 +19,6 @@ package org.apache.nifi.dropbox.credentials.service;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.processor.exception.ProcessException;
 
 /**
  * DropboxCredentialService interface to support getting Dropbox credentials (app key, app secret, access token, refresh token)
@@ -35,7 +34,6 @@ public interface DropboxCredentialService extends ControllerService {
      * Get Dropbox credentials
      * @return  DropboxCredentialDetails object which contains app key, app secret, access and refresh tokens for authorizing
      * requests on the Dropbox platform.
-     * @throws ProcessException process exception in case there is problem in getting credentials
      */
-    DropboxCredentialDetails getDropboxCredential() throws ProcessException;
+    DropboxCredentialDetails getDropboxCredential();
 }
