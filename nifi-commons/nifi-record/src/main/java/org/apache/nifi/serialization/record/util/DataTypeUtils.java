@@ -236,9 +236,13 @@ public class DataTypeUtils {
         return null;
     }
 
-    private static Object toUUID(Object value) {
+    public static UUID toUUID(Object value) {
         if (value == null) {
             throw new IllegalTypeConversionException("Null values cannot be converted to a UUID");
+        }
+
+        if (value instanceof UUID) {
+            return (UUID) value;
         }
 
         if (value instanceof String) {
