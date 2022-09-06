@@ -34,6 +34,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -142,7 +144,6 @@ import org.apache.nifi.stream.io.StreamUtils;
  * </li>
  * </ul>
  * <p>
- *
  */
 @EventDriven
 @SupportsBatching
@@ -151,15 +152,15 @@ import org.apache.nifi.stream.io.StreamUtils;
 @CapabilityDescription("Executes an external command on the contents of a flow file, and creates a new flow file with the results of the command.")
 @SupportsSensitiveDynamicProperties
 @DynamicProperties({
-    @DynamicProperty(name = "An environment variable name", value = "An environment variable value",
-        description = "These environment variables are passed to the process spawned by this Processor"),
-    @DynamicProperty(name = "command.argument.<NUMBER>", value = "Argument to be supplied to the command",
-        description = "These arguments are supplied to the process spawned by this Processor when using the "
-        + "Command Arguments Strategy : Dynamic Property Arguments. The NUMBER will determine the order.")
+        @DynamicProperty(name = "An environment variable name", value = "An environment variable value",
+                description = "These environment variables are passed to the process spawned by this Processor"),
+        @DynamicProperty(name = "command.argument.<NUMBER>", value = "Argument to be supplied to the command",
+                description = "These arguments are supplied to the process spawned by this Processor when using the "
+                        + "Command Arguments Strategy : Dynamic Property Arguments. The NUMBER will determine the order.")
 })
 @WritesAttributes({
         @WritesAttribute(attribute = "execution.command", description = "The name of the command executed"),
-        @WritesAttribute(attribute = "execution.command.args", description = "The semi-colon delimited list of arguments"),
+        @WritesAttribute(attribute = "execution.command.args", description = "The semi-colon delimited list of arguments.Sensitive properties will be masked"),
         @WritesAttribute(attribute = "execution.status", description = "The exit status code returned from executing the command"),
         @WritesAttribute(attribute = "execution.error", description = "Any error messages returned from executing the command")})
 @Restricted(
@@ -196,7 +197,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     static final AllowableValue EXECUTION_ARGUMENTS_PROPERTY_STRATEGEY = new AllowableValue(executionArguments, executionArguments,
             "Arguments to be supplied to the executable are taken from the Command Arguments property");
 
-    static final AllowableValue DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY = new AllowableValue(dynamicArguements,dynamicArguements,
+    static final AllowableValue DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY = new AllowableValue(dynamicArguements, dynamicArguements,
             "Arguments to be supplied to the executable are taken from dynamic properties");
 
 
@@ -215,7 +216,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .description("Strategy for configuring arguments to be supplied to the command.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
-            .allowableValues(EXECUTION_ARGUMENTS_PROPERTY_STRATEGEY.getValue(),DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue())
+            .allowableValues(EXECUTION_ARGUMENTS_PROPERTY_STRATEGEY.getValue(), DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue())
             .defaultValue(EXECUTION_ARGUMENTS_PROPERTY_STRATEGEY.getValue())
             .build();
 
@@ -344,24 +345,24 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         if (!propertyDescriptorName.startsWith("command.argument.")) {
             return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName)
-                .description(
-                    "Sets the environment variable '" + propertyDescriptorName + "' for the process' environment")
-                .dynamic(true)
-                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .build();
+                    .name(propertyDescriptorName)
+                    .description(
+                            "Sets the environment variable '" + propertyDescriptorName + "' for the process' environment")
+                    .dynamic(true)
+                    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                    .build();
         }
         // get the number part of the name
         Matcher matcher = DYNAMIC_PARAMETER_NAME.matcher(propertyDescriptorName);
         if (matcher.matches()) {
             return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName)
-                .displayName(propertyDescriptorName)
-                .description("Argument passed to command")
-                .dynamic(true)
-                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-                .addValidator(ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
-                .build();
+                    .name(propertyDescriptorName)
+                    .displayName(propertyDescriptorName)
+                    .description("Argument passed to command")
+                    .dynamic(true)
+                    .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                    .addValidator(ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
+                    .build();
         }
         return null;
     }
@@ -419,14 +420,21 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                 }
                 return 0;
             });
-            for ( final PropertyDescriptor descriptor : propertyDescriptors) {
-                args.add(context.getProperty(descriptor.getName()).evaluateAttributeExpressions(inputFlowFile).getValue());
+            for (final PropertyDescriptor descriptor : propertyDescriptors) {
+                if (descriptor.isSensitive()) {
+                    String value = context.getProperty(descriptor.getName()).evaluateAttributeExpressions(inputFlowFile).getValue();
+                    String maskedValue = IntStream.rangeClosed(0, value.length()).mapToObj(i -> "*").collect(Collectors.joining());
+                    args.add(maskedValue);
+                } else {
+                    args.add(context.getProperty(descriptor.getName()).evaluateAttributeExpressions(inputFlowFile).getValue());
+                }
+
             }
             if (args.size() > 0) {
                 final StringBuilder builder = new StringBuilder();
 
-                for ( int i = 1; i < args.size(); i++) {
-                   builder.append(args.get(i)).append("\t");
+                for (int i = 1; i < args.size(); i++) {
+                    builder.append(args.get(i)).append("\t");
                 }
                 commandArguments = builder.toString().trim();
             } else {
@@ -488,7 +496,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             FlowFile outputFlowFile = putToAttribute ? inputFlowFile : session.create(inputFlowFile);
 
             ProcessStreamWriterCallback callback = new ProcessStreamWriterCallback(ignoreStdin, bos, bis, logger,
-                    attributeName, session, outputFlowFile, process,putToAttribute,attributeSize);
+                    attributeName, session, outputFlowFile, process, putToAttribute, attributeSize);
             session.read(inputFlowFile, callback);
 
             outputFlowFile = callback.outputFlowFile;
@@ -518,7 +526,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                 logger.info("Transferring {} to {}", outputFlowFile, outputFlowFileRelationship.getName());
             } else {
                 logger.error("Transferring {} to {}. Executable command {} ended in an error: {}",
-                        outputFlowFile,outputFlowFileRelationship.getName(), executeCommand, strBldr.toString());
+                        outputFlowFile, outputFlowFileRelationship.getName(), executeCommand, strBldr.toString());
             }
 
             attributes.put("execution.status", Integer.toString(exitCode));
@@ -565,7 +573,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         byte[] outputBuffer;
         int size;
 
-        public ProcessStreamWriterCallback(boolean ignoreStdin, OutputStream stdinWritable, InputStream stdoutReadable,ComponentLog logger, String attributeName,
+        public ProcessStreamWriterCallback(boolean ignoreStdin, OutputStream stdinWritable, InputStream stdoutReadable, ComponentLog logger, String attributeName,
                                            ProcessSession session, FlowFile outputFlowFile, Process process, boolean putToAttribute, int attributeSize) {
             this.ignoreStdin = ignoreStdin;
             this.stdinWritable = stdinWritable;
@@ -590,7 +598,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                     // the actual size
                     if (longSize > attributeSize) { // Explicit cast for readability
                         size = attributeSize;
-                    } else{
+                    } else {
                         size = (int) longSize; // Note: safe cast, longSize is limited by attributeSize
                     }
 
