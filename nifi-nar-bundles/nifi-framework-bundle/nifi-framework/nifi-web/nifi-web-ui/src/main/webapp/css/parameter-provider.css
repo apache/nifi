@@ -363,6 +363,25 @@ span.parameter-provider-referencing-component-name {
     margin-top: 1px;
 }
 
+#selectable-parameters-table input[type="checkbox"].disabled:before {
+    content: url(../images/inputCheckbox.png);
+    opacity: .5;
+    cursor: not-allowed;
+    clip-path: polygon(0% -16%, 50% -16%, 50% 104%, 0% 104%);
+    position: absolute;
+    margin-left: 1px;
+    margin-top: 2px;
+}
+
+#selectable-parameters-table input[checked="checked"].disabled:before {
+    content: url(../images/inputCheckbox.png);
+    opacity: .5;
+    cursor: not-allowed;
+    clip-path: polygon(50% -16%, 100% -16%, 100% 116%, 50% 116%);
+    margin-left: -11px;
+    margin-top: 1px;
+}
+
 #parameter-groups-table .slick-pane-top .slick-viewport-top .grid-canvas-top,
 #selectable-parameters-table .slick-pane-top .slick-viewport .grid-canvas-top {
     width: 100% !important;

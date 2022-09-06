@@ -2063,6 +2063,24 @@
         var parameterProvidersActionFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
 
+            var hasReadWritePermissions = true;
+            if (dataContext.component.referencingParameterContexts) {
+                // var refParamContextPermissions = {};
+                var refParamContextPermissions = [];
+                $.each(dataContext.component.referencingParameterContexts, function (i, refParamContext) {
+                    refParamContextPermissions.push(refParamContext.permissions.canRead);
+                    // if this hits false, then set to false and break
+                    refParamContextPermissions.push(refParamContext.permissions.canWrite);
+                })
+
+                for (var i = 0; i < refParamContextPermissions.length; i++) {
+                    if (refParamContextPermissions[i] === false) {
+                        hasReadWritePermissions = false;
+                        break;
+                    }
+                }
+            }
+
             var canWrite = dataContext.permissions.canWrite;
             var canRead = dataContext.permissions.canRead;
 
@@ -2071,7 +2089,7 @@
             if (canRead && canWrite) {
                 markup += '<div title="Edit" class="pointer edit-parameter-provider fa fa-pencil"></div>';
 
-                if (!hasErrors) {
+                if (hasReadWritePermissions && !hasErrors) {
                     markup += '<div title="Fetch Parameters" class="pointer fetch-parameter-provider fa fa-arrow-circle-down"></div>';
                 }
             }
@@ -2709,6 +2727,10 @@
             var reportingTasksGrid = $('#reporting-tasks-table').data('gridInstance');
             if (nfCommon.isDefinedAndNotNull(reportingTasksGrid)) {
                 reportingTasksGrid.resizeCanvas();
+            }
+            var parameterProvidersGrid = $('#parameter-providers-table').data('gridInstance');
+            if (nfCommon.isDefinedAndNotNull(parameterProvidersGrid)) {
+                parameterProvidersGrid.resizeCanvas();
             }
         },
 

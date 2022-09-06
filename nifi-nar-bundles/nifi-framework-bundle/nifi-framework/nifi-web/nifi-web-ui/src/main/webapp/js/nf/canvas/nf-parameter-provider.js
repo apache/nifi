@@ -35,9 +35,10 @@
                 'nf.Processor',
                 'nf.ProcessGroup',
                 'nf.ParameterContexts',
-                'nf.ProcessGroupConfiguration'],
-            function ($, Slick, nfErrorHandler, nfCommon, nfCanvasUtils, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi, nfVerify, nfProcessor, nfProcessGroup, nfParameterContexts, nfProcessGroupConfiguration) {
-                return (nf.ParameterProvider = factory($, Slick, nfErrorHandler, nfCommon, nfCanvasUtils, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi, nfVerify, nfProcessor, nfProcessGroup, nfParameterContexts, nfProcessGroupConfiguration));
+                'nf.ProcessGroupConfiguration',
+                'lodash'],
+            function ($, Slick, nfErrorHandler, nfCommon, nfCanvasUtils, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi, nfVerify, nfProcessor, nfProcessGroup, nfParameterContexts, nfProcessGroupConfiguration, _) {
+                return (nf.ParameterProvider = factory($, Slick, nfErrorHandler, nfCommon, nfCanvasUtils, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi, nfVerify, nfProcessor, nfProcessGroup, nfParameterContexts, nfProcessGroupConfiguration, _));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ParameterProvider =
@@ -57,7 +58,8 @@
                 require('nf.Processor'),
                 require('nf.ProcessGroup'),
                 require('nf.ParameterContexts'),
-                require('nf.ProcessGroupConfiguration')));
+                require('nf.ProcessGroupConfiguration'),
+                require('lodash')));
     } else {
         nf.ParameterProvider = factory(root.$,
             root.Slick,
@@ -75,9 +77,10 @@
             root.nf.Processor,
             root.nf.ProcessGroup,
             root.nf.ParameterContexts,
-            root.nf.ProcessGroupConfiguration);
+            root.nf.ProcessGroupConfiguration,
+            root._);
     }
-}(this, function ($, Slick, nfErrorHandler, nfCommon, nfCanvasUtils, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi, nfVerify, nfProcessor, nfProcessGroup, nfParameterContexts, nfProcessGroupConfiguration) {
+}(this, function ($, Slick, nfErrorHandler, nfCommon, nfCanvasUtils, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi, nfVerify, nfProcessor, nfProcessGroup, nfParameterContexts, nfProcessGroupConfiguration, _) {
     'use strict';
 
     var nfSettings;
@@ -514,13 +517,13 @@
                     // update the progress/steps
                     populateFetchParametersUpdateStep(updateRequest.updateSteps, cancelled, errored);
 
-                    // show update steps
-                    $('#fetch-parameters-update-status-container').show();
-
                     // if this request was cancelled, remove the update request
                     if (cancelled) {
                         deleteUpdateRequest(currentParameterProviderEntity.id, requestId);
                     } else {
+                        // show update steps
+                        $('#fetch-parameters-update-status-container').show();
+
                         if (updateRequest.complete === true) {
                             if (errored) {
                                 nfDialog.showOkDialog({
@@ -662,6 +665,8 @@
             }
 
             loadParameterGroups(updatedParameterProviderEntity);
+            // keep original group data
+            var initialFetchedGroups = getFetchedParameterGroups(updatedParameterProviderEntity);
 
             // update visibility
             $('#fetch-parameters-usage-container').show();
@@ -676,22 +681,7 @@
                     text: '#ffffff'
                 },
                 disabled: function () {
-                    var disabled = true;
-
-                    if (!updatedParameterProviderEntity.component.referencingParameterContexts) {
-                        var groupsGrid = $('#parameter-groups-table').data('gridInstance');
-                        var groupsData = groupsGrid.getData();
-
-                        $.each(groupsData.getItems(), function (_, group) {
-                            if (group.createNewParameterContext) {
-                                disabled = false;
-                            }
-                        })
-                    } else {
-                        disabled = false;
-                    }
-
-                    return disabled;
+                    return hasGroupsChanged(updatedParameterProviderEntity, initialFetchedGroups);
                 },
                 handler: {
                     click: function () {
@@ -737,6 +727,50 @@
         });
     };
 
+    var hasGroupsChanged = function (updatedParameterProviderEntity, initialFetchedGroups) {
+        // affected referencing components
+        if (updatedParameterProviderEntity.component.affectedComponents) {
+            for (var p of updatedParameterProviderEntity.component.affectedComponents) {
+                if (!p.permissions.canWrite) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        var groupsData = $('#parameter-groups-table').data('gridInstance').getData();
+        var groups = groupsData.getItems();
+
+        // new parameter contexts
+        for (var g of groups) {
+            if (g.createNewParameterContext) {
+                return false;
+            }
+        }
+
+        // sensitive parameters
+        for (var j = 0; j < initialFetchedGroups.length; j++) {
+
+            // form the initial group sensitivities
+            var initialGroupParamSensitivity = {};
+            for (var param in initialFetchedGroups[j].parameterSensitivities) {
+                initialGroupParamSensitivity[param] = initialFetchedGroups[j].parameterSensitivities[param] ? initialFetchedGroups[j].parameterSensitivities[param] : SENSITIVE;
+            }
+
+            for (var key in groups[j].parameterSensitivities) {
+                if (groups[j].parameterSensitivities[key] === null) {
+                    break;
+                }
+
+                if (!_.isEqual(initialGroupParamSensitivity, groups[j].parameterSensitivities)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    };
+
     /**
      * Loads the specified fetched groups.
      *
@@ -754,18 +788,19 @@
 
             var parameterGroups = [];
             $.each(parameterProviderGroupEntity.component.parameterGroupConfigurations, function (i, groupConfig) {
-                var isReferencingParameterContext = parameterProviderGroupEntity.component.referencingParameterContexts
+                var referencingParameterContext = parameterProviderGroupEntity.component.referencingParameterContexts
                     ? isReferencingParamContext(parameterProviderGroupEntity.component.referencingParameterContexts, groupConfig.parameterContextName)
                     : false;
 
                 var group = {
                     id: groupCount++,
                     hidden: false,
-                    isParameterContext: isReferencingParameterContext,
+                    isParameterContext: referencingParameterContext ? true : false,
                     name: groupConfig.groupName,
                     parameterContextName: groupConfig.parameterContextName,
                     parameterSensitivities: groupConfig.parameterSensitivities,
-                    referencingParameterContexts: groupConfig.referencingParameterContexts ? groupConfig.referencingParameterContexts : null
+                    referencingParameterContexts: groupConfig.referencingParameterContexts ? groupConfig.referencingParameterContexts : null,
+                    enableSelectableParameters: referencingParameterContext ? referencingParameterContext.permissions.canWrite : false
                 };
 
                 parameterGroups.push({
@@ -792,14 +827,14 @@
      * @returns {boolean}
      */
     var isReferencingParamContext = function (referencingParameterContexts, parameterContextName) {
-        var isReferencingParamContext = false;
-        $.each(referencingParameterContexts, function (_, paramContext) {
+        var referencingParamContext = null;
+        $.each(referencingParameterContexts, function (i, paramContext) {
             if (paramContext.component.name.includes(parameterContextName)) {
-                return isReferencingParamContext = true;
+                referencingParamContext = paramContext;
             }
         })
 
-        return isReferencingParamContext;
+        return referencingParamContext;
     }
 
     /**
@@ -1168,7 +1203,7 @@
 
         $.each(parameterProviderComponent.referencingParameterContexts, function (_, refParameterContextComponent) {
             // check the access policy for this referencing component
-            if (nfCommon.isDefinedAndNotNull(parameterProviderEntity.permissions) && parameterProviderEntity.permissions.canRead === false) {
+            if (refParameterContextComponent.permissions.canRead === false) {
                 var unauthorizedReferencingComponent = $('<div class="unset"></div>').text(refParameterContextComponent.id);
                 unauthorized.append(unauthorizedReferencingComponent);
             } else {
@@ -1178,7 +1213,7 @@
                     .text(referencingComponent.name)
                     .on('click', function () {
                         // show the component
-                        nfParameterContexts.showParameterContext(referencingComponent.id, null, referencingComponent.name);
+                        nfParameterContexts.showParameterContexts(referencingComponent.id);
 
                         // close the dialog and shell
                         parameterProviderReferencingComponentsContainer.closest('.dialog').modal('hide');
@@ -1250,6 +1285,30 @@
                 .attr('title', parameterContextNames.join(', '))
                 .text(parameterContextNames.join(', '));
         }
+    }
+
+    var getFetchedParameterGroups = function (parameterProviderGroupEntity) {
+        var parameterGroups = [];
+        $.each(parameterProviderGroupEntity.component.parameterGroupConfigurations, function (i, groupConfig) {
+            var referencingParameterContext = parameterProviderGroupEntity.component.referencingParameterContexts
+                ? isReferencingParamContext(parameterProviderGroupEntity.component.referencingParameterContexts, groupConfig.parameterContextName)
+                : false;
+
+            var index = 0;
+            var group = {
+                id: index++,
+                hidden: false,
+                isParameterContext: referencingParameterContext ? true : false,
+                name: groupConfig.groupName,
+                parameterContextName: groupConfig.parameterContextName,
+                parameterSensitivities: groupConfig.parameterSensitivities,
+                referencingParameterContexts: groupConfig.referencingParameterContexts ? groupConfig.referencingParameterContexts : null,
+                enableSelectableParameters: referencingParameterContext ? referencingParameterContext.permissions.canWrite : false
+            };
+
+            parameterGroups.push(group);
+        });
+        return parameterGroups;
     }
 
     /**
@@ -1429,6 +1488,9 @@
             // get the active group's parameters to populate the selectable parameters container
             loadSelectableParameters(updatedGroup.id, updatedGroup.parameterSensitivities);
 
+            // disable selectable parameters
+            updateSelectableParametersCheckboxStates(updatedGroup);
+
             $('#parameters-container').show();
             $('#selectable-parameters-container').show();
             $('#fetched-parameters-container').hide();
@@ -1577,6 +1639,27 @@
         // finish updating the group table
         groupsData.endUpdate();
         groupsData.reSort();
+    };
+
+    var updateSelectableParametersCheckboxStates = function (parameterGroup) {
+        var headerCheckbox = $('#selectable-parameters-table .slick-column-name input');
+        var rowCheckbox = $('#selectable-parameters-table .slick-cell input');
+
+        if (!parameterGroup.enableSelectableParameters) {
+            // disable
+            headerCheckbox.addClass('disabled');
+            headerCheckbox.prop('disabled', true);
+
+            rowCheckbox.addClass('disabled');
+            rowCheckbox.prop('disabled', true);
+        } else {
+            // enable
+            headerCheckbox.removeClass('disabled');
+            headerCheckbox.prop('disabled', false);
+
+            rowCheckbox.removeClass('disabled');
+            rowCheckbox.prop('disabled', false);
+        }
     };
 
     /**
@@ -1874,6 +1957,14 @@
                 columnId: args.sortCol.id,
                 sortAsc: args.sortAsc
             }, selectableParametersData);
+
+            // get the currently selected group
+            var groupsGrid = $('#parameter-groups-table').data('gridInstance');
+            var groupsData = groupsGrid.getData();
+            var selectedGroupId = groupsGrid.getSelectedRows();
+            var currentGroup = groupsData.getItem(selectedGroupId);
+
+            updateSelectableParametersCheckboxStates(currentGroup);
         });
 
         selectableParametersGrid.onSelectedRowsChanged.subscribe(function (e, args) {
@@ -1931,6 +2022,8 @@
                 if (nfCommon.isDefinedAndNotNull(groupToUpdate)) {
                     groupToUpdate.parameterSensitivities = parametersToUpdate;
                 }
+
+                $('#fetch-parameters-dialog').modal('refreshButtons');
             }
         })
 
