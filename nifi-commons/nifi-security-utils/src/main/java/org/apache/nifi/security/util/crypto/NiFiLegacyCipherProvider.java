@@ -21,6 +21,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.SecureRandom;
 import javax.crypto.Cipher;
+
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -40,8 +43,11 @@ import org.slf4j.LoggerFactory;
 public class NiFiLegacyCipherProvider extends OpenSSLPKCS5CipherProvider implements PBECipherProvider {
     private static final Logger logger = LoggerFactory.getLogger(NiFiLegacyCipherProvider.class);
 
+    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(NiFiLegacyCipherProvider.class);
+
     // Legacy magic number value
     private static final int ITERATION_COUNT = 1000;
+
 
     /**
      * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived using the NiFi legacy code, based on @see org.apache.nifi.crypto
@@ -57,6 +63,7 @@ public class NiFiLegacyCipherProvider extends OpenSSLPKCS5CipherProvider impleme
      */
     @Override
     public Cipher getCipher(EncryptionMethod encryptionMethod, String password, byte[] salt, int keyLength, boolean encryptMode) throws Exception {
+        deprecationLogger.warn("Insecure Cipher Provider Algorithm [{}] cipher requested", encryptionMethod.getAlgorithm());
         try {
             // This method is defined in the OpenSSL implementation and just uses a locally-overridden iteration count
             return getInitializedCipher(encryptionMethod, password, salt, encryptMode);
@@ -68,6 +75,7 @@ public class NiFiLegacyCipherProvider extends OpenSSLPKCS5CipherProvider impleme
     }
 
     public byte[] generateSalt(EncryptionMethod encryptionMethod) {
+        deprecationLogger.warn("Insecure Cipher Provider Algorithm [{}] generate salt requested", encryptionMethod.getAlgorithm());
         byte[] salt = new byte[calculateSaltLength(encryptionMethod)];
         new SecureRandom().nextBytes(salt);
         return salt;
@@ -106,6 +114,7 @@ public class NiFiLegacyCipherProvider extends OpenSSLPKCS5CipherProvider impleme
      * @return the salt
      */
     public byte[] readSalt(EncryptionMethod encryptionMethod, InputStream in) throws IOException {
+        deprecationLogger.warn("Insecure Cipher Provider Algorithm [{}] read salt requested", encryptionMethod.getAlgorithm());
         if (in == null) {
             throw new IllegalArgumentException("Cannot read salt from null InputStream");
         }
@@ -122,6 +131,7 @@ public class NiFiLegacyCipherProvider extends OpenSSLPKCS5CipherProvider impleme
 
     @Override
     public void writeSalt(byte[] salt, OutputStream out) throws IOException {
+        deprecationLogger.warn("Insecure Cipher Provider write salt requested");
         if (out == null) {
             throw new IllegalArgumentException("Cannot write salt to null OutputStream");
         }

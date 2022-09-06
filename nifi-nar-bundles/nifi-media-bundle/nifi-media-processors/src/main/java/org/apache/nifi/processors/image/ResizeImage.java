@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.image;
 
+import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Transparency;
@@ -88,6 +89,15 @@ public class ResizeImage extends AbstractProcessor {
         .allowableValues(RESIZE_DEFAULT, RESIZE_FAST, RESIZE_SMOOTH, RESIZE_REPLICATE, RESIZE_AREA_AVERAGING)
         .defaultValue(RESIZE_DEFAULT.getValue())
         .build();
+    static final PropertyDescriptor KEEP_RATIO = new PropertyDescriptor.Builder()
+        .displayName("Maintain aspect ratio")
+        .name("keep-ratio")
+        .description("Specifies if the ratio of the input image should be maintained")
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .required(true)
+        .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -104,6 +114,7 @@ public class ResizeImage extends AbstractProcessor {
         properties.add(IMAGE_WIDTH);
         properties.add(IMAGE_HEIGHT);
         properties.add(SCALING_ALGORITHM);
+        properties.add(KEEP_RATIO);
         return properties;
     }
 
@@ -119,16 +130,6 @@ public class ResizeImage extends AbstractProcessor {
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
-            return;
-        }
-
-        final int width, height;
-        try {
-            width = context.getProperty(IMAGE_WIDTH).evaluateAttributeExpressions(flowFile).asInteger();
-            height = context.getProperty(IMAGE_HEIGHT).evaluateAttributeExpressions(flowFile).asInteger();
-        } catch (final NumberFormatException nfe) {
-            getLogger().error("Failed to resize {} due to {}", new Object[] { flowFile, nfe });
-            session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
@@ -176,6 +177,25 @@ public class ResizeImage extends AbstractProcessor {
             return;
         }
 
+        final boolean keepRatio = context.getProperty(KEEP_RATIO).evaluateAttributeExpressions(flowFile).asBoolean();
+
+        int width, height;
+        try {
+            width = context.getProperty(IMAGE_WIDTH).evaluateAttributeExpressions(flowFile).asInteger();
+            height = context.getProperty(IMAGE_HEIGHT).evaluateAttributeExpressions(flowFile).asInteger();
+
+            if(keepRatio) {
+                Dimension finalDimension = getScaledDimension(image.getWidth(), image.getHeight(), width, height);
+                width = finalDimension.width;
+                height = finalDimension.height;
+            }
+
+        } catch (final NumberFormatException nfe) {
+            getLogger().error("Failed to resize {} due to {}", new Object[] { flowFile, nfe });
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        }
+
         try (final OutputStream out = session.write(flowFile)) {
             final Image scaledImage = image.getScaledInstance(width, height, hints);
             final BufferedImage scaledBufferedImg;
@@ -207,4 +227,12 @@ public class ResizeImage extends AbstractProcessor {
         session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
         session.transfer(flowFile, REL_SUCCESS);
     }
+
+    public Dimension getScaledDimension(int originalWidth, int originalHeight, int boundWidth, int boundHeight) {
+        double widthRatio = ((double) boundWidth) / originalWidth;
+        double heightRatio = ((double) boundHeight) / originalHeight;
+        double ratio = Math.min(widthRatio, heightRatio);
+        return new Dimension((int) (originalWidth  * ratio), (int) (originalHeight * ratio));
+    }
+
 }

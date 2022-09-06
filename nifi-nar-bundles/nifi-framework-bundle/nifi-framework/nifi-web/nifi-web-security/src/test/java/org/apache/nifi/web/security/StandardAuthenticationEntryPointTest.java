@@ -25,10 +25,10 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
 
 import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -68,7 +68,7 @@ class StandardAuthenticationEntryPointTest {
     }
 
     @Test
-    void testCommenceAuthenticationServiceException() throws ServletException, IOException {
+    void testCommenceAuthenticationServiceException() throws IOException {
         final AuthenticationException exception = new AuthenticationServiceException(FAILED);
 
         authenticationEntryPoint.commence(request, response, exception);
@@ -85,7 +85,7 @@ class StandardAuthenticationEntryPointTest {
     }
 
     @Test
-    void testCommenceOAuth2AuthenticationException() throws ServletException, IOException {
+    void testCommenceOAuth2AuthenticationException() throws IOException {
         final OAuth2AuthenticationException exception = new OAuth2AuthenticationException(FAILED);
 
         authenticationEntryPoint.commence(request, response, exception);
@@ -105,7 +105,26 @@ class StandardAuthenticationEntryPointTest {
     }
 
     @Test
-    void testCommenceRemoveCookie() throws ServletException, IOException {
+    void testCommenceInvalidBearerTokenExceptionExpired() throws IOException {
+        final InvalidBearerTokenException exception = new InvalidBearerTokenException(StandardAuthenticationEntryPoint.EXPIRED_JWT);
+
+        authenticationEntryPoint.commence(request, response, exception);
+
+        assertEquals(HttpServletResponse.SC_UNAUTHORIZED, response.getStatus());
+        final String authenticateHeader = response.getHeader(StandardAuthenticationEntryPoint.AUTHENTICATE_HEADER);
+        assertNotNull(authenticateHeader);
+        assertTrue(authenticateHeader.startsWith(StandardAuthenticationEntryPoint.BEARER_HEADER), "Bearer header not found");
+        assertTrue(authenticateHeader.contains(StandardAuthenticationEntryPoint.EXPIRED_JWT), "Header error message not found");
+
+        final Cookie cookie = response.getCookie(ApplicationCookieName.AUTHORIZATION_BEARER.getCookieName());
+        assertNull(cookie);
+
+        final String content = response.getContentAsString();
+        assertEquals(StandardAuthenticationEntryPoint.SESSION_EXPIRED, content);
+    }
+
+    @Test
+    void testCommenceRemoveCookie() throws IOException {
         final AuthenticationException exception = new AuthenticationServiceException(FAILED);
 
         final Cookie cookie = new Cookie(ApplicationCookieName.AUTHORIZATION_BEARER.getCookieName(), BEARER_TOKEN);
@@ -117,7 +136,7 @@ class StandardAuthenticationEntryPointTest {
     }
 
     @Test
-    void testCommenceRemoveCookieForwardedPath() throws ServletException, IOException {
+    void testCommenceRemoveCookieForwardedPath() throws IOException {
         final AuthenticationException exception = new AuthenticationServiceException(FAILED);
 
         final ServletContext servletContext = request.getServletContext();

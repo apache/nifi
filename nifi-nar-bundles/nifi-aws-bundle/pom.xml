@@ -29,7 +29,7 @@
         <!-- keep AWS 1.x until NIFI-8287 -->
         <aws-java-sdk-version>1.12.267</aws-java-sdk-version>
         <!-- keep KCL 1.x until NIFI-8531 (blocked by NIFI-8287) -->
-        <aws-kinesis-client-library-version>1.14.7</aws-kinesis-client-library-version>
+        <aws-kinesis-client-library-version>1.14.8</aws-kinesis-client-library-version>
     </properties>
 
     <dependencyManagement>

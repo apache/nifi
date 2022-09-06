@@ -63,6 +63,7 @@
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
                 <include>nifi-registry-properties-loader</include>
+                <include>software.amazon.awssdk:*</include>
             </includes>
         </dependencySet>
 

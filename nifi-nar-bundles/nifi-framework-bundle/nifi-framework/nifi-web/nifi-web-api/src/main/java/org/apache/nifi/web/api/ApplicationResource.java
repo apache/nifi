@@ -371,7 +371,7 @@ public abstract class ApplicationResource {
      */
     protected boolean isTwoPhaseRequest(final HttpServletRequest httpServletRequest) {
         final String transactionId = httpServletRequest.getHeader(RequestReplicator.REQUEST_TRANSACTION_ID_HEADER);
-        return transactionId != null && isConnectedToCluster();
+        return transactionId != null && isClustered();
     }
 
     /**
