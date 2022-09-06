@@ -45,7 +45,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.model.ValidationResult;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -114,7 +113,6 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
             new PropertyDescriptor.Builder()
                     .name("Host")
                     .description("The host of IoTDB.")
-                    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                     .required(true)
                     .build();
 
@@ -123,7 +121,6 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
                     .name("Port")
                     .description("The port of IoTDB.")
                     .defaultValue(String.valueOf(DEFAULT_IOTDB_PORT))
-                    .addValidator(StandardValidators.PORT_VALIDATOR)
                     .required(true)
                     .build();
 
@@ -131,7 +128,6 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
             new PropertyDescriptor.Builder()
                     .name("Username")
                     .description("Username to access the IoTDB.")
-                    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                     .required(true)
                     .build();
 
@@ -139,7 +135,6 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
             new PropertyDescriptor.Builder()
                     .name("Password")
                     .description("Password to access the IoTDB.")
-                    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                     .required(true)
                     .sensitive(true)
                     .build();
