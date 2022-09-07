@@ -65,8 +65,8 @@ public class IcebergFileAppenderFactory implements FileAppenderFactory<Record> {
                     return Avro.write(outputFile)
                             .schema(schema)
                             .createWriterFunc(ignore -> new IcebergAvroWriter(recordSchema))
-                            .metricsConfig(metricsConfig)
                             .setAll(table.properties())
+                            .metricsConfig(metricsConfig)
                             .overwrite()
                             .build();
 
@@ -99,8 +99,7 @@ public class IcebergFileAppenderFactory implements FileAppenderFactory<Record> {
     @Override
     public DataWriter<Record> newDataWriter(EncryptedOutputFile outputFile, FileFormat format, StructLike partition) {
         return new DataWriter<>(
-                newAppender(outputFile.encryptingOutputFile(), format), format,
-                outputFile.encryptingOutputFile().location(), spec, partition, outputFile.keyMetadata());
+                newAppender(outputFile.encryptingOutputFile(), format), format, outputFile.encryptingOutputFile().location(), spec, partition, outputFile.keyMetadata());
     }
 
     @Override

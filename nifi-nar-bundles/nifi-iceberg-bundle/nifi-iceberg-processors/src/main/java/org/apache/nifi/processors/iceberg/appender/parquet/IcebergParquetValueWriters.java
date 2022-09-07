@@ -17,7 +17,7 @@
  */
 package org.apache.nifi.processors.iceberg.appender.parquet;
 
-import com.google.common.base.Preconditions;
+import org.apache.commons.lang.Validate;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.iceberg.parquet.ParquetValueReaders;
 import org.apache.iceberg.parquet.ParquetValueWriter;
@@ -79,12 +79,12 @@ public class IcebergParquetValueWriters {
     }
 
     static ParquetValueWriters.PrimitiveWriter<BigDecimal> decimalAsInteger(ColumnDescriptor desc, int precision, int scale) {
-        Preconditions.checkArgument(precision <= 9, "Cannot write decimal value as integer with precision larger than 9, wrong precision %s", precision);
+        Validate.isTrue(precision <= 9, String.format("Cannot write decimal value as integer with precision larger than 9, wrong precision %s", precision));
         return new IntegerDecimalWriter(desc, precision, scale);
     }
 
     static ParquetValueWriters.PrimitiveWriter<BigDecimal> decimalAsLong(ColumnDescriptor desc, int precision, int scale) {
-        Preconditions.checkArgument(precision <= 18, "Cannot write decimal value as long with precision larger than 18, wrong precision %s", precision);
+        Validate.isTrue(precision <= 18, String.format("Cannot write decimal value as long with precision larger than 18, wrong precision %s", precision));
         return new LongDecimalWriter(desc, precision, scale);
     }
 
@@ -140,8 +140,8 @@ public class IcebergParquetValueWriters {
 
         @Override
         public void write(int repetitionLevel, BigDecimal value) {
-            Preconditions.checkArgument(value.scale() == scale, "Cannot write value as decimal(%s,%s), wrong scale: %s", precision, scale, value);
-            Preconditions.checkArgument(value.precision() <= precision, "Cannot write value as decimal(%s,%s), too large: %s", precision, scale, value);
+            Validate.isTrue(value.scale() == scale, String.format("Cannot write value as decimal(%s,%s), wrong scale: %s", precision, scale, value));
+            Validate.isTrue(value.precision() <= precision, String.format("Cannot write value as decimal(%s,%s), too large: %s", precision, scale, value));
 
             column.writeInteger(repetitionLevel, (int) value.unscaledValue().longValueExact());
         }
@@ -160,8 +160,8 @@ public class IcebergParquetValueWriters {
 
         @Override
         public void write(int repetitionLevel, BigDecimal value) {
-            Preconditions.checkArgument(value.scale() == scale, "Cannot write value as decimal(%s,%s), wrong scale: %s", precision, scale, value);
-            Preconditions.checkArgument(value.precision() <= precision, "Cannot write value as decimal(%s,%s), too large: %s", precision, scale, value);
+            Validate.isTrue(value.scale() == scale, String.format("Cannot write value as decimal(%s,%s), wrong scale: %s", precision, scale, value));
+            Validate.isTrue(value.precision() <= precision, String.format("Cannot write value as decimal(%s,%s), too large: %s", precision, scale, value));
 
             column.writeLong(repetitionLevel, value.unscaledValue().longValueExact());
         }
@@ -336,14 +336,14 @@ public class IcebergParquetValueWriters {
             super(writers);
             fieldGetter = new RecordFieldGetter.FieldGetter[recordFields.size()];
             for (int i = 0; i < recordFields.size(); i += 1) {
-                RecordField recordField = recordFields.get(i);
+                final RecordField recordField = recordFields.get(i);
                 fieldGetter[i] = createFieldGetter(recordField.getDataType(), recordField.getFieldName(), recordField.isNullable());
             }
         }
 
         @Override
-        protected Object get(Record struct, int index) {
-            return fieldGetter[index].getFieldOrNull(struct);
+        protected Object get(Record record, int index) {
+            return fieldGetter[index].getFieldOrNull(record);
         }
     }
 

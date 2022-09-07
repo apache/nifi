@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.processors.iceberg.appender.orc;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang.Validate;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.types.Type;
 import org.apache.iceberg.types.Types;
@@ -35,13 +35,13 @@ import java.util.Optional;
 /**
  * This class contains Orc specific visitor methods to traverse schema and build value writer list for data types.
  */
-abstract class IcebergOrcSchemaVisitor<T> {
+abstract class OrcWithNiFiSchemaVisitor<T> {
 
-    static <T> T visit(RecordSchema record, Schema schema, IcebergOrcSchemaVisitor<T> visitor) {
-        return visit(new RecordDataType(record), schema.asStruct(), visitor);
+    static <T> T visit(RecordSchema recordSchema, Schema schema, OrcWithNiFiSchemaVisitor<T> visitor) {
+        return visit(new RecordDataType(recordSchema), schema.asStruct(), visitor);
     }
 
-    private static <T> T visit(DataType dataType, Type iType, IcebergOrcSchemaVisitor<T> visitor) {
+    private static <T> T visit(DataType dataType, Type iType, OrcWithNiFiSchemaVisitor<T> visitor) {
         switch (iType.typeId()) {
             case STRUCT:
                 return visitRecord(dataType, iType.asStructType(), visitor);
@@ -92,8 +92,8 @@ abstract class IcebergOrcSchemaVisitor<T> {
         }
     }
 
-    private static <T> T visitRecord(DataType dataType, Types.StructType struct, IcebergOrcSchemaVisitor<T> visitor) {
-        Preconditions.checkArgument(dataType instanceof RecordDataType, "%s is not a RecordDataType.", dataType);
+    private static <T> T visitRecord(DataType dataType, Types.StructType struct, OrcWithNiFiSchemaVisitor<T> visitor) {
+        Validate.isTrue(dataType instanceof RecordDataType, String.format("%s is not a RecordDataType.", dataType));
         RecordDataType recordType = (RecordDataType) dataType;
 
         int fieldSize = struct.fields().size();
@@ -103,7 +103,7 @@ abstract class IcebergOrcSchemaVisitor<T> {
         for (int i = 0; i < fieldSize; i++) {
             Types.NestedField iField = nestedFields.get(i);
             Optional<RecordField> recordField = recordType.getChildSchema().getField(iField.name());
-            Preconditions.checkArgument(recordField.isPresent(), "NestedField: %s is not found in DataType: %s", iField, recordType);
+            Validate.isTrue(recordField.isPresent(), String.format("NestedField: %s is not found in DataType: %s", iField, recordType));
 
             visitor.beforeField(iField);
             try {

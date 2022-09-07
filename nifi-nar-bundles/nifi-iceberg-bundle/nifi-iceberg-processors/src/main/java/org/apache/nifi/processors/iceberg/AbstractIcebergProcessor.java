@@ -29,18 +29,17 @@ import org.apache.nifi.security.krb.KerberosAction;
 import org.apache.nifi.security.krb.KerberosLoginException;
 import org.apache.nifi.security.krb.KerberosUser;
 
-import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 
 /**
- * A base processor class for Kerberos aware usage.
+ * Base Iceberg processor class.
  */
-public abstract class KerberosAwareBaseProcessor extends AbstractProcessor {
+public abstract class AbstractIcebergProcessor extends AbstractProcessor {
 
     static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
             .name("kerberos-user-service")
             .displayName("Kerberos User Service")
-            .description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos")
+            .description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos.")
             .identifiesControllerService(KerberosUserService.class)
             .required(false)
             .build();
@@ -48,7 +47,7 @@ public abstract class KerberosAwareBaseProcessor extends AbstractProcessor {
     private volatile KerberosUser kerberosUser;
 
     @OnScheduled
-    public final void onScheduled(final ProcessContext context) throws IOException {
+    public final void onScheduled(final ProcessContext context) {
         final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
         if (kerberosUserService != null) {
             this.kerberosUser = kerberosUserService.createKerberosUser();

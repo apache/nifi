@@ -18,13 +18,13 @@
 package org.apache.nifi.processors.iceberg.util;
 
 import com.google.common.collect.Lists;
+import org.apache.commons.lang.Validate;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.data.GenericRecord;
 import org.apache.iceberg.data.IcebergGenerics;
 import org.apache.iceberg.data.Record;
 import org.apache.iceberg.io.CloseableIterable;
-import org.apache.iceberg.relocated.com.google.common.base.Preconditions;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -112,7 +112,7 @@ public class IcebergTestUtils {
         }
 
         public RecordsBuilder add(Object... values) {
-            Preconditions.checkArgument(schema.columns().size() == values.length, "Number of provided values and schema length should be equal.");
+            Validate.isTrue(schema.columns().size() == values.length, "Number of provided values and schema length should be equal.");
 
             GenericRecord record = GenericRecord.create(schema);
 

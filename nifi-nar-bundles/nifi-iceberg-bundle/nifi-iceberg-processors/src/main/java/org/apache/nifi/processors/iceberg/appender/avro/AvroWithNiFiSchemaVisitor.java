@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.iceberg.appender.avro;
 
-import com.google.common.base.Preconditions;
+import org.apache.commons.lang.Validate;
 import org.apache.iceberg.avro.AvroWithPartnerByStructureVisitor;
 import org.apache.iceberg.util.Pair;
 import org.apache.nifi.serialization.record.DataType;
@@ -29,7 +29,7 @@ import org.apache.nifi.serialization.record.type.RecordDataType;
 /**
  * This class contains Avro specific visitor methods to traverse schema and build value writer list for data types.
  */
-public class AvroWithNifiSchemaVisitor<T> extends AvroWithPartnerByStructureVisitor<DataType, T> {
+public class AvroWithNiFiSchemaVisitor<T> extends AvroWithPartnerByStructureVisitor<DataType, T> {
 
     @Override
     protected boolean isStringType(DataType dataType) {
@@ -43,25 +43,25 @@ public class AvroWithNifiSchemaVisitor<T> extends AvroWithPartnerByStructureVisi
 
     @Override
     protected DataType arrayElementType(DataType arrayType) {
-        Preconditions.checkArgument(arrayType instanceof ArrayDataType, "Invalid array: %s is not an array", arrayType);
+        Validate.isTrue(arrayType instanceof ArrayDataType, String.format("Invalid array: %s is not an array", arrayType));
         return ((ArrayDataType) arrayType).getElementType();
     }
 
     @Override
     protected DataType mapKeyType(DataType mapType) {
-        Preconditions.checkArgument(isMapType(mapType), "Invalid map: %s is not a map", mapType);
+        Validate.isTrue(isMapType(mapType), String.format("Invalid map: %s is not a map", mapType));
         return RecordFieldType.STRING.getDataType();
     }
 
     @Override
     protected DataType mapValueType(DataType mapType) {
-        Preconditions.checkArgument(isMapType(mapType), "Invalid map: %s is not a map", mapType);
+        Validate.isTrue(isMapType(mapType), String.format("Invalid map: %s is not a map", mapType));
         return ((MapDataType) mapType).getValueType();
     }
 
     @Override
     protected Pair<String, DataType> fieldNameAndType(DataType structType, int pos) {
-        Preconditions.checkArgument(structType instanceof RecordDataType, "Invalid struct: %s is not a struct", structType);
+        Validate.isTrue(structType instanceof RecordDataType, String.format("Invalid struct: %s is not a struct", structType));
         RecordField field = ((RecordDataType) structType).getChildSchema().getField(pos);
         return Pair.of(field.getFieldName(), field.getDataType());
     }

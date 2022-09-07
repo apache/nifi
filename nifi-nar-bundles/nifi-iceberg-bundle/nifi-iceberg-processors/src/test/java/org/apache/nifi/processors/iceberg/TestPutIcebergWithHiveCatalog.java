@@ -67,11 +67,11 @@ public class TestPutIcebergWithHiveCatalog {
     @RegisterExtension
     public ThriftMetastore metastore = new ThriftMetastore();
 
-    public static Namespace namespace = Namespace.of("test_metastore");
+    private static final Namespace namespace = Namespace.of("test_metastore");
 
-    public static TableIdentifier tableIdentifier = TableIdentifier.of(namespace, "users");
+    private static final TableIdentifier tableIdentifier = TableIdentifier.of(namespace, "users");
 
-    public static org.apache.iceberg.Schema USER_SCHEMA = new org.apache.iceberg.Schema(
+    private static final org.apache.iceberg.Schema USER_SCHEMA = new org.apache.iceberg.Schema(
             Types.NestedField.required(1, "id", Types.IntegerType.get()),
             Types.NestedField.required(2, "name", Types.StringType.get()),
             Types.NestedField.required(3, "department", Types.StringType.get())
@@ -79,7 +79,7 @@ public class TestPutIcebergWithHiveCatalog {
 
     @BeforeEach
     public void setUp() throws Exception {
-        final String avroSchema = IOUtils.toString(Files.newInputStream(Paths.get("src/test/resources/user.avsc")), StandardCharsets.UTF_8);
+        String avroSchema = IOUtils.toString(Files.newInputStream(Paths.get("src/test/resources/user.avsc")), StandardCharsets.UTF_8);
         inputSchema = new Schema.Parser().parse(avroSchema);
 
         processor = new PutIceberg();
@@ -87,9 +87,9 @@ public class TestPutIcebergWithHiveCatalog {
 
     private void initRecordReader() throws InitializationException {
         MockRecordParser readerFactory = new MockRecordParser();
-        final RecordSchema recordSchema = AvroTypeUtil.createSchema(inputSchema);
+        RecordSchema recordSchema = AvroTypeUtil.createSchema(inputSchema);
 
-        for (final RecordField recordField : recordSchema.getFields()) {
+        for (RecordField recordField : recordSchema.getFields()) {
             readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
         }
 
@@ -105,7 +105,7 @@ public class TestPutIcebergWithHiveCatalog {
     }
 
     private Catalog initCatalog(PartitionSpec spec, String fileFormat) throws InitializationException {
-        final TestHiveCatalogService catalogService = new TestHiveCatalogService(metastore.getThriftConnectionUri(), metastore.getWarehouseLocation());
+        TestHiveCatalogService catalogService = new TestHiveCatalogService(metastore.getThriftConnectionUri(), metastore.getWarehouseLocation());
         Catalog catalog = catalogService.getCatalog();
 
         Map<String, String> tableProperties = new HashMap<>();
@@ -125,7 +125,7 @@ public class TestPutIcebergWithHiveCatalog {
     @ParameterizedTest
     @ValueSource(strings = {"avro", "orc", "parquet"})
     public void onTriggerPartitioned(String fileFormat) throws Exception {
-        final PartitionSpec spec = PartitionSpec.builderFor(USER_SCHEMA)
+        PartitionSpec spec = PartitionSpec.builderFor(USER_SCHEMA)
                 .bucket("department", 3)
                 .build();
 
@@ -148,7 +148,7 @@ public class TestPutIcebergWithHiveCatalog {
                 .build();
 
         runner.assertTransferCount(PutIceberg.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
 
         String tableLocation = new URI(table.location()).getPath();
         Assertions.assertTrue(table.spec().isPartitioned());
@@ -162,7 +162,7 @@ public class TestPutIcebergWithHiveCatalog {
     @ParameterizedTest
     @ValueSource(strings = {"avro", "orc", "parquet"})
     public void onTriggerIdentityPartitioned(String fileFormat) throws Exception {
-        final PartitionSpec spec = PartitionSpec.builderFor(USER_SCHEMA)
+        PartitionSpec spec = PartitionSpec.builderFor(USER_SCHEMA)
                 .identity("department")
                 .build();
 
@@ -185,7 +185,7 @@ public class TestPutIcebergWithHiveCatalog {
                 .build();
 
         runner.assertTransferCount(PutIceberg.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
 
         String tableLocation = new URI(table.location()).getPath();
         Assertions.assertTrue(table.spec().isPartitioned());
@@ -199,7 +199,7 @@ public class TestPutIcebergWithHiveCatalog {
     @ParameterizedTest
     @ValueSource(strings = {"avro", "orc", "parquet"})
     public void onTriggerMultiLevelIdentityPartitioned(String fileFormat) throws Exception {
-        final PartitionSpec spec = PartitionSpec.builderFor(USER_SCHEMA)
+        PartitionSpec spec = PartitionSpec.builderFor(USER_SCHEMA)
                 .identity("name")
                 .identity("department")
                 .build();
@@ -223,7 +223,7 @@ public class TestPutIcebergWithHiveCatalog {
                 .build();
 
         runner.assertTransferCount(PutIceberg.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
 
         String tableLocation = new URI(table.location()).getPath();
         Assertions.assertTrue(table.spec().isPartitioned());
@@ -260,7 +260,7 @@ public class TestPutIcebergWithHiveCatalog {
                 .build();
 
         runner.assertTransferCount(PutIceberg.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
 
         Assertions.assertTrue(table.spec().isUnpartitioned());
         Assertions.assertEquals("4", flowFile.getAttribute(ICEBERG_RECORD_COUNT));

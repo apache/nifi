@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.processors.iceberg.appender.avro;
 
-import com.google.common.base.Preconditions;
 import org.apache.avro.io.Encoder;
+import org.apache.commons.lang.Validate;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.iceberg.avro.ValueWriter;
 import org.apache.iceberg.types.TypeUtil;
@@ -27,7 +27,6 @@ import org.apache.nifi.processors.iceberg.appender.RecordFieldGetter;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -87,8 +86,8 @@ public class IcebergAvroValueWriters {
         return new MapWriter<>(keyWriter, keyType, valueWriter, valueType);
     }
 
-    static ValueWriter<Object> row(List<ValueWriter<?>> writers, List<RecordField> recordFields) {
-        return new RowWriter(writers, recordFields);
+    static ValueWriter<Record> record(List<ValueWriter<?>> writers, List<RecordField> recordFields) {
+        return new RecordWriter(writers, recordFields);
     }
 
     private static class FixedWriter implements ValueWriter<Byte[]> {
@@ -101,11 +100,7 @@ public class IcebergAvroValueWriters {
 
         @Override
         public void write(Byte[] value, Encoder encoder) throws IOException {
-            Preconditions.checkArgument(
-                    value.length == length,
-                    "Cannot write byte array of length %s as fixed[%s]",
-                    value.length,
-                    length);
+            Validate.isTrue(value.length == length, String.format("Cannot write byte array of length %s as fixed[%s]", value.length, length));
 
             encoder.writeFixed(ArrayUtils.toPrimitive(value));
         }
@@ -186,7 +181,7 @@ public class IcebergAvroValueWriters {
         @SuppressWarnings("unchecked")
         public void write(T[] array, Encoder encoder) throws IOException {
             encoder.writeArrayStart();
-            int numElements = array.length;
+            final int numElements = array.length;
             encoder.setItemCount(numElements);
             for (int i = 0; i < numElements; i += 1) {
                 encoder.startItem();
@@ -213,10 +208,10 @@ public class IcebergAvroValueWriters {
         @SuppressWarnings("unchecked")
         public void write(Map<K, V> map, Encoder encoder) throws IOException {
             encoder.writeArrayStart();
-            int numElements = map.size();
+            final int numElements = map.size();
             encoder.setItemCount(numElements);
-            K[] keyArray = (K[]) map.keySet().toArray();
-            V[] valueArray = (V[]) map.values().toArray();
+            final Object[] keyArray = map.keySet().toArray();
+            final Object[] valueArray = map.values().toArray();
             for (int i = 0; i < numElements; i += 1) {
                 encoder.startItem();
                 keyWriter.write((K) keyGetter.getElementOrNull(keyArray, i), encoder);
@@ -243,10 +238,10 @@ public class IcebergAvroValueWriters {
         @SuppressWarnings("unchecked")
         public void write(Map<K, V> map, Encoder encoder) throws IOException {
             encoder.writeMapStart();
-            int numElements = map.size();
+            final int numElements = map.size();
             encoder.setItemCount(numElements);
-            Object[] keyArray = map.keySet().toArray();
-            Object[] valueArray = map.values().toArray();
+            final Object[] keyArray = map.keySet().toArray();
+            final Object[] valueArray = map.values().toArray();
             for (int i = 0; i < numElements; i += 1) {
                 encoder.startItem();
                 keyWriter.write((K) keyGetter.getElementOrNull(keyArray, i), encoder);
@@ -256,25 +251,23 @@ public class IcebergAvroValueWriters {
         }
     }
 
-    static class RowWriter implements ValueWriter<Object> {
+    static class RecordWriter implements ValueWriter<Record> {
 
         private final ValueWriter<?>[] writers;
         private final RecordFieldGetter.FieldGetter[] getters;
 
-        private RowWriter(List<ValueWriter<?>> writers, List<RecordField> recordFields) {
+        private RecordWriter(List<ValueWriter<?>> writers, List<RecordField> recordFields) {
             this.writers = (ValueWriter<?>[]) Array.newInstance(ValueWriter.class, writers.size());
             this.getters = new RecordFieldGetter.FieldGetter[writers.size()];
             for (int i = 0; i < writers.size(); i += 1) {
-                RecordField recordField = recordFields.get(i);
+                final RecordField recordField = recordFields.get(i);
                 this.writers[i] = writers.get(i);
                 this.getters[i] = createFieldGetter(recordField.getDataType(), recordField.getFieldName(), recordField.isNullable());
             }
         }
 
         @Override
-        public void write(Object row, Encoder encoder) throws IOException {
-            final Record record = DataTypeUtils.toRecord(row, "record field");
-
+        public void write(Record record, Encoder encoder) throws IOException {
             for (int i = 0; i < writers.length; i += 1) {
                 if (record.getValue(record.getSchema().getField(i)) == null) {
                     writers[i].write(null, encoder);
@@ -285,9 +278,8 @@ public class IcebergAvroValueWriters {
         }
 
         @SuppressWarnings("unchecked")
-        private <T> void write(Record row, int pos, ValueWriter<T> writer, Encoder encoder)
-                throws IOException {
-            writer.write((T) getters[pos].getFieldOrNull(row), encoder);
+        private <T> void write(Record record, int pos, ValueWriter<T> writer, Encoder encoder) throws IOException {
+            writer.write((T) getters[pos].getFieldOrNull(record), encoder);
         }
     }
 }

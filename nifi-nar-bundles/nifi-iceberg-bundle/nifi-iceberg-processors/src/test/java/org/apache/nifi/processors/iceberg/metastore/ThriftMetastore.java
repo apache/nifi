@@ -24,7 +24,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 /** A JUnit Extension that creates a Hive Metastore Thrift service backed by a Hive Metastore using an in-memory Derby database. */
 public class ThriftMetastore implements BeforeEachCallback, AfterEachCallback {
 
-    private MetastoreCore metastoreCore;
+    private final MetastoreCore metastoreCore;
 
     public ThriftMetastore() {
         metastoreCore = new MetastoreCore();

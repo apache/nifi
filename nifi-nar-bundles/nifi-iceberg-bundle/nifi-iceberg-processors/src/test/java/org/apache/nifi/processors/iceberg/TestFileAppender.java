@@ -44,9 +44,12 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -70,15 +73,25 @@ import java.util.TimeZone;
 import java.util.UUID;
 
 import static java.io.File.createTempFile;
-import static java.nio.file.Files.createTempDirectory;
-import static java.nio.file.attribute.PosixFilePermissions.asFileAttribute;
-import static java.nio.file.attribute.PosixFilePermissions.fromString;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestFileAppender {
 
-    public static final Schema STRUCT = new Schema(
+    private OutputFile tempFile;
+
+    @BeforeEach
+    public void setUp() throws Exception {
+        tempFile = Files.localOutput(createTempFile("test", null));
+    }
+
+    @AfterEach
+    public void tearDown() {
+        File file = new File(tempFile.location());
+        file.deleteOnExit();
+    }
+
+    private static final Schema STRUCT = new Schema(
             Types.NestedField.required(0, "struct", Types.StructType.of(
                     Types.NestedField.required(1, "nested_struct", Types.StructType.of(
                             Types.NestedField.required(2, "string", Types.StringType.get()),
@@ -87,7 +100,7 @@ public class TestFileAppender {
             ))
     );
 
-    public static final Schema LIST = new Schema(
+    private static final Schema LIST = new Schema(
             Types.NestedField.required(0, "list", Types.ListType.ofRequired(
                             1, Types.ListType.ofRequired(
                                     2, Types.StringType.get())
@@ -95,7 +108,7 @@ public class TestFileAppender {
             )
     );
 
-    public static final Schema MAP = new Schema(
+    private static final Schema MAP = new Schema(
             Types.NestedField.required(0, "map", Types.MapType.ofRequired(
                     1, 2, Types.StringType.get(), Types.MapType.ofRequired(
                             3, 4, Types.StringType.get(), Types.LongType.get()
@@ -103,7 +116,7 @@ public class TestFileAppender {
             ))
     );
 
-    public static final Schema PRIMITIVES = new Schema(
+    private static final Schema PRIMITIVES = new Schema(
             Types.NestedField.optional(0, "string", Types.StringType.get()),
             Types.NestedField.optional(1, "integer", Types.IntegerType.get()),
             Types.NestedField.optional(2, "float", Types.FloatType.get()),
@@ -120,46 +133,46 @@ public class TestFileAppender {
             Types.NestedField.optional(13, "uuid", Types.UUIDType.get())
     );
 
-    public static RecordSchema getStructSchema() {
-        final List<RecordField> fields = new ArrayList<>();
+    private static RecordSchema getStructSchema() {
+        List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("struct", new RecordDataType(getNestedStructSchema())));
 
         return new SimpleRecordSchema(fields);
     }
 
-    public static RecordSchema getNestedStructSchema() {
-        final List<RecordField> nestedFields = new ArrayList<>();
+    private static RecordSchema getNestedStructSchema() {
+        List<RecordField> nestedFields = new ArrayList<>();
         nestedFields.add(new RecordField("nested_struct", new RecordDataType(getNestedStructSchema2())));
 
         return new SimpleRecordSchema(nestedFields);
     }
 
-    public static RecordSchema getNestedStructSchema2() {
-        final List<RecordField> nestedFields2 = new ArrayList<>();
+    private static RecordSchema getNestedStructSchema2() {
+        List<RecordField> nestedFields2 = new ArrayList<>();
         nestedFields2.add(new RecordField("string", RecordFieldType.STRING.getDataType()));
         nestedFields2.add(new RecordField("integer", RecordFieldType.INT.getDataType()));
 
         return new SimpleRecordSchema(nestedFields2);
     }
 
-    public static RecordSchema getListSchema() {
-        final List<RecordField> fields = new ArrayList<>();
+    private static RecordSchema getListSchema() {
+        List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("list", new ArrayDataType(
                 new ArrayDataType(RecordFieldType.STRING.getDataType()))));
 
         return new SimpleRecordSchema(fields);
     }
 
-    public static RecordSchema getMapSchema() {
-        final List<RecordField> fields = new ArrayList<>();
+    private static RecordSchema getMapSchema() {
+        List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("map", new MapDataType(
                 new MapDataType(RecordFieldType.LONG.getDataType()))));
 
         return new SimpleRecordSchema(fields);
     }
 
-    public static RecordSchema getPrimitivesSchema() {
-        final List<RecordField> fields = new ArrayList<>();
+    private static RecordSchema getPrimitivesSchema() {
+        List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("string", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("integer", RecordFieldType.INT.getDataType()));
         fields.add(new RecordField("float", RecordFieldType.FLOAT.getDataType()));
@@ -178,7 +191,7 @@ public class TestFileAppender {
         return new SimpleRecordSchema(fields);
     }
 
-    public static Record setupStructTestRecord() {
+    private static Record setupStructTestRecord() {
         Map<String, Object> nestedValues2 = new HashMap<>();
         nestedValues2.put("string", "Test String");
         nestedValues2.put("integer", 10);
@@ -193,7 +206,7 @@ public class TestFileAppender {
         return new MapRecord(getStructSchema(), values);
     }
 
-    public static Record setupListTestRecord() {
+    private static Record setupListTestRecord() {
         List<String> nestedList = new ArrayList<>();
         nestedList.add("Test String");
 
@@ -206,7 +219,7 @@ public class TestFileAppender {
         return new MapRecord(getListSchema(), values);
     }
 
-    public static Record setupMapTestRecord() {
+    private static Record setupMapTestRecord() {
         Map<String, Long> nestedMap = new HashMap<>();
         nestedMap.put("nested_key", 42L);
 
@@ -219,11 +232,11 @@ public class TestFileAppender {
         return new MapRecord(getMapSchema(), values);
     }
 
-    public static Record setupPrimitivesTestRecord(RecordSchema schema) throws ParseException {
-        final String expectedTime = "2017-04-04 14:20:33.789";
-        final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("gmt"));
-        final long timeLong = dateFormat.parse(expectedTime).getTime();
+    private static Record setupPrimitivesTestRecord(RecordSchema schema) throws ParseException {
+        String expectedTime = "2017-04-04 14:20:33.789";
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        long timeLong = dateFormat.parse(expectedTime).getTime();
 
         Map<String, Object> values = new HashMap<>();
         values.put("string", "Test String");
@@ -249,11 +262,9 @@ public class TestFileAppender {
         RecordSchema nifiSchema = getPrimitivesSchema();
         Record record = setupPrimitivesTestRecord(nifiSchema);
 
-        OutputFile outputFile = Files.localOutput(createTempDirectory("test", asFileAttribute(fromString("rwxrwxrwx"))).toFile());
+        writeToAvro(PRIMITIVES, nifiSchema, record, tempFile);
 
-        writeToAvro(PRIMITIVES, nifiSchema, record, outputFile);
-
-        List<org.apache.iceberg.data.Record> results = readFromAvro(PRIMITIVES, outputFile.toInputFile());
+        List<org.apache.iceberg.data.Record> results = readFromAvro(PRIMITIVES, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
         org.apache.iceberg.data.Record resultRecord = results.get(0);
@@ -279,11 +290,9 @@ public class TestFileAppender {
         RecordSchema nifiSchema = getPrimitivesSchema();
         Record record = setupPrimitivesTestRecord(nifiSchema);
 
-        OutputFile outputFile = Files.localOutput(createTempFile("test", "orc"));
+        writeToOrc(PRIMITIVES, nifiSchema, record, tempFile);
 
-        writeToOrc(PRIMITIVES, nifiSchema, record, outputFile);
-
-        List<org.apache.iceberg.data.Record> results = readFromOrc(PRIMITIVES, outputFile.toInputFile());
+        List<org.apache.iceberg.data.Record> results = readFromOrc(PRIMITIVES, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
         org.apache.iceberg.data.Record resultRecord = results.get(0);
@@ -309,11 +318,9 @@ public class TestFileAppender {
         RecordSchema nifiSchema = getPrimitivesSchema();
         Record record = setupPrimitivesTestRecord(nifiSchema);
 
-        OutputFile outputFile = Files.localOutput(createTempDirectory("test", asFileAttribute(fromString("rwxrwxrwx"))).toFile());
+        writeToParquet(PRIMITIVES, nifiSchema, record, tempFile);
 
-        writeToParquet(PRIMITIVES, nifiSchema, record, outputFile);
-
-        List<org.apache.iceberg.data.Record> results = readFromParquet(PRIMITIVES, outputFile.toInputFile());
+        List<org.apache.iceberg.data.Record> results = readFromParquet(PRIMITIVES, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
         org.apache.iceberg.data.Record resultRecord = results.get(0);
@@ -339,11 +346,9 @@ public class TestFileAppender {
         RecordSchema nifiSchema = getStructSchema();
         Record record = setupStructTestRecord();
 
-        OutputFile outputFile = Files.localOutput(createTempDirectory("test", asFileAttribute(fromString("rwxrwxrwx"))).toFile());
+        writeToAvro(STRUCT, nifiSchema, record, tempFile);
 
-        writeToAvro(STRUCT, nifiSchema, record, outputFile);
-
-        List<org.apache.iceberg.data.Record> results = readFromAvro(STRUCT, outputFile.toInputFile());
+        List<org.apache.iceberg.data.Record> results = readFromAvro(STRUCT, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
         Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, results.get(0));
@@ -366,11 +371,9 @@ public class TestFileAppender {
         RecordSchema nifiSchema = getStructSchema();
         Record record = setupStructTestRecord();
 
-        OutputFile outputFile = Files.localOutput(createTempFile("test", "orc"));
+        writeToOrc(STRUCT, nifiSchema, record, tempFile);
 
-        writeToOrc(STRUCT, nifiSchema, record, outputFile);
-
-        List<org.apache.iceberg.data.Record> results = readFromOrc(STRUCT, outputFile.toInputFile());
+        List<org.apache.iceberg.data.Record> results = readFromOrc(STRUCT, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
         Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, results.get(0));
@@ -393,11 +396,9 @@ public class TestFileAppender {
         RecordSchema nifiSchema = getStructSchema();
         Record record = setupStructTestRecord();
 
-        OutputFile outputFile = Files.localOutput(createTempDirectory("test", asFileAttribute(fromString("rwxrwxrwx"))).toFile());
+        writeToParquet(STRUCT, nifiSchema, record, tempFile);
 
-        writeToParquet(STRUCT, nifiSchema, record, outputFile);
-
-        List<org.apache.iceberg.data.Record> results = readFromParquet(STRUCT, outputFile.toInputFile());
+        List<org.apache.iceberg.data.Record> results = readFromParquet(STRUCT, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
         Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, results.get(0));
@@ -420,11 +421,9 @@ public class TestFileAppender {
         RecordSchema nifiSchema = getListSchema();
         Record record = setupListTestRecord();
 
-        OutputFile outputFile = Files.localOutput(createTempDirectory("test", asFileAttribute(fromString("rwxrwxrwx"))).toFile());
+        writeToAvro(LIST, nifiSchema, record, tempFile);
 
-        writeToAvro(LIST, nifiSchema, record, outputFile);
-
-        List<org.apache.iceberg.data.Record> results = readFromAvro(LIST, outputFile.toInputFile());
+        List<org.apache.iceberg.data.Record> results = readFromAvro(LIST, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
         Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, results.get(0));
@@ -446,11 +445,9 @@ public class TestFileAppender {
         RecordSchema nifiSchema = getListSchema();
         Record record = setupListTestRecord();
 
-        OutputFile outputFile = Files.localOutput(createTempFile("test", "orc"));
+        writeToOrc(LIST, nifiSchema, record, tempFile);
 
-        writeToOrc(LIST, nifiSchema, record, outputFile);
-
-        List<org.apache.iceberg.data.Record> results = readFromOrc(LIST, outputFile.toInputFile());
+        List<org.apache.iceberg.data.Record> results = readFromOrc(LIST, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
         Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, results.get(0));
@@ -472,11 +469,9 @@ public class TestFileAppender {
         RecordSchema nifiSchema = getListSchema();
         Record record = setupListTestRecord();
 
-        OutputFile outputFile = Files.localOutput(createTempDirectory("test", asFileAttribute(fromString("rwxrwxrwx"))).toFile());
+        writeToParquet(LIST, nifiSchema, record, tempFile);
 
-        writeToParquet(LIST, nifiSchema, record, outputFile);
-
-        List<org.apache.iceberg.data.Record> results = readFromParquet(LIST, outputFile.toInputFile());
+        List<org.apache.iceberg.data.Record> results = readFromParquet(LIST, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
         Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, results.get(0));
@@ -498,11 +493,9 @@ public class TestFileAppender {
         RecordSchema nifiSchema = getMapSchema();
         Record record = setupMapTestRecord();
 
-        OutputFile outputFile = Files.localOutput(createTempDirectory("test", asFileAttribute(fromString("rwxrwxrwx"))).toFile());
+        writeToAvro(MAP, nifiSchema, record, tempFile);
 
-        writeToAvro(MAP, nifiSchema, record, outputFile);
-
-        List<org.apache.iceberg.data.Record> results = readFromAvro(MAP, outputFile.toInputFile());
+        List<org.apache.iceberg.data.Record> results = readFromAvro(MAP, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
         Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, results.get(0));
@@ -524,11 +517,9 @@ public class TestFileAppender {
         RecordSchema nifiSchema = getMapSchema();
         Record record = setupMapTestRecord();
 
-        OutputFile outputFile = Files.localOutput(createTempFile("test", "orc"));
+        writeToOrc(MAP, nifiSchema, record, tempFile);
 
-        writeToOrc(MAP, nifiSchema, record, outputFile);
-
-        List<org.apache.iceberg.data.Record> results = readFromOrc(MAP, outputFile.toInputFile());
+        List<org.apache.iceberg.data.Record> results = readFromOrc(MAP, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
         Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, results.get(0));
@@ -550,11 +541,9 @@ public class TestFileAppender {
         RecordSchema nifiSchema = getMapSchema();
         Record record = setupMapTestRecord();
 
-        OutputFile outputFile = Files.localOutput(createTempDirectory("test", asFileAttribute(fromString("rwxrwxrwx"))).toFile());
+        writeToParquet(MAP, nifiSchema, record, tempFile);
 
-        writeToParquet(MAP, nifiSchema, record, outputFile);
-
-        List<org.apache.iceberg.data.Record> results = readFromParquet(MAP, outputFile.toInputFile());
+        List<org.apache.iceberg.data.Record> results = readFromParquet(MAP, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
         Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, results.get(0));
@@ -572,37 +561,31 @@ public class TestFileAppender {
     }
 
     @Test
-    public void testSchemaMismatchAvro() throws IOException {
+    public void testSchemaMismatchAvro() {
         RecordSchema nifiSchema = getListSchema();
         Record record = setupListTestRecord();
 
-        OutputFile outputFile = Files.localOutput(createTempDirectory("test", asFileAttribute(fromString("rwxrwxrwx"))).toFile());
-
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> writeToAvro(STRUCT, nifiSchema, record, outputFile));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> writeToAvro(STRUCT, nifiSchema, record, tempFile));
         assertTrue(e.getMessage().contains("Structs do not match: field list != struct"));
     }
 
     @Test
-    public void testSchemaMismatchOrc() throws IOException {
+    public void testSchemaMismatchOrc() {
         RecordSchema nifiSchema = getListSchema();
         Record record = setupListTestRecord();
 
-        OutputFile outputFile = Files.localOutput(createTempFile("test", "orc"));
-
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> writeToOrc(STRUCT, nifiSchema, record, outputFile));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> writeToOrc(STRUCT, nifiSchema, record, tempFile));
         assertTrue(e.getMessage().contains(
                 "NestedField: 0: struct: required struct<1: nested_struct: required struct<2: string: required string, 3: integer: required int>> is not found in DataType: RECORD"));
     }
 
     @Test
-    public void testSchemaMismatchParquet() throws IOException {
+    public void testSchemaMismatchParquet() {
         RecordSchema nifiSchema = getListSchema();
         Record record = setupListTestRecord();
 
-        OutputFile outputFile = Files.localOutput(createTempDirectory("test", asFileAttribute(fromString("rwxrwxrwx"))).toFile());
-
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> writeToParquet(STRUCT, nifiSchema, record, outputFile));
-        assertTrue(e.getMessage().contains("Structs do not match: field struct != list"));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> writeToParquet(STRUCT, nifiSchema, record, tempFile));
+        assertTrue(e.getMessage().contains("Schemas do not match: field struct != list"));
     }
 
     public void writeToAvro(Schema schema, RecordSchema recordSchema, Record record, OutputFile outputFile) throws IOException {

@@ -55,10 +55,10 @@ public class IcebergParquetWriter {
 
     @SuppressWarnings("unchecked")
     public static <T> ParquetValueWriter<T> buildWriter(RecordSchema recordSchema, MessageType type) {
-        return (ParquetValueWriter<T>) ParquetWithNifiSchemaVisitor.visit(new RecordDataType(recordSchema), type, new WriteBuilder(type));
+        return (ParquetValueWriter<T>) ParquetWithNiFiSchemaVisitor.visit(new RecordDataType(recordSchema), type, new WriteBuilder(type));
     }
 
-    private static class WriteBuilder extends ParquetWithNifiSchemaVisitor<ParquetValueWriter<?>> {
+    private static class WriteBuilder extends ParquetWithNiFiSchemaVisitor<ParquetValueWriter<?>> {
 
         private final MessageType type;
 
@@ -67,14 +67,14 @@ public class IcebergParquetWriter {
         }
 
         @Override
-        public ParquetValueWriter<?> message(RecordDataType sStruct, MessageType message, List<ParquetValueWriter<?>> fieldWriters) {
-            return struct(sStruct, message.asGroupType(), fieldWriters);
+        public ParquetValueWriter<?> message(RecordDataType recordType, MessageType message, List<ParquetValueWriter<?>> fieldWriters) {
+            return struct(recordType, message.asGroupType(), fieldWriters);
         }
 
         @Override
-        public ParquetValueWriter<?> struct(RecordDataType sStruct, GroupType struct, List<ParquetValueWriter<?>> fieldWriters) {
+        public ParquetValueWriter<?> struct(RecordDataType recordType, GroupType struct, List<ParquetValueWriter<?>> fieldWriters) {
             List<Type> fields = struct.getFields();
-            List<RecordField> recordFields = sStruct.getChildSchema().getFields();
+            List<RecordField> recordFields = recordType.getChildSchema().getFields();
             List<ParquetValueWriter<?>> writers = Lists.newArrayListWithExpectedSize(fieldWriters.size());
             for (int i = 0; i < fields.size(); i += 1) {
                 writers.add(newOption(struct.getType(i), fieldWriters.get(i)));
@@ -84,18 +84,18 @@ public class IcebergParquetWriter {
         }
 
         @Override
-        public ParquetValueWriter<?> list(ArrayDataType sArray, GroupType array, ParquetValueWriter<?> elementWriter) {
+        public ParquetValueWriter<?> list(ArrayDataType listType, GroupType array, ParquetValueWriter<?> elementWriter) {
             GroupType repeated = array.getFields().get(0).asGroupType();
             String[] repeatedPath = currentPath();
 
             int repeatedD = type.getMaxDefinitionLevel(repeatedPath);
             int repeatedR = type.getMaxRepetitionLevel(repeatedPath);
 
-            return new IcebergParquetValueWriters.ArrayDataWriter<>(repeatedD, repeatedR, newOption(repeated.getType(0), elementWriter), sArray.getElementType());
+            return new IcebergParquetValueWriters.ArrayDataWriter<>(repeatedD, repeatedR, newOption(repeated.getType(0), elementWriter), listType.getElementType());
         }
 
         @Override
-        public ParquetValueWriter<?> map(MapDataType sMap, GroupType map, ParquetValueWriter<?> keyWriter, ParquetValueWriter<?> valueWriter) {
+        public ParquetValueWriter<?> map(MapDataType mapType, GroupType map, ParquetValueWriter<?> keyWriter, ParquetValueWriter<?> valueWriter) {
             GroupType repeatedKeyValue = map.getFields().get(0).asGroupType();
             String[] repeatedPath = currentPath();
 
@@ -103,7 +103,7 @@ public class IcebergParquetWriter {
             int repeatedR = type.getMaxRepetitionLevel(repeatedPath);
 
             return new IcebergParquetValueWriters.MapDataWriter<>(repeatedD, repeatedR, newOption(repeatedKeyValue.getType(0), keyWriter),
-                    newOption(repeatedKeyValue.getType(1), valueWriter), RecordFieldType.STRING.getDataType(), sMap.getValueType());
+                    newOption(repeatedKeyValue.getType(1), valueWriter), RecordFieldType.STRING.getDataType(), mapType.getValueType());
         }
 
         private ParquetValueWriter<?> newOption(Type fieldType, ParquetValueWriter<?> writer) {

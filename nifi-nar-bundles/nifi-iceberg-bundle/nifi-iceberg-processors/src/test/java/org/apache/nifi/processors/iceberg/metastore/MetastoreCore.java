@@ -53,8 +53,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static java.nio.file.Files.createTempDirectory;
-import static java.nio.file.attribute.PosixFilePermissions.asFileAttribute;
-import static java.nio.file.attribute.PosixFilePermissions.fromString;
 import static org.apache.hadoop.hive.metastore.conf.MetastoreConf.ConfVars.AUTO_CREATE_ALL;
 import static org.apache.hadoop.hive.metastore.conf.MetastoreConf.ConfVars.COMPACTOR_INITIATOR_ON;
 import static org.apache.hadoop.hive.metastore.conf.MetastoreConf.ConfVars.COMPACTOR_WORKER_THREADS;
@@ -83,7 +81,7 @@ class MetastoreCore {
     public void initialize() throws IOException, TException, InvocationTargetException, NoSuchMethodException,
             IllegalAccessException, NoSuchFieldException, SQLException {
         thriftServer = Executors.newSingleThreadExecutor();
-        tempDir = createTempDirectory("metastore", asFileAttribute(fromString("rwxrwxrwx"))).toFile();
+        tempDir = createTempDirectory("metastore").toFile();
         setupDB("jdbc:derby:" + getDerbyPath() + ";create=true");
 
         server = thriftServer();

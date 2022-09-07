@@ -17,12 +17,14 @@
  */
 package org.apache.nifi.services.iceberg;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.hive.HiveCatalog;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -33,17 +35,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Catalog service implementation that connects to a Hive metastore to keep track of Iceberg tables.
- */
-public class HiveCatalogService extends AbstractControllerService implements IcebergCatalogService {
+@Tags({"iceberg", "catalog", "service", "metastore", "hive"})
+@CapabilityDescription("Catalog service that connects to a Hive metastore to keep track of Iceberg tables.")
+public class HiveCatalogService extends AbstractCatalogService {
 
     static final PropertyDescriptor METASTORE_URI = new PropertyDescriptor.Builder()
             .name("hive-metastore-uri")
             .displayName("Hive Metastore URI")
-            .description("The URI location(s) for the Hive metastore; note that this is not the location of the Hive Server. "
-                    + "The default port for the Hive metastore is 9043. If this field is not set, then the 'hive.metastore.uris' property from any provided configuration resources "
-                    + "will be used, and if none are provided, then the default value from a default hive-site.xml will be used (usually thrift://localhost:9083).")
+            .description("The URI location(s) for the Hive metastore; note that this is not the location of the Hive Server. The default port for the Hive metastore is 9043.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.URI_LIST_VALIDATOR)
@@ -52,15 +51,16 @@ public class HiveCatalogService extends AbstractControllerService implements Ice
 
     static final PropertyDescriptor WAREHOUSE_LOCATION = new PropertyDescriptor.Builder()
             .name("warehouse-location")
-            .displayName("Warehouse location")
-            .description("Path to the location of the warehouse.")
-            .required(true)
+            .displayName("Default Warehouse Location")
+            .description("Location of default database for the warehouse. This field sets or overrides the 'hive.metastore.warehouse.dir' configuration property.")
+            .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             METASTORE_URI,
-            WAREHOUSE_LOCATION
+            WAREHOUSE_LOCATION,
+            HADOOP_CONFIGURATION_RESOURCES
     ));
 
     @Override
@@ -68,7 +68,7 @@ public class HiveCatalogService extends AbstractControllerService implements Ice
         return PROPERTIES;
     }
 
-    private Catalog catalog;
+    private HiveCatalog catalog;
 
 
     @OnEnabled
@@ -77,6 +77,13 @@ public class HiveCatalogService extends AbstractControllerService implements Ice
         final String warehouseLocation = context.getProperty(WAREHOUSE_LOCATION).evaluateAttributeExpressions().getValue();
 
         catalog = new HiveCatalog();
+
+        if (context.getProperty(HADOOP_CONFIGURATION_RESOURCES).isSet()) {
+            final String configFiles = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
+
+            final Configuration hadoopConfig = getConfigurationFromFiles(configFiles);
+            catalog.setConf(hadoopConfig);
+        }
 
         Map<String, String> properties = new HashMap<>();
         properties.put(CatalogProperties.WAREHOUSE_LOCATION, warehouseLocation);

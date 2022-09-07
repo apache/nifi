@@ -39,7 +39,7 @@ import java.util.stream.Stream;
  * Class to wrap and adapt {@link Record} to Iceberg {@link StructLike} for partition handling usage like {@link
  * org.apache.iceberg.PartitionKey#partition(StructLike)}
  */
-public class NifiRecordWrapper implements StructLike {
+public class NiFiRecordWrapper implements StructLike {
 
     private final DataType[] types;
 
@@ -48,12 +48,12 @@ public class NifiRecordWrapper implements StructLike {
     private Record record = null;
 
     @SuppressWarnings("unchecked")
-    public NifiRecordWrapper(RecordSchema schema) {
+    public NiFiRecordWrapper(RecordSchema schema) {
         this.types = schema.getDataTypes().toArray(new DataType[0]);
-        this.getters = Stream.of(types).map(NifiRecordWrapper::getter).toArray(BiFunction[]::new);
+        this.getters = Stream.of(types).map(NiFiRecordWrapper::getter).toArray(BiFunction[]::new);
     }
 
-    public NifiRecordWrapper wrap(Record record) {
+    public NiFiRecordWrapper wrap(Record record) {
         this.record = record;
         return this;
     }
@@ -85,7 +85,7 @@ public class NifiRecordWrapper implements StructLike {
                 final RecordField field = row.getSchema().getField(pos);
                 final Object value = row.getValue(field);
 
-                Timestamp timestamp = DataTypeUtils.toTimestamp(value, () -> DataTypeUtils.getDateFormat(type.getFormat()), field.getFieldName());
+                final Timestamp timestamp = DataTypeUtils.toTimestamp(value, () -> DataTypeUtils.getDateFormat(type.getFormat()), field.getFieldName());
                 return timestamp.getTime() * 1000L;
             };
         } else if (type.equals(RecordFieldType.DATE.getDataType())) {
@@ -107,8 +107,8 @@ public class NifiRecordWrapper implements StructLike {
                 return duration.toMillis() * 1000L;
             };
         } else if (type.equals(RecordFieldType.RECORD.getDataType())) {
-            RecordDataType structType = (RecordDataType) type;
-            NifiRecordWrapper nestedWrapper = new NifiRecordWrapper(structType.getChildSchema());
+            final RecordDataType structType = (RecordDataType) type;
+            final NiFiRecordWrapper nestedWrapper = new NiFiRecordWrapper(structType.getChildSchema());
             return (row, pos) -> nestedWrapper.wrap(row.getAsRecord(row.getSchema().getField(pos).getFieldName(), row.getSchema()));
         }
 

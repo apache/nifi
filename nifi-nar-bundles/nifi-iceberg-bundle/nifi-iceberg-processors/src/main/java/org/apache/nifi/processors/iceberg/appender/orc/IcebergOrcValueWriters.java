@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.processors.iceberg.appender.orc;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang.Validate;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.iceberg.FieldMetrics;
 import org.apache.iceberg.data.orc.GenericOrcWriters;
@@ -143,8 +143,8 @@ public class IcebergOrcValueWriters {
 
         @Override
         public void nonNullWrite(int rowId, BigDecimal data, ColumnVector output) {
-            Preconditions.checkArgument(data.scale() == scale, "Cannot write value as decimal(%s,%s), wrong scale: %s", precision, scale, data);
-            Preconditions.checkArgument(data.precision() <= precision, "Cannot write value as decimal(%s,%s), invalid precision: %s", precision, scale, data);
+            Validate.isTrue(data.scale() == scale, String.format("Cannot write value as decimal(%s,%s), wrong scale: %s", precision, scale, data));
+            Validate.isTrue(data.precision() <= precision, String.format("Cannot write value as decimal(%s,%s), invalid precision: %s", precision, scale, data));
 
             ((DecimalColumnVector) output).vector[rowId].setFromLongAndScale(data.unscaledValue().longValueExact(), data.scale());
         }
@@ -162,8 +162,8 @@ public class IcebergOrcValueWriters {
 
         @Override
         public void nonNullWrite(int rowId, BigDecimal data, ColumnVector output) {
-            Preconditions.checkArgument(data.scale() == scale, "Cannot write value as decimal(%s,%s), wrong scale: %s", precision, scale, data);
-            Preconditions.checkArgument(data.precision() <= precision, "Cannot write value as decimal(%s,%s), invalid precision: %s", precision, scale, data);
+            Validate.isTrue(data.scale() == scale, String.format("Cannot write value as decimal(%s,%s), wrong scale: %s", precision, scale, data));
+            Validate.isTrue(data.precision() <= precision, String.format("Cannot write value as decimal(%s,%s), invalid precision: %s", precision, scale, data));
 
             ((DecimalColumnVector) output).vector[rowId].set(HiveDecimal.create(data, false));
         }
@@ -201,7 +201,7 @@ public class IcebergOrcValueWriters {
             TimestampColumnVector columnVector = (TimestampColumnVector) output;
             columnVector.setIsUTC(true);
 
-            OffsetDateTime offsetDateTime = data.toInstant().atOffset(ZoneOffset.UTC);
+            final OffsetDateTime offsetDateTime = data.toInstant().atOffset(ZoneOffset.UTC);
             columnVector.time[rowId] = offsetDateTime.toEpochSecond() * 1_000 + offsetDateTime.getNano() / 1_000_000;
             // truncate nanos to only keep microsecond precision.
             columnVector.nanos[rowId] = (offsetDateTime.getNano() / 1_000) * 1_000;
@@ -243,7 +243,7 @@ public class IcebergOrcValueWriters {
             growColumnVector(cv.child, cv.childCount);
 
             for (int e = 0; e < cv.lengths[rowId]; ++e) {
-                Object value = elementGetter.getElementOrNull(data, e);
+                final Object value = elementGetter.getElementOrNull(data, e);
                 elementWriter.write((int) (e + cv.offsets[rowId]), (T) value, cv.child);
             }
         }
@@ -271,8 +271,8 @@ public class IcebergOrcValueWriters {
         @SuppressWarnings("unchecked")
         public void nonNullWrite(int rowId, Map<K, V> data, ColumnVector output) {
             MapColumnVector cv = (MapColumnVector) output;
-            Object[] keyArray = data.keySet().toArray();
-            Object[] valueArray = data.values().toArray();
+            final Object[] keyArray = data.keySet().toArray();
+            final Object[] valueArray = data.values().toArray();
 
             // record the length and start of the list elements
             cv.lengths[rowId] = data.size();
@@ -283,7 +283,7 @@ public class IcebergOrcValueWriters {
             growColumnVector(cv.values, cv.childCount);
             // Add each element
             for (int e = 0; e < cv.lengths[rowId]; ++e) {
-                int pos = (int) (e + cv.offsets[rowId]);
+                final int pos = (int) (e + cv.offsets[rowId]);
                 keyWriter.write(pos, (K) keyGetter.getElementOrNull(keyArray, e), cv.keys);
                 valueWriter.write(pos, (V) valueGetter.getElementOrNull(valueArray, e), cv.values);
             }

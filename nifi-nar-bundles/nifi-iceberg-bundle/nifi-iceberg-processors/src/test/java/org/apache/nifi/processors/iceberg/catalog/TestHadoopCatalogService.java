@@ -18,7 +18,6 @@
 package org.apache.nifi.processors.iceberg.catalog;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.hadoop.HadoopCatalog;
 import org.apache.nifi.controller.AbstractControllerService;
@@ -26,22 +25,15 @@ import org.apache.nifi.services.iceberg.IcebergCatalogService;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 import static java.nio.file.Files.createTempDirectory;
-import static java.nio.file.attribute.PosixFilePermissions.asFileAttribute;
-import static java.nio.file.attribute.PosixFilePermissions.fromString;
 
 public class TestHadoopCatalogService extends AbstractControllerService implements IcebergCatalogService {
 
-    private Catalog catalog;
+    private final Catalog catalog;
 
     public TestHadoopCatalogService() throws IOException {
-        File warehouseLocation = createTempDirectory("metastore", asFileAttribute(fromString("rwxrwxrwx"))).toFile();
-
-        Map<String, String> properties = new HashMap<>();
-        properties.put(CatalogProperties.WAREHOUSE_LOCATION, warehouseLocation.getAbsolutePath());
+        File warehouseLocation = createTempDirectory("metastore").toFile();
 
         catalog =  new HadoopCatalog(new Configuration(), warehouseLocation.getAbsolutePath());
     }

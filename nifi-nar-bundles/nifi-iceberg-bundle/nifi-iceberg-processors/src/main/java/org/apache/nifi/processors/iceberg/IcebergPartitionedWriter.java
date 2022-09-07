@@ -33,13 +33,13 @@ import org.apache.nifi.serialization.record.RecordSchema;
 public class IcebergPartitionedWriter extends PartitionedFanoutWriter<Record> {
 
     private final PartitionKey partitionKey;
-    private final NifiRecordWrapper wrapper;
+    private final NiFiRecordWrapper wrapper;
 
     IcebergPartitionedWriter(PartitionSpec spec, FileFormat format, FileAppenderFactory<Record> appenderFactory, OutputFileFactory fileFactory,
                              FileIO io, long targetFileSize, Schema schema, RecordSchema recordSchema) {
         super(spec, format, appenderFactory, fileFactory, io, targetFileSize);
         this.partitionKey = new PartitionKey(spec, schema);
-        this.wrapper = new NifiRecordWrapper(recordSchema);
+        this.wrapper = new NiFiRecordWrapper(recordSchema);
     }
 
     @Override

@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.processors.iceberg.appender.avro;
 
-import com.google.common.base.Preconditions;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.io.Encoder;
+import org.apache.commons.lang.Validate;
 import org.apache.iceberg.FieldMetrics;
 import org.apache.iceberg.avro.MetricsAwareDatumWriter;
 import org.apache.iceberg.avro.ValueWriter;
@@ -50,7 +50,7 @@ public class IcebergAvroWriter implements MetricsAwareDatumWriter<Record> {
     @Override
     @SuppressWarnings("unchecked")
     public void setSchema(Schema schema) {
-        this.writer = (ValueWriter<Record>) AvroWithNifiSchemaVisitor.visit(new RecordDataType(recordSchema), schema, new WriteBuilder());
+        this.writer = (ValueWriter<Record>) AvroWithNiFiSchemaVisitor.visit(new RecordDataType(recordSchema), schema, new WriteBuilder());
     }
 
     @Override
@@ -63,21 +63,21 @@ public class IcebergAvroWriter implements MetricsAwareDatumWriter<Record> {
         return writer.metrics();
     }
 
-    private static class WriteBuilder extends AvroWithNifiSchemaVisitor<ValueWriter<?>> {
+    private static class WriteBuilder extends AvroWithNiFiSchemaVisitor<ValueWriter<?>> {
 
         @Override
-        public ValueWriter<?> record(DataType structType, Schema record, List<String> names, List<ValueWriter<?>> fields) {
-            Preconditions.checkArgument(structType instanceof RecordDataType, "Invalid struct: %s is not a struct", structType);
-            return IcebergAvroValueWriters.row(fields,
+        public ValueWriter<?> record(DataType dataType, Schema record, List<String> names, List<ValueWriter<?>> fields) {
+            Validate.isTrue(dataType instanceof RecordDataType, String.format("Invalid record: %s is not a record", dataType));
+            return IcebergAvroValueWriters.record(fields,
                     IntStream.range(0, names.size())
-                            .mapToObj(i -> ((RecordDataType) structType).getChildSchema().getField(i))
+                            .mapToObj(i -> ((RecordDataType) dataType).getChildSchema().getField(i))
                             .collect(Collectors.toList()));
         }
 
         @Override
         public ValueWriter<?> union(DataType dataType, Schema union, List<ValueWriter<?>> options) {
-            Preconditions.checkArgument(options.contains(ValueWriters.nulls()), "Cannot create writer for non-option union: %s", union);
-            Preconditions.checkArgument(options.size() == 2, "Cannot create writer for non-option union: %s", union);
+            Validate.isTrue(options.contains(ValueWriters.nulls()), String.format("Cannot create writer for non-option union: %s", union));
+            Validate.isTrue(options.size() == 2, String.format("Cannot create writer for non-option union: %s", union));
             if (union.getTypes().get(0).getType() == Schema.Type.NULL) {
                 return ValueWriters.option(0, options.get(1));
             } else {

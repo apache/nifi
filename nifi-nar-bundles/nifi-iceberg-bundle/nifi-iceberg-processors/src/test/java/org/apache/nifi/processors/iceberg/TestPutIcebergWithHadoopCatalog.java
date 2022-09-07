@@ -61,11 +61,11 @@ public class TestPutIcebergWithHadoopCatalog {
     private PutIceberg processor;
     private Schema inputSchema;
 
-    public static Namespace namespace = Namespace.of("test_metastore");
+    private static final Namespace namespace = Namespace.of("test_metastore");
 
-    public static TableIdentifier tableIdentifier = TableIdentifier.of(namespace, "date");
+    private static final TableIdentifier tableIdentifier = TableIdentifier.of(namespace, "date");
 
-    public static org.apache.iceberg.Schema DATE_SCHEMA = new org.apache.iceberg.Schema(
+    private static final org.apache.iceberg.Schema DATE_SCHEMA = new org.apache.iceberg.Schema(
             Types.NestedField.required(1, "timeMicros", Types.TimeType.get()),
             Types.NestedField.required(2, "timestampMicros", Types.TimestampType.withZone()),
             Types.NestedField.required(3, "date", Types.DateType.get())
@@ -73,7 +73,7 @@ public class TestPutIcebergWithHadoopCatalog {
 
     @BeforeEach
     public void setUp() throws Exception {
-        final String avroSchema = IOUtils.toString(Files.newInputStream(Paths.get("src/test/resources/date.avsc")), StandardCharsets.UTF_8);
+        String avroSchema = IOUtils.toString(Files.newInputStream(Paths.get("src/test/resources/date.avsc")), StandardCharsets.UTF_8);
         inputSchema = new Schema.Parser().parse(avroSchema);
 
         processor = new PutIceberg();
@@ -81,9 +81,9 @@ public class TestPutIcebergWithHadoopCatalog {
 
     private void initRecordReader() throws InitializationException {
         MockRecordParser readerFactory = new MockRecordParser();
-        final RecordSchema recordSchema = AvroTypeUtil.createSchema(inputSchema);
+        RecordSchema recordSchema = AvroTypeUtil.createSchema(inputSchema);
 
-        for (final RecordField recordField : recordSchema.getFields()) {
+        for (RecordField recordField : recordSchema.getFields()) {
             readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
         }
 
@@ -99,7 +99,7 @@ public class TestPutIcebergWithHadoopCatalog {
     }
 
     private Catalog initCatalog(PartitionSpec spec, String fileFormat) throws InitializationException, IOException {
-        final TestHadoopCatalogService catalogService = new TestHadoopCatalogService();
+        TestHadoopCatalogService catalogService = new TestHadoopCatalogService();
         Catalog catalog = catalogService.getCatalog();
 
         Map<String, String> tableProperties = new HashMap<>();
@@ -119,7 +119,7 @@ public class TestPutIcebergWithHadoopCatalog {
     @ParameterizedTest
     @ValueSource(strings = {"avro", "orc", "parquet"})
     public void onTriggerYearTransform(String fileFormat) throws Exception {
-        final PartitionSpec spec = PartitionSpec.builderFor(DATE_SCHEMA)
+        PartitionSpec spec = PartitionSpec.builderFor(DATE_SCHEMA)
                 .year("date")
                 .build();
 
@@ -135,7 +135,7 @@ public class TestPutIcebergWithHadoopCatalog {
         Table table = catalog.loadTable(tableIdentifier);
 
         runner.assertTransferCount(PutIceberg.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
 
         Assertions.assertTrue(table.spec().isPartitioned());
         Assertions.assertEquals("4", flowFile.getAttribute(ICEBERG_RECORD_COUNT));
@@ -146,7 +146,7 @@ public class TestPutIcebergWithHadoopCatalog {
     @ParameterizedTest
     @ValueSource(strings = {"avro", "orc", "parquet"})
     public void onTriggerMonthTransform(String fileFormat) throws Exception {
-        final PartitionSpec spec = PartitionSpec.builderFor(DATE_SCHEMA)
+        PartitionSpec spec = PartitionSpec.builderFor(DATE_SCHEMA)
                 .month("timestampMicros")
                 .build();
 
@@ -162,7 +162,7 @@ public class TestPutIcebergWithHadoopCatalog {
         Table table = catalog.loadTable(tableIdentifier);
 
         runner.assertTransferCount(PutIceberg.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
 
         Assertions.assertTrue(table.spec().isPartitioned());
         Assertions.assertEquals("4", flowFile.getAttribute(ICEBERG_RECORD_COUNT));
@@ -174,7 +174,7 @@ public class TestPutIcebergWithHadoopCatalog {
     @ParameterizedTest
     @ValueSource(strings = {"avro", "orc", "parquet"})
     public void onTriggerDayTransform(String fileFormat) throws Exception {
-        final PartitionSpec spec = PartitionSpec.builderFor(DATE_SCHEMA)
+        PartitionSpec spec = PartitionSpec.builderFor(DATE_SCHEMA)
                 .day("timestampMicros")
                 .build();
 
@@ -190,7 +190,7 @@ public class TestPutIcebergWithHadoopCatalog {
         Table table = catalog.loadTable(tableIdentifier);
 
         runner.assertTransferCount(PutIceberg.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
 
         Assertions.assertTrue(table.spec().isPartitioned());
         Assertions.assertEquals("4", flowFile.getAttribute(ICEBERG_RECORD_COUNT));

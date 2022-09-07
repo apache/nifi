@@ -20,45 +20,53 @@ package org.apache.nifi.services.iceberg;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.hadoop.HadoopCatalog;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Catalog service implementation that can use HDFS or similar file systems that support atomic rename.
- */
-public class HadoopCatalogService extends AbstractControllerService implements IcebergCatalogService {
+@Tags({"iceberg", "catalog", "service", "hadoop", "hdfs"})
+@CapabilityDescription("Catalog service that can use HDFS or similar file systems that support atomic rename.")
+public class HadoopCatalogService extends AbstractCatalogService {
 
     static final PropertyDescriptor WAREHOUSE_PATH = new PropertyDescriptor.Builder()
             .name("warehouse-path")
-            .displayName("Warehouse path")
+            .displayName("Warehouse Path")
             .description("Path to the location of the warehouse.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.singletonList(
-            WAREHOUSE_PATH
-    );
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            WAREHOUSE_PATH,
+            HADOOP_CONFIGURATION_RESOURCES
+    ));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
     }
 
-    private Catalog catalog;
+    private HadoopCatalog catalog;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         final String warehousePath = context.getProperty(WAREHOUSE_PATH).evaluateAttributeExpressions().getValue();
 
-        Configuration conf = new Configuration();
-        catalog = new HadoopCatalog(conf, warehousePath);
+        if (context.getProperty(HADOOP_CONFIGURATION_RESOURCES).isSet()) {
+            final String configFiles = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
+
+            final Configuration hadoopConfig = getConfigurationFromFiles(configFiles);
+            catalog = new HadoopCatalog(hadoopConfig, warehousePath);
+        } else {
+            catalog = new HadoopCatalog(new Configuration(), warehousePath);
+        }
     }
 
     @Override

@@ -18,12 +18,11 @@
 package org.apache.nifi.services.iceberg;
 
 import org.apache.iceberg.catalog.Catalog;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ControllerService;
 
-@Tags({"iceberg", "catalog", "service"})
-@CapabilityDescription("Provides a basic connector to Iceberg catalog services.")
+/**
+ * Provides a basic connector to Iceberg catalog services.
+ */
 public interface IcebergCatalogService extends ControllerService {
 
     Catalog getCatalog();

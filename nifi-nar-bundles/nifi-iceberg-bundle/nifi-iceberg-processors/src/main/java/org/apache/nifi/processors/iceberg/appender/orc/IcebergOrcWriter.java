@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.processors.iceberg.appender.orc;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang.Validate;
 import org.apache.iceberg.FieldMetrics;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.data.orc.GenericOrcWriters;
@@ -43,7 +43,7 @@ public class IcebergOrcWriter implements OrcRowWriter<Record> {
     private final IcebergOrcValueWriters.RowDataWriter writer;
 
     private IcebergOrcWriter(RecordSchema rowType, Schema iSchema) {
-        this.writer = (IcebergOrcValueWriters.RowDataWriter) IcebergOrcSchemaVisitor.visit(rowType, iSchema, new WriteBuilder());
+        this.writer = (IcebergOrcValueWriters.RowDataWriter) OrcWithNiFiSchemaVisitor.visit(rowType, iSchema, new WriteBuilder());
     }
 
     public static OrcRowWriter<Record> buildWriter(RecordSchema rowType, Schema iSchema) {
@@ -52,7 +52,7 @@ public class IcebergOrcWriter implements OrcRowWriter<Record> {
 
     @Override
     public void write(Record row, VectorizedRowBatch output) {
-        Preconditions.checkArgument(row != null, "value must not be null");
+        Validate.notNull(row, "value must not be null");
         writer.writeRow(row, output);
     }
 
@@ -66,7 +66,7 @@ public class IcebergOrcWriter implements OrcRowWriter<Record> {
         return writer.metrics();
     }
 
-    private static class WriteBuilder extends IcebergOrcSchemaVisitor<OrcValueWriter<?>> {
+    private static class WriteBuilder extends OrcWithNiFiSchemaVisitor<OrcValueWriter<?>> {
 
         private final Deque<Integer> fieldIds = Lists.newLinkedList();
 
@@ -114,16 +114,12 @@ public class IcebergOrcWriter implements OrcRowWriter<Record> {
                 case LONG:
                     return GenericOrcWriters.longs();
                 case FLOAT:
-                    Preconditions.checkArgument(
-                            fieldIds.peek() != null,
-                            String.format("Cannot find field id for primitive field with type %s. This is likely because id "
-                                    + "information is not properly pushed during schema visiting.", iPrimitive));
+                    Validate.notNull(fieldIds.peek(), String.format("Cannot find field id for primitive field with type %s. " +
+                            "This is likely because id information is not properly pushed during schema visiting.", iPrimitive));
                     return GenericOrcWriters.floats(fieldIds.peek());
                 case DOUBLE:
-                    Preconditions.checkArgument(
-                            fieldIds.peek() != null,
-                            String.format("Cannot find field id for primitive field with type %s. This is likely because id "
-                                    + "information is not properly pushed during schema visiting.", iPrimitive));
+                    Validate.notNull(fieldIds.peek(), String.format("Cannot find field id for primitive field with type %s. " +
+                            "This is likely because id information is not properly pushed during schema visiting.", iPrimitive));
                     return GenericOrcWriters.doubles(fieldIds.peek());
                 case DATE:
                     return IcebergOrcValueWriters.dates();
