@@ -74,6 +74,26 @@ public class ListDropboxIT extends AbstractDropboxIT<ListDropbox>{
     }
 
     @Test
+    void testFolderIsListedById() throws Exception {
+        testRunner.setProperty(ListDropbox.FOLDER, mainFolderId);
+
+        createFile("test_file1", "test_file_content1", MAIN_FOLDER);
+        createFile("test_file11", "test_file_content11", MAIN_FOLDER + "/testFolder1");
+
+        List<String> expectedFileNames = Arrays.asList("test_file1", "test_file11");
+
+        waitForFileCreation();
+
+        testRunner.run();
+
+        List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
+
+        List<String> actualFileNames = getFilenames(successFlowFiles);
+
+        assertEquals(expectedFileNames, actualFileNames);
+    }
+
+    @Test
     void testTooYoungFilesNotListedWhenMinAgeIsSet() throws Exception {
         testRunner.setProperty(ListDropbox.MIN_AGE, "15 s");
 

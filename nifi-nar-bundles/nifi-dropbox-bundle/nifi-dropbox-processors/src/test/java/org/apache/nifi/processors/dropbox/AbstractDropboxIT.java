@@ -59,6 +59,7 @@ public abstract class AbstractDropboxIT<T extends Processor> {
     public static final String MAIN_FOLDER = "/testFolder";
     protected T testSubject;
     protected TestRunner testRunner;
+    protected String mainFolderId;
 
     private DbxClientV2 client;
 
@@ -77,7 +78,7 @@ public abstract class AbstractDropboxIT<T extends Processor> {
                 new DbxCredential(ACCESS_TOKEN, -1L, REFRESH_TOKEN, APP_KEY, APP_SECRET);
         DbxRequestConfig config = new DbxRequestConfig("nifi");
         client = new DbxClientV2(config, credential);
-        createFolder(MAIN_FOLDER);
+        mainFolderId = createFolder(MAIN_FOLDER);
     }
 
     protected TestRunner createTestRunner() throws Exception {
@@ -106,11 +107,11 @@ public abstract class AbstractDropboxIT<T extends Processor> {
         return client.files().upload(folder + "/" + name).uploadAndFinish(content);
     }
 
-    private void createFolder(String path) throws Exception {
+    private String createFolder(String path) throws Exception {
         if (folderExists(path)) {
             deleteFolder(path);
         }
-        client.files().createFolderV2(path);
+        return client.files().createFolderV2(path).getMetadata().getId();
     }
 
     private void deleteFolder(String path) throws Exception {

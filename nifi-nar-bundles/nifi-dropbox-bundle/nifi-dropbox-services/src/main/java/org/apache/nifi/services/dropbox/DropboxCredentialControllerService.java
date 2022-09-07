@@ -38,7 +38,7 @@ public class DropboxCredentialControllerService extends AbstractControllerServic
             .name("app-key")
             .displayName("App Key")
             .description("App Key of the user's Dropbox app."+
-                    " See controller service's usage documentation for more details about App Key.")
+                    " See Additional Details for more information.")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
@@ -48,7 +48,7 @@ public class DropboxCredentialControllerService extends AbstractControllerServic
             .name("app-secret")
             .displayName("App Secret")
             .description("App Secret of the user's Dropbox app."+
-                    " See controller service's usage documentation for more details about App Secret.")
+                    " See Additional Details for more information.")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -58,8 +58,8 @@ public class DropboxCredentialControllerService extends AbstractControllerServic
     public static final PropertyDescriptor ACCESS_TOKEN = new PropertyDescriptor.Builder()
             .name("access-token")
             .displayName("Access Token")
-            .description("Access Token of the user's Dropbox app." +
-                    " See controller service's usage documentation for more details about Access Token generation.")
+            .description("Access Token of the user's Dropbox app."+
+                    " See Additional Details for more information about Access Token generation.")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -70,7 +70,7 @@ public class DropboxCredentialControllerService extends AbstractControllerServic
             .name("refresh-token")
             .displayName("Refresh Token")
             .description("Refresh Token of the user's Dropbox app."+
-                    " See controller service's usage documentation for more details about Refresh Token generation.")
+                    " See Additional Details for more information about Refresh Token generation.")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
