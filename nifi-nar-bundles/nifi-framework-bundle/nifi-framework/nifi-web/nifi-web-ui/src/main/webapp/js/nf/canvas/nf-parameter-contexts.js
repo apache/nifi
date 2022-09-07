@@ -145,13 +145,15 @@
      * @returns {String}
      */
     var providerFormatter = function (row, cell, value, columnDef, dataContext) {
-        if (dataContext.component.parameterProviderConfiguration) {
+        var component = dataContext.component ? dataContext.component : null;
+
+        if (component && component.parameterProviderConfiguration) {
             if (!dataContext.permissions.canRead) {
-                return '<span class="blank">' + nfCommon.escapeHtml(dataContext.component.parameterProviderConfiguration.id) + '</span>';
+                return '<span class="blank">' + nfCommon.escapeHtml(component.parameterProviderConfiguration.id) + '</span>';
             }
 
-            return nfCommon.escapeHtml(dataContext.component.parameterProviderConfiguration.component.parameterGroupName +
-                ' from ' + dataContext.component.parameterProviderConfiguration.component.parameterProviderName);
+            return nfCommon.escapeHtml(component.parameterProviderConfiguration.component.parameterGroupName +
+                ' from ' + component.parameterProviderConfiguration.component.parameterProviderName);
         }
     };
 
@@ -2512,6 +2514,7 @@
         var parameterContextActionFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
 
+            var component = dataContext.component ? dataContext.component : null;
             var canWrite = dataContext.permissions.canWrite;
             var canRead = dataContext.permissions.canRead;
 
@@ -2528,7 +2531,7 @@
                 markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key"></div>';
             }
 
-            if (dataContext.component.parameterProviderConfiguration && canRead) {
+            if (component && component.parameterProviderConfiguration && canRead) {
                 markup += '<div title="Go To Parameter Provider" class="pointer go-to-provider fa fa-long-arrow-right"></div>';
             }
 

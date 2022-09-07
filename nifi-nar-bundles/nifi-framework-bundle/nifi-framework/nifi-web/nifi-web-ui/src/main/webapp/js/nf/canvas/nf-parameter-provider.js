@@ -748,10 +748,10 @@
             }
         }
 
-        // sensitive parameters
+        // parameter sensitivities
         for (var j = 0; j < initialFetchedGroups.length; j++) {
 
-            // form the initial group sensitivities
+            // form the initially fetched group sensitivities
             var initialGroupParamSensitivity = {};
             for (var param in initialFetchedGroups[j].parameterSensitivities) {
                 initialGroupParamSensitivity[param] = initialFetchedGroups[j].parameterSensitivities[param] ? initialFetchedGroups[j].parameterSensitivities[param] : SENSITIVE;

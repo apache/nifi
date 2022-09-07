@@ -2063,11 +2063,13 @@
         var parameterProvidersActionFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
 
+            var component = dataContext.component ? dataContext.component : null;
             var hasReadWritePermissions = true;
-            if (dataContext.component.referencingParameterContexts) {
+
+            if (component && component.referencingParameterContexts) {
                 // var refParamContextPermissions = {};
                 var refParamContextPermissions = [];
-                $.each(dataContext.component.referencingParameterContexts, function (i, refParamContext) {
+                $.each(component.referencingParameterContexts, function (i, refParamContext) {
                     refParamContextPermissions.push(refParamContext.permissions.canRead);
                     // if this hits false, then set to false and break
                     refParamContextPermissions.push(refParamContext.permissions.canWrite);
@@ -2084,7 +2086,7 @@
             var canWrite = dataContext.permissions.canWrite;
             var canRead = dataContext.permissions.canRead;
 
-            var hasErrors = !nfCommon.isEmpty(dataContext.component.validationErrors);
+            var hasErrors = component ? !nfCommon.isEmpty(dataContext.component.validationErrors) : null;
 
             if (canRead && canWrite) {
                 markup += '<div title="Edit" class="pointer edit-parameter-provider fa fa-pencil"></div>';
@@ -2096,6 +2098,11 @@
 
             if (canRead && canWrite && nfCommon.canModifyController()) {
                 markup += '<div title="Remove" class="pointer delete-parameter-provider fa fa-trash"></div>';
+            }
+
+            // allow policy configuration conditionally
+            if (nfCanvasUtils.isManagedAuthorizer() && nfCommon.canAccessTenants()) {
+                markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key"></div>';
             }
 
             return markup;
@@ -2186,6 +2193,12 @@
                     nfParameterProvider.showFetchDialog(parameterProviderEntity);
                 } else if (target.hasClass('delete-parameter-provider')) {
                     nfParameterProvider.promptToDeleteParameterProvider(parameterProviderEntity);
+                } else if (target.hasClass('edit-access-policies')) {
+                    // show the policies for this service
+                    nfPolicyManagement.showParameterProviderPolicy(parameterProviderEntity);
+
+                    // close the settings dialog
+                    $('#shell-close-button').click();
                 }
             } else if (parameterProvidersGrid.getColumns()[args.cell].id === 'moreDetails') {
                 if (target.hasClass('view-parameter-provider')) {
