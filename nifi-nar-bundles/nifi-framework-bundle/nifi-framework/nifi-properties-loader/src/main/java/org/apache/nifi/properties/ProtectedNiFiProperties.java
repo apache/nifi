@@ -35,7 +35,7 @@ import static java.util.Arrays.asList;
  * This encapsulates the sensitive property access logic from external consumers
  * of {@code NiFiProperties}.
  */
-class ProtectedNiFiProperties extends NiFiProperties implements ProtectedProperties<NiFiProperties>,
+public class ProtectedNiFiProperties extends NiFiProperties implements ProtectedProperties<NiFiProperties>,
         SensitivePropertyProtector<ProtectedNiFiProperties, NiFiProperties> {
     private static final Logger logger = LoggerFactory.getLogger(ProtectedNiFiProperties.class);
 

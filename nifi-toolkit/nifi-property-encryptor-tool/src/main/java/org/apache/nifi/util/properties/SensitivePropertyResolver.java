@@ -14,21 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.properties;
+package org.apache.nifi.util.properties;
 
-import java.nio.file.Path;
-import java.util.Properties;
+import org.apache.nifi.properties.ApplicationProperties;
 
-/**
- * Properties representing bootstrap.conf, the properties which can be updated if required
- */
-public class MutableBootstrapProperties extends BootstrapProperties implements MutableProperties {
+import java.util.List;
 
-    public MutableBootstrapProperties(String propertyPrefix, Properties properties, Path configFilePath) {
-        super(propertyPrefix, properties, configFilePath);
-    }
-
-    public void setProperty(final String key, final String value) {
-        rawProperties.setProperty(getPropertyKey(key), value);
-    }
+public interface SensitivePropertyResolver<E extends ApplicationProperties> {
+    List<String> resolveSensitivePropertyKeys(final E properties);
 }

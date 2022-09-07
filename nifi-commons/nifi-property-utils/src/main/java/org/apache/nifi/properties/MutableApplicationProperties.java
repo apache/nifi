@@ -16,19 +16,20 @@
  */
 package org.apache.nifi.properties;
 
-import java.nio.file.Path;
+import java.util.Map;
 import java.util.Properties;
 
-/**
- * Properties representing bootstrap.conf, the properties which can be updated if required
- */
-public class MutableBootstrapProperties extends BootstrapProperties implements MutableProperties {
+public class MutableApplicationProperties extends ApplicationProperties implements MutableProperties {
 
-    public MutableBootstrapProperties(String propertyPrefix, Properties properties, Path configFilePath) {
-        super(propertyPrefix, properties, configFilePath);
+    public MutableApplicationProperties(Properties properties) {
+        super(properties);
     }
 
-    public void setProperty(final String key, final String value) {
-        rawProperties.setProperty(getPropertyKey(key), value);
+    public MutableApplicationProperties(Map<String, String> properties) {
+        super(properties);
+    }
+
+    public void setProperty(String key, String value) {
+        this.rawProperties.setProperty(key, value);
     }
 }

@@ -25,6 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
+import java.io.IOException;
+
 @CommandLine.Command(name = "config",
         description = "Operate on application configs",
         usageHelpWidth=140
@@ -47,12 +49,22 @@ class ConfigSubcommand extends BaseCommandParameters implements Runnable {
     public void run() {
         final PropertyEncryptorCommand propertyEncryptorCommand = new PropertyEncryptorCommand(baseDirectory, passphrase);
         if (parent instanceof PropertyEncryptorEncrypt) {
-            logger.info(runMessage, "encrypt", baseDirectory);
-            propertyEncryptorCommand.encryptConfigurationFiles(baseDirectory, scheme);
+            encryptConfiguration(propertyEncryptorCommand);
         } else if (parent instanceof PropertyEncryptorDecrypt) {
             logger.info(runMessage, "decrypt", baseDirectory);
         } else if (parent instanceof PropertyEncryptorMigrate) {
             logger.info(runMessage, "migrate", baseDirectory);
+        }
+    }
+
+    private void encryptConfiguration(final PropertyEncryptorCommand propertyEncryptorCommand) {
+        logger.info(runMessage, "encrypt", baseDirectory);
+        propertyEncryptorCommand.encryptXmlConfigurationFiles(baseDirectory, scheme);
+        try {
+            propertyEncryptorCommand.encryptPropertiesFile(scheme);
+            propertyEncryptorCommand.outputKeyToBootstrap();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }

@@ -29,6 +29,7 @@ import java.util.Set;
 
 public class StandardPropertiesWriter implements PropertiesWriter {
 
+    private static final String DELIMITER = "=";
     private static final String PROPERTY_FORMAT = "%s=%s";
 
     public void writePropertiesFile(final InputStream inputStream, final OutputStream outputStream, final ReadableProperties properties) throws IOException {
@@ -38,7 +39,7 @@ public class StandardPropertiesWriter implements PropertiesWriter {
             while ((line = reader.readLine()) != null) {
                 Set<String> keys = properties.getPropertyKeys();
                 for (final String key : keys) {
-                    if (line.startsWith(key)) {
+                    if (line.split(DELIMITER)[0].matches(key)) {
                         line = String.format(PROPERTY_FORMAT, key, properties.getProperty(key));
                     }
                 }

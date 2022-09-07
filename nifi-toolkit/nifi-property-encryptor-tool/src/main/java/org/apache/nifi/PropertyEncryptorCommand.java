@@ -18,7 +18,10 @@ package org.apache.nifi;
 
 import org.apache.nifi.properties.AbstractBootstrapPropertiesLoader;
 import org.apache.nifi.properties.BootstrapProperties;
+import org.apache.nifi.properties.MutableApplicationProperties;
 import org.apache.nifi.properties.MutableBootstrapProperties;
+import org.apache.nifi.properties.ProtectedPropertyContext;
+import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory;
 import org.apache.nifi.properties.scheme.ProtectionScheme;
@@ -30,6 +33,9 @@ import org.apache.nifi.util.NiFiBootstrapPropertiesLoader;
 import org.apache.nifi.util.file.ConfigurationFileResolver;
 import org.apache.nifi.util.file.NiFiConfigurationFileResolver;
 import org.apache.nifi.util.file.NiFiRegistryConfigurationFileResolver;
+import org.apache.nifi.util.properties.NiFiRegistrySensitivePropertyResolver;
+import org.apache.nifi.util.properties.NiFiSensitivePropertyResolver;
+import org.apache.nifi.util.properties.SensitivePropertyResolver;
 import org.apache.nifi.xml.XmlDecryptor;
 import org.apache.nifi.xml.XmlEncryptor;
 import org.apache.nifi.util.file.ConfigurationFileUtils;
@@ -47,6 +53,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Properties;
 
 public class PropertyEncryptorCommand {
 
@@ -54,19 +61,24 @@ public class PropertyEncryptorCommand {
     private final AbstractBootstrapPropertiesLoader bootstrapLoader;
     private final PropertiesLoader<ApplicationProperties> propertiesLoader;
     private final ConfigurationFileResolver fileResolver;
+    private final SensitivePropertyResolver sensitivePropertyResolver;
     private final List<File> configurationFiles;
     private String hexKey;
     private final Path confDirectory;
     private final static String TEMP_FILE_PREFIX = "tmp";
+    private final ApplicationProperties properties;
+    private final File applicationPropertiesFile;
 
     public PropertyEncryptorCommand(final Path baseDirectory, final String passphrase) throws PropertyEncryptorException {
         confDirectory = ConfigurationFileUtils.resolveAbsoluteConfDirectory(baseDirectory);
         try {
             bootstrapLoader = getBootstrapPropertiesLoader(confDirectory);
             fileResolver = getConfigurationFileResolver(confDirectory);
-            final File applicationProperties = ConfigurationFileUtils.resolvePropertiesFile(confDirectory);
+            applicationPropertiesFile = ConfigurationFileUtils.resolvePropertiesFile(confDirectory);
             propertiesLoader = getPropertiesLoader(confDirectory);
-            configurationFiles = fileResolver.resolveConfigurationFilesFromApplicationProperties(propertiesLoader.load(applicationProperties));
+            properties = propertiesLoader.load(applicationPropertiesFile);
+            configurationFiles = fileResolver.resolveConfigurationFilesFromApplicationProperties(properties);
+            sensitivePropertyResolver = getSensitivePropertyResolver(confDirectory);
             hexKey = getEncodedRootKey(confDirectory, passphrase);
         } catch (final Exception e) {
             throw new PropertyEncryptorException("Failed to run property encryptor", e);
@@ -76,20 +88,38 @@ public class PropertyEncryptorCommand {
     /**
      * @param baseDirectory The base directory of a NiFi / NiFi Registry installation that should be encrypted
      */
-    public void encryptConfigurationFiles(final Path baseDirectory, final ProtectionScheme scheme) {
+    public void encryptXmlConfigurationFiles(final Path baseDirectory, final ProtectionScheme scheme) {
         XmlEncryptor encryptor = getXmlEncryptor(scheme);
         try {
-            encryptConfigurationFiles(configurationFiles, encryptor);
-            outputKeyToBootstrap();
+            encryptXmlConfigurationFiles(configurationFiles, encryptor);
             logger.info("The Property Encryptor successfully encrypted configuration files in the [{}] directory with the scheme [{}]", baseDirectory, scheme.getPath());
         } catch (Exception e) {
             logger.error("The Property Encryptor failed to encrypt configuration files in the [{}] directory with the scheme [{}]", baseDirectory, scheme.getPath(), e);
         }
     }
 
-    private void outputKeyToBootstrap() throws IOException {
+    public void encryptPropertiesFile(final ProtectionScheme scheme) throws IOException {
+        List<String> sensitivePropertyKeys = sensitivePropertyResolver.resolveSensitivePropertyKeys(properties);
+        final MutableApplicationProperties encryptedProperties = new MutableApplicationProperties(new Properties());
+        final SensitivePropertyProvider provider = StandardSensitivePropertyProviderFactory.withKey(hexKey).getProvider(scheme);
+
+        for (String key : sensitivePropertyKeys) {
+            if (properties.getProperty(key) != null) {
+                String encryptedValue = provider.protect(properties.getProperty(key), ProtectedPropertyContext.defaultContext(key));
+                encryptedProperties.setProperty(key, encryptedValue);
+            }
+        }
+
+        final File tempPropertiesFile = ConfigurationFileUtils.getTemporaryOutputFile(TEMP_FILE_PREFIX, applicationPropertiesFile);
+        try (FileInputStream inputStream = new FileInputStream(applicationPropertiesFile);
+             FileOutputStream outputStream = new FileOutputStream(tempPropertiesFile)) {
+            new StandardPropertiesWriter().writePropertiesFile(inputStream, outputStream, encryptedProperties);
+        }
+    }
+
+    public void outputKeyToBootstrap() throws IOException {
         final File bootstrapFile = bootstrapLoader.getBootstrapFileWithinConfDirectory(confDirectory);
-        File tempBootstrapFile = ConfigurationFileUtils.getTemporaryOutputFile(TEMP_FILE_PREFIX, bootstrapFile);
+        final File tempBootstrapFile = ConfigurationFileUtils.getTemporaryOutputFile(TEMP_FILE_PREFIX, bootstrapFile);
         final MutableBootstrapProperties bootstrapProperties = bootstrapLoader.loadMutableBootstrapProperties(bootstrapFile.getPath());
         bootstrapProperties.setProperty(BootstrapProperties.BootstrapPropertyKey.SENSITIVE_KEY.getKey(), hexKey);
         try (InputStream inputStream = new FileInputStream(bootstrapFile);
@@ -99,7 +129,7 @@ public class PropertyEncryptorCommand {
         }
     }
 
-    private void encryptConfigurationFiles(final List<File> configurationFiles, final XmlEncryptor encryptor) throws IOException {
+    private void encryptXmlConfigurationFiles(final List<File> configurationFiles, final XmlEncryptor encryptor) throws IOException {
         for (final File configurationFile : configurationFiles) {
             File temp = ConfigurationFileUtils.getTemporaryOutputFile(TEMP_FILE_PREFIX, configurationFile);
             try (InputStream inputStream = new FileInputStream(configurationFile);
@@ -181,4 +211,15 @@ public class PropertyEncryptorCommand {
             throw new PropertyEncryptorException(String.format("The base directory [%s] does not contain a recognized .properties file", baseDirectory));
         }
     }
+
+    private SensitivePropertyResolver getSensitivePropertyResolver(final Path baseDirectory) {
+        if (ConfigurationFileUtils.isNiFiRegistryConfDirectory(baseDirectory)) {
+            return new NiFiRegistrySensitivePropertyResolver();
+        } else if (ConfigurationFileUtils.isNiFiConfDirectory(baseDirectory)) {
+            return new NiFiSensitivePropertyResolver();
+        } else {
+            throw new PropertyEncryptorException(String.format("The base directory [%s] does not contain a recognized .properties file", baseDirectory));
+        }
+    }
+
 }
