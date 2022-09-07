@@ -742,29 +742,33 @@
         var groups = groupsData.getItems();
 
         // new parameter contexts
-        $.each(groups, function (i, group) {
-            if (group.createNewParameterContext) {
+        for (var i = 0; i < groups.length; i++) {
+            if (groups[i].createNewParameterContext) {
                 return false;
             }
-        })
+        }
 
         // parameter sensitivities
         for (var j = 0; j < initialFetchedGroups.length; j++) {
+            var groupFromDataGrid = groups[j];
 
-            // form the initially fetched group sensitivities
-            var initialGroupParamSensitivity = {};
-            for (var param in initialFetchedGroups[j].parameterSensitivities) {
-                initialGroupParamSensitivity[param] = initialFetchedGroups[j].parameterSensitivities[param] ? initialFetchedGroups[j].parameterSensitivities[param] : SENSITIVE;
+            var firstKey = Object.keys(groupFromDataGrid.parameterSensitivities)[0];
+            if (groupFromDataGrid.parameterSensitivities[firstKey] === null) {
+                // the groups parameterSensitivities will be equal and no need to compare
+                break;
             }
 
-            for (var key in groups[j].parameterSensitivities) {
-                if (groups[j].parameterSensitivities[key] === null) {
-                    break;
-                }
+            // form the initially fetched group sensitivities
+            var groupInitiallyFetched = initialFetchedGroups[j];
+            var initialGroupParamSensitivity = {};
 
-                if (!_.isEqual(initialGroupParamSensitivity, groups[j].parameterSensitivities)) {
-                    return false;
-                }
+            for (var param in groupInitiallyFetched.parameterSensitivities) {
+                initialGroupParamSensitivity[param] = groupInitiallyFetched.parameterSensitivities[param] ? groupInitiallyFetched.parameterSensitivities[param] : SENSITIVE;
+            }
+
+            // compare
+            if (!_.isEqual(initialGroupParamSensitivity, groupFromDataGrid.parameterSensitivities)) {
+                return false;
             }
         }
 
