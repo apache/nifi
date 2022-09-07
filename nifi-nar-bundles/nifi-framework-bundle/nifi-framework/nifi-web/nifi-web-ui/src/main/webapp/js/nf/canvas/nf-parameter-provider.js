@@ -730,11 +730,11 @@
     var hasGroupsChanged = function (updatedParameterProviderEntity, initialFetchedGroups) {
         // affected referencing components
         if (updatedParameterProviderEntity.component.affectedComponents) {
-            for (var p of updatedParameterProviderEntity.component.affectedComponents) {
-                if (!p.permissions.canWrite) {
+            $.each(updatedParameterProviderEntity.component.affectedComponents, function (i, component) {
+                if (!component.permissions.canWrite) {
                     return true;
                 }
-            }
+            })
             return false;
         }
 
@@ -742,11 +742,11 @@
         var groups = groupsData.getItems();
 
         // new parameter contexts
-        for (var g of groups) {
-            if (g.createNewParameterContext) {
+        $.each(groups, function (i, group) {
+            if (group.createNewParameterContext) {
                 return false;
             }
-        }
+        })
 
         // parameter sensitivities
         for (var j = 0; j < initialFetchedGroups.length; j++) {
