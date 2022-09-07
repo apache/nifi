@@ -75,11 +75,11 @@ public class AirtableGetRecordsParameters {
     }
 
     public static class Builder {
-        private List<String> fields = null;
-        private String modifiedAfter = null;
-        private String modifiedBefore = null;
-        private String customFilter = null;
-        private String offset = null;
+        private List<String> fields;
+        private String modifiedAfter;
+        private String modifiedBefore;
+        private String customFilter;
+        private String offset;
         private OptionalInt pageSize = OptionalInt.empty();
 
         public Builder fields(final List<String> fields) {

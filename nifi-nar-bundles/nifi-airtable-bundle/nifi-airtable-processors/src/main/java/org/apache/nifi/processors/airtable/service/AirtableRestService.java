@@ -18,16 +18,17 @@
 package org.apache.nifi.processors.airtable.service;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import javax.ws.rs.core.UriBuilder;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Range;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
-import org.apache.nifi.web.client.api.WebClientService;
+import org.apache.nifi.web.client.api.HttpUriBuilder;
+import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
 public class AirtableRestService {
 
@@ -36,33 +37,35 @@ public class AirtableRestService {
     private static final int TOO_MANY_REQUESTS = 429;
     private static final Range<Integer> SUCCESSFUL_RESPONSE_RANGE = Range.between(200, 299);
 
-    private final WebClientService webClientService;
+    private final WebClientServiceProvider webClientServiceProvider;
     private final String apiUrl;
     private final String apiKey;
     private final String baseId;
     private final String tableId;
 
-    public AirtableRestService(final WebClientService webClientService,
+    public AirtableRestService(final WebClientServiceProvider webClientServiceProvider,
             final String apiUrl,
             final String apiKey,
             final String baseId,
             final String tableId) {
-        this.webClientService = webClientService;
+        this.webClientServiceProvider = webClientServiceProvider;
         this.apiUrl = apiUrl;
         this.apiKey = apiKey;
         this.baseId = baseId;
         this.tableId = tableId;
     }
 
-    public byte[] getRecords(final AirtableGetRecordsParameters filter) throws RateLimitExceededException {
+    public InputStream getRecords(final AirtableGetRecordsParameters filter) throws RateLimitExceededException {
         final URI uri = buildUri(filter);
-        try (final HttpResponseEntity response = webClientService.get()
+        final HttpResponseEntity response = webClientServiceProvider.getWebClientService()
+                .get()
                 .uri(uri)
                 .header("Authorization", "Bearer " + apiKey)
-                .retrieve()) {
+                .retrieve();
 
+        try {
             if (SUCCESSFUL_RESPONSE_RANGE.contains(response.statusCode())) {
-                return IOUtils.toByteArray(response.body());
+                return response.body();
             }
             if (response.statusCode() == TOO_MANY_REQUESTS) {
                 throw new RateLimitExceededException();
@@ -79,17 +82,20 @@ public class AirtableRestService {
         }
     }
 
-    public static class RateLimitExceededException extends Exception {
-        public RateLimitExceededException() {
-            super("Airtable REST API rate limit exceeded");
-        }
-    }
-
     private URI buildUri(AirtableGetRecordsParameters getRecordsParameters) {
-        final UriBuilder uriBuilder = UriBuilder.fromUri(apiUrl).path(baseId).path(tableId);
+        final URI baseUri = URI.create(apiUrl);
+        final HttpUriBuilder uriBuilder = webClientServiceProvider.getHttpUriBuilder()
+                .scheme(baseUri.getScheme())
+                .host(baseUri.getHost())
+                .encodedPath(baseUri.getPath())
+                .addPathSegment(baseId)
+                .addPathSegment(tableId);
+        if (baseUri.getPort() != -1) {
+            uriBuilder.port(baseUri.getPort());
+        }
 
         for (final String field : getRecordsParameters.getFields()) {
-            uriBuilder.queryParam("fields[]", field);
+            uriBuilder.addQueryParameter("fields[]", field);
         }
 
         final List<String> filters = new ArrayList<>();
@@ -102,10 +108,10 @@ public class AirtableRestService {
                 .map(modifiedBefore -> "IS_BEFORE(LAST_MODIFIED_TIME(),DATETIME_PARSE(\"" + modifiedBefore + "\"))")
                 .ifPresent(filters::add);
         if (!filters.isEmpty()) {
-            uriBuilder.queryParam("filterByFormula", "AND(" + String.join(",", filters) + ")");
+            uriBuilder.addQueryParameter("filterByFormula", "AND(" + String.join(",", filters) + ")");
         }
-        getRecordsParameters.getOffset().ifPresent(offset -> uriBuilder.queryParam("offset", offset));
-        getRecordsParameters.getPageSize().ifPresent(pageSize -> uriBuilder.queryParam("pageSize", pageSize));
+        getRecordsParameters.getOffset().ifPresent(offset -> uriBuilder.addQueryParameter("offset", offset));
+        getRecordsParameters.getPageSize().ifPresent(pageSize -> uriBuilder.addQueryParameter("pageSize", String.valueOf(pageSize)));
 
         return uriBuilder.build();
     }

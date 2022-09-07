@@ -22,11 +22,9 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_INDEX;
 import static org.apache.nifi.processors.airtable.service.AirtableRestService.API_V0_BASE_URL;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -53,26 +50,17 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.airtable.record.AirtableRecordSet;
-import org.apache.nifi.processors.airtable.record.AirtableJsonTreeRowRecordReaderFactory;
+import org.apache.nifi.processors.airtable.parse.AirtableRetrieveTableResult;
+import org.apache.nifi.processors.airtable.parse.AirtableTableRetriever;
 import org.apache.nifi.processors.airtable.service.AirtableGetRecordsParameters;
 import org.apache.nifi.processors.airtable.service.AirtableRestService;
-import org.apache.nifi.processors.airtable.service.AirtableRestService.RateLimitExceededException;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.JsonRecordReaderFactory;
-import org.apache.nifi.serialization.MalformedRecordException;
-import org.apache.nifi.serialization.RecordSetWriter;
-import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.WriteResult;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.processors.airtable.service.RateLimitExceededException;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
 @PrimaryNodeOnly
@@ -89,8 +77,17 @@ import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
         + " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected,"
         + " the new node can pick up where the previous node left off, without duplicating the data.")
 @WritesAttributes({
-        @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer."),
-        @WritesAttribute(attribute = "record.count", description = "Sets the number of records in the FlowFile.")
+        @WritesAttribute(attribute = "record.count", description = "Sets the number of records in the FlowFile."),
+        @WritesAttribute(attribute = "fragment.identifier", description = "If 'Max Records Per Flow File' is set then all FlowFiles from the same query result set "
+                + "will have the same value for the fragment.identifier attribute. This can then be used to correlate the results."),
+        @WritesAttribute(attribute = "fragment.count", description = "If 'Max Records Per Flow File' is set then this is the total number of "
+                + "FlowFiles produced by a single ResultSet. This can be used in conjunction with the "
+                + "fragment.identifier attribute in order to know how many FlowFiles belonged to the same incoming ResultSet. If Output Batch Size is set, then this "
+                + "attribute will not be populated."),
+        @WritesAttribute(attribute = "fragment.index", description = "If 'Max Records Per Flow File' is set then the position of this FlowFile in the list of "
+                + "outgoing FlowFiles that were all derived from the same result set FlowFile. This can be "
+                + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same query result set and in what order  "
+                + "FlowFiles were produced"),
 })
 @DefaultSettings(yieldDuration = "35 sec")
 public class QueryAirtableTable extends AbstractProcessor {
@@ -127,7 +124,7 @@ public class QueryAirtableTable extends AbstractProcessor {
 
     static final PropertyDescriptor TABLE_ID = new PropertyDescriptor.Builder()
             .name("table-id")
-            .displayName("Table Name or ID")
+            .displayName("Table ID")
             .description("The name or the ID of the Airtable table to be queried.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -171,46 +168,6 @@ public class QueryAirtableTable extends AbstractProcessor {
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
-    static final PropertyDescriptor OUTPUT_BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("output-batch-size")
-            .displayName("Output Batch Size")
-            .description("The number of output FlowFiles to queue before committing the process session. When set to zero, the session will be committed when all records"
-                    + " have been processed and the output FlowFiles are ready for transfer to the downstream relationship. For large result sets, this can cause a large burst of FlowFiles"
-                    + " to be transferred at the end of processor execution. If this property is set, then when the specified number of FlowFiles are ready for transfer, then the session will"
-                    + " be committed, thus releasing the FlowFiles to the downstream relationship.")
-            .defaultValue("0")
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .build();
-
-    static final PropertyDescriptor METADATA_STRATEGY = new PropertyDescriptor.Builder()
-            .name("metadata-strategy")
-            .displayName("Metadata Strategy")
-            .description("Strategy to use for fetching record schema. Currently only 'Use JSON Record Reader' is supported."
-                    + " When Airtable Metadata API becomes more stable it will be possible to fetch the record schema through it.")
-            .required(true)
-            .defaultValue(MetadataStrategy.USE_JSON_RECORD_READER.name())
-            .allowableValues(MetadataStrategy.class)
-            .build();
-
-    static final PropertyDescriptor SCHEMA_READER = new PropertyDescriptor.Builder()
-            .name("schema-reader")
-            .displayName("Schema Reader")
-            .description("JsonTreeReader service to use for fetching the schema of records returned by the Airtable REST API")
-            .dependsOn(METADATA_STRATEGY, MetadataStrategy.USE_JSON_RECORD_READER.name())
-            .identifiesControllerService(JsonRecordReaderFactory.class)
-            .required(true)
-            .build();
-
-    static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-            .name("record-writer")
-            .displayName("Record Writer")
-            .description("Service used for writing records returned by the Airtable REST API")
-            .identifiesControllerService(RecordSetWriterFactory.class)
-            .required(true)
-            .build();
-
     static final PropertyDescriptor WEB_CLIENT_SERVICE_PROVIDER = new PropertyDescriptor.Builder()
             .name("web-client-service-provider")
             .displayName("Web Client Service Provider")
@@ -233,10 +190,6 @@ public class QueryAirtableTable extends AbstractProcessor {
             CUSTOM_FILTER,
             PAGE_SIZE,
             MAX_RECORDS_PER_FLOW_FILE,
-            OUTPUT_BATCH_SIZE,
-            METADATA_STRATEGY,
-            SCHEMA_READER,
-            RECORD_WRITER,
             WEB_CLIENT_SERVICE_PROVIDER
     ));
 
@@ -264,15 +217,12 @@ public class QueryAirtableTable extends AbstractProcessor {
         final String baseId = context.getProperty(BASE_ID).evaluateAttributeExpressions().getValue();
         final String tableId = context.getProperty(TABLE_ID).evaluateAttributeExpressions().getValue();
         final WebClientServiceProvider webClientServiceProvider = context.getProperty(WEB_CLIENT_SERVICE_PROVIDER).asControllerService(WebClientServiceProvider.class);
-        airtableRestService = new AirtableRestService(webClientServiceProvider.getWebClientService(), apiUrl, apiKey, baseId, tableId);
+        airtableRestService = new AirtableRestService(webClientServiceProvider, apiUrl, apiKey, baseId, tableId);
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final JsonRecordReaderFactory schemaRecordReaderFactory = context.getProperty(SCHEMA_READER).asControllerService(JsonRecordReaderFactory.class);
-        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
         final Integer maxRecordsPerFlowFile = context.getProperty(MAX_RECORDS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
-        final Integer outputBatchSize = context.getProperty(OUTPUT_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
 
         final StateMap state;
         try {
@@ -282,91 +232,31 @@ public class QueryAirtableTable extends AbstractProcessor {
         }
 
         final String lastRecordFetchDateTime = state.get(LAST_RECORD_FETCH_TIME);
-        final String currentRecordFetchDateTime = OffsetDateTime.now().minusSeconds(QUERY_LAG_SECONDS).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+        final String currentRecordFetchDateTime = OffsetDateTime.now()
+                .minusSeconds(QUERY_LAG_SECONDS)
+                .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
 
         final AirtableGetRecordsParameters getRecordsParameters = buildGetRecordsParameters(context, lastRecordFetchDateTime, currentRecordFetchDateTime);
-        final byte[] recordsJson;
+        final AirtableRetrieveTableResult retrieveTableResult;
         try {
-            recordsJson = airtableRestService.getRecords(getRecordsParameters);
+            final AirtableTableRetriever tableRetriever = new AirtableTableRetriever(airtableRestService, getRecordsParameters, maxRecordsPerFlowFile);
+            retrieveTableResult = tableRetriever.retrieveAll(session);
+        } catch (IOException e) {
+            throw new ProcessException("Failed to read Airtable records", e);
         } catch (RateLimitExceededException e) {
             context.yield();
-            throw new ProcessException("REST API rate limit exceeded while fetching initial Airtable record set", e);
+            throw new ProcessException("Airtable REST API rate limit exceeded while reading records", e);
         }
 
-        final FlowFile flowFile = session.create();
-        final Map<String, String> originalAttributes = flowFile.getAttributes();
-
-        final RecordSchema recordSchema;
-        final RecordSchema writerSchema;
-        try {
-            final ByteArrayInputStream recordsStream = new ByteArrayInputStream(recordsJson);
-            recordSchema = schemaRecordReaderFactory.createRecordReader(flowFile, recordsStream, getLogger()).getSchema();
-            writerSchema = writerFactory.getSchema(originalAttributes, recordSchema);
-        } catch (MalformedRecordException | IOException | SchemaNotFoundException e) {
-            throw new ProcessException("Couldn't get record schema", e);
-        }
-
-        session.remove(flowFile);
-
-        final List<FlowFile> flowFiles = new ArrayList<>();
-        int totalRecordCount = 0;
-        final AirtableJsonTreeRowRecordReaderFactory recordReaderFactory = new AirtableJsonTreeRowRecordReaderFactory(getLogger(), recordSchema);
-        try (final AirtableRecordSet airtableRecordSet = new AirtableRecordSet(recordsJson, recordReaderFactory, airtableRestService, getRecordsParameters)) {
-            while (true) {
-                final AtomicInteger recordCountHolder = new AtomicInteger();
-                final Map<String, String> attributes = new HashMap<>();
-                FlowFile flowFileToAdd = session.create();
-                flowFileToAdd = session.write(flowFileToAdd, out -> {
-                    try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writerSchema, out, originalAttributes)) {
-                        final RecordSet recordSet = (maxRecordsPerFlowFile > 0 ? airtableRecordSet.limit(maxRecordsPerFlowFile) : airtableRecordSet);
-                        final WriteResult writeResult = writer.write(recordSet);
-
-                        attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
-                        attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
-                        attributes.putAll(writeResult.getAttributes());
-
-                        recordCountHolder.set(writeResult.getRecordCount());
-                    } catch (final IOException e) {
-                        final Throwable cause = e.getCause();
-                        if (cause instanceof RateLimitExceededException) {
-                            context.yield();
-                            throw new ProcessException("REST API rate limit exceeded while reading Airtable records", cause);
-                        }
-                        throw new ProcessException("Couldn't read records from input", e);
-                    } catch (final SchemaNotFoundException e) {
-                        throw new ProcessException("Couldn't read records from input", e);
-                    }
-                });
-
-                flowFileToAdd = session.putAllAttributes(flowFileToAdd, attributes);
-
-                final int recordCount = recordCountHolder.get();
-                if (recordCount > 0) {
-                    totalRecordCount += recordCount;
-                    flowFiles.add(flowFileToAdd);
-                    if (outputBatchSize > 0 && flowFiles.size() == outputBatchSize) {
-                        transferFlowFiles(flowFiles, session, totalRecordCount);
-                        flowFiles.clear();
-                    }
-                    continue;
-                }
-
-                session.remove(flowFileToAdd);
-
-                if (maxRecordsPerFlowFile > 0 && outputBatchSize == 0) {
-                    fragmentFlowFiles(session, flowFiles);
-                }
-
-                transferFlowFiles(flowFiles, session, totalRecordCount);
-                break;
-            }
-        } catch (final IOException e) {
-            throw new ProcessException("Couldn't read records from input", e);
-        }
-
-        if (totalRecordCount == 0) {
+        final List<FlowFile> flowFiles = retrieveTableResult.getFlowFiles();
+        if (flowFiles.isEmpty()) {
             return;
         }
+
+        if (maxRecordsPerFlowFile != null && maxRecordsPerFlowFile > 0) {
+            fragmentFlowFiles(session, flowFiles);
+        }
+        transferFlowFiles(session, flowFiles, retrieveTableResult.getTotalRecordCount());
 
         final Map<String, String> newState = new HashMap<>(state.toMap());
         newState.put(LAST_RECORD_FETCH_TIME, currentRecordFetchDateTime);
@@ -413,10 +303,10 @@ public class QueryAirtableTable extends AbstractProcessor {
         }
     }
 
-    private void transferFlowFiles(final List<FlowFile> flowFiles, final ProcessSession session, final int totalRecordCount) {
+    private void transferFlowFiles(final ProcessSession session, final List<FlowFile> flowFiles, final int totalRecordCount) {
         session.transfer(flowFiles, REL_SUCCESS);
         session.adjustCounter("Records Processed", totalRecordCount, false);
         final String flowFilesAsString = flowFiles.stream().map(FlowFile::toString).collect(Collectors.joining(", ", "[", "]"));
-        getLogger().info("Successfully written {} records for flow files {}", totalRecordCount, flowFilesAsString);
+        getLogger().info("Transferred FlowFiles [{}] Records [{}]", flowFilesAsString, totalRecordCount);
     }
 }

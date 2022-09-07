@@ -15,34 +15,26 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.processors.airtable;
+package org.apache.nifi.processors.airtable.parse;
 
-import org.apache.nifi.components.DescribedValue;
+import java.util.List;
+import org.apache.nifi.flowfile.FlowFile;
 
-public enum MetadataStrategy implements DescribedValue {
+public class AirtableRetrieveTableResult {
 
-    USE_JSON_RECORD_READER("Use JSON Record Reader", "Use a JsonTreeReader controller service to provide schema");
+    private final List<FlowFile> flowFiles;
+    private final int totalRecordCount;
 
-    private final String displayName;
-    private final String description;
-
-    MetadataStrategy(final String displayName, final String description) {
-        this.displayName = displayName;
-        this.description = description;
+    public AirtableRetrieveTableResult(final List<FlowFile> flowFiles, final int totalRecordCount) {
+        this.flowFiles = flowFiles;
+        this.totalRecordCount = totalRecordCount;
     }
 
-    @Override
-    public String getValue() {
-        return name();
+    public List<FlowFile> getFlowFiles() {
+        return flowFiles;
     }
 
-    @Override
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    @Override
-    public String getDescription() {
-        return description;
+    public int getTotalRecordCount() {
+        return totalRecordCount;
     }
 }

@@ -24,13 +24,7 @@ import java.util.List;
 import okhttp3.HttpUrl;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
-import org.apache.nifi.json.JsonTreeReader;
-import org.apache.nifi.json.SchemaApplicationStrategy;
-import org.apache.nifi.json.StartingFieldStrategy;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.serialization.RecordReaderFactory;
-import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -40,7 +34,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class QueryAirtableTableIT {
+public class TestQueryAirtableTable {
 
     public static final String RECORDS_JSON_BODY = "{\"records\":[{"
             + "\"id\":\"recabcdefghijklmn\","
@@ -52,7 +46,8 @@ public class QueryAirtableTableIT {
             + "\"fields\":{\"foo\":\"bar\"}}],"
             + "\"offset\":\"ofsabcdefghijklmn\"}";
     public static final String EXPECTED_RECORD_CONTENT =
-            "\"recabcdefghijklmn\",\"1970-00-01T00:00:00.000Z\",\"MapRecord[{foo=bar}]\"\n";
+            "{\"id\":\"recabcdefghijklmn\",\"createdTime\":\"1970-00-01T00:00:00.000Z\",\"fields\":{\"foo\":\"bar\"}}";
+    public static final String API_URL_PATH = "/v0/airtable";
 
     private TestRunner runner;
 
@@ -62,28 +57,14 @@ public class QueryAirtableTableIT {
 
         runner = TestRunners.newTestRunner(queryAirtableTable);
 
-        final RecordReaderFactory schemaReader = new JsonTreeReader();
-        runner.addControllerService("reader", schemaReader);
-        runner.setProperty(schemaReader, JsonTreeReader.STARTING_FIELD_NAME, "records");
-        runner.setProperty(schemaReader, JsonTreeReader.STARTING_FIELD_STRATEGY, StartingFieldStrategy.NESTED_FIELD.getValue());
-        runner.setProperty(schemaReader, JsonTreeReader.SCHEMA_APPLICATION_STRATEGY, SchemaApplicationStrategy.SELECTED_PART.getValue());
-        runner.enableControllerService(schemaReader);
-
-        final RecordSetWriterFactory writer = new MockRecordWriter();
-        runner.addControllerService("writer", writer);
-        runner.enableControllerService(writer);
-
         final WebClientServiceProvider webClientServiceProvider = new StandardWebClientServiceProvider();
         runner.addControllerService("webClientService", webClientServiceProvider);
         runner.enableControllerService(webClientServiceProvider);
 
         runner.setProperty(QueryAirtableTable.API_KEY, "???");
-        runner.setProperty(QueryAirtableTable.BASE_ID, "appabcdefghijklmn");
-        runner.setProperty(QueryAirtableTable.TABLE_ID, "tblabcdefghijklmn");
-        runner.setProperty(QueryAirtableTable.SCHEMA_READER, schemaReader.getIdentifier());
-        runner.setProperty(QueryAirtableTable.RECORD_WRITER, writer.getIdentifier());
+        runner.setProperty(QueryAirtableTable.BASE_ID, "baseid");
+        runner.setProperty(QueryAirtableTable.TABLE_ID, "tableid");
         runner.setProperty(QueryAirtableTable.WEB_CLIENT_SERVICE_PROVIDER, webClientServiceProvider.getIdentifier());
-
     }
 
     @AfterEach
@@ -97,7 +78,7 @@ public class QueryAirtableTableIT {
             server.enqueue(new MockResponse().setBody(RECORDS_JSON_BODY));
 
             server.start();
-            final HttpUrl httpUrl = server.url("/v0/airtable");
+            final HttpUrl httpUrl = server.url(API_URL_PATH);
 
             runner.setProperty(QueryAirtableTable.API_URL, httpUrl.toString());
             runner.run();
@@ -107,7 +88,7 @@ public class QueryAirtableTableIT {
             final MockFlowFile flowFile = results.get(0);
             assertEquals("1", flowFile.getAttribute("record.count"));
             final String content = flowFile.getContent();
-            assertEquals(EXPECTED_RECORD_CONTENT, content);
+            assertEquals("[" + EXPECTED_RECORD_CONTENT + "]", content);
         }
     }
 
@@ -118,7 +99,7 @@ public class QueryAirtableTableIT {
             server.enqueue(new MockResponse().setBody(RECORDS_JSON_BODY));
 
             server.start();
-            final HttpUrl httpUrl = server.url("/v0/airtable");
+            final HttpUrl httpUrl = server.url(API_URL_PATH);
 
             runner.setProperty(QueryAirtableTable.API_URL, httpUrl.toString());
             runner.run();
@@ -128,7 +109,7 @@ public class QueryAirtableTableIT {
             final MockFlowFile flowFile = results.get(0);
             assertEquals("2", flowFile.getAttribute("record.count"));
             final String content = flowFile.getContent();
-            assertEquals(EXPECTED_RECORD_CONTENT + EXPECTED_RECORD_CONTENT, content);
+            assertEquals("[" + EXPECTED_RECORD_CONTENT + "," + EXPECTED_RECORD_CONTENT + "]", content);
         }
     }
 
@@ -139,7 +120,7 @@ public class QueryAirtableTableIT {
             server.enqueue(new MockResponse().setBody(RECORDS_JSON_BODY));
 
             server.start();
-            final HttpUrl httpUrl = server.url("/v0/airtable");
+            final HttpUrl httpUrl = server.url(API_URL_PATH);
 
             runner.setProperty(QueryAirtableTable.MAX_RECORDS_PER_FLOW_FILE, "1");
             runner.setProperty(QueryAirtableTable.API_URL, httpUrl.toString());
@@ -150,12 +131,12 @@ public class QueryAirtableTableIT {
             final MockFlowFile firstFlowFile = results.get(0);
             assertEquals("1", firstFlowFile.getAttribute("record.count"));
             final String firstContent = firstFlowFile.getContent();
-            assertEquals(EXPECTED_RECORD_CONTENT, firstContent);
+            assertEquals("[" + EXPECTED_RECORD_CONTENT + "]", firstContent);
 
             final MockFlowFile secondFlowFile = results.get(1);
             assertEquals("1", secondFlowFile.getAttribute("record.count"));
             final String secondContent = secondFlowFile.getContent();
-            assertEquals(EXPECTED_RECORD_CONTENT, secondContent);
+            assertEquals("[" + EXPECTED_RECORD_CONTENT + "]", secondContent);
         }
     }
 
@@ -165,7 +146,7 @@ public class QueryAirtableTableIT {
             server.enqueue(new MockResponse().setBody("{\"records\":[]}"));
 
             server.start();
-            final HttpUrl httpUrl = server.url("/v0/airtable");
+            final HttpUrl httpUrl = server.url(API_URL_PATH);
 
             runner.setProperty(QueryAirtableTable.API_URL, httpUrl.toString());
             runner.run();
