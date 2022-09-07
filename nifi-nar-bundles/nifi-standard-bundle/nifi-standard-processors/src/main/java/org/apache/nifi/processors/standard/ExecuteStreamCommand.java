@@ -286,7 +286,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES;
-    private static final Integer MASKED_VALUE_LENGTH = 8;
+    private static final String MASKED_ARGUMENT = "********";
 
     static {
         List<PropertyDescriptor> props = new ArrayList<>();
@@ -424,13 +424,13 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             });
 
             for (final PropertyDescriptor descriptor : propertyDescriptors) {
+                String argValue = context.getProperty(descriptor.getName()).evaluateAttributeExpressions(inputFlowFile).getValue();
                 if (descriptor.isSensitive()) {
-                    String maskedValue = IntStream.rangeClosed(0, MASKED_VALUE_LENGTH).mapToObj(i -> "*").collect(Collectors.joining());
-                    argumentAttributeValue.add(maskedValue);
+                    argumentAttributeValue.add(MASKED_ARGUMENT);
                 } else {
-                    argumentAttributeValue.add(context.getProperty(descriptor.getName()).evaluateAttributeExpressions(inputFlowFile).getValue());
+                    argumentAttributeValue.add(argValue);
                 }
-                args.add(context.getProperty(descriptor.getName()).evaluateAttributeExpressions(inputFlowFile).getValue());
+                args.add(argValue);
 
             }
             if (argumentAttributeValue.size() > 0) {
