@@ -38,6 +38,7 @@ public class C2NiFiProperties {
     public static final String C2_CALL_TIMEOUT = C2_PREFIX + "rest.callTimeout";
     public static final String C2_AGENT_CLASS_KEY = C2_PREFIX + "agent.class";
     public static final String C2_AGENT_IDENTIFIER_KEY = C2_PREFIX + "agent.identifier";
+    public static final String C2_FULL_HEARTBEAT_KEY = C2_PREFIX + "full.heartbeat";
 
     public static final String C2_ROOT_CLASS_DEFINITIONS_KEY = C2_PREFIX + "root.class.definitions";
     public static final String C2_METRICS_NAME_KEY = C2_ROOT_CLASS_DEFINITIONS_KEY + ".metrics.name";

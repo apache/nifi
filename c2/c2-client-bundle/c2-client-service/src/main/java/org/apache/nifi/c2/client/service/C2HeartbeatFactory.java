@@ -23,8 +23,12 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -41,6 +45,7 @@ import org.apache.nifi.c2.protocol.api.FlowInfo;
 import org.apache.nifi.c2.protocol.api.FlowQueueStatus;
 import org.apache.nifi.c2.protocol.api.NetworkInfo;
 import org.apache.nifi.c2.protocol.api.SystemInfo;
+import org.apache.nifi.c2.protocol.component.api.Bundle;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,7 +97,11 @@ public class C2HeartbeatFactory {
         agentStatus.setRepositories(repos);
 
         agentInfo.setStatus(agentStatus);
-        agentInfo.setAgentManifest(manifest);
+        agentInfo.setAgentManifestHash(calculateManifestHash(manifest.getBundles()));
+
+        if (clientConfig.isFullHeartbeat()) {
+            agentInfo.setAgentManifest(manifest);
+        }
 
         return agentInfo;
     }
@@ -224,5 +233,28 @@ public class C2HeartbeatFactory {
         }
 
         return confDirectory;
+    }
+
+    private String calculateManifestHash(List<Bundle> loadedBundles) {
+        byte[] bytes;
+        try {
+            bytes = MessageDigest.getInstance("SHA-512").digest(loadedBundles.stream()
+                .map(bundle -> bundle.getGroup() + bundle.getArtifact() + bundle.getVersion())
+                .sorted()
+                .collect(Collectors.joining(","))
+                .getBytes(StandardCharsets.UTF_8));
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Unable to set up manifest hash calculation due to not having support for the chosen digest algorithm", e);
+        }
+
+        return bytesToHex(bytes);
+    }
+
+    private String bytesToHex(byte[] in) {
+        final StringBuilder builder = new StringBuilder();
+        for (byte b : in) {
+            builder.append(String.format("%02x", b));
+        }
+        return builder.toString();
     }
 }

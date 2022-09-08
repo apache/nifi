@@ -30,6 +30,7 @@ import org.apache.nifi.c2.client.service.C2HeartbeatFactory;
 import org.apache.nifi.c2.client.service.FlowIdHolder;
 import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
 import org.apache.nifi.c2.client.service.operation.C2OperationService;
+import org.apache.nifi.c2.client.service.operation.DescribeManifestOperationHandler;
 import org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler;
 import org.apache.nifi.c2.protocol.api.AgentRepositories;
 import org.apache.nifi.c2.protocol.api.AgentRepositoryStatus;
@@ -89,10 +90,14 @@ public class C2NifiClientService {
         this.heartbeatPeriod = clientConfig.getHeartbeatPeriod();
         this.flowController = flowController;
         C2HttpClient client = new C2HttpClient(clientConfig, new C2JacksonSerializer());
+        C2HeartbeatFactory heartbeatFactory = new C2HeartbeatFactory(clientConfig, flowIdHolder);
         this.c2ClientService = new C2ClientService(
             client,
-            new C2HeartbeatFactory(clientConfig, flowIdHolder),
-            new C2OperationService(Arrays.asList(new UpdateConfigurationOperationHandler(client, flowIdHolder, this::updateFlowContent)))
+            heartbeatFactory,
+            new C2OperationService(Arrays.asList(
+                new UpdateConfigurationOperationHandler(client, flowIdHolder, this::updateFlowContent),
+                new DescribeManifestOperationHandler(heartbeatFactory, this::generateRuntimeInfo)
+            ))
         );
     }
 
@@ -100,6 +105,7 @@ public class C2NifiClientService {
         return new C2ClientConfig.Builder()
                 .agentClass(properties.getProperty(C2NiFiProperties.C2_AGENT_CLASS_KEY, ""))
                 .agentIdentifier(properties.getProperty(C2NiFiProperties.C2_AGENT_IDENTIFIER_KEY))
+                .fullHeartbeat(Boolean.parseBoolean(properties.getProperty(C2NiFiProperties.C2_FULL_HEARTBEAT_KEY, "true")))
                 .heartbeatPeriod(Long.parseLong(properties.getProperty(C2NiFiProperties.C2_AGENT_HEARTBEAT_PERIOD_KEY,
                     String.valueOf(C2NiFiProperties.C2_AGENT_DEFAULT_HEARTBEAT_PERIOD))))
                 .connectTimeout((long) FormatUtils.getPreciseTimeDuration(properties.getProperty(C2NiFiProperties.C2_CONNECTION_TIMEOUT,
