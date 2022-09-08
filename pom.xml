@@ -114,7 +114,7 @@
         <org.bouncycastle.version>1.70</org.bouncycastle.version>
         <testcontainers.version>1.17.3</testcontainers.version>
         <org.slf4j.version>1.7.36</org.slf4j.version>
-        <ranger.version>2.2.0</ranger.version>
+        <ranger.version>2.3.0</ranger.version>
         <jetty.version>9.4.48.v20220622</jetty.version>
         <jackson.bom.version>2.13.3</jackson.bom.version>
         <avro.version>1.11.1</avro.version>
