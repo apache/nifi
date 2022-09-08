@@ -728,29 +728,30 @@
     };
 
     var hasGroupsChanged = function (updatedParameterProviderEntity, initialFetchedGroups) {
-        // affected referencing components
-        if (updatedParameterProviderEntity.component.affectedComponents) {
-            $.each(updatedParameterProviderEntity.component.affectedComponents, function (i, component) {
-                if (!component.permissions.canWrite) {
-                    return true;
-                }
-            })
-            return false;
-        }
-
         var groupsData = $('#parameter-groups-table').data('gridInstance').getData();
         var groups = groupsData.getItems();
 
         // new parameter contexts
-        for (var i = 0; i < groups.length; i++) {
-            if (groups[i].createNewParameterContext) {
-                return false;
+        var parameterContextNames = [];
+        $.each(groups, function (i, g) {
+            if (g.createNewParameterContext) {
+                parameterContextNames.push(g.parameterContextName);
             }
+        })
+
+        // if there are any createNewParameterContext, then the name input cannot be empty
+        if (!_.isEmpty(parameterContextNames)) {
+            for (var j = 0; j < parameterContextNames.length; j++) {
+                if (parameterContextNames[j] === '') {
+                    return true;
+                }
+            }
+            return false;
         }
 
         // parameter sensitivities
-        for (var j = 0; j < initialFetchedGroups.length; j++) {
-            var groupFromDataGrid = groups[j];
+        for (var k = 0; k < initialFetchedGroups.length; k++) {
+            var groupFromDataGrid = groups[k];
 
             var firstKey = Object.keys(groupFromDataGrid.parameterSensitivities)[0];
             if (groupFromDataGrid.parameterSensitivities[firstKey] === null) {
@@ -759,7 +760,7 @@
             }
 
             // form the initially fetched group sensitivities
-            var groupInitiallyFetched = initialFetchedGroups[j];
+            var groupInitiallyFetched = initialFetchedGroups[k];
             var initialGroupParamSensitivity = {};
 
             for (var param in groupInitiallyFetched.parameterSensitivities) {
@@ -770,6 +771,16 @@
             if (!_.isEqual(initialGroupParamSensitivity, groupFromDataGrid.parameterSensitivities)) {
                 return false;
             }
+        }
+
+        // affected referencing components
+        if (updatedParameterProviderEntity.component.affectedComponents) {
+            $.each(updatedParameterProviderEntity.component.affectedComponents, function (i, component) {
+                if (!component.permissions.canWrite) {
+                    return true;
+                }
+            })
+            return false;
         }
 
         return true;
@@ -1610,6 +1621,8 @@
 
             // update the list of parameters to be created
             loadParameterContextsToCreate();
+
+            $('#fetch-parameters-dialog').modal('refreshButtons');
         })
 
         // create parameter checkbox behaviors
