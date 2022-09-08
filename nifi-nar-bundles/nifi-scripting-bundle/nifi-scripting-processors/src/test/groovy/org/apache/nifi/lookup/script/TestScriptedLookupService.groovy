@@ -46,8 +46,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue
  */
 class TestScriptedLookupService {
     private static final String GROOVY_SCRIPT = "test_lookup_inline.groovy"
+    private static final String ALTERNATE_GROOVY_SCRIPT = "test_simple_lookup_inline.groovy"
     private static final Path SOURCE_PATH = Paths.get("src/test/resources/groovy", GROOVY_SCRIPT)
+    private static final Path ALTERNATE_SOURCE_PATH = Paths.get("src/test/resources/groovy", ALTERNATE_GROOVY_SCRIPT)
     private static final Path TARGET_PATH = Paths.get("target", GROOVY_SCRIPT)
+    private static final Path ALTERNATE_TARGET_PATH = Paths.get("target", ALTERNATE_GROOVY_SCRIPT)
     private static final Logger logger = LoggerFactory.getLogger(TestScriptedLookupService)
     ScriptedLookupService scriptedLookupService
     def scriptingComponent
@@ -59,7 +62,9 @@ class TestScriptedLookupService {
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
         Files.copy(SOURCE_PATH, TARGET_PATH, StandardCopyOption.REPLACE_EXISTING)
+        Files.copy(ALTERNATE_SOURCE_PATH, ALTERNATE_TARGET_PATH, StandardCopyOption.REPLACE_EXISTING)
         TARGET_PATH.toFile().deleteOnExit()
+        ALTERNATE_TARGET_PATH.toFile().deleteOnExit()
     }
 
     @BeforeEach
@@ -82,6 +87,40 @@ class TestScriptedLookupService {
         runner.setProperty(scriptedLookupService, ScriptingComponentUtils.SCRIPT_BODY, (String) null);
         runner.setProperty(scriptedLookupService, ScriptingComponentUtils.MODULES, (String) null);
         runner.enableControllerService(scriptedLookupService);
+
+        MockFlowFile mockFlowFile = new MockFlowFile(1L)
+        InputStream inStream = new ByteArrayInputStream('Flow file content not used'.bytes)
+
+        Optional opt = scriptedLookupService.lookup(['key':'Hello'])
+        assertTrue(opt.present)
+        assertEquals('Hi', opt.get())
+        opt = scriptedLookupService.lookup(['key':'World'])
+        assertTrue(opt.present)
+        assertEquals('there', opt.get())
+        opt = scriptedLookupService.lookup(['key':'Not There'])
+        assertFalse(opt.present)
+    }
+
+    @Test
+    void testLookupServiceScriptReload() {
+        final TestRunner runner = TestRunners.newTestRunner(new AbstractProcessor() {
+            @Override
+            public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+            }
+        });
+
+        runner.addControllerService("lookupService", scriptedLookupService)
+        runner.setProperty(scriptedLookupService, "Script Engine", "Groovy")
+        runner.setProperty(scriptedLookupService, ScriptingComponentUtils.SCRIPT_BODY, (String) null)
+        runner.setProperty(scriptedLookupService, ScriptingComponentUtils.SCRIPT_FILE, ALTERNATE_TARGET_PATH.toString())
+        runner.setProperty(scriptedLookupService, ScriptingComponentUtils.MODULES, (String) null)
+        // This call to setup should fail loading the script but should mark that the script should be reloaded
+        scriptedLookupService.setup()
+        // This prevents the (lookupService == null) check from passing, in order to force the reload from the
+        // scriptNeedsReload variable specifically
+        scriptedLookupService.lookupService.set(new MockScriptedLookupService())
+
+        runner.enableControllerService(scriptedLookupService)
 
         MockFlowFile mockFlowFile = new MockFlowFile(1L)
         InputStream inStream = new ByteArrayInputStream('Flow file content not used'.bytes)

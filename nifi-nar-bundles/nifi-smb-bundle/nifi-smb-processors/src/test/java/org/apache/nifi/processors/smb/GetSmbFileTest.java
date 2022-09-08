@@ -30,11 +30,14 @@ import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockitoAnnotations;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -44,35 +47,39 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class GetSmbFileTest {
     private TestRunner testRunner;
 
+    @Mock
     private SMBClient smbClient;
+
+    @Mock
     private Connection connection;
+
+    @Mock
     private Session session;
+
+    @Mock
     private DiskShare diskShare;
 
     private final static String HOSTNAME = "host";
     private final static String SHARE = "share";
     private final static String DIRECTORY = "nifi\\input";
-    private final static String DOMAIN = "";
     private final static String USERNAME = "user";
     private final static String PASSWORD = "pass";
 
     private void setupSmbProcessor() throws IOException {
-        smbClient = mock(SMBClient.class);
-        connection = mock(Connection.class);
-        session = mock(Session.class);
-        diskShare = mock(DiskShare.class);
-
         when(smbClient.connect(any(String.class))).thenReturn(connection);
         when(connection.authenticate(any(AuthenticationContext.class))).thenReturn(session);
         when(session.connectShare(SHARE)).thenReturn(diskShare);
@@ -81,9 +88,6 @@ public class GetSmbFileTest {
         testRunner.setProperty(GetSmbFile.HOSTNAME, HOSTNAME);
         testRunner.setProperty(GetSmbFile.SHARE, SHARE);
         testRunner.setProperty(GetSmbFile.DIRECTORY, DIRECTORY);
-        if (!DOMAIN.isEmpty()) {
-            testRunner.setProperty(GetSmbFile.DOMAIN, DOMAIN);
-        }
         testRunner.setProperty(GetSmbFile.USERNAME, USERNAME);
         testRunner.setProperty(GetSmbFile.PASSWORD, PASSWORD);
 
@@ -95,7 +99,7 @@ public class GetSmbFileTest {
     private FileIdBothDirectoryInformation mockFile(String path, String filename, String fileContent, long fileAttributes) {
         File smbfile = mock(File.class);
         final String fullpath = path + "\\" + filename;
-        when(diskShare.openFile(
+        lenient().when(diskShare.openFile(
                 eq(fullpath),
                 anySet(),
                 anySet(),
@@ -103,26 +107,26 @@ public class GetSmbFileTest {
                 any(SMB2CreateDisposition.class),
                 anySet()
         )).thenReturn(smbfile);
-        when(smbfile.getFileName()).thenReturn(filename);
+        lenient().when(smbfile.getFileName()).thenReturn(filename);
 
         if (fileContent != null) {
             InputStream is = new ByteArrayInputStream(fileContent.getBytes(StandardCharsets.UTF_8));
-            when(smbfile.getInputStream()).thenReturn(is);
+            lenient().when(smbfile.getInputStream()).thenReturn(is);
         }
 
         FileIdBothDirectoryInformation fdInfo = mock(FileIdBothDirectoryInformation.class);
-        when(fdInfo.getFileName()).thenReturn(filename);
-        when(fdInfo.getFileAttributes()).thenReturn(fileAttributes);
+        lenient().when(fdInfo.getFileName()).thenReturn(filename);
+        lenient().when(fdInfo.getFileAttributes()).thenReturn(fileAttributes);
 
         FileAllInformation fileAllInfo = mock(FileAllInformation.class);
         FileTime fileTime = FileTime.ofEpochMillis(0);
         FileBasicInformation fileBasicInfo = new FileBasicInformation(fileTime, fileTime, fileTime, fileTime, 0);
         FileStandardInformation fileStandardInformation = mock(FileStandardInformation.class);
 
-        when(smbfile.getFileInformation()).thenReturn(fileAllInfo);
-        when(fileAllInfo.getBasicInformation()).thenReturn(fileBasicInfo);
-        when(fileAllInfo.getStandardInformation()).thenReturn(fileStandardInformation);
-        when(fileStandardInformation.getEndOfFile()).thenReturn((long) 0);
+        lenient().when(smbfile.getFileInformation()).thenReturn(fileAllInfo);
+        lenient().when(fileAllInfo.getBasicInformation()).thenReturn(fileBasicInfo);
+        lenient().when(fileAllInfo.getStandardInformation()).thenReturn(fileStandardInformation);
+        lenient().when(fileStandardInformation.getEndOfFile()).thenReturn((long) 0);
 
         return fdInfo;
     }
@@ -146,24 +150,23 @@ public class GetSmbFileTest {
     private FileIdBothDirectoryInformation mockDir(String path, List<FileIdBothDirectoryInformation> files) {
         final String[] fileSplits = path.split("\\\\");
         final String filename = fileSplits[fileSplits.length - 1];
-        when(diskShare.folderExists(path)).thenReturn(true);
-        when(diskShare.list(path)).thenReturn(files);
+        lenient().when(diskShare.folderExists(path)).thenReturn(true);
+        lenient().when(diskShare.list(path)).thenReturn(files);
 
         FileIdBothDirectoryInformation fdInfo = mock(FileIdBothDirectoryInformation.class);
-        when(fdInfo.getFileName()).thenReturn(filename);
-        when(fdInfo.getFileAttributes()).thenReturn(FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue());
+        lenient().when(fdInfo.getFileName()).thenReturn(filename);
+        lenient().when(fdInfo.getFileAttributes()).thenReturn(FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue());
         return fdInfo;
     }
 
     @BeforeEach
     public void init() throws IOException {
         testRunner = TestRunners.newTestRunner(GetSmbFile.class);
-        MockitoAnnotations.initMocks(this);
         setupSmbProcessor();
     }
 
     @Test
-    public void testOpenFileCalled() throws IOException {
+    public void testOpenFileCalled() {
         FileIdBothDirectoryInformation file1 = mockFile(DIRECTORY, "file1.txt", "abc");
         mockDir(DIRECTORY, new ArrayList<FileIdBothDirectoryInformation>(){{
             add(file1);
@@ -174,7 +177,7 @@ public class GetSmbFileTest {
     }
 
     @Test
-    public void testHiddenFile() throws IOException {
+    public void testHiddenFile() {
         testRunner.setProperty(GetSmbFile.IGNORE_HIDDEN_FILES, "true");
         FileIdBothDirectoryInformation file1 = mockFile(DIRECTORY, "file1.txt", "abc", FileAttributes.FILE_ATTRIBUTE_HIDDEN.getValue());
         FileIdBothDirectoryInformation file2 = mockFile(DIRECTORY, "file2.txt", "abc", FileAttributes.FILE_ATTRIBUTE_NORMAL.getValue());
@@ -188,7 +191,7 @@ public class GetSmbFileTest {
     }
 
     @Test
-    public void testFileFilter() throws IOException {
+    public void testFileFilter() {
         testRunner.setProperty(GetSmbFile.FILE_FILTER, "file[0-9]\\.txt");
         mockDir(DIRECTORY, new ArrayList<FileIdBothDirectoryInformation>(){{
             add(mockFile(DIRECTORY, "something_else.txt", "abc"));
@@ -203,7 +206,7 @@ public class GetSmbFileTest {
     }
 
     @Test
-    public void testNonRecurse() throws IOException {
+    public void testNonRecurse() {
         testRunner.setProperty(GetSmbFile.RECURSE, "false");
         String subdir = DIRECTORY + "\\subdir1";
         mockDir(DIRECTORY, new ArrayList<FileIdBothDirectoryInformation>(){{
@@ -222,7 +225,7 @@ public class GetSmbFileTest {
     }
 
     @Test
-    public void testRecurse() throws IOException {
+    public void testRecurse() {
         testRunner.setProperty(GetSmbFile.RECURSE, "true");
         String subdir = DIRECTORY + "\\subdir1";
         mockDir(DIRECTORY, new ArrayList<FileIdBothDirectoryInformation>(){{
@@ -242,7 +245,7 @@ public class GetSmbFileTest {
     }
 
     @Test
-    public void testPathFilter() throws IOException {
+    public void testPathFilter() {
         testRunner.setProperty(GetSmbFile.RECURSE, "true");
         testRunner.setProperty(GetSmbFile.PATH_FILTER, ".*\\\\subdir[0-9]");
         String subdir1 = DIRECTORY + "\\subdir1";
@@ -269,24 +272,33 @@ public class GetSmbFileTest {
     }
 
     @Test
-    public void testBatchSize() throws IOException {
-        int batchSize = 10;
+    public void testBatchSize() {
+        final int batchSize = 10;
+        final int totalSize = batchSize * 2;
         testRunner.setProperty(GetSmbFile.BATCH_SIZE, Integer.toString(batchSize));
-        List<FileIdBothDirectoryInformation> fileList = new ArrayList<FileIdBothDirectoryInformation>();
-        for (int i=0; i<batchSize*2; i++) {
-            fileList.add(mockFile(DIRECTORY, "file" + i + ".txt", Integer.toString(i)));
-        }
-        mockDir(DIRECTORY, fileList);
 
-        testRunner.run();
+        final List<FileIdBothDirectoryInformation> files = new ArrayList<>();
+        final String fileNamePrefix = "file-";
+        for (int i = 0; i < totalSize; i++) {
+            files.add(mockFile(DIRECTORY, fileNamePrefix + i, Integer.toString(i)));
+        }
+        mockDir(DIRECTORY, files);
+
+        // Avoid stopping on finish and run initialization
+        testRunner.run(1, false, true);
         testRunner.assertTransferCount(GetSmbFile.REL_SUCCESS, batchSize);
-        testRunner.run();
-        testRunner.assertTransferCount(GetSmbFile.REL_SUCCESS, batchSize*2);
-        List<String> queuedFileNames = testRunner.getFlowFilesForRelationship(GetSmbFile.REL_SUCCESS).stream()
-                .map(f -> f.getAttribute(CoreAttributes.FILENAME.key()))
+        // Stop on finish and skip initialization to avoid clearing internal queue of files
+        testRunner.run(1, true, false);
+        testRunner.assertTransferCount(GetSmbFile.REL_SUCCESS, totalSize);
+
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(GetSmbFile.REL_SUCCESS);
+        final List<String> flowFileNames = flowFiles.stream()
+                .map(flowFile -> flowFile.getAttribute(CoreAttributes.FILENAME.key()))
                 .collect(Collectors.toList());
-        for (int i=0; i<batchSize*2; i++) {
-            queuedFileNames.contains("file" + i + ".txt");
+
+        for (int i = 0; i < totalSize; i++) {
+            final String flowFileName = flowFileNames.get(0);
+            assertTrue(flowFileNames.contains(flowFileName), String.format("FlowFile Name [%s] not found", flowFileName));
         }
     }
 }

@@ -25,8 +25,8 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.util.StringUtils;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -45,6 +45,10 @@ public class StandardAuthenticationEntryPoint implements AuthenticationEntryPoin
 
     protected static final String UNAUTHORIZED = "Unauthorized";
 
+    protected static final String EXPIRED_JWT = "Expired JWT";
+
+    protected static final String SESSION_EXPIRED = "Session Expired";
+
     private static final String ROOT_PATH = "/";
 
     private static final ApplicationCookieService applicationCookieService = new StandardApplicationCookieService();
@@ -62,32 +66,35 @@ public class StandardAuthenticationEntryPoint implements AuthenticationEntryPoin
      * @param response HTTP Servlet Response
      * @param exception Authentication Exception
      * @throws IOException Thrown on response processing failures
-     * @throws ServletException Thrown on response processing failures
      */
     @Override
-    public void commence(final HttpServletRequest request, final HttpServletResponse response, final AuthenticationException exception) throws IOException, ServletException {
+    public void commence(final HttpServletRequest request, final HttpServletResponse response, final AuthenticationException exception) throws IOException {
         if (exception instanceof OAuth2AuthenticationException) {
             bearerTokenAuthenticationEntryPoint.commence(request, response, exception);
         } else {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         }
         removeAuthorizationBearerCookie(request, response);
-        sendErrorMessage(response);
+        sendErrorMessage(response, exception);
     }
 
-    private void sendErrorMessage(final HttpServletResponse response) throws IOException {
+    private void sendErrorMessage(final HttpServletResponse response, final AuthenticationException exception) throws IOException {
         response.setContentType(MediaType.TEXT_PLAIN_VALUE);
-        final String message = getErrorMessage(response);
+        final String message = getErrorMessage(response, exception);
         try (final PrintWriter writer = response.getWriter()) {
             writer.print(message);
         }
     }
 
-    private String getErrorMessage(final HttpServletResponse response) {
+    private String getErrorMessage(final HttpServletResponse response, final AuthenticationException exception) {
         // Use WWW-Authenticate Header from BearerTokenAuthenticationEntryPoint when found
         final String authenticateHeader = response.getHeader(AUTHENTICATE_HEADER);
         final String errorMessage = authenticateHeader == null ? UNAUTHORIZED : authenticateHeader;
-        return errorMessage.replaceFirst(BEARER_HEADER, UNAUTHORIZED);
+        final String formattedErrorMessage = errorMessage.replaceFirst(BEARER_HEADER, UNAUTHORIZED);
+
+        // Use simplified message for Expired JWT exceptions
+        final String exceptionMessage = exception.getMessage();
+        return StringUtils.endsWithIgnoreCase(exceptionMessage, EXPIRED_JWT) ? SESSION_EXPIRED : formattedErrorMessage;
     }
 
     private void removeAuthorizationBearerCookie(final HttpServletRequest request, final HttpServletResponse response) {

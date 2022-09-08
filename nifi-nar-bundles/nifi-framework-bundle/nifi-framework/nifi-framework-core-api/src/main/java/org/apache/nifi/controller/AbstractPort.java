@@ -42,6 +42,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -167,6 +168,15 @@ public abstract class AbstractPort implements Port {
 
     @Override
     public void setProcessGroup(final ProcessGroup newGroup) {
+        if (this.processGroup.get() != null && !Objects.equals(newGroup, this.processGroup.get())) {
+            // Process Group is changing. For a Port, we effectively want to consider this the same as
+            // deleting an old port and creating a new one, in terms of tracking the port to a versioned flow.
+            // This ensures that we have a unique versioned component id not only in the given process group but also
+            // between the given group and its parent and all children. This is important for ports because we can
+            // connect to/from them between Process Groups, so we need to ensure unique IDs.
+            versionedComponentId.set(null);
+        }
+
         this.processGroup.set(newGroup);
     }
 

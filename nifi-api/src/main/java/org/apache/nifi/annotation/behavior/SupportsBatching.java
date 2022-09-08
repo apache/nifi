@@ -41,11 +41,13 @@ import java.lang.annotation.Target;
  * ProcessSession.commit() to ensure data is persisted before deleting the data
  * from a remote source.
  *
+ * When the defaultDuration parameter is set, the processor is created with the supplied duration time, which can be adjusted afterwards.
+ * The supplied values can be selected from {@link org.apache.nifi.annotation.behavior.DefaultRunDuration}.
  */
 @Documented
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
 public @interface SupportsBatching {
-
+    DefaultRunDuration defaultDuration() default DefaultRunDuration.NO_BATCHING;
 }

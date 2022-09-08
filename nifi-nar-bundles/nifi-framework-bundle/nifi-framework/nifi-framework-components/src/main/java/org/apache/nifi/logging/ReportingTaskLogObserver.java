@@ -42,4 +42,9 @@ public class ReportingTaskLogObserver implements LogObserver {
             taskNode.getName(), "Log Message", bulletinLevel, message.getMessage());
         bulletinRepository.addBulletin(bulletin);
     }
+
+    @Override
+    public String getComponentDescription() {
+        return taskNode.toString();
+    }
 }

@@ -19,4 +19,7 @@ package org.apache.nifi.logging;
 public interface LogObserver {
 
     void onLogMessage(LogMessage message);
+
+    String getComponentDescription();
+
 }

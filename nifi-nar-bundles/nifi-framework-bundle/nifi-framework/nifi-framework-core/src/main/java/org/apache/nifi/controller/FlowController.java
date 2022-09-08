@@ -373,7 +373,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     private boolean clustered;
 
     // guarded by rwLock
-    private NodeConnectionStatus connectionStatus;
+    private volatile NodeConnectionStatus connectionStatus;
 
     private StatusAnalyticsEngine analyticsEngine;
 
@@ -2136,27 +2136,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         return resetValue;
     }
 
-    //
-    // Access to controller status
-    //
-    public QueueSize getTotalFlowFileCount(final ProcessGroup group) {
-        int count = 0;
-        long contentSize = 0L;
-
-        for (final Connection connection : group.getConnections()) {
-            final QueueSize size = connection.getFlowFileQueue().size();
-            count += size.getObjectCount();
-            contentSize += size.getByteCount();
-        }
-        for (final ProcessGroup childGroup : group.getProcessGroups()) {
-            final QueueSize size = getTotalFlowFileCount(childGroup);
-            count += size.getObjectCount();
-            contentSize += size.getByteCount();
-        }
-
-        return new QueueSize(count, contentSize);
-    }
-
     public class GroupStatusCounts {
         private int queuedCount = 0;
         private long queuedContentSize = 0;
@@ -3031,12 +3010,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         try {
             HeartbeatBean bean = heartbeatBeanRef.get();
             if (bean == null) {
-                readLock.lock();
-                try {
-                    bean = new HeartbeatBean(flowManager.getRootGroup(), isPrimary());
-                } finally {
-                    readLock.unlock("createHeartbeatMessage");
-                }
+                bean = new HeartbeatBean(flowManager.getRootGroup(), isPrimary());
             }
 
             // create heartbeat payload
@@ -3045,7 +3019,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             hbPayload.setActiveThreadCount(getActiveThreadCount());
             hbPayload.setRevisionUpdateCount(revisionManager.getRevisionUpdateCount());
 
-            final QueueSize queueSize = getTotalFlowFileCount(bean.getRootGroup());
+            final QueueSize queueSize = bean.getRootGroup().getQueueSize();
             hbPayload.setTotalFlowFileCount(queueSize.getObjectCount());
             hbPayload.setTotalFlowFileBytes(queueSize.getByteCount());
             hbPayload.setClusterStatus(clusterCoordinator.getConnectionStatuses());

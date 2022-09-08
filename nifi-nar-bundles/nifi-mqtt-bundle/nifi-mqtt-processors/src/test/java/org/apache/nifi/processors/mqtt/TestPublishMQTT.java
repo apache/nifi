@@ -17,13 +17,12 @@
 
 package org.apache.nifi.processors.mqtt;
 
-import org.apache.nifi.processors.mqtt.common.MQTTQueueMessage;
+import org.apache.nifi.processors.mqtt.common.MqttClient;
+import org.apache.nifi.processors.mqtt.common.MqttException;
 import org.apache.nifi.processors.mqtt.common.MqttTestClient;
+import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
 import org.apache.nifi.processors.mqtt.common.TestPublishMqttCommon;
 import org.apache.nifi.util.TestRunners;
-import org.eclipse.paho.client.mqttv3.IMqttClient;
-import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.util.Arrays;
@@ -34,11 +33,12 @@ public class TestPublishMQTT extends TestPublishMqttCommon {
 
     @Override
     public void verifyPublishedMessage(byte[] payload, int qos, boolean retain) {
-        MQTTQueueMessage mqttQueueMessage = mqttTestClient.publishedMessage;
-        assertEquals(Arrays.toString(payload), Arrays.toString(mqttQueueMessage.getPayload()));
-        assertEquals(qos, mqttQueueMessage.getQos());
-        assertEquals(retain, mqttQueueMessage.isRetained());
-        assertEquals(topic, mqttQueueMessage.getTopic());
+        StandardMqttMessage lastPublishedMessage = mqttTestClient.getLastPublishedMessage();
+        String lastPublishedTopic = mqttTestClient.getLastPublishedTopic();
+        assertEquals(Arrays.toString(payload), Arrays.toString(lastPublishedMessage.getPayload()));
+        assertEquals(qos, lastPublishedMessage.getQos());
+        assertEquals(retain, lastPublishedMessage.isRetained());
+        assertEquals(topic, lastPublishedTopic);
     }
 
     private MqttTestClient mqttTestClient;
@@ -50,8 +50,8 @@ public class TestPublishMQTT extends TestPublishMqttCommon {
         }
 
         @Override
-        public IMqttClient createMqttClient(String broker, String clientID, MemoryPersistence persistence) throws MqttException {
-            mqttTestClient =  new MqttTestClient(broker, clientID, MqttTestClient.ConnectType.Publisher);
+        protected MqttClient createMqttClient() throws MqttException {
+            mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Publisher);
             return mqttTestClient;
         }
     }

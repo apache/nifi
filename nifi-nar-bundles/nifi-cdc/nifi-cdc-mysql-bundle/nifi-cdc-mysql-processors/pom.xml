@@ -39,9 +39,9 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-distributed-cache-client-service-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.github.shyiko</groupId>
+            <groupId>com.zendesk</groupId>
             <artifactId>mysql-binlog-connector-java</artifactId>
-            <version>0.20.1</version>
+            <version>0.26.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

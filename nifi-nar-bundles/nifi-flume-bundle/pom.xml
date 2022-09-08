@@ -40,6 +40,12 @@
                 <artifactId>netty</artifactId>
                 <version>${netty.3.version}</version>
             </dependency>
+            <!-- Override Tomcat Embed Core 8.5.46 from Flume 1.10.0 -->
+            <dependency>
+                <groupId>org.apache.tomcat.embed</groupId>
+                <artifactId>tomcat-embed-core</artifactId>
+                <version>8.5.82</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>

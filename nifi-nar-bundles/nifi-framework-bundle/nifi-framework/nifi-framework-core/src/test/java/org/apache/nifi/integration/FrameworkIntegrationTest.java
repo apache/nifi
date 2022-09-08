@@ -409,7 +409,9 @@ public class FrameworkIntegrationTest {
         final String uuid = getSimpleTypeName(processorType) + "-" + UUID.randomUUID().toString();
         final BundleCoordinate bundleCoordinate = SystemBundle.SYSTEM_BUNDLE_COORDINATE;
         final ProcessorNode procNode = flowController.getFlowManager().createProcessor(processorType, uuid, bundleCoordinate, Collections.emptySet(), true, true, null);
-        destination.addProcessor(procNode);
+        if (destination != null) {
+            destination.addProcessor(procNode);
+        }
 
         return procNode;
     }

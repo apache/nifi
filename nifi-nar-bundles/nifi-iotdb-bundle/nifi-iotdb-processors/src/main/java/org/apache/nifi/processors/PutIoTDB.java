@@ -41,7 +41,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.model.ValidationResult;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -66,12 +65,12 @@ public class PutIoTDB extends AbstractIoTDB {
 
     static final PropertyDescriptor SCHEMA =
             new PropertyDescriptor.Builder()
-                    .name("Schema")
+                    .name("Schema Template")
                     .description(
-                            "The schema that IoTDB needs doesn't support good by NiFi.\n"
-                                    + "Therefore, you can define the schema here.\n"
-                                    + "Besides, you can set encoding type and compression type by this method.\n"
-                                    + "If you don't set this property, the inferred schema will be used.\n")
+                            "The Apache IoTDB Schema Template defined using JSON.\n" +
+                                    "The Processor will infer the IoTDB Schema when this property is not configured.\n" +
+                                    "Besides, you can set encoding type and compression type by this method.\n" +
+                                    "If you want to know more detail about this, you can browse this link: https://iotdb.apache.org/UserGuide/Master/Ecosystem-Integration/NiFi-IoTDB.html")
                     .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                     .required(false)
                     .build();
@@ -81,7 +80,6 @@ public class PutIoTDB extends AbstractIoTDB {
                     .name("Aligned")
                     .description("Whether to use the Apache IoTDB Aligned Timeseries interface")
                     .allowableValues("true", "false")
-                    .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
                     .defaultValue("false")
                     .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                     .required(false)
@@ -92,7 +90,6 @@ public class PutIoTDB extends AbstractIoTDB {
                     .name("Max Row Number")
                     .description(
                             "Specifies the max row number of each Apache IoTDB Tablet")
-                    .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
                     .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                     .required(false)
                     .build();
@@ -125,7 +122,6 @@ public class PutIoTDB extends AbstractIoTDB {
         FlowFile flowFile = processSession.get();
 
         if (flowFile == null) {
-            processSession.transfer(flowFile, REL_SUCCESS);
             return;
         }
 
@@ -179,7 +175,7 @@ public class PutIoTDB extends AbstractIoTDB {
                 if (format == null && needInitFormatter) {
                     format = initFormatter((String) values[0]);
                     if (format == null) {
-                        getLogger().error("{} Record [{}] time format not supported\", flowFile, recordNumber");
+                        getLogger().error("{} Record [{}] time format not supported", flowFile, values[0]);
                         inputStream.close();
                         recordReader.close();
                         processSession.transfer(flowFile, REL_FAILURE);
@@ -189,7 +185,9 @@ public class PutIoTDB extends AbstractIoTDB {
 
                 long timestamp;
                 if (needInitFormatter) {
-                    timestamp = Timestamp.valueOf(LocalDateTime.parse((String) values[0], format)).getTime();
+                    timestamp = Timestamp
+                            .valueOf(LocalDateTime.parse((String) values[0], format))
+                            .getTime();
                 } else {
                     timestamp = (Long) values[0];
                 }

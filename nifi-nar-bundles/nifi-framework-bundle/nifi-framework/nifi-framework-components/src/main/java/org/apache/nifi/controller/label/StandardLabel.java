@@ -45,7 +45,7 @@ public class StandardLabel implements Label {
     private final AtomicLong zIndex = new AtomicLong(DEFAULT_Z_INDEX);
 
     public StandardLabel(final String identifier, final String value) {
-        this(identifier, new Position(0D, 0D), new HashMap<String, String>(), value, null);
+        this(identifier, new Position(0D, 0D), new HashMap<>(), value, null);
     }
 
     public StandardLabel(final String identifier, final Position position, final Map<String, String> style, final String value, final ProcessGroup processGroup) {
@@ -171,5 +171,20 @@ public class StandardLabel implements Label {
     @Override
     public void setZIndex(final long zIndex) {
         this.zIndex.set(zIndex);
+    }
+
+    @Override
+    public String toString() {
+        return "StandardLabel[id=" + identifier + ", text=" + ellipsis(getValue(), 50) + "]";
+    }
+
+    private String ellipsis(final String value, final int maxLength) {
+        if (value == null) {
+            return "";
+        }
+        if (value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength) + "...";
     }
 }
