@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.security.oidc
 
-import com.nimbusds.jose.JWSAlgorithm
 import com.nimbusds.jwt.JWT
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.PlainJWT
@@ -37,16 +36,20 @@ import com.nimbusds.oauth2.sdk.token.RefreshToken
 import com.nimbusds.openid.connect.sdk.Nonce
 import com.nimbusds.openid.connect.sdk.OIDCTokenResponse
 import com.nimbusds.openid.connect.sdk.SubjectType
-import com.nimbusds.openid.connect.sdk.claims.AccessTokenHash
 import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata
 import com.nimbusds.openid.connect.sdk.token.OIDCTokens
 import com.nimbusds.openid.connect.sdk.validators.IDTokenValidator
 import groovy.json.JsonOutput
-import net.minidev.json.JSONObject
-import org.apache.commons.codec.binary.Base64
+import groovy.json.JsonSlurper
+import io.jsonwebtoken.Jwts
+import io.jsonwebtoken.SignatureAlgorithm
+import org.apache.nifi.admin.service.KeyService
+import org.apache.nifi.key.Key
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.StringUtils
+import org.apache.nifi.web.security.jwt.JwtService
+import org.apache.nifi.web.security.token.LoginAuthenticationToken
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
@@ -60,25 +63,22 @@ import org.slf4j.LoggerFactory
 class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(StandardOidcIdentityProviderGroovyTest.class)
 
+    private static final Key SIGNING_KEY = new Key(id: 1, identity: "signingKey", key: "mock-signing-key-value")
     private static final Map<String, Object> DEFAULT_NIFI_PROPERTIES = [
-            "nifi.security.user.oidc.discovery.url"           : "https://localhost/oidc",
-            "nifi.security.user.login.identity.provider"      : "provider",
-            "nifi.security.user.knox.url"                     : "url",
-            "nifi.security.user.oidc.connect.timeout"         : "1000",
-            "nifi.security.user.oidc.read.timeout"            : "1000",
-            "nifi.security.user.oidc.client.id"               : "expected_client_id",
-            "nifi.security.user.oidc.client.secret"           : "expected_client_secret",
-            "nifi.security.user.oidc.claim.identifying.user"  : "username",
-            "nifi.security.user.oidc.preferred.jwsalgorithm"  : ""
+            isOidcEnabled                 : false,
+            getOidcDiscoveryUrl           : "https://localhost/oidc",
+            isLoginIdentityProviderEnabled: false,
+            isKnoxSsoEnabled              : false,
+            getOidcConnectTimeout         : 1000,
+            getOidcReadTimeout            : 1000,
+            getOidcClientId               : "expected_client_id",
+            getOidcClientSecret           : "expected_client_secret",
+            getOidcClaimIdentifyingUser   : "username"
     ]
 
     // Mock collaborators
     private static NiFiProperties mockNiFiProperties
-
-    private static final String MOCK_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZ" +
-            "SI6Ik5pRmkgT0lEQyBVbml0IFRlc3RlciIsImlhdCI6MTUxNjIzOTAyMiwiZXhwIjoxNTE2MzM5MDIyLCJpc3MiOiJuaWZp" +
-            "X3VuaXRfdGVzdF9hdXRob3JpdHkiLCJhdWQiOiJhbGwiLCJ1c2VybmFtZSI6Im9pZGNfdGVzdCIsImVtYWlsIjoib2lkY19" +
-            "0ZXN0QG5pZmkuYXBhY2hlLm9yZyJ9.b4NIl0RONKdVLOH0D1eObdwAEX8qX-ExqB8KuKSZFLw"
+    private static JwtService mockJwtService = [:] as JwtService
 
     @BeforeClass
     static void setUpOnce() throws Exception {
@@ -98,16 +98,48 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
 
     private static NiFiProperties buildNiFiProperties(Map<String, Object> props = [:]) {
         def combinedProps = DEFAULT_NIFI_PROPERTIES + props
-        new NiFiProperties(combinedProps)
+        def mockNFP = combinedProps.collectEntries { String k, def v ->
+            [k, { -> return v }]
+        }
+        mockNFP as NiFiProperties
+    }
+
+    private static JwtService buildJwtService() {
+        def mockJS = new JwtService([:] as KeyService) {
+            @Override
+            String generateSignedToken(LoginAuthenticationToken lat) {
+                signNiFiToken(lat)
+            }
+
+        }
+        mockJS
+    }
+
+    private static String signNiFiToken(LoginAuthenticationToken lat) {
+        String identity = "mockUser"
+        String USERNAME_CLAIM = "username"
+        String KEY_ID_CLAIM = "keyId"
+        Calendar expiration = Calendar.getInstance()
+        expiration.setTimeInMillis(System.currentTimeMillis() + 10_000)
+        String username = lat.getName()
+
+        return Jwts.builder().setSubject(identity)
+                .setIssuer(lat.getIssuer())
+                .setAudience(lat.getIssuer())
+                .claim(USERNAME_CLAIM, username)
+                .claim(KEY_ID_CLAIM, SIGNING_KEY.getId())
+                .setExpiration(expiration.getTime())
+                .setIssuedAt(Calendar.getInstance().getTime())
+                .signWith(SignatureAlgorithm.HS256, SIGNING_KEY.key.getBytes("UTF-8")).compact()
     }
 
     @Test
     void testShouldGetAvailableClaims() {
         // Arrange
         final Map<String, String> EXPECTED_CLAIMS = [
-                "iss"           : "https://accounts.issuer.com",
-                "azp"           : "1013352044499-05pb1ssdfuihsdfsdsdfdi8r2vike88m.apps.usercontent.com",
-                "aud"           : "1013352044499-05pb1ssdfuihsdfsdsdfdi8r2vike88m.apps.usercontent.com",
+                "iss"           : "https://accounts.google.com",
+                "azp"           : "1013352044499-05pb1ssdfuihsdfsdsdfdi8r2vike88m.apps.googleusercontent.com",
+                "aud"           : "1013352044499-05pb1ssdfuihsdfsdsdfdi8r2vike88m.apps.googleusercontent.com",
                 "sub"           : "10703475345439756345540",
                 "email"         : "person@nifi.apache.org",
                 "email_verified": "true",
@@ -132,7 +164,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     @Test
     void testShouldCreateClientAuthenticationFromPost() {
         // Arrange
-        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockNiFiProperties)
+        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJwtService, mockNiFiProperties)
 
         Issuer mockIssuer = new Issuer("https://localhost/oidc")
         URI mockURI = new URI("https://localhost/oidc")
@@ -169,7 +201,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     void testShouldCreateClientAuthenticationFromBasic() {
         // Arrange
         // Mock collaborators
-        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockNiFiProperties)
+        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJwtService, mockNiFiProperties)
 
         Issuer mockIssuer = new Issuer("https://localhost/oidc")
         URI mockURI = new URI("https://localhost/oidc")
@@ -205,7 +237,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     @Test
     void testShouldCreateTokenHTTPRequest() {
         // Arrange
-        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockNiFiProperties)
+        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJwtService, mockNiFiProperties)
 
         // Mock AuthorizationGrant
         Issuer mockIssuer = new Issuer("https://localhost/oidc")
@@ -244,7 +276,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     @Test
     void testShouldLookupIdentityInUserInfo() {
         // Arrange
-        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockNiFiProperties)
+        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJwtService, mockNiFiProperties)
 
         Issuer mockIssuer = new Issuer("https://localhost/oidc")
         URI mockURI = new URI("https://localhost/oidc")
@@ -268,7 +300,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     @Test
     void testLookupIdentityUserInfoShouldHandleMissingIdentity() {
         // Arrange
-        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockNiFiProperties)
+        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJwtService, mockNiFiProperties)
 
         Issuer mockIssuer = new Issuer("https://localhost/oidc")
         URI mockURI = new URI("https://localhost/oidc")
@@ -293,7 +325,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     @Test
     void testLookupIdentityUserInfoShouldHandle500() {
         // Arrange
-        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockNiFiProperties)
+        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJwtService, mockNiFiProperties)
 
         Issuer mockIssuer = new Issuer("https://localhost/oidc")
         URI mockURI = new URI("https://localhost/oidc")
@@ -314,12 +346,11 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         logger.expected(msg)
 
         // Assert
-        assert msg =~ "An error occurred while invoking the UserInfo endpoint: The provided username and password " +
-                "were not correct"
+        assert msg =~ "An error occurred while invoking the UserInfo endpoint: The provided username and password were not correct"
     }
 
     @Test
-    void testShouldConvertOIDCTokenToLoginAuthenticationToken() {
+    void testShouldConvertOIDCTokenToNiFiToken() {
         // Arrange
         StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator(["getOidcClaimIdentifyingUser": "email"])
 
@@ -327,24 +358,35 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         logger.info("OIDC Token Response: ${mockResponse.dump()}")
 
         // Act
-        final String loginToken = soip.convertOIDCTokenToLoginAuthenticationToken(mockResponse)
-        logger.info("Login Authentication token: ${loginToken}")
+        String nifiToken = soip.convertOIDCTokenToNiFiToken(mockResponse)
+        logger.info("NiFi token: ${nifiToken}")
 
         // Assert
-        // Split ID Token into components
-        def (String contents, String expiration) = loginToken.tokenize("\\[\\]")
-        logger.info("Token contents: ${contents} | Expiration: ${expiration}")
 
-        assert contents =~ "LoginAuthenticationToken for person@nifi\\.apache\\.org issued by https://accounts\\.issuer\\.com expiring at"
+        // Split JWT into components and decode Base64 to JSON
+        def (String headerB64, String payloadB64, String signatureB64) = nifiToken.tokenize("\\.")
+        logger.info("Header: ${headerB64} | Payload: ${payloadB64} | Signature: ${signatureB64}")
+        String headerJson = new String(Base64.decoder.decode(headerB64), "UTF-8")
+        String payloadJson = new String(Base64.decoder.decode(payloadB64), "UTF-8")
+        // String signatureJson = new String(Base64.decoder.decode(signatureB64), "UTF-8")
 
-        // Assert expiration
-        final String[] expList = expiration.split("\\s")
-        final Long expLong = Long.parseLong(expList[0])
-        assert expLong <= System.currentTimeMillis() + 10_000
+        // Parse JSON into objects
+        def slurper = new JsonSlurper()
+        def header = slurper.parseText(headerJson)
+        logger.info("Header: ${header}")
+
+        assert header.alg == "HS256"
+
+        def payload = slurper.parseText(payloadJson)
+        logger.info("Payload: ${payload}")
+
+        assert payload.username == "person@nifi.apache.org"
+        assert payload.keyId == 1
+        assert payload.exp <= System.currentTimeMillis() + 10_000
     }
 
     @Test
-    void testConvertOIDCTokenToLoginAuthenticationTokenShouldHandleBlankIdentity() {
+    void testConvertOIDCTokenToNiFiTokenShouldHandleBlankIdentity() {
         // Arrange
         StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator(["getOidcClaimIdentifyingUser": "non-existent-claim"])
 
@@ -352,318 +394,97 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         logger.info("OIDC Token Response: ${mockResponse.dump()}")
 
         // Act
-        String loginToken = soip.convertOIDCTokenToLoginAuthenticationToken(mockResponse)
-        logger.info("Login Authentication token: ${loginToken}")
+        String nifiToken = soip.convertOIDCTokenToNiFiToken(mockResponse)
+        logger.info("NiFi token: ${nifiToken}")
 
-        // Assert
-        // Split ID Token into components
-        def (String contents, String expiration) = loginToken.tokenize("\\[\\]")
-        logger.info("Token contents: ${contents} | Expiration: ${expiration}")
-
-        assert contents =~ "LoginAuthenticationToken for person@nifi\\.apache\\.org issued by https://accounts\\.issuer\\.com expiring at"
-
-        // Get the expiration
-        final ArrayList<String> expires = expiration.split("[\\D*]")
-        final long exp = Long.parseLong(expires[0])
-        logger.info("exp: ${exp} ms")
-
-        assert exp <= System.currentTimeMillis() + 10_000
-    }
-
-    @Test
-    void testConvertOIDCTokenToLoginAuthenticationTokenShouldHandleNoEmailClaimHasFallbackClaims() {
-        // Arrange
-        StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator(
-                ["nifi.security.user.oidc.claim.identifying.user": "email",
-                 "nifi.security.user.oidc.fallback.claims.identifying.user": "upn" ])
-        String expectedUpn = "xxx@aaddomain";
-
-        OIDCTokenResponse mockResponse = mockOIDCTokenResponse(["email": null, "upn": expectedUpn])
-        logger.info("OIDC Token Response with no email and upn: ${mockResponse.dump()}")
-
-        String loginToken = soip.convertOIDCTokenToLoginAuthenticationToken(mockResponse)
-        logger.info("NiFi token create with upn: ${loginToken}")
         // Assert
         // Split JWT into components and decode Base64 to JSON
-        def (String contents, String expiration) = loginToken.tokenize("\\[\\]")
-        logger.info("Token contents: ${contents} | Expiration: ${expiration}")
-        assert contents =~ "LoginAuthenticationToken for ${expectedUpn} issued by https://accounts\\.issuer\\.com expiring at"
+        def (String headerB64, String payloadB64, String signatureB64) = nifiToken.tokenize("\\.")
+        logger.info("Header: ${headerB64} | Payload: ${payloadB64} | Signature: ${signatureB64}")
+        String headerJson = new String(Base64.decoder.decode(headerB64), "UTF-8")
+        String payloadJson = new String(Base64.decoder.decode(payloadB64), "UTF-8")
+        // String signatureJson = new String(Base64.decoder.decode(signatureB64), "UTF-8")
+
+        // Parse JSON into objects
+        def slurper = new JsonSlurper()
+        def header = slurper.parseText(headerJson)
+        logger.info("Header: ${header}")
+
+        assert header.alg == "HS256"
+
+        def payload = slurper.parseText(payloadJson)
+        logger.info("Payload: ${payload}")
+
+        assert payload.username == "person@nifi.apache.org"
+        assert payload.keyId == 1
+        assert payload.exp <= System.currentTimeMillis() + 10_000
     }
 
     @Test
-    void testConvertOIDCTokenToLoginAuthNTokenShouldHandleBlankIdentityAndNoEmailClaim() {
+    void testConvertOIDCTokenToNiFiTokenShouldHandleBlankIdentityAndNoEmailClaim() {
         // Arrange
-        StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator(["getOidcClaimIdentifyingUser": "non-existent-claim", "getOidcFallbackClaimsIdentifyingUser": [] ])
+        StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator(["getOidcClaimIdentifyingUser": "non-existent-claim"])
 
         OIDCTokenResponse mockResponse = mockOIDCTokenResponse(["email": null])
         logger.info("OIDC Token Response: ${mockResponse.dump()}")
 
         // Act
-        def msg = shouldFail(IOException) {
-            String loginAuthenticationToken = soip.convertOIDCTokenToLoginAuthenticationToken(mockResponse)
-            logger.info("Login authentication token: ${loginAuthenticationToken}")
+        def msg = shouldFail(ConnectException) {
+            String nifiToken = soip.convertOIDCTokenToNiFiToken(mockResponse)
+            logger.info("NiFi token: ${nifiToken}")
         }
-        logger.expected(msg)
+
+        // Assert
+        assert msg =~ "Connection refused"
     }
 
     @Test
-    void testShouldAuthorizeClientRequest() {
+    void testShouldAuthorizeClient() {
         // Arrange
         // Build ID Provider with mock token endpoint URI to make a connection
         StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator([:])
 
-        def responseBody = [id_token: MOCK_JWT, access_token: "some.access.token", refresh_token: "some.refresh.token", token_type: "bearer"]
+        // Mock the JWT
+        def jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6Ik5pRmkgT0lEQyBVbml0IFRlc3RlciIsImlhdCI6MTUxNjIzOTAyMiwiZXhwIjoxNTE2MzM5MDIyLCJpc3MiOiJuaWZpX3VuaXRfdGVzdF9hdXRob3JpdHkiLCJhdWQiOiJhbGwiLCJ1c2VybmFtZSI6Im9pZGNfdGVzdCIsImVtYWlsIjoib2lkY190ZXN0QG5pZmkuYXBhY2hlLm9yZyJ9.b4NIl0RONKdVLOH0D1eObdwAEX8qX-ExqB8KuKSZFLw"
+
+        def responseBody = [id_token: jwt, access_token: "some.access.token", refresh_token: "some.refresh.token", token_type: "bearer"]
         HTTPRequest mockTokenRequest = mockHttpRequest(responseBody, 200, "HTTP OK")
 
         // Act
-        def tokenResponse = soip.authorizeClientRequest(mockTokenRequest)
-        logger.info("Token Response: ${tokenResponse.dump()}")
+        def nifiToken = soip.authorizeClient(mockTokenRequest)
+        logger.info("NiFi Token: ${nifiToken.dump()}")
 
         // Assert
-        assert tokenResponse
+        assert nifiToken
     }
 
     @Test
-    void testAuthorizeClientRequestShouldHandleError() {
+    void testAuthorizeClientShouldHandleError() {
         // Arrange
         // Build ID Provider with mock token endpoint URI to make a connection
         StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator([:])
 
-        def responseBody = [id_token: MOCK_JWT, access_token: "some.access.token", refresh_token: "some.refresh.token", token_type: "bearer"]
+        // Mock the JWT
+        def jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6Ik5pRmkgT0lEQyBVbml0IFRlc3RlciIsImlhdCI6MTUxNjIzOTAyMiwiZXhwIjoxNTE2MzM5MDIyLCJpc3MiOiJuaWZpX3VuaXRfdGVzdF9hdXRob3JpdHkiLCJhdWQiOiJhbGwiLCJ1c2VybmFtZSI6Im9pZGNfdGVzdCIsImVtYWlsIjoib2lkY190ZXN0QG5pZmkuYXBhY2hlLm9yZyJ9.b4NIl0RONKdVLOH0D1eObdwAEX8qX-ExqB8KuKSZFLw"
+
+        def responseBody = [id_token: jwt, access_token: "some.access.token", refresh_token: "some.refresh.token", token_type: "bearer"]
         HTTPRequest mockTokenRequest = mockHttpRequest(responseBody, 500, "HTTP SERVER ERROR")
 
         // Act
         def msg = shouldFail(RuntimeException) {
-            def nifiToken = soip.authorizeClientRequest(mockTokenRequest)
+            def nifiToken = soip.authorizeClient(mockTokenRequest)
             logger.info("NiFi token: ${nifiToken}")
         }
-        logger.expected(msg)
 
         // Assert
         assert msg =~ "An error occurred while invoking the Token endpoint: null"
     }
 
-    @Test
-    void testShouldGetAccessTokenString() {
-        // Arrange
-        StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator()
-
-        // Mock access tokens
-        AccessToken mockAccessToken = new BearerAccessToken()
-        RefreshToken mockRefreshToken = new RefreshToken()
-
-        // Compute the access token hash
-        final JWSAlgorithm jwsAlgorithm = JWSAlgorithm.RS256
-        AccessTokenHash EXPECTED_HASH = AccessTokenHash.compute(mockAccessToken, jwsAlgorithm)
-        logger.info("Expected at_hash: ${EXPECTED_HASH}")
-
-        // Create mock claims with at_hash
-        Map<String, Object> mockClaims = (["at_hash": EXPECTED_HASH.toString()])
-
-        // Create Claims Set
-        JWTClaimsSet mockJWTClaimsSet = new JWTClaimsSet(mockClaims)
-
-        // Create JWT
-        JWT mockJwt = new PlainJWT(mockJWTClaimsSet)
-
-        // Create OIDC Tokens
-        OIDCTokens mockOidcTokens = new OIDCTokens(mockJwt, mockAccessToken, mockRefreshToken)
-
-        // Create OIDC Token Response
-        OIDCTokenResponse mockResponse = new OIDCTokenResponse(mockOidcTokens)
-
-        // Act
-        String accessTokenString = soip.getAccessTokenString(mockResponse)
-        logger.info("Access token: ${accessTokenString}")
-
-        // Assert
-        assert accessTokenString
-    }
-
-    @Test
-    void testShouldValidateAccessToken() {
-        // Arrange
-        StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator()
-
-        // Mock access tokens
-        AccessToken mockAccessToken = new BearerAccessToken()
-        logger.info("mock access token: ${mockAccessToken.toString()}")
-        RefreshToken mockRefreshToken = new RefreshToken()
-
-        // Compute the access token hash
-        final JWSAlgorithm jwsAlgorithm = JWSAlgorithm.RS256
-        AccessTokenHash EXPECTED_HASH = AccessTokenHash.compute(mockAccessToken, jwsAlgorithm)
-        logger.info("Expected at_hash: ${EXPECTED_HASH}")
-
-        // Create mock claim
-        final Map<String, Object> claims = mockClaims(["at_hash":EXPECTED_HASH.toString()])
-
-        // Create Claims Set
-        JWTClaimsSet mockJWTClaimsSet = new JWTClaimsSet(claims)
-
-        // Create JWT
-        JWT mockJwt = new PlainJWT(mockJWTClaimsSet)
-
-        // Create OIDC Tokens
-        OIDCTokens mockOidcTokens = new OIDCTokens(mockJwt, mockAccessToken, mockRefreshToken)
-        logger.info("mock id tokens: ${mockOidcTokens.getIDToken().properties}")
-
-        // Act
-        String accessTokenString = soip.validateAccessToken(mockOidcTokens)
-        logger.info("Access Token: ${accessTokenString}")
-
-        // Assert
-        assert accessTokenString == null
-    }
-
-    @Test
-    void testValidateAccessTokenShouldHandleMismatchedATHash() {
-        // Arrange
-        StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator()
-
-        // Mock access tokens
-        AccessToken mockAccessToken = new BearerAccessToken()
-        RefreshToken mockRefreshToken = new RefreshToken()
-
-        // Compute the access token hash
-        final JWSAlgorithm jwsAlgorithm = JWSAlgorithm.RS256
-        AccessTokenHash expectedHash = AccessTokenHash.compute(mockAccessToken, jwsAlgorithm)
-        logger.info("Expected at_hash: ${expectedHash}")
-
-        // Create mock claim with incorrect 'at_hash'
-        final Map<String, Object> claims = mockClaims()
-
-        // Create Claims Set
-        JWTClaimsSet mockJWTClaimsSet = new JWTClaimsSet(claims)
-
-        // Create JWT
-        JWT mockJwt = new PlainJWT(mockJWTClaimsSet)
-
-        // Create OIDC Tokens
-        OIDCTokens mockOidcTokens = new OIDCTokens(mockJwt, mockAccessToken, mockRefreshToken)
-
-        // Act
-        def msg = shouldFail(Exception) {
-            soip.validateAccessToken(mockOidcTokens)
-        }
-        logger.expected(msg)
-
-        // Assert
-        assert msg =~ "Unable to validate the Access Token: Access token hash \\(at_hash\\) mismatch"
-    }
-
-    @Test
-    void testShouldGetIdTokenString() {
-        // Arrange
-        StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator()
-
-        // Mock access tokens
-        AccessToken mockAccessToken = new BearerAccessToken()
-        RefreshToken mockRefreshToken = new RefreshToken()
-
-        // Create mock claim
-        final Map<String, Object> claims = mockClaims()
-
-        // Create Claims Set
-        JWTClaimsSet mockJWTClaimsSet = new JWTClaimsSet(claims)
-
-        // Create JWT
-        JWT mockJwt = new PlainJWT(mockJWTClaimsSet)
-
-        // Create OIDC Tokens
-        OIDCTokens mockOidcTokens = new OIDCTokens(mockJwt, mockAccessToken, mockRefreshToken)
-
-        final String EXPECTED_ID_TOKEN = mockOidcTokens.getIDTokenString()
-        logger.info("EXPECTED_ID_TOKEN: ${EXPECTED_ID_TOKEN}")
-
-        // Create OIDC Token Response
-        OIDCTokenResponse mockResponse = new OIDCTokenResponse(mockOidcTokens)
-
-        // Act
-        final String idTokenString = soip.getIdTokenString(mockResponse)
-        logger.info("ID Token: ${idTokenString}")
-
-        // Assert
-        assert idTokenString
-        assert idTokenString == EXPECTED_ID_TOKEN
-
-        // Assert that 'email:person@nifi.apache.org' is present
-        def (String header, String payload) = idTokenString.split("\\.")
-        final byte[] idTokenBytes = Base64.decodeBase64(payload)
-        final String payloadString = new String(idTokenBytes, "UTF-8")
-        logger.info(payloadString)
-
-        assert payloadString =~ "\"email\":\"person@nifi\\.apache\\.org\""
-    }
-
-    @Test
-    void testShouldValidateIdToken() {
-        // Arrange
-        StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator()
-
-        // Create mock claim
-        final Map<String, Object> claims = mockClaims()
-
-        // Create Claims Set
-        JWTClaimsSet mockJWTClaimsSet = new JWTClaimsSet(claims)
-
-        // Create JWT
-        JWT mockJwt = new PlainJWT(mockJWTClaimsSet)
-
-        // Act
-        final IDTokenClaimsSet claimsSet = soip.validateIdToken(mockJwt)
-        final String claimsSetString = claimsSet.toJSONObject().toString()
-        logger.info("ID Token Claims Set: ${claimsSetString}")
-
-        // Assert
-        assert claimsSet
-        assert claimsSetString =~ "\"email\":\"person@nifi\\.apache\\.org\""
-    }
-
-    @Test
-    void testShouldGetOidcTokens() {
-        // Arrange
-        StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator()
-
-        // Mock access tokens
-        AccessToken mockAccessToken = new BearerAccessToken()
-        RefreshToken mockRefreshToken = new RefreshToken()
-
-        // Create mock claim
-        final Map<String, Object> claims = mockClaims()
-
-        // Create Claims Set
-        JWTClaimsSet mockJWTClaimsSet = new JWTClaimsSet(claims)
-
-        // Create JWT
-        JWT mockJwt = new PlainJWT(mockJWTClaimsSet)
-
-        // Create OIDC Tokens
-        OIDCTokens mockOidcTokens = new OIDCTokens(mockJwt, mockAccessToken, mockRefreshToken)
-
-        final String EXPECTED_ID_TOKEN = mockOidcTokens.getIDTokenString()
-        logger.info("EXPECTED_ID_TOKEN: ${EXPECTED_ID_TOKEN}")
-
-        // Create OIDC Token Response
-        OIDCTokenResponse mockResponse = new OIDCTokenResponse(mockOidcTokens)
-
-        // Act
-        final OIDCTokens oidcTokens = soip.getOidcTokens(mockResponse)
-        logger.info("OIDC Tokens: ${oidcTokens.toJSONObject()}")
-
-        // Assert
-        assert oidcTokens
-
-        // Assert ID Tokens match
-        final JSONObject oidcJson = oidcTokens.toJSONObject()
-        final String idToken = oidcJson["id_token"]
-        logger.info("ID Token String: ${idToken}")
-        assert idToken == EXPECTED_ID_TOKEN
-    }
 
     private StandardOidcIdentityProvider buildIdentityProviderWithMockTokenValidator(Map<String, String> additionalProperties = [:]) {
+        JwtService mockJS = buildJwtService()
         NiFiProperties mockNFP = buildNiFiProperties(additionalProperties)
-        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockNFP)
+        StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJS, mockNFP)
 
         // Mock OIDC provider metadata
         Issuer mockIssuer = new Issuer("mockIssuer")
@@ -694,7 +515,17 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     }
 
     private OIDCTokenResponse mockOIDCTokenResponse(Map<String, Object> additionalClaims = [:]) {
-        Map<String, Object> claims = mockClaims(additionalClaims)
+        final Map<String, Object> claims = [
+                "iss"           : "https://accounts.google.com",
+                "azp"           : "1013352044499-05pb1ssdfuihsdfsdsdfdi8r2vike88m.apps.googleusercontent.com",
+                "aud"           : "1013352044499-05pb1ssdfuihsdfsdsdfdi8r2vike88m.apps.googleusercontent.com",
+                "sub"           : "10703475345439756345540",
+                "email"         : "person@nifi.apache.org",
+                "email_verified": "true",
+                "at_hash"       : "JOGISUDHFiyGHDSFwV5Fah2A",
+                "iat"           : 1590022674,
+                "exp"           : 1590026274
+        ] + additionalClaims
 
         // Create Claims Set
         JWTClaimsSet mockJWTClaimsSet = new JWTClaimsSet(claims)
@@ -714,20 +545,6 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         mockResponse
     }
 
-    private static Map<String, Object> mockClaims(Map<String, Object> additionalClaims = [:]) {
-        final Map<String, Object> claims = [
-                "iss"           : "https://accounts.issuer.com",
-                "azp"           : "1013352044499-05pb1ssdfuihsdfsdsdfdi8r2vike88m.apps.usercontent.com",
-                "aud"           : "1013352044499-05pb1ssdfuihsdfsdsdfdi8r2vike88m.apps.usercontent.com",
-                "sub"           : "10703475345439756345540",
-                "email"         : "person@nifi.apache.org",
-                "email_verified": "true",
-                "at_hash"       : "JOGISUDHFiyGHDSFwV5Fah2A",
-                "iat"           : 1590022674,
-                "exp"           : 1590026274
-        ] + additionalClaims
-        claims
-    }
 
     /**
      * Forms an {@link HTTPRequest} object which returns a static response when {@code send( )} is called.
@@ -755,6 +572,13 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
                 mockResponse.setContent(JsonOutput.toJson(responseBody))
                 mockResponse
             }
+        }
+    }
+
+    class MockOIDCProviderMetadata extends OIDCProviderMetadata {
+
+        MockOIDCProviderMetadata() {
+            super([:] as Issuer, [SubjectType.PUBLIC] as List<SubjectType>, new URI("https://localhost"))
         }
     }
 }
