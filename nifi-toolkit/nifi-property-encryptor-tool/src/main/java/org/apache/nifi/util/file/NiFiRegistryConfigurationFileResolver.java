@@ -17,7 +17,6 @@
 package org.apache.nifi.util.file;
 
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
-import org.apache.nifi.util.NiFiProperties;
 
 import java.io.File;
 import java.nio.file.Path;
