@@ -165,7 +165,8 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
             if (connection != null) {
                 connection.close(true);
             }
-        } catch (IOException ignore) {
+        } catch (Exception e) {
+            getLogger().error("Could not close connection to {}", getServiceLocation(), e);
         }
     }
 
@@ -174,7 +175,8 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
             if (session != null) {
                 session.close();
             }
-        } catch (IOException ignore) {
+        } catch (Exception e) {
+            getLogger().error("Could not close session to {}", getServiceLocation(), e);
         }
     }
 

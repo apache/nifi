@@ -30,6 +30,8 @@ import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -39,6 +41,8 @@ import java.util.List;
 import java.util.stream.Stream;
 
 class SmbjClientService implements SmbClientService {
+
+    private final static Logger LOGGER = LoggerFactory.getLogger(SmbjClientService.class);
 
     private static final List<String> SPECIAL_DIRECTORIES = asList(".", "..");
     private static final long UNCATEGORISED_ERROR = -1L;
@@ -59,7 +63,8 @@ class SmbjClientService implements SmbClientService {
             if (session != null) {
                 session.close();
             }
-        } catch (IOException ignore) {
+        } catch (Exception e) {
+            LOGGER.error("Could not close session to " + serviceLocation, e);
         }
     }
 
