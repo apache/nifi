@@ -185,6 +185,16 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
                     + "character such as 'new line' use CTRL+Enter or Shift+Enter depending on the OS.")
             .build();
 
+    public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(BASE_RECORD_READER)
+            .description("The Record Reader to use for parsing received MQTT Messages into Records.")
+            .build();
+
+    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(BASE_RECORD_WRITER)
+            .description("The Record Writer to use for serializing Records before writing them to a FlowFile.")
+            .build();
+
     private volatile int qos;
     private volatile String topicPrefix = "";
     private volatile String topicFilter;
@@ -215,6 +225,8 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
         innerDescriptorsList.add(PROP_MAX_QUEUE_SIZE);
         innerDescriptorsList.add(ADD_ATTRIBUTES_AS_FIELDS);
         innerDescriptorsList.add(MESSAGE_DEMARCATOR);
+        innerDescriptorsList.add(RECORD_READER);
+        innerDescriptorsList.add(RECORD_WRITER);
         descriptors = Collections.unmodifiableList(innerDescriptorsList);
 
         final Set<Relationship> innerRelationshipsSet = new HashSet<>();

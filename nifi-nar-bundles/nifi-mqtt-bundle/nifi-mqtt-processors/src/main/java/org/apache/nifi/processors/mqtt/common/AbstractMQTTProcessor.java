@@ -235,18 +235,16 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor BASE_RECORD_READER = new PropertyDescriptor.Builder()
             .name("record-reader")
             .displayName("Record Reader")
-            .description("The Record Reader to use for received messages")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(false)
             .build();
 
-    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor BASE_RECORD_WRITER = new PropertyDescriptor.Builder()
             .name("record-writer")
             .displayName("Record Writer")
-            .description("The Record Writer to use in order to serialize the data before writing it to a FlowFile")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .required(false)
             .build();
@@ -267,8 +265,6 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         descriptors.add(PROP_MQTT_VERSION);
         descriptors.add(PROP_CONN_TIMEOUT);
         descriptors.add(PROP_KEEP_ALIVE_INTERVAL);
-        descriptors.add(RECORD_READER);
-        descriptors.add(RECORD_WRITER);
         return descriptors;
     }
 
@@ -308,8 +304,8 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             results.add(new ValidationResult.Builder().subject(PROP_BROKER_URI.getName()).valid(false).explanation("it is not valid URI syntax.").build());
         }
 
-        final boolean readerIsSet = validationContext.getProperty(RECORD_READER).isSet();
-        final boolean writerIsSet = validationContext.getProperty(RECORD_WRITER).isSet();
+        final boolean readerIsSet = validationContext.getProperty(BASE_RECORD_READER).isSet();
+        final boolean writerIsSet = validationContext.getProperty(BASE_RECORD_WRITER).isSet();
         if ((readerIsSet && !writerIsSet) || (!readerIsSet && writerIsSet)) {
             results.add(new ValidationResult.Builder().subject("Reader and Writer").valid(false)
                     .explanation("both Record Reader and Writer must be set when used.").build());

@@ -98,6 +98,16 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
             .addValidator(RETAIN_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(BASE_RECORD_READER)
+            .description("The Record Reader to use for parsing the incoming FlowFile into Records.")
+            .build();
+
+    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(BASE_RECORD_WRITER)
+            .description("The Record Writer to use for serializing Records before publishing them as an MQTT Message.")
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles that are sent successfully to the destination are transferred to this relationship.")
@@ -115,6 +125,8 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
         innerDescriptorsList.add(PROP_TOPIC);
         innerDescriptorsList.add(PROP_QOS);
         innerDescriptorsList.add(PROP_RETAIN);
+        innerDescriptorsList.add(RECORD_READER);
+        innerDescriptorsList.add(RECORD_WRITER);
         descriptors = Collections.unmodifiableList(innerDescriptorsList);
 
         final Set<Relationship> innerRelationshipsSet = new HashSet<>();

@@ -34,6 +34,7 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
@@ -74,26 +75,32 @@ public class TestConsumeMQTT {
     private static final String STRING_MESSAGE = "testMessage";
     private static final String JSON_PAYLOAD = "{\"name\":\"Apache NiFi\"}";
 
-    private static final int MOST_ONE = 0;
-    private static final int LEAST_ONE = 1;
+    private static final int AT_MOST_ONCE = 0;
+    private static final int AT_LEAST_ONCE = 1;
     private static final int EXACTLY_ONCE = 2;
 
     private MqttTestClient mqttTestClient;
     private TestRunner testRunner;
 
+    @AfterEach
+    public void cleanup() {
+        testRunner = null;
+        mqttTestClient = null;
+    }
+
     @Test
     public void testClientIDConfiguration() {
-        final TestRunner runner = initializeTestRunner();
-        runner.assertValid();
+        testRunner = initializeTestRunner();
+        testRunner.assertValid();
 
-        runner.setProperty(ConsumeMQTT.PROP_GROUPID, "group");
-        runner.assertNotValid();
+        testRunner.setProperty(ConsumeMQTT.PROP_GROUPID, "group");
+        testRunner.assertNotValid();
 
-        runner.setProperty(ConsumeMQTT.PROP_CLIENTID, "${hostname()}");
-        runner.assertValid();
+        testRunner.setProperty(ConsumeMQTT.PROP_CLIENTID, "${hostname()}");
+        testRunner.assertValid();
 
-        runner.removeProperty(ConsumeMQTT.PROP_CLIENTID);
-        runner.assertValid();
+        testRunner.removeProperty(ConsumeMQTT.PROP_CLIENTID);
+        testRunner.assertValid();
     }
 
     @Test
@@ -211,7 +218,7 @@ public class TestConsumeMQTT {
 
         assertTrue(isConnected(consumeMQTT));
 
-        publishMessage(STRING_MESSAGE, LEAST_ONE);
+        publishMessage(STRING_MESSAGE, AT_LEAST_ONCE);
 
         Thread.sleep(PUBLISH_WAIT_MS);
 
@@ -250,7 +257,7 @@ public class TestConsumeMQTT {
 
         consumeMQTT.onUnscheduled(testRunner.getProcessContext());
 
-        publishMessage(STRING_MESSAGE, LEAST_ONE);
+        publishMessage(STRING_MESSAGE, AT_LEAST_ONCE);
 
         consumeMQTT.onScheduled(testRunner.getProcessContext());
         reconnect(consumeMQTT, testRunner.getProcessContext());
@@ -293,7 +300,7 @@ public class TestConsumeMQTT {
 
         assertTrue(isConnected(consumeMQTT));
 
-        publishMessage(STRING_MESSAGE, MOST_ONE);
+        publishMessage(STRING_MESSAGE, AT_MOST_ONCE);
 
         Thread.sleep(PUBLISH_WAIT_MS);
 
@@ -424,9 +431,9 @@ public class TestConsumeMQTT {
 
         assertTrue(isConnected(consumeMQTT));
 
-        publishMessage(JSON_PAYLOAD, MOST_ONE);
-        publishMessage(THIS_IS_NOT_JSON, MOST_ONE);
-        publishMessage(JSON_PAYLOAD, MOST_ONE);
+        publishMessage(JSON_PAYLOAD, AT_MOST_ONCE);
+        publishMessage(THIS_IS_NOT_JSON, AT_MOST_ONCE);
+        publishMessage(JSON_PAYLOAD, AT_MOST_ONCE);
 
         Thread.sleep(PUBLISH_WAIT_MS);
 
@@ -441,10 +448,6 @@ public class TestConsumeMQTT {
         final List<MockFlowFile> badFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_PARSE_FAILURE);
         assertEquals(1, badFlowFiles.size());
         assertEquals(THIS_IS_NOT_JSON, new String(badFlowFiles.get(0).toByteArray()));
-
-        // clean runner by removing records reader/writer
-        testRunner.removeProperty(ConsumeMQTT.RECORD_READER);
-        testRunner.removeProperty(ConsumeMQTT.RECORD_WRITER);
     }
 
     @Test
@@ -463,9 +466,9 @@ public class TestConsumeMQTT {
 
         assertTrue(isConnected(consumeMQTT));
 
-        publishMessage(JSON_PAYLOAD, MOST_ONE);
-        publishMessage(THIS_IS_NOT_JSON, MOST_ONE);
-        publishMessage(JSON_PAYLOAD, MOST_ONE);
+        publishMessage(JSON_PAYLOAD, AT_MOST_ONCE);
+        publishMessage(THIS_IS_NOT_JSON, AT_MOST_ONCE);
+        publishMessage(JSON_PAYLOAD, AT_MOST_ONCE);
 
         Thread.sleep(PUBLISH_WAIT_MS);
         Thread.sleep(PUBLISH_WAIT_MS);
@@ -481,9 +484,6 @@ public class TestConsumeMQTT {
 
         final List<MockFlowFile> badFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_PARSE_FAILURE);
         assertEquals(0, badFlowFiles.size());
-
-        // clean runner by removing message demarcator
-        testRunner.removeProperty(ConsumeMQTT.MESSAGE_DEMARCATOR);
     }
 
     @Test
@@ -505,9 +505,9 @@ public class TestConsumeMQTT {
 
         assertTrue(isConnected(consumeMQTT));
 
-        publishMessage(JSON_PAYLOAD, LEAST_ONE);
-        publishMessage(THIS_IS_NOT_JSON, LEAST_ONE);
-        publishMessage(JSON_PAYLOAD, LEAST_ONE);
+        publishMessage(JSON_PAYLOAD, AT_LEAST_ONCE);
+        publishMessage(THIS_IS_NOT_JSON, AT_LEAST_ONCE);
+        publishMessage(JSON_PAYLOAD, AT_LEAST_ONCE);
 
         Thread.sleep(PUBLISH_WAIT_MS);
 
@@ -520,10 +520,6 @@ public class TestConsumeMQTT {
         final List<MockFlowFile> badFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_PARSE_FAILURE);
         assertEquals(1, badFlowFiles.size());
         assertEquals(THIS_IS_NOT_JSON, new String(badFlowFiles.get(0).toByteArray()));
-
-        // clean runner by removing records reader/writer
-        testRunner.removeProperty(ConsumeMQTT.RECORD_READER);
-        testRunner.removeProperty(ConsumeMQTT.RECORD_WRITER);
     }
 
     @Test
@@ -554,17 +550,13 @@ public class TestConsumeMQTT {
         final List<MockFlowFile> badFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_PARSE_FAILURE);
         assertEquals(1, badFlowFiles.size());
         assertEquals(THIS_IS_NOT_JSON, new String(badFlowFiles.get(0).toByteArray()));
-
-        // clean runner by removing records reader/writer
-        testRunner.removeProperty(ConsumeMQTT.RECORD_READER);
-        testRunner.removeProperty(ConsumeMQTT.RECORD_WRITER);
     }
 
     @Test
     public void testSslContextService() throws InitializationException, TlsException {
-        final TestRunner runner = initializeTestRunner();
-        runner.setVariable("brokerURI",  "ssl://localhost:8883");
-        runner.setProperty(ConsumeMQTT.PROP_BROKER_URI, "${brokerURI}");
+        testRunner = initializeTestRunner();
+        testRunner.setVariable("brokerURI",  "ssl://localhost:8883");
+        testRunner.setProperty(ConsumeMQTT.PROP_BROKER_URI, "${brokerURI}");
 
         final SSLContextService sslContextService = mock(SSLContextService.class);
         final String identifier = SSLContextService.class.getSimpleName();
@@ -572,12 +564,12 @@ public class TestConsumeMQTT {
         final SSLContext sslContext = SslContextFactory.createSslContext(new TemporaryKeyStoreBuilder().build());
         when(sslContextService.createContext()).thenReturn(sslContext);
 
-        runner.addControllerService(identifier, sslContextService);
-        runner.enableControllerService(sslContextService);
-        runner.setProperty(ConsumeMQTT.PROP_SSL_CONTEXT_SERVICE, identifier);
+        testRunner.addControllerService(identifier, sslContextService);
+        testRunner.enableControllerService(sslContextService);
+        testRunner.setProperty(ConsumeMQTT.PROP_SSL_CONTEXT_SERVICE, identifier);
 
-        final ConsumeMQTT processor = (ConsumeMQTT) runner.getProcessor();
-        processor.onScheduled(runner.getProcessContext());
+        final ConsumeMQTT processor = (ConsumeMQTT) testRunner.getProcessor();
+        processor.onScheduled(testRunner.getProcessContext());
     }
 
     @Test
@@ -607,6 +599,10 @@ public class TestConsumeMQTT {
     }
 
     private TestRunner initializeTestRunner() {
+        if (mqttTestClient != null) {
+            throw new IllegalStateException("mqttTestClient should be null, using ConsumeMQTT's default client!");
+        }
+
         final TestRunner testRunner = TestRunners.newTestRunner(ConsumeMQTT.class);
 
         setCommonProperties(testRunner);

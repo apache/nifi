@@ -17,6 +17,8 @@
 
 package org.apache.nifi.processors.mqtt;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.processors.mqtt.common.MqttClient;
 import org.apache.nifi.processors.mqtt.common.MqttTestClient;
@@ -27,16 +29,16 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import javax.json.Json;
-import javax.json.JsonArray;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Arrays.asList;
 import static org.apache.nifi.processors.mqtt.PublishMQTT.ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
 import static org.apache.nifi.processors.mqtt.PublishMQTT.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE;
 import static org.apache.nifi.processors.mqtt.PublishMQTT.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER;
@@ -59,8 +61,14 @@ public class TestPublishMQTT {
     private static final String TOPIC = "testTopic";
     private static final String RETAIN = "false";
 
-    private TestRunner testRunner;
     private MqttTestClient mqttTestClient;
+    private TestRunner testRunner;
+
+    @AfterEach
+    public void cleanup() {
+        testRunner = null;
+        mqttTestClient = null;
+    }
 
     @Test
     public void testQoS0() {
@@ -181,7 +189,7 @@ public class TestPublishMQTT {
         testRunner.setProperty(PublishMQTT.PROP_QOS, "2");
         testRunner.assertValid();
 
-        final JsonArray testInput = createTestJsonInput();
+        final ArrayNode testInput = createTestJsonInput();
 
         testRunner.enqueue(testInput.toString().getBytes());
 
@@ -194,7 +202,7 @@ public class TestPublishMQTT {
         verifyPublishedMessage(testInput.get(0).toString().getBytes(), 2, false);
         verifyPublishedMessage(testInput.get(1).toString().getBytes(), 2, false);
         verifyPublishedMessage(testInput.get(2).toString().getBytes(), 2, false);
-        assertNull(mqttTestClient.getLastPublished(), "TestClient's queue should be empty.");
+        verifyNoMorePublished();
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
         assertEquals(1, flowFiles.size());
@@ -202,10 +210,6 @@ public class TestPublishMQTT {
         final MockFlowFile successfulFlowFile = flowFiles.get(0);
         final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
         assertFalse(successfulFlowFile.getAttributes().containsKey(publishFailedIndexAttributeName), "Failed attribute should not be present on the FlowFile");
-
-        // clean runner by removing records reader/writer
-        testRunner.removeProperty(ConsumeMQTT.RECORD_READER);
-        testRunner.removeProperty(ConsumeMQTT.RECORD_WRITER);
     }
 
     @Test
@@ -221,7 +225,7 @@ public class TestPublishMQTT {
         testRunner.setProperty(PublishMQTT.PROP_QOS, "2");
         testRunner.assertValid();
 
-        final JsonArray testInput = createTestJsonInput();
+        final ArrayNode testInput = createTestJsonInput();
 
         testRunner.enqueue(testInput.toString().getBytes());
 
@@ -232,7 +236,7 @@ public class TestPublishMQTT {
 
         verify(mqttTestClient, Mockito.times(2)).publish(any(), any());
         verifyPublishedMessage(testInput.get(0).toString().getBytes(), 2, false);
-        assertNull(mqttTestClient.getLastPublished(), "TestClient's queue should be empty.");
+        verifyNoMorePublished();
 
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_FAILURE);
         assertEquals(1, flowFiles.size());
@@ -240,10 +244,6 @@ public class TestPublishMQTT {
         final MockFlowFile failedFlowFile = flowFiles.get(0);
         final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
         assertEquals("1", failedFlowFile.getAttribute(publishFailedIndexAttributeName), "Only one record is expected to be published successfully.");
-
-        // clean runner by removing records reader/writer
-        testRunner.removeProperty(ConsumeMQTT.RECORD_READER);
-        testRunner.removeProperty(ConsumeMQTT.RECORD_WRITER);
     }
 
     @Test
@@ -260,7 +260,7 @@ public class TestPublishMQTT {
         testRunner.assertValid();
 
         final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
-        final JsonArray testInput = createTestJsonInput();
+        final ArrayNode testInput = createTestJsonInput();
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(publishFailedIndexAttributeName, "1");
@@ -273,17 +273,13 @@ public class TestPublishMQTT {
 
         verify(mqttTestClient, Mockito.times(2)).publish(any(), any());
         verifyPublishedMessage(testInput.get(1).toString().getBytes(), 2, false);
-        assertNull(mqttTestClient.getLastPublished(), "TestClient's queue should be empty.");
+        verifyNoMorePublished();
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_FAILURE);
         assertEquals(1, flowFiles.size());
 
         final MockFlowFile failedFlowFile = flowFiles.get(0);
         assertEquals("2", failedFlowFile.getAttribute(publishFailedIndexAttributeName), "Only one record is expected to be published successfully.");
-
-        // clean runner by removing records reader/writer
-        testRunner.removeProperty(ConsumeMQTT.RECORD_READER);
-        testRunner.removeProperty(ConsumeMQTT.RECORD_WRITER);
     }
 
     @Test
@@ -298,7 +294,7 @@ public class TestPublishMQTT {
         testRunner.assertValid();
 
         final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
-        final JsonArray testInput = createTestJsonInput();
+        final ArrayNode testInput = createTestJsonInput();
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(publishFailedIndexAttributeName, "1");
@@ -312,7 +308,7 @@ public class TestPublishMQTT {
         verify(mqttTestClient, Mockito.times(2)).publish(any(), any());
         verifyPublishedMessage(testInput.get(1).toString().getBytes(), 2, false);
         verifyPublishedMessage(testInput.get(2).toString().getBytes(), 2, false);
-        assertNull(mqttTestClient.getLastPublished(), "TestClient's queue should be empty.");
+        verifyNoMorePublished();
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
         assertEquals(1, flowFiles.size());
@@ -320,10 +316,6 @@ public class TestPublishMQTT {
         final MockFlowFile successfulFlowFile = flowFiles.get(0);
         assertNull(successfulFlowFile.getAttribute(publishFailedIndexAttributeName),
                 publishFailedIndexAttributeName + " is expected to be removed after all remaining records have been published successfully.");
-
-        // clean runner by removing records reader/writer
-        testRunner.removeProperty(ConsumeMQTT.RECORD_READER);
-        testRunner.removeProperty(ConsumeMQTT.RECORD_WRITER);
     }
 
     private void verifyPublishedMessage(byte[] payload, int qos, boolean retain) {
@@ -334,6 +326,10 @@ public class TestPublishMQTT {
         assertEquals(qos, lastPublishedMessage.getQos());
         assertEquals(retain, lastPublishedMessage.isRetained());
         assertEquals(TOPIC, lastPublishedTopic);
+    }
+
+    private void verifyNoMorePublished() {
+        assertNull(mqttTestClient.getLastPublished(), "TestClient's queue should be empty.");
     }
 
     private ProvenanceEventRecord assertProvenanceEvent() {
@@ -352,24 +348,23 @@ public class TestPublishMQTT {
         assertEquals(expectedDetails, event.getDetails());
     }
 
-    private static JsonArray createTestJsonInput() {
-        return Json.createArrayBuilder()
-                .add(Json.createObjectBuilder()
-                        .add("recordId", 1)
-                        .add("firstAttribute", "foo")
-                        .add("secondAttribute", false)
-                        .build())
-                .add(Json.createObjectBuilder()
-                        .add("recordId", 2)
-                        .add("firstAttribute", "bar")
-                        .add("secondAttribute", true)
-                        .build())
-                .add(Json.createObjectBuilder()
-                        .add("recordId", 3)
-                        .add("firstAttribute", "foobar")
-                        .add("secondAttribute", false)
-                        .build())
-                .build();
+    private static ArrayNode createTestJsonInput() {
+        final ObjectMapper mapper = new ObjectMapper();
+
+        return mapper.createArrayNode().addAll(asList(
+                mapper.createObjectNode()
+                        .put("recordId", 1)
+                        .put("firstAttribute", "foo")
+                        .put("secondAttribute", false),
+                mapper.createObjectNode()
+                        .put("recordId", 2)
+                        .put("firstAttribute", "bar")
+                        .put("secondAttribute", true),
+                mapper.createObjectNode()
+                        .put("recordId", 3)
+                        .put("firstAttribute", "foobar")
+                        .put("secondAttribute", false)
+        ));
     }
 
     private TestRunner initializeTestRunner(MqttTestClient mqttTestClient) {
