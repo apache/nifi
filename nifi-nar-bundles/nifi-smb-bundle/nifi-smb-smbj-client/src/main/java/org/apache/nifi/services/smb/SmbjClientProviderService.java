@@ -116,7 +116,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
 
     @Override
     public SmbClientService getClient() throws IOException {
-        final SmbjClientService client = new SmbjClientService(smbClient, authenticationContext);
+        final SmbjClientService client = new SmbjClientService(smbClient, authenticationContext, getServiceLocation());
 
         try {
             client.connectToShare(hostname, port, shareName);

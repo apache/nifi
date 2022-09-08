@@ -16,18 +16,17 @@
  */
 package org.apache.nifi.services.smb;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.stream.Stream;
+public class SmbException extends RuntimeException {
 
-/**
- * Service abstraction for Server Message Block protocol operations.
- */
-public interface SmbClientService extends AutoCloseable {
+    private long errorCode;
 
-    Stream<SmbListableEntity> listRemoteFiles(String path);
+    public SmbException(String message, long errorCode, Exception cause) {
+        super(message, cause);
+        this.errorCode = errorCode;
+    }
 
-    void createDirectory(String path);
+    public long getErrorCode() {
+        return errorCode;
+    }
 
-    void readFile(String fileName, OutputStream outputStream) throws IOException;
 }

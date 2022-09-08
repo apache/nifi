@@ -33,8 +33,11 @@ import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
+import com.hierynomus.smbj.share.File;
 import com.hierynomus.smbj.share.Share;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URI;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.stream.Stream;
@@ -42,17 +45,20 @@ import java.util.stream.Stream;
 public class SmbjClientService implements SmbClientService {
 
     private static final List<String> SPECIAL_DIRECTORIES = asList(".", "..");
+    private static final long UNCATEGORISED_ERROR = -1L;
 
     final private AuthenticationContext authenticationContext;
     final private SMBClient smbClient;
+    final private URI serviceLocation;
 
     private Connection connection;
     private Session session;
     private DiskShare share;
 
-    public SmbjClientService(SMBClient smbClient, AuthenticationContext authenticationContext) {
+    public SmbjClientService(SMBClient smbClient, AuthenticationContext authenticationContext, URI serviceLocation) {
         this.smbClient = smbClient;
         this.authenticationContext = authenticationContext;
+        this.serviceLocation = serviceLocation;
     }
 
     public void connectToShare(String hostname, int port, String shareName) throws IOException {
@@ -104,7 +110,7 @@ public class SmbjClientService implements SmbClientService {
         return Stream.of(filePath).flatMap(path -> {
             final Directory directory = openDirectory(path);
             return stream(directory::spliterator, 0, false)
-                    .map(entity -> buildSmbListableEntity(entity, path))
+                    .map(entity -> buildSmbListableEntity(entity, path, serviceLocation))
                     .filter(entity -> !specialDirectory(entity))
                     .flatMap(listable -> listable.isDirectory() ? listRemoteFiles(listable.getPathWithName())
                             : Stream.of(listable))
@@ -123,18 +129,39 @@ public class SmbjClientService implements SmbClientService {
         }
     }
 
-    private SmbListableEntity buildSmbListableEntity(FileIdBothDirectoryInformation info, String path) {
+    @Override
+    public void readFile(String fileName, OutputStream outputStream) throws IOException {
+        try (File f = share.openFile(
+                fileName,
+                EnumSet.of(AccessMask.GENERIC_READ),
+                EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
+                EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ),
+                SMB2CreateDisposition.FILE_OPEN,
+                EnumSet.of(SMB2CreateOptions.FILE_SEQUENTIAL_ONLY))
+        ) {
+            f.read(outputStream);
+        } catch (SMBApiException a) {
+            throw new SmbException(a.getMessage(), a.getStatusCode(), a);
+        } catch (Exception e) {
+            throw new SmbException(e.getMessage(), UNCATEGORISED_ERROR, e);
+        } finally {
+            outputStream.close();
+        }
+    }
+
+    private SmbListableEntity buildSmbListableEntity(FileIdBothDirectoryInformation info, String path, URI serviceLocation) {
         return SmbListableEntity.builder()
                 .setName(info.getFileName())
                 .setShortName(info.getShortName())
                 .setPath(path)
-                .setTimestamp(info.getLastWriteTime().toEpochMillis())
+                .setLastModifiedTime(info.getLastWriteTime().toEpochMillis())
                 .setCreationTime(info.getCreationTime().toEpochMillis())
                 .setChangeTime(info.getChangeTime().toEpochMillis())
                 .setLastAccessTime(info.getLastAccessTime().toEpochMillis())
                 .setDirectory((info.getFileAttributes() & FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue()) != 0)
                 .setSize(info.getEndOfFile())
                 .setAllocationSize(info.getAllocationSize())
+                .setServiceLocation(serviceLocation)
                 .build();
     }
 
