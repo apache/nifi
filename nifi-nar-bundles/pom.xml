@@ -113,6 +113,7 @@
         <module>nifi-hubspot-bundle</module>
         <module>nifi-dropbox-bundle</module>
         <module>nifi-airtable-bundle</module>
+        <module>nifi-workday-bundle</module>
     </modules>
 
     <build>
