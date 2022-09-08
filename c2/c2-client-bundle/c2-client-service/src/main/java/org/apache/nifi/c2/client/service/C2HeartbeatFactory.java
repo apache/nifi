@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.nifi.c2.client.C2ClientConfig;
 import org.apache.nifi.c2.client.PersistentUuidGenerator;
@@ -60,7 +59,6 @@ public class C2HeartbeatFactory {
 
     private final C2ClientConfig clientConfig;
     private final FlowIdHolder flowIdHolder;
-    private final MessageDigest messageDigest;
 
     private String agentId;
     private String deviceId;
@@ -69,12 +67,6 @@ public class C2HeartbeatFactory {
     public C2HeartbeatFactory(C2ClientConfig clientConfig, FlowIdHolder flowIdHolder) {
         this.clientConfig = clientConfig;
         this.flowIdHolder = flowIdHolder;
-
-        try {
-            messageDigest = MessageDigest.getInstance("SHA-512");
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Unable to set up manifest hash calculation due to not having support for the chosen digest algorithm", e);
-        }
     }
 
     public C2Heartbeat create(RuntimeInfoWrapper runtimeInfoWrapper) {
@@ -243,13 +235,26 @@ public class C2HeartbeatFactory {
         return confDirectory;
     }
 
-    public String calculateManifestHash(List<Bundle> loadedBundles) {
-        byte[] bytes = messageDigest.digest(loadedBundles.stream()
-            .map(bundle -> bundle.getGroup() + bundle.getArtifact() + bundle.getVersion())
-            .sorted()
-            .collect(Collectors.joining(","))
-            .getBytes(StandardCharsets.UTF_8));
+    private String calculateManifestHash(List<Bundle> loadedBundles) {
+        byte[] bytes;
+        try {
+            bytes = MessageDigest.getInstance("SHA-512").digest(loadedBundles.stream()
+                .map(bundle -> bundle.getGroup() + bundle.getArtifact() + bundle.getVersion())
+                .sorted()
+                .collect(Collectors.joining(","))
+                .getBytes(StandardCharsets.UTF_8));
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Unable to set up manifest hash calculation due to not having support for the chosen digest algorithm", e);
+        }
 
-        return UUID.nameUUIDFromBytes(bytes).toString();
+        return bytesToHex(bytes);
+    }
+
+    private String bytesToHex(byte[] in) {
+        final StringBuilder builder = new StringBuilder();
+        for (byte b : in) {
+            builder.append(String.format("%02x", b));
+        }
+        return builder.toString();
     }
 }
