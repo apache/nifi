@@ -17,12 +17,15 @@
 package org.apache.nifi.c2.client.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.nifi.c2.client.C2ClientConfig;
@@ -30,6 +33,7 @@ import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
 import org.apache.nifi.c2.protocol.api.AgentRepositories;
 import org.apache.nifi.c2.protocol.api.C2Heartbeat;
 import org.apache.nifi.c2.protocol.api.FlowQueueStatus;
+import org.apache.nifi.c2.protocol.component.api.Bundle;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,6 +55,9 @@ public class C2HeartbeatFactoryTest {
     @Mock
     private FlowIdHolder flowIdHolder;
 
+    @Mock
+    private RuntimeInfoWrapper runtimeInfoWrapper;
+
     @InjectMocks
     private C2HeartbeatFactory c2HeartbeatFactory;
 
@@ -66,8 +73,9 @@ public class C2HeartbeatFactoryTest {
     void testCreateHeartbeat() {
         when(flowIdHolder.getFlowId()).thenReturn(FLOW_ID);
         when(clientConfig.getAgentClass()).thenReturn(AGENT_CLASS);
+        when(runtimeInfoWrapper.getManifest()).thenReturn(createManifest());
 
-        C2Heartbeat heartbeat = c2HeartbeatFactory.create(mock(RuntimeInfoWrapper.class));
+        C2Heartbeat heartbeat = c2HeartbeatFactory.create(runtimeInfoWrapper);
 
         assertEquals(FLOW_ID, heartbeat.getFlowId());
         assertEquals(AGENT_CLASS, heartbeat.getAgentClass());
@@ -75,16 +83,20 @@ public class C2HeartbeatFactoryTest {
 
     @Test
     void testCreateGeneratesAgentAndDeviceIdIfNotPresent() {
-        C2Heartbeat heartbeat = c2HeartbeatFactory.create(mock(RuntimeInfoWrapper.class));
+        when(runtimeInfoWrapper.getManifest()).thenReturn(createManifest());
+
+        C2Heartbeat heartbeat = c2HeartbeatFactory.create(runtimeInfoWrapper);
 
         assertNotNull(heartbeat.getAgentId());
         assertNotNull(heartbeat.getDeviceId());
     }
 
     @Test
-    void testCreatePopulatesFromRuntimeInfoWrapper() {
+    void testCreatePopulatesFromRuntimeInfoWrapperForFullHeartbeat() {
+        when(clientConfig.isFullHeartbeat()).thenReturn(true);
+
         AgentRepositories repos = new AgentRepositories();
-        RuntimeManifest manifest = new RuntimeManifest();
+        RuntimeManifest manifest = createManifest();
         Map<String, FlowQueueStatus> queueStatus = new HashMap<>();
 
         C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(repos, manifest, queueStatus));
@@ -95,9 +107,65 @@ public class C2HeartbeatFactoryTest {
     }
 
     @Test
+    void testCreatePopulatesFromRuntimeInfoWrapperForLightHeartbeat() {
+        when(clientConfig.isFullHeartbeat()).thenReturn(false);
+
+        AgentRepositories repos = new AgentRepositories();
+        RuntimeManifest manifest = createManifest();
+        Map<String, FlowQueueStatus> queueStatus = new HashMap<>();
+
+        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(repos, manifest, queueStatus));
+
+        assertEquals(repos, heartbeat.getAgentInfo().getStatus().getRepositories());
+        assertNull(heartbeat.getAgentInfo().getAgentManifest());
+        assertEquals(queueStatus, heartbeat.getFlowInfo().getQueues());
+    }
+
+    @Test
     void testCreateThrowsExceptionWhenConfDirNotSet() {
         when(clientConfig.getConfDirectory()).thenReturn(String.class.getSimpleName());
 
         assertThrows(IllegalStateException.class, () -> c2HeartbeatFactory.create(mock(RuntimeInfoWrapper.class)));
+    }
+
+    @Test
+    void testManifestHashChangesWhenManifestBundleChanges() {
+        Bundle bundle1 = new Bundle("group1", "artifact1", "version1");
+        Bundle bundle2 = new Bundle("group2", "artifact2", "version2");
+        RuntimeManifest manifest1 = createManifest(bundle1);
+        RuntimeManifest manifest2 = createManifest(bundle2);
+        RuntimeManifest manifest3 = createManifest(bundle1, bundle2);
+
+        when(runtimeInfoWrapper.getManifest()).thenReturn(manifest1);
+        C2Heartbeat heartbeat1 = c2HeartbeatFactory.create(runtimeInfoWrapper);
+        String hash1 = heartbeat1.getAgentInfo().getAgentManifestHash();
+        assertNotNull(hash1);
+
+        // same manifest should result in the same hash
+        assertEquals(hash1,  c2HeartbeatFactory.create(runtimeInfoWrapper).getAgentInfo().getAgentManifestHash());
+
+        // different manifest should result in hash change
+        when(runtimeInfoWrapper.getManifest()).thenReturn(manifest2);
+        C2Heartbeat heartbeat2 = c2HeartbeatFactory.create(runtimeInfoWrapper);
+        String hash2 = heartbeat2.getAgentInfo().getAgentManifestHash();
+        assertNotEquals(hash2, hash1);
+
+        // different manifest with multiple bundles should result in hash change compared to all previous
+        when(runtimeInfoWrapper.getManifest()).thenReturn(manifest3);
+        C2Heartbeat heartbeat3 = c2HeartbeatFactory.create(runtimeInfoWrapper);
+        String hash3 = heartbeat3.getAgentInfo().getAgentManifestHash();
+        assertNotEquals(hash3, hash1);
+        assertNotEquals(hash3, hash2);
+    }
+
+    private RuntimeManifest createManifest() {
+        return createManifest(new Bundle());
+    }
+
+    private RuntimeManifest createManifest(Bundle... bundles) {
+        RuntimeManifest manifest = new RuntimeManifest();
+        manifest.setBundles(Arrays.asList(bundles));
+
+        return manifest;
     }
 }

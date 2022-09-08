@@ -25,6 +25,7 @@ public class C2ClientConfig {
     private final String c2AckUrl;
     private final String agentClass;
     private final String agentIdentifier;
+    private final boolean fullHeartbeat;
     private final String confDirectory;
     private final String runtimeManifestIdentifier;
     private final String runtimeType;
@@ -46,6 +47,7 @@ public class C2ClientConfig {
         this.c2AckUrl = builder.c2AckUrl;
         this.agentClass = builder.agentClass;
         this.agentIdentifier = builder.agentIdentifier;
+        this.fullHeartbeat = builder.fullHeartbeat;
         this.confDirectory = builder.confDirectory;
         this.runtimeManifestIdentifier = builder.runtimeManifestIdentifier;
         this.runtimeType = builder.runtimeType;
@@ -76,6 +78,10 @@ public class C2ClientConfig {
 
     public String getAgentIdentifier() {
         return agentIdentifier;
+    }
+
+    public boolean isFullHeartbeat() {
+        return fullHeartbeat;
     }
 
     public String getConfDirectory() {
@@ -143,6 +149,7 @@ public class C2ClientConfig {
         private String c2AckUrl;
         private String agentClass;
         private String agentIdentifier;
+        private boolean fullHeartbeat;
         private String confDirectory;
         private String runtimeManifestIdentifier;
         private String runtimeType;
@@ -175,6 +182,11 @@ public class C2ClientConfig {
 
         public Builder agentIdentifier(final String agentIdentifier) {
             this.agentIdentifier = agentIdentifier;
+            return this;
+        }
+
+        public Builder fullHeartbeat(final boolean fullHeartbeat) {
+            this.fullHeartbeat = fullHeartbeat;
             return this;
         }
 

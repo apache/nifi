@@ -23,11 +23,16 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.nifi.c2.client.C2ClientConfig;
 import org.apache.nifi.c2.client.PersistentUuidGenerator;
@@ -41,6 +46,7 @@ import org.apache.nifi.c2.protocol.api.FlowInfo;
 import org.apache.nifi.c2.protocol.api.FlowQueueStatus;
 import org.apache.nifi.c2.protocol.api.NetworkInfo;
 import org.apache.nifi.c2.protocol.api.SystemInfo;
+import org.apache.nifi.c2.protocol.component.api.Bundle;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +60,7 @@ public class C2HeartbeatFactory {
 
     private final C2ClientConfig clientConfig;
     private final FlowIdHolder flowIdHolder;
+    private final MessageDigest messageDigest;
 
     private String agentId;
     private String deviceId;
@@ -62,6 +69,12 @@ public class C2HeartbeatFactory {
     public C2HeartbeatFactory(C2ClientConfig clientConfig, FlowIdHolder flowIdHolder) {
         this.clientConfig = clientConfig;
         this.flowIdHolder = flowIdHolder;
+
+        try {
+            messageDigest = MessageDigest.getInstance("SHA-512");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Unable to set up manifest hash calculation due to not having support for the chosen digest algorithm", e);
+        }
     }
 
     public C2Heartbeat create(RuntimeInfoWrapper runtimeInfoWrapper) {
@@ -92,7 +105,11 @@ public class C2HeartbeatFactory {
         agentStatus.setRepositories(repos);
 
         agentInfo.setStatus(agentStatus);
-        agentInfo.setAgentManifest(manifest);
+        agentInfo.setAgentManifestHash(calculateManifestHash(manifest.getBundles()));
+
+        if (clientConfig.isFullHeartbeat()) {
+            agentInfo.setAgentManifest(manifest);
+        }
 
         return agentInfo;
     }
@@ -224,5 +241,15 @@ public class C2HeartbeatFactory {
         }
 
         return confDirectory;
+    }
+
+    public String calculateManifestHash(List<Bundle> loadedBundles) {
+        byte[] bytes = messageDigest.digest(loadedBundles.stream()
+            .map(bundle -> bundle.getGroup() + bundle.getArtifact() + bundle.getVersion())
+            .sorted()
+            .collect(Collectors.joining(","))
+            .getBytes(StandardCharsets.UTF_8));
+
+        return UUID.nameUUIDFromBytes(bytes).toString();
     }
 }
