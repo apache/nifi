@@ -32,22 +32,19 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
 /**
- * Set the following constants before running: <br />
- * For App Key, App Secret, Access Token and Refresh Token generation please check
- * DropboxCredentialControllerService's usage documentation.  <br />
- *
+ * Set the following constants before running: <br/>
+ * <br/> APPLICATION_KEY - App Key of your app
+ * <br/> APPLICATION_SECRET - Your App Secret of your app
+ * <br/> ACCESS_TOKEN - Access Token generated for your app
+ * <br/> REFRESH_TOKEN - Refresh Token generated for your app
+ * <br/><br/>
+ * For App Key, App Secret, Access Token and Refresh Token generation please check controller service's Additional Details page.<br/><br/>
  * NOTE: Since the integration test creates the test files you need "files.content.write" permission besides the "files.content.read"
- * permission mentioned in DropboxCredentialControllerService's usage documentation. <br />
+ * permission mentioned in controller service's Additional Details page.<br/>
  *
- *
- * <br /> APPLICATION_KEY - App Key of your app
- * <br /> APPLICATION_SECRET - Your App Secret of your app
- * <br /> ACCESS_TOKEN - Access Token generated for your app
- * <br /> REFRESH_TOKEN - Refresh Token generated for your app
- * <br />
- * <br /> Created files and folders are cleaned up, but it's advisable to dedicate a folder for this test so that it can
- * be cleaned up easily should the test fail to do so. <br />
- * <br /> WARNING: The creation of a file is not a synchronized operation, may need to adjust tests accordingly!
+ * <br/> Created files and folders are cleaned up, but it's advisable to dedicate a folder for this test so that it can
+ * be cleaned up easily should the test fail to do so. <br/>
+ * <br/> WARNING: The creation of a file is not a synchronized operation, may need to adjust tests accordingly!
  */
 public abstract class AbstractDropboxIT<T extends Processor> {
 

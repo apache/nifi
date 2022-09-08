@@ -114,7 +114,7 @@ public class ListDropboxTest {
     }
 
     @Test
-    public void testFolderValidity() {
+    void testFolderValidity() {
         testRunner.setProperty(ListDropbox.FOLDER, "id:odTlUvbpIEAAAAAAAAABmw");
         testRunner.assertValid();
         testRunner.setProperty(ListDropbox.FOLDER, "/");
@@ -132,7 +132,6 @@ public class ListDropboxTest {
         testRunner.setProperty(ListDropbox.FOLDER, "");
         testRunner.assertNotValid();
     }
-
 
     @Test
     void testRootIsListed() throws Exception {
@@ -153,7 +152,6 @@ public class ListDropboxTest {
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
         MockFlowFile ff0 = flowFiles.get(0);
         assertFlowFileAttributes(ff0, folderName);
-        testRunner.shutdown();
     }
 
     @Test
@@ -174,7 +172,6 @@ public class ListDropboxTest {
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
         MockFlowFile ff0 = flowFiles.get(0);
         assertFlowFileAttributes(ff0, TEST_FOLDER);
-        testRunner.shutdown();
     }
 
     @Test
@@ -195,7 +192,6 @@ public class ListDropboxTest {
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
         MockFlowFile ff0 = flowFiles.get(0);
         assertFlowFileAttributes(ff0, TEST_FOLDER);
-        testRunner.shutdown();
     }
 
     @Test
@@ -220,7 +216,6 @@ public class ListDropboxTest {
         List<String> actualFileNames = getFilenames(ff0.getContent());
 
         assertEquals(expectedFileNames, actualFileNames);
-        testRunner.shutdown();
     }
 
     private void assertFlowFileAttributes(MockFlowFile flowFile, String folderName) {

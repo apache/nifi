@@ -29,10 +29,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class ListDropboxIT extends AbstractDropboxIT<ListDropbox>{
+public class ListDropboxIT extends AbstractDropboxIT<ListDropbox> {
 
-    private static final String YOUNG_FILE_NAME = "just_created" ;
-    public static final String NOT_MAIN_FOLDER = "/notMainFolder";
+    private static final String NOT_MAIN_FOLDER = "/notMainFolder";
+    private static final String YOUNG_FILE_NAME = "just_created";
 
     @BeforeEach
     public void init() throws Exception {

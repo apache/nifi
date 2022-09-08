@@ -23,7 +23,7 @@ public enum DropboxFlowFileAttribute {
     PATH(DropboxFileInfo.PATH, DropboxFileInfo::getPath),
     FILENAME(DropboxFileInfo.FILENAME, DropboxFileInfo::getName),
     SIZE(DropboxFileInfo.SIZE, fileInfo -> String.valueOf(fileInfo.getSize())),
-    TIMESTAMP(DropboxFileInfo.TIMESTAMP, fileInfo ->  String.valueOf(fileInfo.getTimestamp())),
+    TIMESTAMP(DropboxFileInfo.TIMESTAMP, fileInfo -> String.valueOf(fileInfo.getTimestamp())),
     REVISION(DropboxFileInfo.REVISION, DropboxFileInfo::getRevision);
 
     private final String name;

@@ -81,7 +81,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> {
     public static final PropertyDescriptor FOLDER = new PropertyDescriptor.Builder()
             .name("folder")
             .displayName("Folder")
-            .description("The Dropbox identifier or path of the folder from which to pull list of files."+
+            .description("The Dropbox identifier or path of the folder from which to pull list of files." +
                     " 'Folder' should match the following regular expression pattern: /.*|id:.* ." +
                     " Example for folder identifier: id:odTlUvbpIEAAAAAAAAAGGQ." +
                     " Example for folder path: /Team1/Task1.")
@@ -112,7 +112,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> {
     public static final PropertyDescriptor CREDENTIAL_SERVICE = new PropertyDescriptor.Builder()
             .name("dropbox-credential-service")
             .displayName("Dropbox Credential Service")
-            .description("Controller Service used to obtain Dropbox credentials (App Key, App Secret, Access Token, Refresh Token)."+
+            .description("Controller Service used to obtain Dropbox credentials (App Key, App Secret, Access Token, Refresh Token)." +
                     " See controller service's Additional Details for more information.")
             .identifiesControllerService(DropboxCredentialService.class)
             .required(true)
@@ -152,6 +152,11 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> {
 
     private DbxClientV2 dropboxApiClient;
 
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        dropboxApiClient = getDropboxApiClient(context);
+    }
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
@@ -174,11 +179,6 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> {
     @Override
     protected String getPath(final ProcessContext context) {
         return context.getProperty(FOLDER).evaluateAttributeExpressions().getValue();
-    }
-
-    @OnScheduled
-    public void onScheduled(final ProcessContext context) {
-        dropboxApiClient = getDropboxApiClient(context);
     }
 
     protected DbxClientV2 getDropboxApiClient(ProcessContext context) {
@@ -263,7 +263,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> {
         Predicate<FileMetadata> metadataFilter = FileMetadata::getIsDownloadable;
 
         if (minTimestamp != null && minTimestamp > 0) {
-            metadataFilter = metadataFilter.and(metadata -> metadata.getServerModified().getTime()>= minTimestamp);
+            metadataFilter = metadataFilter.and(metadata -> metadata.getServerModified().getTime() >= minTimestamp);
         }
 
         if (minAge != null && minAge > 0) {

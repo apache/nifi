@@ -30,6 +30,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 public class DropboxFileInfo implements ListableEntity {
+
     public static final String ID = "dropbox.id";
     public static final String PATH = "path";
     public static final String FILENAME = "filename";
@@ -62,6 +63,15 @@ public class DropboxFileInfo implements ListableEntity {
     private final long timestamp;
     private final String revision;
 
+    private DropboxFileInfo(final Builder builder) {
+        this.id = builder.id;
+        this.path = builder.path;
+        this.filename = builder.filename;
+        this.size = builder.size;
+        this.timestamp = builder.timestamp;
+        this.revision = builder.revision;
+    }
+
     public String getId() {
         return id;
     }
@@ -92,7 +102,46 @@ public class DropboxFileInfo implements ListableEntity {
         return new MapRecord(SCHEMA, values);
     }
 
+    @Override
+    public String getName() {
+        return getFileName();
+    }
+
+    @Override
+    public String getIdentifier() {
+        return getId();
+    }
+
+    @Override
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    @Override
+    public long getSize() {
+        return size;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        DropboxFileInfo that = (DropboxFileInfo) o;
+        return id.equals(that.id) && size == that.size && timestamp == that.timestamp && path.equals(that.path) && filename.equals(that.filename)
+                && revision.equals(that.revision);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, path, filename, size, timestamp, revision);
+    }
+
     public static final class Builder {
+
         private String id;
         private String path;
         private String filename;
@@ -133,52 +182,5 @@ public class DropboxFileInfo implements ListableEntity {
         public DropboxFileInfo build() {
             return new DropboxFileInfo(this);
         }
-    }
-
-    private DropboxFileInfo(final Builder builder) {
-        this.id = builder.id;
-        this.path = builder.path;
-        this.filename = builder.filename;
-        this.size = builder.size;
-        this.timestamp = builder.timestamp;
-        this.revision = builder.revision;
-    }
-
-    @Override
-    public String getName() {
-        return getFileName();
-    }
-
-    @Override
-    public String getIdentifier() {
-        return getId();
-    }
-
-    @Override
-    public long getTimestamp() {
-        return timestamp;
-    }
-
-    @Override
-    public long getSize() {
-        return size;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        DropboxFileInfo that = (DropboxFileInfo) o;
-        return id.equals(that.id) && size == that.size && timestamp == that.timestamp && path.equals(that.path) && filename.equals(that.filename)
-                && revision.equals(that.revision);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, path, filename, size, timestamp, revision);
     }
 }
