@@ -24,6 +24,7 @@ import com.nimbusds.jose.util.ResourceRetriever;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.oauth2.sdk.AuthorizationGrant;
+import com.nimbusds.oauth2.sdk.ErrorObject;
 import com.nimbusds.oauth2.sdk.ParseException;
 import com.nimbusds.oauth2.sdk.Request;
 import com.nimbusds.oauth2.sdk.Scope;
@@ -38,6 +39,7 @@ import com.nimbusds.oauth2.sdk.auth.Secret;
 import com.nimbusds.oauth2.sdk.http.HTTPRequest;
 import com.nimbusds.oauth2.sdk.http.HTTPResponse;
 import com.nimbusds.oauth2.sdk.id.ClientID;
+import com.nimbusds.oauth2.sdk.token.AccessToken;
 import com.nimbusds.oauth2.sdk.token.BearerAccessToken;
 import com.nimbusds.openid.connect.sdk.OIDCTokenResponse;
 import com.nimbusds.openid.connect.sdk.OIDCTokenResponseParser;
@@ -45,10 +47,27 @@ import com.nimbusds.openid.connect.sdk.UserInfoErrorResponse;
 import com.nimbusds.openid.connect.sdk.UserInfoRequest;
 import com.nimbusds.openid.connect.sdk.UserInfoResponse;
 import com.nimbusds.openid.connect.sdk.UserInfoSuccessResponse;
+import com.nimbusds.openid.connect.sdk.claims.AccessTokenHash;
 import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import com.nimbusds.openid.connect.sdk.token.OIDCTokens;
+import com.nimbusds.openid.connect.sdk.validators.AccessTokenValidator;
 import com.nimbusds.openid.connect.sdk.validators.IDTokenValidator;
+import com.nimbusds.openid.connect.sdk.validators.InvalidHashException;
+import net.minidev.json.JSONObject;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authentication.exception.IdentityAccessException;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.security.token.LoginAuthenticationToken;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
@@ -59,15 +78,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import net.minidev.json.JSONObject;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authentication.exception.IdentityAccessException;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.jwt.JwtService;
-import org.apache.nifi.web.security.token.LoginAuthenticationToken;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 /**
@@ -78,24 +88,22 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     private static final Logger logger = LoggerFactory.getLogger(StandardOidcIdentityProvider.class);
     private final String EMAIL_CLAIM = "email";
 
-    private NiFiProperties properties;
-    private JwtService jwtService;
+    private final NiFiProperties properties;
     private OIDCProviderMetadata oidcProviderMetadata;
     private int oidcConnectTimeout;
     private int oidcReadTimeout;
     private IDTokenValidator tokenValidator;
     private ClientID clientId;
     private Secret clientSecret;
+    private SSLContext sslContext;
 
     /**
      * Creates a new StandardOidcIdentityProvider.
      *
-     * @param jwtService jwt service
      * @param properties properties
      */
-    public StandardOidcIdentityProvider(final JwtService jwtService, final NiFiProperties properties) {
+    public StandardOidcIdentityProvider(final NiFiProperties properties) {
         this.properties = properties;
-        this.jwtService = jwtService;
     }
 
     /**
@@ -106,8 +114,13 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     public void initializeProvider() {
         // attempt to process the oidc configuration if configured
         if (!properties.isOidcEnabled()) {
-            logger.warn("The OIDC provider is not configured or enabled");
+            logger.debug("The OIDC provider is not configured or enabled");
             return;
+        }
+
+        // Set up trust store SSLContext
+        if (TruststoreStrategy.NIFI.name().equals(properties.getOidcClientTruststoreStrategy())) {
+            setSslContext();
         }
 
         validateOIDCConfiguration();
@@ -120,6 +133,15 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         }
 
         validateOIDCProviderMetadata();
+    }
+
+    private void setSslContext() {
+        TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
+        try {
+            this.sslContext = SslContextFactory.createSslContext(tlsConfiguration);
+        } catch (TlsException e) {
+            throw new RuntimeException("Unable to establish an SSL context for OIDC identity provider from nifi.properties", e);
+        }
     }
 
     /**
@@ -159,30 +181,36 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
 
         try {
             // get the preferred json web signature algorithm
-            final String rawPreferredJwsAlgorithm = properties.getOidcPreferredJwsAlgorithm();
-
-            final JWSAlgorithm preferredJwsAlgorithm;
-            if (StringUtils.isBlank(rawPreferredJwsAlgorithm)) {
-                preferredJwsAlgorithm = JWSAlgorithm.RS256;
-            } else {
-                if ("none".equalsIgnoreCase(rawPreferredJwsAlgorithm)) {
-                    preferredJwsAlgorithm = null;
-                } else {
-                    preferredJwsAlgorithm = JWSAlgorithm.parse(rawPreferredJwsAlgorithm);
-                }
-            }
+            final JWSAlgorithm preferredJwsAlgorithm = extractJwsAlgorithm();
 
             if (preferredJwsAlgorithm == null) {
                 tokenValidator = new IDTokenValidator(oidcProviderMetadata.getIssuer(), clientId);
             } else if (JWSAlgorithm.HS256.equals(preferredJwsAlgorithm) || JWSAlgorithm.HS384.equals(preferredJwsAlgorithm) || JWSAlgorithm.HS512.equals(preferredJwsAlgorithm)) {
                 tokenValidator = new IDTokenValidator(oidcProviderMetadata.getIssuer(), clientId, preferredJwsAlgorithm, clientSecret);
             } else {
-                final ResourceRetriever retriever = new DefaultResourceRetriever(oidcConnectTimeout, oidcReadTimeout);
+                final ResourceRetriever retriever = getResourceRetriever();
                 tokenValidator = new IDTokenValidator(oidcProviderMetadata.getIssuer(), clientId, preferredJwsAlgorithm, oidcProviderMetadata.getJWKSetURI().toURL(), retriever);
             }
         } catch (final Exception e) {
             throw new RuntimeException("Unable to create the ID token validator for the configured OpenId Connect Provider: " + e.getMessage(), e);
         }
+    }
+
+    private JWSAlgorithm extractJwsAlgorithm() {
+
+        final String rawPreferredJwsAlgorithm = properties.getOidcPreferredJwsAlgorithm();
+
+        final JWSAlgorithm preferredJwsAlgorithm;
+        if (StringUtils.isBlank(rawPreferredJwsAlgorithm)) {
+            preferredJwsAlgorithm = JWSAlgorithm.RS256;
+        } else {
+            if ("none".equalsIgnoreCase(rawPreferredJwsAlgorithm)) {
+                preferredJwsAlgorithm = null;
+            } else {
+                preferredJwsAlgorithm = JWSAlgorithm.parse(rawPreferredJwsAlgorithm);
+            }
+        }
+        return preferredJwsAlgorithm;
     }
 
     /**
@@ -239,9 +267,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     private OIDCProviderMetadata retrieveOidcProviderMetadata(final String discoveryUri) throws IOException, ParseException {
         final URL url = new URL(discoveryUri);
         final HTTPRequest httpRequest = new HTTPRequest(HTTPRequest.Method.GET, url);
-        httpRequest.setConnectTimeout(oidcConnectTimeout);
-        httpRequest.setReadTimeout(oidcReadTimeout);
-
+        setHttpRequestProperties(httpRequest);
         final HTTPResponse httpResponse = httpRequest.send();
 
         if (httpResponse.getStatusCode() != 200) {
@@ -262,7 +288,6 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         if (!isOidcEnabled()) {
             throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
         }
-
         return oidcProviderMetadata.getAuthorizationEndpointURI();
     }
 
@@ -272,6 +297,14 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
         }
         return oidcProviderMetadata.getEndSessionEndpointURI();
+    }
+
+    @Override
+    public URI getRevocationEndpoint() {
+        if (!isOidcEnabled()) {
+            throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
+        }
+        return oidcProviderMetadata.getRevocationEndpointURI();
     }
 
     @Override
@@ -295,54 +328,118 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         if (!isOidcEnabled()) {
             throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
         }
-
         return clientId;
     }
 
     @Override
-    public String exchangeAuthorizationCode(final AuthorizationGrant authorizationGrant) throws IOException {
+    public LoginAuthenticationToken exchangeAuthorizationCodeforLoginAuthenticationToken(final AuthorizationGrant authorizationGrant) throws IOException {
         // Check if OIDC is enabled
         if (!isOidcEnabled()) {
             throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
         }
 
-        // Build ClientAuthentication
-        final ClientAuthentication clientAuthentication = createClientAuthentication();
-
         try {
-            // Build the token request
-            final HTTPRequest tokenHttpRequest = createTokenHTTPRequest(authorizationGrant, clientAuthentication);
-            return authorizeClient(tokenHttpRequest);
+            // Authenticate and authorize the client request
+            final TokenResponse response = authorizeClient(authorizationGrant);
 
-        } catch (final ParseException | JOSEException | BadJOSEException | java.text.ParseException e) {
-            throw new RuntimeException("Unable to parse the response from the Token request: " + e.getMessage());
+            // Convert response to Login Authentication Token
+            // We only want to do this for login
+            return convertOIDCTokenToLoginAuthenticationToken((OIDCTokenResponse) response);
+
+        } catch (final RuntimeException | ParseException | JOSEException | BadJOSEException | java.text.ParseException e) {
+            throw new RuntimeException("Unable to parse the response from the Token request: " + e.getMessage(), e);
         }
     }
 
-    private String authorizeClient(HTTPRequest tokenHttpRequest) throws ParseException, IOException, BadJOSEException, JOSEException, java.text.ParseException {
+    @Override
+    public String exchangeAuthorizationCodeForAccessToken(final AuthorizationGrant authorizationGrant) throws Exception {
+        // Check if OIDC is enabled
+        if (!isOidcEnabled()) {
+            throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
+        }
+
+        try {
+            // Authenticate and authorize the client request
+            final TokenResponse response = authorizeClient(authorizationGrant);
+            return getAccessTokenString((OIDCTokenResponse) response);
+
+        } catch (final RuntimeException | ParseException | IOException | java.text.ParseException | InvalidHashException e) {
+            throw new RuntimeException("Unable to parse the response from the Token request: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public String exchangeAuthorizationCodeForIdToken(final AuthorizationGrant authorizationGrant) {
+        // Check if OIDC is enabled
+        if (!isOidcEnabled()) {
+            throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
+        }
+
+        try {
+            // Authenticate and authorize the client request
+            final TokenResponse response = authorizeClient(authorizationGrant);
+            return getIdTokenString((OIDCTokenResponse) response);
+
+        } catch (final RuntimeException | JOSEException | BadJOSEException | ParseException | IOException e) {
+            throw new RuntimeException("Unable to parse the response from the Token request: " + e.getMessage(), e);
+        }
+    }
+
+    private String getAccessTokenString(final OIDCTokenResponse response) throws Exception {
+        final OIDCTokens oidcTokens = getOidcTokens(response);
+
+        // Validate the Access Token
+        validateAccessToken(oidcTokens);
+
+        // Return the Access Token String
+        return oidcTokens.getAccessToken().getValue();
+    }
+
+    private String getIdTokenString(OIDCTokenResponse response) throws BadJOSEException, JOSEException {
+        final OIDCTokens oidcTokens = getOidcTokens(response);
+
+        // Validate the Token - no nonce required for authorization code flow
+        validateIdToken(oidcTokens.getIDToken());
+
+        // Return the ID Token string
+        return oidcTokens.getIDTokenString();
+    }
+
+    private TokenResponse authorizeClient(AuthorizationGrant authorizationGrant) throws ParseException, IOException {
+        // Build ClientAuthentication
+        final ClientAuthentication clientAuthentication = createClientAuthentication();
+
+        // Build the token request
+        final HTTPRequest tokenHttpRequest = createTokenHTTPRequest(authorizationGrant, clientAuthentication);
+
+        // Send the request and parse for success
+        return authorizeClientRequest(tokenHttpRequest);
+    }
+
+    private TokenResponse authorizeClientRequest(HTTPRequest tokenHttpRequest) throws ParseException, IOException {
         // Get the token response
         final TokenResponse response = OIDCTokenResponseParser.parse(tokenHttpRequest.send());
 
         // Handle success
         if (response.indicatesSuccess()) {
-            return convertOIDCTokenToNiFiToken((OIDCTokenResponse) response);
+            return response;
         } else {
             // If the response was not successful
             final TokenErrorResponse errorResponse = (TokenErrorResponse) response;
+            final ErrorObject errorObject = errorResponse.getErrorObject();
             throw new RuntimeException("An error occurred while invoking the Token endpoint: " +
-                    errorResponse.getErrorObject().getDescription());
+                    errorObject.getDescription() + " (" + errorObject.getCode() + ")");
         }
     }
 
-    private String convertOIDCTokenToNiFiToken(OIDCTokenResponse response) throws BadJOSEException, JOSEException, java.text.ParseException, IOException {
-        final OIDCTokenResponse oidcTokenResponse = response;
-        final OIDCTokens oidcTokens = oidcTokenResponse.getOIDCTokens();
+    private LoginAuthenticationToken convertOIDCTokenToLoginAuthenticationToken(OIDCTokenResponse response) throws BadJOSEException, JOSEException, java.text.ParseException, IOException {
+        final OIDCTokens oidcTokens = getOidcTokens(response);
         final JWT oidcJwt = oidcTokens.getIDToken();
 
-        // validate the token - no nonce required for authorization code flow
-        final IDTokenClaimsSet claimsSet = tokenValidator.validate(oidcJwt, null);
+        // Validate the token
+        final IDTokenClaimsSet claimsSet = validateIdToken(oidcJwt);
 
-        // attempt to extract the configured claim to access the user's identity; default is 'email'
+        // Attempt to extract the configured claim to access the user's identity; default is 'email'
         String identityClaim = properties.getOidcClaimIdentifyingUser();
         String identity = claimsSet.getStringClaim(identityClaim);
 
@@ -359,31 +456,41 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                 identity = claimsSet.getStringClaim(EMAIL_CLAIM);
                 logger.info("The 'email' claim was present. Using that claim to avoid extra remote call");
             } else {
-                identity = retrieveIdentityFromUserInfoEndpoint(oidcTokens);
-                logger.info("Retrieved identity from UserInfo endpoint");
+                final List<String> fallbackClaims = properties.getOidcFallbackClaimsIdentifyingUser();
+                for (String fallbackClaim : fallbackClaims) {
+                    if (availableClaims.contains(fallbackClaim)) {
+                        identity = claimsSet.getStringClaim(fallbackClaim);
+                        break;
+                    }
+                }
+                if (StringUtils.isBlank(identity)) {
+                    identity = retrieveIdentityFromUserInfoEndpoint(oidcTokens);
+                }
             }
         }
 
-        // extract expiration details from the claims set
+        // Extract expiration details from the claims set
         final Calendar now = Calendar.getInstance();
         final Date expiration = claimsSet.getExpirationTime();
         final long expiresIn = expiration.getTime() - now.getTimeInMillis();
 
-        // convert into a nifi jwt for retrieval later
-        final LoginAuthenticationToken loginToken = new LoginAuthenticationToken(identity, identity, expiresIn,
-                claimsSet.getIssuer().getValue());
-        return jwtService.generateSignedToken(loginToken);
+        return new LoginAuthenticationToken(
+                identity, identity, expiresIn, claimsSet.getIssuer().getValue());
+    }
+
+    private OIDCTokens getOidcTokens(OIDCTokenResponse response) {
+        return response.getOIDCTokens();
     }
 
     private String retrieveIdentityFromUserInfoEndpoint(OIDCTokens oidcTokens) throws IOException {
-        // explicitly try to get the identity from the UserInfo endpoint with the configured claim
-        // extract the bearer access token
+        // Explicitly try to get the identity from the UserInfo endpoint with the configured claim
+        // Extract the bearer access token
         final BearerAccessToken bearerAccessToken = oidcTokens.getBearerAccessToken();
         if (bearerAccessToken == null) {
             throw new IllegalStateException("No access token found in the ID tokens");
         }
 
-        // invoke the UserInfo endpoint
+        // Invoke the UserInfo endpoint
         HTTPRequest userInfoRequest = createUserInfoRequest(bearerAccessToken);
         return lookupIdentityInUserInfo(userInfoRequest);
     }
@@ -399,10 +506,24 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     }
 
     private HTTPRequest formHTTPRequest(Request request) {
-        final HTTPRequest httpRequest = request.toHTTPRequest();
+        return setHttpRequestProperties(request.toHTTPRequest());
+    }
+
+    private HTTPRequest setHttpRequestProperties(final HTTPRequest httpRequest) {
         httpRequest.setConnectTimeout(oidcConnectTimeout);
         httpRequest.setReadTimeout(oidcReadTimeout);
+        if (TruststoreStrategy.NIFI.name().equals(properties.getOidcClientTruststoreStrategy())) {
+            httpRequest.setSSLSocketFactory(sslContext.getSocketFactory());
+        }
         return httpRequest;
+    }
+
+    private ResourceRetriever getResourceRetriever() {
+        if (TruststoreStrategy.NIFI.name().equals(properties.getOidcClientTruststoreStrategy())) {
+            return new DefaultResourceRetriever(oidcConnectTimeout, oidcReadTimeout, 0, true, sslContext.getSocketFactory());
+        } else {
+            return new DefaultResourceRetriever(oidcConnectTimeout, oidcReadTimeout);
+        }
     }
 
     private ClientAuthentication createClientAuthentication() {
@@ -418,14 +539,45 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
 
     private static List<String> getAvailableClaims(JWTClaimsSet claimSet) {
         // Get the claims available in the ID token response
-        List<String> presentClaims = claimSet.getClaims().entrySet().stream()
+        return claimSet.getClaims().entrySet().stream()
                 // Check claim values are not empty
-                .filter(e -> StringUtils.isNotBlank(e.getValue().toString()))
+                .filter(e -> e.getValue() != null && StringUtils.isNotBlank(e.getValue().toString()))
                 // If not empty, put claim name in a map
                 .map(Map.Entry::getKey)
                 .sorted()
                 .collect(Collectors.toList());
-        return presentClaims;
+    }
+
+    private void validateAccessToken(OIDCTokens oidcTokens) throws Exception {
+        // Get the Access Token to validate
+        final AccessToken accessToken = oidcTokens.getAccessToken();
+
+        // Get the preferredJwsAlgorithm for validation
+        final JWSAlgorithm jwsAlgorithm = extractJwsAlgorithm();
+
+        // Get the accessTokenHash for validation
+        final String atHashString = oidcTokens
+                .getIDToken()
+                .getJWTClaimsSet()
+                .getStringClaim("at_hash");
+
+        // Compute the Access Token hash
+        final AccessTokenHash atHash = new AccessTokenHash(atHashString);
+
+        try {
+            // Validate the Token
+            AccessTokenValidator.validate(accessToken, jwsAlgorithm, atHash);
+        } catch (InvalidHashException e) {
+            throw new Exception("Unable to validate the Access Token: " + e.getMessage());
+        }
+    }
+
+    private IDTokenClaimsSet validateIdToken(JWT oidcJwt) throws BadJOSEException, JOSEException {
+        try {
+            return tokenValidator.validate(oidcJwt, null);
+        } catch (BadJOSEException e) {
+            throw new BadJOSEException("Unable to validate the ID Token: " + e.getMessage());
+        }
     }
 
     private String lookupIdentityInUserInfo(final HTTPRequest userInfoHttpRequest) throws IOException {
