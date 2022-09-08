@@ -159,7 +159,7 @@ public class QueryAirtableTable extends AbstractProcessor {
 
     static final PropertyDescriptor MAX_RECORDS_PER_FLOW_FILE = new PropertyDescriptor.Builder()
             .name("max-records-per-flow-file")
-            .displayName("Max Records Per Flow File")
+            .displayName("Max Records Per FlowFile")
             .description("The maximum number of result records that will be included in a single FlowFile. This will allow you to break up very large"
                     + " result sets into multiple FlowFiles. If the value specified is zero, then all records are returned in a single FlowFile.")
             .defaultValue("0")
