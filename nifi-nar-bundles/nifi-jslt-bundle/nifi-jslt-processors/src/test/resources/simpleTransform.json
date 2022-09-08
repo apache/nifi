@@ -1,0 +1,8 @@
+{
+  "SecondaryRatings" : {
+    "quality" : {
+      "Value" : .rating.primary.value,
+      "RatingRange" : .rating.quality.value
+    }
+  }
+}
