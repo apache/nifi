@@ -24,8 +24,12 @@ import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
 import org.apache.nifi.c2.protocol.api.OperandType;
 import org.apache.nifi.c2.protocol.api.OperationType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class C2OperationService {
+
+    private static final Logger logger = LoggerFactory.getLogger(C2OperationService.class);
 
     private final Map<OperationType, Map<OperandType, C2OperationHandler>> handlerMap = new HashMap<>();
 
@@ -37,7 +41,10 @@ public class C2OperationService {
 
     public Optional<C2OperationAck> handleOperation(C2Operation operation) {
         return getHandlerForOperation(operation)
-            .map(handler -> handler.handle(operation));
+            .map(handler -> {
+                logger.info("Handling {} {} operation", operation.getOperation(), operation.getOperand());
+                return handler.handle(operation);
+            });
     }
 
     private Optional<C2OperationHandler> getHandlerForOperation(C2Operation operation) {
