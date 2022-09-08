@@ -141,8 +141,8 @@ public class FetchBoxFiles extends AbstractProcessor implements BoxTrait {
     private void handleErrorResponse(ProcessSession session, String fileId, FlowFile outFlowFile, BoxAPIResponseException e) {
         getLogger().error("Couldn't fetch file with id '{}'", fileId, e);
 
-        session.putAttribute(outFlowFile, ERROR_CODE_ATTRIBUTE, "" + e.getResponseCode());
-        session.putAttribute(outFlowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
+        outFlowFile = session.putAttribute(outFlowFile, ERROR_CODE_ATTRIBUTE, "" + e.getResponseCode());
+        outFlowFile = session.putAttribute(outFlowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
 
         session.transfer(outFlowFile, REL_FAILURE);
     }
@@ -150,7 +150,7 @@ public class FetchBoxFiles extends AbstractProcessor implements BoxTrait {
     private void handleUnexpectedError(ProcessSession session, FlowFile flowFile, String fileId, Exception e) {
         getLogger().error("Unexpected error while fetching and processing file with id '{}'", fileId, e);
 
-        session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
+        flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
 
         session.transfer(flowFile, REL_FAILURE);
     }

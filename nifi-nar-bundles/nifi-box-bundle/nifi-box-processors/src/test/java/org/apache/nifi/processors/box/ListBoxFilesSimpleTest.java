@@ -102,6 +102,7 @@ public class ListBoxFilesSimpleTest implements SimpleListBoxFileTestTrait {
             BoxFileInfo::getId,
             BoxFileInfo::getIdentifier,
             BoxFileInfo::getName,
+            BoxFileInfo::getPath,
             BoxFileInfo::getSize,
             BoxFileInfo::getTimestamp,
             BoxFileInfo::getCreatedTime,
