@@ -120,6 +120,7 @@
         <module>nifi-flow-registry-client-bundle</module>
         <module>nifi-shopify-bundle</module>
         <module>nifi-iceberg-bundle</module>
+        <module>nifi-jslt-bundle</module>
     </modules>
 
     <build>
