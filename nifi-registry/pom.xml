@@ -186,13 +186,13 @@
             <dependency>
                 <groupId>net.bytebuddy</groupId>
                 <artifactId>byte-buddy</artifactId>
-                <version>1.9.10</version>
+                <version>1.12.14</version>
             </dependency>
             <!-- force mockito-core to a newer version -->
             <dependency>
                 <groupId>net.bytebuddy</groupId>
                 <artifactId>byte-buddy-agent</artifactId>
-                <version>1.9.10</version>
+                <version>1.12.14</version>
             </dependency>
             <!-- exclude all transitive groovy deps so that spock uses whatever is directly declared -->
             <dependency>
