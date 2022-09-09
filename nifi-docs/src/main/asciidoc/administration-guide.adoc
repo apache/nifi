@@ -182,6 +182,49 @@ Antivirus software can take a long time to scan large directories and the numero
 * `provenance_repository`
 * `state`
 
+[[logging_configuration]]
+== Logging Configuration
+NiFi uses link:https://logback.qos.ch/[logback^] as the runtime logging implementation. The `conf` directory contains a
+standard `logback.xml` configuration with default appender and level settings. The
+link:https://logback.qos.ch/manual/index.html[logback manual] provides a complete reference of available options.
+
+=== Standard Log Files
+The standard logback configuration includes the following appender definitions and associated log files:
+
+[options="header"]
+|=========================
+| File                   | Description
+| `nifi-app.log`         | Application log containing framework and component messages
+| `nifi-bootstrap.log`   | Bootstrap log containing startup and shutdown messages
+| `nifi-deprecation.log` | Deprecation log containing warnings for deprecated components and features
+| `nifi-request.log`     | HTTP request log containing user interface and REST API access messages
+| `nifi-user.log`        | User log containing authentication and authorization messages
+|=========================
+
+=== Deprecation Logging
+The `nifi-deprecation.log` contains warning messages describing components and features that will be removed in
+subsequent versions. Deprecation warnings should be evaluated and addressed to avoid breaking changes when upgrading to
+a new major version. Resolving deprecation warnings involves upgrading to new components, changing component property
+settings, or refactoring custom component classes.
+
+Deprecation logging provides a method for checking compatibility before upgrading from one major release version to
+another. Upgrading to the latest minor release version will provide the most accurate set of deprecation warnings.
+
+It is important to note that deprecation logging applies to both components and features. Logging for deprecated
+features requires a runtime reference to the property or method impacted. Disabled components with deprecated properties
+or methods will not generate deprecation logs. For this reason, it is important to exercise all configured components
+long enough to exercise standard flow behavior.
+
+Deprecation logging can generate repeated messages depending on component configuration and usage patterns. Disabling
+deprecation logging for a specific component class can be configured by adding a `logger` element to `logback.xml`.
+The `name` attribute must start with `deprecation`, followed by the component class. Setting the `level` attribute to
+`OFF` disables deprecation logging for the component specified.
+
+[source, xml]
+----
+<logger name="deprecation.org.apache.nifi.processors.ListenLegacyProtocol" level="OFF" />
+----
+
 [[security_configuration]]
 == Security Configuration
 

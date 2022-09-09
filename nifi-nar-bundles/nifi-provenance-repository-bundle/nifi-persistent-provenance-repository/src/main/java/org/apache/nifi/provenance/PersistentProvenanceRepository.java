@@ -31,6 +31,8 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.provenance.authorization.EventAuthorizer;
 import org.apache.nifi.provenance.expiration.ExpirationAction;
@@ -146,6 +148,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
     private static final float ROLLOVER_HIGH_WATER = 0.99f;
 
     private static final Logger logger = LoggerFactory.getLogger(PersistentProvenanceRepository.class);
+    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(PersistentProvenanceRepository.class);
 
     private final long maxPartitionMillis;
     private final long maxPartitionBytes;
@@ -226,6 +229,11 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
     }
 
     public PersistentProvenanceRepository(final RepositoryConfiguration configuration, final int rolloverCheckMillis) throws IOException {
+        deprecationLogger.warn("{} should be replaced with WriteAheadProvenanceRepository for [{}] in nifi.properties",
+                getClass().getSimpleName(),
+                NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS
+        );
+
         if (configuration.getStorageDirectories().isEmpty()) {
             throw new IllegalArgumentException("Must specify at least one storage directory");
         }

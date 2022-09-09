@@ -382,6 +382,11 @@
             </dependency>
             <!-- Managed dependency versions applicable to all modules -->
             <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-deprecation-log</artifactId>
+                <version>1.18.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-dbcp2</artifactId>
                 <version>${commons.dbcp2.version}</version>
