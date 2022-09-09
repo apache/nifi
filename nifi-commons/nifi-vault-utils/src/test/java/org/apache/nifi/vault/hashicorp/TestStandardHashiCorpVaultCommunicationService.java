@@ -68,8 +68,8 @@ public class TestStandardHashiCorpVaultCommunicationService {
     public void testBasicConfiguration() {
         this.configureService();
 
-        // Once to check if the URI is https, and once by VaultTemplate
-        Mockito.verify(properties, Mockito.times(2)).getUri();
+        // Once to check if the URI is https, once by VaultTemplate, and once to validate
+        Mockito.verify(properties, Mockito.times(3)).getUri();
 
         // Once to check if the property is set, and once to retrieve the value
         Mockito.verify(properties, Mockito.times(2)).getAuthPropertiesFilename();
@@ -85,8 +85,6 @@ public class TestStandardHashiCorpVaultCommunicationService {
         Mockito.verify(sslProperties, Mockito.times(numberOfTimes)).getTrustStore();
         Mockito.verify(sslProperties, Mockito.times(numberOfTimes)).getTrustStoreType();
         Mockito.verify(sslProperties, Mockito.times(numberOfTimes)).getTrustStorePassword();
-        Mockito.verify(sslProperties, Mockito.times(numberOfTimes)).getEnabledProtocols();
-        Mockito.verify(sslProperties, Mockito.times(numberOfTimes)).getEnabledCipherSuites();
     }
 
     @Test
@@ -113,6 +111,8 @@ public class TestStandardHashiCorpVaultCommunicationService {
         when(properties.getUri()).thenReturn(URI_VALUE.replace("http", "https"));
         this.configureService();
 
-        this.ensureTlsPropertiesAccessed(1);
+        this.ensureTlsPropertiesAccessed(2);
+        Mockito.verify(sslProperties, Mockito.times(1)).getEnabledProtocols();
+        Mockito.verify(sslProperties, Mockito.times(1)).getEnabledCipherSuites();
     }
 }

@@ -32,6 +32,7 @@ import org.springframework.vault.support.SslConfiguration;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -70,13 +71,14 @@ public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
     private final KeyValueBackend keyValueBackend;
 
     /**
-     * Creates a HashiCorpVaultConfiguration from property sources
-     * @param propertySources A series of Spring PropertySource objects
+     * Creates a HashiCorpVaultConfiguration from property sources, in increasing precedence.
+     * @param propertySources A series of Spring PropertySource objects (the last in the list take precedence over
+     *                        sources earlier in the list)
      * @throws HashiCorpVaultConfigurationException If the authentication properties file could not be read
      */
     public HashiCorpVaultConfiguration(final PropertySource<?>... propertySources) {
         final ConfigurableEnvironment env = new StandardEnvironment();
-        for(final PropertySource<?> propertySource : propertySources) {
+        for (final PropertySource<?> propertySource : propertySources) {
             env.getPropertySources().addFirst(propertySource);
         }
 
@@ -105,6 +107,7 @@ public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
             }
         }
         this.keyValueBackend = keyValueBackend;
+        validateProperties(env);
 
         this.setApplicationContext(new HashiCorpVaultApplicationContext(env));
 
@@ -113,6 +116,30 @@ public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
 
         clientOptions = getClientOptions();
     }
+
+    private void validateProperties(final ConfigurableEnvironment environment) {
+        try {
+            final String vaultUri = Objects.requireNonNull(environment.getProperty(VaultConfigurationKey.URI.key),
+                    "Missing required property " + VaultConfigurationKey.URI.key);
+            if (vaultUri.startsWith(HTTPS)) {
+                requireSslProperty("vault.ssl.key-store", environment);
+                requireSslProperty("vault.ssl.key-store-password", environment);
+                requireSslProperty("vault.ssl.key-store-type", environment);
+                requireSslProperty("vault.ssl.trust-store", environment);
+                requireSslProperty("vault.ssl.trust-store-password", environment);
+                requireSslProperty("vault.ssl.trust-store-type", environment);
+            }
+        } catch (final NullPointerException e) {
+            // Rethrow as IllegalArgumentException
+            throw new IllegalArgumentException(e.getMessage(), e);
+        }
+
+    }
+
+    private void requireSslProperty(final String propertyName, final ConfigurableEnvironment environment) {
+        Objects.requireNonNull(environment.getProperty(propertyName), propertyName + " is required with an https URI");
+    }
+
 
     public KeyValueBackend getKeyValueBackend() {
         return keyValueBackend;
@@ -158,7 +185,7 @@ public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
         return new ClientOptions(connectionTimeoutDuration, readTimeoutDuration);
     }
 
-    private static Duration getDuration(String formattedDuration) {
+    private static Duration getDuration(final String formattedDuration) {
         final double duration = FormatUtils.getPreciseTimeDuration(formattedDuration, TimeUnit.MILLISECONDS);
         return Duration.ofMillis(Double.valueOf(duration).longValue());
     }

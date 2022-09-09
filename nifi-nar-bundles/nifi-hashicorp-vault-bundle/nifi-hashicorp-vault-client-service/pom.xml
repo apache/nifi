@@ -22,34 +22,39 @@
         <version>1.18.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-hashicorp-vault-nar</artifactId>
-    <packaging>nar</packaging>
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-    </properties>
+    <artifactId>nifi-hashicorp-vault-client-service</artifactId>
+    <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-hashicorp-vault-parameter-value-provider</artifactId>
+            <artifactId>nifi-vault-utils</artifactId>
             <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-hashicorp-vault-client-service-api-nar</artifactId>
+            <artifactId>nifi-ssl-context-service-api</artifactId>
             <version>1.18.0-SNAPSHOT</version>
-            <type>nar</type>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-hashicorp-vault-parameter-provider</artifactId>
+            <artifactId>nifi-hashicorp-vault-client-service-api</artifactId>
             <version>1.18.0-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- test dependencies -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-hashicorp-vault-client-service</artifactId>
+            <artifactId>nifi-security-utils</artifactId>
             <version>1.18.0-SNAPSHOT</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
+
 </project>

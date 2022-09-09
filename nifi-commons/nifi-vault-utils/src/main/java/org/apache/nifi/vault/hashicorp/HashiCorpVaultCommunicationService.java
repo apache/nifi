@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.vault.hashicorp;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -24,6 +25,10 @@ import java.util.Optional;
  * @see <a href="https://www.vaultproject.io/">https://www.vaultproject.io/</a>
  */
 public interface HashiCorpVaultCommunicationService {
+    /**
+     * Tests the connection to Vault, throwing an exception if there was a problem connecting to the server.
+     */
+    void testConnection();
 
     /**
      * Encrypts the given plaintext using Vault's Transit Secrets Engine.
@@ -83,4 +88,11 @@ public interface HashiCorpVaultCommunicationService {
      * @return A map from key to value from the secret key/values, or an empty map if not found
      */
     Map<String, String> readKeyValueSecretMap(String keyValuePath, String secretKey);
+
+    /**
+     * Lists the secrets at the given Key/Value Secrets Engine path.
+     * @param keyValuePath The Vault path to list
+     * @return The list of secret names
+     */
+    List<String> listKeyValueSecrets(String keyValuePath);
 }
