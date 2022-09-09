@@ -66,8 +66,8 @@ public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaul
     }
 
     @Override
-    public void testConnection() {
-        vaultTemplate.opsForSys().health();
+    public String getServerVersion() {
+        return vaultTemplate.opsForSys().health().getVersion();
     }
 
     /**

@@ -18,6 +18,9 @@ package org.apache.nifi.vault.hashicorp;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.resource.ResourceReference;
+import org.apache.nifi.components.resource.ResourceReferences;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
@@ -26,16 +29,20 @@ import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -55,6 +62,15 @@ public class TestStandardHashiCorpVaultClientService {
     private ConfigurationContext mockContext(final Map<PropertyDescriptor, String> properties, final boolean includeSSL) {
         final ConfigurationContext context = mock(ConfigurationContext.class);
         properties.entrySet().forEach(entry -> mockProperty(context, entry.getKey(), entry.getValue()));
+        if (properties.containsKey(HashiCorpVaultClientService.VAULT_PROPERTIES_FILES)) {
+            final PropertyValue propertiesFilesProperty = mock(PropertyValue.class);
+            final ResourceReferences resources = mock(ResourceReferences.class);
+            when(resources.asList()).thenReturn(Arrays.asList(properties.get(HashiCorpVaultClientService.VAULT_PROPERTIES_FILES).split(","))
+                    .stream().map(SimpleResourceReference::new)
+                    .collect(Collectors.toList()));
+            when(propertiesFilesProperty.asResources()).thenReturn(resources);
+            when(context.getProperty(HashiCorpVaultClientService.VAULT_PROPERTIES_FILES)).thenReturn(propertiesFilesProperty);
+        }
         if (includeSSL) {
             final SSLContextService sslContextService = mock(SSLContextService.class);
             when(sslContextService.getKeyStoreFile()).thenReturn(tlsConfiguration.getKeystorePath());
@@ -165,5 +181,43 @@ public class TestStandardHashiCorpVaultClientService {
         assertNotNull(clientService.getHashiCorpVaultCommunicationService());
         clientService.onDisabled();
         assertNull(clientService.getHashiCorpVaultCommunicationService());
+    }
+
+    private class SimpleResourceReference implements ResourceReference {
+        private final String filename;
+
+        private SimpleResourceReference(String filename) {
+            this.filename = filename;
+        }
+
+        @Override
+        public File asFile() {
+            return null;
+        }
+
+        @Override
+        public URL asURL() {
+            return null;
+        }
+
+        @Override
+        public InputStream read() throws IOException {
+            return null;
+        }
+
+        @Override
+        public boolean isAccessible() {
+            return false;
+        }
+
+        @Override
+        public String getLocation() {
+            return filename;
+        }
+
+        @Override
+        public ResourceType getResourceType() {
+            return null;
+        }
     }
 }

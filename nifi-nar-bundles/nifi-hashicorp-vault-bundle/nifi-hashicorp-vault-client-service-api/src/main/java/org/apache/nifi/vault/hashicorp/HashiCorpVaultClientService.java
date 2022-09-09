@@ -21,6 +21,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -92,6 +94,7 @@ public interface HashiCorpVaultClientService extends ControllerService, Verifiab
             .required(true)
             .addValidator(MultiFileExistsValidator.INSTANCE)
             .dependsOn(CONFIGURATION_STRATEGY, PROPERTIES_FILES)
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
             .build();
 
     PropertyDescriptor CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()

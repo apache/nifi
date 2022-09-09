@@ -26,9 +26,9 @@ import java.util.Optional;
  */
 public interface HashiCorpVaultCommunicationService {
     /**
-     * Tests the connection to Vault, throwing an exception if there was a problem connecting to the server.
+     * @return The HashiCorp Vault server version
      */
-    void testConnection();
+    String getServerVersion();
 
     /**
      * Encrypts the given plaintext using Vault's Transit Secrets Engine.

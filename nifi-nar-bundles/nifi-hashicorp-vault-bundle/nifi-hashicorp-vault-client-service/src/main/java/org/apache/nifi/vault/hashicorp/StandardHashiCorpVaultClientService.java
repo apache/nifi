@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.resource.ResourceReference;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -57,7 +58,6 @@ import java.util.Map;
 )
 public class StandardHashiCorpVaultClientService extends AbstractControllerService implements HashiCorpVaultClientService {
 
-    private static final String COMMA_SEPARATOR = ",";
     private static List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             CONFIGURATION_STRATEGY,
             VAULT_URI,
@@ -109,7 +109,7 @@ public class StandardHashiCorpVaultClientService extends AbstractControllerServi
         }
         if (service != null) {
             try {
-                service.testConnection();
+                service.getServerVersion();
                 results.add(new ConfigVerificationResult.Builder()
                         .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
                         .verificationStepName("Connect to HashiCorp Vault Server")
@@ -156,9 +156,9 @@ public class StandardHashiCorpVaultClientService extends AbstractControllerServi
             final PropertySource<?> configurationPropertySource = new DirectPropertySource("Direct Properties", context);
             propertySources.add(configurationPropertySource);
         } else {
-            final String propertiesFiles = context.getProperty(VAULT_PROPERTIES_FILES).getValue();
-            for (final String propertiesFile : propertiesFiles.split(COMMA_SEPARATOR)) {
-                propertySources.add(HashiCorpVaultConfiguration.createPropertiesFileSource(propertiesFile.trim()));
+            for (final ResourceReference resourceReference : context.getProperty(VAULT_PROPERTIES_FILES).asResources().asList()) {
+                final String propertiesFile = resourceReference.getLocation();
+                propertySources.add(HashiCorpVaultConfiguration.createPropertiesFileSource(propertiesFile));
             }
         }
 
