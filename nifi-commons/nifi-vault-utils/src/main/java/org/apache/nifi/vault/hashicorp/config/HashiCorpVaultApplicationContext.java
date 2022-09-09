@@ -21,7 +21,7 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 
-import java.nio.file.Paths;
+import java.io.File;
 
 /**
  * Basic ApplicationContext that defines resources as FileSystemResource objects.
@@ -34,6 +34,6 @@ public class HashiCorpVaultApplicationContext extends StaticApplicationContext {
 
     @Override
     public Resource getResource(String location) {
-        return new FileSystemResource(Paths.get(location));
+        return new FileSystemResource(new File(location));
     }
 }
