@@ -66,6 +66,4 @@ class ConfigSubcommand extends BaseCommandParameters implements Runnable {
             logger.error("Encrypting configuration files has failed due to: ", e);
         }
     }
-
-    private void migrateConfg
 }
