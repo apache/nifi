@@ -17,6 +17,8 @@
 package org.apache.nifi.schemaregistry.services;
 
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -43,6 +45,16 @@ public interface SchemaRegistry extends ControllerService {
      * @throws SchemaNotFoundException if unable to find the schema with the given name
      */
     default String retrieveSchemaText(String schemaName) throws IOException, SchemaNotFoundException {
+        final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(getClass());
+        final String deprecatedMethod = "retrieveSchemaText(schemaName)";
+        final String replacementMethod = "retrieveSchema(SchemaIdentifier)";
+        deprecationLogger.warn("{}[id={}] {} should be replaced with {}",
+                getClass().getSimpleName(),
+                getIdentifier(),
+                deprecatedMethod,
+                replacementMethod
+        );
+
         final RecordSchema recordSchema = retrieveSchema(SchemaIdentifier.builder().name(schemaName).build());
         if (recordSchema == null) {
             throw new SchemaNotFoundException("Could not find schema with name '" + schemaName + "'");
@@ -63,6 +75,16 @@ public interface SchemaRegistry extends ControllerService {
      * @throws SchemaNotFoundException if unable to find the schema with the given id and version
      */
     default String retrieveSchemaText(long schemaId, int version) throws IOException, SchemaNotFoundException {
+        final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(getClass());
+        final String deprecatedMethod = "retrieveSchemaText(schemaId, version)";
+        final String replacementMethod = "retrieveSchema(SchemaIdentifier)";
+        deprecationLogger.warn("{}[id={}] {} should be replaced with {}",
+                getClass().getSimpleName(),
+                getIdentifier(),
+                deprecatedMethod,
+                replacementMethod
+        );
+
         final RecordSchema recordSchema = retrieveSchema(SchemaIdentifier.builder().id(schemaId).version(version).build());
         if (recordSchema == null) {
             throw new SchemaNotFoundException("Could not find schema with ID '" + schemaId + "' and version '" + version + "'");
@@ -82,6 +104,16 @@ public interface SchemaRegistry extends ControllerService {
      * @throws SchemaNotFoundException if unable to find the schema with the given name
      */
     default RecordSchema retrieveSchema(String schemaName) throws IOException, SchemaNotFoundException {
+        final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(getClass());
+        final String deprecatedMethod = "retrieveSchemaText(schemaName)";
+        final String replacementMethod = "retrieveSchema(SchemaIdentifier)";
+        deprecationLogger.warn("{}[id={}] {} should be replaced with {}",
+                getClass().getSimpleName(),
+                getIdentifier(),
+                deprecatedMethod,
+                replacementMethod
+        );
+
         return retrieveSchema(SchemaIdentifier.builder().name(schemaName).build());
     }
 
@@ -104,6 +136,16 @@ public interface SchemaRegistry extends ControllerService {
      * @throws SchemaNotFoundException if unable to find the schema with the given id and version
      */
     default RecordSchema retrieveSchema(long schemaId, int version) throws IOException, SchemaNotFoundException {
+        final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(getClass());
+        final String deprecatedMethod = "retrieveSchemaText(schemaId, version)";
+        final String replacementMethod = "retrieveSchema(SchemaIdentifier)";
+        deprecationLogger.warn("{}[id={}] {} should be replaced with {}",
+                getClass().getSimpleName(),
+                getIdentifier(),
+                deprecatedMethod,
+                replacementMethod
+        );
+
         return retrieveSchema(SchemaIdentifier.builder().id(schemaId).version(version).build());
     }
 

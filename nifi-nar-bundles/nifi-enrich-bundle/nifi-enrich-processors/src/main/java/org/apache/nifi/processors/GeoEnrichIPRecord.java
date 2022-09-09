@@ -214,8 +214,8 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
 
             RecordReader reader = readerFactory.createRecordReader(input, is, getLogger());
             RecordSchema schema = writerFactory.getSchema(input.getAttributes(), reader.getSchema());
-            RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, os);
-            RecordSetWriter notFoundWriter = splitOutput ? writerFactory.createWriter(getLogger(), schema, osNotFound) : null;
+            RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, os, input);
+            RecordSetWriter notFoundWriter = splitOutput ? writerFactory.createWriter(getLogger(), schema, osNotFound, input) : null;
             Record record;
             Relationship targetRelationship = REL_NOT_FOUND;
             writer.beginRecordSet();

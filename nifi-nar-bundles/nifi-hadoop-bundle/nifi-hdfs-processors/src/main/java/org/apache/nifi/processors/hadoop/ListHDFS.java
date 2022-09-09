@@ -41,6 +41,8 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -227,6 +229,8 @@ public class ListHDFS extends AbstractHadoopProcessor {
         .description("All FlowFiles are transferred to this relationship")
         .build();
 
+    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(ListHDFS.class);
+
     private volatile long latestTimestampListed = -1L;
     private volatile long latestTimestampEmitted = -1L;
     private volatile long lastRunTimestamp = -1L;
@@ -277,6 +281,14 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext context) {
+        if (context.getProperty(DISTRIBUTED_CACHE_SERVICE).isSet()) {
+            deprecationLogger.warn("{}[id={}] [{}] Property is not used",
+                    getClass().getSimpleName(),
+                    getIdentifier(),
+                    DISTRIBUTED_CACHE_SERVICE.getDisplayName()
+            );
+        }
+
         final List<ValidationResult> problems = new ArrayList<>(super.customValidate(context));
 
         final Long minAgeProp = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
