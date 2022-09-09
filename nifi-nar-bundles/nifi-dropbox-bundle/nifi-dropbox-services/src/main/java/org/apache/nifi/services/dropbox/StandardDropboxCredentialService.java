@@ -32,7 +32,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 @CapabilityDescription("Defines credentials for Dropbox processors.")
 @Tags({"dropbox", "credentials", "provider"})
-public class DropboxCredentialControllerService extends AbstractControllerService implements DropboxCredentialService {
+public class StandardDropboxCredentialService extends AbstractControllerService implements DropboxCredentialService {
 
     public static final PropertyDescriptor APP_KEY = new PropertyDescriptor.Builder()
             .name("app-key")

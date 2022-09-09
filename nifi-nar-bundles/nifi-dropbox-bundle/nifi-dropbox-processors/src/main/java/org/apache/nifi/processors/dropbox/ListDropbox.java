@@ -226,7 +226,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> {
                 listing.add(builder.build());
             }
         } catch (DbxException e) {
-            throw new IOException("Failed to list Dropbox folder " + folderName, e);
+            throw new IOException("Failed to list Dropbox folder [" + folderName + "]", e);
         }
 
         return listing;

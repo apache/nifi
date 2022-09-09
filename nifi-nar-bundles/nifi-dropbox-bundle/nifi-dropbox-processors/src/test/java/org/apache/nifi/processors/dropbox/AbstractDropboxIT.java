@@ -25,7 +25,7 @@ import com.dropbox.core.v2.files.GetMetadataErrorException;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.services.dropbox.DropboxCredentialControllerService;
+import org.apache.nifi.services.dropbox.StandardDropboxCredentialService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -81,12 +81,12 @@ public abstract class AbstractDropboxIT<T extends Processor> {
     protected TestRunner createTestRunner() throws Exception {
         TestRunner testRunner = TestRunners.newTestRunner(testSubject);
 
-        DropboxCredentialControllerService controllerService = new DropboxCredentialControllerService();
+        StandardDropboxCredentialService controllerService = new StandardDropboxCredentialService();
         testRunner.addControllerService("dropbox_credential_provider_service", controllerService);
-        testRunner.setProperty(controllerService, DropboxCredentialControllerService.APP_KEY, APP_KEY);
-        testRunner.setProperty(controllerService, DropboxCredentialControllerService.APP_SECRET, APP_SECRET);
-        testRunner.setProperty(controllerService, DropboxCredentialControllerService.ACCESS_TOKEN, ACCESS_TOKEN);
-        testRunner.setProperty(controllerService, DropboxCredentialControllerService.REFRESH_TOKEN, REFRESH_TOKEN);
+        testRunner.setProperty(controllerService, StandardDropboxCredentialService.APP_KEY, APP_KEY);
+        testRunner.setProperty(controllerService, StandardDropboxCredentialService.APP_SECRET, APP_SECRET);
+        testRunner.setProperty(controllerService, StandardDropboxCredentialService.ACCESS_TOKEN, ACCESS_TOKEN);
+        testRunner.setProperty(controllerService, StandardDropboxCredentialService.REFRESH_TOKEN, REFRESH_TOKEN);
         testRunner.enableControllerService(controllerService);
         testRunner.setProperty(ListDropbox.CREDENTIAL_SERVICE, "dropbox_credential_provider_service");
 
