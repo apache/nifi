@@ -77,7 +77,7 @@ public class PropertyEncryptorCommand {
             applicationPropertiesFile = ConfigurationFileUtils.resolvePropertiesFile(confDirectory);
             propertiesLoader = getPropertiesLoader(confDirectory);
             properties = propertiesLoader.load(applicationPropertiesFile);
-            configurationFiles = fileResolver.resolveConfigurationFilesFromApplicationProperties(properties);
+            configurationFiles = fileResolver.resolveFilesFromApplicationProperties(properties);
             sensitivePropertyResolver = getSensitivePropertyResolver(confDirectory);
             hexKey = getEncodedRootKey(confDirectory, passphrase);
         } catch (final Exception e) {

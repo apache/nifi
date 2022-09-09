@@ -40,7 +40,7 @@ public class NiFiRegistryConfigurationFileResolver implements ConfigurationFileR
      * @return List of application configuration files
      */
     @Override
-    public List<File> resolveConfigurationFilesFromApplicationProperties(NiFiRegistryProperties properties) throws ConfigurationFileResolverException {
+    public List<File> resolveFilesFromApplicationProperties(NiFiRegistryProperties properties) throws ConfigurationFileResolverException {
         ArrayList<File> configurationFiles = new ArrayList<>();
         configurationFiles.add(ConfigurationFileUtils.getAbsoluteFile(confDirectory.toFile(), properties.getAuthorizersConfigurationFile()));
         configurationFiles.add(ConfigurationFileUtils.getAbsoluteFile(confDirectory.toFile(), properties.getProvidersConfigurationFile()));
@@ -49,7 +49,7 @@ public class NiFiRegistryConfigurationFileResolver implements ConfigurationFileR
 
         for (final File configFile : configurationFiles) {
             if (!isValidConfigurationFile(configFile)) {
-                throw new ConfigurationFileResolverException(String.format("Failed to resolve configuration file [%s].", configFile.getName()));
+                throw new ConfigurationFileResolverException(String.format("Failed to resolve configuration file [%s]", configFile.getName()));
             }
         }
 

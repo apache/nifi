@@ -28,13 +28,12 @@ import picocli.CommandLine;
 import java.io.IOException;
 
 @CommandLine.Command(name = "config",
-        description = "Operate on application configs",
+        description = "Operate on application configs (nifi.properties etc)",
         usageHelpWidth=140
 )
 class ConfigSubcommand extends BaseCommandParameters implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(ConfigSubcommand.class);
-    private static final String runMessage = "The property encryptor is running to [{}] configuration files in [{}]";
 
     @CommandLine.ParentCommand
     private BaseCLICommand parent;
@@ -47,24 +46,26 @@ class ConfigSubcommand extends BaseCommandParameters implements Runnable {
 
     @Override
     public void run() {
-        final PropertyEncryptorCommand propertyEncryptorCommand = new PropertyEncryptorCommand(baseDirectory, passphrase);
+        final PropertyEncryptorCommand propertyEncryptorCommand = new PropertyEncryptorCommand(baseDirectory, rootPassphrase);
         if (parent instanceof PropertyEncryptorEncrypt) {
             encryptConfiguration(propertyEncryptorCommand);
         } else if (parent instanceof PropertyEncryptorDecrypt) {
-            logger.info(runMessage, "decrypt", baseDirectory);
+            logger.info(RUN_LOG_MESSAGE, DECRYPT, baseDirectory);
         } else if (parent instanceof PropertyEncryptorMigrate) {
-            logger.info(runMessage, "migrate", baseDirectory);
+            logger.info(RUN_LOG_MESSAGE, MIGRATE, baseDirectory);
         }
     }
 
     private void encryptConfiguration(final PropertyEncryptorCommand propertyEncryptorCommand) {
-        logger.info(runMessage, "encrypt", baseDirectory);
+        logger.info(RUN_LOG_MESSAGE, ENCRYPT, baseDirectory);
         propertyEncryptorCommand.encryptXmlConfigurationFiles(baseDirectory, scheme);
         try {
             propertyEncryptorCommand.encryptPropertiesFile(scheme);
             propertyEncryptorCommand.outputKeyToBootstrap();
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("Encrypting configuration files has failed due to: ", e);
         }
     }
+
+    private void migrateConfg
 }

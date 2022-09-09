@@ -16,16 +16,11 @@
  */
 package org.apache.nifi.properties;
 
-import java.util.Map;
 import java.util.Properties;
 
 public class MutableApplicationProperties extends ApplicationProperties implements MutableProperties {
 
     public MutableApplicationProperties(Properties properties) {
-        super(properties);
-    }
-
-    public MutableApplicationProperties(Map<String, String> properties) {
         super(properties);
     }
 

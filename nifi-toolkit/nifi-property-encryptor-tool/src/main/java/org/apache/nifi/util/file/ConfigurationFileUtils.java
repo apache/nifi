@@ -17,6 +17,7 @@
 package org.apache.nifi.util.file;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -29,9 +30,9 @@ public class ConfigurationFileUtils {
 
     public static File getTemporaryOutputFile(final String prefix, final File siblingFile) throws IOException {
         if (siblingFile != null && siblingFile.isFile()) {
-            return File.createTempFile(prefix, siblingFile.getName(), siblingFile.getParentFile());
+            return Files.createTempFile(siblingFile.getParentFile().toPath(), prefix, siblingFile.getName()).toFile();
         } else {
-            throw new IOException("Failed to create temporary output file because sibling file is null or is not a file");
+            throw new IOException(String.format("Failed to create temporary output file because sibling file [%s] with prefix [%s] null or is not a file", siblingFile, prefix));
         }
     }
 
@@ -64,7 +65,7 @@ public class ConfigurationFileUtils {
             return getAbsolutePath(getDefaultConfDirectory(baseDirectory).toPath());
         } else {
             throw new IllegalArgumentException(
-                    String.format("The configuration directory [%s]/ could not be found within [%s] or it did not contain a properties file", DEFAULT_CONF_DIR, baseDirectory));
+                    String.format("The configuration directory [%s] could not be found within [%s] or it did not contain a properties file", DEFAULT_CONF_DIR, baseDirectory));
         }
     }
 
@@ -83,6 +84,17 @@ public class ConfigurationFileUtils {
         }
     }
 
+    /**
+     * Return a configuration file absolute path based on the confDirectory rather than Java's working path
+     */
+    public static File getAbsoluteFile(final File confDirectory, final File relativeFile) {
+        if (relativeFile.isAbsolute() ) {
+            return relativeFile;
+        } else {
+            return new File(confDirectory.getParent(), relativeFile.getPath());
+        }
+    }
+
     private static Path getAbsolutePath(final Path relativeFile) {
         final Path absolutePath = relativeFile.toAbsolutePath();
         if (absolutePath.toFile().exists() && absolutePath.toFile().canRead()) {
@@ -98,16 +110,5 @@ public class ConfigurationFileUtils {
 
     private static File getDefaultConfDirectory(final Path baseDirectory) {
         return baseDirectory.resolve(DEFAULT_CONF_DIR).toFile();
-    }
-
-    /**
-     * Return a configuration file absolute path based on the confDirectory rather than Java's working path
-     */
-    public static File getAbsoluteFile(final File confDirectory, final File relativeFile) {
-        if (relativeFile.isAbsolute() ) {
-            return relativeFile;
-        } else {
-            return new File(confDirectory.getParent(), relativeFile.getPath());
-        }
     }
 }

@@ -21,9 +21,14 @@ import picocli.CommandLine;
 import java.nio.file.Path;
 
 public class BaseCommandParameters {
+    protected static final String DECRYPT = "decrypt";
+    protected static final String ENCRYPT = "encrypt";
+    protected static final String MIGRATE = "migrate";
+    protected static final String RUN_LOG_MESSAGE = "The property encryptor is running to [{}] configuration files in [{}]";
+
     @CommandLine.Parameters(description="The base directory of NiFi/NiFi Registry/MiNiFi which contains the 'conf' directory (eg. /var/lib/nifi)")
     protected Path baseDirectory;
 
-    @CommandLine.Parameters(description="The passphrase used to derive a key and encrypt files (12 characters minimum)")
-    protected String passphrase;
+    @CommandLine.Parameters(description="A plaintext passphrase (12 character minimum) used to derive a root key (the 'bootstrap' key) and subsequently encrypt files")
+    protected String rootPassphrase;
 }
