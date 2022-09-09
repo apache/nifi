@@ -42,4 +42,37 @@
             <version>1.18.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>1.8</version>
+                <configuration>
+                    <!--
+                        mvn clean license:add-third-party license:download-licenses
+                    -->
+                    <projectName>NiFi Box Processors</projectName>
+                    <licenseName>Commercial License</licenseName>
+                    <organizationName>NiFi</organizationName>
+
+                    <licenseFile>${basedir}/src/main/resources/META-INF/LICENSE</licenseFile>
+                    <useMissingFile>true</useMissingFile>
+
+                    <outputDirectory>${project.basedir}/target/classes/META-INF/licenses</outputDirectory>
+                    <licensesOutputDirectory>target/classes/META-INF/licenses/text</licensesOutputDirectory>
+
+                    <includedScopes>compile</includedScopes>
+                    <excludedScopes>test|provided|runtime|system</excludedScopes>
+                    <excludedGroups>org.apache.nifi</excludedGroups>
+                    <licenseMerges>
+                        <licenseMerge>Apache License 2.0|The Apache Software License|Version 2.0,Apache License, Version
+                            2.0|The Apache Software License, Version 2.0|Apache License, Version 2.0|Apache 2
+                        </licenseMerge>
+                    </licenseMerges>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

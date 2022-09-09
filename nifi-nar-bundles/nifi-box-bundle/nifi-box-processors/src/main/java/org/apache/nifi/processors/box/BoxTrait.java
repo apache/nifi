@@ -35,7 +35,7 @@ public interface BoxTrait {
     PropertyDescriptor USER_ID = new PropertyDescriptor.Builder()
         .name("box-user-id")
         .displayName("User ID")
-        .description("The ID of the user who owns the listed folder.")
+        .description("The ID of the Box user who owns the accessed resource.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .required(true)

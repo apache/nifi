@@ -24,7 +24,8 @@
 <p>This processor requires a pre-configured App under the User owning the Folder from which files are being listed.</p>
 <p>The App should have the following configuration:</p>
 <ul>
-    <li>Authentication method should be 'OAuth 2.0 with JSON Web Tokens (Server Authentication)'</li>
+    <li>If you create a new App, select 'Server Authentication (with JWT)' authentication method.
+        If you want to use an existing App, chose one with 'OAuth 2.0 with JSON Web Tokens (Server Authentication)' as Authentication method.</li>
     <li>Should have a Client ID and Client Secret</li>
     <li>App Access Level should be 'App + Enterprise Access'</li>
     <li>Application Scopes should have 'Read all files' enabled</li>
