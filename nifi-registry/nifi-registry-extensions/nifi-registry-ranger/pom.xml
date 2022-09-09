@@ -38,12 +38,6 @@
                 <artifactId>commons-compress</artifactId>
                 <version>1.21</version>
             </dependency>
-            <!-- Override snakeyaml:1.17 -->
-            <dependency>
-                <groupId>org.yaml</groupId>
-                <artifactId>snakeyaml</artifactId>
-                <version>1.29</version>
-            </dependency>
             <!-- Override jetty-server:9.4.20 -->
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
