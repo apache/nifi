@@ -30,6 +30,8 @@ import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -127,6 +129,8 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
+
+    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(StandardSSLContextService.class);
 
     private static final List<PropertyDescriptor> properties;
     protected ConfigurationContext configContext;
@@ -269,6 +273,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     @Deprecated
     @Override
     public SSLContext createSSLContext(final org.apache.nifi.security.util.ClientAuth clientAuth) throws ProcessException {
+        deprecationLogger.warn("{}[id={}] createSSLContext() should be replaced with createContext()", getClass().getSimpleName(), getIdentifier());
         return createContext();
     }
 
@@ -285,6 +290,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     @Deprecated
     @Override
     public SSLContext createSSLContext(final ClientAuth clientAuth) throws ProcessException {
+        deprecationLogger.warn("{}[id={}] createSSLContext() should be replaced with createContext()", getClass().getSimpleName(), getIdentifier());
         return createContext();
     }
 

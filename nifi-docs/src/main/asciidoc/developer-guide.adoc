@@ -2637,19 +2637,83 @@ logged to help avoid this bad practice.
 
 
 [[deprecation]]
-== Deprecating a Component
+== Deprecating Components and Features
+Deprecating features is an important part of the software development lifecycle, providing an upgrade path for
+developers and users to follow.
+
+Apache NiFi follows the link:https://semver.org[Semantic Versioning Specification 2.0.0^] for features identified as
+part of the public version contract according to
+link:https://cwiki.apache.org/confluence/display/NIFI/Version+Scheme+and+API+Compatibility[Version Scheme]
+documentation.
+
+Components and features that fit under the public version contract require deprecation marking prior to removal. This
+approach allows developers to implement changes as part of minor version upgrades, in preparation for future removal
+of features in a subsequent major version.
+
+=== Component Deprecation
+
 Sometimes it may be desirable to deprecate a component. Whenever this occurs the developer may use the
  `@DeprecationNotice` annotation to indicate that a component has been deprecated, allowing the developer
- to describe a reason for the deprecation and suggest alternative components. An example of how to do this can
+ to describe a `reason` for the deprecation and suggest alternative components. An example of how to do this can
  be found below:
 
 [source, java]
 ----
- @DeprecationNotice(alternatives = {ListenSyslog.class}, classNames = {"org.apache.nifi.processors.standard.ListenRELP"}, reason = "Technology has been superseded",  )
- public class ListenOldProtocol extends AbstractProcessor {
+@DeprecationNotice(
+        reason = "Legacy Protocol has been superseded",
+        alternatives = {ListenSyslog.class},
+        classNames = {"org.apache.nifi.processors.standard.ListenRELP"}
+)
+public class ListenLegacyProtocol extends AbstractProcessor {}
 ----
-As you can see, the alternatives can be used to define and array of alternative Components, while classNames can be
-used to represent the similar content through an array of strings.
+The `alternatives` property can be used to define an array of recommended replacement Components, while `classNames`
+can be used to represent similar content through an array of class name strings.
+
+Adding the `@DeprecationNotice` annotation renders a warning message in generated documentation and also logs the
+following warning when the Flow Configuration includes the component:
+
+----
+Added Deprecated Component ListenLegacyProtocol[id=929a52c7-1e3e-423e-b303-6ca2ef657617] See alternatives [ListenSyslog,ListenRELP]
+----
+
+=== Feature Deprecation
+
+Deprecating features includes changing component configuration strategies, introducing new repository classes, and
+refactoring a Controller Service interface. Removing component properties can create invalid Flow Configurations after
+upgrading, and removing public methods from a Controller Service interface can break components compiled against
+previous versions. For these reasons, introducing new properties and methods must include a deprecation strategy that
+supports compatibility when upgrading from one minor version to another.
+
+Annotating methods and properties with the Java `@Deprecated` annotation provides a warning to software developers, but
+does not provide any information to users. Adding selective deprecation logging provides a method for users to determine
+whether the current Flow Configuration uses deprecated properties or features.
+
+=== Deprecation Logging
+
+The `nifi-deprecation-log` module provides an abstraction for logging deprecation warnings. The `DeprecationLogger`
+interface has a `warn()` method that accepts a message string with a variable number of arguments. The standard
+implementation delegates to SLF4J, supporting standard features for providing and resolving placeholder arguments. The
+standard `DeprecationLogger` implementation also logs a `DeprecationException` with the referenced class, supporting
+tracing to the usage location.
+
+Instantiating a `DeprecationLogger` follows the same conventions as instantiating an SLF4J `Logger`:
+
+[source, java]
+----
+private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(Service.class);
+----
+
+Logging warnings for deprecated extension component properties and methods should include the simple class name and the
+component identifier for tracing. Warning messages should also reference recommended alternatives.
+
+[source, java]
+----
+deprecationLogger.warn(
+        "{}[id={}] createServiceContext() should be replaced with createContext()",
+        getClass().getSimpleName(),
+        getIdentifier()
+);
+----
 
 [[build]]
 == Build Options
