@@ -95,7 +95,7 @@ public class EmbeddedQuestDbRolloverHandler implements Runnable {
 
     private void deletePartition(final CharSequence tableName, final String partition) {
         try (final SqlCompiler compiler = dbContext.getCompiler()) {
-            final CompiledQuery compile = compiler.compile(String.format(DELETION_QUERY, new Object[]{tableName, partition}), dbContext.getSqlExecutionContext());
+            final CompiledQuery compile = compiler.compile(String.format(DELETION_QUERY, tableName, partition), dbContext.getSqlExecutionContext());
             compile.execute(new SCSequence(new TimeoutBlockingWaitStrategy(5, TimeUnit.SECONDS)));
         } catch (final Exception e) {
             LOGGER.error("Dropping partition " + partition + " of table " + tableName + " failed", e);
