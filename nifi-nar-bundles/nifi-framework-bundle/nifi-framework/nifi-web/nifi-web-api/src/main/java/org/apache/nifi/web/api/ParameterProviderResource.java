@@ -767,8 +767,6 @@ public class ParameterProviderResource extends AbstractParameterResource {
                     authorizable.getAuthorizable().authorize(authorizer, RequestAction.READ, user);
 
                     references.forEach(reference -> lookup.getParameterContext(reference.getComponent().getId()).authorize(authorizer, RequestAction.READ, user));
-                    // Verify READ permission for user, for every component that is currently referenced by relevant parameter contexts
-                    referencingParameterContextDtos.forEach(parameterContextDto -> authorizeReferencingComponents(parameterContextDto.getId(), lookup, user));
                 },
                 () -> serviceFacade.verifyCanFetchParameters(fetchParametersEntity.getId()),
                 (revision, parameterProviderFetchEntity) -> {
