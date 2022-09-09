@@ -35,5 +35,27 @@
             <artifactId>nifi-hashicorp-vault-parameter-value-provider</artifactId>
             <version>1.18.0-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-hashicorp-vault-client-service-api-nar</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-hashicorp-vault-api</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-hashicorp-vault-parameter-provider</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-hashicorp-vault-client-service</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 </project>

@@ -15,19 +15,17 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-hashicorp-vault-bundle</artifactId>
         <version>1.18.0-SNAPSHOT</version>
     </parent>
-    <artifactId>nifi-hashicorp-vault-parameter-value-provider</artifactId>
+
+    <artifactId>nifi-hashicorp-vault-client-service</artifactId>
     <packaging>jar</packaging>
+
     <dependencies>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-stateless-api</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
-        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hashicorp-vault-api</artifactId>
@@ -39,6 +37,18 @@
             <artifactId>nifi-hashicorp-vault</artifactId>
             <version>1.18.0-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-ssl-context-service-api</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-hashicorp-vault-client-service-api</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
         <!-- test dependencies -->
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -47,9 +57,10 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-expression-language</artifactId>
+            <artifactId>nifi-security-utils</artifactId>
             <version>1.18.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
+
 </project>
