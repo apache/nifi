@@ -64,7 +64,7 @@ class SmbjClientService implements SmbClientService {
                 session.close();
             }
         } catch (Exception e) {
-            LOGGER.error("Could not close session to " + serviceLocation, e);
+            LOGGER.error("Could not close session to {}", serviceLocation, e);
         }
     }
 
