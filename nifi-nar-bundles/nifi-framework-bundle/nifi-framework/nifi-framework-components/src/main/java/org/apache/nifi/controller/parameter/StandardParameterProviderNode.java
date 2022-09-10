@@ -277,8 +277,8 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
         List<ParameterGroup> fetchedParameterGroups;
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getExtensionManager(), parameterProvider.getClass(), parameterProvider.getIdentifier())) {
             fetchedParameterGroups = parameterProvider.fetchParameters(configurationContext);
-        } catch (final IOException e) {
-            throw new RuntimeException(String.format("Error fetching parameters for %s", this), e);
+        } catch (final IOException | RuntimeException e) {
+            throw new IllegalStateException(String.format("Error fetching parameters for %s: %s", this, e.getMessage()), e);
         }
 
         if (fetchedParameterGroups == null || fetchedParameterGroups.isEmpty()) {
