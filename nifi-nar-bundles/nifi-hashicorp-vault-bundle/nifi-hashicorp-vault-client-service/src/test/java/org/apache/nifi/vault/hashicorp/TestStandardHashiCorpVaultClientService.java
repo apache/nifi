@@ -105,19 +105,8 @@ public class TestStandardHashiCorpVaultClientService {
     public static void initOnce() throws IOException, GeneralSecurityException {
         bootstrapHashiCorpVaultConf = Files.createTempFile("bootstrap-hashicorp-vault", "conf");
         final File keyStoreFile = File.createTempFile(TestStandardHashiCorpVaultClientService.class.getSimpleName(), ".keystore.p12");
-        keyStoreFile.deleteOnExit();
         final File trustStoreFile = File.createTempFile(TestStandardHashiCorpVaultClientService.class.getSimpleName(), ".truststore.p12");
-        trustStoreFile.deleteOnExit();
-        final String password = "password";
-        final TlsConfiguration requestedTlsConfig = new StandardTlsConfiguration(
-                keyStoreFile.getAbsolutePath(),
-                password,
-                password,
-                "PKCS12",
-                trustStoreFile.getAbsolutePath(),
-                password,
-                "PKCS12",
-                TlsConfiguration.TLS_PROTOCOL);
+        final TlsConfiguration requestedTlsConfig = new StandardTlsConfiguration();
         tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore(requestedTlsConfig, 7, null);
         // This should be overridden by any explicit properties
         Files.write(bootstrapHashiCorpVaultConf, (String.format("vault.uri=https://localhost:8200\n" +
@@ -129,10 +118,10 @@ public class TestStandardHashiCorpVaultClientService {
                 "vault.ssl.trust-store=%s\n" +
                 "vault.ssl.trust-store-password=%s\n" +
                 "vault.ssl.trust-store-type=%s\n",
-                tlsConfiguration.getKeystorePath(),
+                tlsConfiguration.getKeystorePath().replace("\\", "\\\\"),
                 tlsConfiguration.getKeystorePassword(),
                 tlsConfiguration.getKeystoreType().getType(),
-                tlsConfiguration.getTruststorePath(),
+                tlsConfiguration.getTruststorePath().replace("\\", "\\\\"),
                 tlsConfiguration.getTruststorePassword(),
                 tlsConfiguration.getTruststoreType().getType())).getBytes(StandardCharsets.UTF_8));
     }
