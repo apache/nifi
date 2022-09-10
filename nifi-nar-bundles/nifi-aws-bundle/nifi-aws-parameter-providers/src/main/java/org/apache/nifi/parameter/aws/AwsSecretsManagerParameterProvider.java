@@ -75,11 +75,11 @@ import java.util.regex.Pattern;
 public class AwsSecretsManagerParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
     private static final Logger logger = LoggerFactory.getLogger(AwsSecretsManagerParameterProvider.class);
 
-    public static final PropertyDescriptor SECRET_NAME_REGEX = new PropertyDescriptor.Builder()
-            .name("secret-name-regex")
-            .displayName("Secret Name Regex")
+    public static final PropertyDescriptor SECRET_NAME_PATTERN = new PropertyDescriptor.Builder()
+            .name("secret-name-pattern")
+            .displayName("Secret Name Pattern")
             .description("A Regular Expression matching on Secret Name that identifies Secrets whose parameters should be fetched. " +
-                    "Any secrets whose names do not match this Regex will not be fetched.")
+                    "Any secrets whose names do not match this pattern will not be fetched.")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .required(true)
             .defaultValue(".*")
@@ -129,7 +129,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return Collections.unmodifiableList(Arrays.asList(
-                SECRET_NAME_REGEX,
+                SECRET_NAME_PATTERN,
                 REGION,
                 AWS_CREDENTIALS_PROVIDER_SERVICE,
                 TIMEOUT,
@@ -180,8 +180,8 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
 
     private List<ParameterGroup> fetchSecret(final AWSSecretsManager secretsManager, final ConfigurationContext context, final String secretName) {
         final List<ParameterGroup> groups = new ArrayList<>();
-        final Pattern secretNamePattern = context.getProperty(SECRET_NAME_REGEX).isSet()
-                ? Pattern.compile(context.getProperty(SECRET_NAME_REGEX).getValue()) : null;
+        final Pattern secretNamePattern = context.getProperty(SECRET_NAME_PATTERN).isSet()
+                ? Pattern.compile(context.getProperty(SECRET_NAME_PATTERN).getValue()) : null;
 
         final List<Parameter> parameters = new ArrayList<>();
 
