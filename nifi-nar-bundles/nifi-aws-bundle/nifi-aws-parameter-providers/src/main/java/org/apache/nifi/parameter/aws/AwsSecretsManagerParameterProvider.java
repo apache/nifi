@@ -34,7 +34,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
@@ -50,8 +49,6 @@ import org.apache.nifi.parameter.VerifiableParameterProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
 import org.apache.nifi.ssl.SSLContextService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import java.util.ArrayList;
@@ -73,7 +70,6 @@ import java.util.regex.Pattern;
 @CapabilityDescription("Fetches parameters from AWS SecretsManager.  Each secret becomes a Parameter group, which can map to a Parameter Context, with " +
         "key/value pairs in the secret mapping to Parameters in the group.")
 public class AwsSecretsManagerParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
-    private static final Logger logger = LoggerFactory.getLogger(AwsSecretsManagerParameterProvider.class);
 
     public static final PropertyDescriptor SECRET_NAME_PATTERN = new PropertyDescriptor.Builder()
             .name("secret-name-pattern")
@@ -91,8 +87,8 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
      */
     public static final PropertyDescriptor AWS_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
             .name("aws-credentials-provider-service")
-            .displayName("AWS Credentials Provider service")
-            .description("The Controller Service that is used to obtain aws credentials provider")
+            .displayName("AWS Credentials Provider Service")
+            .description("Service used to obtain an Amazon Web Services Credentials Provider")
             .required(false)
             .identifiesControllerService(AWSCredentialsProviderService.class)
             .build();
@@ -186,7 +182,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
         final List<Parameter> parameters = new ArrayList<>();
 
         if (!secretNamePattern.matcher(secretName).matches()) {
-            logger.debug("Secret [{}] does not match the secret name regex {}", secretName, secretNamePattern);
+            getLogger().debug("Secret [{}] does not match the secret name pattern {}", secretName, secretNamePattern);
             return groups;
         }
 
@@ -195,13 +191,13 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             final GetSecretValueResult getSecretValueResult = secretsManager.getSecretValue(getSecretValueRequest);
 
             if (getSecretValueResult.getSecretString() == null) {
-                logger.debug("Secret [{}] is not configured", secretName);
+                getLogger().debug("Secret [{}] is not configured", secretName);
                 return groups;
             }
 
             final ObjectNode secretObject = parseSecret(getSecretValueResult.getSecretString());
             if (secretObject == null) {
-                logger.debug("Secret [{}] is not in the expected JSON key/value format", secretName);
+                getLogger().debug("Secret [{}] is not in the expected JSON key/value format", secretName);
                 return groups;
             }
 
@@ -210,7 +206,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
                 final String parameterName = field.getKey();
                 final String parameterValue = field.getValue().textValue();
                 if (parameterValue == null) {
-                    logger.debug("Secret [{}] key [{}] has no value", secretName, parameterValue);
+                    getLogger().debug("Secret [{}] Parameter [{}] has no value", secretName, parameterName);
                     continue;
                 }
 
@@ -221,10 +217,8 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
 
             return groups;
         } catch (final ResourceNotFoundException e) {
-            logger.error("Secret [{}] not found", secretName);
             throw new IllegalStateException(String.format("Secret %s not found", secretName), e);
         } catch (final AWSSecretsManagerException e) {
-            logger.error("Error retrieving secret [{}]", secretName);
             throw new IllegalStateException("Error retrieving secret " + secretName, e);
         }
     }
@@ -243,28 +237,14 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
         config.setConnectionTimeout(commsTimeout);
         config.setSocketTimeout(commsTimeout);
 
-        if (this.getSupportedPropertyDescriptors().contains(SSL_CONTEXT_SERVICE)) {
-            final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-            if (sslContextService != null) {
-                final SSLContext sslContext = sslContextService.createContext();
-                SdkTLSSocketFactory sdkTLSSocketFactory = new SdkTLSSocketFactory(sslContext, new DefaultHostnameVerifier());
-                config.getApacheHttpClientConfig().setSslSocketFactory(sdkTLSSocketFactory);
-            }
+        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        if (sslContextService != null) {
+            final SSLContext sslContext = sslContextService.createContext();
+            SdkTLSSocketFactory sdkTLSSocketFactory = new SdkTLSSocketFactory(sslContext, SdkTLSSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
+            config.getApacheHttpClientConfig().setSslSocketFactory(sdkTLSSocketFactory);
         }
 
         return config;
-    }
-
-    public static AllowableValue createAllowableValue(final Regions region) {
-        return new AllowableValue(region.getName(), region.getDescription(), "AWS Region Code : " + region.getName());
-    }
-
-    public static AllowableValue[] getAvailableRegions() {
-        final List<AllowableValue> values = new ArrayList<>();
-        for (final Regions region : Regions.values()) {
-            values.add(createAllowableValue(region));
-        }
-        return values.toArray(new AllowableValue[0]);
     }
 
     private ObjectNode parseSecret(final String secretString) {
@@ -301,5 +281,17 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
 
         return awsCredentialsProviderService.getCredentialsProvider();
 
+    }
+
+    private static AllowableValue createAllowableValue(final Regions region) {
+        return new AllowableValue(region.getName(), region.getDescription(), "AWS Region Code : " + region.getName());
+    }
+
+    private static AllowableValue[] getAvailableRegions() {
+        final List<AllowableValue> values = new ArrayList<>();
+        for (final Regions region : Regions.values()) {
+            values.add(createAllowableValue(region));
+        }
+        return values.toArray(new AllowableValue[0]);
     }
 }

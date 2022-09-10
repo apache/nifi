@@ -34,8 +34,11 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockParameterProviderInitializationContext;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatcher;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,7 +57,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class TestAwsSecretsManagerParameterProvider {
+
+    @Mock
+    private AWSSecretsManager defaultSecretsManager;
+
+    @Mock
+    private ListSecretsResult listSecretsResult;
+
     final ObjectMapper objectMapper = new ObjectMapper();
 
     final List<Parameter> mySecretParameters = Arrays.asList(
@@ -81,7 +92,6 @@ public class TestAwsSecretsManagerParameterProvider {
     private AWSSecretsManager mockSecretsManager(final List<ParameterGroup> mockGroup) {
         final AWSSecretsManager secretsManager = mock(AWSSecretsManager.class);
 
-        final ListSecretsResult listSecretsResult = mock(ListSecretsResult.class);
         final List<SecretListEntry> secretList = mockGroup.stream()
                 .map(group -> new SecretListEntry().withName(group.getGroupName()))
                 .collect(Collectors.toList());
@@ -100,7 +110,7 @@ public class TestAwsSecretsManagerParameterProvider {
                 when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(groupName))))
                         .thenReturn(result);
             } catch (final JsonProcessingException e) {
-                // Ignore
+                throw new IllegalStateException(e);
             }
         });
         return secretsManager;
@@ -152,20 +162,17 @@ public class TestAwsSecretsManagerParameterProvider {
 
     @Test
     public void testFetchParametersListFailure() throws InitializationException {
-        final AWSSecretsManager mockSecretsManager = mock(AWSSecretsManager.class);
-        when(mockSecretsManager.listSecrets(any())).thenThrow(new AWSSecretsManagerException("Fake exception"));
-        runProviderTest(mockSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED);
+        when(defaultSecretsManager.listSecrets(any())).thenThrow(new AWSSecretsManagerException("Fake exception"));
+        runProviderTest(defaultSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED);
     }
 
     @Test
     public void testFetchParametersGetSecretFailure() throws InitializationException {
-        final AWSSecretsManager mockSecretsManager = mock(AWSSecretsManager.class);
-        final ListSecretsResult listSecretsResult = mock(ListSecretsResult.class);
         final List<SecretListEntry> secretList = Collections.singletonList(new SecretListEntry().withName("MySecret"));
         when(listSecretsResult.getSecretList()).thenReturn(secretList);
-        when(mockSecretsManager.listSecrets(any())).thenReturn(listSecretsResult);
-        when(mockSecretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("MySecret")))).thenThrow(new AWSSecretsManagerException("Fake exception"));
-        runProviderTest(mockSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED);
+        when(defaultSecretsManager.listSecrets(any())).thenReturn(listSecretsResult);
+        when(defaultSecretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("MySecret")))).thenThrow(new AWSSecretsManagerException("Fake exception"));
+        runProviderTest(defaultSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED);
     }
 
     private static Parameter parameter(final String name, final String value) {
