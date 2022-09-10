@@ -104,7 +104,20 @@ public class TestStandardHashiCorpVaultClientService {
     @BeforeAll
     public static void initOnce() throws IOException, GeneralSecurityException {
         bootstrapHashiCorpVaultConf = Files.createTempFile("bootstrap-hashicorp-vault", "conf");
-        final TlsConfiguration requestedTlsConfig = new StandardTlsConfiguration();
+        final File keyStoreFile = File.createTempFile(TestStandardHashiCorpVaultClientService.class.getSimpleName(), ".keystore.p12");
+        keyStoreFile.deleteOnExit();
+        final File trustStoreFile = File.createTempFile(TestStandardHashiCorpVaultClientService.class.getSimpleName(), ".truststore.p12");
+        trustStoreFile.deleteOnExit();
+        final String password = "password";
+        final TlsConfiguration requestedTlsConfig = new StandardTlsConfiguration(
+                keyStoreFile.getAbsolutePath(),
+                password,
+                password,
+                "PKCS12",
+                trustStoreFile.getAbsolutePath(),
+                password,
+                "PKCS12",
+                TlsConfiguration.TLS_PROTOCOL);
         tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore(requestedTlsConfig, 7, null);
         // This should be overridden by any explicit properties
         Files.write(bootstrapHashiCorpVaultConf, (String.format("vault.uri=https://localhost:8200\n" +
