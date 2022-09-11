@@ -66,6 +66,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -161,15 +162,26 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(BASE_RECORD_READER)
+            .description("The Record Reader to use for parsing received MQTT Messages into Records.")
+            .build();
+
+    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(BASE_RECORD_WRITER)
+            .description("The Record Writer to use for serializing Records before writing them to a FlowFile.")
+            .build();
+
     public static final PropertyDescriptor ADD_ATTRIBUTES_AS_FIELDS = new PropertyDescriptor.Builder()
             .name("add-attributes-as-fields")
             .displayName("Add attributes as fields")
-            .description("If using the Records reader/writer and if setting this property to true, default fields "
+            .description("If setting this property to true, default fields "
                     + "are going to be added in each record: _topic, _qos, _isDuplicate, _isRetained.")
             .required(true)
             .defaultValue("true")
             .allowableValues("true", "false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .dependsOn(RECORD_READER)
             .build();
 
     public static final PropertyDescriptor MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
@@ -183,16 +195,6 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
                     + "multiple messages. This is an optional property ; if not provided, and if not defining a "
                     + "Reader/Writer, each message received will result in a single FlowFile which. To enter special "
                     + "character such as 'new line' use CTRL+Enter or Shift+Enter depending on the OS.")
-            .build();
-
-    public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(BASE_RECORD_READER)
-            .description("The Record Reader to use for parsing received MQTT Messages into Records.")
-            .build();
-
-    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(BASE_RECORD_WRITER)
-            .description("The Record Writer to use for serializing Records before writing them to a FlowFile.")
             .build();
 
     private volatile int qos;
@@ -214,26 +216,35 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
             .autoTerminateDefault(true) // to make sure flow are still valid after upgrades
             .build();
 
-    private static final List<PropertyDescriptor> descriptors;
-    private static final Set<Relationship> relationships;
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            PROP_BROKER_URI,
+            PROP_MQTT_VERSION,
+            PROP_USERNAME,
+            PROP_PASSWORD,
+            PROP_SSL_CONTEXT_SERVICE,
+            PROP_CLEAN_SESSION,
+            PROP_SESSION_EXPIRY_INTERVAL,
+            PROP_CLIENTID,
+            PROP_GROUPID,
+            PROP_TOPIC_FILTER,
+            PROP_QOS,
+            RECORD_READER,
+            RECORD_WRITER,
+            ADD_ATTRIBUTES_AS_FIELDS,
+            MESSAGE_DEMARCATOR,
+            PROP_CONN_TIMEOUT,
+            PROP_KEEP_ALIVE_INTERVAL,
+            PROP_LAST_WILL_MESSAGE,
+            PROP_LAST_WILL_TOPIC,
+            PROP_LAST_WILL_RETAIN,
+            PROP_LAST_WILL_QOS,
+            PROP_MAX_QUEUE_SIZE
+    ));
 
-    static {
-        final List<PropertyDescriptor> innerDescriptorsList = getAbstractPropertyDescriptors();
-        innerDescriptorsList.add(PROP_GROUPID);
-        innerDescriptorsList.add(PROP_TOPIC_FILTER);
-        innerDescriptorsList.add(PROP_QOS);
-        innerDescriptorsList.add(PROP_MAX_QUEUE_SIZE);
-        innerDescriptorsList.add(ADD_ATTRIBUTES_AS_FIELDS);
-        innerDescriptorsList.add(MESSAGE_DEMARCATOR);
-        innerDescriptorsList.add(RECORD_READER);
-        innerDescriptorsList.add(RECORD_WRITER);
-        descriptors = Collections.unmodifiableList(innerDescriptorsList);
-
-        final Set<Relationship> innerRelationshipsSet = new HashSet<>();
-        innerRelationshipsSet.add(REL_MESSAGE);
-        innerRelationshipsSet.add(REL_PARSE_FAILURE);
-        relationships = Collections.unmodifiableSet(innerRelationshipsSet);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            REL_MESSAGE,
+            REL_PARSE_FAILURE
+    )));
 
     @Override
     public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
@@ -302,12 +313,12 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        return PROPERTIES;
     }
 
     @Override

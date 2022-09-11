@@ -83,7 +83,8 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
     public static final PropertyDescriptor PROP_QOS = new PropertyDescriptor.Builder()
             .name("Quality of Service(QoS)")
-            .description("The Quality of Service(QoS) to send the message with. Accepts three values '0', '1' and '2'; '0' for 'at most once', '1' for 'at least once', '2' for 'exactly once'. " +
+            .displayName("Quality of Service (QoS)")
+            .description("The Quality of Service (QoS) to send the message with. Accepts three values '0', '1' and '2'; '0' for 'at most once', '1' for 'at least once', '2' for 'exactly once'. " +
                     "Expression language is allowed in order to support publishing messages with different QoS but the end value of the property must be either '0', '1' or '2'. ")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -117,23 +118,32 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
             .description("FlowFiles that failed to send to the destination are transferred to this relationship.")
             .build();
 
-    private static final List<PropertyDescriptor> descriptors;
-    private static final Set<Relationship> relationships;
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            PROP_BROKER_URI,
+            PROP_MQTT_VERSION,
+            PROP_USERNAME,
+            PROP_PASSWORD,
+            PROP_SSL_CONTEXT_SERVICE,
+            PROP_CLEAN_SESSION,
+            PROP_SESSION_EXPIRY_INTERVAL,
+            PROP_CLIENTID,
+            PROP_TOPIC,
+            PROP_RETAIN,
+            PROP_QOS,
+            RECORD_READER,
+            RECORD_WRITER,
+            PROP_CONN_TIMEOUT,
+            PROP_KEEP_ALIVE_INTERVAL,
+            PROP_LAST_WILL_MESSAGE,
+            PROP_LAST_WILL_TOPIC,
+            PROP_LAST_WILL_RETAIN,
+            PROP_LAST_WILL_QOS
+    ));
 
-    static {
-        final List<PropertyDescriptor> innerDescriptorsList = getAbstractPropertyDescriptors();
-        innerDescriptorsList.add(PROP_TOPIC);
-        innerDescriptorsList.add(PROP_QOS);
-        innerDescriptorsList.add(PROP_RETAIN);
-        innerDescriptorsList.add(RECORD_READER);
-        innerDescriptorsList.add(RECORD_WRITER);
-        descriptors = Collections.unmodifiableList(innerDescriptorsList);
-
-        final Set<Relationship> innerRelationshipsSet = new HashSet<>();
-        innerRelationshipsSet.add(REL_SUCCESS);
-        innerRelationshipsSet.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(innerRelationshipsSet);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            REL_SUCCESS,
+            REL_FAILURE
+    )));
 
     static final String PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE = "Publish failed after %d successfully published records.";
     static final String PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER = "Successfully finished publishing previously failed records. Total record count: %d";
@@ -150,12 +160,12 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        return PROPERTIES;
     }
 
     @OnScheduled

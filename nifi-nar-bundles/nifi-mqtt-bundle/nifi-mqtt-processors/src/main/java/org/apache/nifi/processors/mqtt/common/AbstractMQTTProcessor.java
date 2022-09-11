@@ -162,36 +162,41 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .identifiesControllerService(SSLContextService.class)
             .build();
 
-    public static final PropertyDescriptor PROP_LAST_WILL_TOPIC = new PropertyDescriptor.Builder()
-            .name("Last Will Topic")
-            .description("The topic to send the client's Last Will to. If the Last Will topic and message are not set then a Last Will will not be sent.")
+    public static final PropertyDescriptor PROP_LAST_WILL_MESSAGE = new PropertyDescriptor.Builder()
+            .name("Last Will Message")
+            .description("The message to send as the client's Last Will.")
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor PROP_LAST_WILL_MESSAGE = new PropertyDescriptor.Builder()
-            .name("Last Will Message")
-            .description("The message to send as the client's Last Will. If the Last Will topic and message are not set then a Last Will will not be sent.")
-            .required(false)
+    public static final PropertyDescriptor PROP_LAST_WILL_TOPIC = new PropertyDescriptor.Builder()
+            .name("Last Will Topic")
+            .description("The topic to send the client's Last Will to.")
+            .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .dependsOn(PROP_LAST_WILL_MESSAGE)
             .build();
 
     public static final PropertyDescriptor PROP_LAST_WILL_RETAIN = new PropertyDescriptor.Builder()
             .name("Last Will Retain")
-            .description("Whether to retain the client's Last Will. If the Last Will topic and message are not set then a Last Will will not be sent.")
-            .required(false)
+            .description("Whether to retain the client's Last Will.")
+            .required(true)
             .allowableValues("true", "false")
+            .defaultValue("false")
+            .dependsOn(PROP_LAST_WILL_MESSAGE)
             .build();
 
     public static final PropertyDescriptor PROP_LAST_WILL_QOS = new PropertyDescriptor.Builder()
             .name("Last Will QoS Level")
-            .description("QoS level to be used when publishing the Last Will Message")
-            .required(false)
+            .description("QoS level to be used when publishing the Last Will Message.")
+            .required(true)
             .allowableValues(
                     ALLOWABLE_VALUE_QOS_0,
                     ALLOWABLE_VALUE_QOS_1,
                     ALLOWABLE_VALUE_QOS_2
             )
+            .defaultValue(ALLOWABLE_VALUE_QOS_0.getValue())
+            .dependsOn(PROP_LAST_WILL_MESSAGE)
             .build();
 
     public static final PropertyDescriptor PROP_CLEAN_SESSION = new PropertyDescriptor.Builder()
@@ -249,25 +254,6 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .required(false)
             .build();
 
-    public static List<PropertyDescriptor> getAbstractPropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(PROP_BROKER_URI);
-        descriptors.add(PROP_CLIENTID);
-        descriptors.add(PROP_USERNAME);
-        descriptors.add(PROP_PASSWORD);
-        descriptors.add(PROP_SSL_CONTEXT_SERVICE);
-        descriptors.add(PROP_LAST_WILL_TOPIC);
-        descriptors.add(PROP_LAST_WILL_MESSAGE);
-        descriptors.add(PROP_LAST_WILL_RETAIN);
-        descriptors.add(PROP_LAST_WILL_QOS);
-        descriptors.add(PROP_CLEAN_SESSION);
-        descriptors.add(PROP_SESSION_EXPIRY_INTERVAL);
-        descriptors.add(PROP_MQTT_VERSION);
-        descriptors.add(PROP_CONN_TIMEOUT);
-        descriptors.add(PROP_KEEP_ALIVE_INTERVAL);
-        return descriptors;
-    }
-
     @Override
     public Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(1);
@@ -276,22 +262,6 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
         if ((usernameSet && !passwordSet) || (!usernameSet && passwordSet)) {
             results.add(new ValidationResult.Builder().subject("Username and Password").valid(false).explanation("if username or password is set, both must be set.").build());
-        }
-
-        final boolean lastWillTopicSet = validationContext.getProperty(PROP_LAST_WILL_TOPIC).isSet();
-        final boolean lastWillMessageSet = validationContext.getProperty(PROP_LAST_WILL_MESSAGE).isSet();
-
-        final boolean lastWillRetainSet = validationContext.getProperty(PROP_LAST_WILL_RETAIN).isSet();
-        final boolean lastWillQosSet = validationContext.getProperty(PROP_LAST_WILL_QOS).isSet();
-
-        // If any of the Last Will Properties are set
-        if (lastWillTopicSet || lastWillMessageSet || lastWillRetainSet || lastWillQosSet) {
-            // And any are not set
-            if (!(lastWillTopicSet && lastWillMessageSet && lastWillRetainSet && lastWillQosSet)) {
-                // Then mark as invalid
-                results.add(new ValidationResult.Builder().subject("Last Will Properties").valid(false).explanation("if any of the Last Will Properties (message, topic, retain and QoS) are " +
-                        "set, all must be set.").build());
-            }
         }
 
         try {
@@ -307,8 +277,8 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         final boolean readerIsSet = validationContext.getProperty(BASE_RECORD_READER).isSet();
         final boolean writerIsSet = validationContext.getProperty(BASE_RECORD_WRITER).isSet();
         if ((readerIsSet && !writerIsSet) || (!readerIsSet && writerIsSet)) {
-            results.add(new ValidationResult.Builder().subject("Reader and Writer").valid(false)
-                    .explanation("both Record Reader and Writer must be set when used.").build());
+            results.add(new ValidationResult.Builder().subject("Record Reader and Writer").valid(false)
+                    .explanation("both properties must be set when used.").build());
         }
 
         return results;
@@ -395,11 +365,12 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             clientProperties.setTlsConfiguration(sslContextService.createTlsConfiguration());
         }
 
-        clientProperties.setLastWillTopic(context.getProperty(PROP_LAST_WILL_TOPIC).getValue());
-        clientProperties.setLastWillMessage(context.getProperty(PROP_LAST_WILL_MESSAGE).getValue());
-        final PropertyValue lastWillRetain = context.getProperty(PROP_LAST_WILL_RETAIN);
-        clientProperties.setLastWillRetain(lastWillRetain.isSet() ? lastWillRetain.asBoolean() : false);
-        clientProperties.setLastWillQos(context.getProperty(PROP_LAST_WILL_QOS).asInteger());
+        if (context.getProperty(PROP_LAST_WILL_MESSAGE).isSet()) {
+            clientProperties.setLastWillMessage(context.getProperty(PROP_LAST_WILL_MESSAGE).getValue());
+            clientProperties.setLastWillTopic(context.getProperty(PROP_LAST_WILL_TOPIC).getValue());
+            clientProperties.setLastWillRetain(context.getProperty(PROP_LAST_WILL_RETAIN).asBoolean());
+            clientProperties.setLastWillQos(context.getProperty(PROP_LAST_WILL_QOS).asInteger());
+        }
 
         final PropertyValue usernameProp = context.getProperty(PROP_USERNAME);
         if (usernameProp.isSet()) {
