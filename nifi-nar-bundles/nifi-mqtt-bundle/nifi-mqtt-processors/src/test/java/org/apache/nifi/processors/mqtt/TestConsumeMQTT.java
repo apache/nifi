@@ -111,10 +111,6 @@ public class TestConsumeMQTT {
         testRunner.setProperty(ConsumeMQTT.PROP_LAST_WILL_MESSAGE, "lastWill message");
         testRunner.assertNotValid();
         testRunner.setProperty(ConsumeMQTT.PROP_LAST_WILL_TOPIC, "lastWill topic");
-        testRunner.assertNotValid();
-        testRunner.setProperty(ConsumeMQTT.PROP_LAST_WILL_QOS, "1");
-        testRunner.assertNotValid();
-        testRunner.setProperty(ConsumeMQTT.PROP_LAST_WILL_RETAIN, "false");
         testRunner.assertValid();
     }
 
