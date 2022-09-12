@@ -26,34 +26,9 @@
     <packaging>pom</packaging>
 
     <properties>
-        <!-- keep AWS 1.x until NIFI-8287 -->
-        <aws-java-sdk-version>1.12.267</aws-java-sdk-version>
         <!-- keep KCL 1.x until NIFI-8531 (blocked by NIFI-8287) -->
         <aws-kinesis-client-library-version>1.14.8</aws-kinesis-client-library-version>
     </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>com.amazonaws</groupId>
-                <artifactId>aws-java-sdk-bom</artifactId>
-                <version>${aws-java-sdk-version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.amazonaws</groupId>
-                <artifactId>aws-java-sdk-core</artifactId>
-                <version>${aws-java-sdk-version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>commons-logging</groupId>
-                        <artifactId>commons-logging</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <modules>
         <module>nifi-aws-processors</module>
