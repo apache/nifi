@@ -241,6 +241,8 @@
         $('#parameter-process-group-id').text('').removeData('revision');
         $('#parameter-referencing-components-context').removeClass('unset').attr('title', '').text('');
 
+        $('#parameter-context-provider-setting').hide();
+
         var parameterGrid = $('#parameter-table').data('gridInstance');
         var parameterData = parameterGrid.getData();
         parameterGrid.setSelectedRows([]);
@@ -1115,9 +1117,7 @@
         var proposedParamContextName = $('#parameter-context-name').val();
         var proposedParamContextDesc = $('#parameter-context-description-field').val();
         var inheritedParameterContexts = marshalInheritedParameterContexts();
-        var componentDescription = nfCommon.isDefinedAndNotNull(_.get(parameterContextEntity, 'component.description'))
-            ? _.get(parameterContextEntity, 'component.description')
-            : '';
+        var componentDescription = _.get(parameterContextEntity, 'component.description', '');
 
         var inheritedParameterContextEquals = isInheritedParameterContextEquals(parameterContextEntity, inheritedParameterContexts);
         if (inheritedParameterContextEquals) {
@@ -2731,11 +2731,6 @@
                     $('#parameter-context-id-setting').addClass('hidden');
                 }
 
-                // initially hide the provider setting
-                if (!$('#parameter-context-provider-setting').hasClass('hidden')) {
-                    $('#parameter-context-provider-setting').addClass('hidden');
-                }
-
                 // make sure this dialog is not in read-only mode
                 $('#parameter-context-dialog').removeClass('read-only');
                 $('#parameter-context-dialog').addClass('edit-mode');
@@ -2990,9 +2985,7 @@
 
                 // if provided, show the provider setting
                 if (parameterContextEntity.component.parameterProviderConfiguration) {
-                    if ($('#parameter-context-provider-setting').hasClass('hidden')) {
-                        $('#parameter-context-provider-setting').removeClass('hidden');
-                    }
+                    $('#parameter-context-provider-setting').show();
 
                     var parameterContextProviderSetting = $('#parameter-context-provider-setting').empty();
                     var providerContent = nfCommon.escapeHtml(parameterContextEntity.component.parameterProviderConfiguration.component.parameterGroupName +

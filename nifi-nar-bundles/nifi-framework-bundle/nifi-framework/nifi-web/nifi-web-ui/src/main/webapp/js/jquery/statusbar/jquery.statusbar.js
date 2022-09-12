@@ -22,25 +22,12 @@
  *
  *
  */
-(function (root, factory) {
-    if (typeof define === 'function' && define.amd) {
-        define(['jquery', 'nf.Common'],
-            function ($, nfCommon) {
-                return (nf.CanvasUtils = factory($, nfCommon));
-            });
-    } else if (typeof exports === 'object' && typeof module === 'object') {
-        module.exports = (nf.CanvasUtils = factory(require('d3'), require('nf.Common')));
-    } else {
-        nf.CanvasUtils = factory(root.$, root.nf.Common);
-    }
-}(this, function ($, nfCommon) {
-
+(function ($) {
 
     // static key path variables
     var PROCESSOR_ID_KEY = 'component.id',
         ACTIVE_THREAD_COUNT_KEY = 'status.aggregateSnapshot.activeThreadCount',
-        RUN_STATUS_KEY = 'status.aggregateSnapshot.runStatus',
-        BULLETINS_KEY = 'bulletins';
+        RUN_STATUS_KEY = 'status.aggregateSnapshot.runStatus'
 
     var isUndefined = function (obj) {
         return typeof obj === 'undefined';
@@ -276,7 +263,6 @@
             var bar = $(this),
                 processorId,
                 obj,
-                bulletinList,
                 runStatus,
                 activeThreadCount,
                 bulletins;
@@ -286,7 +272,7 @@
                 obj = d3.select('#id-' + processorId).datum();
                 runStatus = getKeyValue(obj,RUN_STATUS_KEY);
                 activeThreadCount = getKeyValue(obj,ACTIVE_THREAD_COUNT_KEY);
-                bulletins = getKeyValue(obj,BULLETINS_KEY);
+                bulletins = data.bulletins;
             } else if (data.provider) {
                 bulletins = data.provider;
             }
@@ -303,18 +289,8 @@
 
             // set the bulletins
             if (isDefinedAndNotNull(bulletins) && Array.isArray(bulletins)) {
-                var bulletinsToFormat = [];
-                $.each(bulletins, function(i,item){
-                    if(item.canRead){
-                        bulletinsToFormat.push(item);
-                    }
-                });
-
-                var formattedBulletins = nfCommon.getFormattedBulletins(bulletinsToFormat);
-                bulletinList = nfCommon.formatUnorderedList(formattedBulletins);
-
-                var bulletinCount = bulletinList.find('li').length;
-                bar.find('.dialog-status-bar-bulletins-content').html((bulletinCount > 0)?bulletinList:'');
+                var bulletinCount = bulletins.find('li').length;
+                bar.find('.dialog-status-bar-bulletins-content').html((bulletinCount > 0)?bulletins:'');
                 bar.find('.dialog-status-bar-bulletins').attr('count',bulletinCount);
 
                 if (data.processor) {
@@ -336,4 +312,4 @@
         }
     };
 
-}));
+})(jQuery);

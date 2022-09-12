@@ -658,12 +658,6 @@
                     .text(parameterContextNames.join(', '));
             }
 
-            // hide affected referencing components list
-            var affectedReferencingComponents = $('#fetch-parameters-affected-referencing-components-container');
-            if (!affectedReferencingComponents.hasClass('hidden')) {
-                affectedReferencingComponents.addClass('hidden');
-            }
-
             loadParameterGroups(updatedParameterProviderEntity);
             // keep original group data
             var initialFetchedGroups = getFetchedParameterGroups(updatedParameterProviderEntity);
@@ -707,11 +701,14 @@
 
             // synchronize the current component canvas attributes in the status bar
             if (fetchParameterProviderOptions.supportsStatusBar) {
+                var formattedBulletins = nfCommon.getFormattedBulletins(updatedParameterProviderEntity.bulletins);
+                var unorderedBulletins = nfCommon.nfCommon.formatUnorderedList(formattedBulletins);
+
                 // initialize the canvas synchronization
                 if (updatedParameterProviderEntity.bulletins.length !== 0) {
                     $('#fetch-parameters-status-bar').statusbar(
                         'observe',
-                        { provider: updatedParameterProviderEntity.bulletins }
+                        { provider: unorderedBulletins }
                     );
                 }
             }
@@ -728,6 +725,18 @@
     };
 
     var hasGroupsChanged = function (updatedParameterProviderEntity, initialFetchedGroups) {
+        var canWrite = function (component) {
+            return component.permissions.canWrite;
+        }
+
+        // affected referencing components
+        if (updatedParameterProviderEntity.component.affectedComponents) {
+            if (!updatedParameterProviderEntity.component.affectedComponents.every(canWrite)) {
+                return true;
+            }
+            return false;
+        }
+
         var groupsData = $('#parameter-groups-table').data('gridInstance').getData();
         var groups = groupsData.getItems();
 
@@ -739,12 +748,14 @@
             }
         })
 
+        var isEmptyName = function (name) {
+            return name !== '';
+        }
+
         // if there are any createNewParameterContext, then the name input cannot be empty
         if (!_.isEmpty(parameterContextNames)) {
-            for (var j = 0; j < parameterContextNames.length; j++) {
-                if (parameterContextNames[j] === '') {
-                    return true;
-                }
+            if (!parameterContextNames.every(isEmptyName)) {
+                return true;
             }
             return false;
         }
@@ -773,16 +784,6 @@
             }
         }
 
-        // affected referencing components
-        if (updatedParameterProviderEntity.component.affectedComponents) {
-            $.each(updatedParameterProviderEntity.component.affectedComponents, function (i, component) {
-                if (!component.permissions.canWrite) {
-                    return true;
-                }
-            })
-            return false;
-        }
-
         return true;
     };
 
@@ -807,6 +808,14 @@
                     ? isReferencingParamContext(parameterProviderGroupEntity.component.referencingParameterContexts, groupConfig.parameterContextName)
                     : false;
 
+                var canWrite = false;
+                if ((referencingParameterContext &&
+                    referencingParameterContext.permissions.canWrite) &&
+                    (parameterProviderGroupEntity.component.affectedComponents &&
+                    isAffectedRefComponentsCanWrite(parameterProviderGroupEntity.component.affectedComponents))) {
+                    canWrite = true;
+                }
+
                 var group = {
                     id: groupCount++,
                     hidden: false,
@@ -815,7 +824,7 @@
                     parameterContextName: groupConfig.parameterContextName,
                     parameterSensitivities: groupConfig.parameterSensitivities,
                     referencingParameterContexts: groupConfig.referencingParameterContexts ? groupConfig.referencingParameterContexts : null,
-                    enableSelectableParameters: referencingParameterContext ? referencingParameterContext.permissions.canWrite : false
+                    enableSelectableParameters: canWrite
                 };
 
                 parameterGroups.push({
@@ -850,6 +859,18 @@
         })
 
         return referencingParamContext;
+    }
+
+    /**
+     * Determines if the the user has write permissions on the affected referencing components.
+     *
+     * @param affectedComponents
+     * @returns {boolean}
+     */
+    var isAffectedRefComponentsCanWrite = function (affectedComponents) {
+        affectedComponents.every(function (c) {
+            return c.permissions.canWrite;
+        })
     }
 
     /**
@@ -920,9 +941,7 @@
         };
 
         // update visibility
-        if ($('#fetch-parameters-affected-referencing-components-container').hasClass('hidden')) {
-            $('#fetch-parameters-affected-referencing-components-container').removeClass('hidden');
-        }
+        $('#fetch-parameters-affected-referencing-components-container').show();
 
         var referencingProcessors = [];
         var referencingControllerServices = [];
@@ -1683,6 +1702,8 @@
      * Reset the dialog.
      */
     var resetFetchParametersDialog = function () {
+        $('#fetch-parameters-affected-referencing-components-container').empty();
+        $('#fetch-parameters-affected-referencing-components-container').hide();
         $('#create-parameter-context-input').val('');
 
         // clear the groups table
@@ -2324,12 +2345,6 @@
 
                         // reset progress
                         $('div.parameter-contexts-to-update').removeClass('ajax-loading ajax-complete ajax-error');
-
-                        // reset affected referencing components
-                        $('#affected-referencing-components-container').empty();
-                        if (!$('#fetch-parameters-affected-referencing-components-container').hasClass('hidden')) {
-                            $('#fetch-parameters-affected-referencing-components-container').addClass('hidden');
-                        }
 
                         //stop any synchronization
                         if (fetchParameterProviderOptions) {

@@ -2063,30 +2063,18 @@
         var parameterProvidersActionFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
 
-            var component = dataContext.component ? dataContext.component : null;
-            var hasReadWritePermissions = true;
-
-            if (component && component.referencingParameterContexts) {
-                // var refParamContextPermissions = {};
-                var refParamContextPermissions = [];
-                $.each(component.referencingParameterContexts, function (i, refParamContext) {
-                    refParamContextPermissions.push(refParamContext.permissions.canRead);
-                    // if this hits false, then set to false and break
-                    refParamContextPermissions.push(refParamContext.permissions.canWrite);
-                })
-
-                for (var i = 0; i < refParamContextPermissions.length; i++) {
-                    if (refParamContextPermissions[i] === false) {
-                        hasReadWritePermissions = false;
-                        break;
-                    }
-                }
-            }
-
             var canWrite = dataContext.permissions.canWrite;
             var canRead = dataContext.permissions.canRead;
 
-            var hasErrors = component ? !nfCommon.isEmpty(dataContext.component.validationErrors) : null;
+            var hasErrors = canRead ? !nfCommon.isEmpty(dataContext.component.validationErrors) : null;
+
+            var hasReadWritePermissions = true;
+
+            if (canRead && dataContext.component.referencingParameterContexts) {
+                (dataContext.component.referencingParameterContexts).every(function (refParamContext) {
+                    return hasReadWritePermissions = refParamContext.permissions.canRead;
+                });
+            }
 
             if (canRead && canWrite) {
                 markup += '<div title="Edit" class="pointer edit-parameter-provider fa fa-pencil"></div>';
