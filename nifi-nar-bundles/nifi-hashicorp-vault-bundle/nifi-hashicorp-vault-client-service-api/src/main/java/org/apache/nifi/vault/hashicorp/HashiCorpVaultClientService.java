@@ -18,9 +18,6 @@ package org.apache.nifi.vault.hashicorp;
 
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.ControllerService;
@@ -28,11 +25,6 @@ import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
-
-import java.io.File;
-import java.util.Arrays;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Provides a HashiCorpVaultCommunicationService.
@@ -92,7 +84,6 @@ public interface HashiCorpVaultClientService extends ControllerService, Verifiab
                     "Environment Configuration documentation (https://docs.spring.io/spring-vault/docs/2.3.x/reference/html/#vault.core.environment-vault-configuration). " +
                     "All of the Spring property keys and authentication-specific property keys are supported.")
             .required(true)
-            .addValidator(MultiFileExistsValidator.INSTANCE)
             .dependsOn(CONFIGURATION_STRATEGY, PROPERTIES_FILES)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
             .build();
@@ -119,34 +110,4 @@ public interface HashiCorpVaultClientService extends ControllerService, Verifiab
      */
     HashiCorpVaultCommunicationService getHashiCorpVaultCommunicationService();
 
-    class MultiFileExistsValidator implements Validator {
-
-        private static final Validator INSTANCE = new MultiFileExistsValidator();
-
-        @Override
-        public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
-            String reason = null;
-            if (value == null) {
-                reason = "At least one file must be specified";
-            } else {
-                final Set<String> files = Arrays.stream(value.split(","))
-                        .map(String::trim)
-                        .collect(Collectors.toSet());
-                try {
-                    for (final String filename : files) {
-                        final File file = new File(filename);
-                        if (!file.exists()) {
-                            reason = "File " + file.getName() + " does not exist";
-                        } else if (!file.isFile()) {
-                            reason = "Path " + file.getName() + " does not point to a file";
-                        }
-                    }
-                } catch (final Exception e) {
-                    reason = "Value is not a valid filename";
-                }
-            }
-
-            return new ValidationResult.Builder().subject(subject).input(value).explanation(reason).valid(reason == null).build();
-        }
-    }
 }
