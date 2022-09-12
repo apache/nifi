@@ -22,14 +22,18 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ProvenanceClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.entity.LineageEntity;
 import org.apache.nifi.web.api.entity.ProvenanceEntity;
+import org.apache.nifi.web.api.entity.ReplayLastEventRequestEntity;
+import org.apache.nifi.web.api.entity.ReplayLastEventResponseEntity;
 
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
+import java.util.Objects;
 
 public class JerseyProvenanceClient extends AbstractJerseyClient implements ProvenanceClient {
     private final WebTarget provenanceTarget;
+    private final WebTarget provenanceEventsTarget;
 
     public JerseyProvenanceClient(final WebTarget baseTarget) {
         this(baseTarget, null);
@@ -38,6 +42,7 @@ public class JerseyProvenanceClient extends AbstractJerseyClient implements Prov
     public JerseyProvenanceClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
         super(requestConfig);
         this.provenanceTarget = baseTarget.path("/provenance");
+        this.provenanceEventsTarget = baseTarget.path("/provenance-events");
     }
 
     @Override
@@ -115,5 +120,22 @@ public class JerseyProvenanceClient extends AbstractJerseyClient implements Prov
             return getRequestBuilder(target).delete(LineageEntity.class);
         });
 
+    }
+
+    @Override
+    public ReplayLastEventResponseEntity replayLastEvent(final String processorId, final ReplayEventNodes nodes) throws NiFiClientException, IOException {
+        Objects.requireNonNull(processorId, "Processor ID required");
+        Objects.requireNonNull(nodes, "Nodes must be specified");
+
+        final ReplayLastEventRequestEntity requestEntity = new ReplayLastEventRequestEntity();
+        requestEntity.setComponentId(processorId);
+        requestEntity.setNodes(nodes.name());
+
+        return executeAction("Error replaying last event for Processor " + processorId, () -> {
+            final WebTarget target = provenanceEventsTarget.path("/latest/replays");
+            return getRequestBuilder(target).post(
+                Entity.entity(requestEntity, MediaType.APPLICATION_JSON_TYPE),
+                ReplayLastEventResponseEntity.class);
+        });
     }
 }

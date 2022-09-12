@@ -21,5 +21,7 @@ public enum ExtensionType {
 
     CONTROLLER_SERVICE,
 
-    REPORTING_TASK;
+    REPORTING_TASK,
+
+    PARAMETER_PROVIDER;
 }

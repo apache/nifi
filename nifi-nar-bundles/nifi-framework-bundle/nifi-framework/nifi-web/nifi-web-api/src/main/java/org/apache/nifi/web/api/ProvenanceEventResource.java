@@ -22,6 +22,11 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -31,8 +36,13 @@ import org.apache.nifi.web.DownloadableContent;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
 import org.apache.nifi.web.api.entity.ProvenanceEventEntity;
+import org.apache.nifi.web.api.entity.ReplayLastEventRequestEntity;
+import org.apache.nifi.web.api.entity.ReplayLastEventResponseEntity;
+import org.apache.nifi.web.api.entity.ReplayLastEventSnapshotDTO;
 import org.apache.nifi.web.api.entity.SubmitReplayRequestEntity;
 import org.apache.nifi.web.api.request.LongParameter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -52,7 +62,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
-
+import java.util.Collections;
 
 /**
  * RESTful endpoint for querying data provenance.
@@ -63,8 +73,10 @@ import java.net.URI;
         description = "Endpoint for accessing data flow provenance."
 )
 public class ProvenanceEventResource extends ApplicationResource {
+    private static final Logger logger = LoggerFactory.getLogger(ProvenanceEventResource.class);
 
     private NiFiServiceFacade serviceFacade;
+    private Authorizer authorizer;
 
     /**
      * Gets the content for the input of the specified event.
@@ -310,6 +322,105 @@ public class ProvenanceEventResource extends ApplicationResource {
         return generateOkResponse(entity).build();
     }
 
+
+    /**
+     * Triggers the latest Provenance Event for the specified component to be replayed.
+     *
+     * @param httpServletRequest  request
+     * @param requestEntity The replay request
+     * @return A replayLastEventResponseEntity
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("latest/replays")
+    @ApiOperation(
+        value = "Replays content from a provenance event",
+        response = ReplayLastEventResponseEntity.class,
+        authorizations = {
+            @Authorization(value = "Read Component Provenance Data - /provenance-data/{component-type}/{uuid}"),
+            @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}"),
+            @Authorization(value = "Write Component Data - /data/{component-type}/{uuid}")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response submitReplayLatestEvent(
+        @Context final HttpServletRequest httpServletRequest,
+        @ApiParam(
+            value = "The replay request.",
+            required = true
+        ) final ReplayLastEventRequestEntity requestEntity) {
+
+        // ensure the event id is specified
+        if (requestEntity == null || requestEntity.getComponentId() == null) {
+            throw new IllegalArgumentException("The id of the component must be specified.");
+        }
+        final String requestedNodes = requestEntity.getNodes();
+        if (requestedNodes == null) {
+            throw new IllegalArgumentException("The nodes must be specified.");
+        }
+        if (!"ALL".equalsIgnoreCase(requestedNodes) && !"PRIMARY".equalsIgnoreCase(requestedNodes)) {
+            throw new IllegalArgumentException("The nodes must be either ALL or PRIMARY");
+        }
+
+        // replicate if cluster manager
+        if (isReplicateRequest()) {
+            // Replicate to either Primary Node or all nodes
+            if (requestedNodes.equalsIgnoreCase("PRIMARY")) {
+                final NodeIdentifier primaryNodeId = getPrimaryNodeId().orElseThrow(() -> new IllegalStateException("There is currently no Primary Node elected"));
+                return replicate(HttpMethod.POST, requestEntity, primaryNodeId.getId());
+            } else {
+                return replicate(HttpMethod.POST, requestEntity);
+            }
+        }
+
+        return withWriteLock(
+            serviceFacade,
+            requestEntity,
+            lookup -> {
+                final Authorizable provenance = lookup.getProvenance();
+                provenance.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            },
+            () -> {}, // No verification step necessary - this can be done any time
+            entity -> {
+                final ReplayLastEventSnapshotDTO aggregateSnapshot = new ReplayLastEventSnapshotDTO();
+
+                // Submit provenance query
+                try {
+                    final ProvenanceEventDTO provenanceEventDto = serviceFacade.submitReplayLastEvent(entity.getComponentId());
+
+                    if (provenanceEventDto == null) {
+                        aggregateSnapshot.setEventAvailable(false);
+                    } else {
+                        aggregateSnapshot.setEventAvailable(true);
+                        aggregateSnapshot.setEventsReplayed(Collections.singleton(provenanceEventDto.getEventId()));
+                    }
+                } catch (final AccessDeniedException ade) {
+                    logger.error("Failed to replay latest Provenance Event", ade);
+                    aggregateSnapshot.setFailureExplanation("Access Denied");
+                } catch (final Exception e) {
+                    logger.error("Failed to replay latest Provenance Event", e);
+                    aggregateSnapshot.setFailureExplanation(e.getMessage());
+                }
+
+                final ReplayLastEventResponseEntity responseEntity = new ReplayLastEventResponseEntity();
+                responseEntity.setComponentId(entity.getComponentId());
+                responseEntity.setNodes(entity.getNodes());
+                responseEntity.setAggregateSnapshot(aggregateSnapshot);
+
+                return generateOkResponse(responseEntity).build();
+            });
+    }
+
+
     /**
      * Creates a new replay request for the content associated with the specified provenance event id.
      *
@@ -391,6 +502,10 @@ public class ProvenanceEventResource extends ApplicationResource {
 
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
+    }
+
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 
 }

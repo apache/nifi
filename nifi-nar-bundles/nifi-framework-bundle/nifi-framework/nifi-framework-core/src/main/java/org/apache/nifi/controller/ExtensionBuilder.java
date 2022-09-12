@@ -31,6 +31,8 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
+import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
+import org.apache.nifi.controller.parameter.StandardParameterProviderNode;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.reporting.StandardReportingInitializationContext;
 import org.apache.nifi.controller.reporting.StandardReportingTaskNode;
@@ -44,6 +46,10 @@ import org.apache.nifi.controller.service.StandardControllerServiceNode;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.parameter.GhostParameterProvider;
+import org.apache.nifi.parameter.ParameterProvider;
+import org.apache.nifi.parameter.ParameterProviderInitializationContext;
+import org.apache.nifi.parameter.StandardParameterProviderInitializationContext;
 import org.apache.nifi.processor.GhostProcessor;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -264,6 +270,52 @@ public class ExtensionBuilder {
         return taskNode;
     }
 
+    public ParameterProviderNode buildParameterProvider() {
+        if (identifier == null) {
+            throw new IllegalStateException("ParameterProvider ID must be specified");
+        }
+        if (type == null) {
+            throw new IllegalStateException("ParameterProvider Type must be specified");
+        }
+        if (bundleCoordinate == null) {
+            throw new IllegalStateException("Bundle Coordinate must be specified");
+        }
+        if (extensionManager == null) {
+            throw new IllegalStateException("Extension Manager must be specified");
+        }
+        if (serviceProvider == null) {
+            throw new IllegalStateException("Controller Service Provider must be specified");
+        }
+        if (nodeTypeProvider == null) {
+            throw new IllegalStateException("Node Type Provider must be specified");
+        }
+        if (variableRegistry == null) {
+            throw new IllegalStateException("Variable Registry must be specified");
+        }
+        if (reloadComponent == null) {
+            throw new IllegalStateException("Reload Component must be specified");
+        }
+        if (flowController == null) {
+            throw new IllegalStateException("FlowController must be specified");
+        }
+
+        boolean creationSuccessful = true;
+        LoggableComponent<ParameterProvider> loggableComponent;
+        try {
+            loggableComponent = createLoggableParameterProvider();
+        } catch (final ParameterProviderInstantiationException rtie) {
+            logger.error("Could not create ParameterProvider of type " + type + " for ID " + identifier + "; creating \"Ghost\" implementation", rtie);
+            final GhostParameterProvider ghostParameterProvider = new GhostParameterProvider();
+            ghostParameterProvider.setIdentifier(identifier);
+            ghostParameterProvider.setCanonicalClassName(type);
+            loggableComponent = new LoggableComponent<>(ghostParameterProvider, bundleCoordinate, null);
+            creationSuccessful = false;
+        }
+
+        final ParameterProviderNode taskNode = createParameterProviderNode(loggableComponent, creationSuccessful);
+        return taskNode;
+    }
+
     public ControllerServiceNode buildControllerService() {
         if (identifier == null) {
             throw new IllegalStateException("ReportingTask ID must be specified");
@@ -346,6 +398,28 @@ public class ExtensionBuilder {
         }
 
         return taskNode;
+    }
+
+    private ParameterProviderNode createParameterProviderNode(final LoggableComponent<ParameterProvider> parameterProvider, final boolean creationSuccessful) {
+        final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
+        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(serviceProvider, componentVarRegistry);
+        final ParameterProviderNode parameterProviderNode;
+        if (creationSuccessful) {
+            parameterProviderNode = new StandardParameterProviderNode(parameterProvider, identifier, flowController,
+                    flowController.getControllerServiceProvider(), validationContextFactory, componentVarRegistry, reloadComponent, extensionManager,
+                    validationTrigger);
+            parameterProviderNode.setName(parameterProviderNode.getParameterProvider().getClass().getSimpleName());
+        } else {
+            final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
+            final String componentType = "(Missing) " + simpleClassName;
+
+            parameterProviderNode = new StandardParameterProviderNode(parameterProvider, identifier, flowController,
+                    flowController.getControllerServiceProvider(), validationContextFactory, componentType, type, componentVarRegistry, reloadComponent,
+                    extensionManager, validationTrigger, true);
+            parameterProviderNode.setName(componentType);
+        }
+
+        return parameterProviderNode;
     }
 
     private void applyDefaultSettings(final ProcessorNode processorNode) {
@@ -547,6 +621,25 @@ public class ExtensionBuilder {
             return taskComponent;
         } catch (final Exception e) {
             throw new ReportingTaskInstantiationException(type, e);
+        }
+    }
+
+    private LoggableComponent<ParameterProvider> createLoggableParameterProvider() throws ParameterProviderInstantiationException {
+        try {
+            final LoggableComponent<ParameterProvider> providerComponent = createLoggableComponent(ParameterProvider.class);
+
+            final String taskName = providerComponent.getComponent().getClass().getSimpleName();
+            final ParameterProviderInitializationContext config = new StandardParameterProviderInitializationContext(identifier, taskName,
+                    providerComponent.getLogger(), kerberosConfig, nodeTypeProvider);
+
+            providerComponent.getComponent().initialize(config);
+
+            final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
+            verifyControllerServiceReferences(providerComponent.getComponent(), bundle.getClassLoader());
+
+            return providerComponent;
+        } catch (final Exception e) {
+            throw new ParameterProviderInstantiationException(type, e);
         }
     }
 

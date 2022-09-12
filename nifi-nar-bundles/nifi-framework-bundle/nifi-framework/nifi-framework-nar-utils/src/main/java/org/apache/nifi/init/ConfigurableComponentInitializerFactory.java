@@ -19,6 +19,7 @@ package org.apache.nifi.init;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.ReportingTask;
 
@@ -38,7 +39,9 @@ public class ConfigurableComponentInitializerFactory {
         } else if (ControllerService.class.isAssignableFrom(componentClass)) {
             return new ControllerServiceInitializer(extensionManager);
         } else if (ReportingTask.class.isAssignableFrom(componentClass)) {
-            return new ReportingTaskingInitializer(extensionManager);
+            return new ReportingTaskInitializer(extensionManager);
+        } else if (ParameterProvider.class.isAssignableFrom(componentClass)) {
+            return new ParameterProviderInitializer(extensionManager);
         }
 
         return null;

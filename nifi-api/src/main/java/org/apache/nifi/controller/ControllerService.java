@@ -20,6 +20,7 @@ import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
@@ -29,7 +30,7 @@ import org.apache.nifi.reporting.ReportingTask;
 /**
  * <p>
  * This interface provides a mechanism for creating services that are shared
- * among all {@link Processor}s, {@link ReportingTask}s, and other
+ * among all {@link Processor}s, {@link ReportingTask}s, {@link ParameterProvider}s and other
  * {@code ControllerService}s.
  * </p>
  *

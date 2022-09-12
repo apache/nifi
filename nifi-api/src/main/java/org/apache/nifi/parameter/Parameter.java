@@ -22,19 +22,21 @@ public class Parameter {
     private final ParameterDescriptor descriptor;
     private final String value;
     private final String parameterContextId;
+    private final boolean provided;
 
-    private Parameter(final ParameterDescriptor descriptor, final String value, final String parameterContextId) {
+    public Parameter(final ParameterDescriptor descriptor, final String value, final String parameterContextId, final Boolean provided) {
         this.descriptor = descriptor;
         this.value = value;
         this.parameterContextId = parameterContextId;
+        this.provided = provided == null ? false : provided.booleanValue();
     }
 
     public Parameter(final Parameter parameter, final String parameterContextId) {
-        this(parameter.getDescriptor(), parameter.getValue(), parameterContextId);
+        this(parameter.getDescriptor(), parameter.getValue(), parameterContextId, parameter.isProvided());
     }
 
     public Parameter(final ParameterDescriptor descriptor, final String value) {
-        this(descriptor, value, null);
+        this(descriptor, value, null, false);
     }
 
     public ParameterDescriptor getDescriptor() {
@@ -66,5 +68,13 @@ public class Parameter {
     @Override
     public int hashCode() {
         return Objects.hash(descriptor, value);
+    }
+
+    /**
+     *
+     * @return True if this parameter is provided by a ParameterProvider.
+     */
+    public boolean isProvided() {
+        return provided;
     }
 }

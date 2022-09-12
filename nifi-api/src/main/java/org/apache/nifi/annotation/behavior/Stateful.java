@@ -28,7 +28,7 @@ import org.apache.nifi.components.state.StateManager;
 
 /**
  * <p>
- * Annotation that a Processor, ReportingTask, or Controller Service can use to indicate
+ * Annotation that a Processor, ReportingTask, ParameterProvider, or Controller Service can use to indicate
  * that the component makes use of the {@link StateManager}. This annotation provides the
  * user with a description of what information is being stored so that the user is able to
  * understand what is shown to them and know what they are clearing should they choose to

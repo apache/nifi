@@ -108,10 +108,11 @@
         <module>nifi-stateless-processor-bundle</module>
         <module>nifi-geohash-bundle</module>
         <module>nifi-snowflake-bundle</module>
+        <module>nifi-workday-bundle</module>
         <module>nifi-salesforce-bundle</module>
         <module>nifi-rocksdb-bundle</module>
         <module>nifi-hubspot-bundle</module>
-        <module>nifi-workday-bundle</module>
+        <module>nifi-dropbox-bundle</module>
     </modules>
 
     <build>

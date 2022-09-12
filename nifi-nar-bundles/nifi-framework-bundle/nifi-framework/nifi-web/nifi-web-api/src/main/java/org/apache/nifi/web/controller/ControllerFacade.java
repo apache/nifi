@@ -43,6 +43,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.FlowController.GroupStatusCounts;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Template;
@@ -71,6 +72,7 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.manifest.RuntimeManifestService;
 import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -132,6 +134,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TimeZone;
@@ -578,6 +581,18 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
+     * Gets the ParameterProvider types that this controller supports.
+     *
+     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter if specified, type must match
+     * @return the ParameterProvider types that this controller supports
+     */
+    public Set<DocumentedTypeDTO> getParameterProviderTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
+        return dtoFactory.fromDocumentedTypes(getExtensionManager().getExtensions(ParameterProvider.class), bundleGroupFilter, bundleArtifactFilter, typeFilter);
+    }
+
+    /**
      * Gets the counters for this controller.
      *
      * @return the counters for this controller
@@ -989,6 +1004,14 @@ public class ControllerFacade implements Authorizable {
             resources.add(ResourceFactory.getOperationResource(reportingTaskResource));
         }
 
+        // add each parameter provider
+        for (final ParameterProviderNode parameterProvider : flowController.getFlowManager().getAllParameterProviders()) {
+            final Resource parameterProviderResource = parameterProvider.getResource();
+            resources.add(parameterProviderResource);
+            resources.add(ResourceFactory.getPolicyResource(parameterProviderResource));
+            resources.add(ResourceFactory.getOperationResource(parameterProviderResource));
+        }
+
         // add each template
         for (final Template template : root.findAllTemplates()) {
             final Resource templateResource = template.getResource();
@@ -1351,6 +1374,39 @@ public class ControllerFacade implements Authorizable {
 
             // replay the flow file
             final ProvenanceEventRecord event = flowController.replayFlowFile(originalEvent, user);
+
+            // convert the event record
+            return createProvenanceEventDto(event, false);
+        } catch (final IOException ioe) {
+            throw new NiFiCoreException("An error occurred while getting the specified event.", ioe);
+        }
+    }
+
+    /**
+     * Submits for replay the latest provenance event that is cached for the component with the given ID
+     * @param componentId the ID of the component
+     * @return the ProvenanceEventDTO representing the event that was replayed, or <code>null</code> if the no event was available
+     * @throws AccessDeniedException if an event is available but the current user is not permitted to replay the event
+     */
+    public ProvenanceEventDTO submitReplayLastEvent(String componentId) {
+        try {
+            final NiFiUser user = NiFiUserUtils.getNiFiUser();
+            if (user == null) {
+                throw new WebApplicationException(new Throwable("Unable to access details for current user."));
+            }
+
+            // lookup the original event
+            final Optional<ProvenanceEventRecord> optionalEvent = flowController.getProvenanceRepository().getLatestCachedEvent(componentId);
+            if (!optionalEvent.isPresent()) {
+                return null;
+            }
+
+            // Authorize the replay
+            final ProvenanceEventRecord event = optionalEvent.get();
+            authorizeReplay(event);
+
+            // Replay the FlowFile
+            flowController.replayFlowFile(event, user);
 
             // convert the event record
             return createProvenanceEventDto(event, false);

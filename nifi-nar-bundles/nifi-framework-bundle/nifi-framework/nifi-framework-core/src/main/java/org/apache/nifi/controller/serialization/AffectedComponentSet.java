@@ -23,6 +23,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.AbstractComponentNode;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -78,6 +79,7 @@ public class AffectedComponentSet {
     private final Set<ProcessorNode> processors = new HashSet<>();
     private final Set<ControllerServiceNode> controllerServices = new HashSet<>();
     private final Set<ReportingTaskNode> reportingTasks = new HashSet<>();
+    private final Set<ParameterProviderNode> parameterProviders = new HashSet<>();
 
     public AffectedComponentSet(final FlowController flowController) {
         this.flowController = flowController;
@@ -148,6 +150,8 @@ public class AffectedComponentSet {
                 addProcessor((ProcessorNode) reference);
             } else if (reference instanceof ReportingTaskNode) {
                 addReportingTask((ReportingTaskNode) reference);
+            } else if (reference instanceof ParameterProviderNode) {
+                addParameterProvider((ParameterProviderNode) reference);
             }
         }
     }
@@ -181,6 +185,24 @@ public class AffectedComponentSet {
     public boolean isReportingTaskAffected(final String reportingTaskId) {
         for (final ReportingTaskNode taskNode : reportingTasks) {
             if (taskNode.getIdentifier().equals(reportingTaskId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void addParameterProvider(final ParameterProviderNode parameterProvider) {
+        if (parameterProvider == null) {
+            return;
+        }
+
+        parameterProviders.add(parameterProvider);
+    }
+
+    public boolean isParameterProviderAffected(final String parameterProviderId) {
+        for (final ParameterProviderNode parameterProviderNode : parameterProviders) {
+            if (parameterProviderNode.getIdentifier().equals(parameterProviderId)) {
                 return true;
             }
         }
@@ -655,6 +677,7 @@ public class AffectedComponentSet {
             ", remoteInputPorts=" + remoteInputPorts +
             ", remoteOutputPorts=" + remoteOutputPorts +
             ", processors=" + processors +
+            ", parameterProviders=" + parameterProviders +
             ", controllerServices=" + controllerServices +
             ", reportingTasks=" + reportingTasks +
             "]";

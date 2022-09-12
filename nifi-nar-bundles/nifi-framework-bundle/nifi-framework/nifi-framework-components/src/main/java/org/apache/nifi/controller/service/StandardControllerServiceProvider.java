@@ -19,6 +19,7 @@ package org.apache.nifi.controller.service;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -495,10 +496,13 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             if (serviceNode == null) {
                 final ReportingTaskNode taskNode = flowManager.getReportingTaskNode(componentId);
                 if (taskNode == null) {
-                    throw new IllegalStateException("Could not find any Processor, Reporting Task, or Controller Service with identifier " + componentId);
+                    final ParameterProviderNode parameterProviderNode = flowManager.getParameterProvider(componentId);
+                    if (parameterProviderNode == null) {
+                        throw new IllegalStateException("Could not find any Processor, Reporting Task, Parameter Provider, or Controller Service with identifier " + componentId);
+                    }
                 }
 
-                // we have confirmed that the component is a reporting task. We can only reference Controller Services
+                // We have confirmed that the component is a reporting task or parameter provider. We can only reference Controller Services
                 // that are scoped at the FlowController level in this case.
                 final ControllerServiceNode rootServiceNode = flowManager.getRootControllerService(serviceIdentifier);
                 return (rootServiceNode == null) ? null : rootServiceNode.getProxiedControllerService();

@@ -206,7 +206,11 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         getRootGroup().addProcessGroup(innerGroup);
 
         final ParameterReferenceManager parameterReferenceManager = new StandardParameterReferenceManager(getFlowController().getFlowManager());
-        final ParameterContext parameterContext = new StandardParameterContext("param-context-id", "parameter-context", parameterReferenceManager, null);
+        final ParameterContext parameterContext = new StandardParameterContext.Builder()
+                .id("param-context-id")
+                .name("parameter-context")
+                .parameterReferenceManager(parameterReferenceManager)
+                .build();
         innerGroup.setParameterContext(parameterContext);
 
         assertTrue(parameterContext.getParameters().isEmpty());
@@ -697,7 +701,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
     private void setParameter(Parameter parameter) {
         ParameterContext rootParameterContext = getFlowController().getFlowManager().getParameterContextManager().getParameterContext("unimportant");
         if (rootParameterContext == null) {
-            rootParameterContext = getFlowController().getFlowManager().createParameterContext("unimportant", "unimportant", Collections.emptyMap(), Collections.emptyList());
+            rootParameterContext = getFlowController().getFlowManager().createParameterContext("unimportant", "unimportant", Collections.emptyMap(), Collections.emptyList(), null);
             getRootGroup().setParameterContext(rootParameterContext);
         }
 

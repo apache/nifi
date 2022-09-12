@@ -18,6 +18,7 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
 import org.apache.nifi.web.api.entity.LineageEntity;
 import org.apache.nifi.web.api.entity.ProvenanceEntity;
+import org.apache.nifi.web.api.entity.ReplayLastEventResponseEntity;
 
 import java.io.IOException;
 
@@ -33,4 +34,11 @@ public interface ProvenanceClient {
     LineageEntity getLineageRequest(String lineageRequestId) throws NiFiClientException, IOException;
 
     LineageEntity deleteLineageRequest(String lineageRequestId) throws NiFiClientException, IOException;
+
+    ReplayLastEventResponseEntity replayLastEvent(String processorId, ReplayEventNodes replayEventNodes) throws NiFiClientException, IOException;
+
+    enum ReplayEventNodes {
+        PRIMARY,
+        ALL;
+    }
 }

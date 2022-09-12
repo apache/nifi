@@ -19,6 +19,7 @@ package org.apache.nifi.registry.flow;
 
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
+import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedExternalFlowMetadata;
 import org.apache.nifi.flow.VersionedParameterContext;
@@ -114,7 +115,8 @@ public class InMemoryFlowRegistry implements FlowRegistry {
     @Override
     public VersionedFlowSnapshot registerVersionedFlowSnapshot(final VersionedFlow flow, final VersionedProcessGroup snapshot,
                                                                final Map<String, ExternalControllerServiceReference> externalControllerServices,
-                                                               final Map<String, VersionedParameterContext> parameterContexts, final String comments,
+                                                               final Map<String, VersionedParameterContext> parameterContexts,
+                                                               final Map<String, ParameterProviderReference> parameterProviderReferences, final String comments,
                                                                final int expectedVersion, final NiFiUser user) {
         throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }
@@ -165,6 +167,7 @@ public class InMemoryFlowRegistry implements FlowRegistry {
         flowSnapshot.setExternalControllerServices(externalFlow.getExternalControllerServices());
         flowSnapshot.setFlowContents(externalFlow.getFlowContents());
         flowSnapshot.setParameterContexts(externalFlow.getParameterContexts());
+        flowSnapshot.setParameterProviders(externalFlow.getParameterProviders());
         flowSnapshot.setSnapshotMetadata(snapshotMetadata);
         flowSnapshot.setFlow(versionedFlow);
 

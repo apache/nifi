@@ -47,6 +47,11 @@ public enum ComponentType {
     REPORTING_TASK,
 
     /**
+     * Bulletin is associated with a Parameter Provider
+     */
+    PARAMETER_PROVIDER,
+
+    /**
      * Bulletin is associated with a Controller Service
      */
     CONTROLLER_SERVICE,

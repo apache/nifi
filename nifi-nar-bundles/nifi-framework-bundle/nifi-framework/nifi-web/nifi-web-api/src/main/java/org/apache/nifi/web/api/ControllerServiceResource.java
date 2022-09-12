@@ -104,8 +104,8 @@ public class ControllerServiceResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(ControllerServiceResource.class);
     private static final String VERIFICATION_REQUEST_TYPE = "verification-request";
-    private RequestManager<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> updateRequestManager =
-        new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Verify Controller Service Config Thread");
+    private RequestManager<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> configVerificationRequestManager =
+            new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Verify Controller Service Config Thread");
 
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
@@ -1023,7 +1023,7 @@ public class ControllerServiceResource extends ApplicationResource {
 
         // request manager will ensure that the current is the user that submitted this request
         final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest =
-            updateRequestManager.getRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+                configVerificationRequestManager.getRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
 
         final VerifyConfigRequestEntity updateRequestEntity = createVerifyControllerServiceConfigRequestEntity(asyncRequest, requestId);
         return generateOkResponse(updateRequestEntity).build();
@@ -1050,7 +1050,7 @@ public class ControllerServiceResource extends ApplicationResource {
         @ApiResponse(code = 404, message = "The specified resource could not be found."),
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
-    public Response deleteValidationRequest(
+    public Response deleteVerificationRequest(
         @ApiParam("The ID of the Controller Service") @PathParam("id") final String controllerServiceId,
         @ApiParam("The ID of the Verification Request") @PathParam("requestId") final String requestId) {
 
@@ -1066,7 +1066,7 @@ public class ControllerServiceResource extends ApplicationResource {
         if (!twoPhaseRequest || executionPhase) {
             // request manager will ensure that the current is the user that submitted this request
             final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest =
-                updateRequestManager.removeRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+                    configVerificationRequestManager.removeRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
 
             if (asyncRequest == null) {
                 throw new ResourceNotFoundException("Could not find request of type " + VERIFICATION_REQUEST_TYPE + " with ID " + requestId);
@@ -1082,7 +1082,7 @@ public class ControllerServiceResource extends ApplicationResource {
 
         if (isValidationPhase(httpServletRequest)) {
             // Perform authorization by attempting to get the request
-            updateRequestManager.getRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+            configVerificationRequestManager.getRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
             return generateContinueResponse().build();
         } else if (isCancellationPhase(httpServletRequest)) {
             return generateOkResponse().build();
@@ -1115,7 +1115,7 @@ public class ControllerServiceResource extends ApplicationResource {
             }
         };
 
-        updateRequestManager.submitRequest(VERIFICATION_REQUEST_TYPE, requestId, request, updateTask);
+        configVerificationRequestManager.submitRequest(VERIFICATION_REQUEST_TYPE, requestId, request, updateTask);
 
         // Generate the response
         final VerifyConfigRequestEntity resultsEntity = createVerifyControllerServiceConfigRequestEntity(request, requestId);

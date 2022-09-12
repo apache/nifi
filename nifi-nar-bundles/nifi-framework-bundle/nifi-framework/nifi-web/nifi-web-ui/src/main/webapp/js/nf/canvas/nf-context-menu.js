@@ -638,6 +638,20 @@
     };
 
     /**
+     * Determines whether the current selection should provide ability to replay latest provenance event.
+     *
+     * @param {selection} selection
+     */
+    var canReplayProvenance = function (selection) {
+        // ensure the correct number of components are selected
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        return nfCanvasUtils.isProcessor(selection) && nfCommon.canAccessProvenance();
+    }
+
+    /**
      * Determines whether the current selection is a remote process group.
      *
      * @param {selection} selection
@@ -831,6 +845,11 @@
         {id: 'disable-all-controller-services-menu-item-noselection', condition: emptySelection, menuItem: {clazz: 'icon icon-enable-false', text: 'Disable all controller services', action: 'disableAllControllerServices'}},
         {separator: true},
         {id: 'data-provenance-menu-item', condition: canAccessProvenance, menuItem: {clazz: 'icon icon-provenance', imgStyle: 'context-menu-provenance', text: 'View data provenance', action: 'openProvenance'}},
+        {id: 'data-provenance-replay-last-menu-item', condition: canReplayProvenance, groupMenuItem: {clazz: 'fa fa-repeat', text: 'Replay last event'}, menuItems: [
+            {id: 'replay-last-all-nodes-menu-item', condition: canReplayProvenance, menuItem: {text: 'All nodes', action: 'replayLastAllNodes'}},
+            {id: 'replay-last-primary-node-menu-item', condition: canReplayProvenance, menuItem: {text: 'Primary node', action: 'replayLastPrimaryNode'}}
+        ]},
+        {separator: true},
         {id: 'show-stats-menu-item', condition: supportsStats, menuItem: {clazz: 'fa fa-area-chart', text: 'View status history', action: 'showStats'}},
         {id: 'view-state-menu-item', condition: isStatefulProcessor, menuItem: {clazz: 'fa fa-tasks', text: 'View state', action: 'viewState'}},
         {id: 'list-queue-menu-item', condition: canListQueue, menuItem: {clazz: 'fa fa-list', text: 'List queue', action: 'listQueue'}},

@@ -38,6 +38,8 @@
             <xs:element name="controllerServices" type="ControllerServicesType" minOccurs="0" maxOccurs="1" />
 
             <xs:element name="reportingTasks" type="ReportingTasksType" minOccurs="0" maxOccurs="1" />
+
+            <xs:element name="parameterProviders" type="ParameterProvidersType" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
         <xs:attribute name="encoding-version" type="xs:string"/>
     </xs:complexType>
@@ -69,6 +71,9 @@
             <xs:element name="name" type="NonEmptyStringType" />
             <xs:element name="description" type="xs:string" minOccurs="0" maxOccurs="1" />
             <xs:element name="inheritedParameterContextId" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
+            <xs:element name="parameterProviderId" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="parameterGroupName" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="isSynchronized" type="xs:boolean" minOccurs="0" maxOccurs="1" />
             <xs:element name="parameter" type="ParameterType" minOccurs="0" maxOccurs="unbounded" />
         </xs:sequence>
     </xs:complexType>
@@ -78,6 +83,7 @@
             <xs:element name="name" type="NonEmptyStringType" />
             <xs:element name="description" type="xs:string" />
             <xs:element name="sensitive" type="xs:boolean" />
+            <xs:element name="provided" type="xs:boolean" />
             <xs:element name="value" type="xs:string" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
     </xs:complexType>
@@ -528,6 +534,25 @@
             <xs:element name="schedulingPeriod" type="NonEmptyStringType"/>
             <xs:element name="scheduledState" type="ScheduledState" />
             <xs:element name="schedulingStrategy" type="SchedulingStrategy" />
+
+            <xs:element name="property" type="PropertyType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="annotationData" type="xs:string" minOccurs="0" maxOccurs="1" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ParameterProvidersType">
+        <xs:sequence>
+            <xs:element name="parameterProvider" type="ParameterProviderType" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ParameterProviderType">
+        <xs:sequence>
+            <xs:element name="id" type="NonEmptyStringType" />
+            <xs:element name="name" type="NonEmptyStringType" />
+            <xs:element name="comment" type="xs:string" />
+            <xs:element name="class" type="NonEmptyStringType" />
+            <xs:element name="bundle" type="BundleType" />
 
             <xs:element name="property" type="PropertyType" minOccurs="0" maxOccurs="unbounded"/>
             <xs:element name="annotationData" type="xs:string" minOccurs="0" maxOccurs="1" />

@@ -193,6 +193,9 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
         serviceFacade.resolveInheritedControllerServices(flowSnapshot, groupId, user);
 
+        // If there are any Parameter Providers referenced by Parameter Contexts, resolve these to point to the appropriate Parameter Provider, if we are able to.
+        serviceFacade.resolveParameterProviders(flowSnapshot, user);
+
         // Step 1: Determine which components will be affected by updating the flow
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByFlowUpdate(groupId, flowSnapshot);
 

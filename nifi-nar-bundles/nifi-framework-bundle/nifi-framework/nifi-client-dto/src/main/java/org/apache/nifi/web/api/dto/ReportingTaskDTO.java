@@ -102,12 +102,12 @@ public class ReportingTaskDTO extends ComponentDTO {
     }
 
     /**
-     * The details of the artifact that bundled this processor type.
+     * The details of the artifact that bundled this reporting task type.
      *
      * @return The bundle details
      */
     @ApiModelProperty(
-            value = "The details of the artifact that bundled this processor type."
+            value = "The details of the artifact that bundled this reporting task type."
     )
     public BundleDTO getBundle() {
         return bundle;
@@ -123,7 +123,7 @@ public class ReportingTaskDTO extends ComponentDTO {
      * @return The scheduling period
      */
     @ApiModelProperty(
-            value = "The frequency with which to schedule the reporting task. The format of the value willd epend on the valud of the schedulingStrategy."
+            value = "The frequency with which to schedule the reporting task. The format of the value will depend on the value of the schedulingStrategy."
     )
     public String getSchedulingPeriod() {
         return schedulingPeriod;
@@ -172,7 +172,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     }
 
     public void setDeprecated(Boolean deprecated) {
-        this.deprecated= deprecated;
+        this.deprecated = deprecated;
     }
 
     /**
@@ -333,7 +333,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         this.validationErrors = validationErrors;
     }
 
-    @ApiModelProperty(value = "Indicates whether the Processor is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Processor is valid)",
+    @ApiModelProperty(value = "Indicates whether the Reporting Task is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Reporting Task is valid)",
         accessMode = ApiModelProperty.AccessMode.READ_ONLY,
         allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
     public String getValidationStatus() {

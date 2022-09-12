@@ -34,12 +34,6 @@ language governing permissions and limitations under the License. -->
 
     <dependencyManagement>
         <dependencies>
-            <!-- Override snakeyaml:1.15 from elasticsearch -->
-            <dependency>
-                <groupId>org.yaml</groupId>
-                <artifactId>snakeyaml</artifactId>
-                <version>1.29</version>
-            </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-elasticsearch-processors</artifactId>

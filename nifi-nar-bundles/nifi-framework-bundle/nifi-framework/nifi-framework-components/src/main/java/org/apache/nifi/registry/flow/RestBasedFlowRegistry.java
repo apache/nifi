@@ -19,6 +19,7 @@ package org.apache.nifi.registry.flow;
 
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
+import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -181,13 +182,15 @@ public class RestBasedFlowRegistry implements FlowRegistry {
     @Override
     public VersionedFlowSnapshot registerVersionedFlowSnapshot(final VersionedFlow flow, final VersionedProcessGroup snapshot,
                                                                final Map<String, ExternalControllerServiceReference> externalControllerServices,
-                                                               final Map<String, VersionedParameterContext> parameterContexts, final String comments,
+                                                               final Map<String, VersionedParameterContext> parameterContexts,
+                                                               final Map<String, ParameterProviderReference> parameterProviderReferences, final String comments,
                                                                final int expectedVersion, final NiFiUser user) throws IOException, NiFiRegistryException {
         final FlowSnapshotClient snapshotClient = getFlowSnapshotClient(user);
         final VersionedFlowSnapshot versionedFlowSnapshot = new VersionedFlowSnapshot();
         versionedFlowSnapshot.setFlowContents(snapshot);
         versionedFlowSnapshot.setExternalControllerServices(externalControllerServices);
         versionedFlowSnapshot.setParameterContexts(parameterContexts);
+        versionedFlowSnapshot.setParameterProviders(parameterProviderReferences);
         versionedFlowSnapshot.setFlowEncodingVersion(FLOW_ENCODING_VERSION);
 
         final VersionedFlowSnapshotMetadata metadata = new VersionedFlowSnapshotMetadata();

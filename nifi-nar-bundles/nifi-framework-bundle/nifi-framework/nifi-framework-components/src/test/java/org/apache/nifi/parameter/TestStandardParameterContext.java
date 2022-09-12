@@ -38,13 +38,19 @@ import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 
 public class TestStandardParameterContext {
 
     @Test
     public void testUpdatesApply() {
         final ParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
-        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null);
+
+        final StandardParameterContext context = new StandardParameterContext.Builder()
+                .id("unit-test-context")
+                .name("unit-test-context")
+                .parameterReferenceManager(referenceManager)
+                .build();
 
         final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").build();
         final ParameterDescriptor xyzDescriptor = new ParameterDescriptor.Builder().name("xyz").build();
@@ -99,8 +105,11 @@ public class TestStandardParameterContext {
     @Test
     public void testUpdateDescription() {
         final ParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
-        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null);
-
+        final StandardParameterContext context = new StandardParameterContext.Builder()
+                .id("unit-test-context")
+                .name("unit-test-context")
+                .parameterReferenceManager(referenceManager)
+                .build();
         final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").description("abc").build();
 
         final Map<String, Parameter> parameters = new HashMap<>();
@@ -133,9 +142,49 @@ public class TestStandardParameterContext {
     }
 
     @Test
+    public void testUpdateSensitivity() {
+        final ParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
+        final StandardParameterContext context = new StandardParameterContext.Builder()
+                .id("unit-test-context")
+                .name("unit-test-context")
+                .parameterReferenceManager(referenceManager)
+                .build();
+        final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").description("abc").build();
+
+        final Map<String, Parameter> parameters = new HashMap<>();
+        parameters.put("abc", new Parameter(abcDescriptor, "123", null, true));
+
+        context.setParameters(parameters);
+
+        Parameter abcParam = context.getParameter("abc").get();
+        assertEquals(abcDescriptor, abcParam.getDescriptor());
+        assertEquals("abc", abcParam.getDescriptor().getDescription());
+        assertEquals("123", abcParam.getValue());
+
+        ParameterDescriptor updatedDescriptor = new ParameterDescriptor.Builder().name("abc").description("abc").sensitive(true).build();
+        final Parameter unprovidedParam = new Parameter(updatedDescriptor, "321", null, false);
+        assertThrows(IllegalStateException.class, () -> context.setParameters(Collections.singletonMap("abc", unprovidedParam)));
+
+        final Parameter newSensitivityParam = new Parameter(updatedDescriptor, "321", null, true);
+        context.setParameters(Collections.singletonMap("abc", newSensitivityParam));
+
+        abcParam = context.getParameter("abc").get();
+        assertEquals(abcDescriptor, abcParam.getDescriptor());
+        assertTrue(abcParam.getDescriptor().isSensitive());
+
+        context.getParameters().keySet().forEach(pd -> {
+            assertTrue(pd.isSensitive());
+        });
+    }
+
+    @Test
     public void testChangeDescription() {
         final ParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
-        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null);
+        final StandardParameterContext context = new StandardParameterContext.Builder()
+                .id("unit-test-context")
+                .name("unit-test-context")
+                .parameterReferenceManager(referenceManager)
+                .build();
         final ParameterDescriptor xyzDescriptor = new ParameterDescriptor.Builder().name("xyz").build();
         final Map<String, Parameter> parameters = new HashMap<>();
         parameters.put("xyz", new Parameter(xyzDescriptor, "123"));
@@ -159,8 +208,11 @@ public class TestStandardParameterContext {
     public void testChangingSensitivity() {
         // Ensure no changes applied
         final ParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
-        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null);
-
+        final StandardParameterContext context = new StandardParameterContext.Builder()
+                .id("unit-test-context")
+                .name("unit-test-context")
+                .parameterReferenceManager(referenceManager)
+                .build();
         final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").sensitive(true).build();
         final ParameterDescriptor xyzDescriptor = new ParameterDescriptor.Builder().name("xyz").build();
         final ParameterDescriptor fooDescriptor = new ParameterDescriptor.Builder().name("foo").description("bar").sensitive(true).build();
@@ -197,8 +249,7 @@ public class TestStandardParameterContext {
     @Test
     public void testChangingParameterForRunningProcessor() {
         final HashMapParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
-        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null);
-
+        final ParameterContext context = createStandardParameterContext(referenceManager);
         final ProcessorNode procNode = getProcessorNode("abc", referenceManager);
 
         final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").sensitive(true).build();
@@ -431,8 +482,7 @@ public class TestStandardParameterContext {
     @Test
     public void testChangingParameterForEnabledControllerService() {
         final HashMapParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
-        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null);
-
+        final ParameterContext context = createStandardParameterContext(referenceManager);
         final ControllerServiceNode serviceNode = Mockito.mock(ControllerServiceNode.class);
         enableControllerService(serviceNode);
 
@@ -468,6 +518,14 @@ public class TestStandardParameterContext {
             Assert.fail("Was able to remove parameter being referenced by Controller Service that is DISABLING");
         } catch (final IllegalStateException expected) {
         }
+    }
+
+    private ParameterContext createStandardParameterContext(final ParameterReferenceManager referenceManager) {
+        return new StandardParameterContext.Builder()
+                .id("unit-test-context")
+                .name("unit-test-context")
+                .parameterReferenceManager(referenceManager)
+                .build();
     }
 
     @Test
@@ -584,38 +642,6 @@ public class TestStandardParameterContext {
 
         Assert.assertEquals("d.grandchild", effectiveParameters.get(grandchild).getValue());
         Assert.assertEquals("d", effectiveParameters.get(grandchild).getParameterContextId());
-    }
-
-    @Test
-    public void testHasEffectiveValueIfRemoved() {
-        final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
-        // Set up a hierarchy as follows:
-        //    a    (foo, bar, baz)
-        //    |
-        //    b    (foo, child)
-        //    |
-        //    c    (bar, grandchild)
-        //
-        // foo is in a/b; bar is in a/c; baz is only in a
-        final ParameterContext a = createParameterContext("a", parameterContextLookup);
-        final ParameterDescriptor foo = addParameter(a, "foo", "a.foo");
-        final ParameterDescriptor bar = addParameter(a, "bar", "a.bar");
-        final ParameterDescriptor baz = addParameter(a, "baz", "a.baz");
-
-        final ParameterContext b = createParameterContext("b", parameterContextLookup);
-        addParameter(b,"foo", "b.foo");
-        final ParameterDescriptor child = addParameter(b, "child", "b.child");
-
-        final ParameterContext c = createParameterContext("c", parameterContextLookup);
-        addParameter(c, "bar", "c.foo");
-        addParameter(c, "grandchild", "c.child");
-
-        a.setInheritedParameterContexts(Arrays.asList(b));
-        b.setInheritedParameterContexts(Arrays.asList(c));
-
-        assertTrue(a.hasEffectiveValueIfRemoved(foo));
-        assertTrue(a.hasEffectiveValueIfRemoved(bar));
-        assertFalse(a.hasEffectiveValueIfRemoved(baz));
     }
 
     @Test
@@ -765,7 +791,7 @@ public class TestStandardParameterContext {
 
     private static ParameterContext createParameterContext(final String id, final ParameterContextManager parameterContextLookup,
                                                            final ParameterReferenceManager referenceManager, final ParameterContext... children) {
-        final ParameterContext parameterContext = new StandardParameterContext(id, id.toUpperCase(), referenceManager, null );
+        final ParameterContext parameterContext = new StandardParameterContext.Builder().id(id).name(id.toUpperCase()).parameterReferenceManager(referenceManager).build();
         parameterContext.setInheritedParameterContexts(Arrays.asList(children));
 
         parameterContextLookup.addParameterContext(parameterContext);

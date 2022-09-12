@@ -262,7 +262,7 @@
             };
 
             // if the parameter has been deleted
-            if (this.hidden === true && this.isNew !== true) {
+            if (this.hidden === true && this.isNew !== true && this.provided !== true) {
                 // hidden parameters were removed by the user, clear the value
                 parameters.push({
                     'parameter': parameter
@@ -858,6 +858,7 @@
                 hasValueChanged: false,
                 isNew: true,
                 isInherited: false,
+                provided: false,
                 parameterContext: parameterContext
             });
 
@@ -1044,7 +1045,7 @@
         if (isValid) {
             var parameter = _.extend({}, originalParameter, {
                 id: originalParameter.id,
-                hidden: false,
+                hidden: originalParameter.provided === true,
                 type: 'Parameter',
                 sensitive: originalParameter.sensitive,
                 name: originalParameter.name,
@@ -1060,6 +1061,7 @@
                 value: serializedParam.value,
                 isModified: serializedParam.hasValueChanged || serializedParam.hasDescriptionChanged,
                 isInherited: originalParameter.isInherited,
+                provided: originalParameter.provided,
                 parameterContext: originalParameter.parameterContext
             });
 
@@ -1561,7 +1563,8 @@
                     isEditable: _.defaultTo(readOnly, false) ? false : parameterEntity.canWrite,
                     referencingComponents: parameterEntity.parameter.referencingComponents,
                     parameterContext: containingParameterContext,
-                    isInherited: (containingParameterContext.id !== parameterContext.component.id)
+                    isInherited: (containingParameterContext.id !== parameterContext.component.id),
+                    provided: parameterEntity.parameter.provided
                 };
 
                 parameters.push({

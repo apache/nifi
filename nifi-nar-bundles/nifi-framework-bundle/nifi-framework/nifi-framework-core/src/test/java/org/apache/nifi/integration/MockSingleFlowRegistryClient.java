@@ -22,6 +22,7 @@ import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
@@ -169,7 +170,8 @@ public class MockSingleFlowRegistryClient implements FlowRegistryClient {
         @Override
         public VersionedFlowSnapshot registerVersionedFlowSnapshot(final VersionedFlow flow, final VersionedProcessGroup snapshot,
                                                                    final Map<String, ExternalControllerServiceReference> externalControllerServices,
-                                                                   final Map<String, VersionedParameterContext> parameterContexts, final String comments,
+                                                                   final Map<String, VersionedParameterContext> parameterContexts,
+                                                                   final Map<String, ParameterProviderReference> parameterProviderReferences, final String comments,
                                                                    final int expectedVersion, final NiFiUser user) throws IOException, NiFiRegistryException {
             return null;
         }

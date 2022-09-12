@@ -78,13 +78,21 @@ public class DocumentationController extends HttpServlet {
             reportingTasks.put(StringUtils.substringAfterLast(reportingTaskClass, "."), reportingTaskClass);
         }
 
+        // create the parameter provider lookup
+        final Map<String, String> parameterProviders = new TreeMap<>(collator);
+        for (final String parameterProviderClass : extensionMappings.getParameterProviderNames().keySet()) {
+            parameterProviders.put(StringUtils.substringAfterLast(parameterProviderClass, "."), parameterProviderClass);
+        }
+
         // make the available components available to the documentation jsp
         request.setAttribute("processors", processors);
         request.setAttribute("processorBundleLookup", extensionMappings.getProcessorNames());
         request.setAttribute("controllerServices", controllerServices);
         request.setAttribute("controllerServiceBundleLookup", extensionMappings.getControllerServiceNames());
         request.setAttribute("reportingTasks", reportingTasks);
+        request.setAttribute("parameterProviders", parameterProviders);
         request.setAttribute("reportingTaskBundleLookup", extensionMappings.getReportingTaskNames());
+        request.setAttribute("parameterProviderBundleLookup", extensionMappings.getParameterProviderNames());
         request.setAttribute("totalComponents", GENERAL_LINK_COUNT + extensionMappings.size() + DEVELOPER_LINK_COUNT);
 
         // forward appropriately
