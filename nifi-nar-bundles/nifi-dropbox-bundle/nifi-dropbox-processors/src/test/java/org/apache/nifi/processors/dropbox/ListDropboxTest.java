@@ -47,6 +47,7 @@ import java.util.Spliterator;
 import java.util.stream.StreamSupport;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.services.dropbox.StandardDropboxCredentialService;
@@ -94,7 +95,7 @@ public class ListDropboxTest {
     void setUp() throws Exception {
         ListDropbox testSubject = new ListDropbox() {
             @Override
-            public DbxClientV2 getDropboxApiClient(ProcessContext context) {
+            public DbxClientV2 getDropboxApiClient(ProcessContext context, ProxyConfiguration proxyConfiguration) {
                 return mockDropboxClient;
             }
 
@@ -143,7 +144,7 @@ public class ListDropboxTest {
         //root is listed when "" is used in Dropbox API
         when(mockDbxUserFilesRequest.listFolderBuilder("")).thenReturn(mockListFolderBuilder);
         when(mockListFolderResult.getEntries()).thenReturn(singletonList(
-                createFileMetaData(FILENAME_1, folderName, ID_1, CREATED_TIME)
+                createFileMetadata(FILENAME_1, folderName, ID_1, CREATED_TIME)
         ));
 
         testRunner.run();
@@ -162,9 +163,9 @@ public class ListDropboxTest {
 
         when(mockDbxUserFilesRequest.listFolderBuilder(TEST_FOLDER)).thenReturn(mockListFolderBuilder);
         when(mockListFolderResult.getEntries()).thenReturn(Arrays.asList(
-                createFileMetaData(FILENAME_1, TEST_FOLDER, ID_1, CREATED_TIME),
-                createFolderMetaData("testFolder1", TEST_FOLDER),
-                createFileMetaData(FILENAME_2, TEST_FOLDER, ID_2, CREATED_TIME, false)
+                createFileMetadata(FILENAME_1, TEST_FOLDER, ID_1, CREATED_TIME),
+                createFolderMetadata("testFolder1", TEST_FOLDER),
+                createFileMetadata(FILENAME_2, TEST_FOLDER, ID_2, CREATED_TIME, false)
         ));
 
         testRunner.run();
@@ -183,8 +184,8 @@ public class ListDropboxTest {
 
         when(mockDbxUserFilesRequest.listFolderBuilder(TEST_FOLDER)).thenReturn(mockListFolderBuilder);
         when(mockListFolderResult.getEntries()).thenReturn(Arrays.asList(
-                createFileMetaData(FILENAME_1, TEST_FOLDER, ID_1, CREATED_TIME),
-                createFileMetaData(FILENAME_2, TEST_FOLDER, ID_2, OLD_CREATED_TIME)
+                createFileMetadata(FILENAME_1, TEST_FOLDER, ID_1, CREATED_TIME),
+                createFileMetadata(FILENAME_2, TEST_FOLDER, ID_2, OLD_CREATED_TIME)
         ));
 
         testRunner.run();
@@ -204,8 +205,8 @@ public class ListDropboxTest {
 
         when(mockDbxUserFilesRequest.listFolderBuilder(TEST_FOLDER)).thenReturn(mockListFolderBuilder);
         when(mockListFolderResult.getEntries()).thenReturn(Arrays.asList(
-                createFileMetaData(FILENAME_1, TEST_FOLDER, ID_1, CREATED_TIME),
-                createFileMetaData(FILENAME_2, TEST_FOLDER, ID_2, CREATED_TIME)
+                createFileMetadata(FILENAME_1, TEST_FOLDER, ID_1, CREATED_TIME),
+                createFileMetadata(FILENAME_2, TEST_FOLDER, ID_2, CREATED_TIME)
         ));
 
         testRunner.run();
@@ -228,7 +229,7 @@ public class ListDropboxTest {
         flowFile.assertAttributeEquals(DropboxFileInfo.REVISION, REVISION);
     }
 
-    private FileMetadata createFileMetaData(
+    private FileMetadata createFileMetadata(
             String filename,
             String parent,
             String id,
@@ -243,15 +244,15 @@ public class ListDropboxTest {
                 .build();
     }
 
-    private FileMetadata createFileMetaData(
+    private FileMetadata createFileMetadata(
             String filename,
             String parent,
             String id,
             long createdTime) {
-        return createFileMetaData(filename, parent, id, createdTime, true);
+        return createFileMetadata(filename, parent, id, createdTime, true);
     }
 
-    private Metadata createFolderMetaData(String folderName, String parent) {
+    private Metadata createFolderMetadata(String folderName, String parent) {
         return FolderMetadata.newBuilder(folderName)
                 .withPathDisplay(parent + "/" + folderName)
                 .build();

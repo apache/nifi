@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.services.dropbox.StandardDropboxCredentialService;
 import org.apache.nifi.util.MockFlowFile;
@@ -74,7 +75,7 @@ public class FetchDropboxTest {
     void setUp() throws Exception {
         FetchDropbox testSubject = new FetchDropbox() {
             @Override
-            public DbxClientV2 getDropboxApiClient(ProcessContext context) {
+            public DbxClientV2 getDropboxApiClient(ProcessContext context, ProxyConfiguration proxyConfiguration) {
                 return mockDropboxClient;
             }
         };

@@ -20,9 +20,11 @@ import static java.lang.String.format;
 
 import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxRequestConfig;
+import com.dropbox.core.http.StandardHttpRequestor;
 import com.dropbox.core.oauth.DbxCredential;
 import com.dropbox.core.v2.DbxClientV2;
 import java.io.InputStream;
+import java.net.Proxy;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -47,6 +49,8 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"dropbox", "storage", "fetch"})
@@ -96,9 +100,11 @@ public class FetchDropbox extends AbstractProcessor {
     )));
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            CREDENTIAL_SERVICE,
             FILE,
-            CREDENTIAL_SERVICE
+            ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxySpec.HTTP_AUTH)
     ));
+
     private DbxClientV2 dropboxApiClient;
 
     @Override
@@ -108,7 +114,8 @@ public class FetchDropbox extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        dropboxApiClient = getDropboxApiClient(context);
+        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
+        dropboxApiClient = getDropboxApiClient(context, proxyConfiguration);
     }
 
     @Override
@@ -135,11 +142,20 @@ public class FetchDropbox extends AbstractProcessor {
         return PROPERTIES;
     }
 
-    protected DbxClientV2 getDropboxApiClient(ProcessContext context) {
+    protected DbxClientV2 getDropboxApiClient(ProcessContext context, ProxyConfiguration proxyConfiguration) {
+        Proxy proxy = proxyConfiguration.createProxy();
+        StandardHttpRequestor.Config requestorConfig = StandardHttpRequestor.Config.builder()
+                .withProxy(proxy)
+                .build();
+        StandardHttpRequestor httpRequestor = new StandardHttpRequestor(requestorConfig);
+        DbxRequestConfig config = DbxRequestConfig.newBuilder(format("%s-%s", getClass().getSimpleName(), getIdentifier()))
+                .withHttpRequestor(httpRequestor)
+                .build();
+
         final DropboxCredentialService credentialService = context.getProperty(CREDENTIAL_SERVICE)
                 .asControllerService(DropboxCredentialService.class);
-        DbxRequestConfig config = new DbxRequestConfig(format("%s-%s", getClass().getSimpleName(), getIdentifier()));
         DropboxCredentialDetails credential = credentialService.getDropboxCredential();
+
         return new DbxClientV2(config, new DbxCredential(credential.getAccessToken(), -1L,
                 credential.getRefreshToken(), credential.getAppKey(), credential.getAppSecret()));
     }
