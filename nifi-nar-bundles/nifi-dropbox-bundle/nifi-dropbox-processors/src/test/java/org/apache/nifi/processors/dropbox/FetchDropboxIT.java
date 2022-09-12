@@ -41,7 +41,7 @@ public class FetchDropboxIT extends AbstractDropboxIT<FetchDropbox> {
 
     @Test
     void testFetchFileById() throws Exception {
-        FileMetadata file = createFile("test_file1", DEFAULT_FILE_CONTENT, "/testFolder");
+        FileMetadata file = createFile("/testFolder", "test_file1", DEFAULT_FILE_CONTENT);
 
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
         inputFlowFileAttributes.put("dropbox.id", file.getId());
@@ -58,7 +58,7 @@ public class FetchDropboxIT extends AbstractDropboxIT<FetchDropbox> {
 
     @Test
     void testFetchFileByPath() throws Exception {
-        createFile("test_file1", DEFAULT_FILE_CONTENT, "/testFolder");
+        createFile("/testFolder", "test_file1", DEFAULT_FILE_CONTENT);
 
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
         inputFlowFileAttributes.put("path", "/testFolder");
@@ -78,7 +78,7 @@ public class FetchDropboxIT extends AbstractDropboxIT<FetchDropbox> {
 
     @Test
     void testFetchFileFromRootByPath() throws Exception {
-        createFile("test_file1", DEFAULT_FILE_CONTENT, "/");
+        createFile("/", "test_file1", DEFAULT_FILE_CONTENT);
 
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
         inputFlowFileAttributes.put("path", "/");

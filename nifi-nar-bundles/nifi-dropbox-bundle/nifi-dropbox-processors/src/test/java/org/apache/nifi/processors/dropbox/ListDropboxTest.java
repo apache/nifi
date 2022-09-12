@@ -155,7 +155,7 @@ public class ListDropboxTest {
     }
 
     @Test
-    void testOnlyFilesAreListedFolderShortcutAreFiltered() throws Exception {
+    void testOnlyFilesAreListedFoldersAndShortcutsAreFiltered() throws Exception {
         mockFileListing();
 
         testRunner.setProperty(ListDropbox.FOLDER, TEST_FOLDER);

@@ -53,12 +53,12 @@ public class ListDropboxIT extends AbstractDropboxIT<ListDropbox> {
 
     @Test
     void testEmbeddedDirectoriesAreListed() throws Exception {
-        createFile("test_file1", "test_file_content1", MAIN_FOLDER);
-        createFile("test_file2", "test_file_content2", MAIN_FOLDER);
-        createFile("test_file11", "test_file_content11", MAIN_FOLDER + "/testFolder1");
-        createFile("test_file112", "test_file_content112", MAIN_FOLDER + "/testFolder2");
+        createFile(MAIN_FOLDER, "test_file1", "test_file_content1");
+        createFile(MAIN_FOLDER, "test_file2", "test_file_content2");
+        createFile(MAIN_FOLDER + "/testFolder1", "test_file11", "test_file_content11");
+        createFile(MAIN_FOLDER + "/testFolder2", "test_file112", "test_file_content112");
 
-        createFile("test_file_not_in_main_folder", "test_file_content31", NOT_MAIN_FOLDER);
+        createFile(NOT_MAIN_FOLDER, "test_file_not_in_main_folder", "test_file_content31");
 
         List<String> expectedFileNames = Arrays.asList("test_file1", "test_file2", "test_file11", "test_file112");
 
@@ -77,8 +77,8 @@ public class ListDropboxIT extends AbstractDropboxIT<ListDropbox> {
     void testFolderIsListedById() throws Exception {
         testRunner.setProperty(ListDropbox.FOLDER, mainFolderId);
 
-        createFile("test_file1", "test_file_content1", MAIN_FOLDER);
-        createFile("test_file11", "test_file_content11", MAIN_FOLDER + "/testFolder1");
+        createFile(MAIN_FOLDER, "test_file1", "test_file_content1");
+        createFile(MAIN_FOLDER + "/testFolder1", "test_file11", "test_file_content11");
 
         List<String> expectedFileNames = Arrays.asList("test_file1", "test_file11");
 
@@ -97,7 +97,7 @@ public class ListDropboxIT extends AbstractDropboxIT<ListDropbox> {
     void testTooYoungFilesNotListedWhenMinAgeIsSet() throws Exception {
         testRunner.setProperty(ListDropbox.MIN_AGE, "15 s");
 
-        createFile(YOUNG_FILE_NAME, "test_file_content1", MAIN_FOLDER);
+        createFile(MAIN_FOLDER, YOUNG_FILE_NAME, "test_file_content1");
 
         waitForFileCreation();
 

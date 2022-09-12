@@ -88,8 +88,7 @@ public class FetchDropbox extends AbstractProcessor {
                     .build();
     public static final Relationship REL_FAILURE =
             new Relationship.Builder().name("failure")
-                    .description(
-                            "A FlowFile will be routed here for each File for which fetch was attempted but failed.")
+                    .description("A FlowFile will be routed here for each File for which fetch was attempted but failed.")
                     .build();
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             REL_SUCCESS,
