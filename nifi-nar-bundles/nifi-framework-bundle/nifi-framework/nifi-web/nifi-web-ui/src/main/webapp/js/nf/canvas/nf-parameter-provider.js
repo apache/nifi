@@ -567,7 +567,9 @@
                             updateToCloseButtonModel();
 
                             // check if border is necessary
-                            updateReferencingComponentsBorder($('#affected-referencing-components-container'));
+                            if ($('#affected-referencing-components-container').is(':visible')) {
+                                updateReferencingComponentsBorder($('#affected-referencing-components-container'));
+                            }
                         } else {
                             // wait to get an updated status
                             setTimeout(function () {
@@ -765,22 +767,20 @@
             var groupFromDataGrid = groups[k];
 
             var firstKey = Object.keys(groupFromDataGrid.parameterSensitivities)[0];
-            if (groupFromDataGrid.parameterSensitivities[firstKey] === null) {
-                // the groups parameterSensitivities will be equal and no need to compare
-                break;
-            }
+            if (groupFromDataGrid.parameterSensitivities[firstKey] !== null) {
 
-            // form the initially fetched group sensitivities
-            var groupInitiallyFetched = initialFetchedGroups[k];
-            var initialGroupParamSensitivity = {};
+                // form the initially fetched group sensitivities
+                var groupInitiallyFetched = initialFetchedGroups[k];
+                var initialGroupParamSensitivity = {};
 
-            for (var param in groupInitiallyFetched.parameterSensitivities) {
-                initialGroupParamSensitivity[param] = groupInitiallyFetched.parameterSensitivities[param] ? groupInitiallyFetched.parameterSensitivities[param] : SENSITIVE;
-            }
+                for (var param in groupInitiallyFetched.parameterSensitivities) {
+                    initialGroupParamSensitivity[param] = groupInitiallyFetched.parameterSensitivities[param] ? groupInitiallyFetched.parameterSensitivities[param] : SENSITIVE;
+                }
 
-            // compare
-            if (!_.isEqual(initialGroupParamSensitivity, groupFromDataGrid.parameterSensitivities)) {
-                return false;
+                // compare
+                if (!_.isEqual(initialGroupParamSensitivity, groupFromDataGrid.parameterSensitivities)) {
+                    return false;
+                }
             }
         }
 
@@ -808,12 +808,18 @@
                     ? isReferencingParamContext(parameterProviderGroupEntity.component.referencingParameterContexts, groupConfig.parameterContextName)
                     : false;
 
-                var canWrite = false;
-                if ((referencingParameterContext &&
-                    referencingParameterContext.permissions.canWrite) &&
-                    (parameterProviderGroupEntity.component.affectedComponents &&
-                    isAffectedRefComponentsCanWrite(parameterProviderGroupEntity.component.affectedComponents))) {
-                    canWrite = true;
+                var canWriteParameterContexts;
+                if (referencingParameterContext) {
+                    canWriteParameterContexts = referencingParameterContext.permissions.canWrite;
+                } else {
+                    canWriteParameterContexts = true;
+                }
+
+                var canWriteAffectedComponents;
+                if (parameterProviderGroupEntity.component.affectedComponents) {
+                    canWriteAffectedComponents = isAffectedRefComponentsCanWrite(parameterProviderGroupEntity.component.affectedComponents);
+                } else {
+                    canWriteAffectedComponents = true;
                 }
 
                 var group = {
@@ -824,7 +830,7 @@
                     parameterContextName: groupConfig.parameterContextName,
                     parameterSensitivities: groupConfig.parameterSensitivities,
                     referencingParameterContexts: groupConfig.referencingParameterContexts ? groupConfig.referencingParameterContexts : null,
-                    enableSelectableParameters: canWrite
+                    enableSelectableParameters: canWriteParameterContexts && canWriteAffectedComponents
                 };
 
                 parameterGroups.push({

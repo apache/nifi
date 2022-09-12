@@ -288,7 +288,7 @@
             }
 
             // set the bulletins
-            if (isDefinedAndNotNull(bulletins) && Array.isArray(bulletins)) {
+            if (isDefinedAndNotNull(bulletins)) {
                 var bulletinCount = bulletins.find('li').length;
                 bar.find('.dialog-status-bar-bulletins-content').html((bulletinCount > 0)?bulletins:'');
                 bar.find('.dialog-status-bar-bulletins').attr('count',bulletinCount);
