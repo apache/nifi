@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.airtable.service;
 
-import com.fasterxml.jackson.core.JsonParseException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
