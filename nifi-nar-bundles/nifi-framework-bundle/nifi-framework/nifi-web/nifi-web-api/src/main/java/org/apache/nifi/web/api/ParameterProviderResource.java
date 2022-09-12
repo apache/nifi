@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api;
 
+import com.google.common.base.Functions;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -60,6 +61,7 @@ import org.apache.nifi.web.api.dto.ParameterProviderApplyParametersRequestDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderApplyParametersUpdateStepDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderConfigurationDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
+import org.apache.nifi.web.api.dto.ParameterStatusDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.VerifyConfigRequestDTO;
@@ -790,9 +792,12 @@ public class ParameterProviderResource extends AbstractParameterResource {
                     final List<ParameterContextEntity> parameterContextUpdates = serviceFacade.getParameterContextUpdatesForAppliedParameters(parameterProviderId, parameterGroupConfigurations);
 
                     final Set<AffectedComponentEntity> affectedComponents = getAffectedComponentEntities(parameterContextUpdates);
-
                     if (!affectedComponents.isEmpty()) {
                         entity.getComponent().setAffectedComponents(affectedComponents);
+                    }
+                    final Set<ParameterStatusDTO> parameterStatus = getParameterStatus(parameterContextUpdates, user);
+                    if (!parameterStatus.isEmpty()) {
+                        entity.getComponent().setParameterStatus(parameterStatus);
                     }
                     populateRemainingParameterProviderEntityContent(entity);
 
@@ -935,6 +940,32 @@ public class ParameterProviderResource extends AbstractParameterResource {
                 .map(ParameterContextEntity::getComponent)
                 .collect(Collectors.toList());
         return serviceFacade.getComponentsAffectedByParameterContextUpdate(updatedParameterContextDTOs);
+    }
+
+    private Set<ParameterStatusDTO> getParameterStatus(final List<ParameterContextEntity> parameterContextUpdates, final NiFiUser niFiUser) {
+        final Set<ParameterStatusDTO> parameterStatus = new HashSet<>();
+        for (final ParameterContextEntity parameterContextUpdate : parameterContextUpdates) {
+            final ParameterContextEntity parameterContext = serviceFacade.getParameterContext(parameterContextUpdate.getId(), false, niFiUser);
+            final Map<String, ParameterEntity> updatedParameters = parameterContextUpdate.getComponent().getParameters().stream()
+                    .collect(Collectors.toMap(parameter -> parameter.getParameter().getName(), Functions.identity()));
+            if (parameterContext.getComponent() == null) {
+                continue;
+            }
+
+            for (final ParameterEntity parameter : parameterContext.getComponent().getParameters()) {
+                final ParameterStatusDTO dto = new ParameterStatusDTO();
+                final ParameterEntity updatedParameter = updatedParameters.get(parameter.getParameter().getName());
+                if (updatedParameter == null) {
+                    dto.setParameter(parameter);
+                    dto.setChanged(false);
+                } else {
+                    dto.setParameter(updatedParameter);
+                    dto.setChanged(true);
+                }
+                parameterStatus.add(dto);
+            }
+        }
+        return parameterStatus;
     }
 
     @GET
