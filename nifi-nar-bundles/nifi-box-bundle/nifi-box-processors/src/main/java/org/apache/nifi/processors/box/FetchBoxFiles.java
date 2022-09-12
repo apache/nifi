@@ -70,12 +70,12 @@ public class FetchBoxFiles extends AbstractProcessor implements BoxTrait {
     public static final Relationship REL_SUCCESS =
         new Relationship.Builder()
             .name("success")
-            .description("A flowfile will be routed here for each successfully fetched File.")
+            .description("A FlowFile will be routed here for each successfully fetched File.")
             .build();
 
     public static final Relationship REL_FAILURE =
         new Relationship.Builder().name("failure")
-            .description("A flowfile will be routed here for each File for which fetch was attempted but failed.")
+            .description("A FlowFile will be routed here for each File for which fetch was attempted but failed.")
             .build();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH};

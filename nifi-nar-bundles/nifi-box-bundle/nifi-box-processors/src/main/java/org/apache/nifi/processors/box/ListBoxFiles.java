@@ -32,8 +32,6 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -49,7 +47,6 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -62,8 +59,8 @@ import java.util.stream.Collectors;
 @TriggerSerially
 @Tags({"box", "storage"})
 @CapabilityDescription("Lists files in a Box folder. " +
-    "Each listed file may result in one flowfile, the metadata being written as flowfile attributes. " +
-    "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single flowfile. " +
+    "Each listed file may result in one FlowFile, the metadata being written as FlowFile attributes. " +
+    "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single FlowFile. " +
     "This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the " +
     "previous node left off without duplicating all of the data.")
 @SeeAlso({FetchBoxFiles.class})
@@ -144,10 +141,6 @@ public class ListBoxFiles extends AbstractListProcessor<BoxFileInfo> implements 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
-    }
-
-    @Override
-    protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
     }
 
     @Override

@@ -84,11 +84,7 @@ public class ListBoxFilesIT extends AbstractBoxFilesIT<ListBoxFiles> {
         testRunner.run();
 
         // THEN
-        List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ListBoxFiles.REL_SUCCESS);
-
-        Set<String> actualFileNames = successFlowFiles.stream()
-            .map(flowFile -> flowFile.getAttribute("filename"))
-            .collect(Collectors.toSet());
+        Set<String> actualFileNames = getActualFileNames();
 
         assertEquals(expectedFileNames, actualFileNames);
 
@@ -108,11 +104,7 @@ public class ListBoxFilesIT extends AbstractBoxFilesIT<ListBoxFiles> {
         testRunner.run();
 
         // THEN
-        successFlowFiles = testRunner.getFlowFilesForRelationship(ListBoxFiles.REL_SUCCESS);
-
-        actualFileNames = successFlowFiles.stream()
-            .map(flowFile -> flowFile.getAttribute("filename"))
-            .collect(Collectors.toSet());
+        actualFileNames = getActualFileNames();
 
         assertEquals(expectedFileNames, actualFileNames);
     }
@@ -131,11 +123,7 @@ public class ListBoxFilesIT extends AbstractBoxFilesIT<ListBoxFiles> {
         testRunner.run();
 
         // THEN
-        List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ListBoxFiles.REL_SUCCESS);
-
-        Set<String> actualFileNames = successFlowFiles.stream()
-            .map(flowFile -> flowFile.getAttribute("filename"))
-            .collect(Collectors.toSet());
+        Set<String> actualFileNames = getActualFileNames();
 
         assertEquals(Collections.emptySet(), actualFileNames);
 
@@ -152,13 +140,19 @@ public class ListBoxFilesIT extends AbstractBoxFilesIT<ListBoxFiles> {
         testRunner.run();
 
         // THEN
-        successFlowFiles = testRunner.getFlowFilesForRelationship(ListBoxFiles.REL_SUCCESS);
+        actualFileNames = getActualFileNames();
 
-        actualFileNames = successFlowFiles.stream()
+        assertEquals(expectedFileNames, actualFileNames);
+    }
+
+    private Set<String> getActualFileNames() {
+        List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ListBoxFiles.REL_SUCCESS);
+
+        Set<String> actualFileNames = successFlowFiles.stream()
             .map(flowFile -> flowFile.getAttribute("filename"))
             .collect(Collectors.toSet());
 
-        assertEquals(expectedFileNames, actualFileNames);
+        return actualFileNames;
     }
 
 }

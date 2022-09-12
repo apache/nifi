@@ -41,7 +41,8 @@ import java.util.stream.Collectors;
  * FOLDER_ID - The ID of a Folder the test can use to create files and sub-folders within.<br />
  * USER_ID - The ID of the user owning the Folder.<br />
  * BOX_CONFIG_FILE - An App Settings Configuration JSON file. The app needs to have 'OAuth 2.0 with JSON Web Tokens (Server Authentication)' authentication method,
- * have App + Enterprise access level and be able to read and write files and folders as well as generate user access tokens.<br />
+ * have 'App + Enterprise access level', have 'Generate user access tokens' and 'Make API calls using the as-user header' enabled
+ * and be able to 'Write all files and folders in Box'.<br />
  * <br />
  * Created files and folders are cleaned up, but it's advisable to dedicate a folder for this test so that it can be cleaned up easily should the test fail to do so.
  */
