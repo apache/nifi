@@ -1,0 +1,72 @@
+nifi-workday-processors-nar
+Copyright 2015-2022 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) BCrypt Password Hashing Function (at.favre.lib:bcrypt:jar:0.9.0 - https://github.com/patrickfav/bcrypt)
+      The following NOTICE information applies:
+        BCrypt Password Hashing Function 0.9.0
+        Copyright 2018 Patrick Favre-Bulle
+
+  (ASLv2) Bytes Utility Library (at.favre.lib:bytes:jar:1.3.0 - https://github.com/patrickfav/bytes-java)
+      The following NOTICE information applies:
+        Bytes Utility Library 1.3.0
+        Copyright 2017 Patrick Favre-Bulle
+
+  (ASLv2) Caffeine
+    The following NOTICE information applies:
+      Caffeine (caching library)
+      Copyright Ben Manes
+
+  (ASLv2) Apache Commons Codec
+      The following NOTICE information applies:
+        Apache Commons Codec
+        Copyright 2002-2014 The Apache Software Foundation
+
+        src/test/org/apache/commons/codec/language/DoubleMetaphoneTest.java
+        contains test data from http://aspell.net/test/orig/batch0.tab.
+        Copyright (C) 2002 Kevin Atkinson (kevina@gnu.org)
+
+        ===============================================================================
+
+        The content of package org.apache.commons.codec.language.bm has been translated
+        from the original php source code available at http://stevemorse.org/phoneticinfo.htm
+        with permission from the original authors.
+        Original source copyright:
+        Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
+
+  (ASLv2) Apache Commons Lang
+    The following NOTICE information applies:
+      Apache Commons Lang
+      Copyright 2001-2015 The Apache Software Foundation
+
+      This product includes software from the Spring Framework,
+      under the Apache License 2.0 (see: StringUtils.containsWhitespace())
+
+  (ASLv2) Error Prone
+    The following NOTICE information applies:
+      Copyright 2017 Google Inc.
+
+  (ASLv2) Jackson JSON processor
+    The following NOTICE information applies:
+      # Jackson JSON processor
+
+      Jackson is a high-performance, Free/Open Source JSON processing library.
+      It was originally written by Tatu Saloranta (tatu.saloranta@iki.fi), and has
+      been in development since 2007.
+      It is currently developed by a community of developers, as well as supported
+      commercially by FasterXML.com.
+
+      ## Licensing
+
+      Jackson core and extension components may licensed under different licenses.
+      To find the details that apply to this artifact see the accompanying LICENSE file.
+      For more information, including possible other licensing options, contact
+      FasterXML.com (https://fasterxml.com).

@@ -70,7 +70,6 @@ import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.record.path.RecordPathResult;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.security.util.crypto.HashAlgorithm;
-import org.apache.nifi.security.util.crypto.HashService;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -83,10 +82,10 @@ import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.WebClientService;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
-@Tags({"Workday", "report", "get"})
+@Tags({"Workday", "report"})
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @CapabilityDescription("A processor which can interact with a configurable Workday Report. The processor can forward the content without modification, or you can transform it by"
-    + " providing the specific Record Reader and Record Writer services based on your needs. You can also hash, or remove fields using the input parameters and schemes in the Record writer. "
+    + " providing the specific Record Reader and Record Writer services based on your needs. You can also hash, or remove fields using the input parameters and schemes in the Record Writer. "
     + "Supported Workday report formats are: csv, simplexml, json")
 @EventDriven
 @SideEffectFree
@@ -113,8 +112,8 @@ public class GetWorkdayReport extends AbstractProcessor {
     protected static final String USERNAME_PASSWORD_SEPARATOR = ":";
 
     protected static final PropertyDescriptor REPORT_URL = new PropertyDescriptor.Builder()
-        .name("Workday report URL")
-        .displayName("Workday report URL")
+        .name("Workday Report URL")
+        .displayName("Workday Report URL")
         .description("HTTP remote URL of Workday report including a scheme of http or https, as well as a hostname or IP address with optional port and path elements.")
         .required(true)
         .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
@@ -141,27 +140,27 @@ public class GetWorkdayReport extends AbstractProcessor {
         .build();
 
     protected static final PropertyDescriptor WEB_CLIENT_SERVICE = new PropertyDescriptor.Builder()
-        .name("Standard Web Client Service")
+        .name("Web Client Service Provider")
         .description("Web client which is used to communicate with the Workday API.")
         .required(true)
         .identifiesControllerService(WebClientServiceProvider.class)
         .build();
 
     protected static final PropertyDescriptor FIELDS_TO_HASH = new PropertyDescriptor.Builder()
-        .name("Fields to hash")
-        .displayName("Fields to hash")
-        .description("Comma separated record paths to replace with hash.")
+        .name("Hashed Fields")
+        .displayName("Hashed Fields")
+        .description("Comma separated record paths to be replaced with their corresponding hash.")
         .required(false)
         .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
         .addValidator(NON_BLANK_VALIDATOR)
         .build();
 
     protected static final PropertyDescriptor HASHING_ALGORITHM = new PropertyDescriptor.Builder()
-        .name("Hashing algorithm")
-        .displayName("Hashing algorithm")
+        .name("Hashing Algorithm")
+        .displayName("Hashing Algorithm")
         .description("Determines what hashing algorithm should be used to perform the hashing function.")
         .required(true)
-        .allowableValues(HashService.buildHashAlgorithmAllowableValues())
+        .allowableValues(HashAlgorithm.SHA256.getName(), HashAlgorithm.SHA512.getName())
         .defaultValue(HashAlgorithm.SHA256.getName())
         .addValidator(NON_BLANK_VALIDATOR)
         .expressionLanguageSupported(NONE)
@@ -204,9 +203,9 @@ public class GetWorkdayReport extends AbstractProcessor {
     protected static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(REPORT_URL, WORKDAY_USERNAME, WORKDAY_PASSWORD, WEB_CLIENT_SERVICE,
         FIELDS_TO_HASH, HASHING_ALGORITHM, RECORD_READER_FACTORY, RECORD_WRITER_FACTORY));
 
-    private final AtomicReference<WebClientService> webClientAtomicReference = new AtomicReference<>();
-    private final AtomicReference<RecordReaderFactory> recordReaderFactoryAtomicReference = new AtomicReference<>();
-    private final AtomicReference<RecordSetWriterFactory> recordSetWriterFactoryAtomicReference = new AtomicReference<>();
+    private final AtomicReference<WebClientService> webClientReference = new AtomicReference<>();
+    private final AtomicReference<RecordReaderFactory> recordReaderFactoryReference = new AtomicReference<>();
+    private final AtomicReference<RecordSetWriterFactory> recordSetWriterFactoryReference = new AtomicReference<>();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -224,16 +223,16 @@ public class GetWorkdayReport extends AbstractProcessor {
         RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER_FACTORY).asControllerService(RecordReaderFactory.class);
         RecordSetWriterFactory recordSetWriterFactory = context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
         WebClientService webClientService = standardWebClientServiceProvider.getWebClientService();
-        webClientAtomicReference.set(webClientService);
-        recordReaderFactoryAtomicReference.set(recordReaderFactory);
-        recordSetWriterFactoryAtomicReference.set(recordSetWriterFactory);
+        webClientReference.set(webClientService);
+        recordReaderFactoryReference.set(recordReaderFactory);
+        recordSetWriterFactoryReference.set(recordSetWriterFactory);
     }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowfile = session.get();
+        FlowFile flowFile = session.get();
 
-        if (skipExecution(context, flowfile)) {
+        if (skipExecution(context, flowFile)) {
             return;
         }
 
@@ -241,40 +240,43 @@ public class GetWorkdayReport extends AbstractProcessor {
         FlowFile responseFlowFile = null;
 
         try {
-            WebClientService webClientService = webClientAtomicReference.get();
-            URI uri = new URI(context.getProperty(REPORT_URL).evaluateAttributeExpressions(flowfile).getValue().trim());
+            WebClientService webClientService = webClientReference.get();
+            URI uri = new URI(context.getProperty(REPORT_URL).evaluateAttributeExpressions(flowFile).getValue().trim());
             long startNanos = System.nanoTime();
-            String authorization = createAuthorizationHeader(context, flowfile);
+            String authorization = createAuthorizationHeader(context, flowFile);
 
-            try(HttpResponseEntity httpResponseEntity = webClientService.get().uri(uri).header(HEADER_AUTHORIZATION, authorization).retrieve()) {
-                responseFlowFile = createResponseFlowFile(flowfile, session, context, httpResponseEntity);
+            try(HttpResponseEntity httpResponseEntity = webClientService.get()
+                .uri(uri)
+                .header(HEADER_AUTHORIZATION, authorization)
+                .retrieve()) {
+                responseFlowFile = createResponseFlowFile(flowFile, session, context, httpResponseEntity);
                 long elapsedTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
                 Map<String, String> commonAttributes = createCommonAttributes(uri, httpResponseEntity, elapsedTime);
 
-                if (flowfile != null) {
-                    flowfile = session.putAllAttributes(flowfile, decorateWithMimeAttribute(commonAttributes, httpResponseEntity));
+                if (flowFile != null) {
+                    flowFile = session.putAllAttributes(flowFile, setMimeType(commonAttributes, httpResponseEntity));
                 }
                 if (responseFlowFile != null) {
                     responseFlowFile = session.putAllAttributes(responseFlowFile, commonAttributes);
-                    if (flowfile != null) {
-                        session.getProvenanceReporter().fetch(responseFlowFile, uri.toString(), elapsedTime);
-                    } else {
+                    if (flowFile == null) {
                         session.getProvenanceReporter().receive(responseFlowFile, uri.toString(), elapsedTime);
+                    } else {
+                        session.getProvenanceReporter().fetch(responseFlowFile, uri.toString(), elapsedTime);
                     }
                 }
 
-                route(flowfile, responseFlowFile, session, context, httpResponseEntity.statusCode());
+                route(flowFile, responseFlowFile, session, context, httpResponseEntity.statusCode());
             }
         } catch (Exception e) {
-            if (flowfile == null) {
+            if (flowFile == null) {
                 logger.error("Request Processing failed", e);
                 context.yield();
             } else {
-                logger.error("Request Processing failed: {}", flowfile, e);
-                session.penalize(flowfile);
-                flowfile = session.putAttribute(flowfile, GET_WORKDAY_REPORT_JAVA_EXCEPTION_CLASS, e.getClass().getName());
-                flowfile = session.putAttribute(flowfile, GET_WORKDAY_REPORT_JAVA_EXCEPTION_MESSAGE, e.getMessage());
-                session.transfer(flowfile, FAILURE);
+                logger.error("Request Processing failed: {}", flowFile, e);
+                session.penalize(flowFile);
+                flowFile = session.putAttribute(flowFile, GET_WORKDAY_REPORT_JAVA_EXCEPTION_CLASS, e.getClass().getSimpleName());
+                flowFile = session.putAttribute(flowFile, GET_WORKDAY_REPORT_JAVA_EXCEPTION_MESSAGE, e.getMessage());
+                session.transfer(flowFile, FAILURE);
             }
 
             if (responseFlowFile != null) {
@@ -309,13 +311,20 @@ public class GetWorkdayReport extends AbstractProcessor {
         throws IOException, SchemaNotFoundException, MalformedRecordException {
         FlowFile responseFlowFile = null;
         String hashingAlgorithm = context.getProperty(HASHING_ALGORITHM).getValue();
-        Set<String> columnsToHash = Optional.ofNullable(context.getProperty(FIELDS_TO_HASH).evaluateAttributeExpressions(flowfile).getValue()).map(String::trim)
-            .map(columns -> columns.split(COLUMNS_TO_HASH_SEPARATOR)).map(Arrays::stream).map(columns -> columns.collect(Collectors.toSet())).orElse(Collections.emptySet());
+        Set<String> columnsToHash = Optional.ofNullable(
+            context.getProperty(FIELDS_TO_HASH)
+                .evaluateAttributeExpressions(flowfile)
+                .getValue())
+            .map(String::trim)
+            .map(columns -> columns.split(COLUMNS_TO_HASH_SEPARATOR))
+            .map(Arrays::stream)
+            .map(columns -> columns.collect(Collectors.toSet()))
+            .orElse(Collections.emptySet());
         try {
             if (isSuccess(httpResponseEntity.statusCode())) {
-                responseFlowFile = flowfile != null ? session.create(flowfile) : session.create();
+                responseFlowFile = flowfile == null ? session.create() : session.create(flowfile);
                 InputStream responseBodyStream = httpResponseEntity.body();
-                if (recordReaderFactoryAtomicReference.get() != null) {
+                if (recordReaderFactoryReference.get() != null) {
                     TransformResult transformResult = transformRecords(session, flowfile, responseFlowFile, hashingAlgorithm, columnsToHash, responseBodyStream);
                     Map<String, String> attributes = new HashMap<>();
                     attributes.put(RECORD_COUNT, String.valueOf(transformResult.getNumberOfRecords()));
@@ -339,7 +348,7 @@ public class GetWorkdayReport extends AbstractProcessor {
     private String createAuthorizationHeader(ProcessContext context, FlowFile flowfile) {
         String userName = context.getProperty(WORKDAY_USERNAME).evaluateAttributeExpressions(flowfile).getValue();
         String password = context.getProperty(WORKDAY_PASSWORD).evaluateAttributeExpressions(flowfile).getValue();
-        String base64Credential = Base64.getEncoder().encodeToString((userName + USERNAME_PASSWORD_SEPARATOR + password).getBytes(StandardCharsets.ISO_8859_1));
+        String base64Credential = Base64.getEncoder().encodeToString((userName + USERNAME_PASSWORD_SEPARATOR + password).getBytes(StandardCharsets.UTF_8));
         return BASIC_PREFIX + base64Credential;
     }
 
@@ -347,15 +356,16 @@ public class GetWorkdayReport extends AbstractProcessor {
         InputStream responseBodyStream) throws IOException, SchemaNotFoundException, MalformedRecordException {
         int numberOfRecords = 0;
         String mimeType = null;
-        try (RecordReader reader = recordReaderFactoryAtomicReference.get().createRecordReader(flowfile,
+        try (RecordReader reader = recordReaderFactoryReference.get().createRecordReader(flowfile,
             new BufferedInputStream(responseBodyStream), getLogger())) {
-            RecordSchema schema = recordSetWriterFactoryAtomicReference.get()
+            RecordSchema schema = recordSetWriterFactoryReference.get()
                 .getSchema(flowfile == null ? Collections.emptyMap() : flowfile.getAttributes(), reader.getSchema());
             try (OutputStream responseStream = session.write(responseFlowFile);
-                RecordSetWriter recordSetWriter = recordSetWriterFactoryAtomicReference.get().createWriter(getLogger(), schema, responseStream, responseFlowFile)) {
+                RecordSetWriter recordSetWriter = recordSetWriterFactoryReference.get().createWriter(getLogger(), schema, responseStream, responseFlowFile)) {
                 mimeType = recordSetWriter.getMimeType();
                 recordSetWriter.beginRecordSet();
                 Record currentRecord;
+                // as the report can be changed independently from the flow, it's safer to ignore field types and unknown fields in the Record Reading process
                 while ((currentRecord = reader.nextRecord(false, true)) != null) {
                     for (String recordPath : columnsToHash) {
                         RecordPathResult evaluate = RecordPath.compile("hash(" + recordPath + ", '" + hashingAlgorithm + "')").evaluate(currentRecord);
@@ -390,7 +400,7 @@ public class GetWorkdayReport extends AbstractProcessor {
     }
 
     private boolean isSuccess(int statusCode) {
-        return statusCode / 100 == 2;
+        return statusCode >= 200 && statusCode < 300;
     }
 
     private Map<String, String> createCommonAttributes(URI uri, HttpResponseEntity httpResponseEntity, long elapsedTime) {
@@ -402,7 +412,7 @@ public class GetWorkdayReport extends AbstractProcessor {
         return attributes;
     }
 
-    private Map<String, String> decorateWithMimeAttribute(Map<String, String> commonAttributes, HttpResponseEntity httpResponseEntity) {
+    private Map<String, String> setMimeType(Map<String, String> commonAttributes, HttpResponseEntity httpResponseEntity) {
         Map<String, String> attributes = commonAttributes;
         Optional<String> contentType = httpResponseEntity.headers().getFirstHeader(HEADER_CONTENT_TYPE);
         if (contentType.isPresent()) {

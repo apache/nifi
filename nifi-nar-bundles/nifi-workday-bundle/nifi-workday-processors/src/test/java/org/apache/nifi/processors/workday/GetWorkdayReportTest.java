@@ -182,7 +182,7 @@ class GetWorkdayReportTest {
         runner.assertPenalizeCount(1);
 
         MockFlowFile flowFile = getFlowFile(FAILURE);
-        flowFile.assertAttributeEquals(GET_WORKDAY_REPORT_JAVA_EXCEPTION_CLASS, URISyntaxException.class.getName());
+        flowFile.assertAttributeEquals(GET_WORKDAY_REPORT_JAVA_EXCEPTION_CLASS, URISyntaxException.class.getSimpleName());
         flowFile.assertAttributeExists(GET_WORKDAY_REPORT_JAVA_EXCEPTION_MESSAGE);
     }
 
@@ -336,11 +336,11 @@ class GetWorkdayReportTest {
         runner.setIncomingConnection(false);
         runner.setProperty(GetWorkdayReport.REPORT_URL, getMockWebServerUrl());
         runner.setProperty(FIELDS_TO_HASH, FIELD_TO_HASH);
-        runner.setProperty(HASHING_ALGORITHM, "MD5");
+        runner.setProperty(HASHING_ALGORITHM, HashAlgorithm.SHA256.getName());
 
         String jsonContent = "{\"id\": 1, \"name\": \"test\"}";
-        String md5Name = HashService.hashValue(HashAlgorithm.MD5, "test");
-        String csvContent = "id,name\n1," + md5Name + "\n";
+        String sha256Name = HashService.hashValue(HashAlgorithm.SHA256, "test");
+        String csvContent = "id,name\n1," + sha256Name + "\n";
         mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(jsonContent).setHeader(CONTENT_TYPE, APPLICATION_JSON));
 
         runner.run();
