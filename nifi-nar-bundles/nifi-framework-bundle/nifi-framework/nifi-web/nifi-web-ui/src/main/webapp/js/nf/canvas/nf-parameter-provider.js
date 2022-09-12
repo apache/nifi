@@ -817,7 +817,9 @@
 
                 var canWriteAffectedComponents;
                 if (parameterProviderGroupEntity.component.affectedComponents) {
-                    canWriteAffectedComponents = isAffectedRefComponentsCanWrite(parameterProviderGroupEntity.component.affectedComponents);
+                    canWriteAffectedComponents = (parameterProviderGroupEntity.component.affectedComponents).every(function (c) {
+                        return c.permissions.canWrite;
+                    });
                 } else {
                     canWriteAffectedComponents = true;
                 }
@@ -830,7 +832,7 @@
                     parameterContextName: groupConfig.parameterContextName,
                     parameterSensitivities: groupConfig.parameterSensitivities,
                     referencingParameterContexts: groupConfig.referencingParameterContexts ? groupConfig.referencingParameterContexts : null,
-                    enableSelectableParameters: canWriteParameterContexts && canWriteAffectedComponents
+                    enableParametersCheckboxes: canWriteParameterContexts && canWriteAffectedComponents
                 };
 
                 parameterGroups.push({
@@ -865,18 +867,6 @@
         })
 
         return referencingParamContext;
-    }
-
-    /**
-     * Determines if the the user has write permissions on the affected referencing components.
-     *
-     * @param affectedComponents
-     * @returns {boolean}
-     */
-    var isAffectedRefComponentsCanWrite = function (affectedComponents) {
-        affectedComponents.every(function (c) {
-            return c.permissions.canWrite;
-        })
     }
 
     /**
@@ -1334,6 +1324,22 @@
                 ? isReferencingParamContext(parameterProviderGroupEntity.component.referencingParameterContexts, groupConfig.parameterContextName)
                 : false;
 
+            var canWriteParameterContexts;
+            if (referencingParameterContext) {
+                canWriteParameterContexts = referencingParameterContext.permissions.canWrite;
+            } else {
+                canWriteParameterContexts = true;
+            }
+
+            var canWriteAffectedComponents;
+            if (parameterProviderGroupEntity.component.affectedComponents) {
+                canWriteAffectedComponents = (parameterProviderGroupEntity.component.affectedComponents).every(function (c) {
+                    return c.permissions.canWrite;
+                });
+            } else {
+                canWriteAffectedComponents = true;
+            }
+
             var index = 0;
             var group = {
                 id: index++,
@@ -1343,7 +1349,7 @@
                 parameterContextName: groupConfig.parameterContextName,
                 parameterSensitivities: groupConfig.parameterSensitivities,
                 referencingParameterContexts: groupConfig.referencingParameterContexts ? groupConfig.referencingParameterContexts : null,
-                enableSelectableParameters: referencingParameterContext ? referencingParameterContext.permissions.canWrite : false
+                enableParametersCheckboxes: canWriteParameterContexts && canWriteAffectedComponents
             };
 
             parameterGroups.push(group);
@@ -1528,8 +1534,8 @@
             // get the active group's parameters to populate the selectable parameters container
             loadSelectableParameters(updatedGroup.id, updatedGroup.parameterSensitivities);
 
-            // disable selectable parameters
-            updateSelectableParametersCheckboxStates(updatedGroup);
+            // update parameters checkboxes
+            updateCheckboxStates(updatedGroup);
 
             $('#parameters-container').show();
             $('#selectable-parameters-container').show();
@@ -1602,6 +1608,9 @@
             }
 
             createParamContextContainer.appendTo(parametersCheckboxContainer);
+
+            // update parameters checkboxes
+            updateCheckboxStates(updatedGroup);
 
             // populate the name input
             var contextName = updatedGroup.parameterContextName;
@@ -1683,17 +1692,21 @@
         groupsData.reSort();
     };
 
-    var updateSelectableParametersCheckboxStates = function (parameterGroup) {
+    var updateCheckboxStates = function (parameterGroup) {
         var headerCheckbox = $('#selectable-parameters-table .slick-column-name input');
         var rowCheckbox = $('#selectable-parameters-table .slick-cell input');
+        var createParamContextCheckbox = $('#create-parameter-context-field.checkbox-unchecked');
 
-        if (!parameterGroup.enableSelectableParameters) {
+        if (!parameterGroup.enableParametersCheckboxes) {
             // disable
             headerCheckbox.addClass('disabled');
             headerCheckbox.prop('disabled', true);
 
             rowCheckbox.addClass('disabled');
             rowCheckbox.prop('disabled', true);
+
+            createParamContextCheckbox.addClass('disabled');
+            createParamContextCheckbox.prop('disabled', true);
         } else {
             // enable
             headerCheckbox.removeClass('disabled');
@@ -1701,6 +1714,9 @@
 
             rowCheckbox.removeClass('disabled');
             rowCheckbox.prop('disabled', false);
+
+            createParamContextCheckbox.removeClass('disabled');
+            createParamContextCheckbox.prop('disabled', false);
         }
     };
 
@@ -1708,7 +1724,6 @@
      * Reset the dialog.
      */
     var resetFetchParametersDialog = function () {
-        $('#fetch-parameters-affected-referencing-components-container').empty();
         $('#fetch-parameters-affected-referencing-components-container').hide();
         $('#create-parameter-context-input').val('');
 
@@ -2008,7 +2023,8 @@
             var selectedGroupId = groupsGrid.getSelectedRows();
             var currentGroup = groupsData.getItem(selectedGroupId);
 
-            updateSelectableParametersCheckboxStates(currentGroup);
+            // update parameters checkboxes
+            updateCheckboxStates(currentGroup);
         });
 
         selectableParametersGrid.onSelectedRowsChanged.subscribe(function (e, args) {

@@ -2514,7 +2514,6 @@
         var parameterContextActionFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
 
-            var component = dataContext.component ? dataContext.component : null;
             var canWrite = dataContext.permissions.canWrite;
             var canRead = dataContext.permissions.canRead;
 
@@ -2531,7 +2530,7 @@
                 markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key"></div>';
             }
 
-            if (component && component.parameterProviderConfiguration && canRead) {
+            if (canRead && dataContext.component.parameterProviderConfiguration) {
                 markup += '<div title="Go To Parameter Provider" class="pointer go-to-provider fa fa-long-arrow-right"></div>';
             }
 
