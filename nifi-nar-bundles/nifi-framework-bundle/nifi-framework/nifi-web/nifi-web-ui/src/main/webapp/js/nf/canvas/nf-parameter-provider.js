@@ -702,7 +702,7 @@
             // synchronize the current component canvas attributes in the status bar
             if (fetchParameterProviderOptions.supportsStatusBar) {
                 var formattedBulletins = nfCommon.getFormattedBulletins(updatedParameterProviderEntity.bulletins);
-                var unorderedBulletins = nfCommon.nfCommon.formatUnorderedList(formattedBulletins);
+                var unorderedBulletins = nfCommon.formatUnorderedList(formattedBulletins);
 
                 // initialize the canvas synchronization
                 if (updatedParameterProviderEntity.bulletins.length !== 0) {
