@@ -34,7 +34,6 @@ limitations under the License.
         <dependency>
              <groupId>com.amazonaws</groupId>
              <artifactId>aws-java-sdk-s3</artifactId>
-             <version>${aws.sdk.version}</version>
              <exclusions>
                  <exclusion>
                      <groupId>commons-logging</groupId>
