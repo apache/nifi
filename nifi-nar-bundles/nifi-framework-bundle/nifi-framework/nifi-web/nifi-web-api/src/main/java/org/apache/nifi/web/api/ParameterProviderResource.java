@@ -795,7 +795,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
                     if (!affectedComponents.isEmpty()) {
                         entity.getComponent().setAffectedComponents(affectedComponents);
                     }
-                    final Set<ParameterStatusDTO> parameterStatus = getParameterStatus(parameterContextUpdates, user);
+                    final Set<ParameterStatusDTO> parameterStatus = getParameterStatus(entity, parameterContextUpdates, user);
                     if (!parameterStatus.isEmpty()) {
                         entity.getComponent().setParameterStatus(parameterStatus);
                     }
@@ -935,22 +935,33 @@ public class ParameterProviderResource extends AbstractParameterResource {
         );
     }
 
-    private Set<AffectedComponentEntity> getAffectedComponentEntities(List<ParameterContextEntity> parameterContextUpdates) {
+    private Set<AffectedComponentEntity> getAffectedComponentEntities(final List<ParameterContextEntity> parameterContextUpdates) {
         final Collection<ParameterContextDTO> updatedParameterContextDTOs = parameterContextUpdates.stream()
                 .map(ParameterContextEntity::getComponent)
                 .collect(Collectors.toList());
         return serviceFacade.getComponentsAffectedByParameterContextUpdate(updatedParameterContextDTOs);
     }
 
-    private Set<ParameterStatusDTO> getParameterStatus(final List<ParameterContextEntity> parameterContextUpdates, final NiFiUser niFiUser) {
+    private Set<ParameterStatusDTO> getParameterStatus(final ParameterProviderEntity parameterProvider, final List<ParameterContextEntity> parameterContextUpdates,
+                                                       final NiFiUser niFiUser) {
         final Set<ParameterStatusDTO> parameterStatus = new HashSet<>();
-        for (final ParameterContextEntity parameterContextUpdate : parameterContextUpdates) {
-            final ParameterContextEntity parameterContext = serviceFacade.getParameterContext(parameterContextUpdate.getId(), false, niFiUser);
-            final Map<String, ParameterEntity> updatedParameters = parameterContextUpdate.getComponent().getParameters().stream()
-                    .collect(Collectors.toMap(parameter -> parameter.getParameter().getName(), Functions.identity()));
+        if (parameterProvider.getComponent() == null || parameterProvider.getComponent().getReferencingParameterContexts() == null) {
+            return parameterStatus;
+        }
+
+        final Map<String, ParameterContextEntity> parameterContextUpdateMap = parameterContextUpdates.stream()
+                .collect(Collectors.toMap(entity -> entity.getComponent().getId(), Functions.identity()));
+
+        for (final ParameterProviderReferencingComponentEntity reference : parameterProvider.getComponent().getReferencingParameterContexts()) {
+            final String parameterContextId = reference.getComponent().getId();
+            final ParameterContextEntity parameterContext = serviceFacade.getParameterContext(parameterContextId, false, niFiUser);
             if (parameterContext.getComponent() == null) {
                 continue;
             }
+
+            final ParameterContextEntity parameterContextUpdate = parameterContextUpdateMap.get(parameterContextId);
+            final Map<String, ParameterEntity> updatedParameters = parameterContextUpdate == null ? Collections.emptyMap() : parameterContextUpdate.getComponent().getParameters().stream()
+                    .collect(Collectors.toMap(parameter -> parameter.getParameter().getName(), Functions.identity()));
 
             for (final ParameterEntity parameter : parameterContext.getComponent().getParameters()) {
                 final ParameterStatusDTO dto = new ParameterStatusDTO();
