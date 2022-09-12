@@ -17,12 +17,14 @@
 
 package org.apache.nifi.processors.airtable.service;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Range;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -55,45 +57,49 @@ public class AirtableRestService {
         this.tableId = tableId;
     }
 
-    public InputStream getRecords(final AirtableGetRecordsParameters filter) throws RateLimitExceededException {
-        final URI uri = buildUri(filter);
-        final HttpResponseEntity response = webClientServiceProvider.getWebClientService()
+    public <R> R getRecords(final AirtableGetRecordsParameters getRecordsParameters, final Function<InputStream, R> callback) {
+        final URI uri = buildUri(getRecordsParameters);
+        try (final HttpResponseEntity response = webClientServiceProvider.getWebClientService()
                 .get()
                 .uri(uri)
                 .header("Authorization", "Bearer " + apiKey)
-                .retrieve();
+                .retrieve()) {
 
-        try {
+            final InputStream bodyInputStream = response.body();
             if (SUCCESSFUL_RESPONSE_RANGE.contains(response.statusCode())) {
-                return response.body();
+                return callback.apply(bodyInputStream);
             }
             if (response.statusCode() == TOO_MANY_REQUESTS) {
                 throw new RateLimitExceededException();
             }
-            final StringBuilder exceptionMessageBuilder = new StringBuilder("Invalid response. Code: " + response.statusCode());
-            final String bodyText = IOUtils.toString(response.body(), StandardCharsets.UTF_8);
+            final StringBuilder exceptionMessageBuilder = new StringBuilder("Error response. Code: " + response.statusCode());
+            final String bodyText = IOUtils.toString(bodyInputStream, StandardCharsets.UTF_8);
             if (bodyText != null) {
                 exceptionMessageBuilder.append(" Body: ").append(bodyText);
             }
 
             throw new ProcessException(exceptionMessageBuilder.toString());
         } catch (IOException e) {
-            throw new ProcessException(String.format("Airtable HTTP request failed [%s]", uri), e);
+            throw new RuntimeException(String.format("Airtable HTTP request failed [%s]", uri), e);
         }
     }
 
-    private URI buildUri(AirtableGetRecordsParameters getRecordsParameters) {
-        final URI baseUri = URI.create(apiUrl);
+    public HttpUriBuilder createUriBuilder(final boolean includePort) {
+        final URI uri = URI.create(apiUrl);
         final HttpUriBuilder uriBuilder = webClientServiceProvider.getHttpUriBuilder()
-                .scheme(baseUri.getScheme())
-                .host(baseUri.getHost())
-                .encodedPath(baseUri.getPath())
+                .scheme(uri.getScheme())
+                .host(uri.getHost())
+                .encodedPath(uri.getPath())
                 .addPathSegment(baseId)
                 .addPathSegment(tableId);
-        if (baseUri.getPort() != -1) {
-            uriBuilder.port(baseUri.getPort());
+        if (includePort && uri.getPort() != -1) {
+            uriBuilder.port(uri.getPort());
         }
+        return uriBuilder;
+    }
 
+    private URI buildUri(AirtableGetRecordsParameters getRecordsParameters) {
+        final HttpUriBuilder uriBuilder = createUriBuilder(true);
         for (final String field : getRecordsParameters.getFields()) {
             uriBuilder.addQueryParameter("fields[]", field);
         }

@@ -122,7 +122,7 @@ public class TestQueryAirtableTable {
             server.start();
             final HttpUrl httpUrl = server.url(API_URL_PATH);
 
-            runner.setProperty(QueryAirtableTable.MAX_RECORDS_PER_FLOW_FILE, "1");
+            runner.setProperty(QueryAirtableTable.MAX_RECORDS_PER_FLOWFILE, "1");
             runner.setProperty(QueryAirtableTable.API_URL, httpUrl.toString());
             runner.run();
 

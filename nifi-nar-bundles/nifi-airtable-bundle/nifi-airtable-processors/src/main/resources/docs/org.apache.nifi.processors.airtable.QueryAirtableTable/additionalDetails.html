@@ -37,8 +37,8 @@ td {text-align: left}
     Airtable is a spreadsheet-database hybrid. In Airtable an application is called base and each base can have multiple tables.
     A table consists of records (rows) and each record can have multiple fields (columns).
     The QueryAirtableTable processor can query records from a single base and table via Airtable's REST API.
-    The processor utilizes streams and NiFi record-based processing to be able to handle a large number of records and to allow arbitrary output format.
-    It can also split large record sets to multiple FlowFiles and transfer them in batches just like a database processor.
+    The processor utilizes streams to be able to handle a large number of records.
+    It can also split large record sets to multiple FlowFiles just like a database processor.
 </p>
 
 <h3>API Key</h3>
@@ -49,20 +49,13 @@ td {text-align: left}
 <h3>API rate limit</h3>
 <p>
     The Airtable REST API limits the number of requests that can be sent on a per-base basis to avoid bottlenecks. Currently, this limit is 5 requests per second per base.
-    If this limit is exceeded the user can't make another request for 30 seconds. It's the user's responsibility to handle this rate limit.
+    If this limit is exceeded you can't make another request for 30 seconds. It's your responsibility to handle this rate limit.
 </p>
 
 <h3>Metadata API</h3>
 <p>
-    Currently the Metadata API of Airtable is unstable, and we don't provide a way to use it. Until it becomes stable the user should set up a JsonTreeReader service to provide a schema.
-    The JsonTreeReader needs to be set up in a specific way to properly work with the response of an Airtable REST API call.
+    Currently the Metadata API of Airtable is unstable, and we don't provide a way to use it.
+    Until it becomes stable you can set up a ConvertRecord or MergeRecord processor with a JsonTreeReader to read the content and convert it into a Record with schema.
 </p>
-<ul>
-    <li>"Starting Field Strategy" needs to be set to "Nested Field"</li>
-    <li>"Starting Field Name" needs to be set to "records"</li>
-    <li>"Schema Application Strategy" needs to be set to "Selected Part"</li>
-</ul>
-<p>This ensures that only the records are included in the schema.</p>
-
 </body>
 </html>

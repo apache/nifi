@@ -73,34 +73,35 @@ public class AirtableTableRetriever {
         return new AirtableRetrieveTableResult(flowFiles, totalRecordCount);
     }
 
-    private AirtableRetrievePageResult retrieveNextPage(final ProcessSession session, final Optional<AirtableRetrievePageResult> previousPagePageResult)
-            throws IOException {
-        final AirtableGetRecordsParameters parameters = previousPagePageResult.flatMap(AirtableRetrievePageResult::getNextOffset)
+    private AirtableRetrievePageResult retrieveNextPage(final ProcessSession session, final Optional<AirtableRetrievePageResult> previousPageResult) {
+        final AirtableGetRecordsParameters parameters = previousPageResult.flatMap(AirtableRetrievePageResult::getNextOffset)
                 .map(getRecordsParameters::withOffset)
                 .orElse(getRecordsParameters);
-        final InputStream inputStream = airtableRestService.getRecords(parameters);
-        final JsonParser jsonParser = JSON_FACTORY.createParser(inputStream);
 
+        return airtableRestService.getRecords(parameters, inputStream -> parsePage(inputStream, session, previousPageResult));
+    }
+
+    private AirtableRetrievePageResult parsePage(final InputStream inputStream, final ProcessSession session, final Optional<AirtableRetrievePageResult> previousPageResult) {
         final List<FlowFile> flowFiles = new ArrayList<>();
-        AirtableRecordSetFlowFileWriter flowFileWriter = previousPagePageResult.flatMap(AirtableRetrievePageResult::getOngoingRecordSetFlowFileWriter)
-                .orElse(null);
+        AirtableRecordSetFlowFileWriter flowFileWriter = previousPageResult.flatMap(AirtableRetrievePageResult::getOngoingRecordSetFlowFileWriter)
+                        .orElse(null);
         int parsedRecordCount = 0;
         String nextOffset = null;
-        while (jsonParser.nextToken() != null) {
-            if (jsonParser.currentToken() != JsonToken.FIELD_NAME) {
-                continue;
-            }
-            switch (jsonParser.currentName()) {
-                case "records":
-                    jsonParser.nextToken();
-                    if (jsonParser.currentToken() != JsonToken.START_ARRAY) {
-                        break;
-                    }
-                    while (jsonParser.nextToken() != null) {
-                        if (jsonParser.currentToken() == JsonToken.END_ARRAY) {
+        try (final JsonParser jsonParser = JSON_FACTORY.createParser(inputStream)) {
+            while (jsonParser.nextToken() != null) {
+                if (jsonParser.currentToken() != JsonToken.FIELD_NAME) {
+                    continue;
+                }
+                switch (jsonParser.currentName()) {
+                    case "records":
+                        jsonParser.nextToken();
+                        if (jsonParser.currentToken() != JsonToken.START_ARRAY) {
                             break;
                         }
-                        if (jsonParser.currentToken() == JsonToken.START_OBJECT) {
+                        while (jsonParser.nextToken() != null && jsonParser.currentToken() != JsonToken.END_ARRAY) {
+                            if (jsonParser.currentToken() != JsonToken.START_OBJECT) {
+                                continue;
+                            }
                             if (flowFileWriter == null) {
                                 flowFileWriter = AirtableRecordSetFlowFileWriter.startRecordSet(session);
                             }
@@ -110,17 +111,18 @@ public class AirtableTableRetriever {
                                 flowFiles.add(flowFileWriter.closeRecordSet(session));
                                 flowFileWriter = null;
                             }
+
                         }
-
-                    }
-                    break;
-                case "offset":
-                    jsonParser.nextToken();
-                    nextOffset = jsonParser.getValueAsString();
-                    break;
+                        break;
+                    case "offset":
+                        jsonParser.nextToken();
+                        nextOffset = jsonParser.getValueAsString();
+                        break;
+                }
             }
+        } catch (final IOException e) {
+            throw new ProcessException("Failed to parse Airtable query table response page", e);
         }
-
         return new AirtableRetrievePageResult(Optional.ofNullable(nextOffset), flowFiles, parsedRecordCount, Optional.ofNullable(flowFileWriter));
     }
 }

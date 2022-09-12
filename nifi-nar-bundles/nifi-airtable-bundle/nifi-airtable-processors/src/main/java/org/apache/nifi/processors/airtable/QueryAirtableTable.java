@@ -30,8 +30,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -70,26 +72,25 @@ import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 @Tags({"airtable", "query", "database"})
 @CapabilityDescription("Query records from an Airtable table. Records are incrementally retrieved based on the last modified time of the records."
         + " Records can also be further filtered by setting the 'Custom Filter' property which supports the formulas provided by the Airtable API."
-        + " Schema can be provided by setting up a JsonTreeReader controller service properly. This processor is intended to be run on the Primary Node only.")
+        + " This processor is intended to be run on the Primary Node only.")
 @Stateful(scopes = Scope.CLUSTER, description = "The last successful query's time is stored in order to enable incremental loading."
         + " The initial query returns all the records in the table and each subsequent query filters the records by their last modified time."
         + " In other words, if a record is updated after the last successful query only the updated records will be returned in the next query."
-        + " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected,"
-        + " the new node can pick up where the previous node left off, without duplicating the data.")
+        + " State is stored across the cluster, so this Processor can run only on the Primary Node and if a new Primary Node is selected,"
+        + " the new node can pick up where the previous one left off without duplicating the data.")
 @WritesAttributes({
         @WritesAttribute(attribute = "record.count", description = "Sets the number of records in the FlowFile."),
-        @WritesAttribute(attribute = "fragment.identifier", description = "If 'Max Records Per Flow File' is set then all FlowFiles from the same query result set "
+        @WritesAttribute(attribute = "fragment.identifier", description = "If 'Max Records Per FlowFile' is set then all FlowFiles from the same query result set "
                 + "will have the same value for the fragment.identifier attribute. This can then be used to correlate the results."),
-        @WritesAttribute(attribute = "fragment.count", description = "If 'Max Records Per Flow File' is set then this is the total number of "
+        @WritesAttribute(attribute = "fragment.count", description = "If 'Max Records Per FlowFile' is set then this is the total number of "
                 + "FlowFiles produced by a single ResultSet. This can be used in conjunction with the "
-                + "fragment.identifier attribute in order to know how many FlowFiles belonged to the same incoming ResultSet. If Output Batch Size is set, then this "
-                + "attribute will not be populated."),
-        @WritesAttribute(attribute = "fragment.index", description = "If 'Max Records Per Flow File' is set then the position of this FlowFile in the list of "
+                + "fragment.identifier attribute in order to know how many FlowFiles belonged to the same incoming ResultSet."),
+        @WritesAttribute(attribute = "fragment.index", description = "If 'Max Records Per FlowFile' is set then the position of this FlowFile in the list of "
                 + "outgoing FlowFiles that were all derived from the same result set FlowFile. This can be "
-                + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same query result set and in what order  "
+                + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same query result set and in what order "
                 + "FlowFiles were produced"),
 })
-@DefaultSettings(yieldDuration = "35 sec")
+@DefaultSettings(yieldDuration = "15 sec")
 public class QueryAirtableTable extends AbstractProcessor {
 
     static final PropertyDescriptor API_URL = new PropertyDescriptor.Builder()
@@ -157,8 +158,19 @@ public class QueryAirtableTable extends AbstractProcessor {
             .addValidator(StandardValidators.createLongValidator(0, 100, true))
             .build();
 
-    static final PropertyDescriptor MAX_RECORDS_PER_FLOW_FILE = new PropertyDescriptor.Builder()
-            .name("max-records-per-flow-file")
+    static final PropertyDescriptor QUERY_TIME_WINDOW_LAG = new PropertyDescriptor.Builder()
+            .name("query-time-window-lag")
+            .displayName("Query Time Window Lag")
+            .description("The amount of lag to add to the query time window. Set this property to avoid missing records when the clock of your local machines"
+                    + " and Airtable servers' clock are not in sync. Must be greater than or equal to 1 second.")
+            .defaultValue("3 s")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor MAX_RECORDS_PER_FLOWFILE = new PropertyDescriptor.Builder()
+            .name("max-records-per-flowfile")
             .displayName("Max Records Per FlowFile")
             .description("The maximum number of result records that will be included in a single FlowFile. This will allow you to break up very large"
                     + " result sets into multiple FlowFiles. If the value specified is zero, then all records are returned in a single FlowFile.")
@@ -189,14 +201,14 @@ public class QueryAirtableTable extends AbstractProcessor {
             FIELDS,
             CUSTOM_FILTER,
             PAGE_SIZE,
-            MAX_RECORDS_PER_FLOW_FILE,
+            QUERY_TIME_WINDOW_LAG,
+            MAX_RECORDS_PER_FLOWFILE,
             WEB_CLIENT_SERVICE_PROVIDER
     ));
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.singleton(REL_SUCCESS);
 
     private static final String LAST_RECORD_FETCH_TIME = "last_record_fetch_time";
-    private static final int QUERY_LAG_SECONDS = 1;
 
     private volatile AirtableRestService airtableRestService;
 
@@ -222,7 +234,8 @@ public class QueryAirtableTable extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final Integer maxRecordsPerFlowFile = context.getProperty(MAX_RECORDS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
+        final Integer maxRecordsPerFlowFile = context.getProperty(MAX_RECORDS_PER_FLOWFILE).evaluateAttributeExpressions().asInteger();
+        final Long queryTimeWindowLagSeconds = context.getProperty(QUERY_TIME_WINDOW_LAG).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS);
 
         final StateMap state;
         try {
@@ -233,7 +246,7 @@ public class QueryAirtableTable extends AbstractProcessor {
 
         final String lastRecordFetchDateTime = state.get(LAST_RECORD_FETCH_TIME);
         final String currentRecordFetchDateTime = OffsetDateTime.now()
-                .minusSeconds(QUERY_LAG_SECONDS)
+                .minusSeconds(queryTimeWindowLagSeconds)
                 .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
 
         final AirtableGetRecordsParameters getRecordsParameters = buildGetRecordsParameters(context, lastRecordFetchDateTime, currentRecordFetchDateTime);
@@ -248,16 +261,6 @@ public class QueryAirtableTable extends AbstractProcessor {
             throw new ProcessException("Airtable REST API rate limit exceeded while reading records", e);
         }
 
-        final List<FlowFile> flowFiles = retrieveTableResult.getFlowFiles();
-        if (flowFiles.isEmpty()) {
-            return;
-        }
-
-        if (maxRecordsPerFlowFile != null && maxRecordsPerFlowFile > 0) {
-            fragmentFlowFiles(session, flowFiles);
-        }
-        transferFlowFiles(session, flowFiles, retrieveTableResult.getTotalRecordCount());
-
         final Map<String, String> newState = new HashMap<>(state.toMap());
         newState.put(LAST_RECORD_FETCH_TIME, currentRecordFetchDateTime);
         try {
@@ -265,21 +268,35 @@ public class QueryAirtableTable extends AbstractProcessor {
         } catch (IOException e) {
             throw new ProcessException("Failed to update cluster state", e);
         }
+
+        final List<FlowFile> flowFiles = retrieveTableResult.getFlowFiles();
+        if (flowFiles.isEmpty()) {
+            context.yield();
+            return;
+        }
+
+        if (maxRecordsPerFlowFile != null && maxRecordsPerFlowFile > 0) {
+            fragmentFlowFiles(session, flowFiles);
+        }
+        final String transitUri = airtableRestService.createUriBuilder(false).build().toString();
+        transferFlowFiles(session, flowFiles, retrieveTableResult.getTotalRecordCount(), transitUri);
     }
 
     private AirtableGetRecordsParameters buildGetRecordsParameters(final ProcessContext context,
             final String lastRecordFetchTime,
             final String nowDateTimeString) {
+        Objects.requireNonNull(context);
+        Objects.requireNonNull(nowDateTimeString);
+
         final String fieldsProperty = context.getProperty(FIELDS).evaluateAttributeExpressions().getValue();
         final String customFilter = context.getProperty(CUSTOM_FILTER).evaluateAttributeExpressions().getValue();
         final Integer pageSize = context.getProperty(PAGE_SIZE).evaluateAttributeExpressions().asInteger();
 
         final AirtableGetRecordsParameters.Builder getRecordsParametersBuilder = new AirtableGetRecordsParameters.Builder();
         if (lastRecordFetchTime != null) {
-            getRecordsParametersBuilder
-                    .modifiedAfter(lastRecordFetchTime)
-                    .modifiedBefore(nowDateTimeString);
+            getRecordsParametersBuilder.modifiedAfter(lastRecordFetchTime);
         }
+        getRecordsParametersBuilder.modifiedBefore(nowDateTimeString);
         if (fieldsProperty != null) {
             getRecordsParametersBuilder.fields(Arrays.stream(fieldsProperty.split(",")).map(String::trim).collect(Collectors.toList()));
         }
@@ -303,10 +320,13 @@ public class QueryAirtableTable extends AbstractProcessor {
         }
     }
 
-    private void transferFlowFiles(final ProcessSession session, final List<FlowFile> flowFiles, final int totalRecordCount) {
-        session.transfer(flowFiles, REL_SUCCESS);
+    private void transferFlowFiles(final ProcessSession session, final List<FlowFile> flowFiles, final int totalRecordCount, final String transitUri) {
+        for (final FlowFile flowFile : flowFiles) {
+            session.getProvenanceReporter().receive(flowFile, transitUri);
+            session.transfer(flowFile, REL_SUCCESS);
+        }
         session.adjustCounter("Records Processed", totalRecordCount, false);
         final String flowFilesAsString = flowFiles.stream().map(FlowFile::toString).collect(Collectors.joining(", ", "[", "]"));
-        getLogger().info("Transferred FlowFiles [{}] Records [{}]", flowFilesAsString, totalRecordCount);
+        getLogger().debug("Transferred FlowFiles [{}] Records [{}]", flowFilesAsString, totalRecordCount);
     }
 }

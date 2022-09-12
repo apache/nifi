@@ -17,6 +17,8 @@
 
 package org.apache.nifi.processors.airtable.parse;
 
+import static org.apache.nifi.processors.airtable.parse.AirtableTableRetriever.JSON_FACTORY;
+
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import java.io.IOException;
@@ -35,10 +37,9 @@ public class AirtableRecordSetFlowFileWriter {
         this.jsonGenerator = jsonGenerator;
     }
 
-    public static AirtableRecordSetFlowFileWriter startRecordSet(final ProcessSession session) throws
-            IOException {
+    public static AirtableRecordSetFlowFileWriter startRecordSet(final ProcessSession session) throws IOException {
         final FlowFile flowFile = session.create();
-        final JsonGenerator jsonGenerator = AirtableTableRetriever.JSON_FACTORY.createGenerator(session.write(flowFile));
+        final JsonGenerator jsonGenerator = JSON_FACTORY.createGenerator(session.write(flowFile));
         jsonGenerator.writeStartArray();
         return new AirtableRecordSetFlowFileWriter(flowFile, jsonGenerator);
     }
