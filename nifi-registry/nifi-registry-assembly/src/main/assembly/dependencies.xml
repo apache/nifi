@@ -33,8 +33,8 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-                <include>nifi-registry-utils</include>
-                <include>commons-lang3</include>
+                <include>*:nifi-registry-utils</include>
+                <include>*:commons-lang3</include>
             </includes>
         </dependencySet>
 
@@ -47,9 +47,9 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-                <include>nifi-registry-bootstrap</include>
-                <include>slf4j-api</include>
-                <include>logback-classic</include>
+                <include>*:nifi-registry-bootstrap</include>
+                <include>*:slf4j-api</include>
+                <include>*:logback-classic</include>
             </includes>
         </dependencySet>
 
@@ -62,7 +62,7 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-                <include>nifi-registry-properties-loader</include>
+                <include>*:nifi-registry-properties-loader</include>
                 <include>software.amazon.awssdk:*</include>
             </includes>
         </dependencySet>
@@ -79,7 +79,6 @@
             <includes>
                 <include>jakarta.xml.bind:jakarta.xml.bind-api</include>
                 <include>org.glassfish.jaxb:jaxb-runtime</include>
-                <include>com.sun.activation:jakarta.activation</include>
                 <include>jakarta.activation:jakarta.activation-api</include>
             </includes>
         </dependencySet>
@@ -93,13 +92,12 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <excludes>
-                <exclude>nifi-registry-resources</exclude>
-                <exclude>nifi-registry-bootstrap</exclude>
-                <exclude>nifi-registry-utils</exclude>
-                <exclude>nifi-registry-docs</exclude>
-                <exclude>nifi-registry-ranger-assembly</exclude>
-                <exclude>nifi-registry-aws-assembly</exclude>
-                <exclude>nifi-registry-properties-loader</exclude>
+                <exclude>*:nifi-registry-resources</exclude>
+                <exclude>*:nifi-registry-bootstrap</exclude>
+                <exclude>*:nifi-registry-utils</exclude>
+                <exclude>*:nifi-registry-docs</exclude>
+                <exclude>*:nifi-registry-aws-assembly</exclude>
+                <exclude>*:nifi-registry-properties-loader</exclude>
 
                 <!-- Exclude any jaxb dependencies because they will be in lib/java11 -->
                 <!-- TODO: remove these once minimum Java version is 11 and these can be bundle directly into the application -->
@@ -107,7 +105,7 @@
                 <exclude>org.glassfish.jaxb:jaxb-runtime</exclude>
             </excludes>
         </dependencySet>
-        
+
         <!-- Write out the conf directory contents -->
         <dependencySet>
             <scope>runtime</scope>
@@ -117,7 +115,7 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-                <include>nifi-registry-resources</include>
+                <include>*:nifi-registry-resources</include>
             </includes>
             <unpack>true</unpack>
             <unpackOptions>
@@ -137,7 +135,7 @@
             <fileMode>0770</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-                <include>nifi-registry-resources</include>
+                <include>*:nifi-registry-resources</include>
             </includes>
             <unpack>true</unpack>
             <unpackOptions>
@@ -155,7 +153,7 @@
             <outputDirectory>docs/</outputDirectory>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-                <include>nifi-registry-docs</include>
+                <include>*:nifi-registry-docs</include>
             </includes>
             <unpack>true</unpack>
             <unpackOptions>
