@@ -57,7 +57,7 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-                <include>nifi-stateless-resources</include>
+                <include>*:nifi-stateless-resources</include>
             </includes>
             <unpack>true</unpack>
             <unpackOptions>
@@ -77,7 +77,7 @@
             <fileMode>0770</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-                <include>nifi-stateless-resources</include>
+                <include>*:nifi-stateless-resources</include>
             </includes>
             <unpack>true</unpack>
             <unpackOptions>

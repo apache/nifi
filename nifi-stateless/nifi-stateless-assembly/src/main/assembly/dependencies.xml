@@ -32,7 +32,7 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <excludes>
-                <exclude>nifi-stateless-resources</exclude>
+                <exclude>*:nifi-stateless-resources</exclude>
 
                 <!-- exclude jaxb/activation/annotation libs from lib, they'll be included in the java11 subdir -->
                 <!-- TODO: remove these once minimum Java version is 11 -->
