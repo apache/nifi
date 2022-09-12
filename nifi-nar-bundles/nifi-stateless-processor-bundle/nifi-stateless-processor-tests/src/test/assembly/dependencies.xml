@@ -28,19 +28,19 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-                <include>nifi-stateless-bootstrap</include>
-                <include>nifi-stateless-nar</include>
-                <include>nifi-standard-nar</include>
-                <include>nifi-standard-services-api-nar</include>
-                <include>nifi-jetty-bundle</include>
-                <include>nifi-update-attribute-nar</include>
-                <include>nifi-api</include>
-                <include>nifi-framework-api</include>
-                <include>nifi-server-api</include>
-                <include>nifi-runtime</include>
-                <include>nifi-nar-utils</include>
-                <include>nifi-stateless-api</include>
-                <include>slf4j-api</include>
+                <include>*:nifi-stateless-bootstrap</include>
+                <include>*:nifi-stateless-nar</include>
+                <include>*:nifi-standard-nar</include>
+                <include>*:nifi-standard-services-api-nar</include>
+                <include>*:nifi-jetty-bundle</include>
+                <include>*:nifi-update-attribute-nar</include>
+                <include>*:nifi-api</include>
+                <include>*:nifi-framework-api</include>
+                <include>*:nifi-server-api</include>
+                <include>*:nifi-runtime</include>
+                <include>*:nifi-nar-utils</include>
+                <include>*:nifi-stateless-api</include>
+                <include>*:slf4j-api</include>
             </includes>
         </dependencySet>
 
@@ -54,9 +54,7 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-                <include>org.glassfish.jaxb:jaxb-runtime</include>
                 <include>jakarta.xml.bind:jakarta.xml.bind-api</include>
-                <include>javax.annotation:javax.annotation-api</include>
             </includes>
         </dependencySet>
     </dependencySets>
