@@ -42,6 +42,8 @@ echo JAVA_HOME: %JAVA_HOME%
 echo NIFI_HOME: %NIFI_HOME%
 echo.
 
+pushd %NIFI_HOME%
+
 set RUN_COMMAND="%~1"
 if %RUN_COMMAND% == "set-single-user-credentials" (
   rem Set credentials with quoted arguments passed to Java command
@@ -54,3 +56,5 @@ if %RUN_COMMAND% == "set-single-user-credentials" (
 ) else (
   call "%JAVA_EXE%" %JAVA_MEMORY% %JAVA_PARAMS% org.apache.nifi.bootstrap.RunNiFi %RUN_COMMAND%
 )
+
+popd

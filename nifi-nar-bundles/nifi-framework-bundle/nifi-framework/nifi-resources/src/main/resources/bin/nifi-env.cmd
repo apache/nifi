@@ -20,7 +20,9 @@ rem Set Java version
 rem set JAVA_HOME="C:\Program Files\Java\jdk1.8.0"
 
 rem Set application home directory based on parent directory of script location
-set NIFI_HOME=%~dp0..
+pushd %~dp0..
+set NIFI_HOME=%CD%
+popd
 
 rem Set run directory for process identifier tracking
 set NIFI_PID_DIR=%NIFI_HOME%\run
