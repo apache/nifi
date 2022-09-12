@@ -427,6 +427,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             .connectString(zkConfig.getConnectString())
             .sessionTimeoutMs(zkConfig.getSessionTimeoutMillis())
             .connectionTimeoutMs(zkConfig.getConnectionTimeoutMillis())
+            .ensembleTracker(zkConfig.isWithEnsembleTracker())
             .retryPolicy(retryPolicy)
             .aclProvider(aclProviderFactory.create(zkConfig))
             .defaultData(new byte[0]);

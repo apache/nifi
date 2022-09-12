@@ -2869,7 +2869,8 @@ in the _$NIFI_HOME/conf/nifi.properties_ file:
 [options="header,footer"]
 |===
 |Property Name|Description|Default
-|`nifi.zookeeper.client.secure`|Whether to acccess ZooKeeper using client TLS.|false
+|`nifi.zookeeper.client.ensembleTracker`|Whether to enable ZooKeeper client Ensemble Tracking.|true
+|`nifi.zookeeper.client.secure`|Whether to access ZooKeeper using client TLS.|false
 |`nifi.zookeeper.security.keystore`|Filename of the Keystore containing the private key to use when communicating with ZooKeeper.|_none_
 |`nifi.zookeeper.security.keystoreType`|Optional. The type of the Keystore. Must be `PKCS12`, `JKS`, or `PEM`. If not specified the type will be determined from the file extension (`.p12`, `.jks`, `.pem`).|_none_
 |`nifi.zookeeper.security.keystorePasswd`|The password for the Keystore.|_none_
