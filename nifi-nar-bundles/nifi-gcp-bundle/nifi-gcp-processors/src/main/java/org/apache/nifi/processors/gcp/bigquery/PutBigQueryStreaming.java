@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -71,8 +72,10 @@ import java.util.Map;
  * @deprecated use {@link PutBigQuery} instead which uses the Write API
  */
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@DeprecationNotice(alternatives = {PutBigQuery.class}, reason = "This processor is deprecated and may be removed in future releases.")
 @Tags({ "google", "google cloud", "bq", "gcp", "bigquery", "record" })
-@CapabilityDescription("Load data into Google BigQuery table using the streaming API. This processor "
+@CapabilityDescription("Please be aware this processor is deprecated and may be removed in the near future. Use PutBigQuery instead. "
+        + "Load data into Google BigQuery table using the streaming API. This processor "
         + "is not intended to load large flow files as it will load the full content into memory. If "
         + "you need to insert large flow files, consider using PutBigQueryBatch instead.")
 @SeeAlso({ PutBigQueryBatch.class })

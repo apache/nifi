@@ -224,14 +224,12 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
                 }
             }
 
-            Map<String, String> attributes = new HashMap<>();
-            attributes.put(BigQueryAttributes.JOB_NB_RECORDS_ATTR, Integer.toString(recordNumWritten));
-            flowFile = session.putAllAttributes(flowFile, attributes);
+            flowFile = session.putAttribute(flowFile, BigQueryAttributes.JOB_NB_RECORDS_ATTR, Integer.toString(recordNumWritten));
         } catch (Exception e) {
             getLogger().error(e.getMessage(), e);
             error.set(new RuntimeException(e));
         } finally {
-            finalize(session, flowFile, streamWriter, writeStream.getName(), tableName.toString());
+            finishProcessing(session, flowFile, streamWriter, writeStream.getName(), tableName.toString());
         }
     }
 
@@ -289,7 +287,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         inflightRequestCount.register();
     }
 
-    private void finalize(ProcessSession session, FlowFile flowFile, StreamWriter streamWriter, String streamName, String parentTable) {
+    private void finishProcessing(ProcessSession session, FlowFile flowFile, StreamWriter streamWriter, String streamName, String parentTable) {
         // Wait for all in-flight requests to complete.
         inflightRequestCount.arriveAndAwaitAdvance();
 
@@ -299,9 +297,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         // Verify that no error occurred in the stream.
         if (error.get() != null) {
             getLogger().error("Error occurred in the stream: ", error.get());
-            Map<String, String> attributes = new HashMap<>();
-            attributes.put(BigQueryAttributes.JOB_NB_RECORDS_ATTR, isBatch() ? "0" : String.valueOf(appendSuccessCount.get() * recordBatchCount));
-            flowFile = session.putAllAttributes(flowFile, attributes);
+            flowFile = session.putAttribute(flowFile, BigQueryAttributes.JOB_NB_RECORDS_ATTR, isBatch() ? "0" : String.valueOf(appendSuccessCount.get() * recordBatchCount));
             session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         } else {
@@ -320,9 +316,9 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
                 if (!commitResponse.hasCommitTime()) {
                     for (StorageError err : commitResponse.getStreamErrorsList()) {
                         getLogger().error("Commit operation error: ", err.getErrorMessage());
-                        session.penalize(flowFile);
-                        session.transfer(flowFile, REL_FAILURE);
                     }
+                    session.penalize(flowFile);
+                    session.transfer(flowFile, REL_FAILURE);
                 }
                 getLogger().info("Appended and committed all records successfully.");
             }
@@ -361,7 +357,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
             }
 
             error.compareAndSet(null, Optional.ofNullable(Exceptions.toStorageException(throwable))
-                .map(storageException -> (RuntimeException) storageException)
+                .map(RuntimeException.class::cast)
                 .orElse(new RuntimeException(throwable)));
 
             getLogger().error("Failure during appending data: ", throwable);
@@ -431,7 +427,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
     }
 
     private static Map<String, Object> convertMapRecord(Map<String, Object> map) {
-        Map<String, Object> result = new HashMap<String, Object>();
+        Map<String, Object> result = new HashMap<>();
         for (String key : map.keySet()) {
             Object obj = map.get(key);
             if (obj instanceof MapRecord) {
@@ -439,7 +435,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
             } else if (obj instanceof Object[]
                 && ((Object[]) obj).length > 0
                 && ((Object[]) obj)[0] instanceof MapRecord) {
-                List<Map<String, Object>> lmapr = new ArrayList<Map<String, Object>>();
+                List<Map<String, Object>> lmapr = new ArrayList<>();
                 for (Object mapr : ((Object[]) obj)) {
                     lmapr.add(convertMapRecord(((MapRecord) mapr).toMap()));
                 }
