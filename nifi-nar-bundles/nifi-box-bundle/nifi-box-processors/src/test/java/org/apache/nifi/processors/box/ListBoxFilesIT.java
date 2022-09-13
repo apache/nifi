@@ -38,8 +38,6 @@ public class ListBoxFilesIT extends AbstractBoxFilesIT<ListBoxFiles> {
     public void init() throws Exception {
         super.init();
         testRunner.setProperty(ListBoxFiles.FOLDER_ID, mainFolderId);
-        testRunner.setProperty(ListBoxFiles.USER_ID, USER_ID);
-        testRunner.setProperty(ListBoxFiles.BOX_CONFIG_FILE, BOX_CONFIG_FILE);
     }
 
     @Override

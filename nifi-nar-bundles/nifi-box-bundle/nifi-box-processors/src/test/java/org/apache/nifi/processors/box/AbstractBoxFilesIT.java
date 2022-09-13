@@ -21,6 +21,7 @@ import com.box.sdk.BoxConfig;
 import com.box.sdk.BoxDeveloperEditionAPIConnection;
 import com.box.sdk.BoxFile;
 import com.box.sdk.BoxFolder;
+import org.apache.nifi.box.controllerservices.BoxClientService;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -35,21 +36,23 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+
 /**
  * Set the following constants before running:<br />
  * <br />
  * FOLDER_ID - The ID of a Folder the test can use to create files and sub-folders within.<br />
- * USER_ID - The ID of the user owning the Folder.<br />
- * BOX_CONFIG_FILE - An App Settings Configuration JSON file. The app needs to have 'OAuth 2.0 with JSON Web Tokens (Server Authentication)' authentication method,
- * have 'App + Enterprise access level', have 'Generate user access tokens' and 'Make API calls using the as-user header' enabled
- * and be able to 'Write all files and folders in Box'.<br />
+ * ACCOUNT_ID - The ID of the Account owning the Folder.<br />
+ * APP_CONFIG_FILE - An App Settings Configuration JSON file.
+ * Read nifi-nar-bundles/nifi-box-bundle/nifi-box-services/src/main/resources/docs/org.apache.nifi.box.controllerservices.JsonConfigBasedBoxClientService/additionalDetails.html for details.<br />
  * <br />
  * Created files and folders are cleaned up, but it's advisable to dedicate a folder for this test so that it can be cleaned up easily should the test fail to do so.
  */
-public abstract class AbstractBoxFilesIT<T extends BoxTrait & Processor> {
+public abstract class AbstractBoxFilesIT<T extends Processor> {
     static final String FOLDER_ID = "";
-    static final String USER_ID = "";
-    static final String BOX_CONFIG_FILE = "";
+    static final String ACCOUNT_ID = "";
+    static final String APP_CONFIG_FILE = "";
 
     protected static final String DEFAULT_FILE_CONTENT = "test_content";
     public static final String MAIN_FOLDER_NAME = "main";
@@ -66,21 +69,21 @@ public abstract class AbstractBoxFilesIT<T extends BoxTrait & Processor> {
 
     @BeforeEach
     protected void init() throws Exception {
-        testSubject = createTestSubject();
-        testRunner = createTestRunner();
-
         try (
-            Reader reader = new FileReader(BOX_CONFIG_FILE);
+            Reader reader = new FileReader(APP_CONFIG_FILE);
         ) {
             BoxConfig boxConfig = BoxConfig.readFrom(reader);
             boxAPIConnection = BoxDeveloperEditionAPIConnection.getAppEnterpriseConnection(boxConfig);
-            boxAPIConnection.asUser(USER_ID);
+            boxAPIConnection.asUser(ACCOUNT_ID);
         }
 
         targetFolderName = new BoxFolder(boxAPIConnection, FOLDER_ID).getInfo("name").getName();
 
         BoxFolder.Info mainFolderInfo = createFolder(MAIN_FOLDER_NAME, FOLDER_ID);
         mainFolderId = mainFolderInfo.getID();
+
+        testSubject = createTestSubject();
+        testRunner = createTestRunner();
     }
 
     @AfterEach
@@ -91,8 +94,16 @@ public abstract class AbstractBoxFilesIT<T extends BoxTrait & Processor> {
         }
     }
 
-    protected TestRunner createTestRunner() {
+    protected TestRunner createTestRunner() throws Exception{
         TestRunner testRunner = TestRunners.newTestRunner(testSubject);
+
+        BoxClientService boxClientService = mock(BoxClientService.class);
+        doReturn(boxClientService.toString()).when(boxClientService).getIdentifier();
+        doReturn(boxAPIConnection).when(boxClientService).getBoxApiConnection();
+
+        testRunner.addControllerService(boxClientService.getIdentifier(), boxClientService);
+        testRunner.enableControllerService(boxClientService);
+        testRunner.setProperty(BoxClientService.BOX_CLIENT_SERVICE, boxClientService.getIdentifier());
 
         return testRunner;
     }

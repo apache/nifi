@@ -18,7 +18,6 @@ package org.apache.nifi.processors.box;
 
 import com.box.sdk.BoxFile;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -33,13 +32,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * See Javadoc {@link AbstractBoxFilesIT} for instructions how to run this test.
  */
 public class FetchBoxFilesIT extends AbstractBoxFilesIT<FetchBoxFiles> {
-    @BeforeEach
-    public void init() throws Exception {
-        super.init();
-        testRunner.setProperty(ListBoxFiles.USER_ID, USER_ID);
-        testRunner.setProperty(FetchBoxFiles.BOX_CONFIG_FILE, BOX_CONFIG_FILE);
-    }
-
     @Override
     public FetchBoxFiles createTestSubject() {
         FetchBoxFiles testSubject = new FetchBoxFiles();

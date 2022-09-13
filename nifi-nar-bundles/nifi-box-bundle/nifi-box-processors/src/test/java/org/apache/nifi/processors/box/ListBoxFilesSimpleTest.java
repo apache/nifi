@@ -18,53 +18,52 @@ package org.apache.nifi.processors.box;
 
 import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxFolder;
+import org.apache.nifi.box.controllerservices.BoxClientService;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.util.list.AbstractListProcessor;
-import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.util.EqualsWrapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Answers;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
 import static org.apache.nifi.util.EqualsWrapper.wrapList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Answers.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 public class ListBoxFilesSimpleTest implements SimpleListBoxFileTestTrait {
     private ListBoxFiles testSubject;
 
     private ProcessContext mockProcessContext;
+    private BoxClientService mockBoxClientService;
+    private PropertyValue mockBoxClientServicePropertyValue;
     private BoxAPIConnection mockBoxAPIConnection;
 
     private BoxFolder mockBoxFolder;
 
     @BeforeEach
     void setUp() throws Exception {
-        mockProcessContext = mock(ProcessContext.class, RETURNS_DEEP_STUBS);
-        mockBoxAPIConnection = mock(BoxAPIConnection.class, RETURNS_DEEP_STUBS);
-        mockBoxFolder = mock(BoxFolder.class, RETURNS_DEEP_STUBS);
+        mockProcessContext = mock(ProcessContext.class, Answers.RETURNS_DEEP_STUBS);
+        mockBoxClientService = mock(BoxClientService.class);
+        mockBoxClientServicePropertyValue = mock(PropertyValue.class);
+        mockBoxAPIConnection = mock(BoxAPIConnection.class);
+
+        mockBoxFolder = mock(BoxFolder.class);
 
         testSubject = new ListBoxFiles() {
-            @Override
-            protected List<BoxFileInfo> performListing(ProcessContext context, Long minTimestamp, AbstractListProcessor.ListingMode ignoredListingMode) throws IOException {
-                return super.performListing(context, minTimestamp, ListingMode.EXECUTION);
-            }
-
-            @Override
-            public BoxAPIConnection createBoxApiConnection(ProcessContext context, ProxyConfiguration proxyConfiguration) {
-                return mockBoxAPIConnection;
-            }
-
             @Override
             BoxFolder getFolder(String folderId) {
                 return mockBoxFolder;
             }
         };
+
+        doReturn(mockBoxClientServicePropertyValue).when(mockProcessContext).getProperty(BoxClientService.BOX_CLIENT_SERVICE);
+        doReturn(mockBoxClientService).when(mockBoxClientServicePropertyValue).asControllerService(BoxClientService.class);
+        doReturn(mockBoxAPIConnection).when(mockBoxClientService).getBoxApiConnection();
 
         testSubject.onScheduled(mockProcessContext);
     }

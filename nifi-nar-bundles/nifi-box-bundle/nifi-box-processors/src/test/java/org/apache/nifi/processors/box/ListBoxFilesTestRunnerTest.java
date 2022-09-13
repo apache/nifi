@@ -18,20 +18,15 @@ package org.apache.nifi.processors.box;
 
 import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxFolder;
+import org.apache.nifi.box.controllerservices.BoxClientService;
 import org.apache.nifi.json.JsonRecordSetWriter;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.util.list.AbstractListProcessor;
-import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Answers;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -41,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 public class ListBoxFilesTestRunnerTest implements SimpleListBoxFileTestTrait {
@@ -52,24 +48,13 @@ public class ListBoxFilesTestRunnerTest implements SimpleListBoxFileTestTrait {
     private BoxFolder mockBoxFolder;
 
     private String folderId = "folderId";
-    private String userId = "userId";
 
     @BeforeEach
     void setUp() throws Exception {
-        mockBoxAPIConnection = mock(BoxAPIConnection.class, Answers.RETURNS_DEEP_STUBS);
-        mockBoxFolder = mock(BoxFolder.class, Answers.RETURNS_DEEP_STUBS);
+        mockBoxAPIConnection = mock(BoxAPIConnection.class);
+        mockBoxFolder = mock(BoxFolder.class);
 
         testSubject = new ListBoxFiles() {
-            @Override
-            protected List<BoxFileInfo> performListing(ProcessContext context, Long minTimestamp, AbstractListProcessor.ListingMode ignoredListingMode) throws IOException {
-                return super.performListing(context, minTimestamp, ListingMode.EXECUTION);
-            }
-
-            @Override
-            public BoxAPIConnection createBoxApiConnection(ProcessContext context, ProxyConfiguration proxyConfiguration) {
-                return mockBoxAPIConnection;
-            }
-
             @Override
             BoxFolder getFolder(String folderId) {
                 return mockBoxFolder;
@@ -78,8 +63,14 @@ public class ListBoxFilesTestRunnerTest implements SimpleListBoxFileTestTrait {
 
         testRunner = TestRunners.newTestRunner(testSubject);
         testRunner.setProperty(ListBoxFiles.FOLDER_ID, folderId);
-        testRunner.setProperty(ListBoxFiles.USER_ID, userId);
-        testRunner.setProperty(ListBoxFiles.BOX_CONFIG_FILE, new File("pom.xml").getAbsolutePath());
+
+        BoxClientService boxClientService = mock(BoxClientService.class);
+        doReturn(boxClientService.toString()).when(boxClientService).getIdentifier();
+        doReturn(mockBoxAPIConnection).when(boxClientService).getBoxApiConnection();
+
+        testRunner.addControllerService(boxClientService.getIdentifier(), boxClientService);
+        testRunner.enableControllerService(boxClientService);
+        testRunner.setProperty(BoxClientService.BOX_CLIENT_SERVICE, boxClientService.getIdentifier());
     }
 
     @Test

@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.box.controllerservices.BoxClientService;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -35,8 +36,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.proxy.ProxyConfiguration;
-import org.apache.nifi.proxy.ProxySpec;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -53,7 +52,7 @@ import java.util.Set;
     @WritesAttribute(attribute = FetchBoxFiles.ERROR_CODE_ATTRIBUTE, description = "The error code returned by Box when the fetch of a file fails"),
     @WritesAttribute(attribute = FetchBoxFiles.ERROR_MESSAGE_ATTRIBUTE, description = "The error message returned by Box when the fetch of a file fails")
 })
-public class FetchBoxFiles extends AbstractProcessor implements BoxTrait {
+public class FetchBoxFiles extends AbstractProcessor {
     public static final String ERROR_CODE_ATTRIBUTE = "error.code";
     public static final String ERROR_MESSAGE_ATTRIBUTE = "error.message";
 
@@ -78,12 +77,9 @@ public class FetchBoxFiles extends AbstractProcessor implements BoxTrait {
             .description("A FlowFile will be routed here for each File for which fetch was attempted but failed.")
             .build();
 
-    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH};
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
         FILE_ID,
-        USER_ID,
-        BOX_CONFIG_FILE,
-        ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS)
+        BoxClientService.BOX_CLIENT_SERVICE
     ));
 
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
@@ -105,9 +101,9 @@ public class FetchBoxFiles extends AbstractProcessor implements BoxTrait {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
-        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
+        BoxClientService boxClientService = context.getProperty(BoxClientService.BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
 
-        boxAPIConnection = createBoxApiConnection(context, proxyConfiguration);
+        boxAPIConnection = boxClientService.getBoxApiConnection();
     }
 
     @Override

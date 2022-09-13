@@ -31,6 +31,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.box.controllerservices.BoxClientService;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
@@ -39,8 +40,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
-import org.apache.nifi.proxy.ProxyConfiguration;
-import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
@@ -72,7 +71,7 @@ import java.util.stream.Collectors;
     @WritesAttribute(attribute = BoxFileInfo.TIMESTAMP, description = "The last modified time of the file.")})
 @Stateful(scopes = {Scope.CLUSTER}, description = "The processor stores necessary data to be able to keep track what files have been listed already." +
     " What exactly needs to be stored depends on the 'Listing Strategy'.")
-public class ListBoxFiles extends AbstractListProcessor<BoxFileInfo> implements BoxTrait {
+public class ListBoxFiles extends AbstractListProcessor<BoxFileInfo> {
     public static final PropertyDescriptor FOLDER_ID = new PropertyDescriptor.Builder()
         .name("box-folder-id")
         .displayName("Folder ID")
@@ -121,19 +120,16 @@ public class ListBoxFiles extends AbstractListProcessor<BoxFileInfo> implements 
         .dependsOn(LISTING_STRATEGY, BY_ENTITIES)
         .build();
 
-    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH};
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
         FOLDER_ID,
-        USER_ID,
-        BOX_CONFIG_FILE,
+        BoxClientService.BOX_CLIENT_SERVICE,
         RECURSIVE_SEARCH,
         MIN_AGE,
         LISTING_STRATEGY,
         TRACKING_STATE_CACHE,
         TRACKING_TIME_WINDOW,
         INITIAL_LISTING_TARGET,
-        RECORD_WRITER,
-        ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS)
+        RECORD_WRITER
     ));
 
     private volatile BoxAPIConnection boxAPIConnection;
@@ -160,9 +156,9 @@ public class ListBoxFiles extends AbstractListProcessor<BoxFileInfo> implements 
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
-        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
+        BoxClientService boxClientService = context.getProperty(BoxClientService.BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
 
-        boxAPIConnection = createBoxApiConnection(context, proxyConfiguration);
+        boxAPIConnection = boxClientService.getBoxApiConnection();
     }
 
     @Override

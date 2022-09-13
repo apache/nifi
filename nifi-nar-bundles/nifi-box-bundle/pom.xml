@@ -29,5 +29,9 @@
     <modules>
         <module>nifi-box-nar</module>
         <module>nifi-box-processors</module>
+        <module>nifi-box-services</module>
+        <module>nifi-box-services-api-nar</module>
+        <module>nifi-box-services-api</module>
+        <module>nifi-box-services-nar</module>
     </modules>
 </project>
