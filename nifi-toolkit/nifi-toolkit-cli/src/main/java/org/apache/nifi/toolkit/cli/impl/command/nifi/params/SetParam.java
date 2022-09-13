@@ -33,6 +33,7 @@ import org.apache.nifi.web.api.entity.ParameterEntity;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 
@@ -88,7 +89,7 @@ public class SetParam extends AbstractUpdateParamContextCommand<VoidResult> {
             throw new IllegalArgumentException("A parameter value is required when creating a new parameter");
         }
 
-        if (existingParam.isPresent() && existingParam.get().getValue().equals(paramValue)) {
+        if (existingParam.isPresent() && Objects.equals(existingParam.get().getValue(), paramValue)) {
             throw new IllegalArgumentException(String.format("Parameter value supplied for parameter [%s] is the same as its current value", paramName));
         }
 
