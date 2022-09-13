@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
 
 public class StandardPropertiesWriter implements PropertiesWriter {
 
-    private static final String PROPERTY_FORMAT = "(%s)=(%s)";
+    private static final String PROPERTY_FORMAT = "%s=%s";
 
     public void writePropertiesFile(final InputStream inputStream, final OutputStream outputStream, final ReadableProperties properties) throws IOException {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
@@ -40,9 +40,9 @@ public class StandardPropertiesWriter implements PropertiesWriter {
             while ((line = reader.readLine()) != null) {
                 Set<String> keys = properties.getPropertyKeys();
                 for (final String key : keys) {
-                    Pattern regex = Pattern.compile(PROPERTY_FORMAT);
-                    Matcher matcher = regex.matcher(line);
-                    if (matcher.matches() && matcher.group(0).equals(key)) {
+                    Pattern regex = Pattern.compile(String.format("^%s=.*$", key));
+                    Matcher m = regex.matcher(line);
+                    if (m.matches()) {
                         line = String.format(PROPERTY_FORMAT, key, properties.getProperty(key));
                     }
                 }
@@ -51,5 +51,4 @@ public class StandardPropertiesWriter implements PropertiesWriter {
             }
         }
     }
-
 }
