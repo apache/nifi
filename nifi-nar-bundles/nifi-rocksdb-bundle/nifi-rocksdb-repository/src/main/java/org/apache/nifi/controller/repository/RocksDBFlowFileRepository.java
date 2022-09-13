@@ -289,7 +289,10 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
     }
 
     public RocksDBFlowFileRepository(final NiFiProperties niFiProperties) {
-        deprecationLogger.warn("{} should be replaced with WriteAheadFlowFileRepository", getClass().getSimpleName());
+        deprecationLogger.warn("{} should be replaced with WriteAheadFlowFileRepository for [{}] in nifi.properties",
+                getClass().getSimpleName(),
+                NiFiProperties.FLOWFILE_REPOSITORY_IMPLEMENTATION
+        );
 
         deserializationThreads = RocksDbProperty.DESERIALIZATION_THREADS.getIntValue(niFiProperties);
         deserializationBufferSize = RocksDbProperty.DESERIALIZATION_BUFFER_SIZE.getIntValue(niFiProperties);

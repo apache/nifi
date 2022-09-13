@@ -35,9 +35,14 @@ import java.util.stream.Collectors;
 public class HDFSNarProvider extends HDFSExternalResourceProvider implements NarProvider {
     private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(HDFSNarProvider.class);
 
+    private static final String IMPLEMENTATION_PROPERTY = "nifi.nar.library.provider.hdfs.implementation";
+
     @Override
     public void initialize(final NarProviderInitializationContext context) {
-        deprecationLogger.warn("{} should be replaced with HDFSExternalResourceProvider", getClass().getSimpleName());
+        deprecationLogger.warn("{} should be replaced with HDFSExternalResourceProvider for [{}] in nifi.properties",
+                getClass().getSimpleName(),
+                IMPLEMENTATION_PROPERTY
+        );
         initialize(new NarProviderAdapterInitializationContext(context));
     }
 
