@@ -44,10 +44,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.net.InetSocketAddress;
 import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,6 +61,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestDistributedMapServerAndClient {
 
@@ -298,6 +302,45 @@ public class TestDistributedMapServerAndClient {
         }
     }
 
+    @Test
+    public void testIncompleteHandshakeScenario() throws InitializationException, IOException {
+        // Default port used by Distributed Server and Client
+        final int port = 4557;
+
+        // This is used to simulate a DistributedCacheServer that does not complete the handshake response
+        final ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
+        serverSocketChannel.configureBlocking(true);
+        serverSocketChannel.bind(new InetSocketAddress(port));
+        final Thread thread = startServerSocket(serverSocketChannel);
+
+        DistributedMapCacheClientService client = new DistributedMapCacheClientService();
+        MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client");
+        client.initialize(clientInitContext);
+
+        final Map<PropertyDescriptor, String> clientProperties = new HashMap<>();
+        clientProperties.put(DistributedMapCacheClientService.HOSTNAME, "localhost");
+        clientProperties.put(DistributedMapCacheClientService.PORT, String.valueOf(port));
+        clientProperties.put(DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "1 sec");
+
+        MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup());
+        client.onEnabled(clientContext);
+
+        final Serializer<String> valueSerializer = new StringSerializer();
+        final Serializer<String> keySerializer = new StringSerializer();
+        final Deserializer<String> deserializer = new StringDeserializer();
+
+        try {
+            client.getAndPutIfAbsent("testKey", "test", keySerializer, valueSerializer, deserializer);
+            fail("Client operation should have failed due to it not being connected to a DistributedCacheServer");
+        } catch (IOException e) {
+            // Verify cause of exception was handshake completion timeout
+            assertEquals("Handshake timed out before completion.", e.getCause().getMessage());
+        } finally {
+            thread.interrupt();
+            serverSocketChannel.close();
+        }
+    }
+
     private DistributedMapCacheClientService createClient(final int port) throws InitializationException {
         final DistributedMapCacheClientService client = new DistributedMapCacheClientService();
         final MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client");
@@ -310,6 +353,27 @@ public class TestDistributedMapServerAndClient {
         client.onEnabled(clientContext);
 
         return client;
+    }
+
+    private Thread startServerSocket(ServerSocketChannel serverSocketChannel) {
+        final Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    final SocketChannel socketChannel;
+                    try {
+                        socketChannel = serverSocketChannel.accept();
+                    } catch (final IOException e) {
+                        return;
+                    }
+                }
+            }
+        };
+        final Thread thread = new Thread(runnable);
+        thread.setDaemon(true);
+        thread.setName("Test Server Socket");
+        thread.start();
+        return thread;
     }
 
     private static class StringSerializer implements Serializer<String> {

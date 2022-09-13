@@ -78,7 +78,7 @@ public class CacheClientChannelInitializer extends ChannelInitializer<Channel> {
         final VersionNegotiator versionNegotiator = versionNegotiatorFactory.create();
         channelPipeline.addFirst(new IdleStateHandler(idleTimeout.getSeconds(), idleTimeout.getSeconds(), idleTimeout.getSeconds(), TimeUnit.SECONDS));
         channelPipeline.addLast(new WriteTimeoutHandler(writeTimeout.toMillis(), TimeUnit.MILLISECONDS));
-        channelPipeline.addLast(new CacheClientHandshakeHandler(channel, versionNegotiator));
+        channelPipeline.addLast(new CacheClientHandshakeHandler(channel, versionNegotiator, writeTimeout.toMillis()));
         channelPipeline.addLast(new CacheClientRequestHandler());
         channelPipeline.addLast(new CloseContextIdleStateHandler());
     }

@@ -90,16 +90,20 @@ public class CacheClientRequestHandler extends ChannelInboundHandlerAdapter {
     public void invoke(final Channel channel, final OutboundAdapter outboundAdapter, final InboundAdapter inboundAdapter) throws IOException {
         final CacheClientHandshakeHandler handshakeHandler = channel.pipeline().get(CacheClientHandshakeHandler.class);
         handshakeHandler.waitHandshakeComplete();
-        if (handshakeHandler.getVersionNegotiator().getVersion() < outboundAdapter.getMinimumVersion()) {
-            throw new UnsupportedOperationException("Remote cache server doesn't support protocol version " + outboundAdapter.getMinimumVersion());
-        }
-        this.inboundAdapter = inboundAdapter;
-        channelPromise = channel.newPromise();
-        channel.writeAndFlush(Unpooled.wrappedBuffer(outboundAdapter.toBytes()));
-        channelPromise.awaitUninterruptibly();
-        this.inboundAdapter = new NullInboundAdapter();
-        if (channelPromise.cause() != null) {
-            throw new IOException("Request invocation failed", channelPromise.cause());
+        if (handshakeHandler.isSuccess()) {
+            if (handshakeHandler.getVersionNegotiator().getVersion() < outboundAdapter.getMinimumVersion()) {
+                throw new UnsupportedOperationException("Remote cache server doesn't support protocol version " + outboundAdapter.getMinimumVersion());
+            }
+            this.inboundAdapter = inboundAdapter;
+            channelPromise = channel.newPromise();
+            channel.writeAndFlush(Unpooled.wrappedBuffer(outboundAdapter.toBytes()));
+            channelPromise.awaitUninterruptibly();
+            this.inboundAdapter = new NullInboundAdapter();
+            if (channelPromise.cause() != null) {
+                throw new IOException("Request invocation failed", channelPromise.cause());
+            }
+        } else {
+            throw new IOException("Request invocation failed", handshakeHandler.cause());
         }
     }
 }

@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -65,15 +66,23 @@ public class CacheClientHandshakeHandler extends ChannelInboundHandlerAdapter {
     private final VersionNegotiator versionNegotiator;
 
     /**
+     * THe network timeout associated with handshake completion
+     */
+    private final long timeoutMillis;
+
+    /**
      * Constructor.
      *
      * @param channel           the channel to which this {@link io.netty.channel.ChannelHandler} is bound.
      * @param versionNegotiator coordinator used to broker the version of the distributed cache protocol with the service
+     * @param timeoutMillis     the network timeout associated with handshake completion
      */
-    public CacheClientHandshakeHandler(final Channel channel, final VersionNegotiator versionNegotiator) {
+    public CacheClientHandshakeHandler(final Channel channel, final VersionNegotiator versionNegotiator,
+                                       final long timeoutMillis) {
         this.promiseHandshakeComplete = channel.newPromise();
         this.protocol = new AtomicInteger(PROTOCOL_UNINITIALIZED);
         this.versionNegotiator = versionNegotiator;
+        this.timeoutMillis = timeoutMillis;
     }
 
     /**
@@ -81,7 +90,11 @@ public class CacheClientHandshakeHandler extends ChannelInboundHandlerAdapter {
      * should not be sent using this {@link Channel} until the handshake is complete.
      */
     public void waitHandshakeComplete() {
-        promiseHandshakeComplete.awaitUninterruptibly();
+        promiseHandshakeComplete.awaitUninterruptibly(timeoutMillis, TimeUnit.MILLISECONDS);
+        if (!promiseHandshakeComplete.isSuccess()) {
+            HandshakeException ex = new HandshakeException("Handshake timed out before completion.");
+            promiseHandshakeComplete.setFailure(ex);
+        }
     }
 
     /**
@@ -156,5 +169,13 @@ public class CacheClientHandshakeHandler extends ChannelInboundHandlerAdapter {
         } else if (protocol.get() > PROTOCOL_UNINITIALIZED) {
             promiseHandshakeComplete.setSuccess();
         }
+    }
+
+    public boolean isSuccess() {
+        return promiseHandshakeComplete.isSuccess();
+    }
+
+    public Throwable cause() {
+        return promiseHandshakeComplete.cause();
     }
 }
