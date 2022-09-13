@@ -59,7 +59,6 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -69,7 +68,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.record.path.RecordPathResult;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.security.util.crypto.HashAlgorithm;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -160,7 +158,7 @@ public class GetWorkdayReport extends AbstractProcessor {
         .displayName("Hashing Algorithm")
         .description("Determines what hashing algorithm should be used to perform the hashing function.")
         .required(true)
-        .allowableValues(HashAlgorithm.SHA256.getName(), HashAlgorithm.SHA512.getName())
+        .allowableValues(HashAlgorithm.getNames())
         .defaultValue(HashAlgorithm.SHA256.getName())
         .addValidator(NON_BLANK_VALIDATOR)
         .expressionLanguageSupported(NONE)
@@ -185,23 +183,31 @@ public class GetWorkdayReport extends AbstractProcessor {
         .build();
 
     protected static final Relationship ORIGINAL = new Relationship.Builder()
-        .name("Original")
+        .name("original")
         .description("Request FlowFiles transferred when receiving HTTP responses with a status code between 200 and 299.")
         .build();
 
     protected static final Relationship FAILURE = new Relationship.Builder()
-        .name("Failure")
+        .name("failure")
         .description("Request FlowFiles transferred when receiving socket communication errors.")
         .build();
 
-    protected static final Relationship RESPONSE = new Relationship.Builder()
-        .name("Response")
+    protected static final Relationship SUCCESS = new Relationship.Builder()
+        .name("success")
         .description("Response FlowFiles transferred when receiving HTTP responses with a status code between 200 and 299.")
         .build();
 
-    protected static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(ORIGINAL, RESPONSE, FAILURE)));
-    protected static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(REPORT_URL, WORKDAY_USERNAME, WORKDAY_PASSWORD, WEB_CLIENT_SERVICE,
-        FIELDS_TO_HASH, HASHING_ALGORITHM, RECORD_READER_FACTORY, RECORD_WRITER_FACTORY));
+    protected static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(ORIGINAL, SUCCESS, FAILURE)));
+    protected static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+        REPORT_URL,
+        WORKDAY_USERNAME,
+        WORKDAY_PASSWORD,
+        WEB_CLIENT_SERVICE,
+        FIELDS_TO_HASH,
+        HASHING_ALGORITHM,
+        RECORD_READER_FACTORY,
+        RECORD_WRITER_FACTORY
+    ));
 
     private final AtomicReference<WebClientService> webClientReference = new AtomicReference<>();
     private final AtomicReference<RecordReaderFactory> recordReaderFactoryReference = new AtomicReference<>();
@@ -236,7 +242,6 @@ public class GetWorkdayReport extends AbstractProcessor {
             return;
         }
 
-        ComponentLog logger = getLogger();
         FlowFile responseFlowFile = null;
 
         try {
@@ -269,10 +274,10 @@ public class GetWorkdayReport extends AbstractProcessor {
             }
         } catch (Exception e) {
             if (flowFile == null) {
-                logger.error("Request Processing failed", e);
+                getLogger().error("Request Processing failed", e);
                 context.yield();
             } else {
-                logger.error("Request Processing failed: {}", flowFile, e);
+                getLogger().error("Request Processing failed: {}", flowFile, e);
                 session.penalize(flowFile);
                 flowFile = session.putAttribute(flowFile, GET_WORKDAY_REPORT_JAVA_EXCEPTION_CLASS, e.getClass().getSimpleName());
                 flowFile = session.putAttribute(flowFile, GET_WORKDAY_REPORT_JAVA_EXCEPTION_MESSAGE, e.getMessage());
@@ -390,7 +395,7 @@ public class GetWorkdayReport extends AbstractProcessor {
                 session.transfer(request, ORIGINAL);
             }
             if (response != null) {
-                session.transfer(response, RESPONSE);
+                session.transfer(response, SUCCESS);
             }
         } else {
             if (request != null) {
@@ -420,6 +425,25 @@ public class GetWorkdayReport extends AbstractProcessor {
             attributes.put(CoreAttributes.MIME_TYPE.key(), contentType.get());
         }
         return attributes;
+    }
+
+    protected enum HashAlgorithm {
+        SHA256("SHA-256"),
+        SHA512("SHA-512");
+
+        private final String name;
+
+        HashAlgorithm(String name) {
+            this.name = name;
+        }
+
+        private String getName() {
+            return name;
+        }
+
+        private static String[] getNames() {
+            return Arrays.stream(HashAlgorithm.values()).map(HashAlgorithm::getName).toArray(String[]::new);
+        }
     }
 
     private class TransformResult {

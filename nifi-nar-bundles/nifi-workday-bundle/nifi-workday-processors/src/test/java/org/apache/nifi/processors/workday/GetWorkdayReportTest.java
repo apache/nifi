@@ -27,8 +27,8 @@ import static org.apache.nifi.processors.workday.GetWorkdayReport.ORIGINAL;
 import static org.apache.nifi.processors.workday.GetWorkdayReport.RECORD_COUNT;
 import static org.apache.nifi.processors.workday.GetWorkdayReport.RECORD_READER_FACTORY;
 import static org.apache.nifi.processors.workday.GetWorkdayReport.RECORD_WRITER_FACTORY;
-import static org.apache.nifi.processors.workday.GetWorkdayReport.RESPONSE;
 import static org.apache.nifi.processors.workday.GetWorkdayReport.STATUS_CODE;
+import static org.apache.nifi.processors.workday.GetWorkdayReport.SUCCESS;
 import static org.apache.nifi.processors.workday.GetWorkdayReport.WEB_CLIENT_SERVICE;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -200,7 +200,7 @@ class GetWorkdayReportTest {
 
         assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled());
         runner.assertTransferCount(ORIGINAL, 0);
-        runner.assertTransferCount(RESPONSE, 0);
+        runner.assertTransferCount(SUCCESS, 0);
         runner.assertTransferCount(FAILURE, 0);
     }
 
@@ -219,7 +219,7 @@ class GetWorkdayReportTest {
 
         assertFalse(((MockProcessContext) runner.getProcessContext()).isYieldCalled());
         runner.assertTransferCount(ORIGINAL, 0);
-        runner.assertTransferCount(RESPONSE, 0);
+        runner.assertTransferCount(SUCCESS, 0);
         runner.assertTransferCount(FAILURE, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FAILURE).iterator().next();
@@ -239,7 +239,7 @@ class GetWorkdayReportTest {
 
         assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled());
         runner.assertTransferCount(ORIGINAL, 0);
-        runner.assertTransferCount(RESPONSE, 0);
+        runner.assertTransferCount(SUCCESS, 0);
         runner.assertTransferCount(FAILURE, 0);
     }
 
@@ -258,10 +258,10 @@ class GetWorkdayReportTest {
 
         assertFalse(((MockProcessContext) runner.getProcessContext()).isYieldCalled());
         runner.assertTransferCount(ORIGINAL, 0);
-        runner.assertTransferCount(RESPONSE, 1);
+        runner.assertTransferCount(SUCCESS, 1);
         runner.assertTransferCount(FAILURE, 0);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(RESPONSE).iterator().next();
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(SUCCESS).iterator().next();
         flowFile.assertAttributeEquals(STATUS_CODE, OK_STATUS_CODE);
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), TEXT_CSV);
         flowFile.assertAttributeNotExists(RECORD_COUNT);
@@ -284,11 +284,11 @@ class GetWorkdayReportTest {
 
         assertFalse(((MockProcessContext) runner.getProcessContext()).isYieldCalled());
         runner.assertTransferCount(ORIGINAL, 1);
-        runner.assertTransferCount(RESPONSE, 1);
+        runner.assertTransferCount(SUCCESS, 1);
         runner.assertTransferCount(FAILURE, 0);
 
         MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(ORIGINAL).iterator().next();
-        MockFlowFile responseFlowFile = runner.getFlowFilesForRelationship(RESPONSE).iterator().next();
+        MockFlowFile responseFlowFile = runner.getFlowFilesForRelationship(SUCCESS).iterator().next();
         originalFlowFile.assertAttributeEquals(STATUS_CODE, OK_STATUS_CODE);
         originalFlowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), TEXT_CSV);
         responseFlowFile.assertAttributeEquals(STATUS_CODE, OK_STATUS_CODE);
@@ -315,10 +315,10 @@ class GetWorkdayReportTest {
 
         assertFalse(((MockProcessContext) runner.getProcessContext()).isYieldCalled());
         runner.assertTransferCount(ORIGINAL, 0);
-        runner.assertTransferCount(RESPONSE, 1);
+        runner.assertTransferCount(SUCCESS, 1);
         runner.assertTransferCount(FAILURE, 0);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(RESPONSE).iterator().next();
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(SUCCESS).iterator().next();
         flowFile.assertAttributeEquals(STATUS_CODE, OK_STATUS_CODE);
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), TEXT_CSV);
 
@@ -347,10 +347,10 @@ class GetWorkdayReportTest {
 
         assertFalse(((MockProcessContext) runner.getProcessContext()).isYieldCalled());
         runner.assertTransferCount(ORIGINAL, 0);
-        runner.assertTransferCount(RESPONSE, 1);
+        runner.assertTransferCount(SUCCESS, 1);
         runner.assertTransferCount(FAILURE, 0);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(RESPONSE).iterator().next();
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(SUCCESS).iterator().next();
         flowFile.assertAttributeEquals(STATUS_CODE, OK_STATUS_CODE);
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), TEXT_CSV);
         flowFile.assertAttributeEquals(RECORD_COUNT, "1");
