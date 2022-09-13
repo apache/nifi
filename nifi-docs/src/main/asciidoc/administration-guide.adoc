@@ -207,6 +207,14 @@ subsequent versions. Deprecation warnings should be evaluated and addressed to a
 a new major version. Resolving deprecation warnings involves upgrading to new components, changing component property
 settings, or refactoring custom component classes.
 
+Deprecation logging provides a method for checking compatibility before upgrading from one major release version to
+another. Upgrading to the latest minor release version will provide the most accurate set of deprecation warnings.
+
+It is important to note that deprecation logging applies to both components and features. Logging for deprecated
+features requires a runtime reference to the property or method impacted. Disabled components with deprecated properties
+or methods will not generate deprecation logs. For this reason, it is important to exercise all configured components
+long enough to exercise standard flow behavior.
+
 Deprecation logging can generate repeated messages depending on component configuration and usage patterns. Disabling
 deprecation logging for a specific component class can be configured by adding a `logger` element to `logback.xml`.
 The `name` attribute must start with `deprecation`, followed by the component class. Setting the `level` attribute to

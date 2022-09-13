@@ -229,7 +229,10 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
     }
 
     public PersistentProvenanceRepository(final RepositoryConfiguration configuration, final int rolloverCheckMillis) throws IOException {
-        deprecationLogger.warn("{} should be replaced with WriteAheadProvenanceRepository", getClass().getSimpleName());
+        deprecationLogger.warn("{} should be replaced with WriteAheadProvenanceRepository for [{}] in nifi.properties",
+                getClass().getSimpleName(),
+                NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS
+        );
 
         if (configuration.getStorageDirectories().isEmpty()) {
             throw new IllegalArgumentException("Must specify at least one storage directory");
