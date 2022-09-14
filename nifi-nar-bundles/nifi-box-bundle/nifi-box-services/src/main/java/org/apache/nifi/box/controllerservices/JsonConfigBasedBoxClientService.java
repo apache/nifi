@@ -19,6 +19,8 @@ package org.apache.nifi.box.controllerservices;
 import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxConfig;
 import com.box.sdk.BoxDeveloperEditionAPIConnection;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -42,6 +44,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+@CapabilityDescription("Provides Box client objects through which Box API calls can be used.")
+@Tags({"box", "client", "provider"})
 public class JsonConfigBasedBoxClientService extends AbstractControllerService implements BoxClientService {
     public static final PropertyDescriptor ACCOUNT_ID = new PropertyDescriptor.Builder()
         .name("box-account-id")

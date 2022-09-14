@@ -17,13 +17,12 @@
 package org.apache.nifi.box.controllerservices;
 
 import com.box.sdk.BoxAPIConnection;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 
-@CapabilityDescription("Provides a Box connection object through which Box API calls can be used.")
-@Tags({"box", "client", "provider"})
+/**
+ * Provides Box client objects through which Box API calls can be used.
+ */
 public interface BoxClientService extends ControllerService {
     PropertyDescriptor BOX_CLIENT_SERVICE = new PropertyDescriptor.Builder()
         .name("box-client-service")

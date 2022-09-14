@@ -16,7 +16,7 @@
 -->
 <head>
     <meta charset="utf-8" />
-    <title>ListBoxFiles</title>
+    <title>JsonConfigBasedBoxClientService</title>
 
     <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
 </head>
@@ -40,7 +40,10 @@
         <br/>Note that you can only download the configuration JSON with the keypair details only once, when you generate the keypair. Also this is the only time Box will show you the private key.
         <br/>If you want to download the configuration JSON file later (under 'App Settings') - or if you want to use your own keypair - after you download it you need to edit the file and add the keypair details manually.
     </li>
-    <li>After all settings are done, the App needs to be reauthorized. ('Reauthorize App' on the https://app.box.com/master/custom-apps page.)</li>
+    <li>
+        After all settings are done, the App needs to be reauthorized on the admin page. ('Reauthorize App' at https://app.box.com/master/custom-apps.)
+        <br/>If the app is configured for the first time it needs to be added ('Add App') before it can be authorized.
+    </li>
 </ul>
 </body>
 </html>
