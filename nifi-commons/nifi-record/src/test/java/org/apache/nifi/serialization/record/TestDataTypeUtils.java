@@ -94,6 +94,12 @@ public class TestDataTypeUtils {
         assertEquals(ts.getTime(), sDate.getTime(), "Times didn't match");
     }
 
+    @Test
+    public void testIntDoubleWiderType() {
+        assertEquals(Optional.of(RecordFieldType.DOUBLE.getDataType()), DataTypeUtils.getWiderType(RecordFieldType.INT.getDataType(), RecordFieldType.DOUBLE.getDataType()));
+        assertEquals(Optional.of(RecordFieldType.DOUBLE.getDataType()), DataTypeUtils.getWiderType(RecordFieldType.DOUBLE.getDataType(), RecordFieldType.INT.getDataType()));
+    }
+
     /*
      * This was a bug in NiFi 1.8 where converting from a Timestamp to a Date with the record path API
      * would throw an exception.

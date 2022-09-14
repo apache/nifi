@@ -34,7 +34,7 @@ public class FieldTypeInference {
     // unique value for the data type, and so this paradigm allows us to avoid the cost of creating
     // and using the HashSet.
     private DataType singleDataType = null;
-    private Set<DataType> possibleDataTypes = new HashSet<>();
+    private final Set<DataType> possibleDataTypes = new HashSet<>();
 
     public void addPossibleDataType(final DataType dataType) {
         if (dataType == null) {
@@ -73,17 +73,17 @@ public class FieldTypeInference {
             possibleDataTypes.add(singleDataType);
         }
 
-        for (DataType possibleDataType : possibleDataTypes) {
-            RecordFieldType possibleFieldType = possibleDataType.getFieldType();
+        for (final DataType possibleDataType : possibleDataTypes) {
+            final RecordFieldType possibleFieldType = possibleDataType.getFieldType();
             if (!possibleFieldType.equals(RecordFieldType.STRING) && possibleFieldType.isWiderThan(additionalFieldType)) {
                 return;
             }
         }
 
-        Iterator<DataType> possibleDataTypeIterator = possibleDataTypes.iterator();
+        final Iterator<DataType> possibleDataTypeIterator = possibleDataTypes.iterator();
         while (possibleDataTypeIterator.hasNext()) {
-            DataType possibleDataType = possibleDataTypeIterator.next();
-            RecordFieldType possibleFieldType = possibleDataType.getFieldType();
+            final DataType possibleDataType = possibleDataTypeIterator.next();
+            final RecordFieldType possibleFieldType = possibleDataType.getFieldType();
 
             if (!additionalFieldType.equals(RecordFieldType.STRING) && additionalFieldType.isWiderThan(possibleFieldType)) {
                 possibleDataTypeIterator.remove();
