@@ -22,7 +22,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 
-public interface FlowSynchronizationCallback {
+public interface ScheduledStateChangeListener {
     void onScheduledStateChange(ProcessorNode processor);
 
     void onScheduledStateChange(Port port);
@@ -31,7 +31,7 @@ public interface FlowSynchronizationCallback {
 
     void onScheduledStateChange(ReportingTaskNode reportingTask);
 
-    FlowSynchronizationCallback EMPTY = new FlowSynchronizationCallback() {
+    ScheduledStateChangeListener EMPTY = new ScheduledStateChangeListener() {
         @Override
         public void onScheduledStateChange(ProcessorNode processor) {
 

@@ -1153,7 +1153,11 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             } finally {
                 // Re-enable the controller service if necessary
                 serviceProvider.enableControllerServicesAsync(servicesToRestart);
-                servicesToRestart.forEach(synchronizationOptions.getCallback()::onScheduledStateChange);
+                try {
+                    servicesToRestart.forEach(synchronizationOptions.getScheduledStateChangeListener()::onScheduledStateChange);
+                } catch (final Exception e) {
+                    LOG.debug("Failed to notify listeners of ScheduledState changes", e);
+                }
 
                 // Restart any components that need to be restarted.
                 if (controllerService != null) {
@@ -1543,7 +1547,11 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 // Disable all Controller Services
                 final Collection<ControllerServiceNode> controllerServices = processGroup.findAllControllerServices();
                 final Future<Void> disableServicesFuture = context.getControllerServiceProvider().disableControllerServicesAsync(controllerServices);
-                controllerServices.forEach(synchronizationOptions.getCallback()::onScheduledStateChange);
+                try {
+                    controllerServices.forEach(synchronizationOptions.getScheduledStateChangeListener()::onScheduledStateChange);
+                } catch (final Exception e) {
+                    LOG.debug("Failed to notify listeners of ScheduledState changes", e);
+                }
                 try {
                     disableServicesFuture.get(timeout, TimeUnit.MILLISECONDS);
                 } catch (final ExecutionException ee) {
@@ -1646,7 +1654,11 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
                 // Stop all necessary enabled/active Controller Services
                 final Future<Void> serviceDisableFuture = context.getControllerServiceProvider().disableControllerServicesAsync(controllerServicesToStop);
-                controllerServicesToStop.forEach(synchronizationOptions.getCallback()::onScheduledStateChange);
+                try {
+                    controllerServicesToStop.forEach(synchronizationOptions.getScheduledStateChangeListener()::onScheduledStateChange);
+                } catch (final Exception e) {
+                    LOG.debug("Failed to notify listeners of ScheduledState changes", e);
+                }
                 try {
                     serviceDisableFuture.get(timeout - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
                 } catch (ExecutionException e) {
@@ -1674,11 +1686,19 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             } finally {
                 // Re-enable all Controller Services that we disabled and restart all processors
                 context.getControllerServiceProvider().enableControllerServicesAsync(controllerServicesToStop);
-                controllerServicesToStop.forEach(synchronizationOptions.getCallback()::onScheduledStateChange);
+                try {
+                    controllerServicesToStop.forEach(synchronizationOptions.getScheduledStateChangeListener()::onScheduledStateChange);
+                } catch (final Exception e) {
+                    LOG.debug("Failed to notify listeners of ScheduledState changes", e);
+                }
 
                 for (final ProcessorNode processor : processorsToStop) {
                     processor.getProcessGroup().startProcessor(processor, false);
-                    synchronizationOptions.getCallback().onScheduledStateChange(processor);
+                    try {
+                        synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange(processor);
+                    } catch (final Exception e) {
+                        LOG.debug("Failed to notify listeners of ScheduledState changes", e);
+                    }
                 }
             }
         } finally {
@@ -2441,20 +2461,30 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private void notifyScheduledStateChange(final Connectable component, final FlowSynchronizationOptions synchronizationOptions) {
-        if (component instanceof ProcessorNode) {
-            synchronizationOptions.getCallback().onScheduledStateChange((ProcessorNode) component);
-        } else if (component instanceof Port) {
-            synchronizationOptions.getCallback().onScheduledStateChange((Port) component);
+        try {
+            if (component instanceof ProcessorNode) {
+                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange((ProcessorNode) component);
+            } else if (component instanceof Port) {
+                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange((Port) component);
+            }
+        } catch (final Exception e) {
+            LOG.debug("Failed to notify listeners of ScheduledState changes", e);
         }
     }
 
     private void notifyScheduledStateChange(final ComponentNode component, final FlowSynchronizationOptions synchronizationOptions) {
-        if (component instanceof ProcessorNode) {
-            synchronizationOptions.getCallback().onScheduledStateChange((ProcessorNode) component);
-        } else if (component instanceof Port) {
-            synchronizationOptions.getCallback().onScheduledStateChange((Port) component);
-        } else if (component instanceof ControllerServiceNode) {
-            synchronizationOptions.getCallback().onScheduledStateChange((Port) component);
+        try {
+            if (component instanceof ProcessorNode) {
+                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange((ProcessorNode) component);
+            } else if (component instanceof Port) {
+                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange((Port) component);
+            } else if (component instanceof ControllerServiceNode) {
+                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange((ControllerServiceNode) component);
+            } else if (component instanceof ReportingTaskNode) {
+                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange((ReportingTaskNode) component);
+            }
+        } catch (final Exception e) {
+            LOG.debug("Failed to notify listeners of ScheduledState changes", e);
         }
     }
 
@@ -2468,12 +2498,20 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             case INPUT_PORT:
                 final Port inputPort = (Port) component;
                 component.getProcessGroup().stopInputPort(inputPort);
-                synchronizationOptions.getCallback().onScheduledStateChange(inputPort);
+                try {
+                    synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange(inputPort);
+                } catch (final Exception e) {
+                    LOG.debug("Failed to notify listeners of ScheduledState changes", e);
+                }
                 return true;
             case OUTPUT_PORT:
                 final Port outputPort = (Port) component;
                 component.getProcessGroup().stopOutputPort(outputPort);
-                synchronizationOptions.getCallback().onScheduledStateChange(outputPort);
+                try {
+                    synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange(outputPort);
+                } catch (final Exception e) {
+                    LOG.debug("Failed to notify listeners of ScheduledState changes", e);
+                }
                 return true;
             case PROCESSOR:
                 final ProcessorNode processorNode = (ProcessorNode) component;
@@ -2498,7 +2536,11 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     return true;
             }
         } finally {
-            synchronizationOptions.getCallback().onScheduledStateChange(processor);
+            try {
+                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange(processor);
+            } catch (final Exception e) {
+                LOG.debug("Failed to notify listeners of ScheduledState changes", e);
+            }
         }
     }
 
@@ -2560,7 +2602,11 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             // Disable the service and wait for completion, up to the timeout allowed
             final Future<Void> future = serviceProvider.disableControllerServicesAsync(servicesToStop);
             waitForStopCompletion(future, controllerService, timeout, timeoutAction);
-            servicesToStop.forEach(synchronizationOptions.getCallback()::onScheduledStateChange);
+            try {
+                servicesToStop.forEach(synchronizationOptions.getScheduledStateChangeListener()::onScheduledStateChange);
+            } catch (final Exception e) {
+                LOG.debug("Failed to notify listeners of ScheduledState changes", e);
+            }
         }
     }
 
@@ -2662,7 +2708,11 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     final Set<RemoteGroupPort> transmitting = getTransmittingPorts(rpg);
 
                     final Future<?> future = rpg.stopTransmitting();
-                    transmitting.forEach(port -> synchronizationOptions.getCallback().onScheduledStateChange(port));
+                    try {
+                        transmitting.forEach(port -> synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange(port));
+                    } catch (final Exception e) {
+                        LOG.debug("Failed to notify listeners of ScheduledState changes", e);
+                    }
                     waitForStopCompletion(future, rpg, timeout, synchronizationOptions.getComponentStopTimeoutAction());
 
                     final boolean proposedTransmitting = isTransmitting(proposed);
@@ -3032,7 +3082,11 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
             processor.getProcessGroup().stopProcessor(processor);
             processor.terminate();
-            synchronizationOptions.getCallback().onScheduledStateChange(processor);
+            try {
+                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange(processor);
+            } catch (final Exception e) {
+                LOG.debug("Failed to notify listeners of ScheduledState changes", e);
+            }
         }
     }
 

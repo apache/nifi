@@ -49,7 +49,7 @@ import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.groups.ComponentIdGenerator;
 import org.apache.nifi.groups.ComponentScheduler;
-import org.apache.nifi.groups.FlowSynchronizationCallback;
+import org.apache.nifi.groups.ScheduledStateChangeListener;
 import org.apache.nifi.groups.FlowSynchronizationOptions;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogLevel;
@@ -126,7 +126,7 @@ public class StandardVersionedComponentSynchronizerTest {
     private ControllerServiceProvider controllerServiceProvider;
     private ParameterContextManager parameterContextManager;
     private ParameterReferenceManager parameterReferenceManager;
-    private CapturingFlowSynchronizationCallback synchronizationCallback;
+    private CapturingScheduledStateChangeListener scheduledStateChangeListener;
 
     private final Set<String> queuesWithData = Collections.synchronizedSet(new HashSet<>());
     private final Bundle bundle = new Bundle("group", "artifact", "version 1.0");
@@ -194,13 +194,13 @@ public class StandardVersionedComponentSynchronizerTest {
         when(group.getInputPorts()).thenReturn(Collections.singleton(inputPort));
         when(group.getOutputPorts()).thenReturn(Collections.singleton(outputPort));
 
-        synchronizationCallback = new CapturingFlowSynchronizationCallback();
+        scheduledStateChangeListener = new CapturingScheduledStateChangeListener();
 
         synchronizationOptions = new FlowSynchronizationOptions.Builder()
             .componentIdGenerator(componentIdGenerator)
             .componentComparisonIdLookup(VersionedComponent::getIdentifier)
             .componentScheduler(componentScheduler)
-            .callback(synchronizationCallback)
+            .scheduledStateChangeListener(scheduledStateChangeListener)
             .build();
 
         synchronizer = new StandardVersionedComponentSynchronizer(context);
@@ -213,7 +213,7 @@ public class StandardVersionedComponentSynchronizerTest {
             .componentIdGenerator(componentIdGenerator)
             .componentComparisonIdLookup(VersionedComponent::getIdentifier)
             .componentScheduler(componentScheduler)
-            .callback(synchronizationCallback)
+            .scheduledStateChangeListener(scheduledStateChangeListener)
             .componentStopTimeout(Duration.ofMillis(10))
             .componentStopTimeoutAction(timeoutAction)
             .build();
@@ -384,7 +384,7 @@ public class StandardVersionedComponentSynchronizerTest {
         verify(connectionAB, times(1)).setName("Hello");
         verify(connectionAB, times(1)).setRelationships(Collections.singleton(new Relationship.Builder().name("success").build()));
 
-        synchronizationCallback.assertNumProcessorUpdates(0);
+        scheduledStateChangeListener.assertNumProcessorUpdates(0);
     }
 
     @Test
@@ -456,24 +456,24 @@ public class StandardVersionedComponentSynchronizerTest {
 
     private void verifyCallbackIndicatedRestart(final ProcessorNode... processors) {
         for (final ProcessorNode processor : processors) {
-            synchronizationCallback.assertProcessorUpdates(new ScheduledStateUpdate<>(processor, org.apache.nifi.controller.ScheduledState.STOPPED),
+            scheduledStateChangeListener.assertProcessorUpdates(new ScheduledStateUpdate<>(processor, org.apache.nifi.controller.ScheduledState.STOPPED),
                     new ScheduledStateUpdate<>(processor, org.apache.nifi.controller.ScheduledState.RUNNING));
         }
-        synchronizationCallback.assertNumProcessorUpdates(processors.length * 2);
+        scheduledStateChangeListener.assertNumProcessorUpdates(processors.length * 2);
     }
 
     private void verifyCallbackIndicatedStopOnly(final ProcessorNode... processors) {
         for (final ProcessorNode processor : processors) {
-            synchronizationCallback.assertProcessorUpdates(new ScheduledStateUpdate<>(processor, org.apache.nifi.controller.ScheduledState.STOPPED));
+            scheduledStateChangeListener.assertProcessorUpdates(new ScheduledStateUpdate<>(processor, org.apache.nifi.controller.ScheduledState.STOPPED));
         }
-        synchronizationCallback.assertNumProcessorUpdates(processors.length);
+        scheduledStateChangeListener.assertNumProcessorUpdates(processors.length);
     }
 
     private void verifyCallbackIndicatedStartOnly(final ProcessorNode... processors) {
         for (final ProcessorNode processor : processors) {
-            synchronizationCallback.assertProcessorUpdates(new ScheduledStateUpdate<>(processor, org.apache.nifi.controller.ScheduledState.RUNNING));
+            scheduledStateChangeListener.assertProcessorUpdates(new ScheduledStateUpdate<>(processor, org.apache.nifi.controller.ScheduledState.RUNNING));
         }
-        synchronizationCallback.assertNumProcessorUpdates(processors.length);
+        scheduledStateChangeListener.assertNumProcessorUpdates(processors.length);
     }
 
     @Test
@@ -1086,7 +1086,7 @@ public class StandardVersionedComponentSynchronizerTest {
         }
     }
 
-    private class CapturingFlowSynchronizationCallback implements FlowSynchronizationCallback {
+    private class CapturingScheduledStateChangeListener implements ScheduledStateChangeListener {
 
         private List<ScheduledStateUpdate<ProcessorNode>> processorUpdates = new ArrayList<>();
         private List<ScheduledStateUpdate<Port>> portUpdates = new ArrayList<>();

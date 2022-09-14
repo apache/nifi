@@ -35,7 +35,7 @@ public class FlowSynchronizationOptions {
     private final boolean updateRpgUrls;
     private final Duration componentStopTimeout;
     private final ComponentStopTimeoutAction timeoutAction;
-    private final FlowSynchronizationCallback callback;
+    private final ScheduledStateChangeListener scheduledStateChangeListener;
 
     private FlowSynchronizationOptions(final Builder builder) {
         this.componentIdGenerator = builder.componentIdGenerator;
@@ -50,7 +50,7 @@ public class FlowSynchronizationOptions {
         this.updateRpgUrls = builder.updateRpgUrls;
         this.componentStopTimeout = builder.componentStopTimeout;
         this.timeoutAction = builder.timeoutAction;
-        this.callback = builder.callback;
+        this.scheduledStateChangeListener = builder.scheduledStateChangeListener;
     }
 
     public ComponentIdGenerator getComponentIdGenerator() {
@@ -101,8 +101,8 @@ public class FlowSynchronizationOptions {
         return timeoutAction;
     }
 
-    public FlowSynchronizationCallback getCallback() {
-        return callback;
+    public ScheduledStateChangeListener getScheduledStateChangeListener() {
+        return scheduledStateChangeListener;
     }
 
     public static class Builder {
@@ -115,7 +115,7 @@ public class FlowSynchronizationOptions {
         private boolean updateGroupVersionControlSnapshot = true;
         private boolean updateExistingVariables = false;
         private boolean updateRpgUrls = false;
-        private FlowSynchronizationCallback callback = FlowSynchronizationCallback.EMPTY;
+        private ScheduledStateChangeListener scheduledStateChangeListener;
         private PropertyDecryptor propertyDecryptor = value -> value;
         private Duration componentStopTimeout = Duration.ofSeconds(30);
         private ComponentStopTimeoutAction timeoutAction = ComponentStopTimeoutAction.THROW_TIMEOUT_EXCEPTION;
@@ -255,12 +255,12 @@ public class FlowSynchronizationOptions {
         }
 
         /**
-         * Specifies a callback whose methods will be called when various updates are made to the flow
-         * @param callback the FlowSynchronizationCallback to use
+         * Specifies a callback whose methods will be called when component scheduled states are updated by the synchronizer
+         * @param listener the ScheduledStateChangeListener to use
          * @return the builder
          */
-        public Builder callback(final FlowSynchronizationCallback callback) {
-            this.callback = callback;
+        public Builder scheduledStateChangeListener(final ScheduledStateChangeListener listener) {
+            this.scheduledStateChangeListener = listener;
             return this;
         }
 
@@ -274,8 +274,8 @@ public class FlowSynchronizationOptions {
             if (componentScheduler == null) {
                 throw new IllegalStateException("Must set Component Scheduler");
             }
-            if (callback == null) {
-                throw new IllegalStateException("Callback must not be null");
+            if (scheduledStateChangeListener == null) {
+                scheduledStateChangeListener = ScheduledStateChangeListener.EMPTY;
             }
 
             return new FlowSynchronizationOptions(this);
@@ -295,7 +295,7 @@ public class FlowSynchronizationOptions {
             builder.propertyDecryptor = options.getPropertyDecryptor();
             builder.componentStopTimeout = options.getComponentStopTimeout();
             builder.timeoutAction = options.getComponentStopTimeoutAction();
-            builder.callback = options.getCallback();
+            builder.scheduledStateChangeListener = options.getScheduledStateChangeListener();
 
             return builder;
         }
