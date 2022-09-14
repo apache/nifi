@@ -890,6 +890,7 @@
                         </goals>
                         <configuration>
                             <rules>
+                                <banDuplicatePomDependencyVersions/>
                                 <requireSameVersions>
                                     <plugins>
                                         <plugin>org.apache.maven.plugins:maven-surefire-plugin</plugin>
