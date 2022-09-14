@@ -64,7 +64,6 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -590,34 +589,8 @@ public class DataTypeUtils {
                 m.forEach((k, v) -> map.put(k == null ? null : k.toString(), v));
             }
             return inferRecordDataType(map);
-//            // Check if all types are the same.
-//            if (map.isEmpty()) {
-//                return RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType());
-//            }
-//
-//            Object valueFromMap = null;
-//            Class<?> valueClass = null;
-//            for (final Object val : map.values()) {
-//                if (val == null) {
-//                    continue;
-//                }
-//
-//                valueFromMap = val;
-//                final Class<?> currentValClass = val.getClass();
-//                if (valueClass == null) {
-//                    valueClass = currentValClass;
-//                } else {
-//                    // If we have two elements that are of different types, then we cannot have a Map. Must be a Record.
-//                    if (valueClass != currentValClass) {
-//                        return inferRecordDataType(map);
-//                    }
-//                }
-//            }
-//
-//            // All values appear to be of the same type, so assume that it's a map.
-//            final DataType elementDataType = inferDataType(valueFromMap, RecordFieldType.STRING.getDataType());
-//            return RecordFieldType.MAP.getMapDataType(elementDataType);
         }
+
         if (value.getClass().isArray()) {
             DataType mergedDataType = null;
 
@@ -633,8 +606,9 @@ public class DataTypeUtils {
 
             return RecordFieldType.ARRAY.getArrayDataType(mergedDataType);
         }
+
         if (value instanceof Iterable) {
-            final Iterable iterable = (Iterable<?>) value;
+            final Iterable<?> iterable = (Iterable<?>) value;
 
             DataType mergedDataType = null;
             for (final Object arrayValue : iterable) {
@@ -1998,33 +1972,34 @@ public class DataTypeUtils {
                 return widerType.get();
             }
 
-            final Set<DataType> possibleTypes = new LinkedHashSet<>();
-            if (thisDataType.getFieldType() == RecordFieldType.CHOICE) {
-                possibleTypes.addAll(((ChoiceDataType) thisDataType).getPossibleSubTypes());
-            } else {
-                possibleTypes.add(thisDataType);
-            }
+            final DataTypeSet dataTypeSet = new DataTypeSet();
+            dataTypeSet.add(thisDataType);
+            dataTypeSet.add(otherDataType);
 
-            if (otherDataType.getFieldType() == RecordFieldType.CHOICE) {
-                possibleTypes.addAll(((ChoiceDataType) otherDataType).getPossibleSubTypes());
-            } else {
-                possibleTypes.add(otherDataType);
-            }
-
-            ArrayList<DataType> possibleChildTypes = new ArrayList<>(possibleTypes);
-            Collections.sort(possibleChildTypes, Comparator.comparing(DataType::getFieldType));
+            final List<DataType> possibleChildTypes = dataTypeSet.getTypes();
+            possibleChildTypes.sort(Comparator.comparing(DataType::getFieldType));
 
             return RecordFieldType.CHOICE.getChoiceDataType(possibleChildTypes);
         }
     }
 
     public static Optional<DataType> getWiderType(final DataType thisDataType, final DataType otherDataType) {
+        if (thisDataType == null) {
+            return Optional.ofNullable(otherDataType);
+        }
+        if (otherDataType == null) {
+            return Optional.of(thisDataType);
+        }
+
         final RecordFieldType thisFieldType = thisDataType.getFieldType();
         final RecordFieldType otherFieldType = otherDataType.getFieldType();
 
         final int thisIntTypeValue = getIntegerTypeValue(thisFieldType);
         final int otherIntTypeValue = getIntegerTypeValue(otherFieldType);
-        if (thisIntTypeValue > -1 && otherIntTypeValue > -1) {
+        final boolean thisIsInt = thisIntTypeValue > -1;
+        final boolean otherIsInt = otherIntTypeValue > -1;
+
+        if (thisIsInt && otherIsInt) {
             if (thisIntTypeValue > otherIntTypeValue) {
                 return Optional.of(thisDataType);
             }
@@ -2032,25 +2007,37 @@ public class DataTypeUtils {
             return Optional.of(otherDataType);
         }
 
+        final boolean otherIsDecimal = isDecimalType(otherFieldType);
+
         switch (thisFieldType) {
+            case BYTE:
+            case SHORT:
+            case INT:
+            case LONG:
+                if (otherIsDecimal) {
+                    return Optional.of(otherDataType);
+                }
+                break;
             case FLOAT:
-                if (otherFieldType == RecordFieldType.DOUBLE) {
+                if (otherFieldType == RecordFieldType.DOUBLE || otherFieldType == RecordFieldType.DECIMAL) {
                     return Optional.of(otherDataType);
-                } else if (otherFieldType == RecordFieldType.DECIMAL) {
-                    return Optional.of(otherDataType);
+                }
+                if (otherFieldType == RecordFieldType.BYTE || otherFieldType == RecordFieldType.SHORT || otherFieldType == RecordFieldType.INT || otherFieldType == RecordFieldType.LONG) {
+                    return Optional.of(thisDataType);
                 }
                 break;
             case DOUBLE:
-                if (otherFieldType == RecordFieldType.FLOAT) {
-                    return Optional.of(thisDataType);
-                } else if (otherFieldType == RecordFieldType.DECIMAL) {
+                if (otherFieldType == RecordFieldType.DECIMAL) {
                     return Optional.of(otherDataType);
+                }
+                if (otherFieldType == RecordFieldType.BYTE || otherFieldType == RecordFieldType.SHORT || otherFieldType == RecordFieldType.INT || otherFieldType == RecordFieldType.LONG
+                    || otherFieldType == RecordFieldType.FLOAT) {
+
+                    return Optional.of(thisDataType);
                 }
                 break;
             case DECIMAL:
-                if (otherFieldType == RecordFieldType.DOUBLE) {
-                    return Optional.of(thisDataType);
-                } else if (otherFieldType == RecordFieldType.FLOAT) {
+                if (otherFieldType == RecordFieldType.DOUBLE || otherFieldType == RecordFieldType.FLOAT || otherIsInt) {
                     return Optional.of(thisDataType);
                 } else if (otherFieldType == RecordFieldType.DECIMAL) {
                     final DecimalDataType thisDecimalDataType = (DecimalDataType) thisDataType;
@@ -2062,18 +2049,30 @@ public class DataTypeUtils {
                 }
                 break;
             case CHAR:
+            case UUID:
                 if (otherFieldType == RecordFieldType.STRING) {
                     return Optional.of(otherDataType);
                 }
                 break;
             case STRING:
-                if (otherFieldType == RecordFieldType.CHAR) {
+                if (otherFieldType == RecordFieldType.CHAR || otherFieldType == RecordFieldType.UUID) {
                     return Optional.of(thisDataType);
                 }
                 break;
         }
 
         return Optional.empty();
+    }
+
+    private static boolean isDecimalType(final RecordFieldType fieldType) {
+        switch (fieldType) {
+            case FLOAT:
+            case DOUBLE:
+            case DECIMAL:
+                return true;
+            default:
+                return false;
+        }
     }
 
     private static int getIntegerTypeValue(final RecordFieldType fieldType) {
