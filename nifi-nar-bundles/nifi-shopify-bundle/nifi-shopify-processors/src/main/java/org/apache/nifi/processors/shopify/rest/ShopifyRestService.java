@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.processors.shopify.rest;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Locale;
 import org.apache.nifi.processors.shopify.model.IncrementalLoadingParameter;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.api.WebClientService;
-
-import java.net.URI;
-import java.util.Locale;
 
 public class ShopifyRestService {
 
@@ -34,29 +34,40 @@ public class ShopifyRestService {
     private final String baseUrl;
     private final String accessToken;
     private final String resourceName;
+    private final String limit;
     private final IncrementalLoadingParameter incrementalLoadingParameter;
 
     public ShopifyRestService(final WebClientService webClientService,
-                              final HttpUriBuilder uriBuilder,
-                              final String version,
-                              final String baseUrl,
-                              final String accessToken,
-                              final String resourceName,
-                              final IncrementalLoadingParameter incrementalLoadingParameter) {
+            final HttpUriBuilder uriBuilder,
+            final String version,
+            final String baseUrl,
+            final String accessToken,
+            final String resourceName,
+            final String limit,
+            final IncrementalLoadingParameter incrementalLoadingParameter) {
         this.webClientService = webClientService;
         this.uriBuilder = uriBuilder;
         this.version = version;
         this.baseUrl = baseUrl;
         this.accessToken = accessToken;
         this.resourceName = resourceName;
+        this.limit = limit;
         this.incrementalLoadingParameter = incrementalLoadingParameter;
     }
 
-    public HttpResponseEntity getShopifyObjects(final String fromDateTime) {
-        final URI url = getUri(fromDateTime);
+    public HttpResponseEntity getShopifyObjects(final boolean isIncremental,
+                                                final String startTime,
+                                                final String endTime,
+                                                final String cursor) throws URISyntaxException {
+        final URI uri;
+        if (cursor != null) {
+            uri = new URI(cursor);
+        } else {
+            uri = getUri(isIncremental, startTime, endTime);
+        }
         return webClientService
                 .get()
-                .uri(url)
+                .uri(uri)
                 .header(ACCESS_TOKEN_KEY, accessToken)
                 .retrieve();
     }
@@ -71,17 +82,20 @@ public class ShopifyRestService {
     }
 
 
-    URI getUri(String fromDateTime) {
+    URI getUri(final boolean isIncremental, final String startTime, final String endTime) {
         final HttpUriBuilder uriBuilder = getBaseUri();
-
-        if (incrementalLoadingParameter != IncrementalLoadingParameter.NONE && fromDateTime != null) {
-            uriBuilder.addQueryParameter(incrementalLoadingParameter.name().toLowerCase(Locale.ROOT), fromDateTime);
+        if (limit != null) {
+            uriBuilder.addQueryParameter("limit", limit);
+        }
+        if (isIncremental && incrementalLoadingParameter != IncrementalLoadingParameter.NONE) {
+            if (startTime != null) {
+                final String minTime = incrementalLoadingParameter.name().toLowerCase(Locale.ROOT) + "_min";
+                uriBuilder.addQueryParameter(minTime, startTime);
+            }
+            final String maxTime = incrementalLoadingParameter.name().toLowerCase(Locale.ROOT) + "_max";
+            uriBuilder.addQueryParameter(maxTime, endTime);
         }
 
         return uriBuilder.build();
-    }
-
-    public String getResourceName() {
-        return resourceName;
     }
 }

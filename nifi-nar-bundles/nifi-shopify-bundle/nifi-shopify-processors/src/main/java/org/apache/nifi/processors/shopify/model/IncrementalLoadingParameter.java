@@ -17,5 +17,9 @@
 package org.apache.nifi.processors.shopify.model;
 
 public enum IncrementalLoadingParameter {
-    CREATED_AT_MIN, UPDATED_AT_MIN, PUBLISHED_AT_MIN, PROCESSED_AT_MIN, NONE
+    CREATED_AT,
+    UPDATED_AT,
+    PUBLISHED_AT,
+    PROCESSED_AT,
+    NONE
 }

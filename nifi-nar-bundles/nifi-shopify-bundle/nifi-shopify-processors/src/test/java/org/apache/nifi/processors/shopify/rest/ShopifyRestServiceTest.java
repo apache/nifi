@@ -16,19 +16,6 @@
  */
 package org.apache.nifi.processors.shopify.rest;
 
-import static org.apache.nifi.processors.shopify.model.IncrementalLoadingParameter.CREATED_AT_MIN;
-import static org.apache.nifi.processors.shopify.model.IncrementalLoadingParameter.NONE;
-import static org.apache.nifi.processors.shopify.rest.ShopifyRestService.ACCESS_TOKEN_KEY;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-
-import java.net.URI;
-import java.time.Instant;
-import java.util.Locale;
 import org.apache.nifi.web.client.api.HttpRequestBodySpec;
 import org.apache.nifi.web.client.api.HttpRequestUriSpec;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
@@ -40,6 +27,20 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Locale;
+
+import static org.apache.nifi.processors.shopify.model.IncrementalLoadingParameter.CREATED_AT;
+import static org.apache.nifi.processors.shopify.model.IncrementalLoadingParameter.NONE;
+import static org.apache.nifi.processors.shopify.rest.ShopifyRestService.ACCESS_TOKEN_KEY;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+
 @ExtendWith(MockitoExtension.class)
 class ShopifyRestServiceTest {
 
@@ -47,7 +48,9 @@ class ShopifyRestServiceTest {
     private static final String TEST_URL = "www.test.shopify.com";
     private static final String TEST_ACCESS_TOKEN = "testShopifyAccessToken";
     private static final String TEST_RESOURCE_NAME = "testResource";
-    private static final String FROM_DATE_TIME = Instant.now().toString();
+    private static final String START_TIME = "2022-09-14T16:26:32.250Z";
+    private static final String END_TIME = "2022-09-14T16:27:54.112Z";
+    private static final String LIMIT = "2";
 
     @Mock
     private WebClientService webClientService;
@@ -63,7 +66,7 @@ class ShopifyRestServiceTest {
     }
 
     @Test
-    void testIncrementalParameterIsAddedToUrl() {
+    void testParameterAreAddedToUri() {
         final ShopifyRestService shopifyRestService = new ShopifyRestService(
                 webClientService,
                 uriBuilder,
@@ -71,19 +74,22 @@ class ShopifyRestServiceTest {
                 TEST_URL,
                 TEST_ACCESS_TOKEN,
                 TEST_RESOURCE_NAME,
-                CREATED_AT_MIN
+                LIMIT,
+                CREATED_AT
         );
 
         doReturn(uriBuilder).when(uriBuilder).addQueryParameter(anyString(), anyString());
 
-        shopifyRestService.getUri(FROM_DATE_TIME);
+        shopifyRestService.getUri(true, START_TIME, END_TIME);
 
-        verify(uriBuilder).addQueryParameter(CREATED_AT_MIN.toString().toLowerCase(Locale.ROOT), FROM_DATE_TIME);
+        verify(uriBuilder).addQueryParameter(CREATED_AT.toString().toLowerCase(Locale.ROOT) + "_min", START_TIME);
+        verify(uriBuilder).addQueryParameter(CREATED_AT.toString().toLowerCase(Locale.ROOT) + "_max", END_TIME);
+        verify(uriBuilder).addQueryParameter("limit", LIMIT);
     }
 
 
     @Test
-    void testIncrementalParameterIsNotAddedToUrl() {
+    void testParameterAreNotAddedToUrl() {
         final ShopifyRestService shopifyRestService = new ShopifyRestService(
                 webClientService,
                 uriBuilder,
@@ -91,16 +97,17 @@ class ShopifyRestServiceTest {
                 TEST_URL,
                 TEST_ACCESS_TOKEN,
                 TEST_RESOURCE_NAME,
+                null,
                 NONE
         );
 
-        shopifyRestService.getUri(FROM_DATE_TIME);
+        shopifyRestService.getUri(true, START_TIME, END_TIME);
 
         verify(uriBuilder, never()).addQueryParameter(anyString(), anyString());
     }
 
     @Test
-    void testGetShopifyObjects() {
+    void testGetShopifyObjects() throws URISyntaxException {
         final ShopifyRestService shopifyRestService = new ShopifyRestService(
                 webClientService,
                 uriBuilder,
@@ -108,7 +115,8 @@ class ShopifyRestServiceTest {
                 TEST_URL,
                 TEST_ACCESS_TOKEN,
                 TEST_RESOURCE_NAME,
-                CREATED_AT_MIN
+                LIMIT,
+                CREATED_AT
         );
 
         doReturn(uriBuilder).when(uriBuilder).addQueryParameter(anyString(), anyString());
@@ -122,7 +130,7 @@ class ShopifyRestServiceTest {
         doReturn(mockHttpRequestBodySpec).when(mockHttpRequestBodySpec).header(anyString(), anyString());
         doReturn(mockHttpResponseEntity).when(mockHttpRequestBodySpec).retrieve();
 
-        shopifyRestService.getShopifyObjects(FROM_DATE_TIME);
+        shopifyRestService.getShopifyObjects(true, START_TIME, END_TIME, null);
 
         verify(mockHttpRequestUriSpec).uri(URI.create(TEST_URL));
         verify(mockHttpRequestBodySpec).header(ACCESS_TOKEN_KEY, TEST_ACCESS_TOKEN);

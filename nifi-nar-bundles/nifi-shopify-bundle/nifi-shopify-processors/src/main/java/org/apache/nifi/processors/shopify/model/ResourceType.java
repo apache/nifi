@@ -16,44 +16,114 @@
  */
 package org.apache.nifi.processors.shopify.model;
 
+import java.util.List;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.DescribedValue;
 
 public enum ResourceType implements DescribedValue {
 
-    CUSTOMERS("Customers", "Customer resources to query"),
-    DISCOUNTS("Discounts", "Discount resources to query"),
-    INVENTORY("Inventory", "Inventory resources to query"),
-    ONLINE_STORE("Online Store", "Online Store resources to query"),
-    ORDERS("Orders", "Order resources to query"),
-    PRODUCT("Products", "Product resources to query"),
-    SALES_CHANNELS("Sales Channels", "Sales Channel resources to query"),
-    STORE_PROPERTIES("Store Properties", "Store Property resources to query");
+    CUSTOMERS(
+            "Customers",
+            "Query a Customer resource",
+            "Customer Categories",
+            "Customer resource to query",
+            ResourceDirectory.CUSTOMER_RESOURCES
+    ),
+    DISCOUNTS(
+            "Discounts",
+            "Query a Discount resource",
+            "Discount Categories",
+            "Discount resource to query",
+            ResourceDirectory.DISCOUNT_RESOURCES
+    ),
+    INVENTORY(
+            "Inventory",
+            "Query an Inventory resource",
+            "Inventory Categories",
+            "Inventory resource to query",
+            ResourceDirectory.INVENTORY_RESOURCES
+    ),
+    ONLINE_STORE(
+            "Online Store",
+            "Query an Online Store resource",
+            "Online Store Categories",
+            "Online Store resource to query",
+            ResourceDirectory.ONLINE_STORE_RESOURCES
+    ),
+    ORDERS(
+            "Orders",
+            "Query an Order resource",
+            "Order Categories",
+            "Order resource to query",
+            ResourceDirectory.ORDER_RESOURCES
+    ),
+    PRODUCT(
+            "Products",
+            "Query a Product resource",
+            "Product Categories",
+            "Product resource to query",
+            ResourceDirectory.PRODUCT_RESOURCES
+    ),
+    SALES_CHANNELS(
+            "Sales Channels",
+            "Query a Sales Channel resource",
+            "Sales Channel Categories",
+            "Sales Channel resource to query",
+            ResourceDirectory.SALES_CHANNEL_RESOURCES
+    ),
+    STORE_PROPERTIES(
+            "Store Properties",
+            "Query a Store Property resource",
+            "Store Property Categories",
+            "Store Property resource to query",
+            ResourceDirectory.STORE_PROPERTY_RESOURCES
+    );
 
-    private final String displayName;
-    private final String description;
+    private final String allowableValueDisplayName;
+    private final String allowableValueDescription;
+    private final String propertyDisplayName;
+    private final String propertyDescription;
+    private final List<ShopifyResource> resources;
 
-    ResourceType(final String displayName, final String description) {
-        this.displayName = displayName;
-        this.description = description;
+    ResourceType(
+            final String allowableValueDisplayName,
+            final String allowableValueDescription,
+            String propertyDisplayName, String propertyDescription, List<ShopifyResource> resources
+    ) {
+        this.allowableValueDisplayName = allowableValueDisplayName;
+        this.allowableValueDescription = allowableValueDescription;
+        this.propertyDisplayName = propertyDisplayName;
+        this.propertyDescription = propertyDescription;
+        this.resources = resources;
     }
-
     @Override
     public String getValue() {
         return name();
     }
-
     @Override
     public String getDisplayName() {
-        return displayName;
+        return allowableValueDisplayName;
     }
-
     @Override
     public String getDescription() {
-        return description;
+        return allowableValueDescription;
     }
-
-    public AllowableValue getAllowableValue() {
-        return new AllowableValue(name(), displayName, description);
+    public String getPropertyDescription() {
+        return propertyDescription;
+    }
+    public String getPropertyDisplayName() {
+        return propertyDisplayName;
+    }
+    public List<ShopifyResource> getResources() {
+        return resources;
+    }
+    public ShopifyResource getResource(final String value) {
+        return getResources().stream()
+                .filter(s -> s.getValue().equals(value))
+                .findFirst()
+                .get();
+    }
+    public AllowableValue[] getResourcesAsAllowableValues() {
+        return getResources().stream().map(ShopifyResource::getAllowableValue).toArray(AllowableValue[]::new);
     }
 }

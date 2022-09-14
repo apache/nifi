@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.processors.shopify;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
 import okhttp3.HttpUrl;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -44,10 +37,16 @@ import org.apache.nifi.web.client.provider.service.StandardWebClientServiceProvi
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.BlockJUnit4ClassRunner;
 
-@RunWith(value = BlockJUnit4ClassRunner.class)
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 class GetShopifyIT {
 
     private static final String BASE_URL = "/test/shopify";
@@ -70,11 +69,15 @@ class GetShopifyIT {
     }
 
     @Test
-    void testLimitIsAddedToUrl() throws InitializationException, IOException {
+    void testStateIsUpdatedIfIncrementalAndNotPaging() throws InitializationException, IOException {
 
-        server.enqueue(new MockResponse().setResponseCode(200));
+        final MockResponse mockResponse = new MockResponse()
+                .setResponseCode(200)
+                .setBody(getResourceAsString("simple_response.json"));
 
-        String expectedExecutionTime = "2022-08-16T10:15:30Z";
+        server.enqueue(mockResponse);
+
+        final Instant expectedExecutionTime = Instant.parse("2022-08-16T10:15:30Z");
 
         final StandardWebClientServiceProvider standardWebClientServiceProvider =
                 new StandardWebClientServiceProvider();
@@ -86,23 +89,24 @@ class GetShopifyIT {
 
         runner.setProperty(GetShopify.WEB_CLIENT_PROVIDER, standardWebClientServiceProvider.getIdentifier());
         runner.setProperty(GetShopify.ACCESS_TOKEN, "testAccessToken");
-        runner.setProperty(GetShopify.RESOURCE_TYPE, ResourceType.PRODUCT.getValue());
-        runner.setProperty(GetShopify.API_URL, "test.shopify.nifi");
+        runner.setProperty(GetShopify.OBJECT_CATEGORY, ResourceType.PRODUCT.getValue());
+        runner.setProperty(GetShopify.STORE_DOMAIN, "test.shopify.nifi");
         runner.setProperty(ResourceType.PRODUCT.getValue(), "products");
+        runner.setProperty(GetShopify.IS_INCREMENTAL, "true");
 
         runner.run(1);
 
         final StateMap state = runner.getStateManager().getState(Scope.CLUSTER);
         final String actualExecutionTime = state.get("products");
 
-        assertEquals(expectedExecutionTime, actualExecutionTime);
+        assertEquals(expectedExecutionTime.toString(), actualExecutionTime);
     }
 
     @Test
     void testHttpError429() throws InitializationException {
         server.enqueue(new MockResponse().setResponseCode(429));
 
-        String expectedExecutionTime = "2022-08-16T10:15:30Z";
+        final Instant expectedExecutionTime = Instant.parse("2022-08-16T10:15:30Z");
 
         final StandardWebClientServiceProvider standardWebClientServiceProvider =
                 new StandardWebClientServiceProvider();
@@ -114,8 +118,8 @@ class GetShopifyIT {
 
         runner.setProperty(GetShopify.WEB_CLIENT_PROVIDER, standardWebClientServiceProvider.getIdentifier());
         runner.setProperty(GetShopify.ACCESS_TOKEN, "testAccessToken");
-        runner.setProperty(GetShopify.RESOURCE_TYPE, ResourceType.PRODUCT.getValue());
-        runner.setProperty(GetShopify.API_URL, "test.shopify.nifi");
+        runner.setProperty(GetShopify.OBJECT_CATEGORY, ResourceType.PRODUCT.getValue());
+        runner.setProperty(GetShopify.STORE_DOMAIN, "test.shopify.nifi");
         runner.setProperty(ResourceType.PRODUCT.getValue(), "products");
 
         assertThrows(AssertionError.class, () -> runner.run(1));
@@ -127,7 +131,7 @@ class GetShopifyIT {
     void testHttpError404() throws InitializationException {
         server.enqueue(new MockResponse().setResponseCode(404));
 
-        String expectedExecutionTime = "2022-08-16T10:15:30Z";
+        final Instant expectedExecutionTime = Instant.parse("2022-08-16T10:15:30Z");
 
         final StandardWebClientServiceProvider standardWebClientServiceProvider =
                 new StandardWebClientServiceProvider();
@@ -139,8 +143,8 @@ class GetShopifyIT {
 
         runner.setProperty(GetShopify.WEB_CLIENT_PROVIDER, standardWebClientServiceProvider.getIdentifier());
         runner.setProperty(GetShopify.ACCESS_TOKEN, "testAccessToken");
-        runner.setProperty(GetShopify.RESOURCE_TYPE, ResourceType.PRODUCT.getValue());
-        runner.setProperty(GetShopify.API_URL, "test.shopify.nifi");
+        runner.setProperty(GetShopify.OBJECT_CATEGORY, ResourceType.PRODUCT.getValue());
+        runner.setProperty(GetShopify.STORE_DOMAIN, "test.shopify.nifi");
         runner.setProperty(ResourceType.PRODUCT.getValue(), "products");
 
         runner.run(1);
@@ -156,7 +160,7 @@ class GetShopifyIT {
                 .setBody(getResourceAsString("collection_listings.json"));
         server.enqueue(mockResponse);
 
-        String expectedExecutionTime = "2022-08-16T10:15:30Z";
+        final Instant expectedExecutionTime = Instant.parse("2022-08-16T10:15:30Z");
 
         final StandardWebClientServiceProvider standardWebClientServiceProvider =
                 new StandardWebClientServiceProvider();
@@ -168,8 +172,8 @@ class GetShopifyIT {
 
         runner.setProperty(GetShopify.WEB_CLIENT_PROVIDER, standardWebClientServiceProvider.getIdentifier());
         runner.setProperty(GetShopify.ACCESS_TOKEN, "testAccessToken");
-        runner.setProperty(GetShopify.RESOURCE_TYPE, ResourceType.SALES_CHANNELS.getValue());
-        runner.setProperty(GetShopify.API_URL, "test.shopify.nifi");
+        runner.setProperty(GetShopify.OBJECT_CATEGORY, ResourceType.SALES_CHANNELS.getValue());
+        runner.setProperty(GetShopify.STORE_DOMAIN, "test.shopify.nifi");
         runner.setProperty(ResourceType.SALES_CHANNELS.getValue(), "collection_listings");
 
         runner.run(1);
@@ -180,22 +184,22 @@ class GetShopifyIT {
 
     static class CustomGetShopify extends GetShopify {
 
-        private final String executionTime;
+        private final Instant executionTime;
 
-        public CustomGetShopify(String executionTime) {
+        public CustomGetShopify(final Instant executionTime) {
             this.executionTime = executionTime;
         }
 
         @Override
         ShopifyRestService getShopifyRestService(WebClientService webClientService, HttpUriBuilder uriBuilder,
-                String apiVersion, String baseUrl,
-                String accessToken, String resourceName, IncrementalLoadingParameter incrementalLoadingParameter) {
+                                                 String apiVersion, String baseUrl, String accessToken, String resourceName,
+                                                 String limit, IncrementalLoadingParameter incrementalLoadingParameter) {
             return new CustomShopifyRestService(webClientService, uriBuilder, apiVersion, baseUrl, accessToken,
-                    resourceName, incrementalLoadingParameter);
+                    resourceName, limit, incrementalLoadingParameter);
         }
 
         @Override
-        String getCurrentExecutionTime() {
+        Instant getCurrentExecutionTime() {
             return executionTime;
         }
     }
@@ -203,10 +207,10 @@ class GetShopifyIT {
     static class CustomShopifyRestService extends ShopifyRestService {
 
         public CustomShopifyRestService(WebClientService webClientService, HttpUriBuilder uriBuilder, String version,
-                String baseUrl,
-                String accessToken, String resourceName, IncrementalLoadingParameter incrementalLoadingParameter) {
+                                        String baseUrl, String accessToken, String resourceName, String limit,
+                                        IncrementalLoadingParameter incrementalLoadingParameter) {
             super(webClientService, uriBuilder, version, baseUrl, accessToken, resourceName,
-                    incrementalLoadingParameter);
+                    limit, incrementalLoadingParameter);
         }
 
         @Override
