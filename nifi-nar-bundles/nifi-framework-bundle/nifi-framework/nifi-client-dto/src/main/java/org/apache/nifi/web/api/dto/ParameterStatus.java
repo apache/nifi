@@ -16,31 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.entity.ParameterEntity;
-
-import javax.xml.bind.annotation.XmlType;
-
-@XmlType(name = "parameterStatus")
-public class ParameterStatusDTO {
-    private ParameterEntity parameter;
-    private ParameterStatus status;
-
-    @ApiModelProperty("The name of the Parameter")
-    public ParameterEntity getParameter() {
-        return parameter;
-    }
-
-    public void setParameter(final ParameterEntity parameter) {
-        this.parameter = parameter;
-    }
-
-    @ApiModelProperty("Indicates the status of the parameter, compared to the existing parameter context")
-    public ParameterStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(ParameterStatus status) {
-        this.status = status;
-    }
+public enum ParameterStatus {
+    NEW,
+    CHANGED,
+    REMOVED,
+    UNCHANGED
 }

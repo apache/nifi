@@ -61,6 +61,7 @@ import org.apache.nifi.web.api.dto.ParameterProviderApplyParametersRequestDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderApplyParametersUpdateStepDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderConfigurationDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
+import org.apache.nifi.web.api.dto.ParameterStatus;
 import org.apache.nifi.web.api.dto.ParameterStatusDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -962,19 +963,40 @@ public class ParameterProviderResource extends AbstractParameterResource {
             final ParameterContextEntity parameterContextUpdate = parameterContextUpdateMap.get(parameterContextId);
             final Map<String, ParameterEntity> updatedParameters = parameterContextUpdate == null ? Collections.emptyMap() : parameterContextUpdate.getComponent().getParameters().stream()
                     .collect(Collectors.toMap(parameter -> parameter.getParameter().getName(), Functions.identity()));
+            final Set<String> currentParameterNames = new HashSet<>();
 
+            // Report changed and removed parameters
             for (final ParameterEntity parameter : parameterContext.getComponent().getParameters()) {
+                currentParameterNames.add(parameter.getParameter().getName());
+
                 final ParameterStatusDTO dto = new ParameterStatusDTO();
                 final ParameterEntity updatedParameter = updatedParameters.get(parameter.getParameter().getName());
                 if (updatedParameter == null) {
                     dto.setParameter(parameter);
-                    dto.setChanged(false);
+                    dto.setStatus(ParameterStatus.UNCHANGED);
                 } else {
+                    final ParameterDTO parameterDTO = updatedParameter.getParameter();
+                    final boolean isDeletion = parameterDTO.getSensitive() == null && parameterDTO.getDescription() == null && parameterDTO.getValue() == null;
                     dto.setParameter(updatedParameter);
-                    dto.setChanged(true);
+                    dto.setStatus(isDeletion ? ParameterStatus.REMOVED : ParameterStatus.CHANGED);
                 }
                 parameterStatus.add(dto);
             }
+            // Report new parameters
+            updatedParameters.forEach((parameterName, parameterEntity) -> {
+                if (!currentParameterNames.contains(parameterName)) {
+                    final ParameterStatusDTO dto = new ParameterStatusDTO();
+                    dto.setParameter(parameterEntity);
+                    dto.setStatus(ParameterStatus.NEW);
+                    parameterStatus.add(dto);
+                }
+            });
+            parameterStatus.forEach(dto -> {
+                final ParameterDTO parameterDTO = dto.getParameter().getParameter();
+                if (parameterDTO.getValue() != null && parameterDTO.getSensitive() != null && parameterDTO.getSensitive()) {
+                    parameterDTO.setValue(DtoFactory.SENSITIVE_VALUE_MASK);
+                }
+            });
         }
         return parameterStatus;
     }
