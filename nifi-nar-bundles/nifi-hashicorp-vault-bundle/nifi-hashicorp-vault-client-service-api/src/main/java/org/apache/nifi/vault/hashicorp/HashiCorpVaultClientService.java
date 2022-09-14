@@ -92,7 +92,7 @@ public interface HashiCorpVaultClientService extends ControllerService, Verifiab
             .name("vault.connection.timeout")
             .displayName("Connection Timeout")
             .description("The connection timeout for the HashiCorp Vault client")
-            .required(false)
+            .required(true)
             .defaultValue("5 sec")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
@@ -101,7 +101,7 @@ public interface HashiCorpVaultClientService extends ControllerService, Verifiab
             .name("vault.read.timeout")
             .displayName("Read Timeout")
             .description("The read timeout for the HashiCorp Vault client")
-            .required(false)
+            .required(true)
             .defaultValue("15 sec")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
