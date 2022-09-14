@@ -79,11 +79,11 @@ public class AirtableRestService {
 
             throw new ProcessException(exceptionMessageBuilder.toString());
         } catch (IOException e) {
-            throw new RuntimeException(String.format("Airtable HTTP request failed [%s]", uri), e);
+            throw new ProcessException(String.format("Airtable HTTP request failed [%s]", uri), e);
         }
     }
 
-    public HttpUriBuilder createUriBuilder(final boolean includePort) {
+    public HttpUriBuilder createUriBuilder() {
         final URI uri = URI.create(apiUrl);
         final HttpUriBuilder uriBuilder = webClientServiceProvider.getHttpUriBuilder()
                 .scheme(uri.getScheme())
@@ -91,14 +91,14 @@ public class AirtableRestService {
                 .encodedPath(uri.getPath())
                 .addPathSegment(baseId)
                 .addPathSegment(tableId);
-        if (includePort && uri.getPort() != -1) {
+        if (uri.getPort() != -1) {
             uriBuilder.port(uri.getPort());
         }
         return uriBuilder;
     }
 
     private URI buildUri(AirtableGetRecordsParameters getRecordsParameters) {
-        final HttpUriBuilder uriBuilder = createUriBuilder(true);
+        final HttpUriBuilder uriBuilder = createUriBuilder();
         for (final String field : getRecordsParameters.getFields()) {
             uriBuilder.addQueryParameter("fields[]", field);
         }
@@ -107,7 +107,11 @@ public class AirtableRestService {
         getRecordsParameters.getCustomFilter()
                 .ifPresent(filters::add);
         getRecordsParameters.getModifiedAfter()
-                .map(modifiedAfter -> "IS_AFTER(LAST_MODIFIED_TIME(),DATETIME_PARSE(\"" + modifiedAfter + "\"))")
+                .map(modifiedAfter -> {
+                    final String isSameFormula = "IS_SAME(LAST_MODIFIED_TIME(),DATETIME_PARSE(\"" + modifiedAfter + "\"), 'second')";
+                    final String isAfterFormula = "IS_AFTER(LAST_MODIFIED_TIME(),DATETIME_PARSE(\"" + modifiedAfter + "\"))";
+                    return "OR(" + isSameFormula + "," + isAfterFormula + ")";
+                })
                 .ifPresent(filters::add);
         getRecordsParameters.getModifiedBefore()
                 .map(modifiedBefore -> "IS_BEFORE(LAST_MODIFIED_TIME(),DATETIME_PARSE(\"" + modifiedBefore + "\"))")

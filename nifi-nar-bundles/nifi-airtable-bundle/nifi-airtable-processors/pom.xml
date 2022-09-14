@@ -61,10 +61,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-mock-record-utils</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-client-provider-service</artifactId>
             <version>1.18.0-SNAPSHOT</version>
             <scope>test</scope>
@@ -82,11 +78,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-proxy-configuration-api</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-schema-registry-service-api</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

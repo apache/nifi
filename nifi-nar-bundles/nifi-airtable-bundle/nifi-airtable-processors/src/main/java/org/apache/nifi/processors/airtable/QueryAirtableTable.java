@@ -25,6 +25,7 @@ import static org.apache.nifi.processors.airtable.service.AirtableRestService.AP
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -148,36 +149,15 @@ public class QueryAirtableTable extends AbstractProcessor {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
-    static final PropertyDescriptor PAGE_SIZE = new PropertyDescriptor.Builder()
-            .name("page-size")
-            .displayName("Page Size")
-            .description("Number of records to be fetched in a page. Should be between 0 and 100 inclusively.")
-            .defaultValue("0")
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.createLongValidator(0, 100, true))
-            .build();
-
     static final PropertyDescriptor QUERY_TIME_WINDOW_LAG = new PropertyDescriptor.Builder()
             .name("query-time-window-lag")
             .displayName("Query Time Window Lag")
-            .description("The amount of lag to add to the query time window. Set this property to avoid missing records when the clock of your local machines"
+            .description("The amount of lag to be applied to the query time window's end point. Set this property to avoid missing records when the clock of your local machines"
                     + " and Airtable servers' clock are not in sync. Must be greater than or equal to 1 second.")
             .defaultValue("3 s")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .build();
-
-    static final PropertyDescriptor MAX_RECORDS_PER_FLOWFILE = new PropertyDescriptor.Builder()
-            .name("max-records-per-flowfile")
-            .displayName("Max Records Per FlowFile")
-            .description("The maximum number of result records that will be included in a single FlowFile. This will allow you to break up very large"
-                    + " result sets into multiple FlowFiles. If the value specified is zero, then all records are returned in a single FlowFile.")
-            .defaultValue("0")
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
     static final PropertyDescriptor WEB_CLIENT_SERVICE_PROVIDER = new PropertyDescriptor.Builder()
@@ -186,6 +166,23 @@ public class QueryAirtableTable extends AbstractProcessor {
             .description("Web Client Service Provider to use for Airtable REST API requests")
             .identifiesControllerService(WebClientServiceProvider.class)
             .required(true)
+            .build();
+
+    static final PropertyDescriptor QUERY_PAGE_SIZE = new PropertyDescriptor.Builder()
+            .name("query-page-size")
+            .displayName("Query Page Size")
+            .description("Number of records to be fetched in a page. Should be between 1 and 100 inclusively.")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.createLongValidator(1, 100, true))
+            .build();
+
+    static final PropertyDescriptor MAX_RECORDS_PER_FLOWFILE = new PropertyDescriptor.Builder()
+            .name("max-records-per-flowfile")
+            .displayName("Max Records Per FlowFile")
+            .description("The maximum number of result records that will be included in a single FlowFile. This will allow you to break up very large"
+                    + " result sets into multiple FlowFiles. If the value specified is zero, then all records are returned in a single FlowFile.")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -200,15 +197,15 @@ public class QueryAirtableTable extends AbstractProcessor {
             TABLE_ID,
             FIELDS,
             CUSTOM_FILTER,
-            PAGE_SIZE,
             QUERY_TIME_WINDOW_LAG,
-            MAX_RECORDS_PER_FLOWFILE,
-            WEB_CLIENT_SERVICE_PROVIDER
+            WEB_CLIENT_SERVICE_PROVIDER,
+            QUERY_PAGE_SIZE,
+            MAX_RECORDS_PER_FLOWFILE
     ));
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.singleton(REL_SUCCESS);
 
-    private static final String LAST_RECORD_FETCH_TIME = "last_record_fetch_time";
+    private static final String LAST_QUERY_TIME_WINDOW_END = "last_query_time_window_end";
 
     private volatile AirtableRestService airtableRestService;
 
@@ -239,14 +236,15 @@ public class QueryAirtableTable extends AbstractProcessor {
 
         final StateMap state;
         try {
-            state = context.getStateManager().getState(Scope.CLUSTER);
+            state = session.getState(Scope.CLUSTER);
         } catch (IOException e) {
             throw new ProcessException("Failed to get cluster state", e);
         }
 
-        final String lastRecordFetchDateTime = state.get(LAST_RECORD_FETCH_TIME);
+        final String lastRecordFetchDateTime = state.get(LAST_QUERY_TIME_WINDOW_END);
         final String currentRecordFetchDateTime = OffsetDateTime.now()
                 .minusSeconds(queryTimeWindowLagSeconds)
+                .truncatedTo(ChronoUnit.SECONDS)
                 .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
 
         final AirtableGetRecordsParameters getRecordsParameters = buildGetRecordsParameters(context, lastRecordFetchDateTime, currentRecordFetchDateTime);
@@ -262,9 +260,9 @@ public class QueryAirtableTable extends AbstractProcessor {
         }
 
         final Map<String, String> newState = new HashMap<>(state.toMap());
-        newState.put(LAST_RECORD_FETCH_TIME, currentRecordFetchDateTime);
+        newState.put(LAST_QUERY_TIME_WINDOW_END, currentRecordFetchDateTime);
         try {
-            context.getStateManager().setState(newState, Scope.CLUSTER);
+            session.setState(newState, Scope.CLUSTER);
         } catch (IOException e) {
             throw new ProcessException("Failed to update cluster state", e);
         }
@@ -275,11 +273,10 @@ public class QueryAirtableTable extends AbstractProcessor {
             return;
         }
 
-        if (maxRecordsPerFlowFile != null && maxRecordsPerFlowFile > 0) {
-            fragmentFlowFiles(session, flowFiles);
+        if (maxRecordsPerFlowFile != null) {
+            addFragmentAttributesToFlowFiles(session, flowFiles);
         }
-        final String transitUri = airtableRestService.createUriBuilder(false).build().toString();
-        transferFlowFiles(session, flowFiles, retrieveTableResult.getTotalRecordCount(), transitUri);
+        transferFlowFiles(session, flowFiles, retrieveTableResult.getTotalRecordCount());
     }
 
     private AirtableGetRecordsParameters buildGetRecordsParameters(final ProcessContext context,
@@ -290,7 +287,7 @@ public class QueryAirtableTable extends AbstractProcessor {
 
         final String fieldsProperty = context.getProperty(FIELDS).evaluateAttributeExpressions().getValue();
         final String customFilter = context.getProperty(CUSTOM_FILTER).evaluateAttributeExpressions().getValue();
-        final Integer pageSize = context.getProperty(PAGE_SIZE).evaluateAttributeExpressions().asInteger();
+        final Integer pageSize = context.getProperty(QUERY_PAGE_SIZE).evaluateAttributeExpressions().asInteger();
 
         final AirtableGetRecordsParameters.Builder getRecordsParametersBuilder = new AirtableGetRecordsParameters.Builder();
         if (lastRecordFetchTime != null) {
@@ -301,14 +298,14 @@ public class QueryAirtableTable extends AbstractProcessor {
             getRecordsParametersBuilder.fields(Arrays.stream(fieldsProperty.split(",")).map(String::trim).collect(Collectors.toList()));
         }
         getRecordsParametersBuilder.customFilter(customFilter);
-        if (pageSize != null && pageSize > 0) {
+        if (pageSize != null) {
             getRecordsParametersBuilder.pageSize(pageSize);
         }
 
         return getRecordsParametersBuilder.build();
     }
 
-    private void fragmentFlowFiles(final ProcessSession session, final List<FlowFile> flowFiles) {
+    private void addFragmentAttributesToFlowFiles(final ProcessSession session, final List<FlowFile> flowFiles) {
         final String fragmentIdentifier = UUID.randomUUID().toString();
         for (int i = 0; i < flowFiles.size(); i++) {
             final Map<String, String> fragmentAttributes = new HashMap<>();
@@ -320,7 +317,8 @@ public class QueryAirtableTable extends AbstractProcessor {
         }
     }
 
-    private void transferFlowFiles(final ProcessSession session, final List<FlowFile> flowFiles, final int totalRecordCount, final String transitUri) {
+    private void transferFlowFiles(final ProcessSession session, final List<FlowFile> flowFiles, final int totalRecordCount) {
+        final String transitUri = airtableRestService.createUriBuilder().build().toString();
         for (final FlowFile flowFile : flowFiles) {
             session.getProvenanceReporter().receive(flowFile, transitUri);
             session.transfer(flowFile, REL_SUCCESS);

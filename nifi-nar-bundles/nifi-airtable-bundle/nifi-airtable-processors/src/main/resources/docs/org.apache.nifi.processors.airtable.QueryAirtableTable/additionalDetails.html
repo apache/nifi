@@ -49,7 +49,9 @@ td {text-align: left}
 <h3>API rate limit</h3>
 <p>
     The Airtable REST API limits the number of requests that can be sent on a per-base basis to avoid bottlenecks. Currently, this limit is 5 requests per second per base.
-    If this limit is exceeded you can't make another request for 30 seconds. It's your responsibility to handle this rate limit.
+    If this limit is exceeded you can't make another request for 30 seconds.
+    It's your responsibility to handle this rate limit via configuring Yield Duration and Run Schedule properly.
+    It is recommended to start off with the default settings and to increase both parameters when rate limit issues occur.
 </p>
 
 <h3>Metadata API</h3>
