@@ -19,6 +19,7 @@ package org.apache.nifi.web.api.dto;
 public enum ParameterStatus {
     NEW,
     CHANGED,
-    REMOVED,
+    REMOVED, // The parameter was removed,
+    MISSING_BUT_REFERENCED, // The parameter would have been removed, but is currently referenced by a component, so it is preserved
     UNCHANGED
 }

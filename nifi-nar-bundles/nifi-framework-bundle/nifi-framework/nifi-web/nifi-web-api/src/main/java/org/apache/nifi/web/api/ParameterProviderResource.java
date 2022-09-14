@@ -792,11 +792,18 @@ public class ParameterProviderResource extends AbstractParameterResource {
                     });
                     final List<ParameterContextEntity> parameterContextUpdates = serviceFacade.getParameterContextUpdatesForAppliedParameters(parameterProviderId, parameterGroupConfigurations);
 
+                    final Set<ParameterEntity> removedParameters = parameterContextUpdates.stream()
+                            .flatMap(context -> context.getComponent().getParameters().stream())
+                            .filter(parameterEntity -> {
+                                final ParameterDTO dto = parameterEntity.getParameter();
+                                return dto.getSensitive() == null && dto.getValue() == null && dto.getDescription() == null;
+                            })
+                            .collect(Collectors.toSet());
                     final Set<AffectedComponentEntity> affectedComponents = getAffectedComponentEntities(parameterContextUpdates);
                     if (!affectedComponents.isEmpty()) {
                         entity.getComponent().setAffectedComponents(affectedComponents);
                     }
-                    final Set<ParameterStatusDTO> parameterStatus = getParameterStatus(entity, parameterContextUpdates, user);
+                    final Set<ParameterStatusDTO> parameterStatus = getParameterStatus(entity, parameterContextUpdates, removedParameters, user);
                     if (!parameterStatus.isEmpty()) {
                         entity.getComponent().setParameterStatus(parameterStatus);
                     }
@@ -944,11 +951,17 @@ public class ParameterProviderResource extends AbstractParameterResource {
     }
 
     private Set<ParameterStatusDTO> getParameterStatus(final ParameterProviderEntity parameterProvider, final List<ParameterContextEntity> parameterContextUpdates,
-                                                       final NiFiUser niFiUser) {
+                                                       final Set<ParameterEntity> removedParameters, final NiFiUser niFiUser) {
         final Set<ParameterStatusDTO> parameterStatus = new HashSet<>();
         if (parameterProvider.getComponent() == null || parameterProvider.getComponent().getReferencingParameterContexts() == null) {
             return parameterStatus;
         }
+
+        final Map<String, Set<String>> removedParameterNamesByContextId = new HashMap<>();
+        removedParameters.forEach(parameterEntity -> {
+            removedParameterNamesByContextId.computeIfAbsent(parameterEntity.getParameter().getParameterContext().getComponent().getId(), key -> new HashSet<>())
+                    .add(parameterEntity.getParameter().getName());
+        });
 
         final Map<String, ParameterContextEntity> parameterContextUpdateMap = parameterContextUpdates.stream()
                 .collect(Collectors.toMap(entity -> entity.getComponent().getId(), Functions.identity()));
@@ -960,6 +973,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
                 continue;
             }
 
+            final Set<String> removedParameterNames = removedParameterNamesByContextId.get(parameterContext.getComponent().getId());
             final ParameterContextEntity parameterContextUpdate = parameterContextUpdateMap.get(parameterContextId);
             final Map<String, ParameterEntity> updatedParameters = parameterContextUpdate == null ? Collections.emptyMap() : parameterContextUpdate.getComponent().getParameters().stream()
                     .collect(Collectors.toMap(parameter -> parameter.getParameter().getName(), Functions.identity()));
@@ -973,10 +987,14 @@ public class ParameterProviderResource extends AbstractParameterResource {
                 final ParameterEntity updatedParameter = updatedParameters.get(parameter.getParameter().getName());
                 if (updatedParameter == null) {
                     dto.setParameter(parameter);
-                    dto.setStatus(ParameterStatus.UNCHANGED);
+                    if (removedParameterNames != null && removedParameterNames.contains(parameter.getParameter().getName())) {
+                        dto.setStatus(ParameterStatus.MISSING_BUT_REFERENCED);
+                    } else {
+                        dto.setStatus(ParameterStatus.UNCHANGED);
+                    }
                 } else {
-                    final ParameterDTO parameterDTO = updatedParameter.getParameter();
-                    final boolean isDeletion = parameterDTO.getSensitive() == null && parameterDTO.getDescription() == null && parameterDTO.getValue() == null;
+                    final ParameterDTO updatedParameterDTO = updatedParameter.getParameter();
+                    final boolean isDeletion = updatedParameterDTO.getSensitive() == null && updatedParameterDTO.getDescription() == null && updatedParameterDTO.getValue() == null;
                     dto.setParameter(updatedParameter);
                     dto.setStatus(isDeletion ? ParameterStatus.REMOVED : ParameterStatus.CHANGED);
                 }
