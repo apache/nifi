@@ -278,7 +278,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         final boolean writerIsSet = validationContext.getProperty(BASE_RECORD_WRITER).isSet();
         if ((readerIsSet && !writerIsSet) || (!readerIsSet && writerIsSet)) {
             results.add(new ValidationResult.Builder().subject("Record Reader and Writer").valid(false)
-                    .explanation("both Record Reader and Writer must be set when used.").build());
+                    .explanation("both properties must be set when used.").build());
         }
 
         return results;

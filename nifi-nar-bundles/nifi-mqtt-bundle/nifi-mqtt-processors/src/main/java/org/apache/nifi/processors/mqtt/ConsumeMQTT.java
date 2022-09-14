@@ -175,7 +175,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
     public static final PropertyDescriptor ADD_ATTRIBUTES_AS_FIELDS = new PropertyDescriptor.Builder()
             .name("add-attributes-as-fields")
             .displayName("Add attributes as fields")
-            .description("If using the Record Reader/Writer and if setting this property to true, default fields "
+            .description("If setting this property to true, default fields "
                     + "are going to be added in each record: _topic, _qos, _isDuplicate, _isRetained.")
             .required(true)
             .defaultValue("true")
@@ -228,7 +228,6 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
             PROP_GROUPID,
             PROP_TOPIC_FILTER,
             PROP_QOS,
-            PROP_MAX_QUEUE_SIZE,
             RECORD_READER,
             RECORD_WRITER,
             ADD_ATTRIBUTES_AS_FIELDS,
@@ -238,7 +237,8 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
             PROP_LAST_WILL_MESSAGE,
             PROP_LAST_WILL_TOPIC,
             PROP_LAST_WILL_RETAIN,
-            PROP_LAST_WILL_QOS
+            PROP_LAST_WILL_QOS,
+            PROP_MAX_QUEUE_SIZE
     ));
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
