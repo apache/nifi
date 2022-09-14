@@ -120,17 +120,17 @@ public class FlowFileEnumerator implements Enumerator<Object> {
         return filtered;
     }
 
-    private Object cast(Object o) {
-        if (o == null) {
+    private Object cast(final Object toCast) {
+        if (toCast == null) {
             return null;
-        } else if (o.getClass().isArray()) {
-            List<Object> l = new ArrayList(Array.getLength(o));
-            for (int i = 0; i < Array.getLength(o); i++) {
-                l.add(Array.get(o, i));
+        } else if (toCast.getClass().isArray()) {
+            final List<Object> list = new ArrayList<>(Array.getLength(toCast));
+            for (int i = 0; i < Array.getLength(toCast); i++) {
+                list.add(Array.get(toCast, i));
             }
-            return l;
+            return list;
         } else {
-            return o;
+            return toCast;
         }
     }
 

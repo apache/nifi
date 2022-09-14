@@ -20,11 +20,13 @@ import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -39,6 +41,25 @@ public class TestFieldTypeInference {
     public void setUp() throws Exception {
         testSubject = new FieldTypeInference();
     }
+
+    @Test
+    public void testIntegerCombinedWithDouble() {
+        final FieldTypeInference inference = new FieldTypeInference();
+        inference.addPossibleDataType(RecordFieldType.INT.getDataType());
+        inference.addPossibleDataType(RecordFieldType.DOUBLE.getDataType());
+
+        assertEquals(RecordFieldType.DOUBLE.getDataType(), inference.toDataType());
+    }
+
+    @Test
+    public void testIntegerCombinedWithFloat() {
+        final FieldTypeInference inference = new FieldTypeInference();
+        inference.addPossibleDataType(RecordFieldType.INT.getDataType());
+        inference.addPossibleDataType(RecordFieldType.FLOAT.getDataType());
+
+        assertEquals(RecordFieldType.FLOAT.getDataType(), inference.toDataType());
+    }
+
 
     @Test
     public void testToDataTypeWith_SHORT_INT_LONG_shouldReturn_LONG() {
@@ -58,20 +79,13 @@ public class TestFieldTypeInference {
 
     @Test
     public void testToDataTypeWith_INT_FLOAT_ShouldReturn_INT_FLOAT() {
-        // GIVEN
-        List<DataType> dataTypes = Arrays.asList(
+        final List<DataType> dataTypes = Arrays.asList(
                 RecordFieldType.INT.getDataType(),
                 RecordFieldType.FLOAT.getDataType()
         );
 
-        Set<DataType> expected = new HashSet<>(Arrays.asList(
-                RecordFieldType.INT.getDataType(),
-                RecordFieldType.FLOAT.getDataType()
-        ));
-
-        // WHEN
-        // THEN
-        runWithAllPermutations(this::testToDataTypeShouldReturnChoice, dataTypes, expected);
+        final DataType expected = RecordFieldType.FLOAT.getDataType();
+        runWithAllPermutations(this::testToDataTypeShouldReturnSingleType, dataTypes, expected);
     }
 
     @Test
@@ -94,52 +108,39 @@ public class TestFieldTypeInference {
     }
 
     @Test
-    public void testToDataTypeWith_INT_FLOAT_STRING_shouldReturn_INT_FLOAT_STRING() {
-        // GIVEN
-        List<DataType> dataTypes = Arrays.asList(
+    public void testToDataTypeWith_INT_FLOAT_STRING_shouldReturn_FLOAT_STRING() {
+        final List<DataType> dataTypes = Arrays.asList(
                 RecordFieldType.INT.getDataType(),
                 RecordFieldType.FLOAT.getDataType(),
                 RecordFieldType.STRING.getDataType()
         );
 
-        Set<DataType> expected = new HashSet<>(Arrays.asList(
-                RecordFieldType.INT.getDataType(),
+        final Set<DataType> expected = new HashSet<>(Arrays.asList(
                 RecordFieldType.FLOAT.getDataType(),
                 RecordFieldType.STRING.getDataType()
         ));
 
-        // WHEN
-        // THEN
         runWithAllPermutations(this::testToDataTypeShouldReturnChoice, dataTypes, expected);
     }
 
     @Test
     public void testToDataTypeWithMultipleRecord() {
-        // GIVEN
-        String fieldName = "fieldName";
-        DataType fieldType1 = RecordFieldType.INT.getDataType();
-        DataType fieldType2 = RecordFieldType.FLOAT.getDataType();
-        DataType fieldType3 = RecordFieldType.STRING.getDataType();
+        final String fieldName = "fieldName";
+        final DataType intType = RecordFieldType.INT.getDataType();
+        final DataType floatType = RecordFieldType.FLOAT.getDataType();
+        final DataType stringType = RecordFieldType.STRING.getDataType();
 
-        List<DataType> dataTypes = Arrays.asList(
-                RecordFieldType.RECORD.getRecordDataType(createRecordSchema(fieldName, fieldType1)),
-                RecordFieldType.RECORD.getRecordDataType(createRecordSchema(fieldName, fieldType2)),
-                RecordFieldType.RECORD.getRecordDataType(createRecordSchema(fieldName, fieldType3)),
-                RecordFieldType.RECORD.getRecordDataType(createRecordSchema(fieldName, fieldType2))
+        final List<DataType> dataTypes = Arrays.asList(
+            RecordFieldType.RECORD.getRecordDataType(createRecordSchema(fieldName, intType)),
+            RecordFieldType.RECORD.getRecordDataType(createRecordSchema(fieldName, floatType)),
+            RecordFieldType.RECORD.getRecordDataType(createRecordSchema(fieldName, stringType)),
+            RecordFieldType.RECORD.getRecordDataType(createRecordSchema(fieldName, floatType))
         );
 
-        DataType expected = RecordFieldType.RECORD.getRecordDataType(createRecordSchema(
-                fieldName,
-                RecordFieldType.CHOICE.getChoiceDataType(
-                        fieldType1,
-                        fieldType2,
-                        fieldType3
-                )
-        ));
+        final RecordSchema expectedSchema = createRecordSchema(fieldName, RecordFieldType.CHOICE.getChoiceDataType(floatType, stringType));
+        final DataType expecteDataType = RecordFieldType.RECORD.getRecordDataType(expectedSchema);
 
-        // WHEN
-        // THEN
-        runWithAllPermutations(this::testToDataTypeShouldReturnSingleType, dataTypes, expected);
+        runWithAllPermutations(this::testToDataTypeShouldReturnSingleType, dataTypes, expecteDataType);
     }
 
     @Test
@@ -192,8 +193,8 @@ public class TestFieldTypeInference {
     }
 
     private SimpleRecordSchema createRecordSchema(String fieldName, DataType fieldType) {
-        return new SimpleRecordSchema(Arrays.asList(
-                new RecordField(fieldName, fieldType)
+        return new SimpleRecordSchema(Collections.singletonList(
+            new RecordField(fieldName, fieldType)
         ));
     }
 
@@ -202,28 +203,18 @@ public class TestFieldTypeInference {
     }
 
     private Void testToDataTypeShouldReturnChoice(List<DataType> dataTypes, Set<DataType> expected) {
-        // GIVEN
         dataTypes.forEach(testSubject::addPossibleDataType);
 
-        // WHEN
         DataType actual = testSubject.toDataType();
-
-        // THEN
         assertEquals(expected, new HashSet<>(((ChoiceDataType) actual).getPossibleSubTypes()));
-
         return null;
     }
 
     private Void testToDataTypeShouldReturnSingleType(List<DataType> dataTypes, DataType expected) {
-        // GIVEN
         dataTypes.forEach(testSubject::addPossibleDataType);
 
-        // WHEN
         DataType actual = testSubject.toDataType();
-
-        // THEN
         assertEquals(expected, actual);
-
         return null;
     }
 }
