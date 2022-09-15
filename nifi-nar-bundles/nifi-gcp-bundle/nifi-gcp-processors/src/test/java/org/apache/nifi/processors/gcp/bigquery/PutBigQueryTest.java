@@ -348,41 +348,6 @@ public class PutBigQueryTest extends AbstractBQTest {
     }
 
     @Test
-    void testWriteClientNotInitialized() throws Exception {
-        AbstractBigQueryProcessor processor = new PutBigQuery() {
-            @Override
-            protected BigQuery getCloudService() {
-                return bq;
-            }
-
-            @Override
-            protected BigQuery getCloudService(final ProcessContext context) {
-                return bq;
-            }
-
-            @Override
-            protected StreamWriter createStreamWriter(String streamName, Descriptors.Descriptor descriptor, GoogleCredentials credentials) {
-                return streamWriter;
-            }
-
-            @Override
-            protected BigQueryWriteClient createWriteClient(GoogleCredentials credentials) {
-                return null;
-            }
-        };
-        runner = buildNewRunner(processor);
-        decorateWithRecordReader(runner);
-        addRequiredPropertiesToRunner(runner);
-
-        runner.enqueue(csvContentWithLines(1));
-        runner.run();
-
-        runner.assertQueueNotEmpty();
-        runner.assertTransferCount(PutBigQuery.REL_FAILURE, 0);
-        runner.assertTransferCount(PutBigQuery.REL_SUCCESS, 0);
-    }
-
-    @Test
     void testStreamWriterNotInitialized() throws Exception {
         AbstractBigQueryProcessor processor = new PutBigQuery() {
             @Override

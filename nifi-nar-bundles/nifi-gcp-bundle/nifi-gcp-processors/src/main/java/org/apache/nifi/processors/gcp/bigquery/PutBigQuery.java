@@ -111,7 +111,6 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
 
     private static final List<Status.Code> RETRYABLE_ERROR_CODES = Arrays.asList(Status.Code.INTERNAL, Status.Code.ABORTED, Status.Code.CANCELLED);
 
-    private final AtomicReference<Exception> setupException = new AtomicReference<>();
     private final AtomicReference<RuntimeException> error = new AtomicReference<>();
     private final AtomicInteger appendSuccessCount = new AtomicInteger(0);
     private final Phaser inflightRequestCount = new Phaser(1);
@@ -186,24 +185,11 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
 
     @OnUnscheduled
     public void onUnScheduled() {
-        if (writeClient != null) {
-            writeClient.shutdown();
-        }
+        writeClient.shutdown();
     }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        if (writeClient == null) {
-            if (setupException.get() != null) {
-                getLogger().error("Failed to create Big Query Writer Client due to {}", setupException.get());
-            } else {
-                getLogger().error("Big Query Writer Client was not properly created");
-            }
-
-            context.yield();
-            return;
-        }
-
         WriteStream writeStream;
         Descriptors.Descriptor protoDescriptor;
         try {
@@ -382,12 +368,11 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
     }
 
     protected BigQueryWriteClient createWriteClient(GoogleCredentials credentials) {
-        BigQueryWriteClient client = null;
+        BigQueryWriteClient client;
         try {
             client = BigQueryWriteClient.create(BigQueryWriteSettings.newBuilder().setCredentialsProvider(FixedCredentialsProvider.create(credentials)).build());
-        } catch (IOException e) {
-            getLogger().error("Failed to create Big Query Write Client for writing due to {}", new Object[] {e});
-            setupException.set(e);
+        } catch (Exception e) {
+            throw new ProcessException("Failed to create Big Query Write Client for writing due to", e);
         }
 
         return client;
