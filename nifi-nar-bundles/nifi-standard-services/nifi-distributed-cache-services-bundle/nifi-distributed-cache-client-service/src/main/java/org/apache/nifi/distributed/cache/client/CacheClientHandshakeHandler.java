@@ -87,7 +87,8 @@ public class CacheClientHandshakeHandler extends ChannelInboundHandlerAdapter {
 
     /**
      * API providing client application with visibility into the handshake process.  Distributed cache requests
-     * should not be sent using this {@link Channel} until the handshake is complete.
+     * should not be sent using this {@link Channel} until the handshake is complete.  Since the handshake might fail,
+     * {@link #isSuccess()} should be called after this method completes.
      */
     public void waitHandshakeComplete() {
         promiseHandshakeComplete.awaitUninterruptibly(timeoutMillis, TimeUnit.MILLISECONDS);
@@ -171,10 +172,20 @@ public class CacheClientHandshakeHandler extends ChannelInboundHandlerAdapter {
         }
     }
 
+    /**
+     * Returns if the handshake completed successfully
+     *
+     * @return success/failure of handshake
+     */
     public boolean isSuccess() {
         return promiseHandshakeComplete.isSuccess();
     }
 
+    /**
+     * Return reason for handshake failure.
+     *
+     * @return cause for handshake failure or null on success
+     */
     public Throwable cause() {
         return promiseHandshakeComplete.cause();
     }

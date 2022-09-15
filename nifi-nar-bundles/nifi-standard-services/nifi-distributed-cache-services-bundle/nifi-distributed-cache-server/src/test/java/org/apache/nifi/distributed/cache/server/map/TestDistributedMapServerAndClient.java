@@ -50,7 +50,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -360,9 +359,8 @@ public class TestDistributedMapServerAndClient {
             @Override
             public void run() {
                 while (true) {
-                    final SocketChannel socketChannel;
                     try {
-                        socketChannel = serverSocketChannel.accept();
+                        serverSocketChannel.accept();
                     } catch (final IOException e) {
                         return;
                     }
