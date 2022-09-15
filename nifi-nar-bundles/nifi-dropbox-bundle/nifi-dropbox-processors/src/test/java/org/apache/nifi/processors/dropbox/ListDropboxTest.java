@@ -20,10 +20,6 @@ package org.apache.nifi.processors.dropbox;
 import static java.util.Collections.singletonList;
 import static java.util.Spliterators.spliteratorUnknownSize;
 import static java.util.stream.Collectors.toList;
-import static org.apache.nifi.services.dropbox.StandardDropboxCredentialService.ACCESS_TOKEN;
-import static org.apache.nifi.services.dropbox.StandardDropboxCredentialService.APP_KEY;
-import static org.apache.nifi.services.dropbox.StandardDropboxCredentialService.APP_SECRET;
-import static org.apache.nifi.services.dropbox.StandardDropboxCredentialService.REFRESH_TOKEN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
@@ -45,12 +41,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Spliterator;
 import java.util.stream.StreamSupport;
+import org.apache.nifi.dropbox.credentials.service.DropboxCredentialService;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.services.dropbox.StandardDropboxCredentialService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -80,7 +76,7 @@ public class ListDropboxTest {
     private DbxClientV2 mockDropboxClient;
 
     @Mock
-    private StandardDropboxCredentialService credentialService;
+    private DropboxCredentialService credentialService;
 
     @Mock
     private DbxUserFilesRequests mockDbxUserFilesRequest;
@@ -262,10 +258,6 @@ public class ListDropboxTest {
         String credentialServiceId = "dropbox_credentials";
         when(credentialService.getIdentifier()).thenReturn(credentialServiceId);
         testRunner.addControllerService(credentialServiceId, credentialService);
-        testRunner.setProperty(credentialService, APP_KEY, "appKey");
-        testRunner.setProperty(credentialService, APP_SECRET, "appSecret");
-        testRunner.setProperty(credentialService, ACCESS_TOKEN, "accessToken");
-        testRunner.setProperty(credentialService, REFRESH_TOKEN, "refreshToken");
         testRunner.enableControllerService(credentialService);
         testRunner.setProperty(ListDropbox.CREDENTIAL_SERVICE, credentialServiceId);
     }

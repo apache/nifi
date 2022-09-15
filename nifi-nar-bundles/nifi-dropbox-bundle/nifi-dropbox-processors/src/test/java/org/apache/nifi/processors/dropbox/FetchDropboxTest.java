@@ -17,10 +17,6 @@
 package org.apache.nifi.processors.dropbox;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.nifi.services.dropbox.StandardDropboxCredentialService.ACCESS_TOKEN;
-import static org.apache.nifi.services.dropbox.StandardDropboxCredentialService.APP_KEY;
-import static org.apache.nifi.services.dropbox.StandardDropboxCredentialService.APP_SECRET;
-import static org.apache.nifi.services.dropbox.StandardDropboxCredentialService.REFRESH_TOKEN;
 import static org.mockito.Mockito.when;
 
 import com.dropbox.core.DbxDownloader;
@@ -32,10 +28,10 @@ import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.nifi.dropbox.credentials.service.DropboxCredentialService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.services.dropbox.StandardDropboxCredentialService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -62,7 +58,7 @@ public class FetchDropboxTest {
     private DbxClientV2 mockDropboxClient;
 
     @Mock
-    private StandardDropboxCredentialService credentialService;
+    private DropboxCredentialService credentialService;
 
     @Mock
     private DbxUserFilesRequests mockDbxUserFilesRequest;
@@ -145,10 +141,6 @@ public class FetchDropboxTest {
         String credentialServiceId = "dropbox_credentials";
         when(credentialService.getIdentifier()).thenReturn(credentialServiceId);
         testRunner.addControllerService(credentialServiceId, credentialService);
-        testRunner.setProperty(credentialService, APP_KEY, "appKey");
-        testRunner.setProperty(credentialService, APP_SECRET, "appSecret");
-        testRunner.setProperty(credentialService, ACCESS_TOKEN, "accessToken");
-        testRunner.setProperty(credentialService, REFRESH_TOKEN, "refreshToken");
         testRunner.enableControllerService(credentialService);
         testRunner.setProperty(FetchDropbox.CREDENTIAL_SERVICE, credentialServiceId);
     }

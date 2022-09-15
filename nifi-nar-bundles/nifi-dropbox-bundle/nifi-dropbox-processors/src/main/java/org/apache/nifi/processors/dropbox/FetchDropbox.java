@@ -63,8 +63,8 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
             .displayName("File")
             .description("The Dropbox identifier or path of the Dropbox file to fetch." +
                     " The 'File' should match the following regular expression pattern: /.*|id:.* ." +
-                    " When ListDropbox is used for input, either '${dropbox.id}' (identify file by Dropbox id)" +
-                    " or '${path}/${filename}' (identify file by path) can be used as 'File' value.")
+                    " When ListDropbox is used for input, either '${dropbox.id}' (identifying files by Dropbox id)" +
+                    " or '${path}/${filename}' (identifying files by path) can be used as 'File' value.")
             .required(true)
             .defaultValue("${dropbox.id}")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -77,10 +77,12 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
                     .name("success")
                     .description("A FlowFile will be routed here for each successfully fetched File.")
                     .build();
+
     public static final Relationship REL_FAILURE =
             new Relationship.Builder().name("failure")
                     .description("A FlowFile will be routed here for each File for which fetch was attempted but failed.")
                     .build();
+
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             REL_SUCCESS,
             REL_FAILURE
@@ -97,6 +99,11 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
     @Override
     public Set<Relationship> getRelationships() {
         return relationships;
+    }
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return PROPERTIES;
     }
 
     @OnScheduled
@@ -123,11 +130,6 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
         } catch (Exception e) {
             handleError(session, flowFile, fileIdentifier, e);
         }
-    }
-
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
     }
 
     private void fetchFile(String fileId, ProcessSession session, FlowFile outFlowFile) throws DbxException {
