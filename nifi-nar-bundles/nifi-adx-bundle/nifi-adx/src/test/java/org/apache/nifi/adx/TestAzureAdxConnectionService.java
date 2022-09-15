@@ -16,11 +16,22 @@
  */
 package org.apache.nifi.adx;
 
+import com.microsoft.azure.kusto.ingest.IngestClient;
+import com.microsoft.azure.kusto.ingest.ManagedStreamingIngestClient;
+import com.microsoft.azure.kusto.ingest.QueuedIngestClient;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestAzureAdxConnectionService {
 
@@ -35,6 +46,8 @@ public class TestAzureAdxConnectionService {
 
     private static final String MOCK_APP_TENANT = "mockAppTenant";
 
+    private static final String MOCK_CLUSTER_URL = "https://mockClusterUrl.com/";
+
     @BeforeEach
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(TestAzureAdxIngestProcessor.class);
@@ -44,13 +57,31 @@ public class TestAzureAdxConnectionService {
 
     }
 
+    @AfterEach
+    public void after() {
+        runner.clearProperties();
+
+    }
+
     @Test
-    public void testValidWithURIandDBAccessKey() {
+    public void testAdxConnectionControllerWithoutStreaming() {
+        configureIngestURL();
+        configureAppId();
+        configureAppKey();
+        configureAppTenant();
+
+
+        runner.assertValid(service);
+    }
+
+    @Test
+    public void testAdxConnectionControllerWithStreaming() {
         configureIngestURL();
         configureAppId();
         configureAppKey();
         configureAppTenant();
         configureIsStreamingEnabled();
+        configureClusterURL();
 
 
         runner.assertValid(service);
@@ -76,9 +107,68 @@ public class TestAzureAdxConnectionService {
         runner.setProperty(service, AzureAdxConnectionService.IS_STREAMING_ENABLED, "true");
     }
 
+    private void configureClusterURL() {
+        runner.setProperty(service, AzureAdxConnectionService.CLUSTER_URL, MOCK_CLUSTER_URL);
+    }
+
     @Test
-    public void testCreateIngestClient(){
+    public void testCreateIngestClientQueued(){
+
+        configureIngestURL();
+        configureAppId();
+        configureAppKey();
+        configureAppTenant();
+
+        runner.assertValid(service);
+        runner.setValidateExpressionUsage(false);
+
+        runner.enableControllerService(service);
+
+        IngestClient ingestClient = service.getAdxClient();
+        Assertions.assertNotNull(ingestClient);
+        Assertions.assertTrue(ingestClient instanceof QueuedIngestClient);
 
     }
+
+    @Test
+    public void testPropertyDescriptor(){
+
+        configureIngestURL();
+        configureAppId();
+        configureAppKey();
+        configureAppTenant();
+
+        List<PropertyDescriptor> pd = service.getSupportedPropertyDescriptors();
+        assertTrue(pd.contains(AzureAdxConnectionService.APP_ID));
+        assertTrue(pd.contains(AzureAdxConnectionService.APP_KEY));
+        assertTrue(pd.contains(AzureAdxConnectionService.INGEST_URL));
+        assertTrue(pd.contains(AzureAdxConnectionService.APP_TENANT));
+        assertTrue(pd.contains(AzureAdxConnectionService.IS_STREAMING_ENABLED));
+        assertTrue(pd.contains(AzureAdxConnectionService.CLUSTER_URL));
+    }
+
+
+    @Test
+    public void testCreateIngestClientWithStreaming(){
+
+        configureIngestURL();
+        configureAppId();
+        configureAppKey();
+        configureAppTenant();
+        configureClusterURL();
+        configureIsStreamingEnabled();
+
+        runner.assertValid(service);
+        runner.setValidateExpressionUsage(false);
+
+        runner.enableControllerService(service);
+
+        IngestClient ingestClient = service.getAdxClient();
+        //System.out.println("client details managed"+ingestClient);
+        Assertions.assertNotNull(ingestClient);
+        Assertions.assertTrue(ingestClient instanceof ManagedStreamingIngestClient);
+
+    }
+
 
 }

@@ -26,6 +26,12 @@
     <version>1.18.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <properties>
+        <nifi-release-version>1.18.0-SNAPSHOT</nifi-release-version>
+        <azure-kusto-java-sdk-version>3.1.4</azure-kusto-java-sdk-version>
+    </properties>
+
+
     <modules>
         <module>nifi-adx-processors</module>
         <module>nifi-adx-nar</module>

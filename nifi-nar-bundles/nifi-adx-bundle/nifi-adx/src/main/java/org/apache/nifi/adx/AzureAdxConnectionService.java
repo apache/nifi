@@ -25,6 +25,8 @@ import java.util.List;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -32,63 +34,71 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 
 @Tags({ "Azure", "ADX", "Kusto", "ingest", "azure"})
-@CapabilityDescription("Sends batches of flowfile content to an azure adx cluster.")
+@CapabilityDescription("Sends batches of flowfile content or stream flowfile content to an Azure ADX cluster.")
+@ReadsAttributes({
+        @ReadsAttribute(attribute="INGEST_URL", description="Specifies the URL of ingestion endpoint of the Azure Data Explorer cluster."),
+        @ReadsAttribute(attribute="APP_ID", description="Specifies Azure application id for accessing the ADX-Cluster."),
+        @ReadsAttribute(attribute="APP_KEY", description="Specifies Azure application key for accessing the ADX-Cluster."),
+        @ReadsAttribute(attribute="APP_TENANT", description="Azure application tenant for accessing the ADX-Cluster."),
+        @ReadsAttribute(attribute="IS_STREAMING_ENABLED", description="This property determines whether we want to stream data to ADX."),
+        @ReadsAttribute(attribute="CLUSTER_URL", description="Endpoint of ADX cluster. This is required only when streaming data to ADX cluster is enabled."),
+})
 public class AzureAdxConnectionService extends AbstractControllerService implements AdxConnectionService {
 
     public static final PropertyDescriptor INGEST_URL = new PropertyDescriptor
-            .Builder().name("INGEST_URL")
-            .displayName("Ingest URL")
-            .description("URL of the ingestion endpoint of the azure data explorer cluster.")
+            .Builder().name(AzureAdxConnectionServiceParamsEnum.INGEST_URL.name())
+            .displayName(AzureAdxConnectionServiceParamsEnum.INGEST_URL.getParamDisplayName())
+            .description(AzureAdxConnectionServiceParamsEnum.INGEST_URL.getDescription())
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor APP_ID = new PropertyDescriptor
-            .Builder().name("APP_ID")
-            .displayName("Application ID")
-            .description("Azure application ID for accessing the ADX-Cluster")
+            .Builder().name(AzureAdxConnectionServiceParamsEnum.APP_ID.name())
+            .displayName(AzureAdxConnectionServiceParamsEnum.APP_ID.getParamDisplayName())
+            .description(AzureAdxConnectionServiceParamsEnum.APP_ID.getDescription())
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor APP_KEY = new PropertyDescriptor
-            .Builder().name("APP_KEY")
-            .displayName("Application KEY")
-            .description("Azure application ID Key for accessing the ADX-Cluster")
+            .Builder().name(AzureAdxConnectionServiceParamsEnum.APP_KEY.name())
+            .displayName(AzureAdxConnectionServiceParamsEnum.APP_KEY.getParamDisplayName())
+            .description(AzureAdxConnectionServiceParamsEnum.APP_KEY.getDescription())
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor APP_TENANT = new PropertyDescriptor
-            .Builder().name("APP_TENANT")
-            .displayName("Application Tenant")
-            .description("Azure application tenant for accessing the ADX-Cluster")
+            .Builder().name(AzureAdxConnectionServiceParamsEnum.APP_TENANT.name())
+            .displayName(AzureAdxConnectionServiceParamsEnum.APP_TENANT.getParamDisplayName())
+            .description(AzureAdxConnectionServiceParamsEnum.APP_TENANT.getDescription())
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor IS_STREAMING_ENABLED = new PropertyDescriptor
-            .Builder().name("IS_STREAMING_ENABLED")
-            .displayName("Is Streaming enabled")
-            .description("Do we want to stream data to ADX-Cluster")
+            .Builder().name(AzureAdxConnectionServiceParamsEnum.IS_STREAMING_ENABLED.name())
+            .displayName(AzureAdxConnectionServiceParamsEnum.IS_STREAMING_ENABLED.getParamDisplayName())
+            .description(AzureAdxConnectionServiceParamsEnum.IS_STREAMING_ENABLED.getDescription())
             .required(false)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .defaultValue("false")
             .build();
 
     public static final PropertyDescriptor CLUSTER_URL = new PropertyDescriptor
-            .Builder().name("CLUSTER_URL")
-            .displayName("Cluster URL")
-            .description("Endpoint of ADX cluster. This is required only when streaming data to ADX cluster is enabled.")
+            .Builder().name(AzureAdxConnectionServiceParamsEnum.CLUSTER_URL.name())
+            .displayName(AzureAdxConnectionServiceParamsEnum.CLUSTER_URL.getParamDisplayName())
+            .description(AzureAdxConnectionServiceParamsEnum.CLUSTER_URL.getDescription())
             .required(false)
             .addValidator(StandardValidators.URL_VALIDATOR)
+            .dependsOn(IS_STREAMING_ENABLED,"true")
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(
@@ -117,9 +127,8 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
      */
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws ProcessException {
-        ComponentLog log = getLogger();
 
-        log.info("Starting Azure ADX Connection Service...");
+        getLogger().info("Starting Azure ADX Connection Service...");
 
         final String ingestUrl = context.getProperty(INGEST_URL).evaluateAttributeExpressions().getValue();
         final String app_id = context.getProperty(APP_ID).evaluateAttributeExpressions().getValue();
@@ -156,7 +165,6 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
 
             try {
                 if(isStreamingEnabled){
-
                     ConnectionStringBuilder engineKcsb = ConnectionStringBuilder.createWithAadApplicationCredentials(
                             kustoEngineUrl,
                             appId,
