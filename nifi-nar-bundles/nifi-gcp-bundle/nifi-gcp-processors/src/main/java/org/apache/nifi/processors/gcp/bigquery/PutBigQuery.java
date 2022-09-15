@@ -41,7 +41,9 @@ import com.google.cloud.bigquery.storage.v1.WriteStream;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import io.grpc.Status;
+import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -83,6 +85,8 @@ import java.util.concurrent.Phaser;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+@TriggerSerially
+@EventDriven
 @Tags({"google", "google cloud", "bq", "bigquery"})
 @CapabilityDescription("Unified processor for batch and stream flow files content to a Google BigQuery table via the Storage Write API." +
     "The processor is record based so the used schema is driven by the RecordReader. Attributes that are not matched to the target schema" +
@@ -182,16 +186,13 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
 
     @OnUnscheduled
     public void onUnScheduled() {
-        writeClient.shutdown();
+        if (writeClient != null) {
+            writeClient.shutdown();
+        }
     }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
-        if (flowFile == null) {
-            return;
-        }
-
         if (writeClient == null) {
             if (setupException.get() != null) {
                 getLogger().error("Failed to create Big Query Writer Client due to {}", setupException.get());
@@ -210,8 +211,13 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
             protoDescriptor = BQTableSchemaToProtoDescriptor.convertBQTableSchemaToProtoDescriptor(writeStream.getTableSchema());
             streamWriter = createStreamWriter(writeStream.getName(), protoDescriptor, getGoogleCredentials(context));
         } catch (Descriptors.DescriptorValidationException | IOException e) {
-            getLogger().error("Failed to create Big Query Write Client for writing due to {}", e);
+            getLogger().error("Failed to create Big Query Stream Writer for writing due to {}", e);
             context.yield();
+            return;
+        }
+
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
             return;
         }
 

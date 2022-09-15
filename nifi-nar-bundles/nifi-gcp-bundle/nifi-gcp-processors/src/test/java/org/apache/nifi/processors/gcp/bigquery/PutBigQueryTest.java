@@ -34,6 +34,7 @@ import com.google.cloud.bigquery.storage.v1.WriteStream;
 import com.google.protobuf.Descriptors;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import java.io.IOException;
 import org.apache.nifi.csv.CSVReader;
 import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.processor.ProcessContext;
@@ -344,6 +345,79 @@ public class PutBigQueryTest extends AbstractBQTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutBigQuery.REL_FAILURE);
+    }
+
+    @Test
+    void testWriteClientNotInitialized() throws Exception {
+        AbstractBigQueryProcessor processor = new PutBigQuery() {
+            @Override
+            protected BigQuery getCloudService() {
+                return bq;
+            }
+
+            @Override
+            protected BigQuery getCloudService(final ProcessContext context) {
+                return bq;
+            }
+
+            @Override
+            protected StreamWriter createStreamWriter(String streamName, Descriptors.Descriptor descriptor, GoogleCredentials credentials) {
+                return streamWriter;
+            }
+
+            @Override
+            protected BigQueryWriteClient createWriteClient(GoogleCredentials credentials) {
+                return null;
+            }
+        };
+        runner = buildNewRunner(processor);
+        decorateWithRecordReader(runner);
+        addRequiredPropertiesToRunner(runner);
+
+        runner.enqueue(csvContentWithLines(1));
+        runner.run();
+
+        runner.assertQueueNotEmpty();
+        runner.assertTransferCount(PutBigQuery.REL_FAILURE, 0);
+        runner.assertTransferCount(PutBigQuery.REL_SUCCESS, 0);
+    }
+
+    @Test
+    void testStreamWriterNotInitialized() throws Exception {
+        AbstractBigQueryProcessor processor = new PutBigQuery() {
+            @Override
+            protected BigQuery getCloudService() {
+                return bq;
+            }
+
+            @Override
+            protected BigQuery getCloudService(final ProcessContext context) {
+                return bq;
+            }
+
+            @Override
+            protected StreamWriter createStreamWriter(String streamName, Descriptors.Descriptor descriptor, GoogleCredentials credentials) throws IOException {
+                throw new IOException();
+            }
+
+            @Override
+            protected BigQueryWriteClient createWriteClient(GoogleCredentials credentials) {
+                return writeClient;
+            }
+        };
+        runner = buildNewRunner(processor);
+        decorateWithRecordReader(runner);
+        addRequiredPropertiesToRunner(runner);
+
+        when(writeClient.createWriteStream(isA(CreateWriteStreamRequest.class))).thenReturn(writeStream);
+        when(writeStream.getTableSchema()).thenReturn(mock(TableSchema.class));
+
+        runner.enqueue(csvContentWithLines(1));
+        runner.run();
+
+        runner.assertQueueNotEmpty();
+        runner.assertTransferCount(PutBigQuery.REL_FAILURE, 0);
+        runner.assertTransferCount(PutBigQuery.REL_SUCCESS, 0);
     }
 
     private void decorateWithRecordReader(TestRunner runner) throws InitializationException {
