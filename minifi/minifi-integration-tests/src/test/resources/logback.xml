@@ -56,6 +56,7 @@
     <!-- valid logging levels: TRACE, DEBUG, INFO, WARN, ERROR -->
     
     <logger name="org.apache.nifi" level="INFO"/>
+    <logger name="org.apache.nifi.c2.client.http.C2HttpClient" level="DEBUG"/>
     <logger name="org.apache.nifi.processors" level="WARN"/>
     <logger name="org.apache.nifi.processors.standard.LogAttribute" level="INFO"/>
     <logger name="org.apache.nifi.controller.repository.StandardProcessSession" level="DEBUG" />
@@ -77,6 +78,7 @@
         Logger for capturing Bootstrap logs and MiNiFi's standard error and standard out.
     -->
     <logger name="org.apache.nifi.minifi.bootstrap" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE" />
         <appender-ref ref="BOOTSTRAP_FILE" />
     </logger>
     <logger name="org.apache.nifi.minifi.bootstrap.Command" level="INFO" additivity="false">
@@ -86,17 +88,19 @@
 
     <!-- Everything written to MiNiFi's Standard Out will be logged with the logger org.apache.nifi.minifi.StdOut at INFO level -->
     <logger name="org.apache.nifi.minifi.StdOut" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE" />
         <appender-ref ref="BOOTSTRAP_FILE" />
     </logger>
 
     <!-- Everything written to MiNiFi's Standard Error will be logged with the logger org.apache.nifi.minifi.StdErr at ERROR level -->
-	<logger name="org.apache.nifi.minifi.StdErr" level="ERROR" additivity="false">
-    	<appender-ref ref="BOOTSTRAP_FILE" />
+    <logger name="org.apache.nifi.minifi.StdErr" level="ERROR" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="BOOTSTRAP_FILE" />
     </logger>
 
-
-    <root level="INFO">
+    <root level="DEBUG">
         <appender-ref ref="APP_FILE"/>
+        <appender-ref ref="CONSOLE"/>
     </root>
     
 </configuration>

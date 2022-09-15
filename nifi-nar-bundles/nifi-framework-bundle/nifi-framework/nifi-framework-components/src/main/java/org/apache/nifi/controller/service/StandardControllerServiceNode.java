@@ -205,7 +205,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                                              final ControllerServiceInvocationHandler invocationHandler) {
         synchronized (this.active) {
             if (isActive()) {
-                throw new IllegalStateException("Cannot modify Controller Service configuration while service is active");
+                throw new IllegalStateException("Cannot modify configuration of " + this + " while service is active");
             }
 
             final ControllerServiceDetails controllerServiceDetails = new ControllerServiceDetails(implementation, proxiedControllerService, invocationHandler);
@@ -308,11 +308,11 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
         if (state == ControllerServiceState.DISABLING) {
             // Provide precise/accurate error message for DISABLING case
-            throw new IllegalStateException("Cannot modify Controller Service configuration because it is currently still disabling. " +
+            throw new IllegalStateException("Cannot modify configuration of " + this + " because it is currently still disabling. " +
                 "Please wait for the service to fully disable before attempting to modify it.");
         }
         if (state != ControllerServiceState.DISABLED) {
-            throw new IllegalStateException("Cannot modify Controller Service configuration because it is currently not disabled - it has a state of " + state
+            throw new IllegalStateException("Cannot modify configuration of " + this + " because it is currently not disabled - it has a state of " + state
                 + ". Please disable the Controller Service first.");
         }
     }
@@ -320,7 +320,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     @Override
     public void verifyCanDelete() {
         if (getState() != ControllerServiceState.DISABLED) {
-            throw new IllegalStateException("Controller Service " + getControllerServiceImplementation().getIdentifier() + " cannot be deleted because it is not disabled");
+            throw new IllegalStateException(this + " cannot be deleted because it is not disabled");
         }
     }
 
@@ -345,7 +345,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         }
 
         if (!activeReferencesIdentifiers.isEmpty()) {
-            throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be disabled because it is referenced by " + activeReferencesIdentifiers.size() +
+            throw new IllegalStateException(this + " cannot be disabled because it is referenced by " + activeReferencesIdentifiers.size() +
                 " components that are currently running: [" + StringUtils.join(activeReferencesIdentifiers, ", ") + "]");
         }
     }
@@ -357,10 +357,10 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
             case DISABLED:
                 return;
             case DISABLING:
-                throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not disabled - it has a state of " + state);
+                throw new IllegalStateException(this + " cannot be enabled because it is not disabled - it has a state of " + state);
             default:
                 if (isReloadAdditionalResourcesNecessary()) {
-                    throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because additional resources are needed - it has a state of " + state);
+                    throw new IllegalStateException(this + " cannot be enabled because additional resources are needed - it has a state of " + state);
                 }
         }
     }
@@ -372,8 +372,9 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     @Override
     public void verifyCanUpdate() {
-        if (getState() != ControllerServiceState.DISABLED) {
-            throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be updated because it is not disabled");
+        final ControllerServiceState state = getState();
+        if (state != ControllerServiceState.DISABLED) {
+            throw new IllegalStateException(this + " cannot be updated because it is not disabled - it has a state of " + state);
         }
     }
 
@@ -432,8 +433,9 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     @Override
     public void verifyCanPerformVerification() {
-        if (getState() != ControllerServiceState.DISABLED) {
-            throw new IllegalStateException("Cannot perform verification because the Controller Service is not disabled");
+        final ControllerServiceState state = getState();
+        if (state != ControllerServiceState.DISABLED) {
+            throw new IllegalStateException("Cannot perform verification because the " + this + " is not disabled - it has a state of " + state);
         }
     }
 

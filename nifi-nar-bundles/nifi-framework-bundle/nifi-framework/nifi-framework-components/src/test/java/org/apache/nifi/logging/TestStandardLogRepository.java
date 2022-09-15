@@ -79,6 +79,11 @@ public class TestStandardLogRepository {
             messages.add(message);
         }
 
+        @Override
+        public String getComponentDescription() {
+            return "MockLogObserver";
+        }
+
         public List<LogMessage> getMessages() {
             return messages;
         }

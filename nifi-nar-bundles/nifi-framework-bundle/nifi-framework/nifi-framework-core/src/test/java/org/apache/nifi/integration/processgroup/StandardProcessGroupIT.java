@@ -21,17 +21,20 @@ import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.StandardSnippet;
 import org.apache.nifi.controller.queue.DropFlowFileState;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.integration.FrameworkIntegrationTest;
+import org.apache.nifi.integration.processor.BiConsumerProcessor;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.Revision;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -42,8 +45,50 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class StandardProcessGroupIT extends FrameworkIntegrationTest {
+
+    @Test
+    public void testConflictingVersionedComponentId() {
+        final ProcessorNode proc1 = createProcessorNode(BiConsumerProcessor.class, null);
+        getRootGroup().addProcessor(proc1);
+
+        final ProcessorNode proc2 = createProcessorNode(BiConsumerProcessor.class, null);
+        proc2.setVersionedComponentId("aaa");
+        getRootGroup().addProcessor(proc2);
+        // Ensure that id didn't change
+        assertEquals("aaa", proc2.getVersionedComponentId().get());
+
+        final ProcessorNode proc3 = createProcessorNode(BiConsumerProcessor.class, null);
+        proc3.setVersionedComponentId("bbb");
+        getRootGroup().addProcessor(proc3);
+        assertEquals("bbb", proc3.getVersionedComponentId().get());
+
+        final ProcessorNode proc4 = createProcessorNode(BiConsumerProcessor.class, null);
+        proc4.setVersionedComponentId("bbb");
+        getRootGroup().addProcessor(proc4);
+        // Ensure that versioned component id was nulled out
+        assertFalse(proc4.getVersionedComponentId().isPresent());
+
+        final ProcessGroup childGroup = getFlowController().getFlowManager().createProcessGroup("child");
+        childGroup.setName("child");
+        getRootGroup().addProcessGroup(childGroup);
+
+        final ProcessorNode proc5 = createProcessorNode(BiConsumerProcessor.class, null);
+        proc5.setVersionedComponentId("bbb");
+        childGroup.addProcessor(proc5);
+        assertEquals("bbb", proc5.getVersionedComponentId().get());
+
+        // Move processor from child group to parent group.
+        // This should null out the ID for proc5 and leave proc3 as is.
+        final StandardSnippet snippet = new StandardSnippet();
+        snippet.addProcessors(Collections.singletonMap(proc5.getIdentifier(), new Revision(0L, "abc", proc5.getIdentifier())));
+        childGroup.move(snippet, getRootGroup());
+        assertFalse(proc5.getVersionedComponentId().isPresent());
+        assertEquals("bbb", proc3.getVersionedComponentId().get());
+    }
+
     @Test
     public void testProcessGroupDefaults() {
         // Connect two processors with default settings of the root process group

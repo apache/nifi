@@ -225,9 +225,9 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
     public void setup() {
         if (scriptNeedsReload.get() || processor.get() == null) {
             if (ScriptingComponentHelper.isFile(scriptingComponentHelper.getScriptPath())) {
-                scriptNeedsReload.set(reloadScriptFile(scriptingComponentHelper.getScriptPath()));
+                scriptNeedsReload.set(!reloadScriptFile(scriptingComponentHelper.getScriptPath()));
             } else {
-                scriptNeedsReload.set(reloadScriptBody(scriptingComponentHelper.getScriptBody()));
+                scriptNeedsReload.set(!reloadScriptBody(scriptingComponentHelper.getScriptBody()));
             }
         }
     }
@@ -282,11 +282,14 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
      * @return true if the script was loaded successfully; false otherwise
      */
     private boolean reloadScriptFile(final String scriptPath) {
+        if (StringUtils.isEmpty(scriptPath)) {
+            return false;
+        }
+
         final Collection<ValidationResult> results = new HashSet<>();
 
         try (final FileInputStream scriptStream = new FileInputStream(scriptPath)) {
             return reloadScript(IOUtils.toString(scriptStream, Charset.defaultCharset()));
-
         } catch (final Exception e) {
             final ComponentLog logger = getLogger();
             final String message = "Unable to load script: " + e;
@@ -314,10 +317,13 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
      * @return true if the script was loaded successfully; false otherwise
      */
     private boolean reloadScriptBody(final String scriptBody) {
+        if (StringUtils.isEmpty(scriptBody)) {
+            return false;
+        }
+
         final Collection<ValidationResult> results = new HashSet<>();
         try {
             return reloadScript(scriptBody);
-
         } catch (final Exception e) {
             final ComponentLog logger = getLogger();
             final String message = "Unable to load script: " + e;

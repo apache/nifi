@@ -121,8 +121,7 @@ public class TestPutHTMLElement extends AbstractHTMLTest {
         Elements eles = doc.select("#put");
         Element ele = eles.get(0);
 
-        assertTrue(StringUtils.equals("<a href=\"httpd://localhost\"></a> \n" +
-                "<p>modified value</p>", ele.html()));
+        assertEquals("<a href=\"httpd://localhost\"></a><p>modified value</p>", StringUtils.remove(ele.html(), "\n"));
     }
 
 }

@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.controller;
 
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
@@ -320,6 +322,8 @@ public class ExtensionBuilder {
         }
 
         applyDefaultSettings(procNode);
+        applyDefaultRunDuration(procNode);
+
         return procNode;
     }
 
@@ -356,6 +360,19 @@ public class ExtensionBuilder {
             }
         } catch (final Exception ex) {
             logger.error("Error while setting default settings from DefaultSettings annotation: {}", ex.toString(), ex);
+        }
+    }
+
+    private void applyDefaultRunDuration(final ProcessorNode processorNode) {
+        try {
+            final Class<?> procClass = processorNode.getProcessor().getClass();
+
+            final SupportsBatching sb = procClass.getAnnotation(SupportsBatching.class);
+            if (sb != null) {
+                processorNode.setRunDuration(sb.defaultDuration().getDuration().toMillis(), TimeUnit.MILLISECONDS);
+            }
+        } catch (final Exception ex) {
+            logger.error("Set Default Run Duration failed", ex);
         }
     }
 

@@ -27,6 +27,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.script.ScriptRunner;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.FileInputStream;
 import java.nio.charset.Charset;
@@ -158,11 +159,14 @@ public abstract class AbstractScriptedControllerService extends AbstractControll
      * @return true if the script was loaded successfully; false otherwise
      */
     protected boolean reloadScriptFile(final String scriptPath) {
+        if (StringUtils.isEmpty(scriptPath)) {
+            return false;
+        }
+
         final Collection<ValidationResult> results = new HashSet<>();
 
         try (final FileInputStream scriptStream = new FileInputStream(scriptPath)) {
             return reloadScript(IOUtils.toString(scriptStream, Charset.defaultCharset()));
-
         } catch (final Exception e) {
             final ComponentLog logger = getLogger();
             final String message = "Unable to load script: " + e;
@@ -190,10 +194,13 @@ public abstract class AbstractScriptedControllerService extends AbstractControll
      * @return true if the script was loaded successfully; false otherwise
      */
     protected boolean reloadScriptBody(final String scriptBody) {
+        if (StringUtils.isEmpty(scriptBody)) {
+            return false;
+        }
+
         final Collection<ValidationResult> results = new HashSet<>();
         try {
             return reloadScript(scriptBody);
-
         } catch (final Exception e) {
             final ComponentLog logger = getLogger();
             final String message = "Unable to load script: " + e;

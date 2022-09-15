@@ -17,6 +17,7 @@
 package org.apache.nifi.ldap.tenants;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.authentication.exception.ProviderDestructionException;
 import org.apache.nifi.authorization.AuthorizerConfigurationContext;
@@ -147,16 +148,12 @@ public class LdapUserGroupProvider implements UserGroupProvider {
 
     @Override
     public void initialize(final UserGroupProviderInitializationContext initializationContext) throws AuthorizerCreationException {
-        ldapSync = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-            final ThreadFactory factory = Executors.defaultThreadFactory();
-
-            @Override
-            public Thread newThread(Runnable r) {
-                final Thread thread = factory.newThread(r);
-                thread.setName(String.format("%s (%s) - background sync thread", getClass().getSimpleName(), initializationContext.getIdentifier()));
-                return thread;
-            }
-        });
+        final String namingPattern = String.format("%s (%s) - background sync thread", getClass().getSimpleName(), initializationContext.getIdentifier());
+        final ThreadFactory threadFactory = new BasicThreadFactory.Builder()
+                .daemon(true)
+                .namingPattern(namingPattern)
+                .build();
+        ldapSync = Executors.newSingleThreadScheduledExecutor(threadFactory);
     }
 
     @Override
@@ -179,56 +176,53 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                     rawAuthenticationStrategy.getValue(), StringUtils.join(LdapAuthenticationStrategy.values(), ", ")));
         }
 
-        switch (authenticationStrategy) {
-            case ANONYMOUS:
-                context.setAnonymousReadOnly(true);
-                break;
-            default:
-                final String userDn = configurationContext.getProperty(PROP_MANAGER_DN).getValue();
-                final String password = configurationContext.getProperty(PROP_MANAGER_PASSWORD).getValue();
+        if (authenticationStrategy == LdapAuthenticationStrategy.ANONYMOUS) {
+            context.setAnonymousReadOnly(true);
+        } else {
+            final String userDn = configurationContext.getProperty(PROP_MANAGER_DN).getValue();
+            final String password = configurationContext.getProperty(PROP_MANAGER_PASSWORD).getValue();
 
-                context.setUserDn(userDn);
-                context.setPassword(password);
+            context.setUserDn(userDn);
+            context.setPassword(password);
 
-                switch (authenticationStrategy) {
-                    case SIMPLE:
-                        context.setAuthenticationStrategy(new SimpleDirContextAuthenticationStrategy());
-                        break;
-                    case LDAPS:
-                        context.setAuthenticationStrategy(new SimpleDirContextAuthenticationStrategy());
+            switch (authenticationStrategy) {
+                case SIMPLE:
+                    context.setAuthenticationStrategy(new SimpleDirContextAuthenticationStrategy());
+                    break;
+                case LDAPS:
+                    context.setAuthenticationStrategy(new SimpleDirContextAuthenticationStrategy());
 
-                        // indicate a secure connection
-                        baseEnvironment.put(Context.SECURITY_PROTOCOL, "ssl");
+                    // indicate a secure connection
+                    baseEnvironment.put(Context.SECURITY_PROTOCOL, "ssl");
 
-                        // get the configured ssl context
-                        final SSLContext ldapsSslContext = getConfiguredSslContext(configurationContext);
-                        if (ldapsSslContext != null) {
-                            // initialize the ldaps socket factory prior to use
-                            LdapsSocketFactory.initialize(ldapsSslContext.getSocketFactory());
-                            baseEnvironment.put("java.naming.ldap.factory.socket", LdapsSocketFactory.class.getName());
-                        }
-                        break;
-                    case START_TLS:
-                        final AbstractTlsDirContextAuthenticationStrategy tlsAuthenticationStrategy = new DefaultTlsDirContextAuthenticationStrategy();
+                    // get the configured ssl context
+                    final SSLContext ldapSslContext = getConfiguredSslContext(configurationContext);
+                    if (ldapSslContext != null) {
+                        // initialize the LDAP socket factory prior to use
+                        LdapsSocketFactory.initialize(ldapSslContext.getSocketFactory());
+                        baseEnvironment.put("java.naming.ldap.factory.socket", LdapsSocketFactory.class.getName());
+                    }
+                    break;
+                case START_TLS:
+                    final AbstractTlsDirContextAuthenticationStrategy tlsAuthenticationStrategy = new DefaultTlsDirContextAuthenticationStrategy();
 
-                        // shutdown gracefully
-                        final String rawShutdownGracefully = configurationContext.getProperty("TLS - Shutdown Gracefully").getValue();
-                        if (StringUtils.isNotBlank(rawShutdownGracefully)) {
-                            final boolean shutdownGracefully = Boolean.TRUE.toString().equalsIgnoreCase(rawShutdownGracefully);
-                            tlsAuthenticationStrategy.setShutdownTlsGracefully(shutdownGracefully);
-                        }
+                    // shutdown gracefully
+                    final String rawShutdownGracefully = configurationContext.getProperty("TLS - Shutdown Gracefully").getValue();
+                    if (StringUtils.isNotBlank(rawShutdownGracefully)) {
+                        final boolean shutdownGracefully = Boolean.TRUE.toString().equalsIgnoreCase(rawShutdownGracefully);
+                        tlsAuthenticationStrategy.setShutdownTlsGracefully(shutdownGracefully);
+                    }
 
-                        // get the configured ssl context
-                        final SSLContext startTlsSslContext = getConfiguredSslContext(configurationContext);
-                        if (startTlsSslContext != null) {
-                            tlsAuthenticationStrategy.setSslSocketFactory(startTlsSslContext.getSocketFactory());
-                        }
+                    // get the configured ssl context
+                    final SSLContext startTlsSslContext = getConfiguredSslContext(configurationContext);
+                    if (startTlsSslContext != null) {
+                        tlsAuthenticationStrategy.setSslSocketFactory(startTlsSslContext.getSocketFactory());
+                    }
 
-                        // set the authentication strategy
-                        context.setAuthenticationStrategy(tlsAuthenticationStrategy);
-                        break;
-                }
-                break;
+                    // set the authentication strategy
+                    context.setAuthenticationStrategy(tlsAuthenticationStrategy);
+                    break;
+            }
         }
 
         // referrals
@@ -349,7 +343,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
             pageSize = rawPageSize.asInteger();
         }
 
-        // get whether group membership should be case sensitive
+        // get whether group membership should be case-sensitive
         final String rawGroupMembershipEnforceCaseSensitivity = configurationContext.getProperty(PROP_GROUP_MEMBERSHIP_ENFORCE_CASE_SENSITIVITY).getValue();
         groupMembershipEnforceCaseSensitivity = Boolean.parseBoolean(rawGroupMembershipEnforceCaseSensitivity);
 
@@ -373,7 +367,8 @@ public class LdapUserGroupProvider implements UserGroupProvider {
         final long syncInterval;
         if (rawSyncInterval.isSet()) {
             try {
-                syncInterval = FormatUtils.getTimeDuration(rawSyncInterval.getValue(), TimeUnit.MILLISECONDS);
+                final double interval = FormatUtils.getPreciseTimeDuration(rawSyncInterval.getValue(), TimeUnit.MILLISECONDS);
+                syncInterval = Math.round(interval);
             } catch (final IllegalArgumentException iae) {
                 throw new AuthorizerCreationException(String.format("The %s '%s' is not a valid time duration", PROP_SYNC_INTERVAL, rawSyncInterval.getValue()));
             }
@@ -400,7 +395,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                 try {
                     load(context);
                 } catch (final Throwable t) {
-                    logger.error("Failed to sync User/Groups from LDAP due to {}. Will try again in {} millis.", new Object[] {t.toString(), syncInterval});
+                    logger.error("Failed to sync User/Groups from LDAP due to {}. Will try again in {} millis.", t, syncInterval);
                     if (logger.isDebugEnabled()) {
                         logger.error("", t);
                     }
@@ -502,11 +497,8 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                     userList.addAll(ldapTemplate.search(userSearchBase, userFilter.encode(), userControls, new AbstractContextMapper<User>() {
                         @Override
                         protected User doMapFromContext(DirContextOperations ctx) {
-                            // get the user identity
-                            final String identity = getUserIdentity(ctx);
-
-                            // build the user
-                            final User user = new User.Builder().identifierGenerateFromSeed(identity).identity(identity).build();
+                            // get the user
+                            final User user = buildUser(ctx);
 
                             // store the user for group member later
                             userLookup.put(getReferencedUserValue(ctx), user);
@@ -515,13 +507,16 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                                 final Attribute attributeGroups = ctx.getAttributes().get(userGroupNameAttribute);
 
                                 if (attributeGroups == null) {
-                                    logger.debug(String.format("User group name attribute [%s] does not exist for %s. This may be due to "
-                                            + "misconfiguration or the user may just not belong to any groups. Ignoring group membership.", userGroupNameAttribute, identity));
+                                    logger.debug("User group name attribute [{}] does not exist for [{}]. This may be due to "
+                                            + "misconfiguration or the user may not belong to any groups. Ignoring group membership.",
+                                            userGroupNameAttribute,
+                                            user.getIdentity()
+                                    );
                                 } else {
                                     try {
-                                        final NamingEnumeration<String> groupValues = (NamingEnumeration<String>) attributeGroups.getAll();
+                                        final NamingEnumeration<?> groupValues = attributeGroups.getAll();
                                         while (groupValues.hasMoreElements()) {
-                                            final String groupValue = groupValues.next();
+                                            final String groupValue = groupValues.next().toString();
 
                                             // if we are performing a group search, then we need to normalize the group value so that each
                                             // user associating with it can be matched. if we are not performing a group search then these
@@ -575,8 +570,6 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                     groupList.addAll(ldapTemplate.search(groupSearchBase, groupFilter.encode(), groupControls, new AbstractContextMapper<Group>() {
                         @Override
                         protected Group doMapFromContext(DirContextOperations ctx) {
-                            final String dn = ctx.getDn().toString();
-
                             // get the group identity
                             final String name = getGroupName(ctx);
 
@@ -586,16 +579,19 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                             if (!StringUtils.isBlank(groupMemberAttribute)) {
                                 Attribute attributeUsers = ctx.getAttributes().get(groupMemberAttribute);
                                 if (attributeUsers == null) {
-                                    logger.debug(String.format("Group member attribute [%s] does not exist for %s. This may be due to "
-                                            + "misconfiguration or the group may not have any members. Ignoring group membership.", groupMemberAttribute, name));
+                                    logger.debug("Group member attribute [{}] does not exist for [{}]. This may be due to "
+                                            + "misconfiguration or the group may not have any members. Ignoring group membership.",
+                                            groupMemberAttribute,
+                                            name
+                                    );
                                 } else {
                                     try {
-                                        final NamingEnumeration<String> userValues = (NamingEnumeration<String>) attributeUsers.getAll();
+                                        final NamingEnumeration<?> userValues = attributeUsers.getAll();
                                         while (userValues.hasMoreElements()) {
-                                            final String userValue = userValues.next();
+                                            final String userValue = userValues.next().toString();
 
                                             if (performUserSearch) {
-                                                // find the user by it's referenced attribute and add the identifier to this group.
+                                                // find the user by referenced attribute and add the identifier to this group.
                                                 // need to normalize here based on the desired case sensitivity. if case sensitivity
                                                 // is disabled, the user reference value will be lowercased when adding to userLookup
                                                 final String userValueNormalized = groupMembershipEnforceCaseSensitivity ? userValue : userValue.toLowerCase();
@@ -611,21 +607,18 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                                             } else {
                                                 // since performUserSearch is false, then the referenced group attribute must be blank... the user value must be the dn.
                                                 // no need to normalize here since group membership is driven solely through this group (not through the userLookup
-                                                // populated above). we are either going to use this value directly as the user identity or we are going to query
+                                                // populated above). we are either going to use this value directly as the user identity, or we are going to query
                                                 // the directory server again which should handle the case sensitivity accordingly.
-                                                final String userDn = userValue;
+                                                final User user;
 
-                                                final String userIdentity;
                                                 if (useDnForUserIdentity) {
-                                                    // use the user value to avoid the unnecessary look up
-                                                    userIdentity = IdentityMappingUtil.mapIdentity(userDn, identityMappings);
+                                                    // use the user value to avoid the unnecessary search
+                                                    final String userIdentity = IdentityMappingUtil.mapIdentity(userValue, identityMappings);
+                                                    user = buildUser(userIdentity, userValue);
                                                 } else {
                                                     // lookup the user to extract the user identity
-                                                    userIdentity = getUserIdentity((DirContextAdapter) ldapTemplate.lookup(userDn));
+                                                    user = buildUser((DirContextAdapter) ldapTemplate.lookup(userValue));
                                                 }
-
-                                                // build the user
-                                                final User user = new User.Builder().identifierGenerateFromSeed(userIdentity).identity(userIdentity).build();
 
                                                 // add this user
                                                 userList.add(user);
@@ -643,7 +636,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
 
                             // add all users that were associated with this referenced group attribute
                             if (groupToUserIdentifierMappings.containsKey(referencedGroupValue)) {
-                                groupToUserIdentifierMappings.remove(referencedGroupValue).forEach(userIdentifier -> groupBuilder.addUser(userIdentifier));
+                                groupToUserIdentifierMappings.remove(referencedGroupValue).forEach(groupBuilder::addUser);
                             }
 
                             return groupBuilder.build();
@@ -651,11 +644,15 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                     }, groupProcessor));
                 } while (hasMorePages(groupProcessor));
 
-                // any remaining groupDn's were referenced by a user but not found while searching groups
-                groupToUserIdentifierMappings.forEach((referencedGroupValue, userIdentifiers) -> {
-                    logger.debug(String.format("[%s] are members of %s but that group was not found while searching groups. This may be due to a misconfiguration "
-                                    + "or it's possible the group is not a NiFi group. Ignoring group membership.", StringUtils.join(userIdentifiers, ", "), referencedGroupValue));
-                });
+                // any remaining groupDns were referenced by a user but not found while searching groups
+                if (logger.isDebugEnabled()) {
+                    groupToUserIdentifierMappings.forEach((referencedGroupValue, userIdentifiers) ->
+                            logger.debug("{} are members of [{}] but that group was not found while searching groups. This may be due to a misconfiguration "
+                                    + "or it's possible the group is not a NiFi group. Ignoring group membership.",
+                            userIdentifiers,
+                            referencedGroupValue
+                    ));
+                }
             } else {
                 // since performGroupSearch is false, then the referenced user attribute must be blank... the group value must be the dn
 
@@ -663,7 +660,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                 groupToUserIdentifierMappings.forEach((groupDn, userIdentifiers) -> {
                     final String groupName;
                     if (useDnForGroupName) {
-                        // use the dn to avoid the unnecessary look up
+                        // use the dn to avoid the unnecessary search
                         groupName = IdentityMappingUtil.mapIdentity(groupDn, groupMappings);
                     } else {
                         groupName = getGroupName((DirContextAdapter) ldapTemplate.lookup(groupDn));
@@ -673,7 +670,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                     final Group.Builder groupBuilder = new Group.Builder().identifierGenerateFromSeed(groupName).name(groupName);
 
                     // add each user
-                    userIdentifiers.forEach(userIdentifier -> groupBuilder.addUser(userIdentifier));
+                    userIdentifiers.forEach(groupBuilder::addUser);
 
                     // build the group
                     groupList.add(groupBuilder.build());
@@ -699,6 +696,19 @@ public class LdapUserGroupProvider implements UserGroupProvider {
 
     private boolean hasMorePages(final DirContextProcessor processor ) {
         return processor instanceof PagedResultsDirContextProcessor && ((PagedResultsDirContextProcessor) processor).hasMore();
+    }
+
+    private User buildUser(final DirContextOperations dirContextOperations) {
+        final String userIdentity = getUserIdentity(dirContextOperations);
+        return buildUser(userIdentity, dirContextOperations);
+    }
+
+    private User buildUser(final String userIdentity, final Object reference) {
+        if (StringUtils.isBlank(userIdentity)) {
+            throw new IllegalArgumentException(String.format("User Identity not found for Directory Reference: %s", reference));
+        }
+
+        return new User.Builder().identifierGenerateFromSeed(userIdentity).identity(userIdentity).build();
     }
 
     private String getUserIdentity(final DirContextOperations ctx) {
@@ -811,8 +821,8 @@ public class LdapUserGroupProvider implements UserGroupProvider {
         final PropertyValue rawTimeout = configurationContext.getProperty(configurationProperty);
         if (rawTimeout.isSet()) {
             try {
-                final Long timeout = FormatUtils.getTimeDuration(rawTimeout.getValue(), TimeUnit.MILLISECONDS);
-                baseEnvironment.put(environmentKey, timeout.toString());
+                final double timeout = FormatUtils.getPreciseTimeDuration(rawTimeout.getValue(), TimeUnit.MILLISECONDS);
+                baseEnvironment.put(environmentKey, Long.toString(Math.round(timeout)));
             } catch (final IllegalArgumentException iae) {
                 throw new AuthorizerCreationException(String.format("The %s '%s' is not a valid time duration", configurationProperty, rawTimeout));
             }

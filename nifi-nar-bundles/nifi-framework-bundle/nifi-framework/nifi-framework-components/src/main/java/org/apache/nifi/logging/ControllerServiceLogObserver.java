@@ -48,4 +48,9 @@ public class ControllerServiceLogObserver implements LogObserver {
                 serviceNode.getName(), "Log Message", bulletinLevel, message.getMessage());
         bulletinRepository.addBulletin(bulletin);
     }
+
+    @Override
+    public String getComponentDescription() {
+        return serviceNode.toString();
+    }
 }
