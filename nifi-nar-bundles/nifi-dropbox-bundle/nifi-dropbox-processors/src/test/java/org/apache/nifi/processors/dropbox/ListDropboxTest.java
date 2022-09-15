@@ -95,7 +95,7 @@ public class ListDropboxTest {
     void setUp() throws Exception {
         ListDropbox testSubject = new ListDropbox() {
             @Override
-            public DbxClientV2 getDropboxApiClient(ProcessContext context, ProxyConfiguration proxyConfiguration) {
+            public DbxClientV2 getDropboxApiClient(ProcessContext context, ProxyConfiguration proxyConfiguration, String clientId) {
                 return mockDropboxClient;
             }
 

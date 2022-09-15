@@ -19,12 +19,8 @@ package org.apache.nifi.processors.dropbox;
 import static java.lang.String.format;
 
 import com.dropbox.core.DbxException;
-import com.dropbox.core.DbxRequestConfig;
-import com.dropbox.core.http.StandardHttpRequestor;
-import com.dropbox.core.oauth.DbxCredential;
 import com.dropbox.core.v2.DbxClientV2;
 import java.io.InputStream;
-import java.net.Proxy;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -39,8 +35,6 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.dropbox.credentials.service.DropboxCredentialDetails;
-import org.apache.nifi.dropbox.credentials.service.DropboxCredentialService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -60,7 +54,7 @@ import org.apache.nifi.proxy.ProxySpec;
 @SeeAlso(ListDropbox.class)
 @WritesAttributes(
         @WritesAttribute(attribute = FetchDropbox.ERROR_MESSAGE_ATTRIBUTE, description = "The error message returned by Dropbox when the fetch of a file fails."))
-public class FetchDropbox extends AbstractProcessor {
+public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
 
     public static final String ERROR_MESSAGE_ATTRIBUTE = "error.message";
 
@@ -77,14 +71,7 @@ public class FetchDropbox extends AbstractProcessor {
             .addValidator(StandardValidators.createRegexMatchingValidator(
                     Pattern.compile("/.*|id:.*")))
             .build();
-    public static final PropertyDescriptor CREDENTIAL_SERVICE = new PropertyDescriptor.Builder()
-            .name("dropbox-credential-service")
-            .displayName("Dropbox Credential Service")
-            .description("Controller Service used to obtain Dropbox credentials." +
-                    " See controller service's usage documentation for more details.")
-            .identifiesControllerService(DropboxCredentialService.class)
-            .required(true)
-            .build();
+
     public static final Relationship REL_SUCCESS =
             new Relationship.Builder()
                     .name("success")
@@ -115,7 +102,8 @@ public class FetchDropbox extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
-        dropboxApiClient = getDropboxApiClient(context, proxyConfiguration);
+        String dropboxClientId = format("%s-%s", getClass().getSimpleName(), getIdentifier());
+        dropboxApiClient = getDropboxApiClient(context, proxyConfiguration, dropboxClientId);
     }
 
     @Override
@@ -140,24 +128,6 @@ public class FetchDropbox extends AbstractProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
-    }
-
-    protected DbxClientV2 getDropboxApiClient(ProcessContext context, ProxyConfiguration proxyConfiguration) {
-        Proxy proxy = proxyConfiguration.createProxy();
-        StandardHttpRequestor.Config requestorConfig = StandardHttpRequestor.Config.builder()
-                .withProxy(proxy)
-                .build();
-        StandardHttpRequestor httpRequestor = new StandardHttpRequestor(requestorConfig);
-        DbxRequestConfig config = DbxRequestConfig.newBuilder(format("%s-%s", getClass().getSimpleName(), getIdentifier()))
-                .withHttpRequestor(httpRequestor)
-                .build();
-
-        final DropboxCredentialService credentialService = context.getProperty(CREDENTIAL_SERVICE)
-                .asControllerService(DropboxCredentialService.class);
-        DropboxCredentialDetails credential = credentialService.getDropboxCredential();
-
-        return new DbxClientV2(config, new DbxCredential(credential.getAccessToken(), -1L,
-                credential.getRefreshToken(), credential.getAppKey(), credential.getAppSecret()));
     }
 
     private void fetchFile(String fileId, ProcessSession session, FlowFile outFlowFile) throws DbxException {

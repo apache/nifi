@@ -20,15 +20,11 @@ import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 
 import com.dropbox.core.DbxException;
-import com.dropbox.core.DbxRequestConfig;
-import com.dropbox.core.http.StandardHttpRequestor;
-import com.dropbox.core.oauth.DbxCredential;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.ListFolderBuilder;
 import com.dropbox.core.v2.files.ListFolderResult;
 import java.io.IOException;
-import java.net.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -53,7 +49,6 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.dropbox.credentials.service.DropboxCredentialDetails;
 import org.apache.nifi.dropbox.credentials.service.DropboxCredentialService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
@@ -82,7 +77,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 @Stateful(scopes = {Scope.CLUSTER}, description = "The processor stores necessary data to be able to keep track what files have been listed already. " +
         "What exactly needs to be stored depends on the 'Listing Strategy'.")
 @SeeAlso(FetchDropbox.class)
-public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> {
+public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implements DropboxTrait {
     public static final PropertyDescriptor FOLDER = new PropertyDescriptor.Builder()
             .name("folder")
             .displayName("Folder")
@@ -161,7 +156,8 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
-        dropboxApiClient = getDropboxApiClient(context, proxyConfiguration);
+        String dropboxClientId = format("%s-%s", getClass().getSimpleName(), getIdentifier());
+        dropboxApiClient = getDropboxApiClient(context, proxyConfiguration, dropboxClientId);
     }
 
     @Override
@@ -186,24 +182,6 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> {
     @Override
     protected String getPath(final ProcessContext context) {
         return context.getProperty(FOLDER).evaluateAttributeExpressions().getValue();
-    }
-
-    protected DbxClientV2 getDropboxApiClient(ProcessContext context, ProxyConfiguration proxyConfiguration) {
-        Proxy proxy = proxyConfiguration.createProxy();
-        StandardHttpRequestor.Config requestorConfig = StandardHttpRequestor.Config.builder()
-                .withProxy(proxy)
-                .build();
-        StandardHttpRequestor httpRequestor = new StandardHttpRequestor(requestorConfig);
-        DbxRequestConfig config = DbxRequestConfig.newBuilder(format("%s-%s", getClass().getSimpleName(), getIdentifier()))
-                .withHttpRequestor(httpRequestor)
-                .build();
-
-        final DropboxCredentialService credentialService = context.getProperty(CREDENTIAL_SERVICE)
-                .asControllerService(DropboxCredentialService.class);
-        DropboxCredentialDetails credential = credentialService.getDropboxCredential();
-
-        return new DbxClientV2(config, new DbxCredential(credential.getAccessToken(), -1L,
-                credential.getRefreshToken(), credential.getAppKey(), credential.getAppSecret()));
     }
 
     @Override

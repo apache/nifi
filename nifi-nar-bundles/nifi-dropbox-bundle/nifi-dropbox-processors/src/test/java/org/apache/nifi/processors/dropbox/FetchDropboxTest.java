@@ -75,7 +75,7 @@ public class FetchDropboxTest {
     void setUp() throws Exception {
         FetchDropbox testSubject = new FetchDropbox() {
             @Override
-            public DbxClientV2 getDropboxApiClient(ProcessContext context, ProxyConfiguration proxyConfiguration) {
+            public DbxClientV2 getDropboxApiClient(ProcessContext context, ProxyConfiguration proxyConfiguration, String clientId) {
                 return mockDropboxClient;
             }
         };
