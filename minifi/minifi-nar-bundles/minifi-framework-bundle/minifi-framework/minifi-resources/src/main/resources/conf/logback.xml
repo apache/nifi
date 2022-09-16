@@ -20,7 +20,7 @@
     </contextListener>
     
     <appender name="APP_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${org.apache.nifi.minifi.bootstrap.config.log.dir}/minifi-app.log</file>
+        <file>${org.apache.nifi.minifi.bootstrap.config.log.dir}/${org.apache.nifi.minifi.bootstrap.config.log.app.file.name}.${org.apache.nifi.minifi.bootstrap.config.log.app.file.extension}</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <!--
               For daily rollover, use 'app_%d.log'.
@@ -28,7 +28,7 @@
               To GZIP rolled files, replace '.log' with '.log.gz'.
               To ZIP rolled files, replace '.log' with '.log.zip'.
             -->
-            <fileNamePattern>${org.apache.nifi.minifi.bootstrap.config.log.dir}/minifi-app_%d{yyyy-MM-dd_HH}.%i.log.gz</fileNamePattern>
+            <fileNamePattern>${org.apache.nifi.minifi.bootstrap.config.log.dir}/${org.apache.nifi.minifi.bootstrap.config.log.app.file.name}_%d{yyyy-MM-dd_HH}.%i.${org.apache.nifi.minifi.bootstrap.config.log.app.file.extension}.gz</fileNamePattern>
             <!-- Keep 10 rolling periods worth of log files-->
             <maxHistory>10</maxHistory>
             <!-- Max size each log file will be-->
@@ -43,7 +43,7 @@
     </appender>
 
     <appender name="BOOTSTRAP_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${org.apache.nifi.minifi.bootstrap.config.log.dir}/minifi-bootstrap.log</file>
+        <file>${org.apache.nifi.minifi.bootstrap.config.log.dir}/${org.apache.nifi.minifi.bootstrap.config.log.bootstrap.file.name}.${org.apache.nifi.minifi.bootstrap.config.log.bootstrap.file.extension}</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!--
               For daily rollover, use 'bootstrap_%d.log'.
@@ -51,7 +51,7 @@
               To GZIP rolled files, replace '.log' with '.log.gz'.
               To ZIP rolled files, replace '.log' with '.log.zip'.
             -->
-            <fileNamePattern>${org.apache.nifi.minifi.bootstrap.config.log.dir}/minifi-bootstrap_%d.log.gz</fileNamePattern>
+            <fileNamePattern>${org.apache.nifi.minifi.bootstrap.config.log.dir}/${org.apache.nifi.minifi.bootstrap.config.log.bootstrap.file.name}_%d.${org.apache.nifi.minifi.bootstrap.config.log.bootstrap.file.extension}.gz</fileNamePattern>
             <!-- Keep 5 rolling periods worth of logs-->
             <maxHistory>5</maxHistory>
         </rollingPolicy>
