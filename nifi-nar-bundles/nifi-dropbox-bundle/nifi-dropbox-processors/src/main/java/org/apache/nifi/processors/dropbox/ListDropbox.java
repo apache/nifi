@@ -49,7 +49,6 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.dropbox.credentials.service.DropboxCredentialService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -107,15 +106,6 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("0 sec")
-            .build();
-
-    public static final PropertyDescriptor CREDENTIAL_SERVICE = new PropertyDescriptor.Builder()
-            .name("dropbox-credential-service")
-            .displayName("Dropbox Credential Service")
-            .description("Controller Service used to obtain Dropbox credentials (App Key, App Secret, Access Token, Refresh Token)." +
-                    " See controller service's Additional Details for more information.")
-            .identifiesControllerService(DropboxCredentialService.class)
-            .required(true)
             .build();
 
     public static final PropertyDescriptor LISTING_STRATEGY = new PropertyDescriptor.Builder()

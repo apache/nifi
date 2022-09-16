@@ -17,10 +17,13 @@
 package org.apache.nifi.processors.dropbox;
 
 import com.dropbox.core.DbxRequestConfig;
-import com.dropbox.core.http.StandardHttpRequestor;
+import com.dropbox.core.http.HttpRequestor;
+import com.dropbox.core.http.OkHttp3Requestor;
 import com.dropbox.core.oauth.DbxCredential;
 import com.dropbox.core.v2.DbxClientV2;
 import java.net.Proxy;
+import okhttp3.Credentials;
+import okhttp3.OkHttpClient;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dropbox.credentials.service.DropboxCredentialDetails;
 import org.apache.nifi.dropbox.credentials.service.DropboxCredentialService;
@@ -32,20 +35,32 @@ public interface DropboxTrait {
     PropertyDescriptor CREDENTIAL_SERVICE = new PropertyDescriptor.Builder()
             .name("dropbox-credential-service")
             .displayName("Dropbox Credential Service")
-            .description("Controller Service used to obtain Dropbox credentials." +
-                    " See controller service's usage documentation for more details.")
+            .description("Controller Service used to obtain Dropbox credentials (App Key, App Secret, Access Token, Refresh Token)." +
+                    " See controller service's Additional Details for more information.")
             .identifiesControllerService(DropboxCredentialService.class)
             .required(true)
             .build();
 
+
     default DbxClientV2 getDropboxApiClient(ProcessContext context, ProxyConfiguration proxyConfiguration, String clientId) {
-        Proxy proxy = proxyConfiguration.createProxy();
-        StandardHttpRequestor.Config requesterConfig = StandardHttpRequestor.Config.builder()
-                .withProxy(proxy)
-                .build();
-        StandardHttpRequestor httpRequester = new StandardHttpRequestor(requesterConfig);
+        OkHttpClient.Builder okHttpClientBuilder = OkHttp3Requestor.defaultOkHttpClientBuilder();
+
+        if (!Proxy.Type.DIRECT.equals(proxyConfiguration.getProxyType())) {
+            okHttpClientBuilder.proxy(proxyConfiguration.createProxy());
+
+            if (proxyConfiguration.hasCredential()) {
+                okHttpClientBuilder.proxyAuthenticator((route, response) -> {
+                    final String credential = Credentials.basic(proxyConfiguration.getProxyUserName(), proxyConfiguration.getProxyUserPassword());
+                    return response.request().newBuilder()
+                            .header("Proxy-Authorization", credential)
+                            .build();
+                });
+            }
+        }
+
+        HttpRequestor httpRequestor = new OkHttp3Requestor(okHttpClientBuilder.build());
         DbxRequestConfig config = DbxRequestConfig.newBuilder(clientId)
-                .withHttpRequestor(httpRequester)
+                .withHttpRequestor(httpRequestor)
                 .build();
 
         final DropboxCredentialService credentialService = context.getProperty(CREDENTIAL_SERVICE)
