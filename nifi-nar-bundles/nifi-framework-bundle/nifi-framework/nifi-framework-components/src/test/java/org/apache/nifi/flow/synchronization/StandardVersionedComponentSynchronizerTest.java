@@ -49,9 +49,9 @@ import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.groups.ComponentIdGenerator;
 import org.apache.nifi.groups.ComponentScheduler;
-import org.apache.nifi.groups.ScheduledStateChangeListener;
 import org.apache.nifi.groups.FlowSynchronizationOptions;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.ScheduledStateChangeListener;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
@@ -72,6 +72,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -675,6 +677,40 @@ public class StandardVersionedComponentSynchronizerTest {
         verify(controllerServiceProvider).enableControllerServicesAsync(Collections.singleton(service));
         verify(controllerServiceProvider).scheduleReferencingComponents(service, Collections.singleton(processorB), componentScheduler);
         verify(service).setName("Hello");
+    }
+
+    @Test
+    public void testReferencesNotRestartedWhenServiceStopped() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        final ControllerServiceNode service = createMockControllerService();
+        when(service.isActive()).thenReturn(true);
+        when(service.getState()).thenReturn(ControllerServiceState.ENABLED);
+
+        // Make Processors A and B reference the controller service and start them
+        setReferences(service, processorA, processorB);
+        startProcessor(processorB);
+
+        when(controllerServiceProvider.unscheduleReferencingComponents(service)).thenReturn(Collections.singletonMap(processorB, CompletableFuture.completedFuture(null)));
+        when(controllerServiceProvider.disableControllerServicesAsync(anyCollection())).thenReturn(CompletableFuture.completedFuture(null));
+
+        final VersionedControllerService versionedControllerService = createMinimalVersionedControllerService();
+        versionedControllerService.setName("Hello");
+        versionedControllerService.setScheduledState(ScheduledState.DISABLED);
+
+        synchronizer.synchronize(service, versionedControllerService, group, synchronizationOptions);
+
+        verify(controllerServiceProvider).unscheduleReferencingComponents(service);
+        verify(controllerServiceProvider).disableControllerServicesAsync(Collections.singleton(service));
+
+        Mockito.doAnswer(new Answer<Void>() {
+            @Override
+            public Void answer(final InvocationOnMock invocationOnMock) {
+                final Set<?> services = invocationOnMock.getArgument(0);
+                assertTrue(services.isEmpty());
+                return null;
+            }
+        }).when(controllerServiceProvider).enableControllerServicesAsync(Mockito.anySet());
+
+        verify(controllerServiceProvider, times(0)).scheduleReferencingComponents(Mockito.any(ControllerServiceNode.class), Mockito.anySet(), Mockito.any(ComponentScheduler.class));
     }
 
     @Test
