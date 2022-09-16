@@ -80,10 +80,9 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterDescriptor;
-import org.apache.nifi.parameter.ParameterReferenceManager;
-import org.apache.nifi.parameter.ParameterReferencedControllerServiceData;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.parameter.ParameterReferenceManager;
+import org.apache.nifi.parameter.ParameterReferencedControllerServiceData;
 import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
@@ -1160,14 +1159,18 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     throw new FlowSynchronizationException("Failed to synchronize Controller Service " + controllerService + " with proposed version", e);
                 }
             } finally {
-                // Re-enable the controller service if necessary
-                serviceProvider.enableControllerServicesAsync(servicesToRestart);
-                notifyScheduledStateChange(servicesToRestart, synchronizationOptions);
+                // If the intent was to remove the Controller Service, or to disable it, then anything that was previously referencing it should remain stopped.
+                // However, if the intended state for the Controller Service is to be ENABLED, go ahead and re-enable/restart what we've stopped/disabled.
+                if (proposed != null && proposed.getScheduledState() != org.apache.nifi.flow.ScheduledState.DISABLED) {
+                    // Re-enable the controller service if necessary
+                    serviceProvider.enableControllerServicesAsync(servicesToRestart);
+                    notifyScheduledStateChange(servicesToRestart, synchronizationOptions);
 
-                // Restart any components that need to be restarted.
-                if (controllerService != null) {
-                    serviceProvider.scheduleReferencingComponents(controllerService, referencesToRestart, context.getComponentScheduler());
-                    referencesToRestart.forEach(componentNode -> notifyScheduledStateChange(componentNode, synchronizationOptions));
+                    // Restart any components that need to be restarted.
+                    if (controllerService != null) {
+                        serviceProvider.scheduleReferencingComponents(controllerService, referencesToRestart, context.getComponentScheduler());
+                        referencesToRestart.forEach(componentNode -> notifyScheduledStateChange(componentNode, synchronizationOptions));
+                    }
                 }
             }
         } finally {
