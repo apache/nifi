@@ -78,8 +78,8 @@ public class FetchBoxFiles extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-        FILE_ID,
-        BoxClientService.BOX_CLIENT_SERVICE
+        BoxClientService.BOX_CLIENT_SERVICE,
+        FILE_ID
     ));
 
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(

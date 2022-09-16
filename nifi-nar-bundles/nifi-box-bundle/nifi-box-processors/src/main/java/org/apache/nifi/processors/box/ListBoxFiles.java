@@ -121,8 +121,8 @@ public class ListBoxFiles extends AbstractListProcessor<BoxFileInfo> {
         .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-        FOLDER_ID,
         BoxClientService.BOX_CLIENT_SERVICE,
+        FOLDER_ID,
         RECURSIVE_SEARCH,
         MIN_AGE,
         LISTING_STRATEGY,
@@ -205,13 +205,12 @@ public class ListBoxFiles extends AbstractListProcessor<BoxFileInfo> {
         final Boolean recursive = context.getProperty(RECURSIVE_SEARCH).asBoolean();
         final Long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
 
-
-        listFolder(listing, folderId, recursive, minAge);
-
+        long createdAtMax = Instant.now().toEpochMilli() - minAge;
+        listFolder(listing, folderId, recursive, createdAtMax);
         return listing;
     }
 
-    private void listFolder(List<BoxFileInfo> listing, String folderId, Boolean recursive, Long minAge) {
+    private void listFolder(List<BoxFileInfo> listing, String folderId, Boolean recursive, long createdAtMax) {
         BoxFolder folder = getFolder(folderId);
         for (BoxItem.Info itemInfo : folder.getChildren(
             "id",
@@ -229,7 +228,7 @@ public class ListBoxFiles extends AbstractListProcessor<BoxFileInfo> {
 
                 long createdAt = itemInfo.getCreatedAt().getTime();
 
-                if (Instant.now().toEpochMilli() - createdAt >= minAge) {
+                if (createdAt <= createdAtMax) {
                     BoxFileInfo boxFileInfo = new BoxFileInfo.Builder()
                         .id(info.getID())
                         .fileName(info.getName())
@@ -241,12 +240,11 @@ public class ListBoxFiles extends AbstractListProcessor<BoxFileInfo> {
                         .createdTime(info.getCreatedAt().getTime())
                         .modifiedTime(info.getModifiedAt().getTime())
                         .build();
-
                     listing.add(boxFileInfo);
                 }
             } else if (recursive && itemInfo instanceof BoxFolder.Info) {
                 BoxFolder.Info info = (BoxFolder.Info) itemInfo;
-                listFolder(listing, info.getID(), recursive, minAge);
+                listFolder(listing, info.getID(), recursive, createdAtMax);
             }
         }
     }

@@ -116,7 +116,7 @@ public class ListBoxFilesTestRunnerTest implements SimpleListBoxFileTestTrait {
                 "{" +
                 "\"box.id\":\"" + id + "\"," +
                 "\"filename\":\"" + filename + "\"," +
-                "\"box.path\":\"/path/to/file\"," +
+                "\"path\":\"/path/to/file\"," +
                 "\"box.size\":" + size + "," +
                 "\"box.timestamp\":" + modifiedTime +
                 "}" +
@@ -152,7 +152,7 @@ public class ListBoxFilesTestRunnerTest implements SimpleListBoxFileTestTrait {
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
         inputFlowFileAttributes.put("box.id", id);
         inputFlowFileAttributes.put("filename", filename);
-        inputFlowFileAttributes.put("box.path", expectedPath);
+        inputFlowFileAttributes.put("path", expectedPath);
         inputFlowFileAttributes.put("box.size", "" + size);
         inputFlowFileAttributes.put("box.timestamp", "" + expectedTimestamp);
 

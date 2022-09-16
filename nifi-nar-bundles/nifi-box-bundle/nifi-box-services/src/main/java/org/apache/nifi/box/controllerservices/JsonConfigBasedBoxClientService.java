@@ -154,6 +154,8 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
 
         api = BoxDeveloperEditionAPIConnection.getAppEnterpriseConnection(boxConfig);
         api.setProxy(proxyConfiguration.createProxy());
+        api.setProxyUsername(proxyConfiguration.getProxyUserName());
+        api.setProxyPassword(proxyConfiguration.getProxyUserPassword());
 
         api.asUser(accountId);
 

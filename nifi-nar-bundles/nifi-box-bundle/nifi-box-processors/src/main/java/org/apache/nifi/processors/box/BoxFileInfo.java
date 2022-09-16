@@ -32,7 +32,7 @@ import java.util.Map;
 public class BoxFileInfo implements ListableEntity {
     public static final String ID = "box.id";
     public static final String FILENAME = "filename";
-    public static final String PATH = "box.path";
+    public static final String PATH = "path";
     public static final String SIZE = "box.size";
     public static final String TIMESTAMP = "box.timestamp";
 

@@ -133,8 +133,10 @@ public class FetchBoxFilesIT extends AbstractBoxFilesIT<FetchBoxFiles> {
     }
 
     public Set<String> getCheckedAttributeNames() {
-        Set<String> checkedAttributeNames = super.getCheckedAttributeNames();
+        Set<String> checkedAttributeNames = new HashSet<>();
 
+        checkedAttributeNames.add(BoxFlowFileAttribute.ID.getName());
+        checkedAttributeNames.add(BoxFlowFileAttribute.FILENAME.getName());
         checkedAttributeNames.add(FetchBoxFiles.ERROR_CODE_ATTRIBUTE);
 
         return checkedAttributeNames;
