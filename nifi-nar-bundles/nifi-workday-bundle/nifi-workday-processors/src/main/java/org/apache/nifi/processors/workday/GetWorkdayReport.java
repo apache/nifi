@@ -18,8 +18,6 @@
 package org.apache.nifi.processors.workday;
 
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
-import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
-import static org.apache.nifi.processor.util.StandardValidators.NON_BLANK_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.URL_VALIDATOR;
 
 import java.io.BufferedInputStream;
@@ -28,10 +26,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,7 +39,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -55,8 +50,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -65,8 +58,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.record.path.RecordPath;
-import org.apache.nifi.record.path.RecordPathResult;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -74,7 +65,6 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.WebClientService;
@@ -83,7 +73,7 @@ import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 @Tags({"Workday", "report"})
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @CapabilityDescription("A processor which can interact with a configurable Workday Report. The processor can forward the content without modification, or you can transform it by"
-    + " providing the specific Record Reader and Record Writer services based on your needs. You can also hash, or remove fields using the input parameters and schemes in the Record Writer. "
+    + " providing the specific Record Reader and Record Writer services based on your needs. You can also remove fields by defining schema in the Record Writer. "
     + "Supported Workday report formats are: csv, simplexml, json")
 @EventDriven
 @SideEffectFree
@@ -104,7 +94,6 @@ public class GetWorkdayReport extends AbstractProcessor {
     protected static final String GET_WORKDAY_REPORT_JAVA_EXCEPTION_MESSAGE = "getworkdayreport.java.exception.message";
     protected static final String RECORD_COUNT = "record.count";
     protected static final String BASIC_PREFIX = "Basic ";
-    protected static final String COLUMNS_TO_HASH_SEPARATOR = ",";
     protected static final String HEADER_AUTHORIZATION = "Authorization";
     protected static final String HEADER_CONTENT_TYPE = "Content-Type";
     protected static final String USERNAME_PASSWORD_SEPARATOR = ":";
@@ -144,27 +133,6 @@ public class GetWorkdayReport extends AbstractProcessor {
         .identifiesControllerService(WebClientServiceProvider.class)
         .build();
 
-    protected static final PropertyDescriptor FIELDS_TO_HASH = new PropertyDescriptor.Builder()
-        .name("Hashed Fields")
-        .displayName("Hashed Fields")
-        .description("Comma separated record paths to be replaced with their corresponding hash.")
-        .required(false)
-        .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
-        .addValidator(NON_BLANK_VALIDATOR)
-        .build();
-
-    protected static final PropertyDescriptor HASHING_ALGORITHM = new PropertyDescriptor.Builder()
-        .name("Hashing Algorithm")
-        .displayName("Hashing Algorithm")
-        .description("Determines what hashing algorithm should be used to perform the hashing function.")
-        .required(true)
-        .allowableValues(HashAlgorithm.getNames())
-        .defaultValue(HashAlgorithm.SHA256.getName())
-        .addValidator(NON_BLANK_VALIDATOR)
-        .expressionLanguageSupported(NONE)
-        .dependsOn(FIELDS_TO_HASH)
-        .build();
-
     protected static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
         .name("record-reader")
         .displayName("Record Reader")
@@ -185,6 +153,7 @@ public class GetWorkdayReport extends AbstractProcessor {
     protected static final Relationship ORIGINAL = new Relationship.Builder()
         .name("original")
         .description("Request FlowFiles transferred when receiving HTTP responses with a status code between 200 and 299.")
+        .autoTerminateDefault(true)
         .build();
 
     protected static final Relationship FAILURE = new Relationship.Builder()
@@ -203,8 +172,6 @@ public class GetWorkdayReport extends AbstractProcessor {
         WORKDAY_USERNAME,
         WORKDAY_PASSWORD,
         WEB_CLIENT_SERVICE,
-        FIELDS_TO_HASH,
-        HASHING_ALGORITHM,
         RECORD_READER_FACTORY,
         RECORD_WRITER_FACTORY
     ));
@@ -254,7 +221,7 @@ public class GetWorkdayReport extends AbstractProcessor {
                 .uri(uri)
                 .header(HEADER_AUTHORIZATION, authorization)
                 .retrieve()) {
-                responseFlowFile = createResponseFlowFile(flowFile, session, context, httpResponseEntity);
+                responseFlowFile = createResponseFlowFile(flowFile, session, httpResponseEntity);
                 long elapsedTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
                 Map<String, String> commonAttributes = createCommonAttributes(uri, httpResponseEntity, elapsedTime);
 
@@ -290,19 +257,6 @@ public class GetWorkdayReport extends AbstractProcessor {
         }
     }
 
-    @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
-        if (validationContext.getProperty(FIELDS_TO_HASH).isSet() && !validationContext.getProperty(RECORD_READER_FACTORY).isSet()) {
-            results.add(new ValidationResult.Builder()
-                .valid(false)
-                .explanation("Record-Reader and Record-Writer must be set if you would like to hash specific fields")
-                .subject("Workday report configuration")
-                .build());
-        }
-        return results;
-    }
-
     /*
      *  If we have no FlowFile, and all incoming connections are self-loops then we can continue on.
      *  However, if we have no FlowFile and we have connections coming from other Processors, then
@@ -312,25 +266,15 @@ public class GetWorkdayReport extends AbstractProcessor {
         return context.hasIncomingConnection() && flowfile == null && context.hasNonLoopConnection();
     }
 
-    private FlowFile createResponseFlowFile(FlowFile flowfile, ProcessSession session, ProcessContext context, HttpResponseEntity httpResponseEntity)
+    private FlowFile createResponseFlowFile(FlowFile flowfile, ProcessSession session, HttpResponseEntity httpResponseEntity)
         throws IOException, SchemaNotFoundException, MalformedRecordException {
         FlowFile responseFlowFile = null;
-        String hashingAlgorithm = context.getProperty(HASHING_ALGORITHM).getValue();
-        Set<String> columnsToHash = Optional.ofNullable(
-            context.getProperty(FIELDS_TO_HASH)
-                .evaluateAttributeExpressions(flowfile)
-                .getValue())
-            .map(String::trim)
-            .map(columns -> columns.split(COLUMNS_TO_HASH_SEPARATOR))
-            .map(Arrays::stream)
-            .map(columns -> columns.collect(Collectors.toSet()))
-            .orElse(Collections.emptySet());
         try {
             if (isSuccess(httpResponseEntity.statusCode())) {
                 responseFlowFile = flowfile == null ? session.create() : session.create(flowfile);
                 InputStream responseBodyStream = httpResponseEntity.body();
                 if (recordReaderFactoryReference.get() != null) {
-                    TransformResult transformResult = transformRecords(session, flowfile, responseFlowFile, hashingAlgorithm, columnsToHash, responseBodyStream);
+                    TransformResult transformResult = transformRecords(session, flowfile, responseFlowFile, responseBodyStream);
                     Map<String, String> attributes = new HashMap<>();
                     attributes.put(RECORD_COUNT, String.valueOf(transformResult.getNumberOfRecords()));
                     attributes.put(CoreAttributes.MIME_TYPE.key(), transformResult.getMimeType());
@@ -357,14 +301,12 @@ public class GetWorkdayReport extends AbstractProcessor {
         return BASIC_PREFIX + base64Credential;
     }
 
-    private TransformResult transformRecords(ProcessSession session, FlowFile flowfile, FlowFile responseFlowFile, String hashingAlgorithm, Set<String> columnsToHash,
-        InputStream responseBodyStream) throws IOException, SchemaNotFoundException, MalformedRecordException {
+    private TransformResult transformRecords(ProcessSession session, FlowFile flowfile, FlowFile responseFlowFile, InputStream responseBodyStream)
+        throws IOException, SchemaNotFoundException, MalformedRecordException {
         int numberOfRecords = 0;
-        String mimeType = null;
-        try (RecordReader reader = recordReaderFactoryReference.get().createRecordReader(flowfile,
-            new BufferedInputStream(responseBodyStream), getLogger())) {
-            RecordSchema schema = recordSetWriterFactoryReference.get()
-                .getSchema(flowfile == null ? Collections.emptyMap() : flowfile.getAttributes(), reader.getSchema());
+        String mimeType;
+        try (RecordReader reader = recordReaderFactoryReference.get().createRecordReader(flowfile, new BufferedInputStream(responseBodyStream), getLogger())) {
+            RecordSchema schema = recordSetWriterFactoryReference.get().getSchema(flowfile == null ? Collections.emptyMap() : flowfile.getAttributes(), reader.getSchema());
             try (OutputStream responseStream = session.write(responseFlowFile);
                 RecordSetWriter recordSetWriter = recordSetWriterFactoryReference.get().createWriter(getLogger(), schema, responseStream, responseFlowFile)) {
                 mimeType = recordSetWriter.getMimeType();
@@ -372,11 +314,6 @@ public class GetWorkdayReport extends AbstractProcessor {
                 Record currentRecord;
                 // as the report can be changed independently from the flow, it's safer to ignore field types and unknown fields in the Record Reading process
                 while ((currentRecord = reader.nextRecord(false, true)) != null) {
-                    for (String recordPath : columnsToHash) {
-                        RecordPathResult evaluate = RecordPath.compile("hash(" + recordPath + ", '" + hashingAlgorithm + "')").evaluate(currentRecord);
-                        evaluate.getSelectedFields().forEach(fieldVal -> fieldVal.updateValue(fieldVal.getValue(), RecordFieldType.STRING.getDataType()));
-                    }
-                    currentRecord.incorporateInactiveFields();
                     recordSetWriter.write(currentRecord);
                     numberOfRecords++;
                 }
@@ -427,26 +364,7 @@ public class GetWorkdayReport extends AbstractProcessor {
         return attributes;
     }
 
-    protected enum HashAlgorithm {
-        SHA256("SHA-256"),
-        SHA512("SHA-512");
-
-        private final String name;
-
-        HashAlgorithm(String name) {
-            this.name = name;
-        }
-
-        private String getName() {
-            return name;
-        }
-
-        private static String[] getNames() {
-            return Arrays.stream(HashAlgorithm.values()).map(HashAlgorithm::getName).toArray(String[]::new);
-        }
-    }
-
-    private class TransformResult {
+    private static class TransformResult {
         private final int numberOfRecords;
         private final String mimeType;
 

@@ -18,10 +18,8 @@
 package org.apache.nifi.processors.workday;
 
 import static org.apache.nifi.processors.workday.GetWorkdayReport.FAILURE;
-import static org.apache.nifi.processors.workday.GetWorkdayReport.FIELDS_TO_HASH;
 import static org.apache.nifi.processors.workday.GetWorkdayReport.GET_WORKDAY_REPORT_JAVA_EXCEPTION_CLASS;
 import static org.apache.nifi.processors.workday.GetWorkdayReport.GET_WORKDAY_REPORT_JAVA_EXCEPTION_MESSAGE;
-import static org.apache.nifi.processors.workday.GetWorkdayReport.HASHING_ALGORITHM;
 import static org.apache.nifi.processors.workday.GetWorkdayReport.HEADER_AUTHORIZATION;
 import static org.apache.nifi.processors.workday.GetWorkdayReport.ORIGINAL;
 import static org.apache.nifi.processors.workday.GetWorkdayReport.RECORD_COUNT;
@@ -50,8 +48,6 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.crypto.HashAlgorithm;
-import org.apache.nifi.security.util.crypto.HashService;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.util.MockFlowFile;
@@ -69,7 +65,6 @@ class GetWorkdayReportTest {
     private static final String LOCALHOST = "localhost";
     private static final String REPORT_URL = "http://" + LOCALHOST;
     private static final String INVALID_URL = "invalid";
-    private static final String FIELD_TO_HASH = "/name";
     private static final String INVALID_URL_PARAM = ":invalid_url";
     private static final String APPLICATION_JSON = "application/json";
     private static final String OK_STATUS_CODE = "200";
@@ -125,28 +120,6 @@ class GetWorkdayReportTest {
         runner.setProperty(GetWorkdayReport.WORKDAY_USERNAME, USER_NAME);
         runner.setProperty(GetWorkdayReport.REPORT_URL, REPORT_URL);
 
-        runner.assertNotValid();
-    }
-
-    @Test
-    public void testNotValidIfFieldsToHashIsGivenWithoutRecordReader() throws InitializationException {
-        withWebClientService();
-        withMockRecordSetWriterFactory();
-        runner.setProperty(GetWorkdayReport.WORKDAY_USERNAME, USER_NAME);
-        runner.setProperty(GetWorkdayReport.WORKDAY_PASSWORD, PASSWORD);
-        runner.setProperty(GetWorkdayReport.REPORT_URL, REPORT_URL);
-        runner.setProperty(FIELDS_TO_HASH, FIELD_TO_HASH);
-        runner.assertNotValid();
-    }
-
-    @Test
-    public void testNotValidIfFieldsToHashIsGivenWithoutRecordWriter() throws InitializationException {
-        withWebClientService();
-        withMockRecordReaderFactory();
-        runner.setProperty(GetWorkdayReport.WORKDAY_USERNAME, USER_NAME);
-        runner.setProperty(GetWorkdayReport.WORKDAY_PASSWORD, PASSWORD);
-        runner.setProperty(GetWorkdayReport.REPORT_URL, REPORT_URL);
-        runner.setProperty(FIELDS_TO_HASH, FIELD_TO_HASH);
         runner.assertNotValid();
     }
 
@@ -322,37 +295,6 @@ class GetWorkdayReportTest {
         flowFile.assertAttributeEquals(STATUS_CODE, OK_STATUS_CODE);
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), TEXT_CSV);
 
-        flowFile.assertAttributeEquals(RECORD_COUNT, "1");
-        flowFile.assertContentEquals(csvContent);
-    }
-
-    @Test
-    void testAttributeIsHashed() throws InitializationException {
-        withWebClientService();
-        withJsonRecordReader();
-        withCsvRecordSetWriter();
-        runner.setProperty(GetWorkdayReport.WORKDAY_USERNAME, USER_NAME);
-        runner.setProperty(GetWorkdayReport.WORKDAY_PASSWORD, PASSWORD);
-        runner.setIncomingConnection(false);
-        runner.setProperty(GetWorkdayReport.REPORT_URL, getMockWebServerUrl());
-        runner.setProperty(FIELDS_TO_HASH, FIELD_TO_HASH);
-        runner.setProperty(HASHING_ALGORITHM, HashAlgorithm.SHA256.getName());
-
-        String jsonContent = "{\"id\": 1, \"name\": \"test\"}";
-        String sha256Name = HashService.hashValue(HashAlgorithm.SHA256, "test");
-        String csvContent = "id,name\n1," + sha256Name + "\n";
-        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(jsonContent).setHeader(CONTENT_TYPE, APPLICATION_JSON));
-
-        runner.run();
-
-        assertFalse(((MockProcessContext) runner.getProcessContext()).isYieldCalled());
-        runner.assertTransferCount(ORIGINAL, 0);
-        runner.assertTransferCount(SUCCESS, 1);
-        runner.assertTransferCount(FAILURE, 0);
-
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(SUCCESS).iterator().next();
-        flowFile.assertAttributeEquals(STATUS_CODE, OK_STATUS_CODE);
-        flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), TEXT_CSV);
         flowFile.assertAttributeEquals(RECORD_COUNT, "1");
         flowFile.assertContentEquals(csvContent);
     }
