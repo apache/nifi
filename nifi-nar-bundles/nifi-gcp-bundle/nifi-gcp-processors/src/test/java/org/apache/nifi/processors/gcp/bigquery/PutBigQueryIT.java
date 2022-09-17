@@ -26,6 +26,9 @@ import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
@@ -43,8 +46,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Iterator;
 import java.util.UUID;
@@ -58,8 +59,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Restructured and enhanced version of the existing PutBigQuery Integration Tests. The underlying classes are deprecated so that tests will be removed as well in the future
  *
- * @see PutBigQueryStreamingIT
- * @see PutBigQueryBatchIT
  */
 public class PutBigQueryIT extends AbstractBigQueryIT {
 
@@ -74,7 +73,7 @@ public class PutBigQueryIT extends AbstractBigQueryIT {
     }
 
     @Test
-    public void PutBigQueryStreamingNoError() throws Exception {
+    public void testStreamingNoError() throws Exception {
         String tableName = prepareTable(STREAM_TYPE);
         addRecordReader();
 
@@ -90,7 +89,7 @@ public class PutBigQueryIT extends AbstractBigQueryIT {
     }
 
     @Test
-    public void PutBigQueryStreamingFullError() throws Exception {
+    public void testStreamingFullError() throws Exception {
         String tableName = prepareTable(STREAM_TYPE);
         addRecordReader();
 
@@ -107,7 +106,7 @@ public class PutBigQueryIT extends AbstractBigQueryIT {
     }
 
     @Test
-    public void PutBigQueryStreamingPartialError() throws Exception {
+    public void testStreamingPartialError() throws Exception {
         String tableName = prepareTable(STREAM_TYPE);
         addRecordReader();
 
@@ -130,7 +129,7 @@ public class PutBigQueryIT extends AbstractBigQueryIT {
     }
 
     @Test
-    public void PutBigQueryStreamingNoErrorWithDate() throws Exception {
+    public void testStreamingNoErrorWithDate() throws Exception {
         String tableName = prepareTable(STREAM_TYPE);
         addRecordReaderWithSchema("src/test/resources/bigquery/schema-correct-data-with-date.avsc");
 
@@ -140,13 +139,13 @@ public class PutBigQueryIT extends AbstractBigQueryIT {
         runner.assertAllFlowFilesTransferred(PutBigQuery.REL_SUCCESS, 1);
         runner.getFlowFilesForRelationship(PutBigQuery.REL_SUCCESS).get(0).assertAttributeEquals(BigQueryAttributes.JOB_NB_RECORDS_ATTR, "2");
 
-        assertStreamingData(tableName, true);
+        assertStreamingData(tableName, true, false);
 
         deleteTable(tableName);
     }
 
     @Test
-    public void PutBigQueryStreamingNoErrorWithDateFormat() throws Exception {
+    public void testStreamingNoErrorWithDateFormat() throws Exception {
         String tableName = prepareTable(STREAM_TYPE);
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
@@ -155,7 +154,7 @@ public class PutBigQueryIT extends AbstractBigQueryIT {
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, recordSchema);
         runner.setProperty(jsonReader, DateTimeUtils.DATE_FORMAT, "MM/dd/yyyy");
-        runner.setProperty(jsonReader, DateTimeUtils.TIME_FORMAT, "HH:mm:ss Z");
+        runner.setProperty(jsonReader, DateTimeUtils.TIME_FORMAT, "HH:mm:ss");
         runner.setProperty(jsonReader, DateTimeUtils.TIMESTAMP_FORMAT, "MM-dd-yyyy HH:mm:ss Z");
         runner.enableControllerService(jsonReader);
 
@@ -167,13 +166,13 @@ public class PutBigQueryIT extends AbstractBigQueryIT {
         runner.assertAllFlowFilesTransferred(PutBigQuery.REL_SUCCESS, 1);
         runner.getFlowFilesForRelationship(PutBigQuery.REL_SUCCESS).get(0).assertAttributeEquals(BigQueryAttributes.JOB_NB_RECORDS_ATTR, "2");
 
-        assertStreamingData(tableName, true);
+        assertStreamingData(tableName, false, true);
 
         deleteTable(tableName);
     }
 
     @Test
-    public void PutBigQueryBatchSmallPayloadTest() throws Exception {
+    public void testBatchSmallPayload() throws Exception {
         String tableName = prepareTable(BATCH_TYPE);
         addRecordReader();
 
@@ -188,7 +187,7 @@ public class PutBigQueryIT extends AbstractBigQueryIT {
     }
 
     @Test
-    public void PutBigQueryBatchBadRecordTest() throws Exception {
+    public void testQueryBatchBadRecord() throws Exception {
         String tableName = prepareTable(BATCH_TYPE);
         addRecordReader();
 
@@ -202,7 +201,7 @@ public class PutBigQueryIT extends AbstractBigQueryIT {
     }
 
     @Test
-    public void PutBigQueryBatchLargePayloadTest() throws InitializationException, IOException {
+    public void testBatchLargePayload() throws InitializationException, IOException {
         String tableName = prepareTable(BATCH_TYPE);
         addRecordReader();
         runner.setProperty(PutBigQuery.APPEND_RECORD_COUNT, "5000");
@@ -317,10 +316,10 @@ public class PutBigQueryIT extends AbstractBigQueryIT {
     }
 
     private void assertStreamingData(String tableName) {
-        assertStreamingData(tableName, false);
+        assertStreamingData(tableName, false, false);
     }
 
-    private void assertStreamingData(String tableName, boolean assertDate) {
+    private void assertStreamingData(String tableName, boolean assertDate, boolean assertDateFormatted) {
         TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
         Iterator<FieldValueList> iterator = result.getValues().iterator();
 
@@ -339,17 +338,31 @@ public class PutBigQueryIT extends AbstractBigQueryIT {
         assertTrue(john.get("addresses").getRepeatedValue().get(0).getRecordValue().get(0).getStringValue().endsWith("000"));
 
         if (assertDate) {
-            long timestampRecordJohn = LocalDateTime.parse("07-18-2021 12:35:24",
-                DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm:ss")).atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
-            assertEquals(john.get("birth").getRecordValue().get(0).getStringValue(), "2021-07-18");
-            assertEquals(john.get("birth").getRecordValue().get(1).getStringValue(), "12:35:24");
-            assertEquals((john.get("birth").getRecordValue().get(2).getTimestampValue() / 1000), timestampRecordJohn);
+            FieldValueList johnFields = john.get("birth").getRecordValue();
+            FieldValueList janeFields = jane.get("birth").getRecordValue();
 
-            long timestampRecordJane = LocalDateTime.parse("01-01-1992 00:00:00",
-                DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm:ss")).atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
-            assertEquals(jane.get("birth").getRecordValue().get(0).getStringValue(), "1992-01-01");
-            assertEquals(jane.get("birth").getRecordValue().get(1).getStringValue(), "00:00:00");
-            assertEquals((jane.get("birth").getRecordValue().get(2).getTimestampValue() / 1000) , timestampRecordJane);
+            ZonedDateTime johnDateTime = Instant.parse("2021-07-18T12:35:24Z").atZone(ZoneId.systemDefault());
+            assertEquals(johnDateTime.toLocalDate().format(DateTimeFormatter.ISO_DATE), johnFields.get(0).getStringValue());
+            assertEquals(johnDateTime.toLocalTime().format(DateTimeFormatter.ISO_TIME), johnFields.get(1).getStringValue());
+            assertEquals(johnDateTime.toInstant().toEpochMilli(), (johnFields.get(2).getTimestampValue() / 1000));
+
+            ZonedDateTime janeDateTime = Instant.parse("1992-01-01T00:00:00Z").atZone(ZoneId.systemDefault());
+            assertEquals(janeDateTime.toLocalDate().format(DateTimeFormatter.ISO_DATE), janeFields.get(0).getStringValue());
+            assertEquals(janeDateTime.toLocalTime().format(DateTimeFormatter.ISO_TIME), janeFields.get(1).getStringValue());
+            assertEquals(janeDateTime.toInstant().toEpochMilli(), (janeFields.get(2).getTimestampValue() / 1000));
+        }
+
+        if (assertDateFormatted) {
+            FieldValueList johnFields = john.get("birth").getRecordValue();
+            FieldValueList janeFields = jane.get("birth").getRecordValue();
+
+            assertEquals("2021-07-18", johnFields.get(0).getStringValue());
+            assertEquals("12:35:24", johnFields.get(1).getStringValue());
+            assertEquals(Instant.parse("2021-07-18T12:35:24Z").toEpochMilli(), (johnFields.get(2).getTimestampValue() / 1000));
+
+            assertEquals("1992-01-01", janeFields.get(0).getStringValue());
+            assertEquals("00:00:00", janeFields.get(1).getStringValue());
+            assertEquals( Instant.parse("1992-01-01T00:00:00Z").toEpochMilli(), (janeFields.get(2).getTimestampValue() / 1000));
         }
     }
 }

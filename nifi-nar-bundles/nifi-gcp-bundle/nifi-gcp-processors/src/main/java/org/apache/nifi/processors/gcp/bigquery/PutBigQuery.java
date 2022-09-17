@@ -41,6 +41,7 @@ import com.google.cloud.bigquery.storage.v1.WriteStream;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import io.grpc.Status;
+import java.time.LocalTime;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
@@ -60,7 +61,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.bigquery.proto.ProtoUtils;
-import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -71,9 +71,6 @@ import java.io.InputStream;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -101,17 +98,17 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
 
     static final String STREAM = "STREAM";
     static final String BATCH = "BATCH";
-    static final AllowableValue STREAM_TYPE = new AllowableValue(STREAM, STREAM, "Define streaming approach.");
-    static final AllowableValue BATCH_TYPE = new AllowableValue(BATCH, BATCH, "Define batching approach.");
+    static final AllowableValue STREAM_TYPE = new AllowableValue(STREAM, STREAM, "Use streaming record handling strategy");
+    static final AllowableValue BATCH_TYPE = new AllowableValue(BATCH, BATCH, "Use batching record handling strategy");
 
     private static final String APPEND_RECORD_COUNT_NAME = "bq.append.record.count";
-    private static final String APPEND_RECORD_COUNT_DESC = "The number of records to be appended to the write stream at once. Applicable for both batch and stream types.";
+    private static final String APPEND_RECORD_COUNT_DESC = "The number of records to be appended to the write stream at once. Applicable for both batch and stream types";
     private static final String TRANSFER_TYPE_NAME = "bq.transfer.type";
-    private static final String TRANSFER_TYPE_DESC = "Defines the preferred transfer type streaming or batching.";
+    private static final String TRANSFER_TYPE_DESC = "Defines the preferred transfer type streaming or batching";
 
     private static final List<Status.Code> RETRYABLE_ERROR_CODES = Arrays.asList(Status.Code.INTERNAL, Status.Code.ABORTED, Status.Code.CANCELLED);
 
-    private final AtomicReference<RuntimeException> error = new AtomicReference<>();
+    private final AtomicReference<Exception> error = new AtomicReference<>();
     private final AtomicInteger appendSuccessCount = new AtomicInteger(0);
     private final Phaser inflightRequestCount = new Phaser(1);
     private TableName tableName = null;
@@ -184,12 +181,12 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
     }
 
     @OnUnscheduled
-    public void onUnScheduled() {
+    public void onUnscheduled() {
         writeClient.shutdown();
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(ProcessContext context, ProcessSession session)  {
         WriteStream writeStream;
         Descriptors.Descriptor protoDescriptor;
         try {
@@ -197,7 +194,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
             protoDescriptor = BQTableSchemaToProtoDescriptor.convertBQTableSchemaToProtoDescriptor(writeStream.getTableSchema());
             streamWriter = createStreamWriter(writeStream.getName(), protoDescriptor, getGoogleCredentials(context));
         } catch (Descriptors.DescriptorValidationException | IOException e) {
-            getLogger().error("Failed to create Big Query Stream Writer for writing due to {}", e);
+            getLogger().error("Failed to create Big Query Stream Writer for writing", e);
             context.yield();
             return;
         }
@@ -218,14 +215,14 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
 
             flowFile = session.putAttribute(flowFile, BigQueryAttributes.JOB_NB_RECORDS_ATTR, Integer.toString(recordNumWritten));
         } catch (Exception e) {
-            getLogger().error(e.getMessage(), e);
-            error.set(new RuntimeException(e));
+            getLogger().error("Writing Records failed", e);
+            error.set(e);
         } finally {
             finishProcessing(session, flowFile, streamWriter, writeStream.getName(), tableName.toString());
         }
     }
 
-    private int writeRecordsToStream(RecordReader reader, Descriptors.Descriptor descriptor) throws IOException, MalformedRecordException {
+    private int writeRecordsToStream(RecordReader reader, Descriptors.Descriptor descriptor) throws Exception {
         Record currentRecord;
         int offset = 0;
         int recordNum = 0;
@@ -259,7 +256,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         try {
             message = ProtoUtils.createMessage(descriptor, valueMap);
         } catch (RuntimeException e) {
-            getLogger().error("Can't create message from input", e);
+            getLogger().error("Cannot convert record to message", e);
             if (!skipInvalidRows) {
                 throw e;
             }
@@ -268,7 +265,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         return message;
     }
 
-    private void append(AppendContext appendContext) {
+    private void append(AppendContext appendContext) throws Exception {
         if (error.get() != null) {
             throw error.get();
         }
@@ -288,7 +285,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
 
         // Verify that no error occurred in the stream.
         if (error.get() != null) {
-            getLogger().error("Error occurred in the stream: ", error.get());
+            getLogger().error("Stream processing failed", error.get());
             flowFile = session.putAttribute(flowFile, BigQueryAttributes.JOB_NB_RECORDS_ATTR, isBatch() ? "0" : String.valueOf(appendSuccessCount.get() * recordBatchCount));
             session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
@@ -307,7 +304,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
                 // If the response does not have a commit time, it means the commit operation failed.
                 if (!commitResponse.hasCommitTime()) {
                     for (StorageError err : commitResponse.getStreamErrorsList()) {
-                        getLogger().error("Commit operation error: ", err.getErrorMessage());
+                        getLogger().error("Commit Storage Error: {}", err.getErrorMessage());
                     }
                     session.penalize(flowFile);
                     session.transfer(flowFile, REL_FAILURE);
@@ -328,7 +325,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         }
 
         public void onSuccess(AppendRowsResponse response) {
-            getLogger().info("Append success with offset: " + appendContext.getOffset());
+            getLogger().info("Append success with offset: {}", appendContext.getOffset());
             appendSuccessCount.incrementAndGet();
             inflightRequestCount.arriveAndDeregister();
         }
@@ -344,7 +341,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
                     inflightRequestCount.arriveAndDeregister();
                     return;
                 } catch (Exception e) {
-                    getLogger().error("Failed to retry append: ", e);
+                    getLogger().error("Failed to retry append", e);
                 }
             }
 
@@ -352,7 +349,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
                 .map(RuntimeException.class::cast)
                 .orElse(new RuntimeException(throwable)));
 
-            getLogger().error("Failure during appending data: ", throwable);
+            getLogger().error("Failure during appending data", throwable);
             inflightRequestCount.arriveAndDeregister();
         }
     }
@@ -372,7 +369,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         try {
             client = BigQueryWriteClient.create(BigQueryWriteSettings.newBuilder().setCredentialsProvider(FixedCredentialsProvider.create(credentials)).build());
         } catch (Exception e) {
-            throw new ProcessException("Failed to create Big Query Write Client for writing due to", e);
+            throw new ProcessException("Failed to create Big Query Write Client for writing", e);
         }
 
         return client;
@@ -432,14 +429,9 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
                 }
                 result.put(key, lmapr);
             } else if (obj instanceof Timestamp) {
-                // ZoneOffset.UTC time zone is necessary due to implicit time zone conversion in Record Readers from
-                // the local system time zone to the GMT time zone
-                LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(((Timestamp) obj).getTime()), ZoneOffset.UTC);
-                result.put(key, dateTime.toEpochSecond(ZoneOffset.UTC) * 1000 * 1000);
+                result.put(key, ((Timestamp) obj).getTime() * 1000);
             } else if (obj instanceof Time) {
-                // ZoneOffset.UTC time zone is necessary due to implicit time zone conversion in Record Readers from
-                // the local system time zone to the GMT time zone
-                LocalDateTime time = LocalDateTime.ofInstant(Instant.ofEpochMilli(((Time) obj).getTime()), ZoneOffset.UTC);
+                LocalTime time = ((Time) obj).toLocalTime();
                 org.threeten.bp.LocalTime localTime = org.threeten.bp.LocalTime.of(
                     time.getHour(),
                     time.getMinute(),
