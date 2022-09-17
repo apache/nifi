@@ -304,10 +304,12 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
                 // If the response does not have a commit time, it means the commit operation failed.
                 if (!commitResponse.hasCommitTime()) {
                     for (StorageError err : commitResponse.getStreamErrorsList()) {
-                        getLogger().error("Commit Storage Error: {}", err.getErrorMessage());
+                        getLogger().error("Commit Storage Error Code: {} with message {}", err.getCode().name(), err.getErrorMessage());
                     }
                     session.penalize(flowFile);
                     session.transfer(flowFile, REL_FAILURE);
+
+                    return;
                 }
                 getLogger().info("Appended and committed all records successfully.");
             }
