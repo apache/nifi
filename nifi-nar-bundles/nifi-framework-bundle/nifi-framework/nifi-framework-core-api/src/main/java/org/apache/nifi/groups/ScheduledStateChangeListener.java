@@ -21,34 +21,35 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.flow.ScheduledState;
 
 public interface ScheduledStateChangeListener {
-    void onScheduledStateChange(ProcessorNode processor);
+    void onScheduledStateChange(ProcessorNode processor, ScheduledState intendedState);
 
-    void onScheduledStateChange(Port port);
+    void onScheduledStateChange(Port port, ScheduledState intendedState);
 
-    void onScheduledStateChange(ControllerServiceNode controllerService);
+    void onScheduledStateChange(ControllerServiceNode controllerService, ScheduledState intendedState);
 
-    void onScheduledStateChange(ReportingTaskNode reportingTask);
+    void onScheduledStateChange(ReportingTaskNode reportingTask, ScheduledState intendedState);
 
     ScheduledStateChangeListener EMPTY = new ScheduledStateChangeListener() {
         @Override
-        public void onScheduledStateChange(ProcessorNode processor) {
+        public void onScheduledStateChange(ProcessorNode processor, ScheduledState intendedState) {
 
         }
 
         @Override
-        public void onScheduledStateChange(Port port) {
+        public void onScheduledStateChange(Port port, ScheduledState intendedState) {
 
         }
 
         @Override
-        public void onScheduledStateChange(ControllerServiceNode controllerService) {
+        public void onScheduledStateChange(ControllerServiceNode controllerService, ScheduledState intendedState) {
 
         }
 
         @Override
-        public void onScheduledStateChange(ReportingTaskNode reportingTask) {
+        public void onScheduledStateChange(ReportingTaskNode reportingTask, ScheduledState intendedState) {
 
         }
     };

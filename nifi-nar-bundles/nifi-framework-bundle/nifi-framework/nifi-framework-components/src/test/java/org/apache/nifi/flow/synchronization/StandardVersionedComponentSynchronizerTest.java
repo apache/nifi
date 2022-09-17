@@ -1137,22 +1137,22 @@ public class StandardVersionedComponentSynchronizerTest {
         private List<ScheduledStateUpdate<ReportingTaskNode>> reportingTaskUpdates = new ArrayList<>();
 
         @Override
-        public void onScheduledStateChange(final ProcessorNode processor) {
+        public void onScheduledStateChange(final ProcessorNode processor, final ScheduledState intendedState) {
             processorUpdates.add(new ScheduledStateUpdate<>(processor, processor.getScheduledState()));
         }
 
         @Override
-        public void onScheduledStateChange(ControllerServiceNode controllerService) {
+        public void onScheduledStateChange(ControllerServiceNode controllerService, final ScheduledState intendedState) {
             serviceUpdates.add(new ControllerServiceStateUpdate(controllerService, controllerService.getState()));
         }
 
         @Override
-        public void onScheduledStateChange(ReportingTaskNode reportingTask) {
+        public void onScheduledStateChange(ReportingTaskNode reportingTask, final ScheduledState intendedState) {
             reportingTaskUpdates.add(new ScheduledStateUpdate<>(reportingTask, reportingTask.getScheduledState()));
         }
 
         @Override
-        public void onScheduledStateChange(final Port port) {
+        public void onScheduledStateChange(final Port port, final ScheduledState intendedState) {
             portUpdates.add(new ScheduledStateUpdate<>(port, port.getScheduledState()));
         }
 
