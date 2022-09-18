@@ -3440,6 +3440,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     }
                     break;
             }
+            notifyScheduledStateChange(reportingTask, syncOptions, proposed.getScheduledState());
         } finally {
             reportingTask.resumeValidationTrigger();
         }
