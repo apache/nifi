@@ -2270,6 +2270,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         port.setMaxConcurrentTasks(proposed.getConcurrentlySchedulableTaskCount());
 
         context.getComponentScheduler().transitionComponentState(port, proposed.getScheduledState());
+        notifyScheduledStateChange(port, syncOptions, proposed.getScheduledState());
     }
 
     private Port addInputPort(final ProcessGroup destination, final VersionedPort proposed, final ComponentIdGenerator componentIdGenerator, final String temporaryName) {
@@ -2707,6 +2708,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
             // Transition state to disabled/enabled/running
             context.getComponentScheduler().transitionComponentState(processor, proposed.getScheduledState());
+            notifyScheduledStateChange((ComponentNode) processor, syncOptions, proposed.getScheduledState());
 
             if (!isEqual(processor.getBundleCoordinate(), proposed.getBundle())) {
                 final BundleCoordinate newBundleCoordinate = toCoordinate(proposed.getBundle());
