@@ -99,9 +99,7 @@
     var controllerServicesUri = config.urls.api + '/flow/controller/controller-services';
 
     var groupCount = 0;
-
     var parameterCount = 0;
-    var sensitiveParametersArray = [];
 
     var SENSITIVE = 'SENSITIVE';
     var NON_SENSITIVE = 'NON_SENSITIVE';
@@ -628,7 +626,8 @@
      */
     var showFetchParametersDialog = function (parameterProviderEntity, fetchParameterProviderOptions) {
         updateFetchParametersRequest(parameterProviderEntity).done(function (response) {
-            var updatedParameterProviderEntity = response;
+            var updatedParameterProviderEntity = _.cloneDeep(response);
+            currentParameterProviderEntity = response;
 
             groupCount = 0;
             parameterCount = 0;
@@ -661,8 +660,9 @@
             }
 
             loadParameterGroups(updatedParameterProviderEntity);
+
             // keep original group data
-            var initialFetchedGroups = getFetchedParameterGroups(updatedParameterProviderEntity);
+            var initialFetchedGroups = getFetchedParameterGroups(response);
 
             // update visibility
             $('#fetch-parameters-usage-container').show();
@@ -696,7 +696,10 @@
                 },
                 handler: {
                     click: function () {
-                        confirmCancelDialog('#fetch-parameters-dialog');
+                        if (!hasGroupsChanged(updatedParameterProviderEntity, initialFetchedGroups)) {
+                            return confirmCancelDialog('#fetch-parameters-dialog');
+                        }
+                        closeModal('#fetch-parameters-dialog');
                     }
                 }
             }];
@@ -714,6 +717,9 @@
                     );
                 }
             }
+
+            $('#fetch-parameters-affected-referencing-components-container').hide();
+            $('#fetch-parameters-referencing-components-container').show();
 
             // show the dialog
             $('#fetch-parameters-dialog')
@@ -733,10 +739,8 @@
 
         // affected referencing components
         if (updatedParameterProviderEntity.component.affectedComponents) {
-            if (!updatedParameterProviderEntity.component.affectedComponents.every(canWrite)) {
-                return true;
-            }
-            return false;
+            return !updatedParameterProviderEntity.component.affectedComponents.every(canWrite);
+
         }
 
         var groupsData = $('#parameter-groups-table').data('gridInstance').getData();
@@ -754,32 +758,30 @@
             return name !== '';
         }
 
-        // if there are any createNewParameterContext, then the name input cannot be empty
+        // if any createNewParameterContext, then the name input cannot be empty
         if (!_.isEmpty(parameterContextNames)) {
-            if (!parameterContextNames.every(isEmptyName)) {
-                return true;
-            }
-            return false;
+            return !parameterContextNames.every(isEmptyName);
+
         }
 
         // parameter sensitivities
         for (var k = 0; k < initialFetchedGroups.length; k++) {
             var groupFromDataGrid = groups[k];
 
-            var firstKey = Object.keys(groupFromDataGrid.parameterSensitivities)[0];
-            if (groupFromDataGrid.parameterSensitivities[firstKey] !== null) {
+            if (nfCommon.isDefinedAndNotNull(groupFromDataGrid)) {
+                if (groupFromDataGrid.isParameterContext && nfCommon.isUndefinedOrNull(groupFromDataGrid.createNewParameterContext)) {
+                    // form the initially fetched group sensitivities
+                    var groupInitiallyFetched = initialFetchedGroups[k];
+                    var initialGroupParamSensitivity = {};
 
-                // form the initially fetched group sensitivities
-                var groupInitiallyFetched = initialFetchedGroups[k];
-                var initialGroupParamSensitivity = {};
+                    for (var param in groupInitiallyFetched.parameterSensitivities) {
+                        initialGroupParamSensitivity[param] = groupInitiallyFetched.parameterSensitivities[param] ? groupInitiallyFetched.parameterSensitivities[param] : SENSITIVE;
+                    }
 
-                for (var param in groupInitiallyFetched.parameterSensitivities) {
-                    initialGroupParamSensitivity[param] = groupInitiallyFetched.parameterSensitivities[param] ? groupInitiallyFetched.parameterSensitivities[param] : SENSITIVE;
-                }
-
-                // compare
-                if (!_.isEqual(initialGroupParamSensitivity, groupFromDataGrid.parameterSensitivities)) {
-                    return false;
+                    // compare
+                    if (!_.isEqual(initialGroupParamSensitivity, groupFromDataGrid.parameterSensitivities)) {
+                        return false;
+                    }
                 }
             }
         }
@@ -832,7 +834,8 @@
                     parameterContextName: groupConfig.parameterContextName,
                     parameterSensitivities: groupConfig.parameterSensitivities,
                     referencingParameterContexts: groupConfig.referencingParameterContexts ? groupConfig.referencingParameterContexts : null,
-                    enableParametersCheckboxes: canWriteParameterContexts && canWriteAffectedComponents
+                    enableParametersCheckboxes: canWriteParameterContexts && canWriteAffectedComponents,
+                    parameterStatus: parameterProviderGroupEntity.component.parameterStatus
                 };
 
                 parameterGroups.push({
@@ -874,9 +877,9 @@
      *
      * @param groupId
      * @param {object} parametersEntity
+     * @param {object} updatedGroup
      */
-    var loadSelectableParameters = function (groupId, parametersEntity) {
-        sensitiveParametersArray = [];
+    var loadSelectableParameters = function (groupId, parametersEntity, updatedGroup) {
         if (nfCommon.isDefinedAndNotNull(parametersEntity)) {
             var selectableParametersGrid = $('#selectable-parameters-table').data('gridInstance');
             var parametersData = selectableParametersGrid.getData();
@@ -888,31 +891,70 @@
             // begin the update
             parametersData.beginUpdate();
 
+            var isAffectedParameter = function (providerEntity, param) {
+                var isAffectedParameter = false;
+                // check for affected components
+                $.each(providerEntity.component.parameterStatus, function (i, status) {
+                    if (status.parameter.parameter.name === param) {
+                        if (status.status === 'CHANGED') {
+                            isAffectedParameter = true;
+                        }
+                    }
+                });
+                return isAffectedParameter;
+            }
+
+            var getParameterStatus = function (parameterStatus, param) {
+                return nfCommon.isDefinedAndNotNull(parameterStatus.find(function (status) { return status.parameter.parameter.name === param }))
+                    ? parameterStatus.find(function (status) { return status.parameter.parameter.name === param })
+                    : [];
+            }
+
+            var isReferencedParameter = function (paramStatus, param) {
+                var status = getParameterStatus(paramStatus, param);
+                return !_.isEmpty(status) && !_.isEmpty(status.parameter.parameter.referencingComponents);
+            }
+
             var idx = 0;
+            var referencingParameters = 0;
+            var parameterCount = 0;
             for (var param in parametersEntity) {
 
                 var parameter = {
                     id: idx++,
                     groupId: groupId,
                     name: param,
-                    sensitivity: parametersEntity[param] ? parametersEntity[param] : SENSITIVE
-                }
-                // if the parameter is sensitive, then show the parameter checkbox as check-marked
-                if (parameter.sensitivity === SENSITIVE) {
-                    sensitiveParametersArray.push(parameter.id);
+                    sensitivity: parametersEntity[param] ? parametersEntity[param] : SENSITIVE,
+                    isAffectedParameter: currentParameterProviderEntity.component.affectedComponents ? isAffectedParameter(currentParameterProviderEntity, param) : false,
+                    isReferencingParameter: !_.isEmpty(updatedGroup.parameterStatus) ? isReferencedParameter(updatedGroup.parameterStatus, param) : false,
+                    parameterStatus: !_.isEmpty(updatedGroup.parameterStatus) ? getParameterStatus(updatedGroup.parameterStatus, param) : []
                 }
 
                 parametersData.addItem(parameter);
+
+                parameterCount++;
+                if (parameter.isReferencingParameter === true) {
+                    referencingParameters++;
+                }
             }
 
             // complete the update
             parametersData.endUpdate();
             parametersData.reSort();
 
-            // select the sensitive rows
-            if (sensitiveParametersArray.length !== 0) {
-                selectableParametersGrid.setSelectedRows(sensitiveParametersArray);
+            // disable header selector checkbox
+            var headerCheckbox = $('#selectable-parameters-table .slick-column-name input');
+            if (referencingParameters === parameterCount) {
+                // disable header
+                headerCheckbox.addClass('disabled');
+                headerCheckbox.prop('disabled', true);
+            } else {
+                headerCheckbox.removeClass('disabled');
+                headerCheckbox.prop('disabled', false);
             }
+
+            // select the the first row
+            selectableParametersGrid.setSelectedRows([0]);
 
             // list the parameters to be created
             loadParameterContextsToCreate();
@@ -937,6 +979,7 @@
         };
 
         // update visibility
+        $('#fetch-parameters-referencing-components-container').hide();
         $('#fetch-parameters-affected-referencing-components-container').show();
 
         var referencingProcessors = [];
@@ -1317,11 +1360,11 @@
         }
     }
 
-    var getFetchedParameterGroups = function (parameterProviderGroupEntity) {
+    var getFetchedParameterGroups = function (groupEntity) {
         var parameterGroups = [];
-        $.each(parameterProviderGroupEntity.component.parameterGroupConfigurations, function (i, groupConfig) {
-            var referencingParameterContext = parameterProviderGroupEntity.component.referencingParameterContexts
-                ? isReferencingParamContext(parameterProviderGroupEntity.component.referencingParameterContexts, groupConfig.parameterContextName)
+        $.each(groupEntity.component.parameterGroupConfigurations, function (i, groupConfig) {
+            var referencingParameterContext = groupEntity.component.referencingParameterContexts
+                ? isReferencingParamContext(groupEntity.component.referencingParameterContexts, groupConfig.parameterContextName)
                 : false;
 
             var canWriteParameterContexts;
@@ -1332,8 +1375,8 @@
             }
 
             var canWriteAffectedComponents;
-            if (parameterProviderGroupEntity.component.affectedComponents) {
-                canWriteAffectedComponents = (parameterProviderGroupEntity.component.affectedComponents).every(function (c) {
+            if (groupEntity.component.affectedComponents) {
+                canWriteAffectedComponents = (groupEntity.component.affectedComponents).every(function (c) {
                     return c.permissions.canWrite;
                 });
             } else {
@@ -1349,13 +1392,54 @@
                 parameterContextName: groupConfig.parameterContextName,
                 parameterSensitivities: groupConfig.parameterSensitivities,
                 referencingParameterContexts: groupConfig.referencingParameterContexts ? groupConfig.referencingParameterContexts : null,
-                enableParametersCheckboxes: canWriteParameterContexts && canWriteAffectedComponents
+                enableParametersCheckboxes: canWriteParameterContexts && canWriteAffectedComponents,
+                parameterStatus: groupEntity.component.parameterStatus
             };
 
             parameterGroups.push(group);
         });
         return parameterGroups;
     }
+
+    /**
+     * Handles outstanding changes.
+     *
+     * @returns {deferred}
+     */
+    var handleOutstandingChanges = function () {
+        return $.Deferred(function (deferred) {
+            if ($('#fetch-parameters-update-status').is(':visible')) {
+                close();
+                deferred.resolve();
+            } else {
+                var parameterGroups = marshalParameterGroups();
+
+                // if there are no parameters there is nothing to save
+                if ($.isEmptyObject(parameterGroups)) {
+                    close();
+                    deferred.resolve();
+                } else {
+                    // see if those changes should be saved
+                    nfDialog.showYesNoDialog({
+                        headerText: 'Fetch Parameters',
+                        dialogContent: 'Save changes before leaving parameters configuration?',
+                        noHandler: function () {
+                            close();
+                            deferred.resolve();
+                        },
+                        yesHandler: function () {
+                            applyParametersHandler(currentParameterProviderEntity).done(function () {
+                                deferred.resolve();
+                            }).fail(function () {
+                                deferred.reject();
+                            });
+                        }
+                    });
+                }
+            }
+
+        }).promise();
+    };
 
     /**
      * Adds a border to the fetch parameters referencing components if necessary.
@@ -1517,7 +1601,6 @@
      *
      * @param {object} fetchedGroup the parameter group
      */
-
     var loadFetchedParameters = function (fetchedGroup) {
         var updatedGroup = fetchedGroup;
         var isParameterContext = updatedGroup.isParameterContext;
@@ -1532,10 +1615,7 @@
         // show the appropriate parameters table when dialog first opens
         if (isParameterContext) {
             // get the active group's parameters to populate the selectable parameters container
-            loadSelectableParameters(updatedGroup.id, updatedGroup.parameterSensitivities);
-
-            // update parameters checkboxes
-            updateCheckboxStates(updatedGroup);
+            loadSelectableParameters(updatedGroup.id, updatedGroup.parameterSensitivities, updatedGroup);
 
             $('#parameters-container').show();
             $('#selectable-parameters-container').show();
@@ -1567,16 +1647,16 @@
                 var checkboxMarkup = $('<div id="checkbox-container"></div>');
 
                 if (isCreateNewParameterContext) {
-                    // check the checkbox
+                    // select checkbox
                     $('<div id="create-parameter-context-field" class="nf-checkbox checkbox-checked"></div>').appendTo(checkboxMarkup);
 
-                    loadSelectableParameters(updatedGroup.id, updatedGroup.parameterSensitivities);
+                    loadSelectableParameters(updatedGroup.id, updatedGroup.parameterSensitivities, updatedGroup);
 
                     $('#parameters-container').show();
                     $('#selectable-parameters-container').show();
                     $('#fetched-parameters-container').hide();
                 } else {
-                    // uncheck the checkbox
+                    // deselect checkbox
                     $('<div id="create-parameter-context-field" class="nf-checkbox checkbox-unchecked"></div>').appendTo(checkboxMarkup);
 
                     $('#selectable-parameters-container').hide();
@@ -1609,9 +1689,6 @@
 
             createParamContextContainer.appendTo(parametersCheckboxContainer);
 
-            // update parameters checkboxes
-            updateCheckboxStates(updatedGroup);
-
             // populate the name input
             var contextName = updatedGroup.parameterContextName;
             $('#create-parameter-context-input').val(contextName);
@@ -1623,10 +1700,10 @@
         var fetchedParametersContainer = $('#fetched-parameters-listing').empty();
         var fetchedParameters = updatedGroup.parameterSensitivities;
 
-        // put all parameter names in array
+        // get parameter names only
         var parametersArray = Object.keys(fetchedParameters);
 
-        // create parameters name listing
+        // create parameter names listing
         if (parametersArray.length > 0) {
             $.each(parametersArray, function (i, parameter) {
                 var li = $('<li></li>').text(parameter);
@@ -1665,7 +1742,7 @@
             if (args.isChecked) {
                 updatedGroup.createNewParameterContext = true;
 
-                loadSelectableParameters(updatedGroup.id, updatedGroup.parameterSensitivities);
+                loadSelectableParameters(updatedGroup.id, updatedGroup.parameterSensitivities, updatedGroup);
 
                 $('#fetched-parameters-container').hide();
                 $('#create-parameter-context-container').show();
@@ -1675,7 +1752,7 @@
                 // if unchecked, then hide the input and only show the parameters listing
                 updatedGroup.createNewParameterContext = false;
 
-                loadSelectableParameters(updatedGroup.id, updatedGroup.parameterSensitivities);
+                loadSelectableParameters(updatedGroup.id, updatedGroup.parameterSensitivities, updatedGroup);
 
                 $('#create-parameter-context-container').hide();
                 $('#selectable-parameters-container').hide();
@@ -1692,40 +1769,16 @@
         groupsData.reSort();
     };
 
-    var updateCheckboxStates = function (parameterGroup) {
-        var headerCheckbox = $('#selectable-parameters-table .slick-column-name input');
-        var rowCheckbox = $('#selectable-parameters-table .slick-cell input');
-        var createParamContextCheckbox = $('#create-parameter-context-field.checkbox-unchecked');
-
-        if (!parameterGroup.enableParametersCheckboxes) {
-            // disable
-            headerCheckbox.addClass('disabled');
-            headerCheckbox.prop('disabled', true);
-
-            rowCheckbox.addClass('disabled');
-            rowCheckbox.prop('disabled', true);
-
-            createParamContextCheckbox.addClass('disabled');
-            createParamContextCheckbox.prop('disabled', true);
-        } else {
-            // enable
-            headerCheckbox.removeClass('disabled');
-            headerCheckbox.prop('disabled', false);
-
-            rowCheckbox.removeClass('disabled');
-            rowCheckbox.prop('disabled', false);
-
-            createParamContextCheckbox.removeClass('disabled');
-            createParamContextCheckbox.prop('disabled', false);
-        }
-    };
-
     /**
      * Reset the dialog.
      */
     var resetFetchParametersDialog = function () {
         $('#fetch-parameters-affected-referencing-components-container').hide();
+        $('#fetch-parameters-referencing-components-container').show();
         $('#create-parameter-context-input').val('');
+
+        var headerCheckbox = $('#selectable-parameters-table .slick-column-name input');
+        headerCheckbox.removeAttr('checked');
 
         // clear the groups table
         var groupsGrid = $('#parameter-groups-table').data('gridInstance');
@@ -1741,12 +1794,13 @@
 
         resetUsage();
 
-        // reset the last selected parameter
-        lastSelectedId = null;
-        sensitiveParametersArray = [];
+        // reset the last selected
+        lastSelectedGroupId = null;
+        lastSelectedParameterId = null;
     };
 
-    var lastSelectedId = null;
+    var lastSelectedGroupId = null;
+    var lastSelectedParameterId = null;
 
     /**
      * Sorts the specified data using the specified sort details.
@@ -1816,6 +1870,289 @@
                 content: list
             }));
     }
+
+    /**
+     * Populates the referencing components for the specified parameter context.
+     *
+     * @param {object} referencingComponents
+     */
+    var populateReferencingComponents = function (referencingComponents) {
+        // toggles the visibility of a container
+        var toggle = function (twist, container) {
+            if (twist.hasClass('expanded')) {
+                twist.removeClass('expanded').addClass('collapsed');
+                container.hide();
+            } else {
+                twist.removeClass('collapsed').addClass('expanded');
+                container.show();
+            }
+        };
+
+        var referencingProcessors = [];
+        var referencingControllerServices = [];
+        var unauthorizedReferencingComponents = [];
+
+        var spinner = $('#fetch-parameters-referencing-components-container .referencing-components-loading');
+
+        var loadingDeferred = $.Deferred(function (deferred) {
+            spinner.addClass('ajax-loading');
+            deferred.resolve();
+        });
+        loadingDeferred.then(function () {
+            resetUsage();
+        }).then(function() {
+            var fetchParameterReferencingComponentsContainer = $('#fetch-parameter-referencing-components-container').empty();
+
+            // referencing component will be undefined when a new parameter is added
+            if (_.isEmpty(referencingComponents)) {
+                // set to pending
+                $('<div class="referencing-component-container"><span class="unset">Pending Apply</span></div>').appendTo(fetchParameterReferencingComponentsContainer);
+            } else {
+                // bin the referencing components according to their type
+                $.each(referencingComponents.parameter.parameter.referencingComponents, function (_, referencingComponentEntity) {
+                    if (referencingComponentEntity.permissions.canRead === true && referencingComponentEntity.permissions.canWrite === true) {
+                        if (referencingComponentEntity.component.referenceType === 'PROCESSOR') {
+                            referencingProcessors.push(referencingComponentEntity);
+                        } else {
+                            referencingControllerServices.push(referencingComponentEntity);
+                        }
+                    } else {
+                        unauthorizedReferencingComponents.push(referencingComponentEntity);
+                    }
+                });
+
+                var referencingProcessGroups = {};
+
+                // bin the referencing processors according to their PG
+                $.each(referencingProcessors, function (_, referencingProcessorEntity) {
+                    if (referencingProcessGroups[referencingProcessorEntity.processGroup.id]) {
+                        referencingProcessGroups[referencingProcessorEntity.processGroup.id].referencingProcessors.push(referencingProcessorEntity);
+                        referencingProcessGroups[referencingProcessorEntity.processGroup.id].id = referencingProcessorEntity.processGroup.id;
+                        referencingProcessGroups[referencingProcessorEntity.processGroup.id].name = referencingProcessorEntity.processGroup.name;
+                    } else {
+                        referencingProcessGroups[referencingProcessorEntity.processGroup.id] = {
+                            referencingProcessors: [],
+                            referencingControllerServices: [],
+                            unauthorizedReferencingComponents: [],
+                            name: referencingProcessorEntity.processGroup.name,
+                            id: referencingProcessorEntity.processGroup.id
+                        };
+
+                        referencingProcessGroups[referencingProcessorEntity.processGroup.id].referencingProcessors.push(referencingProcessorEntity);
+                    }
+                });
+
+                // bin the referencing CS according to their PG
+                $.each(referencingControllerServices, function (_, referencingControllerServiceEntity) {
+                    if (referencingProcessGroups[referencingControllerServiceEntity.processGroup.id]) {
+                        referencingProcessGroups[referencingControllerServiceEntity.processGroup.id].referencingControllerServices.push(referencingControllerServiceEntity);
+                        referencingProcessGroups[referencingControllerServiceEntity.processGroup.id].id = referencingControllerServiceEntity.processGroup.id;
+                        referencingProcessGroups[referencingControllerServiceEntity.processGroup.id].name = referencingControllerServiceEntity.processGroup.name;
+                    } else {
+                        referencingProcessGroups[referencingControllerServiceEntity.processGroup.id] = {
+                            referencingProcessors: [],
+                            referencingControllerServices: [],
+                            unauthorizedReferencingComponents: [],
+                            name: referencingControllerServiceEntity.processGroup.name,
+                            id: referencingControllerServiceEntity.processGroup.id
+                        };
+
+                        referencingProcessGroups[referencingControllerServiceEntity.processGroup.id].referencingControllerServices.push(referencingControllerServiceEntity);
+                    }
+                });
+
+                // bin the referencing unauthorized components according to their PG
+                $.each(unauthorizedReferencingComponents, function (_, unauthorizedReferencingComponentEntity) {
+                    if (referencingProcessGroups[unauthorizedReferencingComponentEntity.processGroup.id]) {
+                        referencingProcessGroups[unauthorizedReferencingComponentEntity.processGroup.id].unauthorizedReferencingComponents.push(unauthorizedReferencingComponentEntity);
+                        referencingProcessGroups[unauthorizedReferencingComponentEntity.processGroup.id].id = unauthorizedReferencingComponentEntity.processGroup.id;
+                        referencingProcessGroups[unauthorizedReferencingComponentEntity.processGroup.id].name = unauthorizedReferencingComponentEntity.processGroup.name;
+                    } else {
+                        referencingProcessGroups[unauthorizedReferencingComponentEntity.processGroup.id] = {
+                            referencingProcessors: [],
+                            referencingControllerServices: [],
+                            unauthorizedReferencingComponents: [],
+                            name: unauthorizedReferencingComponentEntity.processGroup.name,
+                            id: unauthorizedReferencingComponentEntity.processGroup.id
+                        };
+
+                        referencingProcessGroups[unauthorizedReferencingComponentEntity.processGroup.id].unauthorizedReferencingComponents.push(unauthorizedReferencingComponentEntity);
+                    }
+                });
+
+                var fetchParameterReferencingComponentsContainer = $('#fetch-parameter-referencing-components-container');
+                var groups = $('<ul class="referencing-component-listing clear"></ul>');
+
+                var referencingProcessGroupsArray = [];
+                for (var key in referencingProcessGroups) {
+                    if (referencingProcessGroups.hasOwnProperty(key)) {
+                        referencingProcessGroupsArray.push(referencingProcessGroups[key]);
+                    }
+                }
+
+                if (nfCommon.isEmpty(referencingProcessGroupsArray)) {
+                    // set to none
+                    $('<div class="referencing-component-container"><span class="unset">None</span></div>').appendTo(fetchParameterReferencingComponentsContainer);
+                } else {
+                    //sort alphabetically
+                    var sortedReferencingProcessGroups = referencingProcessGroupsArray.sort(function (a, b) {
+                        if (a.name < b.name) {
+                            return -1;
+                        }
+                        if (a.name > b.name) {
+                            return 1;
+                        }
+                        return 0;
+                    });
+
+                    sortedReferencingProcessGroups.forEach(function (referencingProcessGroup) {
+                        // container for this pg's references
+                        var referencingPgReferencesContainer = $('<div class="referencing-component-references"></div>');
+                        fetchParameterReferencingComponentsContainer.append(referencingPgReferencesContainer);
+
+                        // create the collapsable listing for each PG
+                        var createReferenceBlock = function (referencingProcessGroup, list) {
+                            var twist = $('<div class="expansion-button collapsed"></div>');
+                            var title = $('<span class="referencing-component-title"></span>').text(referencingProcessGroup.name);
+                            var count = $('<span class="referencing-component-count"></span>').text('(' + (referencingProcessGroup.referencingProcessors.length + referencingProcessGroup.referencingControllerServices.length + referencingProcessGroup.unauthorizedReferencingComponents.length) + ')');
+                            var referencingComponents = $('#fetch-parameters-referencing-components-template').clone();
+                            referencingComponents.removeAttr('id');
+                            referencingComponents.removeClass('hidden');
+
+                            // create the reference block
+                            var groupTwist = $('<div class="referencing-component-block pointer unselectable"></div>').data('processGroupId', referencingProcessGroup.id).on('click', function () {
+                                if (twist.hasClass('collapsed')) {
+                                    groupTwist.append(referencingComponents);
+
+                                    var processorContainer = groupTwist.find('.fetch-parameters-referencing-processors');
+                                    nfCommon.cleanUpTooltips(processorContainer, 'div.referencing-component-state');
+                                    nfCommon.cleanUpTooltips(processorContainer, 'div.referencing-component-bulletins');
+                                    processorContainer.empty();
+
+                                    var controllerServiceContainer = groupTwist.find('.fetch-parameters-referencing-controller-services');
+                                    nfCommon.cleanUpTooltips(controllerServiceContainer, 'div.referencing-component-state');
+                                    nfCommon.cleanUpTooltips(controllerServiceContainer, 'div.referencing-component-bulletins');
+                                    controllerServiceContainer.empty();
+
+                                    var unauthorizedComponentsContainer = groupTwist.find('.fetch-parameters-referencing-unauthorized-components').empty();
+
+                                    if (referencingProcessGroups[$(this).data('processGroupId')].referencingProcessors.length === 0) {
+                                        $('<li class="referencing-component-container"><span class="unset">None</span></li>').appendTo(processorContainer);
+                                    } else {
+                                        // sort the referencing processors
+                                        referencingProcessGroups[$(this).data('processGroupId')].referencingProcessors.sort(nameComparator);
+
+                                        // render each and register a click handler
+                                        $.each(referencingProcessGroups[$(this).data('processGroupId')].referencingProcessors, function (_, referencingProcessorEntity) {
+                                            renderReferencingProcessor(referencingProcessorEntity, processorContainer);
+                                        });
+                                    }
+
+                                    if (referencingProcessGroups[$(this).data('processGroupId')].referencingControllerServices.length === 0) {
+                                        $('<li class="referencing-component-container"><span class="unset">None</span></li>').appendTo(controllerServiceContainer);
+                                    } else {
+                                        // sort the referencing controller services
+                                        referencingProcessGroups[$(this).data('processGroupId')].referencingControllerServices.sort(nameComparator);
+
+                                        // render each and register a click handler
+                                        $.each(referencingProcessGroups[$(this).data('processGroupId')].referencingControllerServices, function (_, referencingControllerServiceEntity) {
+                                            renderReferencingControllerService(referencingControllerServiceEntity, controllerServiceContainer);
+                                        });
+                                    }
+
+                                    if (referencingProcessGroups[$(this).data('processGroupId')].unauthorizedReferencingComponents.length === 0) {
+                                        $('<li class="referencing-component-container"><span class="unset">None</span></li>').appendTo(unauthorizedComponentsContainer);
+                                    } else {
+                                        // sort the unauthorized referencing components
+                                        referencingProcessGroups[$(this).data('processGroupId')].unauthorizedReferencingComponents.sort(function (a, b) {
+                                            if (a.permissions.canRead === true && b.permissions.canRead === true) {
+                                                // processors before controller services
+                                                var sortVal = a.component.referenceType === b.component.referenceType ? 0 : a.component.referenceType > b.component.referenceType ? -1 : 1;
+
+                                                // if a and b are the same type, then sort by name
+                                                if (sortVal === 0) {
+                                                    sortVal = a.component.name === b.component.name ? 0 : a.component.name > b.component.name ? 1 : -1;
+                                                }
+
+                                                return sortVal;
+                                            } else {
+
+                                                // if lacking read and write perms on both, sort by id
+                                                if (a.permissions.canRead === false && b.permissions.canRead === false) {
+                                                    return a.id > b.id ? 1 : -1;
+                                                } else {
+                                                    // if only one has read perms, then let it come first
+                                                    if (a.permissions.canRead === true) {
+                                                        return -1;
+                                                    } else {
+                                                        return 1;
+                                                    }
+                                                }
+                                            }
+                                        });
+
+                                        $.each(referencingProcessGroups[$(this).data('processGroupId')].unauthorizedReferencingComponents, function (_, unauthorizedReferencingComponentEntity) {
+                                            if (unauthorizedReferencingComponentEntity.permissions.canRead === true) {
+                                                if (unauthorizedReferencingComponentEntity.component.referenceType === 'PROCESSOR') {
+                                                    renderReferencingProcessor(unauthorizedReferencingComponentEntity, unauthorizedComponentsContainer);
+                                                } else {
+                                                    renderReferencingControllerService(unauthorizedReferencingComponentEntity, unauthorizedComponentsContainer);
+                                                }
+                                            } else {
+                                                var referencingUnauthorizedComponentContainer = $('<li class="referencing-component-container"></li>').appendTo(unauthorizedComponentsContainer);
+                                                $('<span class="fetch-parameter-referencing-component-name link ellipsis"></span>')
+                                                    .prop('title', unauthorizedReferencingComponentEntity.id)
+                                                    .text(unauthorizedReferencingComponentEntity.id)
+                                                    .on('click', function () {
+                                                        // check if there are outstanding changes
+                                                        handleOutstandingChanges().done(function () {
+                                                            // close the shell
+                                                            $('#shell-dialog').modal('hide');
+
+                                                            // show the component in question
+                                                            if (unauthorizedReferencingComponentEntity.referenceType === 'PROCESSOR') {
+                                                                nfCanvasUtils.showComponent(unauthorizedReferencingComponentEntity.processGroup.id, unauthorizedReferencingComponentEntity.id);
+                                                            } else if (unauthorizedReferencingComponentEntity.referenceType === 'CONTROLLER_SERVICE') {
+                                                                nfProcessGroupConfiguration.showConfiguration(unauthorizedReferencingComponentEntity.processGroup.id).done(function () {
+                                                                    nfProcessGroup.enterGroup(unauthorizedReferencingComponentEntity.processGroup.id);
+                                                                    nfProcessGroupConfiguration.selectControllerService(unauthorizedReferencingComponentEntity.id);
+                                                                });
+                                                            }
+                                                        });
+                                                    })
+                                                    .appendTo(referencingUnauthorizedComponentContainer);
+                                            }
+                                        });
+                                    }
+                                } else {
+                                    groupTwist.find('.referencing-components-template').remove();
+                                }
+
+                                // toggle this block
+                                toggle(twist, list);
+
+                                // update the border if necessary
+                                updateReferencingComponentsBorder($('#fetch-parameters-referencing-components-container'));
+                            }).append(twist).append(title).append(count).appendTo(referencingPgReferencesContainer);
+
+                            // add the listing
+                            list.appendTo(referencingPgReferencesContainer);
+
+                            // expand the group twist
+                            groupTwist.click();
+                        };
+
+                        // create block for this process group
+                        createReferenceBlock(referencingProcessGroup, groups);
+                    });
+                }
+            }
+        })
+            .always(function () {
+                spinner.removeClass('ajax-loading');
+            });
+        return loadingDeferred.promise();
+    };
 
     /**
      * Renders the specified referencing component.
@@ -1962,6 +2299,16 @@
                 formattedValue.addClass('required');
             }
 
+            if (dataContext.isAffectedParameter) {
+                valueWidthOffset += 30;
+                $('<div class="fa fa-asterisk" alt="Info" style="float: right;"></div>').appendTo(cellContent);
+            }
+
+            if (dataContext.isReferencingParameter) {
+                valueWidthOffset += 30;
+                $('<div class="fa fa-exchange" alt="Info" style="float: right;"></div>').appendTo(cellContent);
+            }
+
             // adjust the width accordingly
             formattedValue.width(columnDef.width - valueWidthOffset).ellipsis();
 
@@ -1969,14 +2316,222 @@
             return cellContent.html();
         };
 
+        var _selectAll_UID = createUID();
+        var headerSelTooltip = "Select/Deselect All";
+
+        function createUID() {
+            return Math.round(10000000 * Math.random());
+        }
+
+        // header selector checkbox
+        $('#selectable-parameters-table').on('click', '#header-selector' + _selectAll_UID, function () {
+            var selectorColumnId = '_checkbox_selector';
+            var selectableParamsGrid = $('#selectable-parameters-table').data('gridInstance');
+            var selectableParamsData = selectableParamsGrid.getData()
+            var selectableParamsRows = selectableParamsData.getItems();
+
+            // determine selectable rows
+            var selectableParams = [];
+            $.each(selectableParamsRows, function (i, row) {
+                if (!row.isReferencingParameter) {
+                    selectableParams.push(row);
+                }
+            })
+
+            // begin update
+            selectableParamsData.beginUpdate();
+
+            var newParamsSensitivities = {};
+            if ($('#header-selector' + _selectAll_UID).attr('checked')) {
+                // deselect header selector
+                selectableParamsGrid.updateColumnHeader(selectorColumnId, "<input id='header-selector" + _selectAll_UID + "' type='checkbox'><label for='header-selector" + _selectAll_UID + "'></label>", headerSelTooltip);
+
+                // deselect all parameters
+                $.each(selectableParams, function (i, param) {
+                    var checkboxElement = $('#' + param.inputId);
+                    checkboxElement.removeAttr('checked');
+
+                    // update sensitivities
+                    param.sensitivity = NON_SENSITIVE;
+                    newParamsSensitivities[param.name] = NON_SENSITIVE;
+                })
+            } else {
+                // select header selector
+                selectableParamsGrid.updateColumnHeader(selectorColumnId, "<input id='header-selector" + _selectAll_UID + "' type='checkbox' checked='checked'><label for='header-selector" + _selectAll_UID + "'></label>", headerSelTooltip);
+
+                // select all parameters
+                $.each(selectableParams, function (i, param) {
+                    var checkboxElement = $('#' + param.inputId);
+                    checkboxElement.attr('checked', 'checked');
+
+                    // update sensitivities
+                    param.sensitivity = SENSITIVE;
+                    newParamsSensitivities[param.name] = SENSITIVE;
+                })
+            }
+
+            // end update
+            selectableParamsData.endUpdate();
+            selectableParamsData.reSort();
+
+            // get the currently selected group
+            var groupsGrid = $('#parameter-groups-table').data('gridInstance');
+            var groupsData = groupsGrid.getData();
+
+            if (nfCommon.isDefinedAndNotNull(selectableParams[0])) {
+                var currentGroup = groupsData.getItem([selectableParams[0].groupId]);
+
+                // only update the param sensitivities that were changed
+                for (var param in newParamsSensitivities) {
+                    currentGroup.parameterSensitivities[param] = newParamsSensitivities[param];
+                }
+            }
+
+            $('#fetch-parameters-dialog').modal('refreshButtons');
+        })
+
+        var checkboxSelectionFormatter = function (row, cell, value, columnDef, dataContext) {
+            var UID = createUID() + row;
+            var selectorUID = 'selector' + UID;
+
+            function selectDeselectAll(currentGroup) {
+                var inputs = $('#selectable-parameters-table').find(':input');
+
+                // remove header selector
+                inputs.splice(0, 1);
+
+                // filter for selectable checkboxes
+                var filtered = inputs.filter(function () {
+                    return !$(this).attr('disabled');
+                });
+
+                var selectableIds = [];
+                $.each(filtered, function (i, f) {
+                    if ($(f).attr('checked')) {
+                        selectableIds.push($(f).attr('id'));
+                    }
+                });
+
+                var headerCheckbox = $('#selectable-parameters-table .slick-column-name input');
+
+                if (inputs.length === 0) {
+                    //selectable parameters table is not visible yet or the group is not a parameter context
+
+                    // get the group's parameterSensitivities
+                    var groupParamSensitivities = currentGroup.parameterSensitivities;
+
+                    // update the header selector state
+                    var firstKey = Object.keys(groupParamSensitivities)[0];
+                    if (groupParamSensitivities[firstKey] !== null) {
+                        // group has previously saved sensitivity configs
+                        for (var param in groupParamSensitivities) {
+                            if (groupParamSensitivities[param] === NON_SENSITIVE) {
+                                return headerCheckbox.removeAttr('checked');
+                            }
+                        }
+                    }
+                    return headerCheckbox.attr('checked', 'checked');
+                } else if (selectableIds.length < inputs.length) {
+                    headerCheckbox.removeAttr('checked');
+                } else {
+                    headerCheckbox.attr('checked', 'checked');
+                }
+
+                $('#fetch-parameters-dialog').modal('refreshButtons');
+            }
+
+            if (dataContext) {
+                var selectableParamData = $('#selectable-parameters-table')
+                    .data('gridInstance')
+                    .getData();
+                var currentSelectableParam = selectableParamData
+                    .getItem([dataContext.id]);
+                // add selectorUID to item
+                currentSelectableParam.inputId = selectorUID;
+
+                // save to its group
+                var groupsData = $('#parameter-groups-table')
+                    .data('gridInstance')
+                    .getData();
+                var currentGroup = groupsData
+                    .getItem([dataContext.groupId]);
+                // add selectorUID to item
+                currentGroup.inputId = selectorUID;
+
+                var lastParamSensitivity = Object.keys(currentGroup.parameterSensitivities).length - 1;
+
+                if (_.isEmpty(dataContext.parameterStatus) || _.isEmpty(dataContext.parameterStatus.parameter.parameter.referencingComponents)) {
+                    $(function () {
+                        $('#selector' + UID).on('click', function () {
+                            var inputSelector = $('#' + selectorUID);
+
+                            // get the currently selected group
+                            var groupsGrid = $('#parameter-groups-table').data('gridInstance');
+                            var groupsData = groupsGrid.getData();
+                            var currentGroup = groupsData.getItem([dataContext.groupId]);
+
+                            // begin update
+                            groupsData.beginUpdate();
+
+                            // if first sensitivity equals null, then set all to SENSITIVE
+                            var firstKey = Object.keys(currentGroup.parameterSensitivities)[0];
+                            if (currentGroup.parameterSensitivities[firstKey] === null) {
+                                for (var param in currentGroup.parameterSensitivities) {
+                                    currentGroup.parameterSensitivities[param] = SENSITIVE;
+                                }
+                            }
+
+                            if (inputSelector.prop('checked')) {
+                                // save new param sensitivity in its group
+                                currentGroup.parameterSensitivities[dataContext.name] = NON_SENSITIVE;
+                                inputSelector.removeAttr('checked');
+                            } else {
+                                // save new param sensitivity in its group
+                                currentGroup.parameterSensitivities[dataContext.name] = SENSITIVE;
+                                inputSelector.attr('checked', 'checked');
+                            }
+
+                            // complete the update
+                            groupsData.endUpdate();
+                            groupsData.reSort();
+
+                            selectDeselectAll(currentGroup);
+
+                            $('#fetch-parameters-dialog').modal('refreshButtons');
+                        });
+                    })
+
+                    if (dataContext.id === lastParamSensitivity) {
+                        // it is the last row of the table, so check if all chechboxes are selected
+                        selectDeselectAll(currentGroup);
+                    }
+
+                    if (dataContext.sensitivity === SENSITIVE) {
+                        return "<input id='selector" + UID + "' type='checkbox' checked='checked'><label for='selector" + UID + "'></label>";
+                    } else {
+                        return "<input id='selector" + UID + "' type='checkbox'><label for='selector" + UID + "'></label>";
+                    }
+                }
+
+                if (!_.isEmpty(dataContext.parameterStatus.parameter.parameter.referencingComponents)) {
+                    selectDeselectAll(currentGroup);
+
+                    // disable checkboxes
+                    if (dataContext.sensitivity === SENSITIVE) {
+                        return "<input id='selector" + UID + "' type='checkbox' checked='checked' class='disabled' disabled><label for='selector" + UID + "'></label>";
+                    } else {
+                        return "<input id='selector" + UID + "' type='checkbox' class='disabled' disabled><label for='selector" + UID + "'></label>";
+                    }
+                }
+
+                $('#fetch-parameters-dialog').modal('refreshButtons');
+            }
+            return null;
+        };
+
         var parametersColumn = [];
 
-        // define the column model for the table
-        var checkboxSelector = new Slick.CheckboxSelectColumn({
-            cssClass: 'slick-cell-checkboxsel'
-        });
-        parametersColumn.push(checkboxSelector.getColumnDefinition());
-
+        // define the column models for the table
         var nameColumnDefinition = {
             id: 'name',
             name: 'Name',
@@ -1990,6 +2545,20 @@
             editor: Slick.Editors.Text
         };
 
+        var checkboxColumnDefinition = {
+            id: '_checkbox_selector',
+            name: "<input id='header-selector" + _selectAll_UID + "' type='checkbox'><label for='header-selector" + _selectAll_UID + "'></label>",
+            toolTip: headerSelTooltip,
+            field: 'sel',
+            width: 30,
+            resizable: false,
+            sortable: false,
+            cssClass: 'slick-cell-checkboxsel',
+            hideSelectAllCheckbox: false,
+            formatter: checkboxSelectionFormatter
+        }
+
+        parametersColumn.push(checkboxColumnDefinition);
         parametersColumn.push(nameColumnDefinition);
 
         // initialize the dataview
@@ -2006,9 +2575,8 @@
 
         // initialize the grid
         var selectableParametersGrid = new Slick.Grid(selectableParametersTable, selectableParametersData, parametersColumn, selectableParametersGridOptions);
-        selectableParametersGrid.setSelectionModel(new Slick.RowSelectionModel({ selectActiveRow: false }));
+        selectableParametersGrid.setSelectionModel(new Slick.RowSelectionModel());
         selectableParametersGrid.registerPlugin(new Slick.AutoTooltips());
-        selectableParametersGrid.registerPlugin(checkboxSelector);
 
         selectableParametersGrid.setSortColumn('name', true);
         selectableParametersGrid.onSort.subscribe(function (e, args) {
@@ -2016,75 +2584,30 @@
                 columnId: args.sortCol.id,
                 sortAsc: args.sortAsc
             }, selectableParametersData);
-
-            // get the currently selected group
-            var groupsGrid = $('#parameter-groups-table').data('gridInstance');
-            var groupsData = groupsGrid.getData();
-            var selectedGroupId = groupsGrid.getSelectedRows();
-            var currentGroup = groupsData.getItem(selectedGroupId);
-
-            // update parameters checkboxes
-            updateCheckboxStates(currentGroup);
         });
 
         selectableParametersGrid.onSelectedRowsChanged.subscribe(function (e, args) {
-            // update parameter sensitivities
-            var selectableParametersData = $('#selectable-parameters-table')
-                .data('gridInstance')
-                .getData();
-            var selectableParameters = selectableParametersData.getItems();
+            if ($.isArray(args.rows) && args.rows.length === 1) {
+                // show the referencing components for the selected parameter
+                if (selectableParametersGrid.getDataLength() > 0) {
+                    var parameterIndex = args.rows[0];
+                    var parameter = selectableParametersGrid.getDataItem(parameterIndex);
 
-            // parameters marked as sensitive in the table
-            var sensitiveParameters = args.rows;
+                    // only populate referencing components if this parameter is different than the last selected
+                    if (lastSelectedParameterId === null || lastSelectedParameterId !== parameter.id) {
 
-            // sort numerically
-            sensitiveParameters.sort(function (a, b) {
-                return a - b;
-            });
+                        populateReferencingComponents(parameter.parameterStatus)
+                            .then(function () {
+                                updateReferencingComponentsBorder($('#fetch-parameters-referencing-components-container'));
 
-            // get the currently selected group
-            var groupsGrid = $('#parameter-groups-table').data('gridInstance');
-            var selectedGroupId = groupsGrid.getSelectedRows();
-
-            // only save if editing within the same group
-            if (selectableParameters[0].groupId === selectedGroupId[0]) {
-                var parametersToUpdate = {};
-
-                // update the sensitivities of selectableParameters
-                var i = 0;
-                $.each(selectableParameters, function (_, parameter) {
-                    if (i <= sensitiveParameters.length) {
-                        var id = sensitiveParameters[i];
-
-                        // if parameter id is in sensitiveParams, then it's sensitive
-                        if (parameter.id === id) {
-                            // mark as sensitive
-                            parameter.sensitivity = SENSITIVE;
-                            parametersToUpdate[parameter.name] = SENSITIVE;
-
-                            i++;
-                        } else {
-                            // mark as non-sensitive
-                            parameter.sensitivity = NON_SENSITIVE;
-                            parametersToUpdate[parameter.name] = NON_SENSITIVE;
-                        }
-                    } else {
-                        // mark the remaining as non-sensitive
-                        parameter.sensitivity = NON_SENSITIVE;
-                        parametersToUpdate[parameter.name] = NON_SENSITIVE;
+                                // update the last selected id
+                                lastSelectedParameterId = parameter.id;
+                            });
                     }
-                })
-
-                // save the parameters to the group data
-                var groupsData = groupsGrid.getData();
-                var groupToUpdate = groupsData.getItem(selectedGroupId);
-
-                if (nfCommon.isDefinedAndNotNull(groupToUpdate)) {
-                    groupToUpdate.parameterSensitivities = parametersToUpdate;
                 }
-
-                $('#fetch-parameters-dialog').modal('refreshButtons');
             }
+
+            $('#fetch-parameters-dialog').modal('refreshButtons');
         })
 
         // wire up the dataview to the grid
@@ -2098,8 +2621,28 @@
         });
         selectableParametersData.syncGridSelection(selectableParametersGrid, true);
 
-        // hold onto an instance of the grid
-        selectableParametersTable.data('gridInstance', selectableParametersGrid);
+        // hold onto an instance of the grid and create an affected component tooltip
+        selectableParametersTable.data('gridInstance', selectableParametersGrid).on('mouseenter', 'div.slick-cell', function (e) {
+            var asteriskIconElement =  $(this).find('div.fa-asterisk');
+            var asteriskTooltipContent = nfCommon.escapeHtml('Value has changed.');
+
+            // initialize tooltip
+            asteriskIconElement.qtip($.extend({},
+                nfCommon.config.tooltipConfig,
+                {
+                    content: asteriskTooltipContent
+                }));
+
+            var exchangeIconElement =  $(this).find('div.fa-exchange');
+            var exchangeTooltipContent = nfCommon.escapeHtml('This parameter is currently referenced by a property. The sensitivity cannot be changed.');
+
+            // initialize tooltip
+            exchangeIconElement.qtip($.extend({},
+                nfCommon.config.tooltipConfig,
+                {
+                    content: exchangeTooltipContent
+                }));
+        });
 
         // end
     }
@@ -2176,17 +2719,32 @@
             }, groupsData);
         });
         groupsGrid.onSelectedRowsChanged.subscribe(function (e, args) {
+            // clean up tooltips
+            nfCommon.cleanUpTooltips($('#selectable-parameters-table'), 'div.fa-asterisk');
+            nfCommon.cleanUpTooltips($('#selectable-parameters-table'), 'div.fa-exchange');
+
             if ($.isArray(args.rows) && args.rows.length === 1) {
                 if (groupsGrid.getDataLength() > 0) {
                     var groupIndex = args.rows[0];
                     var group = groupsGrid.getDataItem(groupIndex);
 
                     // only populate fetch parameters column if this group is different than the last selected
-                    if (lastSelectedId === null || lastSelectedId !== group.id) {
+                    if (lastSelectedGroupId === null || lastSelectedGroupId !== group.id) {
                         loadFetchedParameters(group);
 
                         // update the last selected id
-                        lastSelectedId = group.id;
+                        lastSelectedGroupId = group.id;
+
+                        // populate parameter referencing components
+                        if ($('#selectable-parameters-table').is(':visible')) {
+                            var selectableParametersGrid = $('#selectable-parameters-table').data('gridInstance');
+                            var selectedRow = selectableParametersGrid.getSelectedRows()[0];
+                            var parameter = selectableParametersGrid.getData().getItem(selectedRow);
+
+                            populateReferencingComponents(parameter.parameterStatus).then(function () {
+                                updateReferencingComponentsBorder($('#fetch-parameters-referencing-components-container'));
+                            });
+                        }
                     }
                 }
             }
@@ -2220,7 +2778,6 @@
                     content: tooltipContent
                 }));
         });
-
     };
     // end initParameterGroupTable
 
@@ -2240,8 +2797,9 @@
 
         $('#affected-referencing-components-container').empty();
 
-        // reset the last selected parameter
-        lastSelectedId = null;
+        // reset the last selected
+        lastSelectedGroupId = null;
+        lastSelectedParameterId = null;
 
         // indicate no referencing components
         $('<li class="referencing-component-container"><span class="unset">None</span></li>').appendTo(processorContainer);

@@ -105,7 +105,43 @@
                     <div id="parameter-contexts-to-update-container" class="ellipsis"></div>
                 </div>
             </div>
-            <div id="fetch-parameters-affected-referencing-components-container" class="setting hidden">
+
+            <div id="fetch-parameters-referencing-components-container" class="setting hidden">
+                <div class="setting-name">
+                    Referencing Components
+                    <div class="fa fa-question-circle" alt="Info" title="Components referencing this parameter."></div>
+                    <div class="referencing-components-loading"></div>
+                </div>
+                <div id="fetch-parameter-referencing-components-container" class="setting-field">
+                </div>
+            </div>
+            <div id="fetch-parameters-referencing-components-template" class="fetch-parameters-referencing-components-template hidden clear">
+                <div class="setting">
+                    <div class="setting-name">Referencing Processors
+                    </div>
+                    <div class="setting-field">
+                        <ul class="fetch-parameters-referencing-processors"></ul>
+                    </div>
+                </div>
+                <div class="setting">
+                    <div class="setting-name">
+                        Referencing Controller Services
+                    </div>
+                    <div class="setting-field">
+                        <ul class="fetch-parameters-referencing-controller-services"></ul>
+                    </div>
+                </div>
+                <div class="setting">
+                    <div class="setting-name">
+                        Unauthorized referencing components
+                    </div>
+                    <div class="setting-field">
+                        <ul class="fetch-parameters-referencing-unauthorized-components"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="fetch-parameters-affected-referencing-components-container" class="setting">
                 <div class="setting-name">
                     Affected Referencing Components
                     <div class="fa fa-question-circle" alt="Info" title="Affected components referencing this parameter provider."></div>
