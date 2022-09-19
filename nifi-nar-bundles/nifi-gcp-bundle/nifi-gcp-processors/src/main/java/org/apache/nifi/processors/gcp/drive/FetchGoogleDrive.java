@@ -49,7 +49,8 @@ import java.util.Set;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"google", "drive", "storage", "fetch"})
-@CapabilityDescription("Fetches files from a Google Drive Folder. Designed to be used in tandem with ListGoogleDrive.")
+@CapabilityDescription("Fetches files from a Google Drive Folder. Designed to be used in tandem with ListGoogleDrive. " +
+    "Requires Google Drive API enabled (https://developers.google.com/workspace/guides/enable-apis).")
 @SeeAlso({ListGoogleDrive.class})
 @WritesAttributes({
         @WritesAttribute(attribute = FetchGoogleDrive.ERROR_CODE_ATTRIBUTE, description = "The error code returned by Google Drive when the fetch of a file fails"),
