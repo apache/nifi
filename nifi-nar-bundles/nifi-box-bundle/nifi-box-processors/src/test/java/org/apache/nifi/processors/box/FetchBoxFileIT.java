@@ -31,10 +31,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * See Javadoc {@link AbstractBoxFilesIT} for instructions how to run this test.
  */
-public class FetchBoxFilesIT extends AbstractBoxFilesIT<FetchBoxFiles> {
+public class FetchBoxFileIT extends AbstractBoxFilesIT<FetchBoxFile> {
     @Override
-    public FetchBoxFiles createTestSubject() {
-        FetchBoxFiles testSubject = new FetchBoxFiles();
+    public FetchBoxFile createTestSubject() {
+        FetchBoxFile testSubject = new FetchBoxFile();
 
         return testSubject;
     }
@@ -56,10 +56,10 @@ public class FetchBoxFilesIT extends AbstractBoxFilesIT<FetchBoxFiles> {
         testRunner.run();
 
         // THEN
-        testRunner.assertTransferCount(FetchBoxFiles.REL_FAILURE, 0);
+        testRunner.assertTransferCount(FetchBoxFile.REL_FAILURE, 0);
 
-        testRunner.assertAttributes(FetchBoxFiles.REL_SUCCESS, getCheckedAttributeNames(), expectedAttributes);
-        testRunner.assertContents(FetchBoxFiles.REL_SUCCESS, expectedContent);
+        testRunner.assertAttributes(FetchBoxFile.REL_SUCCESS, getCheckedAttributeNames(), expectedAttributes);
+        testRunner.assertContents(FetchBoxFile.REL_SUCCESS, expectedContent);
     }
 
     @Test
@@ -82,9 +82,9 @@ public class FetchBoxFilesIT extends AbstractBoxFilesIT<FetchBoxFiles> {
         testRunner.run();
 
         // THEN
-        testRunner.assertTransferCount(FetchBoxFiles.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(FetchBoxFile.REL_SUCCESS, 0);
 
-        testRunner.assertAttributes(FetchBoxFiles.REL_FAILURE, getCheckedAttributeNames(), expectedFailureAttributes);
+        testRunner.assertAttributes(FetchBoxFile.REL_FAILURE, getCheckedAttributeNames(), expectedFailureAttributes);
     }
 
     @Test
@@ -127,9 +127,9 @@ public class FetchBoxFilesIT extends AbstractBoxFilesIT<FetchBoxFiles> {
         testRunner.run();
 
         // THEN
-        testRunner.assertTransferCount(FetchBoxFiles.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(FetchBoxFile.REL_SUCCESS, 0);
 
-        testRunner.assertAttributes(FetchBoxFiles.REL_FAILURE, getCheckedAttributeNames(), expectedFailureAttributes);
+        testRunner.assertAttributes(FetchBoxFile.REL_FAILURE, getCheckedAttributeNames(), expectedFailureAttributes);
     }
 
     public Set<String> getCheckedAttributeNames() {
@@ -137,7 +137,7 @@ public class FetchBoxFilesIT extends AbstractBoxFilesIT<FetchBoxFiles> {
 
         checkedAttributeNames.add(BoxFlowFileAttribute.ID.getName());
         checkedAttributeNames.add(BoxFlowFileAttribute.FILENAME.getName());
-        checkedAttributeNames.add(FetchBoxFiles.ERROR_CODE_ATTRIBUTE);
+        checkedAttributeNames.add(FetchBoxFile.ERROR_CODE_ATTRIBUTE);
 
         return checkedAttributeNames;
     }

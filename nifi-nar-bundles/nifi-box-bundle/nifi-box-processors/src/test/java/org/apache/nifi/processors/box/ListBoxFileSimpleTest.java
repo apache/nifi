@@ -35,8 +35,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
-public class ListBoxFilesSimpleTest implements SimpleListBoxFileTestTrait {
-    private ListBoxFiles testSubject;
+public class ListBoxFileSimpleTest implements SimpleListBoxFileTestTrait {
+    private ListBoxFile testSubject;
 
     private ProcessContext mockProcessContext;
     private BoxClientService mockBoxClientService;
@@ -54,7 +54,7 @@ public class ListBoxFilesSimpleTest implements SimpleListBoxFileTestTrait {
 
         mockBoxFolder = mock(BoxFolder.class);
 
-        testSubject = new ListBoxFiles() {
+        testSubject = new ListBoxFile() {
             @Override
             BoxFolder getFolder(String folderId) {
                 return mockBoxFolder;

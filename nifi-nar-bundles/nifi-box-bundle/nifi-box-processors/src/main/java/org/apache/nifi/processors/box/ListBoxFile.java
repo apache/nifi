@@ -62,7 +62,7 @@ import java.util.stream.Collectors;
     "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single FlowFile. " +
     "This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the " +
     "previous node left off without duplicating all of the data.")
-@SeeAlso({FetchBoxFiles.class})
+@SeeAlso({FetchBoxFile.class})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @WritesAttributes({@WritesAttribute(attribute = BoxFileInfo.ID, description = "The id of the file"),
     @WritesAttribute(attribute = BoxFileInfo.FILENAME, description = "The name of the file"),
@@ -71,7 +71,7 @@ import java.util.stream.Collectors;
     @WritesAttribute(attribute = BoxFileInfo.TIMESTAMP, description = "The last modified time of the file.")})
 @Stateful(scopes = {Scope.CLUSTER}, description = "The processor stores necessary data to be able to keep track what files have been listed already." +
     " What exactly needs to be stored depends on the 'Listing Strategy'.")
-public class ListBoxFiles extends AbstractListProcessor<BoxFileInfo> {
+public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
     public static final PropertyDescriptor FOLDER_ID = new PropertyDescriptor.Builder()
         .name("box-folder-id")
         .displayName("Folder ID")

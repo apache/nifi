@@ -31,8 +31,6 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.proxy.ProxyConfiguration;
-import org.apache.nifi.proxy.ProxySpec;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -75,12 +73,10 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
-    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH};
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
         ACCOUNT_ID,
         APP_CONFIG_FILE,
-        APP_CONFIG_JSON,
-        ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS)
+        APP_CONFIG_JSON
     ));
 
     private volatile BoxAPIConnection boxAPIConnection;
@@ -133,7 +129,6 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         BoxAPIConnection api;
 
         String accountId = context.getProperty(ACCOUNT_ID).evaluateAttributeExpressions().getValue();
-        ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
 
         BoxConfig boxConfig;
         if (context.getProperty(APP_CONFIG_FILE).isSet()) {
@@ -153,9 +148,6 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         }
 
         api = BoxDeveloperEditionAPIConnection.getAppEnterpriseConnection(boxConfig);
-        api.setProxy(proxyConfiguration.createProxy());
-        api.setProxyUsername(proxyConfiguration.getProxyUserName());
-        api.setProxyPassword(proxyConfiguration.getProxyUserPassword());
 
         api.asUser(accountId);
 

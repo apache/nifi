@@ -39,8 +39,8 @@ import java.util.stream.Collectors;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
-public class ListBoxFilesTestRunnerTest implements SimpleListBoxFileTestTrait {
-    private ListBoxFiles testSubject;
+public class ListBoxFileTestRunnerTest implements SimpleListBoxFileTestTrait {
+    private ListBoxFile testSubject;
     private TestRunner testRunner;
 
     private BoxAPIConnection mockBoxAPIConnection;
@@ -54,7 +54,7 @@ public class ListBoxFilesTestRunnerTest implements SimpleListBoxFileTestTrait {
         mockBoxAPIConnection = mock(BoxAPIConnection.class);
         mockBoxFolder = mock(BoxFolder.class);
 
-        testSubject = new ListBoxFiles() {
+        testSubject = new ListBoxFile() {
             @Override
             BoxFolder getFolder(String folderId) {
                 return mockBoxFolder;
@@ -62,7 +62,7 @@ public class ListBoxFilesTestRunnerTest implements SimpleListBoxFileTestTrait {
         };
 
         testRunner = TestRunners.newTestRunner(testSubject);
-        testRunner.setProperty(ListBoxFiles.FOLDER_ID, folderId);
+        testRunner.setProperty(ListBoxFile.FOLDER_ID, folderId);
 
         BoxClientService boxClientService = mock(BoxClientService.class);
         doReturn(boxClientService.toString()).when(boxClientService).getIdentifier();
@@ -126,14 +126,14 @@ public class ListBoxFilesTestRunnerTest implements SimpleListBoxFileTestTrait {
         testRunner.run();
 
         // THEN
-        testRunner.assertContents(ListBoxFiles.REL_SUCCESS, expectedContents);
+        testRunner.assertContents(ListBoxFile.REL_SUCCESS, expectedContents);
     }
 
     private void addJsonRecordWriterFactory() throws InitializationException {
         RecordSetWriterFactory recordSetWriter = new JsonRecordSetWriter();
         testRunner.addControllerService("record_writer", recordSetWriter);
         testRunner.enableControllerService(recordSetWriter);
-        testRunner.setProperty(ListBoxFiles.RECORD_WRITER, "record_writer");
+        testRunner.setProperty(ListBoxFile.RECORD_WRITER, "record_writer");
     }
 
     private void testOutputAsAttributes(
@@ -162,7 +162,7 @@ public class ListBoxFilesTestRunnerTest implements SimpleListBoxFileTestTrait {
         testRunner.run();
 
         // THEN
-        testRunner.assertAttributes(ListBoxFiles.REL_SUCCESS, getCheckedAttributeNames(), expectedAttributes);
+        testRunner.assertAttributes(ListBoxFile.REL_SUCCESS, getCheckedAttributeNames(), expectedAttributes);
     }
 
     private Set<String> getCheckedAttributeNames() {

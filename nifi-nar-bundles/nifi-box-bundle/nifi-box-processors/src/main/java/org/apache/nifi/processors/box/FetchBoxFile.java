@@ -46,13 +46,13 @@ import java.util.Set;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"box", "storage", "fetch"})
-@CapabilityDescription("Fetches files from a Box Folder. Designed to be used in tandem with ListBoxFiles.")
-@SeeAlso({ListBoxFiles.class})
+@CapabilityDescription("Fetches files from a Box Folder. Designed to be used in tandem with ListBoxFile.")
+@SeeAlso({ListBoxFile.class})
 @WritesAttributes({
-    @WritesAttribute(attribute = FetchBoxFiles.ERROR_CODE_ATTRIBUTE, description = "The error code returned by Box when the fetch of a file fails"),
-    @WritesAttribute(attribute = FetchBoxFiles.ERROR_MESSAGE_ATTRIBUTE, description = "The error message returned by Box when the fetch of a file fails")
+    @WritesAttribute(attribute = FetchBoxFile.ERROR_CODE_ATTRIBUTE, description = "The error code returned by Box when the fetch of a file fails"),
+    @WritesAttribute(attribute = FetchBoxFile.ERROR_MESSAGE_ATTRIBUTE, description = "The error message returned by Box when the fetch of a file fails")
 })
-public class FetchBoxFiles extends AbstractProcessor {
+public class FetchBoxFile extends AbstractProcessor {
     public static final String ERROR_CODE_ATTRIBUTE = "error.code";
     public static final String ERROR_MESSAGE_ATTRIBUTE = "error.message";
 

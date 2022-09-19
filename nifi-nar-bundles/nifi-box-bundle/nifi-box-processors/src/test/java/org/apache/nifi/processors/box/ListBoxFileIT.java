@@ -33,16 +33,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * See Javadoc {@link AbstractBoxFilesIT} for instructions how to run this test.
  */
-public class ListBoxFilesIT extends AbstractBoxFilesIT<ListBoxFiles> {
+public class ListBoxFileIT extends AbstractBoxFilesIT<ListBoxFile> {
     @BeforeEach
     public void init() throws Exception {
         super.init();
-        testRunner.setProperty(ListBoxFiles.FOLDER_ID, mainFolderId);
+        testRunner.setProperty(ListBoxFile.FOLDER_ID, mainFolderId);
     }
 
     @Override
-    public ListBoxFiles createTestSubject() {
-        ListBoxFiles testSubject = new ListBoxFiles();
+    public ListBoxFile createTestSubject() {
+        ListBoxFile testSubject = new ListBoxFile();
 
         return testSubject;
     }
@@ -97,8 +97,8 @@ public class ListBoxFilesIT extends AbstractBoxFilesIT<ListBoxFiles> {
         ));
 
         // WHEN
-        testRunner.setProperty(ListBoxFiles.FOLDER_ID, main_sub1.getID());
-        testRunner.setProperty(ListBoxFiles.RECURSIVE_SEARCH, "false");
+        testRunner.setProperty(ListBoxFile.FOLDER_ID, main_sub1.getID());
+        testRunner.setProperty(ListBoxFile.RECURSIVE_SEARCH, "false");
         testRunner.run();
 
         // THEN
@@ -110,7 +110,7 @@ public class ListBoxFilesIT extends AbstractBoxFilesIT<ListBoxFiles> {
     @Test
     void doNotListTooYoungFilesWhenMinAgeIsSet() throws Exception {
         // GIVEN
-        testRunner.setProperty(ListBoxFiles.MIN_AGE, "15 s");
+        testRunner.setProperty(ListBoxFile.MIN_AGE, "15 s");
 
         createFileWithDefaultContent("main_file", mainFolderId);
 
@@ -144,7 +144,7 @@ public class ListBoxFilesIT extends AbstractBoxFilesIT<ListBoxFiles> {
     }
 
     private Set<String> getActualFileNames() {
-        List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ListBoxFiles.REL_SUCCESS);
+        List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ListBoxFile.REL_SUCCESS);
 
         Set<String> actualFileNames = successFlowFiles.stream()
             .map(flowFile -> flowFile.getAttribute("filename"))
