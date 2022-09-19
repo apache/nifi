@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.service;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.JdkSSLOptions;
-import com.datastax.driver.core.Metadata;
-import com.datastax.driver.core.ProtocolOptions;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.SocketOptions;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.CqlSessionBuilder;
+import com.datastax.oss.driver.api.core.metadata.Metadata;
+import com.datastax.oss.driver.api.core.config.OptionsMap;
+import com.datastax.oss.driver.api.core.config.TypedDriverOption;
+import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
@@ -112,7 +111,7 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
             .name("Consistency Level")
             .description("The strategy for how many replicas must respond before results are returned.")
             .required(true)
-            .allowableValues(ConsistencyLevel.values())
+            //.allowableValues(ConsistencyLevel.values())
             .defaultValue("ONE")
             .build();
 
@@ -120,7 +119,7 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
             .name("Compression Type")
             .description("Enable compression at transport-level requests and responses")
             .required(false)
-            .allowableValues(ProtocolOptions.Compression.values())
+            //.allowableValues(ProtocolOptions.Compression.values())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("NONE")
             .build();
@@ -144,8 +143,8 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
         .build();
 
     private List<PropertyDescriptor> properties;
-    private Cluster cluster;
-    private Session cassandraSession;
+    private CqlSession cluster;
+    private CqlSession cassandraSession;
 
     @Override
     public void init(final ControllerServiceInitializationContext context) {
@@ -187,17 +186,21 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
         }
     }
 
-    @Override
-    public Cluster getCluster() {
-        if (cluster != null) {
-            return cluster;
-        } else {
-            throw new ProcessException("Unable to get the Cassandra cluster detail.");
-        }
-    }
+    // comment this
+    // I am not sure if we still need to override and "cluster details"
+    // since this doesnt exist in [] i believe its not needed here
+    //// can we get the same details from getMetadata ?? are they needed?
+    //@Override
+    // public CqlSession getCluster() {
+    //    if (cluster != null) {
+    //        return cluster;
+    //    } else {
+    //        throw new ProcessException("Unable to get the Cassandra cluster detail.");
+    //    }
+    //}
 
     @Override
-    public Session getCassandraSession() {
+    public CqlSession getCassandraSession() {
         if (cassandraSession != null) {
             return cassandraSession;
         } else {
@@ -209,6 +212,7 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
         if (cluster == null) {
             ComponentLog log = getLogger();
             final String contactPointList = context.getProperty(CONTACT_POINTS).evaluateAttributeExpressions().getValue();
+            final String keySpace = context.getProperty(KEYSPACE).getValue();
             final String consistencyLevel = context.getProperty(CONSISTENCY_LEVEL).getValue();
             final String compressionType = context.getProperty(COMPRESSION_TYPE).getValue();
 
@@ -248,18 +252,12 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
                 .map(PropertyValue::asInteger);
 
             // Create the cluster and connect to it
-            Cluster newCluster = createCluster(contactPoints, sslContext, username, password, compressionType, readTimeoutMillisOptional, connectTimeoutMillisOptional);
-            PropertyValue keyspaceProperty = context.getProperty(KEYSPACE).evaluateAttributeExpressions();
-            final Session newSession;
-            if (keyspaceProperty != null) {
-                newSession = newCluster.connect(keyspaceProperty.getValue());
-            } else {
-                newSession = newCluster.connect();
-            }
-            newCluster.getConfiguration().getQueryOptions().setConsistencyLevel(ConsistencyLevel.valueOf(consistencyLevel));
+            CqlSession newCluster = createCluster(contactPoints, keySpace, sslContext, username, password, compressionType, readTimeoutMillisOptional, connectTimeoutMillisOptional, consistencyLevel);
+
+            final CqlSession newSession;
+            newSession = newCluster;
             Metadata metadata = newCluster.getMetadata();
             log.info("Connected to Cassandra cluster: {}", new Object[]{metadata.getClusterName()});
-
             cluster = newCluster;
             cassandraSession = newSession;
         }
@@ -285,34 +283,59 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
         return contactPoints;
     }
 
-    private Cluster createCluster(List<InetSocketAddress> contactPoints, SSLContext sslContext,
+    private CqlSession createCluster(List<InetSocketAddress> contactPoints, String keyspace, SSLContext sslContext,
                                   String username, String password, String compressionType,
-                                  Optional<Integer> readTimeoutMillisOptional, Optional<Integer> connectTimeoutMillisOptional) {
-        Cluster.Builder builder = Cluster.builder().addContactPointsWithPorts(contactPoints);
+                                  Optional<Integer> readTimeoutMillisOptional, Optional<Integer> connectTimeoutMillisOptional, String consistencyLevel) {
+
+        CqlSessionBuilder builder = CqlSession.builder().addContactPoint((InetSocketAddress) contactPoints);
+        builder = builder.withKeyspace(keyspace);
 
         if (sslContext != null) {
-            JdkSSLOptions sslOptions = JdkSSLOptions.builder()
-                    .withSSLContext(sslContext)
-                    .build();
-            builder = builder.withSSL(sslOptions);
+            builder = builder.withSslContext(sslContext);
         }
-
+        // this needs work, including upgrades for secure bundle / auth ?? 
         if (username != null && password != null) {
             builder = builder.withCredentials(username, password);
         }
 
-        if(ProtocolOptions.Compression.SNAPPY.equals(compressionType)) {
-            builder = builder.withCompression(ProtocolOptions.Compression.SNAPPY);
-        } else if(ProtocolOptions.Compression.LZ4.equals(compressionType)) {
-            builder = builder.withCompression(ProtocolOptions.Compression.LZ4);
+        // create OptionsMap
+        OptionsMap map = OptionsMap.driverDefaults();
+
+        //if(ProtocolOptions.Compression.SNAPPY.equals(compressionType)) {
+        //    builder = builder.withCompression(ProtocolOptions.Compression.SNAPPY);
+        //} else if(ProtocolOptions.Compression.LZ4.equals(compressionType)) {
+        //    builder = builder.withCompression(ProtocolOptions.Compression.LZ4);
+        //}
+
+        // test compression type in map
+        //// not working no compression type??
+        ////map.put(TypedDriverOption.COMPRESSION_TYPE, compressionType);
+        
+        // test consistency level in map
+        //// not working 
+        ////map.put(TypedDriverOption.REQUEST_CONSISTENCY, consistencyLevel);
+
+        //SocketOptions socketOptions = new SocketOptions();
+        //readTimeoutMillisOptional.ifPresent(socketOptions::setReadTimeoutMillis);
+
+        // testing read timeout in map
+        
+        if(readTimeoutMillisOptional.isPresent()) {
+            //// not working value not excepted
+            ////map.put(TypedDriverOption.REQUEST_TIMEOUT, readTimeoutMillisOptional.get());
+        }
+        //connectTimeoutMillisOptional.ifPresent(socketOptions::setConnectTimeoutMillis);
+
+        // testing connect timeout in map
+        if(connectTimeoutMillisOptional.isPresent()) {
+            //// not working value not excepted
+            ////map.put(TypedDriverOption.CONNECTION_CONNECT_TIMEOUT,connectTimeoutMillisOptional.get());
         }
 
-        SocketOptions socketOptions = new SocketOptions();
-        readTimeoutMillisOptional.ifPresent(socketOptions::setReadTimeoutMillis);
-        connectTimeoutMillisOptional.ifPresent(socketOptions::setConnectTimeoutMillis);
+        //builder.withSocketOptions(socketOptions);
 
-        builder.withSocketOptions(socketOptions);
-
+        DriverConfigLoader loader = DriverConfigLoader.fromMap(map);
+        builder = builder.withConfigLoader(loader);
         return builder.build();
     }
 }

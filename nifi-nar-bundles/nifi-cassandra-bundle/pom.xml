@@ -23,8 +23,8 @@
     </parent>
 
     <properties>
-        <cassandra.sdk.version>3.10.2</cassandra.sdk.version>
-        <cassandra.guava.version>19.0</cassandra.guava.version>
+        <cassandra.sdk.version>4.14.0</cassandra.sdk.version>
+        <cassandra.guava.version>25.0</cassandra.guava.version>
     </properties>
 
     <artifactId>nifi-cassandra-bundle</artifactId>
