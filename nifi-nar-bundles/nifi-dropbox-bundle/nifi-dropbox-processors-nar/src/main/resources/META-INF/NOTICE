@@ -36,8 +36,3 @@ The following binary components are provided under the Apache Software License v
       A list of contributors may be found from CREDITS file, which is included
       in some artifacts (usually source distributions); but is always available
       from the source code management (SCM) system project uses.
-
-  (ASLv2) OkHttp
-    The following NOTICE information applies:
-      OkHttp
-      Copyright (C) 2019 Square, Inc.
