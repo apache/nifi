@@ -49,7 +49,7 @@ import static org.mockito.Mockito.mock;
  * <br />
  * Created files and folders are cleaned up, but it's advisable to dedicate a folder for this test so that it can be cleaned up easily should the test fail to do so.
  */
-public abstract class AbstractBoxFilesIT<T extends Processor> {
+public abstract class AbstractBoxFileIT<T extends Processor> {
     static final String FOLDER_ID = "";
     static final String ACCOUNT_ID = "";
     static final String APP_CONFIG_FILE = "";

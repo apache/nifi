@@ -31,9 +31,9 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * See Javadoc {@link AbstractBoxFilesIT} for instructions how to run this test.
+ * See Javadoc {@link AbstractBoxFileIT} for instructions how to run this test.
  */
-public class ListBoxFileIT extends AbstractBoxFilesIT<ListBoxFile> {
+public class ListBoxFileIT extends AbstractBoxFileIT<ListBoxFile> {
     @BeforeEach
     public void init() throws Exception {
         super.init();

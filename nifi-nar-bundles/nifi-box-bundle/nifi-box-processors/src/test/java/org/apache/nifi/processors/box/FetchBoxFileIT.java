@@ -29,9 +29,9 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * See Javadoc {@link AbstractBoxFilesIT} for instructions how to run this test.
+ * See Javadoc {@link AbstractBoxFileIT} for instructions how to run this test.
  */
-public class FetchBoxFileIT extends AbstractBoxFilesIT<FetchBoxFile> {
+public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
     @Override
     public FetchBoxFile createTestSubject() {
         FetchBoxFile testSubject = new FetchBoxFile();
