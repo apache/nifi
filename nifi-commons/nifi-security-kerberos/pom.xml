@@ -43,7 +43,7 @@
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-minikdc</artifactId>
-            <version>3.3.3</version>
+            <version>${hadoop.version}</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
