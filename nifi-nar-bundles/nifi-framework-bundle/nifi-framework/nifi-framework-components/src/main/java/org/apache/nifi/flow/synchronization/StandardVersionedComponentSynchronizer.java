@@ -2968,10 +2968,12 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         if (versionedPort.getScheduledState() == org.apache.nifi.flow.ScheduledState.RUNNING) {
             if (portState != ScheduledState.RUNNING) {
                 context.getComponentScheduler().startComponent(remoteGroupPort);
+                notifyScheduledStateChange(remoteGroupPort, syncOptions, org.apache.nifi.flow.ScheduledState.RUNNING);
             }
         } else {
             if (portState == ScheduledState.RUNNING) {
                 context.getComponentScheduler().stopComponent(remoteGroupPort);
+                notifyScheduledStateChange(remoteGroupPort, syncOptions, org.apache.nifi.flow.ScheduledState.ENABLED);
             }
         }
     }
