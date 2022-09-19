@@ -43,6 +43,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Tags({"amqp", "rabbit", "get", "message", "receive", "consume"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -227,17 +228,9 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         return headerString;
     }
 
-    public static String convertMapToString(Map<String, Object> headers,Character valueSeparatorForHeaders) {
-        StringBuilder stringBuilder = new StringBuilder();
-        boolean notFirst = false;
-        for (Map.Entry<String, Object> entry : headers.entrySet()) {
-            if (notFirst) {
-                stringBuilder.append(valueSeparatorForHeaders);
-            }
-            stringBuilder.append(entry.getKey()).append("=").append(entry.getValue().toString());
-            notFirst = true;
-        }
-        return stringBuilder.toString();
+    private static String convertMapToString(Map<String, Object> headers,Character valueSeparatorForHeaders) {
+        return headers.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue())
+                .collect(Collectors.joining(new StringBuilder().append(valueSeparatorForHeaders)));
     }
 
     @Override
