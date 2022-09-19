@@ -73,7 +73,6 @@ public class SmbListableEntity implements ListableEntity {
                 new RecordField("filename", RecordFieldType.STRING.getDataType(), false),
                 new RecordField("shortName", RecordFieldType.STRING.getDataType(), false),
                 new RecordField("path", RecordFieldType.STRING.getDataType(), false),
-                new RecordField("absolute.path", RecordFieldType.STRING.getDataType(), false),
                 new RecordField("lastModifiedTime", RecordFieldType.LONG.getDataType(), false),
                 new RecordField("creationTime", RecordFieldType.LONG.getDataType(), false),
                 new RecordField("lastAccessTime", RecordFieldType.LONG.getDataType(), false),
