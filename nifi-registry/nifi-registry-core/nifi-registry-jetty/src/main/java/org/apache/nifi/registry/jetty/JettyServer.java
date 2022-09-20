@@ -73,6 +73,8 @@ public class JettyServer {
     private static final Logger logger = LoggerFactory.getLogger(JettyServer.class);
     private static final String WEB_DEFAULTS_XML = "org/apache/nifi-registry/web/webdefault.xml";
     private static final int HEADER_BUFFER_SIZE = 16 * 1024; // 16kb
+    private static final String CIPHER_SUITE_SEPARATOR_PATTERN = ",\\s*";
+
 
     private static final FileFilter WAR_FILTER = new FileFilter() {
         @Override
@@ -214,6 +216,10 @@ public class JettyServer {
         }
     }
 
+    private static String[] getCipherSuites(final String cipherSuitesProperty) {
+        return cipherSuitesProperty.split(CIPHER_SUITE_SEPARATOR_PATTERN);
+    }
+
     private SslContextFactory createSslContextFactory() {
         final SslContextFactory.Server contextFactory = new SslContextFactory.Server();
 
@@ -257,6 +263,18 @@ public class JettyServer {
         }
         if (StringUtils.isNotBlank(properties.getTrustStorePassword())) {
             contextFactory.setTrustStorePassword(properties.getTrustStorePassword());
+        }
+
+        final String includeCipherSuites = properties.getHttpsCipherSuitesInclude();
+        if (StringUtils.isNotBlank(includeCipherSuites)) {
+            final String[] cipherSuites = getCipherSuites(includeCipherSuites);
+            contextFactory.setIncludeCipherSuites(cipherSuites);
+        }
+
+        final String excludeCipherSuites = properties.getHttpsCipherSuitesExclude();
+        if (StringUtils.isNotBlank(excludeCipherSuites)) {
+            final String[] cipherSuites = getCipherSuites(excludeCipherSuites);
+            contextFactory.setExcludeCipherSuites(cipherSuites);
         }
 
         return contextFactory;

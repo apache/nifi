@@ -133,4 +133,33 @@ class JettyServerGroovyTest extends GroovyTestCase {
         // Act but expect exception
         SslContextFactory sslContextFactory = testServer.createSslContextFactory()
     }
+
+    @Test
+    void testCreateSslContextFactoryWithCipherSuites() throws Exception {
+
+        // Arrange
+        NiFiRegistryProperties properties = new NiFiRegistryProperties()
+        properties.setProperty(NiFiRegistryProperties.SECURITY_TRUSTSTORE, "src/test/resources/truststore.jks")
+        properties.setProperty(NiFiRegistryProperties.SECURITY_TRUSTSTORE_PASSWD, truststorePassword)
+        properties.setProperty(NiFiRegistryProperties.SECURITY_TRUSTSTORE_TYPE, "JKS")
+        properties.setProperty(NiFiRegistryProperties.SECURITY_KEYSTORE, "src/test/resources/keystoreSamePassword.jks")
+        properties.setProperty(NiFiRegistryProperties.SECURITY_KEYSTORE_PASSWD, matchingPassword)
+        properties.setProperty(NiFiRegistryProperties.SECURITY_KEYSTORE_TYPE, "JKS")
+        properties.setProperty(NiFiRegistryProperties.WEB_HTTPS_CIPHERSUITES_INCLUDE, "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256,TLS_DHE_RSA_WITH_AES_256_GCM_SHA384")
+        properties.setProperty(NiFiRegistryProperties.WEB_HTTPS_CIPHERSUITES_EXCLUDE, "BAD_CIPHER")
+
+        Server internalServer = new Server()
+        JettyServer testServer = new JettyServer(internalServer, properties)
+
+        // Act
+        SslContextFactory sslContextFactory = testServer.createSslContextFactory()
+        sslContextFactory.start()
+
+        // Assert this
+        assertNotNull(sslContextFactory)
+        assertNotNull(sslContextFactory.getSslContext())
+        assertEquals("INCLUDE_CIPHER_SUITES", sslContextFactory.getIncludeCipherSuites(), ["TLS_DHE_RSA_WITH_AES_128_GCM_SHA256","TLS_DHE_RSA_WITH_AES_256_GCM_SHA384"])
+        assertEquals("EXCLUDE_CIPHER_SUITES", sslContextFactory.getExcludeCipherSuites(), ["BAD_CIPHER"])
+    }
+
 }
