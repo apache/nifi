@@ -30,7 +30,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 public final class AzureEventHubUtils {
 
-    public static final String MANAGED_IDENTITY_POLICY = "Managed Identity";
     public static final AllowableValue AZURE_ENDPOINT = new AllowableValue(".servicebus.windows.net","Azure", "Servicebus endpoint for general use");
     public static final AllowableValue AZURE_CHINA_ENDPOINT = new AllowableValue(".servicebus.chinacloudapi.cn", "Azure China", "Servicebus endpoint for China");
     public static final AllowableValue AZURE_GERMANY_ENDPOINT = new AllowableValue(".servicebus.cloudapi.de", "Azure Germany", "Servicebus endpoint for Germany");

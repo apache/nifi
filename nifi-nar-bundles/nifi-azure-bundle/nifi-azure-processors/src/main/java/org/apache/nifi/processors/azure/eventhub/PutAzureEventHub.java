@@ -191,14 +191,6 @@ public class PutAzureEventHub extends AbstractProcessor {
 
     protected EventHubProducerClient createEventHubProducerClient(final ProcessContext context) throws ProcessException {
         final boolean useManagedIdentity = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
-        final String policyName, policyKey;
-        if (useManagedIdentity) {
-            policyName = AzureEventHubUtils.MANAGED_IDENTITY_POLICY;
-            policyKey = null;
-        } else {
-            policyName = context.getProperty(ACCESS_POLICY).getValue();
-            policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
-        }
         final String namespace = context.getProperty(NAMESPACE).getValue();
         final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
@@ -207,11 +199,13 @@ public class PutAzureEventHub extends AbstractProcessor {
             final EventHubClientBuilder eventHubClientBuilder = new EventHubClientBuilder();
 
             final String fullyQualifiedNamespace = String.format("%s%s", namespace, serviceBusEndpoint);
-            if (AzureEventHubUtils.MANAGED_IDENTITY_POLICY.equals(policyName)) {
+            if (useManagedIdentity) {
                 final ManagedIdentityCredentialBuilder managedIdentityCredentialBuilder = new ManagedIdentityCredentialBuilder();
                 final ManagedIdentityCredential managedIdentityCredential = managedIdentityCredentialBuilder.build();
                 eventHubClientBuilder.credential(fullyQualifiedNamespace, eventHubName, managedIdentityCredential);
             } else {
+                final String policyName = context.getProperty(ACCESS_POLICY).getValue();
+                final String policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
                 final AzureNamedKeyCredential azureNamedKeyCredential = new AzureNamedKeyCredential(policyName, policyKey);
                 eventHubClientBuilder.credential(fullyQualifiedNamespace, eventHubName, azureNamedKeyCredential);
             }

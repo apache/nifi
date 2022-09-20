@@ -35,6 +35,7 @@ import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.azure.messaging.eventhubs.EventData;
 import com.azure.messaging.eventhubs.EventHubClientBuilder;
 import com.azure.messaging.eventhubs.EventHubConsumerClient;
+import com.azure.messaging.eventhubs.PartitionProperties;
 import com.azure.messaging.eventhubs.models.EventPosition;
 import com.azure.messaging.eventhubs.models.LastEnqueuedEventProperties;
 import com.azure.messaging.eventhubs.models.PartitionContext;
@@ -49,6 +50,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -172,7 +174,8 @@ public class GetAzureEventHub extends AbstractProcessor {
     }
 
     private volatile BlockingQueue<String> partitionNames = new LinkedBlockingQueue<>();
-    private volatile Instant configuredEnqueueTime;
+    private volatile Instant initialEnqueuedTime;
+    private volatile EventPosition initialEventPosition;
     private volatile int receiverFetchSize;
     private volatile Duration receiverFetchTimeout;
 
@@ -233,11 +236,13 @@ public class GetAzureEventHub extends AbstractProcessor {
         }
         eventHubConsumerClient = eventHubClientBuilder.buildConsumerClient();
 
-        if (context.getProperty(ENQUEUE_TIME).isSet()) {
-            configuredEnqueueTime = Instant.parse(context.getProperty(ENQUEUE_TIME).toString());
+        final PropertyValue enqueuedTimeProperty = context.getProperty(ENQUEUE_TIME);
+        if (enqueuedTimeProperty.isSet()) {
+            initialEnqueuedTime = Instant.parse(enqueuedTimeProperty.getValue());
         } else {
-            configuredEnqueueTime = null;
+            initialEnqueuedTime = Instant.now();
         }
+
         if (context.getProperty(RECEIVER_FETCH_SIZE).isSet()) {
             receiverFetchSize = context.getProperty(RECEIVER_FETCH_SIZE).asInteger();
         } else {
@@ -288,8 +293,18 @@ public class GetAzureEventHub extends AbstractProcessor {
      * @return Iterable of Partition Events or empty when none received
      */
     protected synchronized Iterable<PartitionEvent> receiveEvents(final String partitionId) {
-        final Instant enqueuedTime = configuredEnqueueTime == null ? Instant.now() : configuredEnqueueTime;
-        final EventPosition eventPosition = EventPosition.fromEnqueuedTime(enqueuedTime);
+        final EventPosition eventPosition;
+
+        if (initialEventPosition == null) {
+            getLogger().debug("Receiving Events for Partition [{}] from Initial Enqueued Time [{}]", partitionId, initialEnqueuedTime);
+            initialEventPosition = EventPosition.fromEnqueuedTime(initialEnqueuedTime);
+            eventPosition = initialEventPosition;
+        } else {
+            final PartitionProperties partitionProperties = eventHubConsumerClient.getPartitionProperties(partitionId);
+            final Instant lastEnqueuedTime = partitionProperties.getLastEnqueuedTime();
+            getLogger().debug("Receiving Events for Partition [{}] from Last Enqueued Time [{}]", partitionId, lastEnqueuedTime);
+            eventPosition = EventPosition.fromEnqueuedTime(lastEnqueuedTime);
+        }
 
         return eventHubConsumerClient.receiveFromPartition(partitionId, receiverFetchSize, eventPosition, receiverFetchTimeout);
     }

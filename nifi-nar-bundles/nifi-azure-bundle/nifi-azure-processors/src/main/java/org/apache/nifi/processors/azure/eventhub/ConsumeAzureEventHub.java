@@ -52,6 +52,8 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.azure.eventhub.position.EarliestEventPositionProvider;
+import org.apache.nifi.processors.azure.eventhub.position.LegacyBlobStorageEventPositionProvider;
 import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -442,10 +444,17 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             eventProcessorClientBuilder.prefetchCount(prefetchCount);
         }
 
-        final String initialOffset = context.getProperty(INITIAL_OFFSET).getValue();
-        // EventPosition.latest() is the default behavior is absence of existing checkpoints
-        if (INITIAL_OFFSET_START_OF_STREAM.getValue().equals(initialOffset)) {
-            eventProcessorClientBuilder.initialPartitionEventPosition(new EarliestEventPosition());
+        final Map<String, EventPosition> legacyPartitionEventPosition = getLegacyPartitionEventPosition(blobContainerAsyncClient, consumerGroup);
+        if (legacyPartitionEventPosition.isEmpty()) {
+            final String initialOffset = context.getProperty(INITIAL_OFFSET).getValue();
+            // EventPosition.latest() is the default behavior is absence of existing checkpoints
+            if (INITIAL_OFFSET_START_OF_STREAM.getValue().equals(initialOffset)) {
+                final EarliestEventPositionProvider eventPositionProvider = new EarliestEventPositionProvider();
+                final Map<String, EventPosition> partitionEventPosition = eventPositionProvider.getInitialPartitionEventPosition();
+                eventProcessorClientBuilder.initialPartitionEventPosition(partitionEventPosition);
+            }
+        } else {
+            eventProcessorClientBuilder.initialPartitionEventPosition(legacyPartitionEventPosition);
         }
 
         return eventProcessorClientBuilder.buildEventProcessorClient();
@@ -648,32 +657,22 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         return String.format(FORMAT_STORAGE_CONNECTION_STRING_FOR_SAS_TOKEN, storageAccountName, domainName, storageSasToken);
     }
 
-    /**
-     * Earliest Event Position provides a workaround for implementing a start position other than EventPosition.latest()
-     * The initial number of partitions is not known. This should be replaced pending implementation of
-     * <a href="https://github.com/Azure/azure-sdk-for-java/issues/11431">Azure SDK for Java Issue 11431</a>
-     */
-    private static class EarliestEventPosition extends HashMap<String, EventPosition> {
-        /**
-         * Contains Key returns true in order for PartitionPumpManager to request the EventPosition
-         *
-         * @param partitionId Partition Identifier requested
-         * @return Returns true for all invocations
-         */
-        @Override
-        public boolean containsKey(final Object partitionId) {
-            return true;
+    private Map<String, EventPosition> getLegacyPartitionEventPosition(
+            final BlobContainerAsyncClient blobContainerAsyncClient,
+            final String consumerGroup
+    ) {
+        final LegacyBlobStorageEventPositionProvider legacyBlobStorageEventPositionProvider = new LegacyBlobStorageEventPositionProvider(
+                blobContainerAsyncClient,
+                consumerGroup
+        );
+        final Map<String, EventPosition> partitionEventPosition = legacyBlobStorageEventPositionProvider.getInitialPartitionEventPosition();
+
+        for (final Map.Entry<String, EventPosition> partition : partitionEventPosition.entrySet()) {
+            final String partitionId = partition.getKey();
+            final EventPosition eventPosition = partition.getValue();
+            getLogger().info("Loaded Event Position [{}] for Partition [{}] from Legacy Checkpoint Storage", eventPosition, partitionId);
         }
 
-        /**
-         * Get EventPosition.earliest() for PartitionPumpManager.startPartitionPump()
-         *
-         * @param partitionId Partition Identifier requested
-         * @return EventPosition.earliest()
-         */
-        @Override
-        public EventPosition get(final Object partitionId) {
-            return EventPosition.earliest();
-        }
+        return partitionEventPosition;
     }
 }
