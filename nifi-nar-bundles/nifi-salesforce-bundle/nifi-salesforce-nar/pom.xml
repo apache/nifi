@@ -36,7 +36,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-record-serialization-services-nar</artifactId>
+            <artifactId>nifi-standard-services-api-nar</artifactId>
             <version>1.18.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
