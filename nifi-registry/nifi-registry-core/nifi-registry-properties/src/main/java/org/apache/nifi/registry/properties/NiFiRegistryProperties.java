@@ -51,6 +51,8 @@ public class NiFiRegistryProperties extends ApplicationProperties {
     public static final String WEB_HTTP_HOST = "nifi.registry.web.http.host";
     public static final String WEB_HTTPS_PORT = "nifi.registry.web.https.port";
     public static final String WEB_HTTPS_HOST = "nifi.registry.web.https.host";
+    public static final String WEB_HTTPS_CIPHERSUITES_INCLUDE = "nifi.registry.web.https.ciphersuites.include";
+    public static final String WEB_HTTPS_CIPHERSUITES_EXCLUDE = "nifi.registry.web.https.ciphersuites.exclude";
     public static final String WEB_WORKING_DIR = "nifi.registry.web.jetty.working.directory";
     public static final String WEB_THREADS = "nifi.registry.web.jetty.threads";
     public static final String WEB_SHOULD_SEND_SERVER_VERSION = "nifi.registry.web.should.send.server.version";
@@ -172,6 +174,14 @@ public class NiFiRegistryProperties extends ApplicationProperties {
 
     public String getHttpsHost() {
         return getProperty(WEB_HTTPS_HOST);
+    }
+
+    public String getHttpsCipherSuitesInclude() {
+        return getProperty(WEB_HTTPS_CIPHERSUITES_INCLUDE);
+    }
+
+    public String getHttpsCipherSuitesExclude() {
+        return getProperty(WEB_HTTPS_CIPHERSUITES_EXCLUDE);
     }
 
     public boolean getNeedClientAuth() {

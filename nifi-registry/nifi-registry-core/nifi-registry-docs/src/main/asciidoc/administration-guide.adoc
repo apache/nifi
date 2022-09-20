@@ -101,6 +101,29 @@ should run on. If it is desired that the HTTPS interface be accessible from all 
 
 NOTE: It is important when enabling HTTPS that the `nifi.registry.web.http.port` property be unset.
 
+[[tls_cipher_suites]]
+=== TLS Cipher Suites
+
+The Java Runtime Environment provides the ability to specify custom TLS cipher suites to be used by servers when accepting client connections.  See
+link:https://java.com/en/configure_crypto.html[here^] for more information.  To use this feature for the NiFi web service, the following NiFi properties
+may be set:
+
+[options="header,footer"]
+|==================================================================================================================================================
+| Property Name | Description
+|`nifi.registry.web.https.ciphersuites.include` | Set of ciphers that are available to be used by incoming client connections.  Replaces system defaults if set.
+|`nifi.registry.web.https.ciphersuites.exclude` | Set of ciphers that must not be used by incoming client connections.  Filters available ciphers if set.
+|==================================================================================================================================================
+
+Each property should take the form of a comma-separated list of common cipher names as specified
+link:https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#ciphersuites[here^].  Regular expressions
+(for example `^.*GCM_SHA256$`) may also be specified.
+
+The semantics match the use of the following Jetty APIs:
+
+* link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/util/ssl/SslContextFactory.html#setIncludeCipherSuites(java.lang.String\...)[SslContextFactory.setIncludeCipherSuites()]
+* link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/util/ssl/SslContextFactory.html#setExcludeCipherSuites(java.lang.String\...)[SslContextFactory.setExcludeCipherSuites()]
+
 [[user_authentication]]
 == User Authentication
 
