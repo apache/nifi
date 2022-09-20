@@ -63,7 +63,7 @@ import org.apache.nifi.registry.flow.FlowRegistryClientInitializationContext;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.GhostFlowRegistryClient;
 import org.apache.nifi.registry.flow.StandardFlowRegistryClientInitializationContext;
-import org.apache.nifi.controller.registry.StandardFlowRegistryClientNode;
+import org.apache.nifi.registry.flow.StandardFlowRegistryClientNode;
 import org.apache.nifi.registry.variable.StandardComponentVariableRegistry;
 import org.apache.nifi.reporting.GhostReportingTask;
 import org.apache.nifi.reporting.InitializationException;
@@ -492,6 +492,7 @@ public class ExtensionBuilder {
         if (creationSuccessful) {
             clientNode = new StandardFlowRegistryClientNode(
                     flowController,
+                    flowController.getFlowManager(),
                     client,
                     identifier,
                     validationContextFactory,
@@ -510,6 +511,7 @@ public class ExtensionBuilder {
 
             clientNode = new StandardFlowRegistryClientNode(
                     flowController,
+                    flowController.getFlowManager(),
                     client,
                     identifier,
                     validationContextFactory,

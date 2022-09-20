@@ -17,6 +17,7 @@
 package org.apache.nifi.registry.flow;
 
 import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedParameterContext;
@@ -54,4 +55,6 @@ public interface FlowRegistryClientNode extends ComponentNode {
 
     Set<RegisteredFlowSnapshotMetadata> getFlowVersions(FlowRegistryClientUserContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
     int getLatestVersion(FlowRegistryClientUserContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
+
+    void setComponent(LoggableComponent<FlowRegistryClient> component);
 }

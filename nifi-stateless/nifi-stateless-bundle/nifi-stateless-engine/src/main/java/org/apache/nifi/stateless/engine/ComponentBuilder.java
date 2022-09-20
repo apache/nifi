@@ -39,6 +39,7 @@ import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.flowrepository.FlowRepositoryClientInstantiationException;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
 import org.apache.nifi.controller.parameter.StandardParameterProviderNode;
@@ -62,6 +63,12 @@ import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.FlowRegistryClientInitializationContext;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
+import org.apache.nifi.registry.flow.InMemoryFlowRegistry;
+import org.apache.nifi.registry.flow.StandardFlowRegistryClientInitializationContext;
+import org.apache.nifi.registry.flow.StandardFlowRegistryClientNode;
 import org.apache.nifi.registry.variable.StandardComponentVariableRegistry;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.ReportingTask;
@@ -74,6 +81,7 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public class ComponentBuilder {
@@ -140,6 +148,34 @@ public class ComponentBuilder {
         logger.info("Created Processor of type {} with identifier {}", type, identifier);
 
         return procNode;
+    }
+
+    public FlowRegistryClientNode buildFlowRegistryClient() throws FlowRepositoryClientInstantiationException {
+        final LoggableComponent<FlowRegistryClient> client = createLoggableFlowRegistryClient();
+        final ControllerServiceProvider controllerServiceProvider = statelessEngine.getControllerServiceProvider();
+        final ComponentVariableRegistry componentVariableRegistry = new StandardComponentVariableRegistry(statelessEngine.getRootVariableRegistry());
+        final ReloadComponent reloadComponent = statelessEngine.getReloadComponent();
+        final ExtensionManager extensionManager = statelessEngine.getExtensionManager();
+        final ValidationTrigger validationTrigger = statelessEngine.getValidationTrigger();
+        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider, componentVariableRegistry);
+
+        final FlowRegistryClientNode clientNode = new StandardFlowRegistryClientNode(null, flowManager, client, identifier, validationContextFactory,
+                controllerServiceProvider, type, client.getComponent().getClass().getCanonicalName(), componentVariableRegistry, reloadComponent, extensionManager,
+                validationTrigger, false);
+        logger.info("Flow Registry Client Node of type {} with identifier {}", type, identifier);
+        return clientNode;
+    }
+
+    private LoggableComponent<FlowRegistryClient> createLoggableFlowRegistryClient() throws FlowRepositoryClientInstantiationException {
+        try {
+            final ComponentLog componentLog = new SimpleProcessLogger(identifier, InMemoryFlowRegistry.class.newInstance());
+            final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);
+            final InMemoryFlowRegistry registryClient = new InMemoryFlowRegistry();
+            final LoggableComponent<FlowRegistryClient> nodeComponent = new LoggableComponent<>(registryClient, bundleCoordinate, terminationAwareLogger);
+            return nodeComponent;
+        } catch (final Exception e) {
+            throw new FlowRepositoryClientInstantiationException(type, e);
+        }
     }
 
     public ReportingTaskNode buildReportingTask() throws ReportingTaskInstantiationException {

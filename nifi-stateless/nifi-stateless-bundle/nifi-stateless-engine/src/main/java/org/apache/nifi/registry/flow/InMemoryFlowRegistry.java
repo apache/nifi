@@ -17,6 +17,9 @@
 
 package org.apache.nifi.registry.flow;
 
+import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedExternalFlowMetadata;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -31,7 +34,7 @@ public class InMemoryFlowRegistry extends AbstractFlowRegistryClient implements 
     private final AtomicInteger flowIdGenerator = new AtomicInteger(1);
     private static final String DEFAULT_BUCKET_ID = "stateless-bucket-1";
 
-    private final Map<FlowCoordinates, List<RegisteredFlowSnapshot>> flowSnapshots = new ConcurrentHashMap<>();
+    private final Map<FlowCoordinates, List<VersionedExternalFlow>> flowSnapshots = new ConcurrentHashMap<>();
 
     @Override
     public Set<FlowRegistryBucket> getBuckets(FlowRegistryClientConfigurationContext context) {
@@ -54,9 +57,19 @@ public class InMemoryFlowRegistry extends AbstractFlowRegistryClient implements 
     }
 
     @Override
+    public Set<RegisteredFlow> getFlows(FlowRegistryClientConfigurationContext context, String bucketId) {
+        throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
+    }
+
+    @Override
+    public RegisteredFlowSnapshot registerFlowSnapshot(FlowRegistryClientConfigurationContext context, RegisteredFlowSnapshot flowSnapshot) {
+        throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
+    }
+
+    @Override
     public RegisteredFlow getFlow(FlowRegistryClientConfigurationContext context, String bucketId, String flowId) {
         final FlowCoordinates flowCoordinates = new FlowCoordinates(bucketId, flowId);
-        final List<RegisteredFlowSnapshot> snapshots = flowSnapshots.get(flowCoordinates);
+        final List<VersionedExternalFlow> snapshots = flowSnapshots.get(flowCoordinates);
 
         final SimpleRegisteredFlow versionedFlow = new SimpleRegisteredFlow();
         versionedFlow.setBucketIdentifier(bucketId);
@@ -69,30 +82,47 @@ public class InMemoryFlowRegistry extends AbstractFlowRegistryClient implements 
     }
 
     @Override
-    public Set<RegisteredFlow> getFlows(FlowRegistryClientConfigurationContext context, String bucketId) {
-        throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
-    }
-
-    @Override
     public RegisteredFlowSnapshot getFlowContents(final FlowRegistryClientConfigurationContext context, final String bucketId, final String flowId, final int version) throws FlowRegistryException {
         if (context.getNiFiUserIdentity().isPresent()) {
             throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
         }
 
         final FlowCoordinates flowCoordinates = new FlowCoordinates(bucketId, flowId);
-        final List<RegisteredFlowSnapshot> snapshots = flowSnapshots.get(flowCoordinates);
+        final List<VersionedExternalFlow> snapshots = flowSnapshots.get(flowCoordinates);
 
-        final RegisteredFlowSnapshot registeredFlowSnapshot = snapshots.stream()
-                .filter(snapshot -> snapshot.getSnapshotMetadata().getVersion() == version)
+        final VersionedExternalFlow registeredFlowSnapshot = snapshots.stream()
+                .filter(snapshot -> snapshot.getMetadata().getVersion() == version)
                 .findAny()
                 .orElseThrow(() -> new FlowRegistryException("Could not find flow: bucketId=" + bucketId + ", flowId=" + flowId + ", version=" + version));
 
-        return registeredFlowSnapshot;
+        return convertToRegisteredFlowSnapshot(registeredFlowSnapshot);
     }
 
-    @Override
-    public RegisteredFlowSnapshot registerFlowSnapshot(FlowRegistryClientConfigurationContext context, RegisteredFlowSnapshot flowSnapshot) {
-        final RegisteredFlowSnapshotMetadata metadata = flowSnapshot.getSnapshotMetadata();
+    private RegisteredFlowSnapshot convertToRegisteredFlowSnapshot(final VersionedExternalFlow externalFlow) {
+        final VersionedExternalFlowMetadata externalFlowMetadata = externalFlow.getMetadata();
+
+        final SimpleRegisteredFlowSnapshotMetadata snapshotMetadata = new SimpleRegisteredFlowSnapshotMetadata();
+        snapshotMetadata.setBucketIdentifier(externalFlowMetadata.getBucketIdentifier());
+        snapshotMetadata.setVersion(externalFlowMetadata.getVersion());
+        snapshotMetadata.setFlowIdentifier(externalFlowMetadata.getFlowIdentifier());
+
+        final SimpleRegisteredFlow versionedFlow = new SimpleRegisteredFlow();
+        versionedFlow.setName(externalFlowMetadata.getFlowName());
+        versionedFlow.setIdentifier(externalFlowMetadata.getFlowIdentifier());
+        versionedFlow.setBucketIdentifier(externalFlowMetadata.getBucketIdentifier());
+
+        final SimpleRegisteredFlowSnapshot flowSnapshot = new SimpleRegisteredFlowSnapshot();
+        flowSnapshot.setExternalControllerServices(externalFlow.getExternalControllerServices());
+        flowSnapshot.setFlowContents(externalFlow.getFlowContents());
+        flowSnapshot.setParameterContexts(externalFlow.getParameterContexts());
+        flowSnapshot.setSnapshotMetadata(snapshotMetadata);
+        flowSnapshot.setFlow(versionedFlow);
+
+        return flowSnapshot;
+    }
+
+    public synchronized void addFlowSnapshot(final VersionedExternalFlow versionedExternalFlow) {
+        final VersionedExternalFlowMetadata metadata = versionedExternalFlow.getMetadata();
         final String bucketId;
         final String flowId;
         final int version;
@@ -108,17 +138,16 @@ public class InMemoryFlowRegistry extends AbstractFlowRegistryClient implements 
 
         final FlowCoordinates coordinates = new FlowCoordinates(bucketId, flowId);
 
-        final List<RegisteredFlowSnapshot> snapshots = flowSnapshots.computeIfAbsent(coordinates, key -> Collections.synchronizedList(new ArrayList<>()));
-        final Optional<RegisteredFlowSnapshot> optionalSnapshot = snapshots.stream()
-                .filter(snapshot -> snapshot.getSnapshotMetadata().getVersion() == version)
+        final List<VersionedExternalFlow> snapshots = flowSnapshots.computeIfAbsent(coordinates, key -> Collections.synchronizedList(new ArrayList<>()));
+        final Optional<VersionedExternalFlow> optionalSnapshot = snapshots.stream()
+                .filter(snapshot -> snapshot.getMetadata().getVersion() == version)
                 .findAny();
 
         if (optionalSnapshot.isPresent()) {
             throw new IllegalStateException("Versioned Flow Snapshot already exists for bucketId=" + bucketId + ", flowId=" + flowId + ", version=" + version);
         }
 
-        snapshots.add(flowSnapshot);
-        return flowSnapshot;
+        snapshots.add(versionedExternalFlow);
     }
 
     @Override

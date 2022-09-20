@@ -41,6 +41,7 @@ import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.flow.AbstractFlowManager;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.flowrepository.FlowRepositoryClientInstantiationException;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.label.StandardLabel;
 import org.apache.nifi.controller.queue.ConnectionEventListener;
@@ -56,6 +57,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.StandardProcessGroup;
 import org.apache.nifi.logging.ControllerServiceLogObserver;
+import org.apache.nifi.logging.FlowRegistryClientLogObserver;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
@@ -324,14 +326,38 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
     }
 
     @Override
-    public FlowRegistryClientNode createFlowRegistryClient(String type, String id, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls, boolean firstTimeAdded, boolean registerLogObserver, String classloaderIsolationKey) {
-        // TODO-NIFI-10497
-        return null;
+    public FlowRegistryClientNode createFlowRegistryClient(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls,
+                                                           final boolean firstTimeAdded, final boolean registerLogObserver, final String classloaderIsolationKey) {
+        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
+
+        final FlowRegistryClientNode clientNode;
+        try {
+            clientNode = new ComponentBuilder()
+                    .identifier(id)
+                    .type(type)
+                    .statelessEngine(statelessEngine)
+                    .additionalClassPathUrls(additionalUrls)
+                    .flowManager(this)
+                    .buildFlowRegistryClient();
+        } catch (final FlowRepositoryClientInstantiationException e) {
+            throw new IllegalStateException("Could not create Flow Registry Client of type " + type + " with ID " + id, e);
+        }
+
+        onFlowRegistryClientAdded(clientNode);
+        LogRepositoryFactory.getRepository(clientNode.getIdentifier()).setLogger(clientNode.getLogger());
+
+        if (registerLogObserver) {
+
+            // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
+            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN, new FlowRegistryClientLogObserver(bulletinRepository, clientNode));
+        }
+
+        return clientNode;
     }
 
     @Override
     public void removeFlowRegistryClientNode(FlowRegistryClientNode clientNode) {
-        // TODO-NIFI-10497 Add proper implementation
+        throw new UnsupportedOperationException("Removing Flow Registry Client is not supported in Stateless NiFi");
     }
 
     @Override

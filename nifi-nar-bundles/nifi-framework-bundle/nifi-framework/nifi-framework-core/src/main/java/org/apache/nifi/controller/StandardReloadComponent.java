@@ -33,6 +33,7 @@ import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessContext;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.ReflectionUtils;
@@ -276,6 +277,30 @@ public class StandardReloadComponent implements ReloadComponent {
             existingNode.getLogger().debug("Reloading component {} to type {} from bundle {}", new Object[]{id, newType, bundleCoordinate});
         }
 
-    }
+        final ExtensionManager extensionManager = flowController.getExtensionManager();
 
+        // createFlowRegistryClient will create a new instance class loader for the same id so
+        final ClassLoader existingInstanceClassLoader = extensionManager.getInstanceClassLoader(id);
+
+        // set firstTimeAdded to true so lifecycle annotations get fired, but don't register this node
+        final FlowRegistryClientNode newNode = flowController.getFlowManager().createFlowRegistryClient(newType, id, bundleCoordinate, additionalUrls, true, false, null);
+        extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
+
+        // set the new flow registyr client into the existing node
+        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getComponent());
+        final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
+        LogRepositoryFactory.getRepository(id).setLogger(terminationAwareLogger);
+
+        final LoggableComponent<FlowRegistryClient> newClient = new LoggableComponent(newNode.getComponent(), newNode
+                .getBundleCoordinate(), terminationAwareLogger);
+        existingNode.setComponent(newClient);
+        existingNode.setExtensionMissing(newNode.isExtensionMissing());
+
+        // need to refresh the properties in case we are changing from ghost component to real component
+        existingNode.refreshProperties();
+
+        logger.debug("Triggering async validation of {} due to flow registry client reload", existingNode);
+        flowController.getValidationTrigger().triggerAsync(existingNode);
+
+    }
 }

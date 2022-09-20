@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.registry;
+package org.apache.nifi.registry.flow;
 
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
@@ -28,7 +28,6 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.AbstractComponentNode;
-import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.TerminationAwareLogger;
@@ -45,19 +44,6 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.registry.ComponentVariableRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryBucket;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.registry.flow.FlowRegistryClientConfigurationContext;
-import org.apache.nifi.registry.flow.FlowRegistryClientNode;
-import org.apache.nifi.registry.flow.FlowRegistryClientUserContext;
-import org.apache.nifi.registry.flow.FlowRegistryException;
-import org.apache.nifi.registry.flow.FlowRegistryInvalidException;
-import org.apache.nifi.registry.flow.FlowRegistryUtil;
-import org.apache.nifi.registry.flow.RegisteredFlow;
-import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
-import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
-import org.apache.nifi.registry.flow.SimpleRegisteredFlowSnapshot;
-import org.apache.nifi.registry.flow.SimpleRegisteredFlowSnapshotMetadata;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
@@ -67,16 +53,19 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public final class StandardFlowRegistryClientNode extends AbstractComponentNode implements FlowRegistryClientNode {
 
-    private final FlowController flowController;
-    private final LoggableComponent<FlowRegistryClient> client;
+    private final FlowManager flowManager;
+    private final Authorizable parent;
+    private final AtomicReference<LoggableComponent<FlowRegistryClient>> client = new AtomicReference<>();
     private volatile String description;
 
     public StandardFlowRegistryClientNode(
-            final FlowController flowController,
+            final Authorizable parent,
+            final FlowManager flowManager,
             final LoggableComponent<FlowRegistryClient> client,
             final String id,
             final ValidationContextFactory validationContextFactory,
@@ -89,13 +78,14 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
             final ValidationTrigger validationTrigger,
             final boolean isExtensionMissing) {
         super(id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent, extensionManager, validationTrigger, isExtensionMissing);
-        this.flowController = flowController;
-        this.client = client;
+        this.parent = parent;
+        this.flowManager = flowManager;
+        this.client.set(client);
     }
 
     @Override
     public Authorizable getParentAuthorizable() {
-        return flowController;
+        return parent;
     }
 
     @Override
@@ -137,22 +127,22 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
 
     @Override
     public BundleCoordinate getBundleCoordinate() {
-        return client.getBundleCoordinate();
+        return client.get().getBundleCoordinate();
     }
 
     @Override
     public ConfigurableComponent getComponent() {
-        return client.getComponent();
+        return client.get().getComponent();
     }
 
     @Override
     public TerminationAwareLogger getLogger() {
-        return client.getLogger();
+        return client.get().getLogger();
     }
 
     @Override
     public Class<?> getComponentClass() {
-        return client.getComponent().getClass();
+        return client.get().getComponent().getClass();
     }
 
     @Override
@@ -187,39 +177,39 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
 
     @Override
     public Set<FlowRegistryBucket> getBuckets(final FlowRegistryClientUserContext context) throws FlowRegistryException, IOException {
-        return execute(() -> client.getComponent().getBuckets(getConfigurationContext(context)));
+        return execute(() -> client.get().getComponent().getBuckets(getConfigurationContext(context)));
     }
 
     @Override
     public FlowRegistryBucket getBucket(final FlowRegistryClientUserContext context, final String bucketId) throws FlowRegistryException, IOException {
-        return execute(() -> client.getComponent().getBucket(getConfigurationContext(context), bucketId));
+        return execute(() -> client.get().getComponent().getBucket(getConfigurationContext(context), bucketId));
     }
 
     @Override
     public RegisteredFlow registerFlow(final FlowRegistryClientUserContext context, final RegisteredFlow flow) throws FlowRegistryException, IOException {
-        return execute(() -> client.getComponent().registerFlow(getConfigurationContext(context), flow));
+        return execute(() -> client.get().getComponent().registerFlow(getConfigurationContext(context), flow));
     }
 
     @Override
     public RegisteredFlow deregisterFlow(final FlowRegistryClientUserContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
-        return execute(() -> client.getComponent().deregisterFlow(getConfigurationContext(context), bucketId, flowId));
+        return execute(() -> client.get().getComponent().deregisterFlow(getConfigurationContext(context), bucketId, flowId));
     }
 
     @Override
     public RegisteredFlow getFlow(final FlowRegistryClientUserContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
-        return execute(() -> client.getComponent().getFlow(getConfigurationContext(context), bucketId, flowId));
+        return execute(() -> client.get().getComponent().getFlow(getConfigurationContext(context), bucketId, flowId));
     }
 
     @Override
     public Set<RegisteredFlow> getFlows(final FlowRegistryClientUserContext context, final String bucketId) throws FlowRegistryException, IOException {
-        return execute(() -> client.getComponent().getFlows(getConfigurationContext(context), bucketId));
+        return execute(() -> client.get().getComponent().getFlows(getConfigurationContext(context), bucketId));
     }
 
     @Override
     public RegisteredFlowSnapshot getFlowContents(
             final FlowRegistryClientUserContext context, final String bucketId, final String flowId, final int version, final boolean fetchRemoteFlows
     ) throws FlowRegistryException, IOException {
-        final RegisteredFlowSnapshot flowSnapshot = execute(() ->client.getComponent().getFlowContents(getConfigurationContext(context), bucketId, flowId, version));
+        final RegisteredFlowSnapshot flowSnapshot = execute(() ->client.get().getComponent().getFlowContents(getConfigurationContext(context), bucketId, flowId, version));
 
         if (fetchRemoteFlows) {
             final VersionedProcessGroup contents = flowSnapshot.getFlowContents();
@@ -244,17 +234,22 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
 
         final SimpleRegisteredFlowSnapshot registeredFlowSnapshot = createRegisteredFlowSnapshot(
                 context, flow, snapshot, externalControllerServices, parameterContexts, parameterProviderReferences, comments, expectedVersion);
-        return execute(() -> client.getComponent().registerFlowSnapshot(getConfigurationContext(context), registeredFlowSnapshot));
+        return execute(() -> client.get().getComponent().registerFlowSnapshot(getConfigurationContext(context), registeredFlowSnapshot));
     }
 
     @Override
     public Set<RegisteredFlowSnapshotMetadata> getFlowVersions(final FlowRegistryClientUserContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
-        return execute(() -> client.getComponent().getFlowVersions(getConfigurationContext(context), bucketId, flowId));
+        return execute(() -> client.get().getComponent().getFlowVersions(getConfigurationContext(context), bucketId, flowId));
     }
 
     @Override
     public int getLatestVersion(final FlowRegistryClientUserContext context, final String bucketId, final String flowId) throws FlowRegistryException, IOException {
-        return execute(() -> client.getComponent().getLatestVersion(getConfigurationContext(context), bucketId, flowId));
+        return execute(() -> client.get().getComponent().getLatestVersion(getConfigurationContext(context), bucketId, flowId));
+    }
+
+    @Override
+    public void setComponent(final LoggableComponent<FlowRegistryClient> component) {
+        client.set(component);
     }
 
     private <T> T execute(final FlowRegistryClientAction<T> action) throws FlowRegistryException, IOException {
@@ -290,8 +285,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
             final String flowId = coordinates.getFlowId();
             final int version = coordinates.getVersion();
 
-            final FlowManager manager = flowController.getFlowManager();
-            final FlowRegistryClientNode flowRegistry = manager.getFlowRegistryClient(registryId);
+            final FlowRegistryClientNode flowRegistry = flowManager.getFlowRegistryClient(registryId);
             final RegisteredFlowSnapshot snapshot = flowRegistry.getFlowContents(context, bucketId, flowId, version, true);
             final VersionedProcessGroup contents = snapshot.getFlowContents();
 
