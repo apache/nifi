@@ -17,6 +17,8 @@
 package org.apache.nifi.adx;
 
 public enum AzureAdxConnectionServiceParamsEnum {
+
+    AUTH_STRATEGY("Kusto Authentication Method", "The strategy/method to authenticate against Azure Active Directory, either 'application' or 'managed_identity'."),
     INGEST_URL("Ingest URL","URL of the ingestion endpoint of the azure data explorer cluster."),
     APP_ID("Application ID","Azure application ID for accessing the ADX-Cluster"),
     APP_KEY("Application KEY","Azure application Key for accessing the ADX-Cluster"),

@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 
 
+import com.google.common.base.Strings;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
@@ -41,12 +42,13 @@ import org.apache.nifi.reporting.InitializationException;
 @Tags({ "Azure", "ADX", "Kusto", "ingest", "azure"})
 @CapabilityDescription("Sends batches of flowfile content or stream flowfile content to an Azure ADX cluster.")
 @ReadsAttributes({
-        @ReadsAttribute(attribute="INGEST_URL", description="Specifies the URL of ingestion endpoint of the Azure Data Explorer cluster."),
-        @ReadsAttribute(attribute="APP_ID", description="Specifies Azure application id for accessing the ADX-Cluster."),
-        @ReadsAttribute(attribute="APP_KEY", description="Specifies Azure application key for accessing the ADX-Cluster."),
-        @ReadsAttribute(attribute="APP_TENANT", description="Azure application tenant for accessing the ADX-Cluster."),
-        @ReadsAttribute(attribute="IS_STREAMING_ENABLED", description="This property determines whether we want to stream data to ADX."),
-        @ReadsAttribute(attribute="CLUSTER_URL", description="Endpoint of ADX cluster. This is required only when streaming data to ADX cluster is enabled."),
+        @ReadsAttribute(attribute = "AUTH_STRATEGY", description = "The strategy/method to authenticate against Azure Active Directory, either 'application' or 'managed_identity'."),
+        @ReadsAttribute(attribute= "INGEST_URL", description="Specifies the URL of ingestion endpoint of the Azure Data Explorer cluster."),
+        @ReadsAttribute(attribute= "APP_ID", description="Specifies Azure application id for accessing the ADX-Cluster."),
+        @ReadsAttribute(attribute= "APP_KEY", description="Specifies Azure application key for accessing the ADX-Cluster."),
+        @ReadsAttribute(attribute= "APP_TENANT", description="Azure application tenant for accessing the ADX-Cluster."),
+        @ReadsAttribute(attribute= "IS_STREAMING_ENABLED", description="This property determines whether we want to stream data to ADX."),
+        @ReadsAttribute(attribute= "CLUSTER_URL", description="Endpoint of ADX cluster. This is required only when streaming data to ADX cluster is enabled."),
 })
 public class AzureAdxConnectionService extends AbstractControllerService implements AdxConnectionService {
 
@@ -57,6 +59,15 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .addValidator(StandardValidators.URL_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor KUSTO_AUTH_STRATEGY = new PropertyDescriptor
+            .Builder().name(AzureAdxConnectionServiceParamsEnum.AUTH_STRATEGY.name())
+            .displayName(AzureAdxConnectionServiceParamsEnum.AUTH_STRATEGY.getParamDisplayName())
+            .description(AzureAdxConnectionServiceParamsEnum.AUTH_STRATEGY.getDescription())
+            .required(false)
+            .defaultValue("application")
+            .allowableValues("application","managed_identity")
             .build();
 
     public static final PropertyDescriptor APP_ID = new PropertyDescriptor
@@ -103,6 +114,7 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(
             Arrays.asList(
+                    KUSTO_AUTH_STRATEGY,
                     INGEST_URL,
                     APP_ID,
                     APP_KEY,
@@ -130,6 +142,7 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
 
         getLogger().info("Starting Azure ADX Connection Service...");
 
+        final String kustoAuthStrategy = context.getProperty(KUSTO_AUTH_STRATEGY).evaluateAttributeExpressions().getValue();
         final String ingestUrl = context.getProperty(INGEST_URL).evaluateAttributeExpressions().getValue();
         final String app_id = context.getProperty(APP_ID).evaluateAttributeExpressions().getValue();
         final String app_key = context.getProperty(APP_KEY).evaluateAttributeExpressions().getValue();
@@ -141,7 +154,7 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
             onStopped();
         }
 
-        this._ingestClient = createAdxClient(ingestUrl, app_id, app_key, app_tenant,isStreamingEnabled,kustoEngineUrl);
+        this._ingestClient = createAdxClient(ingestUrl, app_id, app_key, app_tenant,isStreamingEnabled,kustoEngineUrl,kustoAuthStrategy);
     }
 
     @OnStopped
@@ -158,33 +171,61 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
     }
 
 
-    protected IngestClient createAdxClient(final String ingestUrl,final String appId,final String appKey,final String appTenant, final Boolean isStreamingEnabled, final String kustoEngineUrl) {
-        IngestClient client;
-        ConnectionStringBuilder kcsb = ConnectionStringBuilder.createWithAadApplicationCredentials(ingestUrl, appId, appKey, appTenant);
-        kcsb.setClientVersionForTracing(Version.CLIENT_NAME + ":" + Version.getVersion());
-
-            try {
-                if(isStreamingEnabled){
-                    ConnectionStringBuilder engineKcsb = ConnectionStringBuilder.createWithAadApplicationCredentials(
-                            kustoEngineUrl,
-                            appId,
-                            appKey,
-                            appTenant
-                    );
-                    client = IngestClientFactory.createManagedStreamingIngestClient(kcsb, engineKcsb);
-                }else{
-                    client = IngestClientFactory.createClient(kcsb);
-                }
-            } catch (Exception e) {
-                getLogger().error("Exception occured while creation of ADX client");
-                throw new ProcessException(e);
-            }
-
-        return client;
+    protected IngestClient createAdxClient(final String ingestUrl,final String appId,final String appKey,final String appTenant, final Boolean isStreamingEnabled, final String kustoEngineUrl, final String kustoAuthStrategy) {
+        return createKustoIngestClient(ingestUrl,appId,appKey,appTenant,isStreamingEnabled,kustoEngineUrl,kustoAuthStrategy);
     }
     @Override
     public IngestClient getAdxClient() {
         return this._ingestClient;
+    }
+
+    public IngestClient createKustoIngestClient(final String ingestUrl,final String appId,final String appKey,final String appTenant, final Boolean isStreamingEnabled, final String kustoEngineUrl, final String kustoAuthStrategy) {
+        IngestClient kustoIngestClient = null;
+        try {
+            ConnectionStringBuilder ingestConnectionStringBuilder = createKustoEngineConnectionString(ingestUrl,appId,appKey,appTenant,kustoAuthStrategy);
+
+            if (isStreamingEnabled) {
+                ConnectionStringBuilder streamingConnectionStringBuilder = createKustoEngineConnectionString(kustoEngineUrl,appId,appKey,appTenant,kustoAuthStrategy);
+                kustoIngestClient = IngestClientFactory.createManagedStreamingIngestClient(ingestConnectionStringBuilder, streamingConnectionStringBuilder);
+            }else{
+                kustoIngestClient = IngestClientFactory.createClient(ingestConnectionStringBuilder);
+            }
+        } catch (Exception e) {
+            throw new ProcessException("Failed to initialize KustoIngestClient", e);
+        }
+        return kustoIngestClient;
+    }
+
+    public ConnectionStringBuilder createKustoEngineConnectionString(final String clusterUrl,final String appId,final String appKey,final String appTenant, final String kustoAuthStrategy) {
+        final ConnectionStringBuilder kcsb;
+
+        switch (kustoAuthStrategy) {
+            case "application":
+                if (!Strings.isNullOrEmpty(appId) && !Strings.isNullOrEmpty(appKey)) {
+                    kcsb = ConnectionStringBuilder.createWithAadApplicationCredentials(
+                            clusterUrl,
+                            appId,
+                            appKey,
+                            appTenant);
+                } else {
+                    throw new ProcessException("Kusto authentication missing App Key.");
+                }
+                break;
+
+            case "managed_identity":
+                kcsb = ConnectionStringBuilder.createWithAadManagedIdentity(
+                        clusterUrl,
+                        appId);
+                break;
+
+            default:
+                throw new ProcessException("Failed to initialize KustoIngestClient, please " +
+                        "provide valid credentials. Either Kusto managed identity or " +
+                        "Kusto appId, appKey, and authority should be configured.");
+        }
+
+        kcsb.setClientVersionForTracing(Version.CLIENT_NAME + ":" + Version.getVersion());
+        return kcsb;
     }
 
 }
