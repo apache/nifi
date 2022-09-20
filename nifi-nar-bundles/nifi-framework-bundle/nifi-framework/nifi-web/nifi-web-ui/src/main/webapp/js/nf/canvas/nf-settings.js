@@ -2847,7 +2847,6 @@
                 select: function () {
                     var tab = $(this).text();
                     if (tab = 'Properties') {
-                        // $('#registry-configuration-dialog').modal('show');
                         $('#registry-properties').propertytable('resetTableSize');
                     }
                 }
