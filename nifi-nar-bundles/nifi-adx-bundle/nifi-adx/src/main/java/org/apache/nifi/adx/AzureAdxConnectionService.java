@@ -171,7 +171,13 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
     }
 
 
-    protected IngestClient createAdxClient(final String ingestUrl,final String appId,final String appKey,final String appTenant, final Boolean isStreamingEnabled, final String kustoEngineUrl, final String kustoAuthStrategy) {
+    protected IngestClient createAdxClient(final String ingestUrl,
+                                           final String appId,
+                                           final String appKey,
+                                           final String appTenant,
+                                           final Boolean isStreamingEnabled,
+                                           final String kustoEngineUrl,
+                                           final String kustoAuthStrategy) {
         return createKustoIngestClient(ingestUrl,appId,appKey,appTenant,isStreamingEnabled,kustoEngineUrl,kustoAuthStrategy);
     }
     @Override
@@ -179,8 +185,14 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
         return this._ingestClient;
     }
 
-    public IngestClient createKustoIngestClient(final String ingestUrl,final String appId,final String appKey,final String appTenant, final Boolean isStreamingEnabled, final String kustoEngineUrl, final String kustoAuthStrategy) {
-        IngestClient kustoIngestClient = null;
+    public IngestClient createKustoIngestClient(final String ingestUrl,
+                                                final String appId,
+                                                final String appKey,
+                                                final String appTenant,
+                                                final Boolean isStreamingEnabled,
+                                                final String kustoEngineUrl,
+                                                final String kustoAuthStrategy) {
+        IngestClient kustoIngestClient;
         try {
             ConnectionStringBuilder ingestConnectionStringBuilder = createKustoEngineConnectionString(ingestUrl,appId,appKey,appTenant,kustoAuthStrategy);
 
