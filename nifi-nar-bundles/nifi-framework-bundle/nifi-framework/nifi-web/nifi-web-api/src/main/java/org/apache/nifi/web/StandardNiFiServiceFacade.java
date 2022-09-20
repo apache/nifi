@@ -3147,6 +3147,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public PropertyDescriptorDTO getRegistryClientPropertyDescriptor(final String id, final String property, final boolean sensitive) {
+        final FlowRegistryClientNode flowRegistryClient = flowRegistryDAO.getFlowRegistryClient(id);
+        final PropertyDescriptor descriptor = getPropertyDescriptor(flowRegistryClient, property, sensitive);
+        return dtoFactory.createPropertyDescriptorDto(descriptor, null);
+    }
+
+    @Override
     public FlowRegistryClientEntity updateRegistryClient(final Revision revision, final FlowRegistryClientDTO flowRegistryClientDTO) {
         final FlowRegistryClientNode flowRegistryClient = flowRegistryDAO.getFlowRegistryClient(flowRegistryClientDTO.getId());
 

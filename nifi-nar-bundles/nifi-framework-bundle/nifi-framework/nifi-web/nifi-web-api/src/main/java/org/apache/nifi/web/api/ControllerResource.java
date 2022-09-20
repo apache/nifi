@@ -40,6 +40,7 @@ import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ClusterEntity;
@@ -53,6 +54,7 @@ import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
+import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.DateTimeParameter;
@@ -751,6 +753,77 @@ public class ControllerResource extends ApplicationResource {
                     return generateOkResponse(populateRemainingRegistryClientEntityContent(entity)).build();
                 }
         );
+    }
+
+    /**
+     * Returns the descriptor for the specified property.
+     *
+     * @param id           The id of the flow registry client.
+     * @param propertyName The property
+     * @return a propertyDescriptorEntity
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/registry-clients/{id}/descriptors")
+    @ApiOperation(
+            value = "Gets a flow registry client property descriptor",
+            response = PropertyDescriptorEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /reporting-tasks/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getPropertyDescriptor(
+            @ApiParam(
+                    value = "The flow registry client id.",
+                    required = true
+            )
+            @PathParam("id") final String id,
+            @ApiParam(
+                    value = "The property name.",
+                    required = true
+            )
+            @QueryParam("propertyName") final String propertyName,
+            @ApiParam(
+                    value = "Property Descriptor requested sensitive status",
+                    defaultValue = "false"
+            )
+            @QueryParam("sensitive") final boolean sensitive
+    ) {
+
+        // ensure the property name is specified
+        if (propertyName == null) {
+            throw new IllegalArgumentException("The property name must be specified.");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable reportingTask = lookup.getReportingTask(id).getAuthorizable();
+            reportingTask.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        // get the property descriptor
+        final PropertyDescriptorDTO descriptor = serviceFacade.getRegistryClientPropertyDescriptor(id, propertyName, sensitive);
+
+        // generate the response entity
+        final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();
+        entity.setPropertyDescriptor(descriptor);
+
+        // generate the response
+        return generateOkResponse(entity).build();
     }
 
     /**

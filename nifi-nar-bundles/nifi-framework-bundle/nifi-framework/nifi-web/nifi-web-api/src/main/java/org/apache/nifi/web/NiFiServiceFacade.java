@@ -2447,6 +2447,16 @@ public interface NiFiServiceFacade {
     Set<FlowRegistryClientEntity> getRegistryClientsForUser();
 
     /**
+     * Get the descriptor for the specified property of the specified flow registry client.
+     *
+     * @param id id
+     * @param property property
+     * @param sensitive requested sensitive status
+     * @return descriptor
+     */
+    PropertyDescriptorDTO getRegistryClientPropertyDescriptor(final String id, final String property, final boolean sensitive);
+
+    /**
      * Gets all buckets for a given registry.
      *
      * @param registryClientId registry client id
