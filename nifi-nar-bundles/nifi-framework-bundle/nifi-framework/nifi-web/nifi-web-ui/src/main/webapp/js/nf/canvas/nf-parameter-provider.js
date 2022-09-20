@@ -1774,6 +1774,7 @@
      */
     var resetFetchParametersDialog = function () {
         $('#fetch-parameters-affected-referencing-components-container').hide();
+        $('#affected-referencing-components-container').hide();
         $('#fetch-parameters-referencing-components-container').show();
         $('#create-parameter-context-input').val('');
 
@@ -1906,7 +1907,7 @@
             // referencing component will be undefined when a new parameter is added
             if (_.isEmpty(referencingComponents)) {
                 // set to pending
-                $('<div class="referencing-component-container"><span class="unset">Pending Apply</span></div>').appendTo(fetchParameterReferencingComponentsContainer);
+                $('<div class="referencing-component-container"><span class="unset">None</span></div>').appendTo(fetchParameterReferencingComponentsContainer);
             } else {
                 // bin the referencing components according to their type
                 $.each(referencingComponents.parameter.parameter.referencingComponents, function (_, referencingComponentEntity) {
@@ -2736,12 +2737,17 @@
                         lastSelectedGroupId = group.id;
 
                         // populate parameter referencing components
-                        if ($('#selectable-parameters-table').is(':visible')) {
-                            var selectableParametersGrid = $('#selectable-parameters-table').data('gridInstance');
-                            var selectedRow = selectableParametersGrid.getSelectedRows()[0];
-                            var parameter = selectableParametersGrid.getData().getItem(selectedRow);
+                        var selectableParametersGrid = $('#selectable-parameters-table').data('gridInstance');
+                        var selectedRow = selectableParametersGrid.getSelectedRows()[0];
+                        var parameter = selectableParametersGrid.getData().getItem(selectedRow);
 
+                        if (parameter && group.isParameterContext) {
                             populateReferencingComponents(parameter.parameterStatus).then(function () {
+                                updateReferencingComponentsBorder($('#fetch-parameters-referencing-components-container'));
+                            });
+                        } else {
+                            // show 'None' for referencing components
+                            populateReferencingComponents({}).then(function () {
                                 updateReferencingComponentsBorder($('#fetch-parameters-referencing-components-container'));
                             });
                         }
@@ -2783,6 +2789,10 @@
 
     var resetUsage = function () {
         // empty the containers
+        var fetchParameterRefComponents = $('#fetch-parameter-referencing-components-container .referencing-component-references');
+        fetchParameterRefComponents.empty();
+        var fetchParameterRefComponentsContainer = $('#fetch-parameter-referencing-components-container');
+
         var processorContainer = $('.fetch-parameters-referencing-processors');
         nfCommon.cleanUpTooltips(processorContainer, 'div.referencing-component-state');
         nfCommon.cleanUpTooltips(processorContainer, 'div.referencing-component-bulletins');
@@ -2802,6 +2812,7 @@
         lastSelectedParameterId = null;
 
         // indicate no referencing components
+        $('<div class="referencing-component-container"><span class="unset">None</span></div>').appendTo(fetchParameterRefComponentsContainer);
         $('<li class="referencing-component-container"><span class="unset">None</span></li>').appendTo(processorContainer);
         $('<li class="referencing-component-container"><span class="unset">None</span></li>').appendTo(controllerServiceContainer);
         $('<li class="referencing-component-container"><span class="unset">None</span></li>').appendTo(unauthorizedComponentsContainer);
