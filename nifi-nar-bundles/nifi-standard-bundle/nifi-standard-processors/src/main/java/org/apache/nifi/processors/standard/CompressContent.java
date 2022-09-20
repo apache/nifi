@@ -25,8 +25,10 @@ import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.commons.compress.compressors.lz4.FramedLZ4CompressorInputStream;
 import org.apache.commons.compress.compressors.zstandard.ZstdCompressorInputStream;
 import org.apache.commons.compress.compressors.zstandard.ZstdCompressorOutputStream;
-import com.aayushatharva.brotli4j.brotliInputStream;
-import com.aayushatharva.brotli4j.brotliOutputStream;
+import com.aayushatharva.brotli4j.decoder.BrotliInputStream;
+import com.aayushatharva.brotli4j.encoder.BrotliOutputStream;
+import com.aayushatharva.brotli4j.Brotli4jLoader;
+import com.aayushatharva.brotli4j.encoder.Encoder;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -351,7 +353,7 @@ public class CompressContent extends AbstractProcessor {
                                     Brotli4jLoader.ensureAvailability();
                                     compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
                                     Encoder.Parameters params = new Encoder.Parameters().setQuality(compressionLevel);
-                                    compressionOut = new brotliOutputStream(bufferedOut, params);
+                                    compressionOut = new BrotliOutputStream(bufferedOut, params);
                                     mimeTypeRef.set("application/x-brotli");
                                     break;
                                 case COMPRESSION_FORMAT_BZIP2:
@@ -395,7 +397,7 @@ public class CompressContent extends AbstractProcessor {
                                     break;
                                 case COMPRESSION_FORMAT_BROTLI:
                                     Brotli4jLoader.ensureAvailability();
-                                    compressionIn = new brotliInputStream(bufferedIn);
+                                    compressionIn = new BrotliInputStream(bufferedIn);
                                     break;
                                 default:
                                     compressionIn = new CompressorStreamFactory().createCompressorInputStream(compressionFormat.toLowerCase(), bufferedIn);
