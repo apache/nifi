@@ -79,7 +79,6 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -732,7 +731,7 @@ public class ExtensionBuilder {
             final LoggableComponent<FlowRegistryClient> clientComponent = createLoggableComponent(FlowRegistryClient.class);
 
             final FlowRegistryClientInitializationContext context = new StandardFlowRegistryClientInitializationContext(
-                    identifier, clientComponent.getLogger(), Optional.ofNullable(systemSslContext));
+                    identifier, clientComponent.getLogger(), systemSslContext);
 
             clientComponent.getComponent().initialize(context);
             return clientComponent;

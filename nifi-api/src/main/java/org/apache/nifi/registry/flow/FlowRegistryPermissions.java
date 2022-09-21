@@ -18,9 +18,9 @@ package org.apache.nifi.registry.flow;
 
 public interface FlowRegistryPermissions {
 
-    boolean canRead();
+    boolean getCanRead();
 
-    boolean canWrite();
+    boolean getCanWrite();
 
-    boolean canDelete();
+    boolean getCanDelete();
 }

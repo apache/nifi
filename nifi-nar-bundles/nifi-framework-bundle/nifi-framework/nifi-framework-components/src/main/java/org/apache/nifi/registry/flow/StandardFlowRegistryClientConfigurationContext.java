@@ -27,13 +27,13 @@ public class StandardFlowRegistryClientConfigurationContext extends StandardProp
     private final Optional<String> niFiUserIdentity;
 
     public StandardFlowRegistryClientConfigurationContext(
-            final Optional<String> niFiUserIdentity,
+            final String niFiUserIdentity,
             final Map<PropertyDescriptor, String> propertyValues,
             final FlowRegistryClientNode componentNode,
             final ControllerServiceLookup controllerServiceLookup
     ) {
         super(propertyValues, componentNode.getComponent(), controllerServiceLookup);
-        this.niFiUserIdentity = niFiUserIdentity;
+        this.niFiUserIdentity = Optional.ofNullable(niFiUserIdentity);
     }
 
     @Override

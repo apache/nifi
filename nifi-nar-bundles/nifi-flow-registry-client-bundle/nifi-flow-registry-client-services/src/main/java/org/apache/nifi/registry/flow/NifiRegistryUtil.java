@@ -55,9 +55,9 @@ final class NifiRegistryUtil {
         }
 
         final SimpleFlowRegistryPermissions result = new SimpleFlowRegistryPermissions();
-        result.setRead(permissions.getCanRead());
-        result.setWrite(permissions.getCanWrite());
-        result.setDelete(permissions.getCanDelete());
+        result.setCanRead(permissions.getCanRead());
+        result.setCanWrite(permissions.getCanWrite());
+        result.setCanDelete(permissions.getCanDelete());
         return result;
     }
 
@@ -67,9 +67,9 @@ final class NifiRegistryUtil {
         }
 
         final Permissions result = new Permissions();
-        result.setCanRead(permissions.canRead());
-        result.setCanWrite(permissions.canWrite());
-        result.setCanDelete(permissions.canDelete());
+        result.setCanRead(permissions.getCanRead());
+        result.setCanWrite(permissions.getCanWrite());
+        result.setCanDelete(permissions.getCanDelete());
         return result;
     }
 

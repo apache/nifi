@@ -85,7 +85,7 @@ public class ExtensionMapping {
         parameterProviderNames.computeIfAbsent(flowRegistryClientName, name -> new HashSet<>()).add(coordinate);
     }
 
-    void addAllFlowRegistryClient(final BundleCoordinate coordinate, final Collection<String> flowRegistryClientNames) {
+    void addAllFlowRegistryClients(final BundleCoordinate coordinate, final Collection<String> flowRegistryClientNames) {
         flowRegistryClientNames.forEach(name -> {
             addFlowRegistryClient(coordinate, name);
         });

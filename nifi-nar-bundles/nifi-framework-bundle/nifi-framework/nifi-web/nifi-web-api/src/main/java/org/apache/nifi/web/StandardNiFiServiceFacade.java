@@ -3204,8 +3204,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
                     final FlowRegistryPermissions regPermissions = bucket.getPermissions();
                     final PermissionsDTO permissions = new PermissionsDTO();
-                    permissions.setCanRead(regPermissions.canRead());
-                    permissions.setCanWrite(regPermissions.canWrite());
+                    permissions.setCanRead(regPermissions.getCanRead());
+                    permissions.setCanWrite(regPermissions.getCanWrite());
 
                     return entityFactory.createBucketEntity(dto, permissions);
                 })

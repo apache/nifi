@@ -30,10 +30,10 @@ public class StandardFlowRegistryClientInitializationContext implements FlowRegi
     public StandardFlowRegistryClientInitializationContext(
             final String identifier,
             final ComponentLog logger,
-            final Optional<SSLContext> systemSslContext) {
+            final SSLContext systemSslContext) {
         this.identifier = identifier;
         this.logger = logger;
-        this.systemSslContext = systemSslContext;
+        this.systemSslContext = Optional.ofNullable(systemSslContext);
     }
 
     @Override

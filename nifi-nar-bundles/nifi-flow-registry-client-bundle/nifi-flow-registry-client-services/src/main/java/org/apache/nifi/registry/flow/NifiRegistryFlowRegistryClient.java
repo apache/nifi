@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.registry.flow;
 
-import org.apache.http.client.utils.URIBuilder;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -39,7 +38,6 @@ import org.apache.nifi.ssl.SSLContextService;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -56,7 +54,6 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
             .addValidator(StandardValidators.URL_VALIDATOR)
             .required(true)
             .build();
-
     static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("ssl-context-service")
             .displayName("SSL Context Service")
@@ -74,9 +71,12 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
         final URI uri;
 
         try {
-            // Handles case where the URI entered has a trailing slash, or includes the trailing /nifi-registry-api
-            uri = new URIBuilder(configuredUrl).setPath("").removeQuery().build();
-        } catch (URISyntaxException e) {
+            final URI fullUri = URI.create(configuredUrl);
+            final int port = fullUri.getPort();
+            final String portSuffix = port < 0 ? "" : ":" + port;
+            final String uriString = fullUri.getScheme() + "://" + fullUri.getHost() + portSuffix;
+            uri = URI.create(uriString);
+        } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("The given Registry URL is not valid: " + configuredUrl);
         }
 
@@ -85,7 +85,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
             throw new IllegalArgumentException("The given Registry URL is not valid: " + configuredUrl);
         }
 
-        final String proposedUrl = uri.toString();;
+        final String proposedUrl = uri.toString();
 
         if (!proposedUrl.equals(registryUrl)) {
             registryUrl = proposedUrl;

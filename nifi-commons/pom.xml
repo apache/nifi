@@ -51,6 +51,7 @@
         <module>nifi-property-protection-shared</module>
         <module>nifi-record</module>
         <module>nifi-record-path</module>
+        <module>nifi-registry-client-utils</module>
         <module>nifi-repository-encryption</module>
         <module>nifi-schema-utils</module>
         <module>nifi-security-kerberos-api</module>

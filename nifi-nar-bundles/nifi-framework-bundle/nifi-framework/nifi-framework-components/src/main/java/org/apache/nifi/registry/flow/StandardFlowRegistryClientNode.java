@@ -253,7 +253,11 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         final ValidationStatus validationStatus = getValidationStatus();
 
         if (validationStatus != ValidationStatus.VALID) {
-            throw new FlowRegistryInvalidException(getValidationErrors().stream().map(e -> e.getExplanation()).collect(Collectors.toList()));
+            final List<String> validationProblems = getValidationErrors().stream()
+                .map(e -> e.getExplanation())
+                .collect(Collectors.toList());
+
+            throw new FlowRegistryInvalidException(validationProblems);
         }
 
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getExtensionManager(), client.getClass(), getIdentifier())) {
@@ -262,7 +266,8 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     }
 
     private FlowRegistryClientConfigurationContext getConfigurationContext(FlowRegistryClientUserContext clientContext) {
-        return new StandardFlowRegistryClientConfigurationContext(clientContext.getNiFiUserIdentity(), getRawPropertyValues(), this, serviceProvider);
+        final String userIdentity = clientContext.getNiFiUserIdentity().orElse(null);
+        return new StandardFlowRegistryClientConfigurationContext(userIdentity, getRawPropertyValues(), this, serviceProvider);
     }
 
     private String extractIdentity(final FlowRegistryClientUserContext context) {

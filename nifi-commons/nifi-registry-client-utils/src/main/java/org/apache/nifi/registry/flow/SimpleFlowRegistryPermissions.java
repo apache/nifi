@@ -17,34 +17,34 @@
 package org.apache.nifi.registry.flow;
 
 public class SimpleFlowRegistryPermissions implements FlowRegistryPermissions {
-    private boolean read;
-    private boolean write;
-    private boolean delete;
+    private boolean canRead;
+    private boolean canWrite;
+    private boolean canDelete;
 
     @Override
-    public boolean canRead() {
-        return read;
-    }
-
-    @Override
-    public boolean canWrite() {
-        return write;
+    public boolean getCanRead() {
+        return canRead;
     }
 
     @Override
-    public boolean canDelete() {
-        return delete;
+    public boolean getCanWrite() {
+        return canWrite;
     }
 
-    public void setRead(final boolean read) {
-        this.read = read;
+    @Override
+    public boolean getCanDelete() {
+        return canDelete;
     }
 
-    public void setWrite(final boolean write) {
-        this.write = write;
+    public void setCanRead(final boolean canRead) {
+        this.canRead = canRead;
     }
 
-    public void setDelete(final boolean delete) {
-        this.delete = delete;
+    public void setCanWrite(final boolean canWrite) {
+        this.canWrite = canWrite;
+    }
+
+    public void setCanDelete(final boolean canDelete) {
+        this.canDelete = canDelete;
     }
 }
