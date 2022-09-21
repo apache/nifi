@@ -109,11 +109,6 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     }
 
     @Override
-    public void setProperties(final Map<String, String> properties, final boolean allowRemovalOfRequiredProperties, final Set<String> updatedSensitiveDynamicPropertyNames) {
-        super.setProperties(properties, allowRemovalOfRequiredProperties, updatedSensitiveDynamicPropertyNames);
-    }
-
-    @Override
     protected ParameterContext getParameterContext() {
         return null;
     }
