@@ -372,11 +372,16 @@
 
                 //Populate the status bar if the feature is enabled
                 if (config.supportsStatusBar && nfCommon.isDefinedAndNotNull(config.nfCanvasUtils)){
+                    var formattedBulletins = nfCommon.getFormattedBulletins(processorResponse.bulletins);
+                    var unorderedBulletins = nfCommon.formatUnorderedList(formattedBulletins);
 
                     //initialize the canvas synchronization
                     $("#processor-details-status-bar").statusbar(
                         'observe',
-                        { processor: processor.id }
+                        {
+                            processor: processor.id,
+                            bulletins: unorderedBulletins
+                        }
                     );
 
                     //Fetch the component as a selection from the canvas

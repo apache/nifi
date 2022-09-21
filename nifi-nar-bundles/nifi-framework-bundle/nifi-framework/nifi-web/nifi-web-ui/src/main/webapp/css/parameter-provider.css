@@ -228,9 +228,13 @@ span.referencing-component-type {
 }
 
 div.referencing-component-references {
-    margin-left: 20px;
-    margin-top: 6px;
+    margin-left: 2px;
+    margin-top: 0;
     clear: left;
+}
+
+.fetch-parameters-referencing-components-template {
+    padding-left: 14px;
 }
 
 div.fetch-parameters-canceling {
@@ -276,7 +280,8 @@ div.fetch-parameters-referencing-components {
     line-height: 16px;
 }
 
-#affected-referencing-components-container {
+#affected-referencing-components-container,
+#fetch-parameter-referencing-components-container {
     position: absolute;
     bottom: 10px;
     top: 108px;

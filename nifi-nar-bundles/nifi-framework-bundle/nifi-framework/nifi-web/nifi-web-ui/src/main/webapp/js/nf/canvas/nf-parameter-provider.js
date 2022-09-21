@@ -969,6 +969,7 @@
 
         // update visibility
         $('#fetch-parameters-referencing-components-container').hide();
+        $('#affected-referencing-components-container').show();
         $('#fetch-parameters-affected-referencing-components-container').show();
 
         var referencingProcessors = [];
@@ -1763,7 +1764,6 @@
      */
     var resetFetchParametersDialog = function () {
         $('#fetch-parameters-affected-referencing-components-container').hide();
-        $('#affected-referencing-components-container').hide();
         $('#fetch-parameters-referencing-components-container').show();
         $('#create-parameter-context-input').val('');
 
@@ -2115,14 +2115,14 @@
                                         });
                                     }
                                 } else {
-                                    groupTwist.find('.referencing-components-template').remove();
+                                    groupTwist.find('.fetch-parameters-referencing-components-template').remove();
                                 }
 
                                 // toggle this block
                                 toggle(twist, list);
 
                                 // update the border if necessary
-                                updateReferencingComponentsBorder($('#fetch-parameters-referencing-components-container'));
+                                updateReferencingComponentsBorder($('#fetch-parameter-referencing-components-container'));
                             }).append(twist).append(title).append(count).appendTo(referencingPgReferencesContainer);
 
                             // add the listing
@@ -2296,7 +2296,7 @@
 
             if (dataContext.isReferencingParameter) {
                 valueWidthOffset += 30;
-                $('<div class="fa fa-exchange" alt="Info" style="float: right;"></div>').appendTo(cellContent);
+                $('<div class="fa fa-hashtag" alt="Info" style="float: right;"></div>').appendTo(cellContent);
             }
 
             // adjust the width accordingly
@@ -2425,7 +2425,7 @@
 
                         populateReferencingComponents(parameter.parameterStatus)
                             .then(function () {
-                                updateReferencingComponentsBorder($('#fetch-parameters-referencing-components-container'));
+                                updateReferencingComponentsBorder($('#fetch-parameter-referencing-components-container'));
 
                                 // update the last selected id
                                 lastSelectedParameterId = parameter.id;
@@ -2481,14 +2481,14 @@
                     content: asteriskTooltipContent
                 }));
 
-            var exchangeIconElement =  $(this).find('div.fa-exchange');
-            var exchangeTooltipContent = nfCommon.escapeHtml('This parameter is currently referenced by a property. The sensitivity cannot be changed.');
+            var hashtagIconElement =  $(this).find('div.fa-hashtag');
+            var hashtagTooltipContent = nfCommon.escapeHtml('This parameter is currently referenced by a property. The sensitivity cannot be changed.');
 
             // initialize tooltip
-            exchangeIconElement.qtip($.extend({},
+            hashtagIconElement.qtip($.extend({},
                 nfCommon.config.tooltipConfig,
                 {
-                    content: exchangeTooltipContent
+                    content: hashtagTooltipContent
                 }));
         });
 
@@ -2618,7 +2618,7 @@
         groupsGrid.onSelectedRowsChanged.subscribe(function (e, args) {
             // clean up tooltips
             nfCommon.cleanUpTooltips($('#selectable-parameters-table'), 'div.fa-asterisk');
-            nfCommon.cleanUpTooltips($('#selectable-parameters-table'), 'div.fa-exchange');
+            nfCommon.cleanUpTooltips($('#selectable-parameters-table'), 'div.fa-hashtag');
 
             if ($.isArray(args.rows) && args.rows.length === 1) {
                 if (groupsGrid.getDataLength() > 0) {
@@ -2639,12 +2639,12 @@
 
                         if (parameter && group.isParameterContext) {
                             populateReferencingComponents(parameter.parameterStatus).then(function () {
-                                updateReferencingComponentsBorder($('#fetch-parameters-referencing-components-container'));
+                                updateReferencingComponentsBorder($('#fetch-parameter-referencing-components-container'));
                             });
                         } else {
                             // show 'None' for referencing components
                             populateReferencingComponents({}).then(function () {
-                                updateReferencingComponentsBorder($('#fetch-parameters-referencing-components-container'));
+                                updateReferencingComponentsBorder($('#fetch-parameter-referencing-components-container'));
                             });
                         }
                     }
@@ -2850,6 +2850,12 @@
             $(window).on('resize', function (e) {
                 if ($('#affected-referencing-components-container').is(':visible')) {
                     updateReferencingComponentsBorder($('#affected-referencing-components-container'));
+                }
+            });
+
+            $(window).on('resize', function (e) {
+                if ($('#fetch-parameter-referencing-components-container').is(':visible')) {
+                    updateReferencingComponentsBorder($('#fetch-parameter-referencing-components-container'));
                 }
             });
         },

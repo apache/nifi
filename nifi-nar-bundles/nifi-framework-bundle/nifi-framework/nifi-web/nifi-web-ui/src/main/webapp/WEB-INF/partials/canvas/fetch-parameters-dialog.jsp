@@ -30,7 +30,7 @@
             </div>
             <div id="fetch-parameters-usage-container" class="setting">
                 <div class="setting-name">
-                    Select parameter groups to create parameter contexts
+                    Select groups to create parameter contexts
                     <div class="fa fa-question-circle" alt="Info" title="Select a parameter group to cconfigure as a parameter context."></div>
                 </div>
                 <div id="parameter-groups-table"></div>
