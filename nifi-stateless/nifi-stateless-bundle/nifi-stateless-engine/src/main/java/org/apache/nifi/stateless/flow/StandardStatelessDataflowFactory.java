@@ -50,8 +50,6 @@ import org.apache.nifi.provenance.IdentifierLookup;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.InMemoryFlowRegistry;
-import org.apache.nifi.registry.flow.SimpleRegisteredFlowSnapshot;
-import org.apache.nifi.registry.flow.StandardFlowRegistryClientNode;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.stateless.bootstrap.ExtensionDiscovery;

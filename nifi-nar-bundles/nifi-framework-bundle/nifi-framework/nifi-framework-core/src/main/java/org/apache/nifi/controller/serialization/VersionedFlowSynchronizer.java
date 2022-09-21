@@ -432,12 +432,14 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         final DifferenceDescriptor differenceDescriptor = new StaticDifferenceDescriptor();
 
         final VersionedDataflow existingVersionedFlow = existingFlow.getVersionedDataflow() == null ? createEmptyVersionedDataflow() : existingFlow.getVersionedDataflow();
-        final ComparableDataFlow localDataFlow = new StandardComparableDataFlow("Local Flow", existingVersionedFlow.getRootGroup(), toSet(existingVersionedFlow.getControllerServices()),
-            toSet(existingVersionedFlow.getReportingTasks()), toSet(existingVersionedFlow.getParameterContexts()), toSet(existingVersionedFlow.getParameterProviders()), toSet(existingVersionedFlow.getRegistries()));
+        final ComparableDataFlow localDataFlow = new StandardComparableDataFlow(
+                "Local Flow", existingVersionedFlow.getRootGroup(), toSet(existingVersionedFlow.getControllerServices()), toSet(existingVersionedFlow.getReportingTasks()),
+                toSet(existingVersionedFlow.getParameterContexts()),toSet(existingVersionedFlow.getParameterProviders()), toSet(existingVersionedFlow.getRegistries()));
 
         final VersionedDataflow clusterVersionedFlow = proposedFlow.getVersionedDataflow();
-        final ComparableDataFlow clusterDataFlow = new StandardComparableDataFlow("Cluster Flow", clusterVersionedFlow.getRootGroup(), toSet(clusterVersionedFlow.getControllerServices()),
-            toSet(clusterVersionedFlow.getReportingTasks()), toSet(clusterVersionedFlow.getParameterContexts()), toSet(clusterVersionedFlow.getParameterProviders()), toSet(clusterVersionedFlow.getRegistries()));
+        final ComparableDataFlow clusterDataFlow = new StandardComparableDataFlow(
+                "Cluster Flow", clusterVersionedFlow.getRootGroup(), toSet(clusterVersionedFlow.getControllerServices()), toSet(clusterVersionedFlow.getReportingTasks()),
+                toSet(clusterVersionedFlow.getParameterContexts()), toSet(clusterVersionedFlow.getParameterProviders()), toSet(clusterVersionedFlow.getRegistries()));
 
         final FlowComparator flowComparator = new StandardFlowComparator(localDataFlow, clusterDataFlow, Collections.emptySet(),
             differenceDescriptor, encryptor::decrypt, VersionedComponent::getInstanceIdentifier);

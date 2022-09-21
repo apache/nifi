@@ -325,7 +325,8 @@ public interface FlowManager extends ParameterProviderLookup {
 
     Set<ParameterProviderNode> getAllParameterProviders();
 
-    FlowRegistryClientNode createFlowRegistryClient(String type, String id, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls, boolean firstTimeAdded, boolean registerLogObserver, String classloaderIsolationKey);
+    FlowRegistryClientNode createFlowRegistryClient(
+            String type, String id, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls, boolean firstTimeAdded, boolean registerLogObserver, String classloaderIsolationKey);
 
     FlowRegistryClientNode getFlowRegistryClient(String id);
 

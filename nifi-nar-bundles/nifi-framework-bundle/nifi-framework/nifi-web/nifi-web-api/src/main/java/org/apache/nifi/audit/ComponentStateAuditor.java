@@ -236,7 +236,7 @@ public class ComponentStateAuditor extends NiFiAuditor {
      * @throws java.lang.Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ComponentStateDAO+) && "
-            + "execution(org.apache.nifi.registry.flow.FlowRegistryClientNode)) && "
+            + "execution(void clearState(org.apache.nifi.registry.flow.FlowRegistryClientNode)) && "
             + "args(flowRegistryClient)")
     public StateMap clearFlowRegistryClientStateAdvice(final ProceedingJoinPoint proceedingJoinPoint, final FlowRegistryClientNode flowRegistryClient) throws Throwable {
 

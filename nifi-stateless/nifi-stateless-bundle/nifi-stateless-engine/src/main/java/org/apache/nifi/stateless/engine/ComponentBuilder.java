@@ -64,10 +64,8 @@ import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.registry.flow.FlowRegistryClientInitializationContext;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.InMemoryFlowRegistry;
-import org.apache.nifi.registry.flow.StandardFlowRegistryClientInitializationContext;
 import org.apache.nifi.registry.flow.StandardFlowRegistryClientNode;
 import org.apache.nifi.registry.variable.StandardComponentVariableRegistry;
 import org.apache.nifi.reporting.ReportingInitializationContext;
@@ -81,7 +79,6 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 public class ComponentBuilder {

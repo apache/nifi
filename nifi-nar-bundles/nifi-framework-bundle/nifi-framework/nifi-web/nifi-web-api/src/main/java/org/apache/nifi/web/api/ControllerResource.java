@@ -765,7 +765,7 @@ public class ControllerResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("/registry-clients/{id}/descriptors")
+    @Path("/registry-clients/{id}ta")
     @ApiOperation(
             value = "Gets a flow registry client property descriptor",
             response = PropertyDescriptorEntity.class,

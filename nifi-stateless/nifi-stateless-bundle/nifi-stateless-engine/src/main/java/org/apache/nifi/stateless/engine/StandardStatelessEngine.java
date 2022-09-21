@@ -57,7 +57,6 @@ import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.processor.StandardValidationContext;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
