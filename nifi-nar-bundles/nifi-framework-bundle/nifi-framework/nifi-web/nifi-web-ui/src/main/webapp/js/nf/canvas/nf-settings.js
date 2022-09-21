@@ -2407,6 +2407,7 @@
             var descriptors = loadConfigResponse.component.descriptors;
             $('#registry-properties').propertytable('clear');
             $('#registry-properties').propertytable('loadProperties', properties, descriptors);
+            $('#registry-configuration-dialog').data('registryDetails', loadConfigResponse);
         });
     };
 
@@ -2645,6 +2646,25 @@
     )};
 
     /**
+     * Gets a property descriptor for the registry currently being configured.
+     *
+     * @param {type} propertyName
+     * @param {type} sensitive Requested sensitive status
+     */
+     var getRegistryPropertyDescriptor = function (propertyName, sensitive) {
+        var details = $('#registry-configuration-dialog').data('registryDetails');
+        return $.ajax({
+            type: 'GET',
+            url: details.uri + '/descriptors',
+            data: {
+                propertyName: propertyName,
+                sensitive: sensitive
+            },
+            dataType: 'json'
+        }).fail(nfErrorHandler.handleAjaxError);
+    };
+
+    /**
      * Shows the process group configuration.
      */
     var showSettings = function () {
@@ -2830,6 +2850,7 @@
             $('#registry-properties').propertytable({
                 readOnly: false,
                 dialogContainer: '#new-registry-property-container',
+                descriptorDeferred: getRegistryPropertyDescriptor
             });
 
             // initialize the settings tabs
