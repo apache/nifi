@@ -942,17 +942,6 @@
             parametersData.endUpdate();
             parametersData.reSort();
 
-            // disable header selector checkbox
-            var headerCheckbox = $('#selectable-parameters-table .slick-column-name input');
-            if (referencingParameters === parameterCount) {
-                // disable header
-                headerCheckbox.addClass('disabled');
-                headerCheckbox.prop('disabled', true);
-            } else {
-                headerCheckbox.removeClass('disabled');
-                headerCheckbox.prop('disabled', false);
-            }
-
             // select the the first row
             selectableParametersGrid.setSelectedRows([0]);
 
@@ -2317,211 +2306,22 @@
             return cellContent.html();
         };
 
-        var _selectAll_UID = createUID();
-        var headerSelTooltip = "Select/Deselect All";
-
-        function createUID() {
-            return Math.round(10000000 * Math.random());
-        }
-
-        // header selector checkbox
-        $('#selectable-parameters-table').on('click', '#header-selector' + _selectAll_UID, function () {
-            var selectorColumnId = '_checkbox_selector';
-            var selectableParamsGrid = $('#selectable-parameters-table').data('gridInstance');
-            var selectableParamsData = selectableParamsGrid.getData()
-            var selectableParamsRows = selectableParamsData.getItems();
-
-            // determine selectable rows
-            var selectableParams = [];
-            $.each(selectableParamsRows, function (i, row) {
-                if (!row.isReferencingParameter) {
-                    selectableParams.push(row);
-                }
-            })
-
-            // begin update
-            selectableParamsData.beginUpdate();
-
-            var newParamsSensitivities = {};
-            if ($('#header-selector' + _selectAll_UID).attr('checked')) {
-                // deselect header selector
-                selectableParamsGrid.updateColumnHeader(selectorColumnId, "<input id='header-selector" + _selectAll_UID + "' type='checkbox'><label for='header-selector" + _selectAll_UID + "'></label>", headerSelTooltip);
-
-                // deselect all parameters
-                $.each(selectableParams, function (i, param) {
-                    var checkboxElement = $('#' + param.inputId);
-                    checkboxElement.removeAttr('checked');
-
-                    // update sensitivities
-                    param.sensitivity = NON_SENSITIVE;
-                    newParamsSensitivities[param.name] = NON_SENSITIVE;
-                })
-            } else {
-                // select header selector
-                selectableParamsGrid.updateColumnHeader(selectorColumnId, "<input id='header-selector" + _selectAll_UID + "' type='checkbox' checked='checked'><label for='header-selector" + _selectAll_UID + "'></label>", headerSelTooltip);
-
-                // select all parameters
-                $.each(selectableParams, function (i, param) {
-                    var checkboxElement = $('#' + param.inputId);
-                    checkboxElement.attr('checked', 'checked');
-
-                    // update sensitivities
-                    param.sensitivity = SENSITIVE;
-                    newParamsSensitivities[param.name] = SENSITIVE;
-                })
-            }
-
-            // end update
-            selectableParamsData.endUpdate();
-            selectableParamsData.reSort();
-
-            // get the currently selected group
-            var groupsGrid = $('#parameter-groups-table').data('gridInstance');
-            var groupsData = groupsGrid.getData();
-
-            if (nfCommon.isDefinedAndNotNull(selectableParams[0])) {
-                var currentGroup = groupsData.getItem([selectableParams[0].groupId]);
-
-                // only update the param sensitivities that were changed
-                for (var param in newParamsSensitivities) {
-                    currentGroup.parameterSensitivities[param] = newParamsSensitivities[param];
-                }
-            }
-
-            $('#fetch-parameters-dialog').modal('refreshButtons');
-        })
-
         var checkboxSelectionFormatter = function (row, cell, value, columnDef, dataContext) {
-            var UID = createUID() + row;
-            var selectorUID = 'selector' + UID;
-
-            function selectDeselectAll(currentGroup) {
-                var inputs = $('#selectable-parameters-table').find(':input');
-
-                // remove header selector
-                inputs.splice(0, 1);
-
-                // filter for selectable checkboxes
-                var filtered = inputs.filter(function () {
-                    return !$(this).attr('disabled');
-                });
-
-                var selectableIds = [];
-                $.each(filtered, function (i, f) {
-                    if ($(f).attr('checked')) {
-                        selectableIds.push($(f).attr('id'));
-                    }
-                });
-
-                var headerCheckbox = $('#selectable-parameters-table .slick-column-name input');
-
-                if (inputs.length === 0) {
-                    //selectable parameters table is not visible yet or the group is not a parameter context
-
-                    // get the group's parameterSensitivities
-                    var groupParamSensitivities = currentGroup.parameterSensitivities;
-
-                    // update the header selector state
-                    var firstKey = Object.keys(groupParamSensitivities)[0];
-                    if (groupParamSensitivities[firstKey] !== null) {
-                        // group has previously saved sensitivity configs
-                        for (var param in groupParamSensitivities) {
-                            if (groupParamSensitivities[param] === NON_SENSITIVE) {
-                                return headerCheckbox.removeAttr('checked');
-                            }
-                        }
-                    }
-                    return headerCheckbox.attr('checked', 'checked');
-                } else if (selectableIds.length < inputs.length) {
-                    headerCheckbox.removeAttr('checked');
-                } else {
-                    headerCheckbox.attr('checked', 'checked');
-                }
-
-                $('#fetch-parameters-dialog').modal('refreshButtons');
-            }
-
             if (dataContext) {
-                var selectableParamData = $('#selectable-parameters-table')
-                    .data('gridInstance')
-                    .getData();
-                var currentSelectableParam = selectableParamData
-                    .getItem([dataContext.id]);
-                // add selectorUID to item
-                currentSelectableParam.inputId = selectorUID;
-
-                // save to its group
-                var groupsData = $('#parameter-groups-table')
-                    .data('gridInstance')
-                    .getData();
-                var currentGroup = groupsData
-                    .getItem([dataContext.groupId]);
-                // add selectorUID to item
-                currentGroup.inputId = selectorUID;
-
-                var lastParamSensitivity = Object.keys(currentGroup.parameterSensitivities).length - 1;
-
                 if (_.isEmpty(dataContext.parameterStatus) || _.isEmpty(dataContext.parameterStatus.parameter.parameter.referencingComponents)) {
-                    $(function () {
-                        $('#selector' + UID).on('click', function () {
-                            var inputSelector = $('#' + selectorUID);
-
-                            // get the currently selected group
-                            var groupsGrid = $('#parameter-groups-table').data('gridInstance');
-                            var groupsData = groupsGrid.getData();
-                            var currentGroup = groupsData.getItem([dataContext.groupId]);
-
-                            // begin update
-                            groupsData.beginUpdate();
-
-                            // if first sensitivity equals null, then set all to SENSITIVE
-                            var firstKey = Object.keys(currentGroup.parameterSensitivities)[0];
-                            if (currentGroup.parameterSensitivities[firstKey] === null) {
-                                for (var param in currentGroup.parameterSensitivities) {
-                                    currentGroup.parameterSensitivities[param] = SENSITIVE;
-                                }
-                            }
-
-                            if (inputSelector.prop('checked')) {
-                                // save new param sensitivity in its group
-                                currentGroup.parameterSensitivities[dataContext.name] = NON_SENSITIVE;
-                                inputSelector.removeAttr('checked');
-                            } else {
-                                // save new param sensitivity in its group
-                                currentGroup.parameterSensitivities[dataContext.name] = SENSITIVE;
-                                inputSelector.attr('checked', 'checked');
-                            }
-
-                            // complete the update
-                            groupsData.endUpdate();
-                            groupsData.reSort();
-
-                            selectDeselectAll(currentGroup);
-
-                            $('#fetch-parameters-dialog').modal('refreshButtons');
-                        });
-                    })
-
-                    if (dataContext.id === lastParamSensitivity) {
-                        // it is the last row of the table, so check if all chechboxes are selected
-                        selectDeselectAll(currentGroup);
-                    }
-
                     if (dataContext.sensitivity === SENSITIVE) {
-                        return "<input id='selector" + UID + "' type='checkbox' checked='checked'><label for='selector" + UID + "'></label>";
+                        return "<input type='checkbox' checked='checked' class='checked-input-enabled'><label for='selector'></label>";
                     } else {
-                        return "<input id='selector" + UID + "' type='checkbox'><label for='selector" + UID + "'></label>";
+                        return "<input type='checkbox' class='unchecked-input-enabled'><label for='selector'></label>";
                     }
                 }
 
                 if (!_.isEmpty(dataContext.parameterStatus.parameter.parameter.referencingComponents)) {
-                    selectDeselectAll(currentGroup);
-
                     // disable checkboxes
                     if (dataContext.sensitivity === SENSITIVE) {
-                        return "<input id='selector" + UID + "' type='checkbox' checked='checked' class='disabled' disabled><label for='selector" + UID + "'></label>";
+                        return "<input type='checkbox' checked='checked' class='disabled checked-input-disabled' disabled><label for='selector'></label>";
                     } else {
-                        return "<input id='selector" + UID + "' type='checkbox' class='disabled' disabled><label for='selector" + UID + "'></label>";
+                        return "<input type='checkbox' class='disabled unchecked-input-disabled' disabled><label for='selector'></label>";
                     }
                 }
 
@@ -2547,9 +2347,7 @@
         };
 
         var checkboxColumnDefinition = {
-            id: '_checkbox_selector',
-            name: "<input id='header-selector" + _selectAll_UID + "' type='checkbox'><label for='header-selector" + _selectAll_UID + "'></label>",
-            toolTip: headerSelTooltip,
+            id: 'selector',
             field: 'sel',
             width: 30,
             resizable: false,
@@ -2587,6 +2385,34 @@
             }, selectableParametersData);
         });
 
+        selectableParametersGrid.onClick.subscribe(function (e, args) {
+            var target = $(e.target);
+            // get the node at this row
+            var item = selectableParametersData.getItem(args.row);
+
+            if (selectableParametersGrid.getColumns()[args.cell].id === 'selector') {
+                if (target.hasClass('unchecked-input-enabled')) {
+                    // check the box
+                    item.sensitivity = SENSITIVE;
+                    selectableParametersData.updateItem(item.id, item)
+                } else if (target.hasClass('checked-input-enabled')) {
+                    // uncheck the box
+                    item.sensitivity = NON_SENSITIVE;
+                    selectableParametersData.updateItem(item.id, item)
+                }
+            }
+
+            // save to its group
+            var groupsGrid = $('#parameter-groups-table').data('gridInstance');
+            var groupsData = groupsGrid.getData();
+            var currentGroup = groupsData.getItem([item.groupId]);
+
+            currentGroup.parameterSensitivities[item.name] = item.sensitivity;
+            groupsData.updateItem(item.groupId, currentGroup);
+
+            $('#fetch-parameters-dialog').modal('refreshButtons');
+        })
+
         selectableParametersGrid.onSelectedRowsChanged.subscribe(function (e, args) {
             if ($.isArray(args.rows) && args.rows.length === 1) {
                 // show the referencing components for the selected parameter
@@ -2613,6 +2439,27 @@
 
         // wire up the dataview to the grid
         selectableParametersData.onRowCountChanged.subscribe(function (e, args) {
+            var selectableParameters = args.dataView.getItems();
+
+            if (!_.isEmpty(selectableParameters)) {
+                var groupsGrid = $('#parameter-groups-table').data('gridInstance');
+                var groupsData = groupsGrid.getData();
+                var currentGroupId = selectableParameters[0].groupId;
+                var currentGroup = groupsData.getItem([currentGroupId]);
+
+                if (!currentGroup.isParameterContext) {
+                    // update parameter sensitivities
+                    var paramSensitivities = {};
+                    $.each(selectableParameters, function (i, param) {
+                        paramSensitivities[param.name] = param.sensitivity;
+                    })
+
+                    // save to its group
+                    currentGroup.parameterSensitivities = paramSensitivities;
+                    groupsData.updateItems(currentGroupId, currentGroup);
+                }
+            }
+
             selectableParametersGrid.updateRowCount();
             selectableParametersGrid.render();
         });
@@ -2643,6 +2490,55 @@
                 {
                     content: exchangeTooltipContent
                 }));
+        });
+
+        /**
+         * Select or deselect parameters that are not disabled.
+         *
+         * @param selectionType   The type of selection.
+         */
+        var selectOrDeselectAll = function (selectionType) {
+            var sensitivity = selectionType === 'select' ? SENSITIVE : NON_SENSITIVE;
+
+            // get all selectable parameters
+            var selectableParams = [];
+            $.each(selectableParametersData.getItems(), function (i, param) {
+                if (!param.isReferencingParameter) {
+                    selectableParams.push(param);
+                }
+            });
+
+            if (!_.isEmpty(selectableParams)) {
+                var groupsGrid = $('#parameter-groups-table').data('gridInstance');
+                var groupsData = groupsGrid.getData();
+                var currentGroupId = groupsGrid.getSelectedRows();
+                var currentGroup = groupsData.getItem(currentGroupId);
+
+                // begin updating
+                groupsData.beginUpdate();
+
+                // set sensitivities
+                $.each(selectableParams, function (i, param) {
+                    var updateParamItem = $.extend(param, { sensitivity: sensitivity });
+                    selectableParametersData.updateItem(param.id, updateParamItem);
+
+                    // save to its group
+                    currentGroup.parameterSensitivities[param.name] = sensitivity;
+                })
+
+                // complete the update
+                groupsData.endUpdate();
+
+                $('#fetch-parameters-dialog').modal('refreshButtons');
+            }
+        }
+
+        $('#select-all-fetched-parameters').on('click', function() {
+            selectOrDeselectAll('select');
+        });
+
+        $('#deselect-all-fetched-parameters').on('click', function() {
+            selectOrDeselectAll('deselect');
         });
 
         // end

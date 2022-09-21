@@ -64,6 +64,11 @@
                         Select parameters to be marked as sensitive
                         <div class="fa fa-question-circle" alt="Info" title="Selected parameters will be set as sensitive."></div>
                     </div>
+                    <div id="selectable-parameters-buttons">
+                        <div id="select-all-fetched-parameters" class="secondary-button fa fa-check-square-o button-icon hidden"><span>Select all</span></div>
+                        <div id="deselect-all-fetched-parameters" class="secondary-button fa fa-minus-square-o button-icon hidden"><span>Deselect all</span></div>
+                        <div class="clear"></div>
+                    </div>
                     <div id="selectable-parameters-table" class="setting-field"></div>
                 </div>
             </div>

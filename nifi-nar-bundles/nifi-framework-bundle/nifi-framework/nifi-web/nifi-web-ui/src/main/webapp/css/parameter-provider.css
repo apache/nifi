@@ -312,7 +312,7 @@ span.parameter-provider-referencing-component-name {
 */
 #selectable-parameters-table {
     position: absolute;
-    height: 279px;
+    height: 267px;
     width: 332px;
 }
 
@@ -435,4 +435,18 @@ span.parameter-provider-referencing-component-name {
 
 .slick-columnpicker li a:hover {
     background: white;
+}
+
+#selectable-parameters-buttons {
+    position: relative;
+    left: -20px;
+    padding-bottom: 4px;
+}
+
+#deselect-all-fetched-parameters {
+    width: 93px;
+}
+
+#create-parameter-context-container {
+    line-height: 12px;
 }
