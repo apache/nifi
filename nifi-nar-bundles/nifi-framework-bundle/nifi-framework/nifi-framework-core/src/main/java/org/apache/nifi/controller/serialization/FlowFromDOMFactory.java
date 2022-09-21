@@ -58,6 +58,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -69,6 +70,7 @@ import java.util.concurrent.TimeUnit;
 
 public class FlowFromDOMFactory {
     private static final Logger logger = LoggerFactory.getLogger(FlowFromDOMFactory.class);
+    private static final String DEPRECATED_FLOW_REGISTRY_CLIENT_TYPE = "org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient";
 
     public static BundleDTO getBundle(final Element bundleElement) {
         if (bundleElement == null) {
@@ -155,7 +157,11 @@ public class FlowFromDOMFactory {
     public static FlowRegistryClientDTO getFlowRegistryClient(final Element element, final PropertyEncryptor encryptor, final FlowEncodingVersion flowEncodingVersion) {
         final FlowRegistryClientDTO dto = new FlowRegistryClientDTO();
 
-        dto.setId(getString(element, "id"));
+        if (isOldStyleRegistryClient(element)) {
+            return getFlowRegistryClientFromOldStyleConfig(element);
+        }
+
+        dto.setId(getString(element, "identifier"));
         dto.setName(getString(element, "name"));
         dto.setDescription(getString(element, "description"));
         dto.setUri(getString(element, "uri"));
@@ -168,6 +174,36 @@ public class FlowFromDOMFactory {
         dto.setAnnotationData(getString(element, "annotationData"));
 
         return dto;
+    }
+
+    private static FlowRegistryClientDTO getFlowRegistryClientFromOldStyleConfig(final Element element) {
+        final String id = getString(element, "id");
+        final String name = getString(element, "name");
+        final String url = getString(element, "url");
+        final String description = getString(element, "description");
+
+        final FlowRegistryClientDTO dto = new FlowRegistryClientDTO();
+        dto.setId(id);
+        dto.setName(name);
+        dto.setDescription(description);
+        dto.setUri(url);
+
+        dto.setType(DEPRECATED_FLOW_REGISTRY_CLIENT_TYPE);
+        dto.setBundle(new BundleDTO("org.apache.nifi", "nifi-flow-registry-client-nar", "1.18.0"));
+
+        dto.setSensitiveDynamicPropertyNames(Collections.emptySet());
+        dto.setProperties(Collections.singletonMap("url", url));
+        dto.setAnnotationData(null);
+
+        return dto;
+    }
+
+    private static boolean isOldStyleRegistryClient(final Element element) {
+        final String id = getString(element, "id");
+        final String identifier = getString(element, "identifier");
+        final List<Element> bundleElements = getChildrenByTagName(element, "bundle");
+
+        return id != null && identifier == null && bundleElements.isEmpty();
     }
 
     public static ParameterProviderDTO getParameterProvider(final Element element, final PropertyEncryptor encryptor, final FlowEncodingVersion flowEncodingVersion) {

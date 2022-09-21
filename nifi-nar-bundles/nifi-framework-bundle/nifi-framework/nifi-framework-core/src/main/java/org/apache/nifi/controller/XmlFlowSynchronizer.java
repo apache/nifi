@@ -799,8 +799,7 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
     }
 
     private FlowRegistryClientNode getOrCreateFlowRegistryClient(final FlowController controller, final FlowRegistryClientDTO dto,
-                                                                 final boolean controllerInitialized, final boolean existingFlowEmpty)
-            throws FlowRepositoryClientInstantiationException {
+                                                                 final boolean controllerInitialized, final boolean existingFlowEmpty) {
         // create a new flow registry client node when the controller is not initialized or the flow is empty
         if (!controllerInitialized || existingFlowEmpty) {
             BundleCoordinate coordinate;
