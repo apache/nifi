@@ -16,11 +16,16 @@
  */
 package org.apache.nifi.c2.client.service.operation;
 
+import static org.apache.nifi.c2.protocol.api.OperandType.CONFIGURATION;
+import static org.apache.nifi.c2.protocol.api.OperandType.MANIFEST;
+import static org.apache.nifi.c2.protocol.api.OperationType.DESCRIBE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
@@ -45,7 +50,7 @@ public class C2OperationServiceTest {
 
         C2Operation operation = new C2Operation();
         operation.setOperation(OperationType.UPDATE);
-        operation.setOperand(OperandType.CONFIGURATION);
+        operation.setOperand(CONFIGURATION);
         Optional<C2OperationAck> ack = service.handleOperation(operation);
 
         assertFalse(ack.isPresent());
@@ -56,8 +61,8 @@ public class C2OperationServiceTest {
         C2OperationService service = new C2OperationService(Collections.singletonList(new TestDescribeOperationHandler()));
 
         C2Operation operation = new C2Operation();
-        operation.setOperation(OperationType.DESCRIBE);
-        operation.setOperand(OperandType.MANIFEST);
+        operation.setOperation(DESCRIBE);
+        operation.setOperand(MANIFEST);
         Optional<C2OperationAck> ack = service.handleOperation(operation);
 
         assertTrue(ack.isPresent());
@@ -69,23 +74,41 @@ public class C2OperationServiceTest {
         C2OperationService service = new C2OperationService(Collections.singletonList(new TestInvalidOperationHandler()));
 
         C2Operation operation = new C2Operation();
-        operation.setOperation(OperationType.DESCRIBE);
-        operation.setOperand(OperandType.MANIFEST);
+        operation.setOperation(DESCRIBE);
+        operation.setOperand(MANIFEST);
         Optional<C2OperationAck> ack = service.handleOperation(operation);
 
         assertFalse(ack.isPresent());
+    }
+
+    @Test
+    void testHandlersAreReturned() {
+        C2OperationService service = new C2OperationService(Arrays.asList(new TestDescribeOperationHandler(), new TestInvalidOperationHandler()));
+
+        Map<OperationType, Map<OperandType, C2OperationHandler>> handlers = service.getHandlers();
+
+        assertEquals(1, handlers.keySet().size());
+        assertTrue(handlers.keySet().contains(DESCRIBE));
+        Map<OperandType, C2OperationHandler> operands = handlers.values().stream().findFirst().get();
+        assertEquals(2, operands.size());
+        assertTrue(operands.keySet().containsAll(Arrays.asList(MANIFEST, CONFIGURATION)));
     }
 
     private static class TestDescribeOperationHandler implements C2OperationHandler {
 
         @Override
         public OperationType getOperationType() {
-            return OperationType.DESCRIBE;
+            return DESCRIBE;
         }
 
         @Override
         public OperandType getOperandType() {
-            return OperandType.MANIFEST;
+            return MANIFEST;
+        }
+
+        @Override
+        public Map<String, Object> getProperties() {
+            return Collections.emptyMap();
         }
 
         @Override
@@ -98,12 +121,17 @@ public class C2OperationServiceTest {
 
         @Override
         public OperationType getOperationType() {
-            return OperationType.DESCRIBE;
+            return DESCRIBE;
         }
 
         @Override
         public OperandType getOperandType() {
-            return OperandType.CONFIGURATION;
+            return CONFIGURATION;
+        }
+
+        @Override
+        public Map<String, Object> getProperties() {
+            return Collections.emptyMap();
         }
 
         @Override

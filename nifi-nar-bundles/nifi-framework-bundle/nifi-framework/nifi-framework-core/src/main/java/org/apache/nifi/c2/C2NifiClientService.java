@@ -22,21 +22,32 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.apache.nifi.c2.client.C2ClientConfig;
 import org.apache.nifi.c2.client.http.C2HttpClient;
 import org.apache.nifi.c2.client.service.C2ClientService;
 import org.apache.nifi.c2.client.service.C2HeartbeatFactory;
 import org.apache.nifi.c2.client.service.FlowIdHolder;
+import org.apache.nifi.c2.client.service.ManifestHashProvider;
 import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
 import org.apache.nifi.c2.client.service.operation.C2OperationService;
 import org.apache.nifi.c2.client.service.operation.DescribeManifestOperationHandler;
+import org.apache.nifi.c2.client.service.operation.EmptyOperandPropertiesProvider;
+import org.apache.nifi.c2.client.service.operation.OperandPropertiesProvider;
+import org.apache.nifi.c2.client.service.operation.SupportedOperationsProvider;
 import org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler;
+import org.apache.nifi.c2.protocol.api.AgentManifest;
 import org.apache.nifi.c2.protocol.api.AgentRepositories;
 import org.apache.nifi.c2.protocol.api.AgentRepositoryStatus;
 import org.apache.nifi.c2.protocol.api.FlowQueueStatus;
 import org.apache.nifi.c2.serializer.C2JacksonSerializer;
-import org.apache.nifi.controller.FlowController;;
+import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.diagnostics.StorageUsage;
@@ -50,13 +61,6 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 public class C2NifiClientService {
 
@@ -75,6 +79,8 @@ public class C2NifiClientService {
     private final ExtensionManifestParser extensionManifestParser = new JAXBExtensionManifestParser();
 
     private final RuntimeManifestService runtimeManifestService;
+
+    private final SupportedOperationsProvider supportedOperationsProvider;
     private final long heartbeatPeriod;
 
     public C2NifiClientService(final NiFiProperties niFiProperties, final FlowController flowController) {
@@ -90,15 +96,18 @@ public class C2NifiClientService {
         this.heartbeatPeriod = clientConfig.getHeartbeatPeriod();
         this.flowController = flowController;
         C2HttpClient client = new C2HttpClient(clientConfig, new C2JacksonSerializer());
-        C2HeartbeatFactory heartbeatFactory = new C2HeartbeatFactory(clientConfig, flowIdHolder);
+        C2HeartbeatFactory heartbeatFactory = new C2HeartbeatFactory(clientConfig, flowIdHolder, new ManifestHashProvider());
+        OperandPropertiesProvider emptyOperandPropertiesProvider = new EmptyOperandPropertiesProvider();
+        C2OperationService c2OperationService = new C2OperationService(Arrays.asList(
+            new UpdateConfigurationOperationHandler(client, flowIdHolder, this::updateFlowContent, emptyOperandPropertiesProvider),
+            new DescribeManifestOperationHandler(heartbeatFactory, this::generateRuntimeInfo, emptyOperandPropertiesProvider)
+        ));
         this.c2ClientService = new C2ClientService(
             client,
             heartbeatFactory,
-            new C2OperationService(Arrays.asList(
-                new UpdateConfigurationOperationHandler(client, flowIdHolder, this::updateFlowContent),
-                new DescribeManifestOperationHandler(heartbeatFactory, this::generateRuntimeInfo)
-            ))
+            c2OperationService
         );
+        this.supportedOperationsProvider = new SupportedOperationsProvider(c2OperationService.getHandlers());
     }
 
     private C2ClientConfig generateClientConfig(NiFiProperties properties) {
@@ -129,12 +138,7 @@ public class C2NifiClientService {
     }
 
     public void start() {
-        try {
-            scheduledExecutorService.scheduleAtFixedRate(() -> c2ClientService.sendHeartbeat(generateRuntimeInfo()), INITIAL_DELAY, heartbeatPeriod, TimeUnit.MILLISECONDS);
-        } catch (Exception e) {
-            logger.error("Could not start C2 Client Heartbeat Reporting", e);
-            throw new RuntimeException(e);
-        }
+        scheduledExecutorService.scheduleAtFixedRate(() -> c2ClientService.sendHeartbeat(generateRuntimeInfo()), INITIAL_DELAY, heartbeatPeriod, TimeUnit.MILLISECONDS);
     }
 
     public void stop() {
@@ -147,7 +151,9 @@ public class C2NifiClientService {
     }
 
     private RuntimeInfoWrapper generateRuntimeInfo() {
-        return new RuntimeInfoWrapper(getAgentRepositories(), runtimeManifestService.getManifest(), getQueueStatus());
+        AgentManifest agentManifest = new AgentManifest(runtimeManifestService.getManifest());
+        agentManifest.setSupportedOperations(supportedOperationsProvider.getSupportedOperations());
+        return new RuntimeInfoWrapper(getAgentRepositories(), agentManifest, getQueueStatus());
     }
 
     private AgentRepositories getAgentRepositories() {
