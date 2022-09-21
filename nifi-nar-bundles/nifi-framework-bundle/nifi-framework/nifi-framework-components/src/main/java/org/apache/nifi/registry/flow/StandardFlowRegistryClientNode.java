@@ -61,6 +61,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     private final FlowManager flowManager;
     private final Authorizable parent;
     private final AtomicReference<LoggableComponent<FlowRegistryClient>> client = new AtomicReference<>();
+    private final ControllerServiceProvider serviceProvider;
     private volatile String description;
 
     public StandardFlowRegistryClientNode(
@@ -80,6 +81,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         super(id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent, extensionManager, validationTrigger, isExtensionMissing);
         this.parent = parent;
         this.flowManager = flowManager;
+        this.serviceProvider = serviceProvider;
         this.client.set(client);
     }
 
@@ -260,7 +262,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     }
 
     private FlowRegistryClientConfigurationContext getConfigurationContext(FlowRegistryClientUserContext clientContext) {
-        return new StandardFlowRegistryClientConfigurationContext(clientContext.getNiFiUserIdentity(), getRawPropertyValues(), this);
+        return new StandardFlowRegistryClientConfigurationContext(clientContext.getNiFiUserIdentity(), getRawPropertyValues(), this, serviceProvider);
     }
 
     private String extractIdentity(final FlowRegistryClientUserContext context) {

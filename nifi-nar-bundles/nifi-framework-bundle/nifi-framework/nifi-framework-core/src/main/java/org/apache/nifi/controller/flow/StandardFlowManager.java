@@ -396,6 +396,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
                 .flowController(flowController)
                 .bundleCoordinate(bundleCoordinate)
                 .processScheduler(processScheduler)
+                .controllerServiceProvider(flowController.getControllerServiceProvider())
                 .nodeTypeProvider(flowController)
                 .validationTrigger(flowController.getValidationTrigger())
                 .reloadComponent(flowController.getReloadComponent())

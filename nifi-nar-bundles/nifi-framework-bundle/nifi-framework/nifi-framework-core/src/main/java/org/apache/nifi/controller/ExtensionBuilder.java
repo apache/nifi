@@ -249,6 +249,9 @@ public class ExtensionBuilder {
         if (bundleCoordinate == null) {
             throw new IllegalStateException("Bundle Coordinate must be specified");
         }
+        if (serviceProvider == null) {
+            throw new IllegalStateException("Controller Service Provider must be specified");
+        }
         if (extensionManager == null) {
             throw new IllegalStateException("Extension Manager must be specified");
         }
@@ -260,9 +263,6 @@ public class ExtensionBuilder {
         }
         if (reloadComponent == null) {
             throw new IllegalStateException("Reload Component must be specified");
-        }
-        if (flowController == null) {
-            throw new IllegalStateException("FlowController must be specified");
         }
         if (flowController == null) {
             throw new IllegalStateException("FlowController must be specified");

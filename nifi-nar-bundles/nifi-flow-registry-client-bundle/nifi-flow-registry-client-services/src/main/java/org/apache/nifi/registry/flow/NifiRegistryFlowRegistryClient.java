@@ -30,11 +30,11 @@ import org.apache.nifi.registry.client.NiFiRegistryClientConfig;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.client.impl.JerseyNiFiRegistryClient;
 import org.apache.nifi.registry.client.impl.request.ProxiedEntityRequestConfig;
-import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.ssl.SSLContextService;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -56,60 +56,13 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
             .addValidator(StandardValidators.URL_VALIDATOR)
             .required(true)
             .build();
-    public final static PropertyDescriptor PROPERTY_KEYSTORE_PATH = new PropertyDescriptor.Builder()
-            .name("keystorePath")
-            .displayName("Keystore Path")
-            .description("The fully-qualified filename of the Keystore")
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+
+    static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("ssl-context-service")
+            .displayName("SSL Context Service")
+            .description("Specifies the SSL Context Service to use for communicating with NiFiRegistry")
             .required(false)
-            .build();
-    public final static PropertyDescriptor PROPERTY_KEYSTORE_PASSWORD = new PropertyDescriptor.Builder()
-            .name("keystorePassword")
-            .displayName("Keystore Password")
-            .description("The password for the Keystore")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .sensitive(true)
-            .required(false)
-            .build();
-    public final static PropertyDescriptor PROPERTY_KEY_PASSWORD = new PropertyDescriptor.Builder()
-            .name("keyPassword")
-            .displayName("Key Password")
-            .description("The password for the key. If this is not specified, but the Keystore Filename, Password, and Type are specified, "
-                    + "then the Keystore Password will be assumed to be the same as the Key Password.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .sensitive(true)
-            .required(false)
-            .build();
-    public final static PropertyDescriptor PROPERTY_KEYSTORE_TYPE = new PropertyDescriptor.Builder()
-            .name("keystoreType")
-            .displayName("Keystore Type")
-            .description("The Type of the Keystore")
-            .allowableValues(KeystoreType.values())
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(false)
-            .build();
-    public final static PropertyDescriptor PROPERTY_TRUSTSTORE_PATH = new PropertyDescriptor.Builder()
-            .name("truststorePath")
-            .displayName("Truststore Path")
-            .description("The fully-qualified filename of the Truststore")
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .required(false)
-            .build();
-    public final static PropertyDescriptor PROPERTY_TRUSTSTORE_PASSWORD = new PropertyDescriptor.Builder()
-            .name("truststorePassword")
-            .displayName("Truststore Password")
-            .description("The password for the Truststore")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .sensitive(true)
-            .required(false)
-            .build();
-    public final static PropertyDescriptor PROPERTY_TRUSTSTORE_TYPE = new PropertyDescriptor.Builder()
-            .name("truststoreType")
-            .displayName("Truststore Type")
-            .description("The Type of the Truststore")
-            .allowableValues(KeystoreType.values())
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(false)
+            .identifiesControllerService(SSLContextService.class)
             .build();
 
     private volatile String registryUrl;
@@ -160,13 +113,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return Arrays.asList(
                 PROPERTY_URL,
-                PROPERTY_KEYSTORE_PATH,
-                PROPERTY_KEYSTORE_TYPE,
-                PROPERTY_KEYSTORE_PASSWORD,
-                PROPERTY_KEY_PASSWORD,
-                PROPERTY_TRUSTSTORE_PATH,
-                PROPERTY_TRUSTSTORE_TYPE,
-                PROPERTY_TRUSTSTORE_PASSWORD
+                SSL_CONTEXT_SERVICE
         );
     }
 
@@ -176,19 +123,9 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
 
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final Collection<ValidationResult> result = new HashSet<>();
+        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
 
-        boolean isKeystorePathSet = context.getProperty(PROPERTY_KEYSTORE_PATH).isSet();
-        boolean isKeystorePassword = context.getProperty(PROPERTY_KEYSTORE_PASSWORD).isSet();
-        boolean isKeyPassword = context.getProperty(PROPERTY_KEY_PASSWORD).isSet();
-        boolean isKeystoreType = context.getProperty(PROPERTY_KEYSTORE_TYPE).isSet();
-        boolean isTruststorePath = context.getProperty(PROPERTY_TRUSTSTORE_PATH).isSet();
-        boolean isTruststorePassword = context.getProperty(PROPERTY_TRUSTSTORE_PASSWORD).isSet();
-        boolean isTruststoreType = context.getProperty(PROPERTY_TRUSTSTORE_TYPE).isSet();
-
-        boolean sslContextIsSet = isKeystorePathSet && isKeystorePassword && isKeyPassword && isKeystoreType && isTruststorePath && isTruststorePassword && isTruststoreType;
-        boolean sslContextIsNotSet = !(isKeystorePathSet || isKeystorePassword || isKeyPassword || isKeystoreType || isTruststorePath || isTruststorePassword || isTruststoreType);
-
-        if (!(sslContextIsSet || sslContextIsNotSet)) {
+        if (!(sslContextService.isTrustStoreConfigured() ^ sslContextService.isKeyStoreConfigured())) {
             result.add(new ValidationResult.Builder().subject(this.getClass().getSimpleName())
                 .valid(false)
                 .explanation("It is expected to either set all the properties for the SSLContext or set none")
@@ -203,7 +140,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     private SSLContext extractSSLContext(final FlowRegistryClientConfigurationContext context) {
-        if (context.getProperty(PROPERTY_KEYSTORE_PATH).isSet()) {
+        if (context.getProperty(SSL_CONTEXT_SERVICE).isSet()) {
             final TlsConfiguration tlsConfiguration = createTlsConfigurationFromContext(context);
 
             try {
@@ -364,13 +301,6 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     private static TlsConfiguration createTlsConfigurationFromContext(final FlowRegistryClientConfigurationContext context) {
-        String keystorePath = context.getProperty(PROPERTY_KEYSTORE_PATH).getValue();
-        String keystorePassword = context.getProperty(PROPERTY_KEYSTORE_PASSWORD).getValue();
-        String keyPassword = context.getProperty(PROPERTY_KEY_PASSWORD).getValue();
-        String keystoreType = context.getProperty(PROPERTY_KEYSTORE_TYPE).getValue();
-        String truststorePath = context.getProperty(PROPERTY_TRUSTSTORE_PATH).getValue();
-        String truststorePassword = context.getProperty(PROPERTY_TRUSTSTORE_PASSWORD).getValue();
-        String truststoreType = context.getProperty(PROPERTY_TRUSTSTORE_TYPE).getValue();
-        return new StandardTlsConfiguration(keystorePath, keystorePassword, keyPassword, keystoreType, truststorePath, truststorePassword, truststoreType, TlsConfiguration.TLS_PROTOCOL);
+        return new StandardTlsConfiguration(context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class).createTlsConfiguration());
     }
 }

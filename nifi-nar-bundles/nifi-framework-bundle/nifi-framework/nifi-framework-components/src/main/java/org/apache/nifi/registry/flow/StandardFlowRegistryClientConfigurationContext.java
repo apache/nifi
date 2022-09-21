@@ -17,9 +17,8 @@
 package org.apache.nifi.registry.flow;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.service.StandardPropertyContext;
-import org.apache.nifi.registry.flow.FlowRegistryClientConfigurationContext;
-import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 
 import java.util.Map;
 import java.util.Optional;
@@ -30,9 +29,10 @@ public class StandardFlowRegistryClientConfigurationContext extends StandardProp
     public StandardFlowRegistryClientConfigurationContext(
             final Optional<String> niFiUserIdentity,
             final Map<PropertyDescriptor, String> propertyValues,
-            final FlowRegistryClientNode componentNode
+            final FlowRegistryClientNode componentNode,
+            final ControllerServiceLookup controllerServiceLookup
     ) {
-        super(propertyValues, componentNode.getComponent());
+        super(propertyValues, componentNode.getComponent(), controllerServiceLookup);
         this.niFiUserIdentity = niFiUserIdentity;
     }
 
