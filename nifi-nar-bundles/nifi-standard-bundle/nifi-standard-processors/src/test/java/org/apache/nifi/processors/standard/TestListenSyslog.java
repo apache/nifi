@@ -24,8 +24,6 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.syslog.attributes.SyslogAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -42,8 +40,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class TestListenSyslog {
     private static final String PRIORITY = "34";
@@ -74,22 +70,6 @@ public class TestListenSyslog {
     @AfterEach
     public void closeEventSender() {
         processor.shutdownEventServer();
-    }
-
-    @Test
-    public void testUdpSslContextServiceInvalid() throws InitializationException {
-        runner.setProperty(ListenSyslog.PROTOCOL, TransportProtocol.UDP.toString());
-        final int port = NetworkUtils.getAvailableUdpPort();
-        runner.setProperty(ListenSyslog.PORT, Integer.toString(port));
-
-        final RestrictedSSLContextService sslContextService = mock(RestrictedSSLContextService.class);
-        final String identifier = RestrictedSSLContextService.class.getName();
-        when(sslContextService.getIdentifier()).thenReturn(identifier);
-        runner.addControllerService(identifier, sslContextService);
-        runner.enableControllerService(sslContextService);
-        runner.setProperty(ListenSyslog.SSL_CONTEXT_SERVICE, identifier);
-
-        runner.assertNotValid();
     }
 
     @Test
