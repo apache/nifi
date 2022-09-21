@@ -2646,6 +2646,46 @@
     )};
 
     /**
+     * Determines whether the user has made any changes to the registry configuration
+     * that needs to be saved.
+     */
+     var isSaveRequired = function () {
+        return $('#registry-properties').propertytable('isSaveRequired');
+    };
+
+    /**
+     * Goes to a service configuration from the property table.
+     */
+     var goToServiceFromProperty = function () {
+        return $.Deferred(function (deferred) {
+            // close all fields currently being edited
+            $('#registry-properties').propertytable('saveRow');
+
+            // determine if changes have been made
+            if (isSaveRequired()) {
+                // see if those changes should be saved
+                nfDialog.showYesNoDialog({
+                    headerText: 'Save',
+                    dialogContent: 'Save changes before going to this Controller Service?',
+                    noHandler: function () {
+                        deferred.resolve();
+                    },
+                    yesHandler: function () {
+                        var registry = $('#registry-configuration-dialog').data('registryDetails');
+                        updateRegistry(registry.id).done(function () {
+                            deferred.resolve();
+                        }).fail(function () {
+                            deferred.reject();
+                        });
+                    }
+                });
+            } else {
+                deferred.resolve();
+            }
+        }).promise();
+    };
+
+    /**
      * Gets a property descriptor for the registry currently being configured.
      *
      * @param {type} propertyName
@@ -2794,6 +2834,10 @@
                     // set the initial focus
                     $('#reporting-task-type-filter').focus();
                 } else if (selectedTab === 'Registry Clients') {
+                    // clear previous values
+                    $('#new-registry-name').val('');
+                    $('#new-registry-description').val('');
+
                     $('#new-registry-client-dialog').modal('setHeaderText', 'Add Registry Client').modal('setButtonModel', [{
                         buttonText: 'Add',
                         color: {
@@ -2845,12 +2889,17 @@
                 }
             });
 
-            // what limitations does a registry client have
-            // ex can a registry client use a controller service, support dynamic props, reference parameters
+            // initialize registry property table
             $('#registry-properties').propertytable({
                 readOnly: false,
+                supportsGoTo: true,
                 dialogContainer: '#new-registry-property-container',
-                descriptorDeferred: getRegistryPropertyDescriptor
+                descriptorDeferred: getRegistryPropertyDescriptor,
+                controllerServiceCreatedDeferred: function (response) {
+                    var controllerServicesUri = config.urls.api + '/flow/controller/controller-services';
+                    return nfControllerServices.loadControllerServices(controllerServicesUri, $('#controller-services-table'));
+                },
+                goToServiceDeferred: goToServiceFromProperty
             });
 
             // initialize the settings tabs
