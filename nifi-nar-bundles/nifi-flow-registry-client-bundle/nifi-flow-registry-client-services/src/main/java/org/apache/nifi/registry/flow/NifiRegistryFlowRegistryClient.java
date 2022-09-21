@@ -120,16 +120,19 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     private synchronized void invalidateClient() {
         this.registryClient = null;
     }
-
+    SimpleFlowRegistryPermissions
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final Collection<ValidationResult> result = new HashSet<>();
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        if (context.getProperty(SSL_CONTEXT_SERVICE).isSet()) {
+            final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
 
-        if (!(sslContextService.isTrustStoreConfigured() ^ sslContextService.isKeyStoreConfigured())) {
-            result.add(new ValidationResult.Builder().subject(this.getClass().getSimpleName())
-                .valid(false)
-                .explanation("It is expected to either set all the properties for the SSLContext or set none")
-                .build());
+
+            if (!(sslContextService.isTrustStoreConfigured() ^ sslContextService.isKeyStoreConfigured())) {
+                result.add(new ValidationResult.Builder().subject(this.getClass().getSimpleName())
+                    .valid(false)
+                    .explanation("It is expected to either set all the properties for the SSLContext or set none")
+                    .build());
+            }
         }
 
         return result;
