@@ -39,6 +39,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -69,14 +70,18 @@ public class DebugOperationHandler implements C2OperationHandler {
     private final C2Client c2Client;
     private final List<Path> bundleFilePaths;
     private final Predicate<String> contentFilter;
+    private final OperandPropertiesProvider operandPropertiesProvider;
 
-    private DebugOperationHandler(C2Client c2Client, List<Path> bundleFilePaths, Predicate<String> contentFilter) {
+    private DebugOperationHandler(C2Client c2Client, List<Path> bundleFilePaths, Predicate<String> contentFilter,
+                                  OperandPropertiesProvider operandPropertiesProvider) {
         this.c2Client = c2Client;
         this.bundleFilePaths = bundleFilePaths;
         this.contentFilter = contentFilter;
+        this.operandPropertiesProvider = operandPropertiesProvider;
     }
 
-    public static DebugOperationHandler create(C2Client c2Client, List<Path> bundleFilePaths, Predicate<String> contentFilter) {
+    public static DebugOperationHandler create(C2Client c2Client, List<Path> bundleFilePaths, Predicate<String> contentFilter,
+                                               OperandPropertiesProvider operandPropertiesProvider) {
         if (c2Client == null) {
             throw new IllegalArgumentException("C2Client should not be null");
         }
@@ -87,7 +92,7 @@ public class DebugOperationHandler implements C2OperationHandler {
             throw new IllegalArgumentException("Content filter should not be null");
         }
 
-        return new DebugOperationHandler(c2Client, bundleFilePaths, contentFilter);
+        return new DebugOperationHandler(c2Client, bundleFilePaths, contentFilter, operandPropertiesProvider);
     }
 
     @Override
@@ -98,6 +103,11 @@ public class DebugOperationHandler implements C2OperationHandler {
     @Override
     public OperandType getOperandType() {
         return DEBUG;
+    }
+
+    @Override
+    public Map<String, Object> getProperties() {
+        return operandPropertiesProvider.getProperties();
     }
 
     @Override
