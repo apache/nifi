@@ -104,7 +104,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
 
     @OnScheduled
     public void onScheduled() {
-        clientFactory = new DataLakeServiceClientFactory();
+        clientFactory = new DataLakeServiceClientFactory(getLogger());
     }
 
     @OnStopped

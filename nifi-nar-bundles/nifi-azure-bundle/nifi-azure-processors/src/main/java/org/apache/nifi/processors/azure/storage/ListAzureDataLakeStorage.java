@@ -183,7 +183,7 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
     public void onScheduled(final ProcessContext context) {
         filePattern = getPattern(context, FILE_FILTER);
         pathPattern = getPattern(context, PATH_FILTER);
-        clientFactory = new DataLakeServiceClientFactory();
+        clientFactory = new DataLakeServiceClientFactory(getLogger());
     }
 
     @OnStopped

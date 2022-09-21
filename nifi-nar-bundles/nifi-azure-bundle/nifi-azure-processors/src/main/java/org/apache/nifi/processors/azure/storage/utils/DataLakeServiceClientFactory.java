@@ -31,6 +31,7 @@ import com.azure.storage.file.datalake.DataLakeServiceClientBuilder;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsDetails;
 import reactor.core.publisher.Mono;
 
@@ -38,9 +39,12 @@ public class DataLakeServiceClientFactory {
 
     private static final long STORAGE_CLIENT_CACHE_SIZE = 10;
 
+    private final ComponentLog logger;
+
     private final Cache<ADLSCredentialsDetails, DataLakeServiceClient> clientCache;
 
-    public DataLakeServiceClientFactory() {
+    public DataLakeServiceClientFactory(ComponentLog logger) {
+        this.logger = logger;
         this.clientCache = createCache();
     }
 
@@ -62,7 +66,10 @@ public class DataLakeServiceClientFactory {
      * @return DataLakeServiceClient
      */
     public DataLakeServiceClient getStorageClient(ADLSCredentialsDetails credentialsDetails, ProxyOptions proxyOptions) {
-        return clientCache.get(credentialsDetails, __ -> createStorageClient(credentialsDetails, proxyOptions));
+        return clientCache.get(credentialsDetails, __ -> {
+            logger.debug("DataLakeServiceClient is not found in the cache with the given credentials. Creating it.");
+            return createStorageClient(credentialsDetails, proxyOptions);
+        });
     }
 
     private static DataLakeServiceClient createStorageClient(ADLSCredentialsDetails credentialsDetails, ProxyOptions proxyOptions) {
