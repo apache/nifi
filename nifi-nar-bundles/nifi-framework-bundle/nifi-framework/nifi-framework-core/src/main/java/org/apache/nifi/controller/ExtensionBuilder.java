@@ -252,9 +252,6 @@ public class ExtensionBuilder {
         if (extensionManager == null) {
             throw new IllegalStateException("Extension Manager must be specified");
         }
-        if (serviceProvider == null) {
-            throw new IllegalStateException("Controller Service Provider must be specified");
-        }
         if (nodeTypeProvider == null) {
             throw new IllegalStateException("Node Type Provider must be specified");
         }
