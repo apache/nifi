@@ -488,6 +488,8 @@ public class ControllerResource extends ApplicationResource {
                     value = "The flow registry client configuration details.",
                     required = true
             ) final FlowRegistryClientEntity requestFlowRegistryClientEntity) {
+        // authorize access
+        authorizeController(RequestAction.READ);
 
         preprocessObsoleteRequest(requestFlowRegistryClientEntity);
 
@@ -635,6 +637,9 @@ public class ControllerResource extends ApplicationResource {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
+        // authorize access
+        authorizeController(RequestAction.WRITE);
+
         // ensure the ids are the same
         final FlowRegistryClientDTO requestRegistryClient = requestFlowRegistryClientEntity.getComponent();
         if (!id.equals(requestRegistryClient.getId())) {
@@ -734,6 +739,9 @@ public class ControllerResource extends ApplicationResource {
             verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
+        // authorize access
+        authorizeController(RequestAction.WRITE);
+
         final FlowRegistryClientEntity requestFlowRegistryClientEntity = new FlowRegistryClientEntity();
         requestFlowRegistryClientEntity.setId(id);
 
@@ -765,12 +773,12 @@ public class ControllerResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("/registry-clients/{id}ta")
+    @Path("/registry-clients/{id}/descriptors")
     @ApiOperation(
             value = "Gets a flow registry client property descriptor",
             response = PropertyDescriptorEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /reporting-tasks/{uuid}")
+                    @Authorization(value = "Read - /controller/registry-clients/{uuid}")
             }
     )
     @ApiResponses(
@@ -810,10 +818,7 @@ public class ControllerResource extends ApplicationResource {
         }
 
         // authorize access
-        serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable reportingTask = lookup.getReportingTask(id).getAuthorizable();
-            reportingTask.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-        });
+        authorizeController(RequestAction.READ);
 
         // get the property descriptor
         final PropertyDescriptorDTO descriptor = serviceFacade.getRegistryClientPropertyDescriptor(id, propertyName, sensitive);
@@ -853,6 +858,9 @@ public class ControllerResource extends ApplicationResource {
             }
     )
     public Response getRegistryClientTypes() {
+        // authorize access
+        authorizeController(RequestAction.READ);
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
         }
