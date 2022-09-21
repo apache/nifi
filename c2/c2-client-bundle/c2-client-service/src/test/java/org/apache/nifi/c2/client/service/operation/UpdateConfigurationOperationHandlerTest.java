@@ -17,8 +17,8 @@
 package org.apache.nifi.c2.client.service.operation;
 
 import static org.apache.commons.lang3.StringUtils.EMPTY;
-import static org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler.LOCATION;
 import static org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler.FLOW_ID;
+import static org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler.LOCATION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -51,10 +51,12 @@ public class UpdateConfigurationOperationHandlerTest {
 
     @Mock
     private FlowIdHolder flowIdHolder;
+    @Mock
+    private OperandPropertiesProvider operandPropertiesProvider;
 
     @Test
     void testUpdateConfigurationOperationHandlerCreateSuccess() {
-        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(null, null, null);
+        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(null, null, null, operandPropertiesProvider);
 
         assertEquals(OperationType.UPDATE, handler.getOperationType());
         assertEquals(OperandType.CONFIGURATION, handler.getOperandType());
@@ -62,7 +64,7 @@ public class UpdateConfigurationOperationHandlerTest {
 
     @Test
     void testHandleIncorrectArg() {
-        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(null, null, null);
+        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(null, null, null, operandPropertiesProvider);
         C2Operation operation = new C2Operation();
         operation.setArgs(INCORRECT_LOCATION_MAP);
 
@@ -76,7 +78,7 @@ public class UpdateConfigurationOperationHandlerTest {
         Function<byte[], Boolean> successUpdate = x -> true;
         when(flowIdHolder.getFlowId()).thenReturn(FLOW_ID);
         when(client.retrieveUpdateContent(any())).thenReturn(Optional.of("content".getBytes()));
-        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, successUpdate);
+        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, successUpdate, operandPropertiesProvider);
         C2Operation operation = new C2Operation();
         operation.setIdentifier(OPERATION_ID);
 
@@ -95,7 +97,7 @@ public class UpdateConfigurationOperationHandlerTest {
     void testHandleReturnsNotAppliedWithNoContent() {
         when(flowIdHolder.getFlowId()).thenReturn(FLOW_ID);
         when(client.retrieveUpdateContent(any())).thenReturn(Optional.empty());
-        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, null);
+        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, null, operandPropertiesProvider);
         C2Operation operation = new C2Operation();
         operation.setArgs(CORRECT_LOCATION_MAP);
 
@@ -110,7 +112,7 @@ public class UpdateConfigurationOperationHandlerTest {
         Function<byte[], Boolean> failedToUpdate = x -> false;
         when(flowIdHolder.getFlowId()).thenReturn(FLOW_ID);
         when(client.retrieveUpdateContent(any())).thenReturn(Optional.of("content".getBytes()));
-        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, failedToUpdate);
+        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, failedToUpdate, operandPropertiesProvider);
         C2Operation operation = new C2Operation();
         operation.setIdentifier(OPERATION_ID);
         operation.setArgs(CORRECT_LOCATION_MAP);
@@ -126,7 +128,7 @@ public class UpdateConfigurationOperationHandlerTest {
         Function<byte[], Boolean> successUpdate = x -> true;
         when(flowIdHolder.getFlowId()).thenReturn(FLOW_ID);
         when(client.retrieveUpdateContent(any())).thenReturn(Optional.of("content".getBytes()));
-        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, successUpdate);
+        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, successUpdate, operandPropertiesProvider);
         C2Operation operation = new C2Operation();
         operation.setIdentifier(OPERATION_ID);
         operation.setArgs(CORRECT_LOCATION_MAP);
