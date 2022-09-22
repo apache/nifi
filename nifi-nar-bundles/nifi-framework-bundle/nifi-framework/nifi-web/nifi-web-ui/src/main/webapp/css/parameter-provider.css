@@ -85,6 +85,10 @@
     display: none;
 }
 
+#fetch-parameters-dialog .dialog-content {
+    bottom: 48px;
+}
+
 #fetch-parameters-dialog div.create-parameter-context-label {
     display: inline-block;
     line-height: normal;

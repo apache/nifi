@@ -1670,7 +1670,6 @@
 
                 $('<div id="create-parameter-context-label" class="nf-checkbox-label ellipsis" title="create-parameter-context" style="text-overflow: ellipsis;">' +
                     'Create Parameter Context' +
-                    '<div class="fa fa-question-circle" alt="Info" title="Select to create a parameter context from the selected group."></div>' +
                     '</div></div>').appendTo(checkboxMarkup);
 
                 var settingMarkup = $('<div class="setting"></div>');
@@ -2351,7 +2350,7 @@
         // define the column models for the table
         var nameColumnDefinition = {
             id: 'name',
-            name: 'Name',
+            name: 'Parameter Name',
             field: 'name',
             formatter: nameFormatter,
             sortable: true,
@@ -2597,7 +2596,7 @@
         var groupsColumn = [
             {
                 id: 'name',
-                name: 'Name',
+                name: 'Parameter Group Name',
                 field: 'name',
                 formatter: nameFormatter,
                 sortable: true,
