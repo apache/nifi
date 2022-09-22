@@ -146,6 +146,7 @@ import org.apache.nifi.provenance.lineage.LineageNode;
 import org.apache.nifi.provenance.lineage.ProvenanceEventLineageNode;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowState;
@@ -1892,6 +1893,15 @@ public final class DtoFactory {
             dto.setReferenceType(ParameterProvider.class.getSimpleName());
 
             propertyDescriptors = node.getParameterProvider().getPropertyDescriptors();
+            validationErrors = node.getValidationErrors();
+            processGroupId = null;
+        } else if (component instanceof FlowRegistryClientNode) {
+            final FlowRegistryClientNode node = (FlowRegistryClientNode) component;
+
+            dto.setType(node.getComponentType());
+            dto.setReferenceType(FlowRegistryClient.class.getSimpleName());
+
+            propertyDescriptors = node.getComponent().getPropertyDescriptors();
             validationErrors = node.getValidationErrors();
             processGroupId = null;
         }

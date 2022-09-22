@@ -188,7 +188,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
             final FlowClient flowClient = getFlowClient(context);
 
             if (flowClient.getByBucket(flow.getBucketIdentifier()).stream().map(f -> f.getName()).collect(Collectors.toSet()).contains(flow.getName())) {
-                throw new FlowAlreadyExistsException(String.format("Flow %s within bucket %s already exists", flow.getName(), flow.getBucketName()));
+                throw new FlowAlreadyExistsException(String.format("Flow %s within bucket %s already exists", flow.getName(), flow.getBucketIdentifier()));
             }
 
             return NifiRegistryUtil.convert(flowClient.create(NifiRegistryUtil.convert(flow)));

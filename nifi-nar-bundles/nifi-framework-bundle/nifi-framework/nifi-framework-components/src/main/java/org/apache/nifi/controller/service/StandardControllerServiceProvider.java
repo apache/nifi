@@ -31,6 +31,7 @@ import org.apache.nifi.groups.DefaultComponentScheduler;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.Severity;
@@ -498,7 +499,10 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 if (taskNode == null) {
                     final ParameterProviderNode parameterProviderNode = flowManager.getParameterProvider(componentId);
                     if (parameterProviderNode == null) {
-                        throw new IllegalStateException("Could not find any Processor, Reporting Task, Parameter Provider, or Controller Service with identifier " + componentId);
+                        final FlowRegistryClientNode flowRegistryClientNode = flowManager.getFlowRegistryClient(componentId);
+                        if (flowRegistryClientNode == null) {
+                            throw new IllegalStateException("Could not find any Processor, Reporting Task, Parameter Provider, or Controller Service with identifier " + componentId);
+                        }
                     }
                 }
 
