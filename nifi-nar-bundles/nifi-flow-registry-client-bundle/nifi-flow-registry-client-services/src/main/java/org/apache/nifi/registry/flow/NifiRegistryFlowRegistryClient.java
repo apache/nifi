@@ -120,7 +120,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     private synchronized void invalidateClient() {
         this.registryClient = null;
     }
-    SimpleFlowRegistryPermissions
+
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final Collection<ValidationResult> result = new HashSet<>();
         if (context.getProperty(SSL_CONTEXT_SERVICE).isSet()) {

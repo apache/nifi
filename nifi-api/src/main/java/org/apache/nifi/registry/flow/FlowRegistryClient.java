@@ -50,7 +50,7 @@ import java.util.Set;
  *
  * <p>
  * The argument list of the request methods contain instances <code>FlowRegistryClientConfigurationContext</code>, which always contains the current
- * state of the properties. Caching properties between method calls is not recommended
+ * state of the properties. Caching properties between method calls is not recommended.
  * </p>
  *
  */
