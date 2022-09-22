@@ -755,7 +755,8 @@
             'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
             'component': {
                 'id': registryId,
-                'name': $('#registry-name').val()
+                'name': $('#registry-name-config').val(),
+                'description': $('#registry-description-config').val()
             }
         };
 
@@ -764,7 +765,7 @@
             requestRegistryEntity['component']['properties'] = properties;
         }
 
-        // add the new reporting task
+        // add the new registry
         var updateRegistry = $.ajax({
             type: 'PUT',
             url: registryEntity.uri,
@@ -773,7 +774,7 @@
             contentType: 'application/json'
         }).done(function (registryEntity) {
             // add the item
-            registriesData.updateItem(registryId, $.extend({
+            registriesData.updateItem(registryEntity.id, $.extend({
                 type: 'Registry'
             }, registryEntity));
 
@@ -2366,48 +2367,56 @@
             type: 'GET',
             url: '../nifi-api/controller/registry-clients/' + encodeURIComponent(registryEntity.id),
             dataType: 'json'
-        }).done();
-
-        // populate the dialog
-        $('#registry-id-config').text(registryEntity.id);
-        $('#registry-name-config').text(registryEntity.component.name);
-        $('#registry-type-config').text(registryEntity.component.type);
-        $('#registry-description-config').text(registryEntity.component.description);
-
-        // show the dialog
-        $('#registry-configuration-dialog').modal('setHeaderText', 'Edit Registry Client').modal('setButtonModel', [{
-            buttonText: 'Update',
-            color: {
-                base: '#728E9B',
-                hover: '#004849',
-                text: '#ffffff'
-            },
-            handler: {
-                click: function () {
-                    updateRegistry(registryEntity.id);
-                }
-            }
-        }, {
-            buttonText: 'Cancel',
-            color: {
-                base: '#E3E8EB',
-                hover: '#C7D2D7',
-                text: '#004849'
-            },
-            handler: {
-                click: function () {
-                    $(this).modal('hide');
-                }
-            }
-        }]).modal('show');
-
-        // load the properties
-        $.when(loadConfig).done(function (loadConfigResponse) {
+        }).done(function (loadConfigResponse) {
             var properties = loadConfigResponse.component.properties;
             var descriptors = loadConfigResponse.component.descriptors;
+
+            // populate the dialog
+            $('#registry-id-config').text(loadConfigResponse.id);
+            $('#registry-name-config').val(loadConfigResponse.component.name);
+            $('#registry-type-config').text(loadConfigResponse.component.type);
+            $('#registry-description-config').val(loadConfigResponse.component.description);
+
+            // show the dialog
+            $('#registry-configuration-dialog').modal('setHeaderText', 'Edit Registry Client').modal('setButtonModel', [{
+                buttonText: 'Update',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
+                handler: {
+                    click: function () {
+                        updateRegistry(loadConfigResponse.id);
+                    }
+                }
+            }, {
+                buttonText: 'Cancel',
+                color: {
+                    base: '#E3E8EB',
+                    hover: '#C7D2D7',
+                    text: '#004849'
+                },
+                handler: {
+                    click: function () {
+                        $(this).modal('hide');
+                    }
+                }
+            }]).modal('show');
+
             $('#registry-properties').propertytable('clear');
             $('#registry-properties').propertytable('loadProperties', properties, descriptors);
             $('#registry-configuration-dialog').data('registryDetails', loadConfigResponse);
+        });
+
+
+        // load the properties
+        $.when(loadConfig).done(function (loadConfigResponse) {
+            // var properties = loadConfigResponse.component.properties;
+            // var descriptors = loadConfigResponse.component.descriptors;
+            // $('#registry-properties').propertytable('clear');
+            // $('#registry-properties').propertytable('loadProperties', properties, descriptors);
+            // $('#registry-configuration-dialog').data('registryDetails', loadConfigResponse);
         });
     };
 
@@ -2631,7 +2640,7 @@
             dataType: 'json'
         }).done(function (response) {
             var regTypeOptions = [];
-            response.flowRegistryClientTypes.forEach((type) => {
+            response.flowRegistryClientTypes.forEach(function (type) {
                 regTypeOptions.push({
                     text: nfCommon.substringAfterLast(type.type, '.'),
                     value: type.type,
@@ -2650,6 +2659,16 @@
      * that needs to be saved.
      */
      var isSaveRequired = function () {
+        var entity = $('#registry-configuration-dialog').data('registryDetails');
+        // determine if any registry settings have changed
+
+        if ($('#registry-name-config').val() !== entity.component['name']) {
+            return true;
+        }
+        if ($('#registry-description-config').val() !== entity.component['description']) {
+            return true;
+        }
+
         return $('#registry-properties').propertytable('isSaveRequired');
     };
 

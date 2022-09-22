@@ -33,7 +33,7 @@
                     <div class="setting">
                         <div class="setting-name">Name</div>
                         <div class="setting-field">
-                            <span id="registry-name-config"></span>
+                            <input type="text" id="registry-name-config" class="setting-input"/>
                         </div>
                     </div>
                     <div class="setting">
@@ -45,7 +45,7 @@
                     <div class="setting">
                         <div class="setting-name">Description</div>
                         <div class="setting-field">
-                            <span id="registry-description-config"></span>
+                            <textarea id="registry-description-config" class="setting-input"></textarea>
                         </div>
                     </div>
                 </div>
