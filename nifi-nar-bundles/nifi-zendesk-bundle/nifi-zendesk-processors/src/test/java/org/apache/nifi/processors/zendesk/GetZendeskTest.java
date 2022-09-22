@@ -25,18 +25,17 @@ import static org.apache.nifi.processors.zendesk.GetZendesk.HTTP_TOO_MANY_REQUES
 import static org.apache.nifi.processors.zendesk.GetZendesk.RECORD_COUNT_ATTRIBUTE_NAME;
 import static org.apache.nifi.processors.zendesk.GetZendesk.REL_SUCCESS_NAME;
 import static org.apache.nifi.processors.zendesk.GetZendesk.WEB_CLIENT_SERVICE_PROVIDER_NAME;
+import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_AUTHENTICATION_CREDENTIAL_NAME;
+import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_AUTHENTICATION_TYPE_NAME;
 import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_EXPORT_METHOD_NAME;
-import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_PASSWORD_NAME;
 import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_QUERY_START_TIMESTAMP_NAME;
 import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_RESOURCE_NAME;
 import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_SUBDOMAIN_NAME;
-import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_TOKEN_NAME;
 import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_USER_NAME;
 import static org.apache.nifi.processors.zendesk.ZendeskExportMethod.CURSOR;
 import static org.apache.nifi.processors.zendesk.ZendeskResource.TICKETS;
 import static org.apache.nifi.util.TestRunners.newTestRunner;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -48,7 +47,6 @@ import okhttp3.HttpUrl;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -109,8 +107,10 @@ public class GetZendeskTest {
         testRunner.enableControllerService(standardWebClientServiceProvider);
 
         testRunner.setProperty(WEB_CLIENT_SERVICE_PROVIDER_NAME, standardWebClientServiceProviderId);
-        testRunner.setProperty(ZENDESK_SUBDOMAIN_NAME, "zendesk-subdomain");
-        testRunner.setProperty(ZENDESK_USER_NAME, "zendesk-user-name");
+        testRunner.setProperty(ZENDESK_SUBDOMAIN_NAME, "default-zendesk-subdomain");
+        testRunner.setProperty(ZENDESK_USER_NAME, "default-zendesk-user-name");
+        testRunner.setProperty(ZENDESK_AUTHENTICATION_TYPE_NAME, ZendeskAuthenticationType.PASSWORD.getValue());
+        testRunner.setProperty(ZENDESK_AUTHENTICATION_CREDENTIAL_NAME, "default-zendesk-password");
         testRunner.setProperty(ZENDESK_QUERY_START_TIMESTAMP_NAME, DEFAULT_QUERY_START_TIMESTAMP);
     }
 
@@ -212,15 +212,18 @@ public class GetZendeskTest {
     }
 
     @Test
-    public void testProcessExceptionIsThrownWhenTooManyRequestResponseCodeReceived() {
+    public void testNoFlowFileIsEmittedWhenTooManyRequestResponseCodeReceived() {
         // given
         server.enqueue(new MockResponse().setResponseCode(HTTP_TOO_MANY_REQUESTS));
         testRunner.setProperty(ZENDESK_RESOURCE_NAME, TICKETS.getValue());
         testRunner.setProperty(ZENDESK_EXPORT_METHOD_NAME, CURSOR.getValue());
 
-        // when + then
-        AssertionError wrapperError = assertThrows(AssertionError.class, () -> testRunner.run(1));
-        assertInstanceOf(ProcessException.class, wrapperError.getCause());
+        // when
+        testRunner.run(1);
+
+        // then
+        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS_NAME);
+        assertEquals(0, flowFiles.size());
     }
 
     @Test
@@ -237,18 +240,6 @@ public class GetZendeskTest {
         // then
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS_NAME);
         assertEquals(0, flowFiles.size());
-    }
-
-    @Test
-    public void testBothZendeskPasswordAndAuthTokenCantBeProvided() {
-        // given
-        testRunner.setProperty(ZENDESK_RESOURCE_NAME, TICKETS.getValue());
-        testRunner.setProperty(ZENDESK_EXPORT_METHOD_NAME, CURSOR.getValue());
-        testRunner.setProperty(ZENDESK_PASSWORD_NAME, "non-empty-password");
-        testRunner.setProperty(ZENDESK_TOKEN_NAME, "non-empty-token");
-
-        // when + then
-        assertThrows(AssertionFailedError.class, () -> testRunner.run(1));
     }
 
     @ParameterizedTest

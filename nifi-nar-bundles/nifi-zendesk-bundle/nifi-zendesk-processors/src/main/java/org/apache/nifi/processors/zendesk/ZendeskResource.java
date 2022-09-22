@@ -60,7 +60,7 @@ public enum ZendeskResource implements DescribedValue {
     }
 
     public static ZendeskResource forName(String resourceName) {
-        return Stream.of(values()).filter(r -> r.getValue().equals(resourceName)).findFirst()
+        return Stream.of(values()).filter(r -> r.getValue().equalsIgnoreCase(resourceName)).findFirst()
             .orElseThrow(() -> new IllegalArgumentException("Invalid Zendesk resource: " + resourceName));
     }
 

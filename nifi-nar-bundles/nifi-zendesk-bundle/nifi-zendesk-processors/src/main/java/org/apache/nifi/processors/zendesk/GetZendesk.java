@@ -22,11 +22,11 @@ import static com.fasterxml.jackson.core.JsonToken.FIELD_NAME;
 import static com.fasterxml.jackson.core.JsonToken.VALUE_NULL;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Arrays.asList;
 import static java.util.Base64.getEncoder;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
-import static java.util.Collections.unmodifiableList;
+import static java.util.stream.Collectors.collectingAndThen;
+import static java.util.stream.Collectors.toList;
 import static org.apache.nifi.annotation.behavior.InputRequirement.Requirement.INPUT_FORBIDDEN;
 import static org.apache.nifi.components.state.Scope.CLUSTER;
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
@@ -34,7 +34,6 @@ import static org.apache.nifi.processor.util.StandardValidators.NON_BLANK_VALIDA
 import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.POSITIVE_LONG_VALIDATOR;
 import static org.apache.nifi.processors.zendesk.GetZendesk.RECORD_COUNT_ATTRIBUTE_NAME;
-import static org.apache.nifi.util.StringUtils.isNotBlank;
 import static org.apache.nifi.web.client.api.HttpResponseStatus.OK;
 
 import com.fasterxml.jackson.core.JsonFactory;
@@ -48,9 +47,11 @@ import java.io.UncheckedIOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -94,8 +95,8 @@ public class GetZendesk extends AbstractProcessor {
     static final String WEB_CLIENT_SERVICE_PROVIDER_NAME = "web-client-service-provider";
     static final String ZENDESK_SUBDOMAIN_NAME = "zendesk-subdomain";
     static final String ZENDESK_USER_NAME = "zendesk-user";
-    static final String ZENDESK_PASSWORD_NAME = "zendesk-password";
-    static final String ZENDESK_TOKEN_NAME = "zendesk-token";
+    static final String ZENDESK_AUTHENTICATION_TYPE_NAME = "zendesk-authentication-type-name";
+    static final String ZENDESK_AUTHENTICATION_CREDENTIAL_NAME = "zendesk-authentication-value-name";
     static final String ZENDESK_EXPORT_METHOD_NAME = "zendesk-export-method";
     static final String ZENDESK_RESOURCE_NAME = "zendesk-resource";
     static final String ZENDESK_QUERY_START_TIMESTAMP_NAME = "zendesk-query-start-timestamp";
@@ -104,7 +105,6 @@ public class GetZendesk extends AbstractProcessor {
     private static final String AUTHORIZATION_HEADER_NAME = "Authorization";
     private static final String BASIC_AUTH_PREFIX = "Basic ";
     private static final String ZENDESK_HOST_TEMPLATE = "%s.zendesk.com";
-    private static final String ZENDESK_USERNAME_WITH_TOKEN_TEMPLATE = "%s/token";
 
     private static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name(REL_SUCCESS_NAME)
@@ -139,23 +139,21 @@ public class GetZendesk extends AbstractProcessor {
         .addValidator(NON_BLANK_VALIDATOR)
         .build();
 
-    private static final PropertyDescriptor ZENDESK_PASSWORD = new PropertyDescriptor.Builder()
-        .name(ZENDESK_PASSWORD_NAME)
-        .displayName("Zendesk Password")
-        .description("Password of Zendesk login user. Leave empty if token is provided.")
-        .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
-        .sensitive(true)
-        .required(false)
-        .addValidator(NON_EMPTY_VALIDATOR)
+    private static final PropertyDescriptor ZENDESK_AUTHENTICATION_TYPE = new PropertyDescriptor.Builder()
+        .name(ZENDESK_AUTHENTICATION_TYPE_NAME)
+        .displayName("Zendesk Authentication Type")
+        .description("Type of authentication to Zendesk API.")
+        .required(true)
+        .allowableValues(ZendeskAuthenticationType.class)
         .build();
 
-    private static final PropertyDescriptor ZENDESK_TOKEN = new PropertyDescriptor.Builder()
-        .name(ZENDESK_TOKEN_NAME)
-        .displayName("Zendesk Token")
-        .description("Auth token for Zendesk login user. Leave empty if password is provided.")
+    private static final PropertyDescriptor ZENDESK_AUTHENTICATION_CREDENTIAL = new PropertyDescriptor.Builder()
+        .name(ZENDESK_AUTHENTICATION_CREDENTIAL_NAME)
+        .displayName("Zendesk Authentication Credential")
+        .description("Password or authentication token for Zendesk login user.")
         .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
         .sensitive(true)
-        .required(false)
+        .required(true)
         .addValidator(NON_EMPTY_VALIDATOR)
         .build();
 
@@ -184,16 +182,16 @@ public class GetZendesk extends AbstractProcessor {
         .required(true)
         .build();
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = unmodifiableList(asList(
+    private static final List<PropertyDescriptor> DESCRIPTORS = Stream.of(
         WEB_CLIENT_SERVICE_PROVIDER,
         ZENDESK_SUBDOMAIN,
         ZENDESK_USER,
-        ZENDESK_PASSWORD,
-        ZENDESK_TOKEN,
+        ZENDESK_AUTHENTICATION_TYPE,
+        ZENDESK_AUTHENTICATION_CREDENTIAL,
         ZENDESK_EXPORT_METHOD,
         ZENDESK_RESOURCE,
         ZENDESK_QUERY_START_TIMESTAMP
-    ));
+    ).collect(collectingAndThen(toList(), Collections::unmodifiableList));
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final JsonFactory JSON_FACTORY = OBJECT_MAPPER.getFactory();
@@ -212,17 +210,7 @@ public class GetZendesk extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        List<ValidationResult> results = new ArrayList<>(2);
-
-        String password = validationContext.getProperty(ZENDESK_PASSWORD).evaluateAttributeExpressions().getValue();
-        String token = validationContext.getProperty(ZENDESK_TOKEN).evaluateAttributeExpressions().getValue();
-        if (isNotBlank(password) && isNotBlank(token)) {
-            results.add(new ValidationResult.Builder()
-                .subject(ZENDESK_PASSWORD_NAME)
-                .valid(false)
-                .explanation("Either password or token should be set. Filling in both is not allowed.")
-                .build());
-        }
+        List<ValidationResult> results = new ArrayList<>(1);
 
         ZendeskExportMethod exportMethod = ZendeskExportMethod.forName(validationContext.getProperty(ZENDESK_EXPORT_METHOD).getValue());
         ZendeskResource zendeskResource = ZendeskResource.forName(validationContext.getProperty(ZENDESK_RESOURCE).getValue());
@@ -267,7 +255,7 @@ public class GetZendesk extends AbstractProcessor {
             getLogger().error("Rate limit exceeded for uri={}, yielding before retrying request.", uri);
             context.yield();
         } else {
-            getLogger().error("HTTP {} error for uri={} with response={}.", response.statusCode(), uri, responseBodyToString(context, response));
+            getLogger().error("HTTP {} error for uri={} with response={}, yielding before retrying request.", response.statusCode(), uri, responseBodyToString(context, response));
             context.yield();
         }
     }
@@ -303,17 +291,14 @@ public class GetZendesk extends AbstractProcessor {
     }
 
     private HttpResponseEntity performQuery(ProcessContext context, URI uri) {
-        String user = context.getProperty(ZENDESK_USER).evaluateAttributeExpressions().getValue();
-        String password = context.getProperty(ZENDESK_PASSWORD).evaluateAttributeExpressions().getValue();
-        String token = context.getProperty(ZENDESK_TOKEN).evaluateAttributeExpressions().getValue();
+        String userName = context.getProperty(ZENDESK_USER).evaluateAttributeExpressions().getValue();
+        ZendeskAuthenticationType authenticationType = ZendeskAuthenticationType.forName(context.getProperty(ZENDESK_AUTHENTICATION_TYPE).getValue());
+        String authenticationCredential = context.getProperty(ZENDESK_AUTHENTICATION_CREDENTIAL).evaluateAttributeExpressions().getValue();
 
         return webClientServiceProvider.getWebClientService()
             .get()
             .uri(uri)
-            .header(AUTHORIZATION_HEADER_NAME,
-                basicAuthHeaderValue(
-                    token != null ? format(ZENDESK_USERNAME_WITH_TOKEN_TEMPLATE, user) : user,
-                    token != null ? token : password))
+            .header(AUTHORIZATION_HEADER_NAME, basicAuthHeaderValue(authenticationType.enrichUserName(userName), authenticationCredential))
             .retrieve();
     }
 

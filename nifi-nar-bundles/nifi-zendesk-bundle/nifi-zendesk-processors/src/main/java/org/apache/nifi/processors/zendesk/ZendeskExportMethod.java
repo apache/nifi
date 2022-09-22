@@ -48,7 +48,7 @@ public enum ZendeskExportMethod implements DescribedValue {
     }
 
     public static ZendeskExportMethod forName(String methodName) {
-        return Stream.of(values()).filter(m -> m.getValue().equals(methodName)).findFirst()
+        return Stream.of(values()).filter(m -> m.getValue().equalsIgnoreCase(methodName)).findFirst()
             .orElseThrow(() -> new IllegalArgumentException("Invalid Zendesk incremental export method: " + methodName));
     }
 
