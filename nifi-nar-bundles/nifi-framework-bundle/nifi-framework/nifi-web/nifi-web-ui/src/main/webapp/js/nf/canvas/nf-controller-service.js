@@ -444,6 +444,7 @@
         var processors = $('<ul class="referencing-component-listing clear"></ul>');
         var services = $('<ul class="referencing-component-listing clear"></ul>');
         var tasks = $('<ul class="referencing-component-listing clear"></ul>');
+        var providers = $('<ul class="referencing-component-listing clear"></ul>');
         var unauthorized = $('<ul class="referencing-component-listing clear"></ul>');
         $.each(referencingComponents, function (_, referencingComponentEntity) {
             // check the access policy for this referencing component
@@ -582,6 +583,42 @@
                     // reporting task
                     var reportingTaskItem = $('<li></li>').append(reportingTaskState).append(reportingTaskBulletins).append(reportingTaskLink).append(reportingTaskType).append(reportingTaskActiveThreadCount);
                     tasks.append(reportingTaskItem);
+                } else if (referencingComponent.referenceType === 'ParameterProvider') {
+                    var parameterProviderLink = $('<span class="referencing-component-name link"></span>').text(referencingComponent.name).on('click', function () {
+                        var parameterProvidersGrid = $('#parameter-providers-table').data('gridInstance');
+                        var parameterProvidersData = parameterProvidersGrid.getData();
+
+                        // select the selected row
+                        var row = parameterProvidersData.getRowById(referencingComponent.id);
+                        parameterProvidersGrid.setSelectedRows([row]);
+                        parameterProvidersGrid.scrollRowIntoView(row);
+
+                        // close the dialog and shell
+                        referenceContainer.closest('.dialog').modal('hide');
+
+                        $('#settings-tabs').find('li:eq(4)').click();
+
+                        // adjust the table size
+                        parameterProvidersGrid.resizeCanvas();
+                    });
+
+                    // state
+                    var providerState = $('<div class="referencing-component-state"></div>').addClass(referencingComponent.id + '-state');
+                    updateReferencingServiceState(providerState, referencingComponent);
+
+                    // bulletin
+                    var providerBulletins = $('<div class="referencing-component-bulletins"></div>').addClass(referencingComponent.id + '-bulletins');
+                    if (!nfCommon.isEmpty(referencingComponentEntity.bulletins)) {
+                        updateBulletins(referencingComponentEntity.bulletins, providerBulletins);
+                    }
+
+                    // type
+                    var providerType = $('<span class="referencing-component-type"></span>').text(referencingComponent.type);
+
+                    // parameter provider
+                    var providerItem = $('<li></li>').append(providerState).append(providerBulletins).append(parameterProviderLink).append(providerType).append(referencingProviderReferencesContainer);
+
+                    providers.append(providerItem);
                 }
             }
         });
@@ -614,6 +651,7 @@
         createReferenceBlock('Processors', processors);
         createReferenceBlock('Reporting Tasks', tasks);
         createReferenceBlock('Controller Services', services);
+        createReferenceBlock('Parameter Providers', providers);
         createReferenceBlock('Unauthorized', unauthorized);
 
         // now that the dom elements are in place, we can show the bulletin icons.
@@ -734,7 +772,7 @@
                     referencingComponentRevisions[referencingComponentEntity.id] = nfClient.getRevision(referencingComponentEntity);
                 }
             } else {
-                if (referencingComponent.referenceType !== 'ControllerService') {
+                if (referencingComponent.referenceType === 'Processor' || referencingComponent.referenceType === 'ReportingTask') {
                     referencingComponentRevisions[referencingComponentEntity.id] = nfClient.getRevision(referencingComponentEntity);
                 }
             }
@@ -1862,7 +1900,7 @@
                     }
                 }
             });
-            
+
             // initialize the bulletin combo
             $('#controller-service-bulletin-level-combo').combo({
                 options: [{

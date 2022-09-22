@@ -2570,7 +2570,7 @@
                     name: 'General',
                     tabContentId: 'general-settings-tab-content'
                 }, {
-                    name: 'Controller Level Controller Services',
+                    name: 'Management Controller Services',
                     tabContentId: 'controller-services-tab-content'
                 }, {
                     name: 'Reporting Tasks',
@@ -2601,7 +2601,7 @@
 
                             // update the tooltip on the button
                             $('#new-service-or-task').attr('title', function () {
-                                if (tab === 'Controller Level Controller Services') {
+                                if (tab === 'Management Controller Services') {
                                     $('#settings-save').hide();
                                     return 'Create a new controller level controller service';
                                 } else if (tab === 'Reporting Tasks') {
@@ -2620,7 +2620,7 @@
                             $('div.controller-settings-table').css('top', '0');
                         }
 
-                        if (tab === 'Controller Level Controller Services') {
+                        if (tab === 'Management Controller Services') {
                             $('#controller-cs-availability').show();
                         } else if (tab === 'Reporting Tasks' || tab === 'Registry Clients' || tab === 'Parameter Providers') {
                             $('#controller-cs-availability').hide();
@@ -2640,7 +2640,7 @@
             // create a new controller service or reporting task
             $('#new-service-or-task').on('click', function () {
                 var selectedTab = $('#settings-tabs li.selected-tab').text();
-                if (selectedTab === 'Controller Level Controller Services') {
+                if (selectedTab === 'Management Controller Services') {
                     var controllerServicesUri = config.urls.api + '/controller/controller-services';
                     nfControllerServices.promptNewControllerService(controllerServicesUri, getControllerServicesTable());
                 } else if (selectedTab === 'Reporting Tasks') {
