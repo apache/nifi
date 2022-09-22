@@ -106,6 +106,10 @@ public class BundleCompatibilityCheck implements FlowInheritabilityCheck {
 
         if (dataflow.getRegistries() != null) {
             for (final VersionedFlowRegistryClient registryClient : dataflow.getRegistries()) {
+                if (registryClient.getBundle() == null) {
+                    // Bundle will be missing if dataflow is using an older format, before Registry Clients became extension points.
+                    continue;
+                }
                 if (missingComponents.contains(registryClient.getInstanceIdentifier())) {
                     continue;
                 }

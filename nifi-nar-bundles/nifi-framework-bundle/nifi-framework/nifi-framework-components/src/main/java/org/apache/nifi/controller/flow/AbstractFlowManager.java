@@ -482,6 +482,9 @@ public abstract class AbstractFlowManager implements FlowManager {
 
     @Override
     public FlowRegistryClientNode getFlowRegistryClient(final String id) {
+        if (id == null) {
+            return null;
+        }
         return allFlowRegistryClients.get(id);
     }
 

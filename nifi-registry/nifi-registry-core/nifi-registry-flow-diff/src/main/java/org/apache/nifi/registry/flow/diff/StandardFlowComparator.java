@@ -268,7 +268,13 @@ public class StandardFlowComparator implements FlowComparator {
         addIfDifferent(differences, DifferenceType.DESCRIPTION_CHANGED, clientA, clientB, VersionedFlowRegistryClient::getDescription);
         addIfDifferent(differences, DifferenceType.ANNOTATION_DATA_CHANGED, clientA, clientB, VersionedFlowRegistryClient::getAnnotationData);
         addIfDifferent(differences, DifferenceType.BUNDLE_CHANGED, clientA, clientB, VersionedFlowRegistryClient::getBundle);
-        compareProperties(clientA, clientB, clientA.getProperties(), clientB.getProperties(), clientA.getPropertyDescriptors(), clientB.getPropertyDescriptors(), differences);
+
+        compareProperties(clientA, clientB, nullToEmpty(clientA.getProperties()), nullToEmpty(clientB.getProperties()),
+            nullToEmpty(clientA.getPropertyDescriptors()), nullToEmpty(clientB.getPropertyDescriptors()), differences);
+    }
+
+    private <K, V> Map<K, V> nullToEmpty(final Map<K, V> map) {
+        return map == null ? Collections.emptyMap() : map;
     }
 
     private Map<String, VersionedParameter> parametersByName(final Collection<VersionedParameter> parameters) {
