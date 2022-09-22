@@ -17,6 +17,7 @@
 package org.apache.nifi.controller;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.context.PropertyContext;
 
 import java.util.Map;
@@ -63,4 +64,9 @@ public interface ConfigurationContext extends PropertyContext {
      * @return the String name of this component
      */
     String getName();
+
+    /**
+     * @return the StateManager that can be used to store and retrieve state for this component
+     */
+    StateManager getStateManager();
 }

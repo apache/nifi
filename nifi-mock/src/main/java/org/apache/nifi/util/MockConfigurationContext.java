@@ -18,6 +18,7 @@ package org.apache.nifi.util;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
@@ -113,6 +114,11 @@ public class MockConfigurationContext implements ConfigurationContext {
 
     @Override
     public String getName() {
+        return null;
+    }
+
+    @Override
+    public StateManager getStateManager() {
         return null;
     }
 }

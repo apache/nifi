@@ -419,7 +419,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         final ParameterLookup parameterLookup = serviceNode.getProcessGroup() == null ? ParameterLookup.EMPTY : serviceNode.getProcessGroup().getParameterContext();
         final VariableRegistry variableRegistry = serviceNode.getProcessGroup() == null ? VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY : serviceNode.getProcessGroup().getVariableRegistry();
         final ConfigurationContext configurationContext = new StandardConfigurationContext(serviceNode, properties, serviceNode.getAnnotationData(),
-            parameterLookup, flowController.getControllerServiceProvider(), null, variableRegistry);
+            parameterLookup, flowController.getControllerServiceProvider(), null, variableRegistry, flowController.getStateManagerProvider());
 
         final List<ConfigVerificationResult> verificationResults = serviceNode.verifyConfiguration(configurationContext, configVerificationLog, variables, extensionManager);
         final List<ConfigVerificationResultDTO> resultsDtos = verificationResults.stream()

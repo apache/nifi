@@ -24,6 +24,8 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.resource.ResourceContext;
 import org.apache.nifi.components.resource.StandardResourceContext;
 import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
@@ -41,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 
 public class StandardConfigurationContext implements ConfigurationContext {
 
+    private final StateManagerProvider stateManagerProvider;
     private final ComponentNode component;
     private final ControllerServiceLookup serviceLookup;
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
@@ -52,22 +55,30 @@ public class StandardConfigurationContext implements ConfigurationContext {
 
     public StandardConfigurationContext(final ComponentNode component, final ControllerServiceLookup serviceLookup, final String schedulingPeriod,
                                         final VariableRegistry variableRegistry) {
-        this(component, serviceLookup, schedulingPeriod, variableRegistry, component.getEffectivePropertyValues(), component.getAnnotationData());
-    }
-
-    public StandardConfigurationContext(final ComponentNode component, final Map<String, String> propertyOverrides, final String annotationDataOverride, final ParameterLookup parameterLookup,
-                                        final ControllerServiceLookup serviceLookup, final String schedulingPeriod, final VariableRegistry variableRegistry) {
-        this(component, serviceLookup, schedulingPeriod, variableRegistry, resolvePropertyValues(component, parameterLookup, propertyOverrides), annotationDataOverride);
+        this(component, serviceLookup, schedulingPeriod, variableRegistry, component.getEffectivePropertyValues(), component.getAnnotationData(), null);
     }
 
     public StandardConfigurationContext(final ComponentNode component, final ControllerServiceLookup serviceLookup, final String schedulingPeriod,
-                                        final VariableRegistry variableRegistry, final Map<PropertyDescriptor, String> propertyValues, final String annotationData) {
+                                        final VariableRegistry variableRegistry, final StateManagerProvider stateManagerProvider) {
+        this(component, serviceLookup, schedulingPeriod, variableRegistry, component.getEffectivePropertyValues(), component.getAnnotationData(), stateManagerProvider);
+    }
+
+    public StandardConfigurationContext(final ComponentNode component, final Map<String, String> propertyOverrides, final String annotationDataOverride, final ParameterLookup parameterLookup,
+                                        final ControllerServiceLookup serviceLookup, final String schedulingPeriod, final VariableRegistry variableRegistry,
+                                        final StateManagerProvider stateManagerProvider) {
+        this(component, serviceLookup, schedulingPeriod, variableRegistry, resolvePropertyValues(component, parameterLookup, propertyOverrides), annotationDataOverride, stateManagerProvider);
+    }
+
+    public StandardConfigurationContext(final ComponentNode component, final ControllerServiceLookup serviceLookup, final String schedulingPeriod,
+                                        final VariableRegistry variableRegistry, final Map<PropertyDescriptor, String> propertyValues, final String annotationData,
+                                        final StateManagerProvider stateManagerProvider) {
         this.component = component;
         this.serviceLookup = serviceLookup;
         this.schedulingPeriod = schedulingPeriod;
         this.variableRegistry = variableRegistry;
         this.properties = Collections.unmodifiableMap(propertyValues);
         this.annotationData = annotationData;
+        this.stateManagerProvider = stateManagerProvider;
 
         if (schedulingPeriod == null) {
             schedulingNanos = null;
@@ -157,5 +168,10 @@ public class StandardConfigurationContext implements ConfigurationContext {
     @Override
     public String getName() {
         return component.getName();
+    }
+
+    @Override
+    public StateManager getStateManager() {
+        return stateManagerProvider.getStateManager(component.getIdentifier());
     }
 }
