@@ -377,13 +377,12 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         if (eventProcessorClient == null) {
-            eventProcessorClient = createClient(context);
-            eventProcessorClient.start();
-
             processSessionFactory = sessionFactory;
-
             readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
             writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+
+            eventProcessorClient = createClient(context);
+            eventProcessorClient.start();
         }
 
         // After a EventProcessor is registered successfully, nothing has to be done at onTrigger
@@ -394,7 +393,11 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
     @OnStopped
     public void stopClient() {
         if (eventProcessorClient != null) {
-            eventProcessorClient.stop();
+            try {
+                eventProcessorClient.stop();
+            } catch (final Exception e) {
+                getLogger().warn("Event Processor Client stop failed", e);
+            }
             eventProcessorClient = null;
             processSessionFactory = null;
             readerFactory = null;

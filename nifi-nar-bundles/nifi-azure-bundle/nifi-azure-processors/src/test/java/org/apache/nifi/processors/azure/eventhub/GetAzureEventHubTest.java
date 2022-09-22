@@ -28,7 +28,10 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class GetAzureEventHubTest {
     private static final String DOMAIN_NAME = "servicebus";
@@ -40,7 +43,6 @@ public class GetAzureEventHubTest {
     private static final Instant ENQUEUED_TIME = Instant.now();
     private static final long SEQUENCE_NUMBER = 32;
     private static final long OFFSET = 64;
-    private static final String PARTITIONS = "1";
     private static final String PARTITION_ID = "0";
     private static final String CONTENT = String.class.getSimpleName();
 
@@ -63,8 +65,6 @@ public class GetAzureEventHubTest {
         testRunner.setProperty(GetAzureEventHub.ACCESS_POLICY, POLICY_NAME);
         testRunner.assertNotValid();
         testRunner.setProperty(GetAzureEventHub.POLICY_PRIMARY_KEY, POLICY_KEY);
-        testRunner.assertNotValid();
-        testRunner.setProperty(GetAzureEventHub.NUM_PARTITIONS, PARTITIONS);
         testRunner.assertValid();
         testRunner.setProperty(GetAzureEventHub.ENQUEUE_TIME, ENQUEUED_TIME.toString());
         testRunner.assertValid();
@@ -79,8 +79,6 @@ public class GetAzureEventHubTest {
         testRunner.setProperty(GetAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
         testRunner.assertNotValid();
         testRunner.setProperty(GetAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
-        testRunner.assertNotValid();
-        testRunner.setProperty(GetAzureEventHub.NUM_PARTITIONS, PARTITIONS);
         testRunner.assertNotValid();
         testRunner.setProperty(PutAzureEventHub.USE_MANAGED_IDENTITY, Boolean.TRUE.toString());
         testRunner.assertValid();
@@ -116,6 +114,11 @@ public class GetAzureEventHubTest {
     private class MockGetAzureEventHub extends GetAzureEventHub {
 
         @Override
+        protected BlockingQueue<String> getPartitionIds() {
+            return new LinkedBlockingQueue<>(Collections.singleton(PARTITION_ID));
+        }
+
+        @Override
         protected Iterable<PartitionEvent> receiveEvents(final String partitionId) {
             return partitionEvents;
         }
@@ -123,7 +126,8 @@ public class GetAzureEventHubTest {
 
     private PartitionEvent createPartitionEvent() {
         final PartitionContext partitionContext = new PartitionContext(DOMAIN_NAME, EVENT_HUB_NAME, CONSUMER_GROUP, PARTITION_ID);
-        final EventData eventData = new EventData(CONTENT);
+        final EventData eventData = new MockEventData();
+
         final LastEnqueuedEventProperties lastEnqueuedEventProperties = new LastEnqueuedEventProperties(SEQUENCE_NUMBER, OFFSET, ENQUEUED_TIME, ENQUEUED_TIME);
         return new PartitionEvent(partitionContext, eventData, lastEnqueuedEventProperties);
     }
@@ -133,7 +137,28 @@ public class GetAzureEventHubTest {
         testRunner.setProperty(GetAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
         testRunner.setProperty(GetAzureEventHub.ACCESS_POLICY, POLICY_NAME);
         testRunner.setProperty(GetAzureEventHub.POLICY_PRIMARY_KEY, POLICY_KEY);
-        testRunner.setProperty(GetAzureEventHub.NUM_PARTITIONS, PARTITIONS);
         testRunner.assertValid();
+    }
+
+    private static class MockEventData extends EventData {
+
+        private MockEventData() {
+            super(CONTENT);
+        }
+
+        @Override
+        public Long getOffset() {
+            return OFFSET;
+        }
+
+        @Override
+        public Long getSequenceNumber() {
+            return SEQUENCE_NUMBER;
+        }
+
+        @Override
+        public Instant getEnqueuedTime() {
+            return ENQUEUED_TIME;
+        }
     }
 }
