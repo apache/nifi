@@ -251,6 +251,12 @@
                 if (referencingComponentState.length) {
                     updateReferencingSchedulableComponentState(referencingComponentState, reference);
                 }
+            } else if (reference.referenceType === 'ParameterProvider') {
+                // update the validation errors of this parameter provider
+                var referencingComponentState = $('div.' + reference.id + '-state');
+                if (referencingComponentState.length) {
+                    updateValidationErrors(referencingComponentState, reference);
+                }
             } else {
                 // reload the referencing services
                 reloadControllerService(serviceTable, reference.id);
@@ -389,6 +395,42 @@
             }
             return state;
         });
+    };
+
+    /**
+     * Updates validation errors. This is used for parameter providers and registry clients.
+     *
+     * @param validationErrorIcon
+     * @param referencingComponent
+     */
+    var updateValidationErrors = function (validationErrorIcon, referencingComponent) {
+        var currentValidationErrors = validationErrorIcon.data('validation-errors');
+
+        // update the validation errors if necessary
+        if (!_.isEqual(currentValidationErrors, referencingComponent.validationErrors)) {
+            validationErrorIcon.data('validation-errors', referencingComponent.validationErrors);
+
+            // if there are validation errors update them
+            if (!nfCommon.isEmpty(referencingComponent.validationErrors)) {
+                var list = nfCommon.formatUnorderedList(referencingComponent.validationErrors);
+
+                // update existing tooltip or initialize a new one if appropriate
+                if (validationErrorIcon.data('qtip')) {
+                    validationErrorIcon.qtip('option', 'content.text', list);
+                } else {
+                    validationErrorIcon.show().qtip($.extend({},
+                        nfCanvasUtils.config.systemTooltipConfig,
+                        {
+                            content: list
+                        }));
+                }
+            } else {
+                if (validationErrorIcon.data('qtip')) {
+                    validationErrorIcon.removeData('validation-errors').qtip('api').destroy(true);
+                }
+                validationErrorIcon.hide();
+            }
+        }
     };
 
     /**
@@ -602,9 +644,13 @@
                         parameterProvidersGrid.resizeCanvas();
                     });
 
-                    // state
-                    var providerState = $('<div class="referencing-component-state"></div>').addClass(referencingComponent.id + '-state');
-                    updateReferencingServiceState(providerState, referencingComponent);
+                    // provider state - used to show the validation errors
+                    var providerState = $('<div class="referencing-component-state invalid"></div>').addClass(referencingComponent.id + '-state');
+                    if (nfCommon.isEmpty(referencingComponent.validationErrors)) {
+                        providerState.hide();
+                    } else {
+                        updateValidationErrors(providerState, referencingComponent);
+                    }
 
                     // bulletin
                     var providerBulletins = $('<div class="referencing-component-bulletins"></div>').addClass(referencingComponent.id + '-bulletins');
@@ -616,7 +662,7 @@
                     var providerType = $('<span class="referencing-component-type"></span>').text(referencingComponent.type);
 
                     // parameter provider
-                    var providerItem = $('<li></li>').append(providerState).append(providerBulletins).append(parameterProviderLink).append(providerType).append(referencingProviderReferencesContainer);
+                    var providerItem = $('<li></li>').append(providerState).append(providerBulletins).append(parameterProviderLink).append(providerType);
 
                     providers.append(providerItem);
                 }
@@ -986,7 +1032,7 @@
             var referencingComponents = service.referencingComponents;
             $.each(referencingComponents, function (_, referencingComponentEntity) {
                 var referencingComponent = referencingComponentEntity.component;
-                if (referencingComponent.referenceType === 'Processor' || referencingComponent.referenceType === 'ReportingTask') {
+                if (referencingComponent.referenceType === 'Processor' || referencingComponent.referenceType === 'ReportingTask' || referencingComponent.referenceType === 'ParameterProvider') {
                     referencingSchedulableComponents.push(referencingComponent.id);
                 }
             });
