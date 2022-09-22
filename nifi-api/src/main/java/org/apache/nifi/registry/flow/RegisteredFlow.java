@@ -16,25 +16,96 @@
  */
 package org.apache.nifi.registry.flow;
 
-public interface RegisteredFlow {
+public class RegisteredFlow {
+    private String identifier;
+    private String name;
+    private String description;
+    private String bucketIdentifier;
+    private String bucketName;
+    private long createdTimestamp;
+    private long lastModifiedTimestamp;
+    private FlowRegistryPermissions permissions;
+    private long versionCount;
+    private RegisteredFlowVersionInfo versionInfo;
 
-    String getIdentifier();
+    public String getIdentifier() {
+        return identifier;
+    }
 
-    String getName();
+    public String getName() {
+        return name;
+    }
 
-    String getDescription();
+    public String getDescription() {
+        return description;
+    }
 
-    String getBucketIdentifier();
+    public String getBucketIdentifier() {
+        return bucketIdentifier;
+    }
 
-    String getBucketName();
+    public String getBucketName() {
+        return bucketName;
+    }
 
-    long getCreatedTimestamp();
+    public long getCreatedTimestamp() {
+        return createdTimestamp;
+    }
 
-    long getLastModifiedTimestamp();
+    public long getLastModifiedTimestamp() {
+        return lastModifiedTimestamp;
+    }
 
-    FlowRegistryPermissions getPermissions();
+    public FlowRegistryPermissions getPermissions() {
+        return permissions;
+    }
 
-    long getVersionCount();
+    public long getVersionCount() {
+        return versionCount;
+    }
 
-    RegisteredFlowVersionInfo getVersionInfo();
+    public RegisteredFlowVersionInfo getVersionInfo() {
+        return versionInfo;
+    }
+
+    public void setIdentifier(String identifier) {
+        this.identifier = identifier;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setBucketIdentifier(String bucketIdentifier) {
+        this.bucketIdentifier = bucketIdentifier;
+    }
+
+    public void setBucketName(String bucketName) {
+        this.bucketName = bucketName;
+    }
+
+    public void setCreatedTimestamp(long createdTimestamp) {
+        this.createdTimestamp = createdTimestamp;
+    }
+
+    public void setLastModifiedTimestamp(long lastModifiedTimestamp) {
+        this.lastModifiedTimestamp = lastModifiedTimestamp;
+    }
+
+    public void setPermissions(FlowRegistryPermissions permissions) {
+        this.permissions = permissions;
+    }
+
+    public void setVersionCount(long versionCount) {
+        this.versionCount = versionCount;
+    }
+
+    public void setVersionInfo(RegisteredFlowVersionInfo versionInfo) {
+        this.versionInfo = versionInfo;
+    }
+
 }

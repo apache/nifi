@@ -229,7 +229,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
             final String comments,
             final int expectedVersion) throws FlowRegistryException, IOException {
 
-        final SimpleRegisteredFlowSnapshot registeredFlowSnapshot = createRegisteredFlowSnapshot(
+        final RegisteredFlowSnapshot registeredFlowSnapshot = createRegisteredFlowSnapshot(
                 context, flow, snapshot, externalControllerServices, parameterContexts, parameterProviderReferences, comments, expectedVersion);
         return execute(() -> client.get().getComponent().registerFlowSnapshot(getConfigurationContext(context), registeredFlowSnapshot));
     }
@@ -316,7 +316,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         }
     }
 
-    private SimpleRegisteredFlowSnapshot createRegisteredFlowSnapshot(
+    private RegisteredFlowSnapshot createRegisteredFlowSnapshot(
             final FlowRegistryClientUserContext context,
             final RegisteredFlow flow,
             final VersionedProcessGroup snapshot,
@@ -325,7 +325,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
             final Map<String, ParameterProviderReference> parameterProviderReferences,
             final String comments,
             final int expectedVersion) {
-        final SimpleRegisteredFlowSnapshotMetadata metadata = new SimpleRegisteredFlowSnapshotMetadata();
+        final RegisteredFlowSnapshotMetadata metadata = new RegisteredFlowSnapshotMetadata();
         metadata.setBucketIdentifier(flow.getBucketIdentifier());
         metadata.setFlowIdentifier(flow.getIdentifier());
         metadata.setAuthor(extractIdentity(context));
@@ -333,7 +333,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         metadata.setVersion(expectedVersion);
         metadata.setComments(comments);
 
-        final SimpleRegisteredFlowSnapshot registeredFlowSnapshot = new SimpleRegisteredFlowSnapshot();
+        final RegisteredFlowSnapshot registeredFlowSnapshot = new RegisteredFlowSnapshot();
         registeredFlowSnapshot.setFlowContents(snapshot);
         registeredFlowSnapshot.setExternalControllerServices(externalControllerServices);
         registeredFlowSnapshot.setParameterContexts(parameterContexts);

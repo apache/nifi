@@ -23,28 +23,81 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 
 import java.util.Map;
 
-public interface RegisteredFlowSnapshot {
-    RegisteredFlowSnapshotMetadata getSnapshotMetadata();
+public class RegisteredFlowSnapshot {
+    private RegisteredFlowSnapshotMetadata snapshotMetadata;
+    private RegisteredFlow flow;
+    private FlowRegistryBucket bucket;
+    private VersionedProcessGroup flowContents;
+    private Map<String, ExternalControllerServiceReference> externalControllerServices;
+    private Map<String, VersionedParameterContext> parameterContexts;
+    private String flowEncodingVersion;
+    private Map<String, ParameterProviderReference> parameterProviders;
 
-    void setSnapshotMetadata(RegisteredFlowSnapshotMetadata registeredFlowSnapshotMetadata);
+    public RegisteredFlowSnapshotMetadata getSnapshotMetadata() {
+        return snapshotMetadata;
+    }
 
-    RegisteredFlow getFlow();
+    public RegisteredFlow getFlow() {
+        return flow;
+    }
 
-    void setFlow(RegisteredFlow flow);
+    public FlowRegistryBucket getBucket() {
+        return bucket;
+    }
 
-    FlowRegistryBucket getBucket();
+    public VersionedProcessGroup getFlowContents() {
+        return flowContents;
+    }
 
-    void setBucket(FlowRegistryBucket flow);
+    public Map<String, ExternalControllerServiceReference> getExternalControllerServices() {
+        return externalControllerServices;
+    }
 
-    VersionedProcessGroup getFlowContents();
+    public Map<String, VersionedParameterContext> getParameterContexts() {
+        return parameterContexts;
+    }
 
-    Map<String, ExternalControllerServiceReference> getExternalControllerServices();
+    public String getFlowEncodingVersion() {
+        return flowEncodingVersion;
+    }
 
-    Map<String, VersionedParameterContext> getParameterContexts();
+    public boolean isLatest() {
+        return flow != null && snapshotMetadata != null && flow.getVersionCount() == getSnapshotMetadata().getVersion();
+    }
 
-    String getFlowEncodingVersion();
+    public void setSnapshotMetadata(final RegisteredFlowSnapshotMetadata snapshotMetadata) {
+        this.snapshotMetadata = snapshotMetadata;
+    }
 
-    boolean isLatest();
+    public void setFlow(RegisteredFlow flow) {
+        this.flow = flow;
+    }
 
-    Map<String, ParameterProviderReference> getParameterProviders();
+    public void setBucket(FlowRegistryBucket bucket) {
+        this.bucket = bucket;
+    }
+
+    public void setFlowContents(VersionedProcessGroup flowContents) {
+        this.flowContents = flowContents;
+    }
+
+    public void setExternalControllerServices(final Map<String, ExternalControllerServiceReference> externalControllerServices) {
+        this.externalControllerServices = externalControllerServices;
+    }
+
+    public void setParameterContexts(final Map<String, VersionedParameterContext> parameterContexts) {
+        this.parameterContexts = parameterContexts;
+    }
+
+    public void setFlowEncodingVersion(String flowEncodingVersion) {
+        this.flowEncodingVersion = flowEncodingVersion;
+    }
+
+    public Map<String, ParameterProviderReference> getParameterProviders() {
+        return parameterProviders;
+    }
+
+    public void setParameterProviders(final Map<String, ParameterProviderReference> parameterProviders) {
+        this.parameterProviders = parameterProviders;
+    }
 }

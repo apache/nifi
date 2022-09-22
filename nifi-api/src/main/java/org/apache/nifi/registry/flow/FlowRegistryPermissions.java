@@ -16,11 +16,32 @@
  */
 package org.apache.nifi.registry.flow;
 
-public interface FlowRegistryPermissions {
+public class FlowRegistryPermissions {
+    private boolean canRead;
+    private boolean canWrite;
+    private boolean canDelete;
 
-    boolean getCanRead();
+    public boolean getCanRead() {
+        return canRead;
+    }
 
-    boolean getCanWrite();
+    public boolean getCanWrite() {
+        return canWrite;
+    }
 
-    boolean getCanDelete();
+    public boolean getCanDelete() {
+        return canDelete;
+    }
+
+    public void setCanRead(final boolean canRead) {
+        this.canRead = canRead;
+    }
+
+    public void setCanWrite(final boolean canWrite) {
+        this.canWrite = canWrite;
+    }
+
+    public void setCanDelete(final boolean canDelete) {
+        this.canDelete = canDelete;
+    }
 }

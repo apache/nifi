@@ -16,16 +16,59 @@
  */
 package org.apache.nifi.registry.flow;
 
-public interface RegisteredFlowSnapshotMetadata {
-    String getBucketIdentifier();
+public class RegisteredFlowSnapshotMetadata {
+    private String bucketIdentifier;
+    private String flowIdentifier;
+    private int version;
+    private long timestamp;
+    private String author;
+    private String comments;
 
-    String getFlowIdentifier();
+    public String getBucketIdentifier() {
+        return bucketIdentifier;
+    }
 
-    int getVersion();
+    public String getFlowIdentifier() {
+        return flowIdentifier;
+    }
 
-    long getTimestamp();
+    public int getVersion() {
+        return version;
+    }
 
-    String getAuthor();
+    public long getTimestamp() {
+        return timestamp;
+    }
 
-    String getComments();
+    public String getAuthor() {
+        return author;
+    }
+
+    public String getComments() {
+        return comments;
+    }
+
+    public void setBucketIdentifier(String bucketIdentifier) {
+        this.bucketIdentifier = bucketIdentifier;
+    }
+
+    public void setFlowIdentifier(String flowIdentifier) {
+        this.flowIdentifier = flowIdentifier;
+    }
+
+    public void setVersion(int version) {
+        this.version = version;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public void setAuthor(String author) {
+        this.author = author;
+    }
+
+    public void setComments(String comments) {
+        this.comments = comments;
+    }
 }

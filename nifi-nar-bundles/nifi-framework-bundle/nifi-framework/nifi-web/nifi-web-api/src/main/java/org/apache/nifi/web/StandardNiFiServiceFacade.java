@@ -146,8 +146,6 @@ import org.apache.nifi.registry.flow.FlowRegistryUtil;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
-import org.apache.nifi.registry.flow.SimpleRegisteredFlow;
-import org.apache.nifi.registry.flow.SimpleRegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
@@ -228,7 +226,6 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.PropertyHistoryDTO;
-import org.apache.nifi.web.api.dto.VersionedFlowDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
@@ -242,6 +239,7 @@ import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
+import org.apache.nifi.web.api.dto.VersionedFlowDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
 import org.apache.nifi.web.api.dto.diagnostics.ConnectionDiagnosticsDTO;
@@ -307,8 +305,6 @@ import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
-import org.apache.nifi.web.api.entity.VersionedFlowEntity;
-import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
@@ -325,6 +321,8 @@ import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 import org.apache.nifi.web.api.entity.VersionControlComponentMappingEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 import org.apache.nifi.web.api.request.FlowMetricsRegistry;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
@@ -4981,7 +4979,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final String flowId = versionedFlowDto.getFlowId() == null ? UUID.randomUUID().toString() : versionedFlowDto.getFlowId();
 
-        final SimpleRegisteredFlow versionedFlow = new SimpleRegisteredFlow();
+        final RegisteredFlow versionedFlow = new RegisteredFlow();
         versionedFlow.setBucketIdentifier(versionedFlowDto.getBucketId());
         versionedFlow.setCreatedTimestamp(System.currentTimeMillis());
         versionedFlow.setDescription(versionedFlowDto.getDescription());
@@ -5103,7 +5101,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences =
                 Optional.ofNullable(nonVersionedProcessGroup.getExternalControllerServiceReferences()).orElse(Collections.emptyMap());
         final Set<VersionedControllerService> controllerServices = new HashSet<>(nonVersionedProcessGroup.getControllerServices());
-        final SimpleRegisteredFlowSnapshot nonVersionedFlowSnapshot = new SimpleRegisteredFlowSnapshot();
+        final RegisteredFlowSnapshot nonVersionedFlowSnapshot = new RegisteredFlowSnapshot();
 
         ProcessGroup parentGroup = processGroup.getParent();
 

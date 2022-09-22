@@ -25,7 +25,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "versionedFlowSnapshotEntity")
 public class VersionedFlowSnapshotEntity extends Entity {
-    // TODO: This must be a DTO.
     private RegisteredFlowSnapshot versionedFlowSnapshot;
     private RevisionDTO processGroupRevision;
     private String registryId;

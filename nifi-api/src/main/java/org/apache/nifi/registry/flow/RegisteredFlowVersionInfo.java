@@ -16,7 +16,16 @@
  */
 package org.apache.nifi.registry.flow;
 
-public interface RegisteredFlowVersionInfo {
+public class RegisteredFlowVersionInfo {
 
-    long getVersion();
+    private long version;
+
+    public long getVersion() {
+        return version;
+    }
+
+    public void setVersion(long version) {
+        this.version = version;
+    }
+
 }

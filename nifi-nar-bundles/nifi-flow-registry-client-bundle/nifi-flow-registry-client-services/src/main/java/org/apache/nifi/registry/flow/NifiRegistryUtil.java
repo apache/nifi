@@ -26,7 +26,7 @@ final class NifiRegistryUtil {
     }
 
     static FlowRegistryBucket convert(final Bucket bucket) {
-        SimpleFlowRegistryBucket result = new SimpleFlowRegistryBucket();
+        FlowRegistryBucket result = new FlowRegistryBucket();
         result.setIdentifier(bucket.getIdentifier());
         result.setName(bucket.getName());
         result.setDescription(bucket.getDescription());
@@ -54,7 +54,7 @@ final class NifiRegistryUtil {
             return null;
         }
 
-        final SimpleFlowRegistryPermissions result = new SimpleFlowRegistryPermissions();
+        final FlowRegistryPermissions result = new FlowRegistryPermissions();
         result.setCanRead(permissions.getCanRead());
         result.setCanWrite(permissions.getCanWrite());
         result.setCanDelete(permissions.getCanDelete());
@@ -74,7 +74,7 @@ final class NifiRegistryUtil {
     }
 
     static RegisteredFlowSnapshotMetadata convert(final VersionedFlowSnapshotMetadata metadata) {
-        final SimpleRegisteredFlowSnapshotMetadata result = new SimpleRegisteredFlowSnapshotMetadata();
+        final RegisteredFlowSnapshotMetadata result = new RegisteredFlowSnapshotMetadata();
         result.setBucketIdentifier(metadata.getBucketIdentifier());
         result.setFlowIdentifier(metadata.getFlowIdentifier());
         result.setVersion(metadata.getVersion());
@@ -101,7 +101,7 @@ final class NifiRegistryUtil {
         }
 
         // Some of the fields are not used in NiFi
-        final SimpleRegisteredFlowVersionInfo result = new SimpleRegisteredFlowVersionInfo();
+        final RegisteredFlowVersionInfo result = new RegisteredFlowVersionInfo();
         result.setVersion(revisionInfo.getVersion());
         return result;
     }
@@ -117,7 +117,7 @@ final class NifiRegistryUtil {
     }
 
     static RegisteredFlow convert(final VersionedFlow flow) {
-        SimpleRegisteredFlow result = new SimpleRegisteredFlow();
+        RegisteredFlow result = new RegisteredFlow();
         result.setIdentifier(flow.getIdentifier());
         result.setName(flow.getName());
         result.setDescription(flow.getDescription());
@@ -151,7 +151,7 @@ final class NifiRegistryUtil {
     }
 
     static RegisteredFlowSnapshot convert(final VersionedFlowSnapshot flowSnapshot) {
-        SimpleRegisteredFlowSnapshot result = new SimpleRegisteredFlowSnapshot();
+        RegisteredFlowSnapshot result = new RegisteredFlowSnapshot();
         result.setSnapshotMetadata(convert(flowSnapshot.getSnapshotMetadata()));
         result.setFlow(convert(flowSnapshot.getFlow()));
         result.setBucket(convert(flowSnapshot.getBucket()));

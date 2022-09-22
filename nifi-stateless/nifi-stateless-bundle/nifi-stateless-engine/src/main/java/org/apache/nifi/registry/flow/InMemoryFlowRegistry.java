@@ -71,7 +71,7 @@ public class InMemoryFlowRegistry extends AbstractFlowRegistryClient implements 
         final FlowCoordinates flowCoordinates = new FlowCoordinates(bucketId, flowId);
         final List<VersionedExternalFlow> snapshots = flowSnapshots.get(flowCoordinates);
 
-        final SimpleRegisteredFlow versionedFlow = new SimpleRegisteredFlow();
+        final RegisteredFlow versionedFlow = new RegisteredFlow();
         versionedFlow.setBucketIdentifier(bucketId);
         versionedFlow.setBucketName(bucketId);
         versionedFlow.setDescription("Stateless Flow");
@@ -101,17 +101,17 @@ public class InMemoryFlowRegistry extends AbstractFlowRegistryClient implements 
     private RegisteredFlowSnapshot convertToRegisteredFlowSnapshot(final VersionedExternalFlow externalFlow) {
         final VersionedExternalFlowMetadata externalFlowMetadata = externalFlow.getMetadata();
 
-        final SimpleRegisteredFlowSnapshotMetadata snapshotMetadata = new SimpleRegisteredFlowSnapshotMetadata();
+        final RegisteredFlowSnapshotMetadata snapshotMetadata = new RegisteredFlowSnapshotMetadata();
         snapshotMetadata.setBucketIdentifier(externalFlowMetadata.getBucketIdentifier());
         snapshotMetadata.setVersion(externalFlowMetadata.getVersion());
         snapshotMetadata.setFlowIdentifier(externalFlowMetadata.getFlowIdentifier());
 
-        final SimpleRegisteredFlow versionedFlow = new SimpleRegisteredFlow();
+        final RegisteredFlow versionedFlow = new RegisteredFlow();
         versionedFlow.setName(externalFlowMetadata.getFlowName());
         versionedFlow.setIdentifier(externalFlowMetadata.getFlowIdentifier());
         versionedFlow.setBucketIdentifier(externalFlowMetadata.getBucketIdentifier());
 
-        final SimpleRegisteredFlowSnapshot flowSnapshot = new SimpleRegisteredFlowSnapshot();
+        final RegisteredFlowSnapshot flowSnapshot = new RegisteredFlowSnapshot();
         flowSnapshot.setExternalControllerServices(externalFlow.getExternalControllerServices());
         flowSnapshot.setFlowContents(externalFlow.getFlowContents());
         flowSnapshot.setParameterContexts(externalFlow.getParameterContexts());
