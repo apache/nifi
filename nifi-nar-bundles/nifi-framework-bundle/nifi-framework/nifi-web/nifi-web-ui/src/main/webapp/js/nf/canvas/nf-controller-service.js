@@ -257,6 +257,7 @@
                 // reload
                 nfParameterProvider.reload(reference.id);
 
+            } else if (reference.referenceType === 'FlowRegistryClient') {
                 // update the validation errors of this parameter provider
                 var referencingComponentState = $('div.' + reference.id + '-state');
                 if (referencingComponentState.length) {
@@ -400,6 +401,36 @@
             }
             return state;
         });
+    };
+
+    var updateValidationErrors = function (validationErrorIcon, referencingComponent) {
+        var currentValidationErrors = validationErrorIcon.data('validation-errors');
+
+        // update the validation errors if necessary
+        if (!_.isEqual(currentValidationErrors, referencingComponent.validationErrors)) {
+            validationErrorIcon.data('validation-errors', referencingComponent.validationErrors);
+
+            // if there are validation errors update them
+            if (!nfCommon.isEmpty(referencingComponent.validationErrors)) {
+                var list = nfCommon.formatUnorderedList(referencingComponent.validationErrors);
+
+                // update existing tooltip or initialize a new one if appropriate
+                if (validationErrorIcon.data('qtip')) {
+                    validationErrorIcon.qtip('option', 'content.text', list);
+                } else {
+                    validationErrorIcon.show().qtip($.extend({},
+                        nfCanvasUtils.config.systemTooltipConfig,
+                        {
+                            content: list
+                        }));
+                }
+            } else {
+                if (validationErrorIcon.data('qtip')) {
+                    validationErrorIcon.removeData('validation-errors').qtip('api').destroy(true);
+                }
+                validationErrorIcon.hide();
+            }
+        }
     };
 
     /**
@@ -670,6 +701,44 @@
                     var providerItem = $('<li></li>').append(providerState).append(providerBulletins).append(parameterProviderLink).append(providerType);
 
                     providers.append(providerItem);
+                } else if (referencingComponent.referenceType === 'FlowRegistryClient') {
+                    var registryLink = $('<span class="referencing-component-name link"></span>').text(referencingComponent.name).on('click', function () {
+                        var registryGrid = $('#registries-table').data('gridInstance');
+                        var registryData = registryGrid.getData();
+
+                        // select the selected row
+                        var row = registryData.getRowById(referencingComponent.id);
+                        registryGrid.setSelectedRows([row]);
+                        registryGrid.scrollRowIntoView(row);
+
+                        // select the reporting task tab
+                        $('#settings-tabs').find('li:nth-child(4)').click();
+
+                        // close the dialog and shell
+                        referenceContainer.closest('.dialog').modal('hide');
+                    });
+
+                    // registry state - used to show the validation errors
+                    var registryState = $('<div class="referencing-component-state invalid"></div>').addClass(referencingComponent.id + 'state');
+
+                    if (nfCommon.isEmpty(referencingComponent.validationErrors)) {
+                        registryState.hide();
+                    } else {
+                        updateValidationErrors(registryState, referencingComponent);
+                    }
+
+                    // type
+                    var registryType = $('<span class="referencing-component-type"></span>').text(nfCommon.substringAfterLast(referencingComponent.type, '.'));
+
+                    // active thread count
+                    var registryActiveThreadCount = $('<span class="referencing-component-active-thread-count"></span>').addClass(referencingComponent.id + '-active-threads');
+                    if (nfCommon.isDefinedAndNotNull(referencingComponent.activeThreadCount) && referencingComponent.activeThreadCount > 0) {
+                        registryActiveThreadCount.text('(' + referencingComponent.activeThreadCount + ')');
+                    }
+
+                    // registry item
+                    var registryItem = $('<li></li>').append(registryState).append(registryLink).append(registryType).append(registryActiveThreadCount);
+                    tasks.append(registryItem);
                 }
             }
         });
