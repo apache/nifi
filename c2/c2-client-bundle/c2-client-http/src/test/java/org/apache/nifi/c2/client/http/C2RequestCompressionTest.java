@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-
 package org.apache.nifi.c2.client.http;
 
 import static org.apache.nifi.c2.client.http.C2HttpClient.MEDIA_TYPE_APPLICATION_JSON;
