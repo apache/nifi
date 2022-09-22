@@ -31,7 +31,7 @@
             <div id="fetch-parameters-usage-container" class="setting">
                 <div class="setting-name">
                     Select groups to create parameter contexts
-                    <div class="fa fa-question-circle" alt="Info" title="Select a parameter group to cconfigure as a parameter context."></div>
+                    <div class="fa fa-question-circle" alt="Info" title="Select a group to configure as a parameter context."></div>
                 </div>
                 <div id="parameter-groups-table"></div>
             </div>
@@ -53,7 +53,7 @@
                 <div id="fetched-parameters-container" class="setting">
                     <div class="setting-name">
                         Fetched parameters
-                        <div class="fa fa-question-circle" alt="Info" title="Fetched parameters for the selected parameter group."></div>
+                        <div class="fa fa-question-circle" alt="Info" title="Fetched parameters for the selected group."></div>
                     </div>
                     <div id="fetched-parameters-listing-container" class="setting-field">
                         <ol id="fetched-parameters-listing"></ol>
@@ -62,11 +62,17 @@
                 <div id="selectable-parameters-container" class="setting">
                     <div class="setting-name">
                         Select parameters to be marked as sensitive
-                        <div class="fa fa-question-circle" alt="Info" title="Selected parameters will be set as sensitive."></div>
+                        <div class="fa fa-question-circle" alt="Info" title="Select the parameter to set as sensitive."></div>
                     </div>
                     <div id="selectable-parameters-buttons">
-                        <div id="select-all-fetched-parameters" class="secondary-button fa fa-check-square-o button-icon hidden"><span>Select all</span></div>
-                        <div id="deselect-all-fetched-parameters" class="secondary-button fa fa-minus-square-o button-icon hidden"><span>Deselect all</span></div>
+                        <button id="select-all-fetched-parameters" class="selectable-parameters-buttons">
+                            <div class="fa fa-check-square-o"></div>
+                            <span>Select all</span>
+                        </button>
+                        <button id="deselect-all-fetched-parameters" class="selectable-parameters-buttons">
+                            <div class="fa fa-minus-square-o"></div>
+                            <span>Deselect all</span>
+                        </button>
                         <div class="clear"></div>
                     </div>
                     <div id="selectable-parameters-table" class="setting-field"></div>
@@ -94,7 +100,7 @@
             <div class="setting">
                 <div class="setting-name">
                     Parameter Contexts To Create
-                    <div class="fa fa-question-circle" alt="Info" title="Parameter groups set to be created as parameter contexts."></div>
+                    <div class="fa fa-question-circle" alt="Info" title="Groups set to be created as parameter contexts."></div>
                 </div>
                 <div class="setting-field">
                     <div id="parameter-contexts-to-create-container" class="ellipsis"></div>
@@ -183,7 +189,9 @@
         </div>
     </div>
     <%--end settings-right--%>
-
+    <div id="fetch-parameters-permissions-message" class="ellipsis hidden">
+        You do not have permissions to modify one or more linked parameter contexts.
+    </div>
     <div class="fetch-parameters-canceling hidden unset">
         Canceling...
     </div>

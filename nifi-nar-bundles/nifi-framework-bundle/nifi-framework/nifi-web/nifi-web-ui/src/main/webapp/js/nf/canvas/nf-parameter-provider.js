@@ -677,7 +677,7 @@
                     text: '#ffffff'
                 },
                 disabled: function () {
-                    return hasGroupsChanged(updatedParameterProviderEntity, initialFetchedGroups);
+                    return disableApplyButton(updatedParameterProviderEntity, initialFetchedGroups);
                 },
                 handler: {
                     click: function () {
@@ -696,7 +696,7 @@
                 },
                 handler: {
                     click: function () {
-                        if (!hasGroupsChanged(updatedParameterProviderEntity, initialFetchedGroups)) {
+                        if (!disableApplyButton(updatedParameterProviderEntity, initialFetchedGroups)) {
                             return confirmCancelDialog('#fetch-parameters-dialog');
                         }
                         closeModal('#fetch-parameters-dialog');
@@ -732,15 +732,30 @@
         });
     };
 
-    var hasGroupsChanged = function (updatedParameterProviderEntity, initialFetchedGroups) {
-        var canWrite = function (component) {
-            return component.permissions.canWrite;
+    /**
+     * Determines if the fetch parameters dialog has changes and whether the user has permissions to apply the changes.
+     *
+     * @param {object} updatedParameterProviderEntity updatedParameterProviderEntity
+     * @param {object} initialFetchedGroups initialFetchedGroups
+     */
+    var disableApplyButton = function (updatedParameterProviderEntity, initialFetchedGroups) {
+        var canReadWrite = function (component) {
+            return component.permissions.canRead && component.permissions.canWrite;
+        }
+
+        if (updatedParameterProviderEntity.component.referencingParameterContexts) {
+            var refParamContexts = !updatedParameterProviderEntity.component.referencingParameterContexts.every(canReadWrite);
+            if (refParamContexts) {
+                $('#fetch-parameters-permissions-message').removeClass('hidden');
+            } else {
+                $('#fetch-parameters-permissions-message').addClass('hidden');
+            }
+            return refParamContexts;
         }
 
         // affected referencing components
         if (updatedParameterProviderEntity.component.affectedComponents) {
-            return !updatedParameterProviderEntity.component.affectedComponents.every(canWrite);
-
+            return !updatedParameterProviderEntity.component.affectedComponents.every(canReadWrite);
         }
 
         var groupsData = $('#parameter-groups-table').data('gridInstance').getData();
@@ -820,7 +835,7 @@
                 var canWriteAffectedComponents;
                 if (parameterProviderGroupEntity.component.affectedComponents) {
                     canWriteAffectedComponents = (parameterProviderGroupEntity.component.affectedComponents).every(function (c) {
-                        return c.permissions.canWrite;
+                        return c.permissions.canRead && c.permissions.canWrite;
                     });
                 } else {
                     canWriteAffectedComponents = true;
@@ -1367,7 +1382,7 @@
             var canWriteAffectedComponents;
             if (groupEntity.component.affectedComponents) {
                 canWriteAffectedComponents = (groupEntity.component.affectedComponents).every(function (c) {
-                    return c.permissions.canWrite;
+                    return c.permissions.canRead && c.permissions.canWrite;
                 });
             } else {
                 canWriteAffectedComponents = true;
@@ -1655,7 +1670,7 @@
 
                 $('<div id="create-parameter-context-label" class="nf-checkbox-label ellipsis" title="create-parameter-context" style="text-overflow: ellipsis;">' +
                     'Create Parameter Context' +
-                    '<div class="fa fa-question-circle" alt="Info" title="Select to create a parameter context."></div>' +
+                    '<div class="fa fa-question-circle" alt="Info" title="Select to create a parameter context from the selected group."></div>' +
                     '</div></div>').appendTo(checkboxMarkup);
 
                 var settingMarkup = $('<div class="setting"></div>');
@@ -1765,6 +1780,7 @@
     var resetFetchParametersDialog = function () {
         $('#fetch-parameters-affected-referencing-components-container').hide();
         $('#fetch-parameters-referencing-components-container').show();
+        $('#fetch-parameters-permissions-message').addClass('hidden');
         $('#create-parameter-context-input').val('');
 
         var headerCheckbox = $('#selectable-parameters-table .slick-column-name input');
@@ -2389,28 +2405,33 @@
             var target = $(e.target);
             // get the node at this row
             var item = selectableParametersData.getItem(args.row);
+            var saveToGroup = false;
 
             if (selectableParametersGrid.getColumns()[args.cell].id === 'selector') {
                 if (target.hasClass('unchecked-input-enabled')) {
+                    saveToGroup = true;
                     // check the box
                     item.sensitivity = SENSITIVE;
                     selectableParametersData.updateItem(item.id, item)
                 } else if (target.hasClass('checked-input-enabled')) {
+                    saveToGroup = true;
                     // uncheck the box
                     item.sensitivity = NON_SENSITIVE;
                     selectableParametersData.updateItem(item.id, item)
                 }
+
+                // save to its group
+                if (saveToGroup) {
+                    var groupsGrid = $('#parameter-groups-table').data('gridInstance');
+                    var groupsData = groupsGrid.getData();
+                    var currentGroup = groupsData.getItem([item.groupId]);
+
+                    currentGroup.parameterSensitivities[item.name] = item.sensitivity;
+                    groupsData.updateItem(item.groupId, currentGroup);
+
+                    $('#fetch-parameters-dialog').modal('refreshButtons');
+                }
             }
-
-            // save to its group
-            var groupsGrid = $('#parameter-groups-table').data('gridInstance');
-            var groupsData = groupsGrid.getData();
-            var currentGroup = groupsData.getItem([item.groupId]);
-
-            currentGroup.parameterSensitivities[item.name] = item.sensitivity;
-            groupsData.updateItem(item.groupId, currentGroup);
-
-            $('#fetch-parameters-dialog').modal('refreshButtons');
         })
 
         selectableParametersGrid.onSelectedRowsChanged.subscribe(function (e, args) {
@@ -2851,9 +2872,7 @@
                 if ($('#affected-referencing-components-container').is(':visible')) {
                     updateReferencingComponentsBorder($('#affected-referencing-components-container'));
                 }
-            });
 
-            $(window).on('resize', function (e) {
                 if ($('#fetch-parameter-referencing-components-container').is(':visible')) {
                     updateReferencingComponentsBorder($('#fetch-parameter-referencing-components-container'));
                 }

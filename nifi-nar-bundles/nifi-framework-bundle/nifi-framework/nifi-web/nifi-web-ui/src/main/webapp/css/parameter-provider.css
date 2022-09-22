@@ -444,14 +444,49 @@ span.parameter-provider-referencing-component-name {
 
 #selectable-parameters-buttons {
     position: relative;
-    left: -20px;
     padding-bottom: 4px;
 }
 
-#deselect-all-fetched-parameters {
-    width: 93px;
+.selectable-parameters-buttons {
+    line-height: 30px;
+    border: 1px solid #CCDADB;
+    background-color: rgba(249,250,251,1);
+    color: #004849;
+    padding: 0 7px;
+    float: left;
+    width: inherit;
+    margin-right: 8px;
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+}
+
+.selectable-parameters-buttons span {
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.selectable-parameters-buttons .fa {
+    font-size: 14px;
+    margin-left: -2px;
+    margin-right: 4px;
+}
+
+button.selectable-parameters-buttons:hover {
+    border: 1px solid #004849;
 }
 
 #create-parameter-context-container {
     line-height: 12px;
+}
+
+#fetch-parameters-permissions-message {
+    position: absolute;
+    top: 537px;
+    left: 20px;
+    font-size: 13px;
+    line-height: normal;
+    color: #775351;
+    max-width: calc(100% - 230px);
+    z-index: 999;
 }
