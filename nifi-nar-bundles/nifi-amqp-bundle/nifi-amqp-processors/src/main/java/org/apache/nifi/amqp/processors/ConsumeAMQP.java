@@ -226,7 +226,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         return headerString;
     }
 
-    private static String convertMapToString(Map<String, Object> headers, String valueSeparatorForHeaders) {
+    protected static String convertMapToString(Map<String, Object> headers, String valueSeparatorForHeaders) {
         return headers.entrySet().stream().map(e -> (e.getValue()!= null) ? e.getKey() + "=" + e.getValue(): e.getKey())
                 .collect(Collectors.joining(valueSeparatorForHeaders));
     }

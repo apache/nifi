@@ -42,9 +42,21 @@ import org.apache.nifi.util.TestRunners;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.MessageProperties;
+import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 
 public class ConsumeAMQPTest {
+
+    @Test
+    public void testMapToStringConversion() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("A", 1);
+        map.put("B", null);
+        map.put("C", "");
+        map.put("D", "null");
+        String output = ConsumeAMQP.convertMapToString(map, ",");
+        Assert.assertEquals("A=1,B,C=,D=null", output);
+    }
 
     @Test
     public void testMessageAcked() throws TimeoutException, IOException {
