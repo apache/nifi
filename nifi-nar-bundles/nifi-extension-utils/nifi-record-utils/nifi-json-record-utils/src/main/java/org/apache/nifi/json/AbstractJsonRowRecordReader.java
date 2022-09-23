@@ -21,7 +21,6 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.core.io.SerializedString;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -48,6 +47,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 
 public abstract class AbstractJsonRowRecordReader implements RecordReader {
@@ -64,6 +64,9 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     private JsonNode firstJsonNode;
     private StartingFieldStrategy strategy;
 
+    private Map<String, String> capturedFields;
+    private BiPredicate<String, String> capturePredicate;
+
     private AbstractJsonRowRecordReader(final ComponentLog logger, final String dateFormat, final String timeFormat, final String timestampFormat) {
         this.logger = logger;
 
@@ -76,26 +79,65 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         LAZY_TIMESTAMP_FORMAT = () -> tsf;
     }
 
-    protected AbstractJsonRowRecordReader(final InputStream in, final ComponentLog logger, final String dateFormat, final String timeFormat, final String timestampFormat)
+    protected AbstractJsonRowRecordReader(final InputStream in,
+                                          final ComponentLog logger,
+                                          final String dateFormat,
+                                          final String timeFormat,
+                                          final String timestampFormat)
             throws IOException, MalformedRecordException {
 
-        this(in, logger, dateFormat, timeFormat, timestampFormat, null, null);
+        this(in, logger, dateFormat, timeFormat, timestampFormat, null, null, null);
     }
 
-    protected AbstractJsonRowRecordReader(final InputStream in, final ComponentLog logger, final String dateFormat, final String timeFormat, final String timestampFormat,
-                                          final StartingFieldStrategy strategy, final String nestedFieldName) throws IOException, MalformedRecordException {
+    /**
+     * Constructor with initial logic for JSON to NiFi record parsing.
+     *
+     * @param in               the input stream to parse
+     * @param logger           ComponentLog
+     * @param dateFormat       format for parsing date fields
+     * @param timeFormat       format for parsing time fields
+     * @param timestampFormat  format for parsing timestamp fields
+     * @param strategy         whether to start processing from a specific field
+     * @param nestedFieldName  the name of the field to start the processing from
+     * @param capturePredicate predicate that takes a JSON fieldName and fieldValue to capture non-processed fields which can
+     *                         be accessed by calling {@link #getCapturedFields()}
+     * @throws IOException in case of JSON stream processing failure
+     * @throws MalformedRecordException in case of malformed JSON input
+     */
+    protected AbstractJsonRowRecordReader(final InputStream in,
+                                          final ComponentLog logger,
+                                          final String dateFormat,
+                                          final String timeFormat,
+                                          final String timestampFormat,
+                                          final StartingFieldStrategy strategy,
+                                          final String nestedFieldName,
+                                          final BiPredicate<String, String> capturePredicate)
+            throws IOException, MalformedRecordException {
 
         this(logger, dateFormat, timeFormat, timestampFormat);
 
         this.strategy = strategy;
+        this.capturePredicate = capturePredicate;
+        capturedFields = new HashMap<>();
 
         try {
             jsonParser = jsonFactory.createParser(in);
             jsonParser.setCodec(codec);
 
             if (strategy == StartingFieldStrategy.NESTED_FIELD) {
-                final SerializedString serializedStartingFieldName = new SerializedString(nestedFieldName);
-                while (!jsonParser.nextFieldName(serializedStartingFieldName) && jsonParser.hasCurrentToken());
+                while (jsonParser.nextToken() != null) {
+                    if (nestedFieldName.equals(jsonParser.getCurrentName())) {
+                        break;
+                    }
+                    if (capturePredicate != null && jsonParser.getCurrentToken() == JsonToken.FIELD_NAME) {
+                        jsonParser.nextToken();
+                        final String fieldName = jsonParser.getCurrentName();
+                        final String fieldValue = jsonParser.getValueAsString();
+                        if (capturePredicate.test(fieldName, fieldValue)) {
+                            capturedFields.put(fieldName, fieldValue);
+                        }
+                    }
+                }
                 logger.debug("Parsing starting at nested field [{}]", nestedFieldName);
             }
 
@@ -130,6 +172,18 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
         final JsonNode nextNode = getNextJsonNode();
         if (nextNode == null) {
+            if (capturePredicate != null) {
+                while (jsonParser.nextToken() != null) {
+                    if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME) {
+                        jsonParser.nextToken();
+                        final String fieldName = jsonParser.getCurrentName();
+                        final String fieldValue = jsonParser.getValueAsString();
+                        if (capturePredicate.test(fieldName, fieldValue)) {
+                            capturedFields.put(fieldName, fieldValue);
+                        }
+                    }
+                }
+            }
             return null;
         }
 
@@ -389,4 +443,9 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     }
 
     protected abstract Record convertJsonNodeToRecord(JsonNode nextNode, RecordSchema schema, boolean coerceTypes, boolean dropUnknownFields) throws IOException, MalformedRecordException;
+
+
+    public Map<String, String> getCapturedFields() {
+        return capturedFields;
+    }
 }

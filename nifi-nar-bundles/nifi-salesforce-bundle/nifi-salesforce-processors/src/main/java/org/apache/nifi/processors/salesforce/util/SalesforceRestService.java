@@ -69,6 +69,21 @@ public class SalesforceRestService {
         return request(request);
     }
 
+    public InputStream queryNextRecords(String uri) {
+        String url = baseUrl + uri;
+
+        HttpUrl httpUrl = HttpUrl.get(url).newBuilder()
+                .build();
+
+        Request request = new Request.Builder()
+                .addHeader("Authorization", "Bearer " + accessTokenProvider.get())
+                .url(httpUrl)
+                .get()
+                .build();
+
+        return request(request);
+    }
+
     private InputStream request(Request request) {
         Response response = null;
         try {
