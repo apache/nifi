@@ -20,13 +20,13 @@ public enum IncrementalFieldType {
     LAST_MODIFIED_DATE("lastmodifieddate"),
     HS_LAST_MODIFIED_DATE("hs_lastmodifieddate");
 
-    final String value;
+    private final String value;
 
     IncrementalFieldType(String value) {
         this.value = value;
     }
 
-    String getValue() {
+    public String getValue() {
         return value;
     }
 }

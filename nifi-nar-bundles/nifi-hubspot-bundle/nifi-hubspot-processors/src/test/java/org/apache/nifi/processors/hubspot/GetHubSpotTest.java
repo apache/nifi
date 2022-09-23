@@ -24,6 +24,7 @@ import okhttp3.HttpUrl;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.reporting.InitializationException;
@@ -46,6 +47,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static org.apache.nifi.processors.hubspot.GetHubSpot.CURSOR_KEY_PATTERN;
+import static org.apache.nifi.processors.hubspot.GetHubSpot.END_INCREMENTAL_KEY;
+import static org.apache.nifi.processors.hubspot.GetHubSpot.START_INCREMENTAL_KEY;
 import static org.apache.nifi.processors.hubspot.HubSpotObjectType.COMPANIES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -131,10 +135,10 @@ class GetHubSpotTest {
         server.enqueue(new MockResponse().setBody(response));
 
         final String limit = "2";
-        final String endTimeKey = String.format("end: %s", HubSpotObjectType.COMPANIES.getValue());
+        final int defaultDelay = 3000;
         final String endTime = String.valueOf(Instant.now().toEpochMilli());
         final Map<String, String> stateMap = new HashMap<>();
-        stateMap.put(endTimeKey, endTime);
+        stateMap.put(END_INCREMENTAL_KEY, endTime);
 
         runner.getStateManager().setState(stateMap, Scope.CLUSTER);
         runner.setProperty(GetHubSpot.IS_INCREMENTAL, "true");
@@ -146,13 +150,13 @@ class GetHubSpotTest {
 
         final ObjectNode startTimeNode = OBJECT_MAPPER.createObjectNode();
         startTimeNode.put("propertyName", "hs_lastmodifieddate");
-        startTimeNode.put("operator", "GT");
+        startTimeNode.put("operator", "GTE");
         startTimeNode.put("value", endTime);
 
         final ObjectNode endTimeNode = OBJECT_MAPPER.createObjectNode();
         endTimeNode.put("propertyName", "hs_lastmodifieddate");
         endTimeNode.put("operator", "LT");
-        endTimeNode.put("value", String.valueOf(TEST_EPOCH_TIME));
+        endTimeNode.put("value", String.valueOf(TEST_EPOCH_TIME - defaultDelay));
 
         final ArrayNode filtersNode = OBJECT_MAPPER.createArrayNode();
         filtersNode.add(startTimeNode);
@@ -175,16 +179,14 @@ class GetHubSpotTest {
         final String limit = "2";
         final String after = "nextPage";
         final String objectType = COMPANIES.getValue();
-        final String cursorKey = String.format("paging_next: %s", objectType);
-        final String startTimeKey = String.format("start: %s", objectType);
-        final String endTimeKey = String.format("end: %s", objectType);
+        final String cursorKey = String.format(CURSOR_KEY_PATTERN, objectType);
         final Instant now = Instant.now();
         final String startTime = String.valueOf(now.toEpochMilli());
         final String endTime = String.valueOf(now.plus(2, ChronoUnit.MINUTES).toEpochMilli());
         final Map<String, String> stateMap = new HashMap<>();
         stateMap.put(cursorKey, after);
-        stateMap.put(startTimeKey, startTime);
-        stateMap.put(endTimeKey, endTime);
+        stateMap.put(START_INCREMENTAL_KEY, startTime);
+        stateMap.put(END_INCREMENTAL_KEY, endTime);
 
         runner.getStateManager().setState(stateMap, Scope.CLUSTER);
         runner.setProperty(GetHubSpot.IS_INCREMENTAL, "true");
@@ -196,7 +198,7 @@ class GetHubSpotTest {
 
         final ObjectNode startTimeNode = OBJECT_MAPPER.createObjectNode();
         startTimeNode.put("propertyName", "hs_lastmodifieddate");
-        startTimeNode.put("operator", "GT");
+        startTimeNode.put("operator", "GTE");
         startTimeNode.put("value", startTime);
 
         final ObjectNode endTimeNode = OBJECT_MAPPER.createObjectNode();
@@ -239,6 +241,10 @@ class GetHubSpotTest {
         @Override
         long getCurrentEpochTime() {
             return currentEpochTime;
+        }
+
+        @Override
+        public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         }
     }
 

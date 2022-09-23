@@ -44,13 +44,6 @@ public enum HubSpotObjectType implements DescribedValue {
                     " pipeline stages until won or lost.",
             HS_LAST_MODIFIED_DATE
     ),
-    FEEDBACK_SUBMISSIONS(
-            "/crm/v3/objects/feedback_submissions",
-            "Feedback Submissions",
-            "In HubSpot, feedback submissions are an object which stores information submitted to a feedback survey. This includes Net Promoter Score (NPS)," +
-                    " Customer Satisfaction (CSAT), Customer Effort Score (CES) and Custom Surveys.",
-            HS_LAST_MODIFIED_DATE
-    ),
     LINE_ITEMS(
             "/crm/v3/objects/line_items",
             "Line Items",
