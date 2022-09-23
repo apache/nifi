@@ -743,8 +743,6 @@
      * @param {object} initialFetchedGroups initialFetchedGroups
      */
     var disableApplyButton = function (updatedParameterProviderEntity, initialFetchedGroups) {
-        var disable = true;
-
         var canReadWrite = function (component) {
             return component.permissions.canRead && component.permissions.canWrite;
         }
@@ -773,7 +771,6 @@
                 $('#fetch-parameters-permissions-affected-components-message').addClass('hidden');
 
                 // user has permissions to all affected component... enable Apply button
-                disable = false;
             } else {
                 // user does not have read and write permissions on an affected component
                 // no need to continue checking
@@ -837,7 +834,21 @@
             }
         }
 
-        return disable && _.isEmpty(parameterContextNames);
+        // check for changed parameter values
+        if (updatedParameterProviderEntity.component.parameterStatus) {
+            var isChanged = function (parameterStatus) {
+                return parameterStatus.status === 'CHANGED';
+            }
+
+            var isAnyParameterValueChanged = updatedParameterProviderEntity.component.parameterStatus.some(isChanged);
+
+            if (isAnyParameterValueChanged) {
+                // a fetched parameter value has changed... do not disable the Apply button
+                return false;
+            }
+        }
+
+        return _.isEmpty(parameterContextNames);
     };
 
     /**
@@ -1021,6 +1032,8 @@
         // update visibility
         $('#fetch-parameters-referencing-components-container').hide();
         $('#affected-referencing-components-container').show();
+        updateReferencingComponentsBorder($('#affected-referencing-components-container'));
+
         $('#fetch-parameters-affected-referencing-components-container').show();
 
         var referencingProcessors = [];
@@ -2341,7 +2354,7 @@
                 formattedValue.addClass('required');
             }
 
-            if (dataContext.isAffectedParameter) {
+            if (dataContext.isAffectedParameter || dataContext.parameterStatus.status === 'CHANGED') {
                 valueWidthOffset += 30;
                 $('<div class="fa fa-asterisk" alt="Info" style="float: right;"></div>').appendTo(cellContent);
             }
