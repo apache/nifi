@@ -189,8 +189,11 @@
         </div>
     </div>
     <%--end settings-right--%>
-    <div id="fetch-parameters-permissions-message" class="ellipsis hidden">
-        You do not have permissions to modify one or more linked parameter contexts.
+    <div id="fetch-parameters-permissions-parameter-contexts-message" class="ellipsis hidden">
+        You do not have permissions to modify one or more synced parameter contexts.
+    </div>
+    <div id="fetch-parameters-permissions-affected-components-message" class="ellipsis hidden">
+        You do not have permissions to modify one or more affected components.
     </div>
     <div class="fetch-parameters-canceling hidden unset">
         Canceling...

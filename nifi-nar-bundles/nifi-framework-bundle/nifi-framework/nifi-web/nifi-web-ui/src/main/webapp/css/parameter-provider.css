@@ -484,7 +484,8 @@ button.selectable-parameters-buttons:hover {
     line-height: 12px;
 }
 
-#fetch-parameters-permissions-message {
+#fetch-parameters-permissions-parameter-contexts-message,
+#fetch-parameters-permissions-affected-components-message {
     position: absolute;
     top: 537px;
     left: 20px;

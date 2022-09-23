@@ -68,7 +68,9 @@
 }(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfVerify, nfCanvasUtils, nfProcessor) {
     'use strict';
 
-    var nfControllerServices, nfReportingTask;
+    var nfControllerServices,
+        nfReportingTask,
+        nfParameterProvider;
 
     var config = {
         edit: 'edit',
@@ -256,6 +258,8 @@
                 var referencingComponentState = $('div.' + reference.id + '-state');
                 if (referencingComponentState.length) {
                     updateValidationErrors(referencingComponentState, reference);
+                    // reload
+                    nfParameterProvider.reload(reference.id);
                 }
             } else {
                 // reload the referencing services
@@ -1837,9 +1841,10 @@
         /**
          * Initializes the controller service configuration dialog.
          */
-        init: function (nfControllerServicesRef, nfReportingTaskRef) {
+        init: function (nfControllerServicesRef, nfReportingTaskRef, nfParameterProviderRef) {
             nfControllerServices = nfControllerServicesRef;
             nfReportingTask = nfReportingTaskRef;
+            nfParameterProvider = nfParameterProviderRef;
 
             // initialize the configuration dialog tabs
             $('#controller-service-configuration-tabs').tabbs({

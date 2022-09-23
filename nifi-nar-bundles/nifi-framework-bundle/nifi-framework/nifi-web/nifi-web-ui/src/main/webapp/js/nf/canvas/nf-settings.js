@@ -2068,18 +2068,18 @@
 
             var hasErrors = canRead ? !nfCommon.isEmpty(dataContext.component.validationErrors) : null;
 
-            var hasReadWritePermissions = true;
+            var hasReadParameterContextsPermissions = true;
 
             if (canRead && dataContext.component.referencingParameterContexts) {
                 (dataContext.component.referencingParameterContexts).every(function (refParamContext) {
-                    return hasReadWritePermissions = refParamContext.permissions.canRead;
+                    return hasReadParameterContextsPermissions = refParamContext.permissions.canRead;
                 });
             }
 
             if (canRead && canWrite) {
                 markup += '<div title="Edit" class="pointer edit-parameter-provider fa fa-pencil"></div>';
 
-                if (hasReadWritePermissions && !hasErrors) {
+                if (hasReadParameterContextsPermissions && !hasErrors) {
                     markup += '<div title="Fetch Parameters" class="pointer fetch-parameter-provider fa fa-arrow-circle-down"></div>';
                 }
             }

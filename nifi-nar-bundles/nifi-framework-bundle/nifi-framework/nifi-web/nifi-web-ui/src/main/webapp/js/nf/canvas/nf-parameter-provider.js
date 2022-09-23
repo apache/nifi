@@ -743,19 +743,36 @@
             return component.permissions.canRead && component.permissions.canWrite;
         }
 
+        // referencing parameter contexts
         if (updatedParameterProviderEntity.component.referencingParameterContexts) {
-            var refParamContexts = !updatedParameterProviderEntity.component.referencingParameterContexts.every(canReadWrite);
-            if (refParamContexts) {
-                $('#fetch-parameters-permissions-message').removeClass('hidden');
+            var hasReadWriteParameterContextsPermissions = updatedParameterProviderEntity.component.referencingParameterContexts.every(canReadWrite);
+
+            if (hasReadWriteParameterContextsPermissions) {
+                // user has read and write permissions on a referencing parameter context
+                $('#fetch-parameters-permissions-parameter-contexts-message').addClass('hidden');
             } else {
-                $('#fetch-parameters-permissions-message').addClass('hidden');
+                // user does not have read and write permissions on a referencing parameter context
+                // no need to continue checking
+                $('#fetch-parameters-permissions-parameter-contexts-message').removeClass('hidden');
+                return true;
             }
-            return refParamContexts;
         }
 
         // affected referencing components
         if (updatedParameterProviderEntity.component.affectedComponents) {
-            return !updatedParameterProviderEntity.component.affectedComponents.every(canReadWrite);
+            var hasReadWriteAffectedComponentsPermissions = updatedParameterProviderEntity.component.affectedComponents.every(canReadWrite);
+
+            if (hasReadWriteAffectedComponentsPermissions) {
+                // user has read and write permissions on an affected component
+                // no need to continue checking
+                $('#fetch-parameters-permissions-affected-components-message').addClass('hidden');
+                return false;
+            } else {
+                // user does not have read and write permissions on an affected component
+                // no need to continue checking
+                $('#fetch-parameters-permissions-affected-components-message').removeClass('hidden');
+                return true;
+            }
         }
 
         var groupsData = $('#parameter-groups-table').data('gridInstance').getData();
@@ -769,11 +786,11 @@
             }
         })
 
+        // if any createNewParameterContext, then the name input cannot be empty
         var isEmptyName = function (name) {
             return name !== '';
         }
 
-        // if any createNewParameterContext, then the name input cannot be empty
         if (!_.isEmpty(parameterContextNames)) {
             return !parameterContextNames.every(isEmptyName);
 
@@ -1779,7 +1796,8 @@
     var resetFetchParametersDialog = function () {
         $('#fetch-parameters-affected-referencing-components-container').hide();
         $('#fetch-parameters-referencing-components-container').show();
-        $('#fetch-parameters-permissions-message').addClass('hidden');
+        $('#fetch-parameters-permissions-parameter-contexts-message').addClass('hidden');
+        $('#fetch-parameters-permissions-affected-components-message').addClass('hidden');
         $('#create-parameter-context-input').val('');
 
         var headerCheckbox = $('#selectable-parameters-table .slick-column-name input');
