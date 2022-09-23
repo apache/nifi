@@ -770,9 +770,10 @@
 
             if (hasReadWriteAffectedComponentsPermissions) {
                 // user has read and write permissions on an affected component
-                // no need to continue checking
                 $('#fetch-parameters-permissions-affected-components-message').addClass('hidden');
-                return false;
+
+                // user has permissions to all affected component... enable Apply button
+                disable = false;
             } else {
                 // user does not have read and write permissions on an affected component
                 // no need to continue checking
@@ -793,24 +794,25 @@
         })
 
         // if any createNewParameterContext, then the name input cannot be empty
-        var isEmptyName = function (name) {
-            return name !== '';
+        var isNameBlank = function (name) {
+            return nfCommon.isBlank(name);
         }
 
         if (!_.isEmpty(parameterContextNames)) {
-            var notMissingNewParamContextNames = parameterContextNames.every(paramContextNameNotEmpty);
+            var isAnyParameterContextNameBlank = parameterContextNames.some(isNameBlank);
 
-            if (notMissingNewParamContextNames) {
-                disable = false;
-                $('#fetch-parameters-missing-context-name-message').addClass('hidden');
-            } else {
+            if (isAnyParameterContextNameBlank) {
                 // missing a parameter context name
                 // no need to continue checking
                 $('#fetch-parameters-missing-context-name-message').removeClass('hidden');
                 return true;
+            } else {
+                $('#fetch-parameters-missing-context-name-message').addClass('hidden');
             }
+        } else {
+            // hide the message if previously shown
+            $('#fetch-parameters-missing-context-name-message').addClass('hidden');
         }
-        $('#fetch-parameters-missing-context-name-message').addClass('hidden');
 
         // parameter sensitivities
         for (var k = 0; k < initialFetchedGroups.length; k++) {
@@ -828,6 +830,7 @@
 
                     // compare
                     if (!_.isEqual(initialGroupParamSensitivity, groupFromDataGrid.parameterSensitivities)) {
+                        // parameter sensitive has changed... do not disable the Apply button
                         return false;
                     }
                 }

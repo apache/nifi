@@ -189,10 +189,10 @@
         </div>
     </div>
     <%--end settings-right--%>
-    <div id="fetch-parameters-permissions-parameter-contexts-message" class="ellipsis hidden">
+    <div id="fetch-parameters-permissions-parameter-contexts-message" class="ellipsis fetch-parameters-dialog-message hidden">
         You do not have permissions to modify one or more synced parameter contexts.
     </div>
-    <div id="fetch-parameters-permissions-affected-components-message" class="ellipsis hidden">
+    <div id="fetch-parameters-permissions-affected-components-message" class="ellipsis fetch-parameters-dialog-message hidden">
         You do not have permissions to modify one or more affected components.
     </div>
     <div id="fetch-parameters-missing-context-name-message" class="ellipsis fetch-parameters-dialog-message hidden">
