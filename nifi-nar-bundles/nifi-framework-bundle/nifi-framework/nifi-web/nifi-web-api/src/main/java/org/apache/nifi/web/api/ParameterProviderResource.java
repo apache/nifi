@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api;
 
+import com.google.common.base.Functions;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -60,6 +61,8 @@ import org.apache.nifi.web.api.dto.ParameterProviderApplyParametersRequestDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderApplyParametersUpdateStepDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderConfigurationDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
+import org.apache.nifi.web.api.dto.ParameterStatus;
+import org.apache.nifi.web.api.dto.ParameterStatusDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.VerifyConfigRequestDTO;
@@ -767,8 +770,6 @@ public class ParameterProviderResource extends AbstractParameterResource {
                     authorizable.getAuthorizable().authorize(authorizer, RequestAction.READ, user);
 
                     references.forEach(reference -> lookup.getParameterContext(reference.getComponent().getId()).authorize(authorizer, RequestAction.READ, user));
-                    // Verify READ permission for user, for every component that is currently referenced by relevant parameter contexts
-                    referencingParameterContextDtos.forEach(parameterContextDto -> authorizeReferencingComponents(parameterContextDto.getId(), lookup, user));
                 },
                 () -> serviceFacade.verifyCanFetchParameters(fetchParametersEntity.getId()),
                 (revision, parameterProviderFetchEntity) -> {
@@ -791,10 +792,20 @@ public class ParameterProviderResource extends AbstractParameterResource {
                     });
                     final List<ParameterContextEntity> parameterContextUpdates = serviceFacade.getParameterContextUpdatesForAppliedParameters(parameterProviderId, parameterGroupConfigurations);
 
+                    final Set<ParameterEntity> removedParameters = parameterContextUpdates.stream()
+                            .flatMap(context -> context.getComponent().getParameters().stream())
+                            .filter(parameterEntity -> {
+                                final ParameterDTO dto = parameterEntity.getParameter();
+                                return dto.getSensitive() == null && dto.getValue() == null && dto.getDescription() == null;
+                            })
+                            .collect(Collectors.toSet());
                     final Set<AffectedComponentEntity> affectedComponents = getAffectedComponentEntities(parameterContextUpdates);
-
                     if (!affectedComponents.isEmpty()) {
                         entity.getComponent().setAffectedComponents(affectedComponents);
+                    }
+                    final Set<ParameterStatusDTO> parameterStatus = getParameterStatus(entity, parameterContextUpdates, removedParameters, user);
+                    if (!parameterStatus.isEmpty()) {
+                        entity.getComponent().setParameterStatus(parameterStatus);
                     }
                     populateRemainingParameterProviderEntityContent(entity);
 
@@ -932,11 +943,80 @@ public class ParameterProviderResource extends AbstractParameterResource {
         );
     }
 
-    private Set<AffectedComponentEntity> getAffectedComponentEntities(List<ParameterContextEntity> parameterContextUpdates) {
+    private Set<AffectedComponentEntity> getAffectedComponentEntities(final List<ParameterContextEntity> parameterContextUpdates) {
         final Collection<ParameterContextDTO> updatedParameterContextDTOs = parameterContextUpdates.stream()
                 .map(ParameterContextEntity::getComponent)
                 .collect(Collectors.toList());
         return serviceFacade.getComponentsAffectedByParameterContextUpdate(updatedParameterContextDTOs);
+    }
+
+    private Set<ParameterStatusDTO> getParameterStatus(final ParameterProviderEntity parameterProvider, final List<ParameterContextEntity> parameterContextUpdates,
+                                                       final Set<ParameterEntity> removedParameters, final NiFiUser niFiUser) {
+        final Set<ParameterStatusDTO> parameterStatus = new HashSet<>();
+        if (parameterProvider.getComponent() == null || parameterProvider.getComponent().getReferencingParameterContexts() == null) {
+            return parameterStatus;
+        }
+
+        final Map<String, Set<String>> removedParameterNamesByContextId = new HashMap<>();
+        removedParameters.forEach(parameterEntity -> {
+            removedParameterNamesByContextId.computeIfAbsent(parameterEntity.getParameter().getParameterContext().getComponent().getId(), key -> new HashSet<>())
+                    .add(parameterEntity.getParameter().getName());
+        });
+
+        final Map<String, ParameterContextEntity> parameterContextUpdateMap = parameterContextUpdates.stream()
+                .collect(Collectors.toMap(entity -> entity.getComponent().getId(), Functions.identity()));
+
+        for (final ParameterProviderReferencingComponentEntity reference : parameterProvider.getComponent().getReferencingParameterContexts()) {
+            final String parameterContextId = reference.getComponent().getId();
+            final ParameterContextEntity parameterContext = serviceFacade.getParameterContext(parameterContextId, false, niFiUser);
+            if (parameterContext.getComponent() == null) {
+                continue;
+            }
+
+            final Set<String> removedParameterNames = removedParameterNamesByContextId.get(parameterContext.getComponent().getId());
+            final ParameterContextEntity parameterContextUpdate = parameterContextUpdateMap.get(parameterContextId);
+            final Map<String, ParameterEntity> updatedParameters = parameterContextUpdate == null ? Collections.emptyMap() : parameterContextUpdate.getComponent().getParameters().stream()
+                    .collect(Collectors.toMap(parameter -> parameter.getParameter().getName(), Functions.identity()));
+            final Set<String> currentParameterNames = new HashSet<>();
+
+            // Report changed and removed parameters
+            for (final ParameterEntity parameter : parameterContext.getComponent().getParameters()) {
+                currentParameterNames.add(parameter.getParameter().getName());
+
+                final ParameterStatusDTO dto = new ParameterStatusDTO();
+                final ParameterEntity updatedParameter = updatedParameters.get(parameter.getParameter().getName());
+                if (updatedParameter == null) {
+                    dto.setParameter(parameter);
+                    if (removedParameterNames != null && removedParameterNames.contains(parameter.getParameter().getName())) {
+                        dto.setStatus(ParameterStatus.MISSING_BUT_REFERENCED);
+                    } else {
+                        dto.setStatus(ParameterStatus.UNCHANGED);
+                    }
+                } else {
+                    final ParameterDTO updatedParameterDTO = updatedParameter.getParameter();
+                    final boolean isDeletion = updatedParameterDTO.getSensitive() == null && updatedParameterDTO.getDescription() == null && updatedParameterDTO.getValue() == null;
+                    dto.setParameter(updatedParameter);
+                    dto.setStatus(isDeletion ? ParameterStatus.REMOVED : ParameterStatus.CHANGED);
+                }
+                parameterStatus.add(dto);
+            }
+            // Report new parameters
+            updatedParameters.forEach((parameterName, parameterEntity) -> {
+                if (!currentParameterNames.contains(parameterName)) {
+                    final ParameterStatusDTO dto = new ParameterStatusDTO();
+                    dto.setParameter(parameterEntity);
+                    dto.setStatus(ParameterStatus.NEW);
+                    parameterStatus.add(dto);
+                }
+            });
+            parameterStatus.forEach(dto -> {
+                final ParameterDTO parameterDTO = dto.getParameter().getParameter();
+                if (parameterDTO.getValue() != null && parameterDTO.getSensitive() != null && parameterDTO.getSensitive()) {
+                    parameterDTO.setValue(DtoFactory.SENSITIVE_VALUE_MASK);
+                }
+            });
+        }
+        return parameterStatus;
     }
 
     @GET
