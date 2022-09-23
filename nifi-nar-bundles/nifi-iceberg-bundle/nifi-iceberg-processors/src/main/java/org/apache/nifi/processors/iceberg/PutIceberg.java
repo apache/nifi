@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.iceberg;
 
 import com.google.common.collect.ImmutableList;
+import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.RowDelta;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.catalog.Catalog;
@@ -37,6 +38,8 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.iceberg.converter.IcebergRecordConverter;
+import org.apache.nifi.processors.iceberg.writer.IcebergTaskWriterFactory;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
@@ -47,7 +50,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+
+import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT;
+import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT_DEFAULT;
 
 @Tags({"iceberg", "put", "table", "store", "record", "parse", "orc", "parquet", "avro"})
 @CapabilityDescription("This processor uses Iceberg API to parse and load records into Iceberg tables. " +
@@ -159,32 +167,25 @@ public class PutIceberg extends AbstractIcebergProcessor {
         final String targetFileSize = context.getProperty(TARGET_FILE_SIZE).evaluateAttributeExpressions().getValue();
 
         final Table table = loadTable(context);
+        final FileFormat format = getFileFormat(table.properties(), fileFormat);
 
-        TaskWriter<Record> taskWriter = null;
+        TaskWriter<org.apache.iceberg.data.Record> taskWriter = null;
         int recordCount = 0;
 
-        try (final InputStream in = session.read(flowFile);
-             final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
+        try (final InputStream in = session.read(flowFile); final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
+            final IcebergTaskWriterFactory taskWriterFactory = new IcebergTaskWriterFactory(table, flowFile.getId(), format, targetFileSize);
+            taskWriter = taskWriterFactory.create();
 
-            //The first record is needed from the incoming set to get the schema and initialize the task writer.
-            Record firstRecord = reader.nextRecord();
-            if (firstRecord != null) {
-                IcebergTaskWriterFactory taskWriterFactory = new IcebergTaskWriterFactory(table, firstRecord.getSchema(), flowFile.getId(), fileFormat, targetFileSize);
-                taskWriter = taskWriterFactory.create();
+            final IcebergRecordConverter recordConverter = new IcebergRecordConverter(table.schema(), reader.getSchema(), format);
 
-                taskWriter.write(firstRecord);
+            Record record;
+            while ((record = reader.nextRecord()) != null) {
+                taskWriter.write(recordConverter.convert(record));
                 recordCount++;
-
-                //Process the remaining records
-                Record record;
-                while ((record = reader.nextRecord()) != null) {
-                    taskWriter.write(record);
-                    recordCount++;
-                }
-
-                final WriteResult result = taskWriter.complete();
-                appendDataFiles(table, result);
             }
+
+            final WriteResult result = taskWriter.complete();
+            appendDataFiles(table, result);
         } catch (Exception e) {
             getLogger().error("Exception occurred while writing iceberg records. Removing uncommitted data files.", e);
             try {
@@ -196,6 +197,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             }
 
             session.transfer(flowFile, REL_FAILURE);
+            return;
         }
 
         flowFile = session.putAttribute(flowFile, ICEBERG_RECORD_COUNT, String.valueOf(recordCount));
@@ -232,6 +234,18 @@ public class PutIceberg extends AbstractIcebergProcessor {
         Arrays.stream(result.dataFiles()).forEach(rowDelta::addRows);
 
         rowDelta.commit();
+    }
+
+    /**
+     * Determines the write file format from the requested value and the table configuration.
+     *
+     * @param tableProperties table properties
+     * @param fileFormat requested file format from the processor
+     * @return file format to use
+     */
+    private FileFormat getFileFormat(Map<String, String> tableProperties, String fileFormat) {
+        String fileFormatName = fileFormat != null ? fileFormat : tableProperties.getOrDefault(DEFAULT_FILE_FORMAT, DEFAULT_FILE_FORMAT_DEFAULT);
+        return FileFormat.valueOf(fileFormatName.toUpperCase(Locale.ENGLISH));
     }
 
 }

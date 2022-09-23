@@ -51,12 +51,6 @@
             <version>${iceberg.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.orc</groupId>
-            <artifactId>orc-core</artifactId>
-            <classifier>nohive</classifier>
-            <version>1.7.5</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
             <version>${hadoop.version}</version>

@@ -50,8 +50,6 @@ public class IcebergTestUtils {
      * @throws IOException Exceptions when reading the table data
      */
     public static void validateData(Table table, List<Record> expected, int sortBy) throws IOException {
-        // Refresh the table, so we get the new data as well
-        table.refresh();
         List<Record> records = Lists.newArrayListWithExpectedSize(expected.size());
         try (CloseableIterable<Record> iterable = IcebergGenerics.read(table).build()) {
             iterable.forEach(records::add);
@@ -70,7 +68,7 @@ public class IcebergTestUtils {
     public static void validateData(List<Record> expected, List<Record> actual, int sortBy) {
         List<Record> sortedExpected = Lists.newArrayList(expected);
         List<Record> sortedActual = Lists.newArrayList(actual);
-        // Sort based on the specified column
+        // Sort based on the specified field
         sortedExpected.sort(Comparator.comparingInt(record -> record.get(sortBy).hashCode()));
         sortedActual.sort(Comparator.comparingInt(record -> record.get(sortBy).hashCode()));
 

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.iceberg.appender;
+package org.apache.nifi.processors.iceberg.converter;
 
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.type.ArrayDataType;

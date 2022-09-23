@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.iceberg;
+package org.apache.nifi.processors.iceberg.writer;
 
 import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.PartitionKey;
 import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.Schema;
+import org.apache.iceberg.data.InternalRecordWrapper;
+import org.apache.iceberg.data.Record;
 import org.apache.iceberg.io.FileAppenderFactory;
 import org.apache.iceberg.io.FileIO;
 import org.apache.iceberg.io.OutputFileFactory;
 import org.apache.iceberg.io.PartitionedFanoutWriter;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordSchema;
 
 /**
  * This class adapts {@link Record} for partitioned writing.
@@ -33,13 +33,13 @@ import org.apache.nifi.serialization.record.RecordSchema;
 public class IcebergPartitionedWriter extends PartitionedFanoutWriter<Record> {
 
     private final PartitionKey partitionKey;
-    private final NiFiRecordWrapper wrapper;
+    private final InternalRecordWrapper wrapper;
 
     IcebergPartitionedWriter(PartitionSpec spec, FileFormat format, FileAppenderFactory<Record> appenderFactory, OutputFileFactory fileFactory,
-                             FileIO io, long targetFileSize, Schema schema, RecordSchema recordSchema) {
+                             FileIO io, long targetFileSize, Schema schema) {
         super(spec, format, appenderFactory, fileFactory, io, targetFileSize);
         this.partitionKey = new PartitionKey(spec, schema);
-        this.wrapper = new NiFiRecordWrapper(recordSchema);
+        this.wrapper = new InternalRecordWrapper(schema.asStruct());
     }
 
     @Override

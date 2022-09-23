@@ -40,6 +40,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -57,6 +58,7 @@ import static org.apache.nifi.processors.iceberg.PutIceberg.ICEBERG_RECORD_COUNT
 import static org.apache.nifi.processors.iceberg.util.IcebergTestUtils.validateData;
 import static org.apache.nifi.processors.iceberg.util.IcebergTestUtils.validateNumberOfDataFiles;
 import static org.apache.nifi.processors.iceberg.util.IcebergTestUtils.validatePartitionFolders;
+import static org.junit.jupiter.api.condition.OS.WINDOWS;
 
 public class TestPutIcebergWithHiveCatalog {
 
@@ -122,6 +124,7 @@ public class TestPutIcebergWithHiveCatalog {
         return catalog;
     }
 
+    @DisabledOnOs(WINDOWS)
     @ParameterizedTest
     @ValueSource(strings = {"avro", "orc", "parquet"})
     public void onTriggerPartitioned(String fileFormat) throws Exception {
@@ -159,6 +162,7 @@ public class TestPutIcebergWithHiveCatalog {
                 "department_bucket=0", "department_bucket=1", "department_bucket=2"));
     }
 
+    @DisabledOnOs(WINDOWS)
     @ParameterizedTest
     @ValueSource(strings = {"avro", "orc", "parquet"})
     public void onTriggerIdentityPartitioned(String fileFormat) throws Exception {
@@ -196,6 +200,7 @@ public class TestPutIcebergWithHiveCatalog {
                 "department=Finance", "department=Marketing", "department=Sales"));
     }
 
+    @DisabledOnOs(WINDOWS)
     @ParameterizedTest
     @ValueSource(strings = {"avro", "orc", "parquet"})
     public void onTriggerMultiLevelIdentityPartitioned(String fileFormat) throws Exception {
@@ -238,6 +243,7 @@ public class TestPutIcebergWithHiveCatalog {
         ));
     }
 
+    @DisabledOnOs(WINDOWS)
     @ParameterizedTest
     @ValueSource(strings = {"avro", "orc", "parquet"})
     public void onTriggerUnPartitioned(String fileFormat) throws Exception {

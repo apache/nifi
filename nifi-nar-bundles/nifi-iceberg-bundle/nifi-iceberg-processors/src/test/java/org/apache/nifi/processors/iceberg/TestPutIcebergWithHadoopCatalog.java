@@ -37,6 +37,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -54,6 +55,7 @@ import java.util.Map;
 import static org.apache.nifi.processors.iceberg.PutIceberg.ICEBERG_RECORD_COUNT;
 import static org.apache.nifi.processors.iceberg.util.IcebergTestUtils.validateNumberOfDataFiles;
 import static org.apache.nifi.processors.iceberg.util.IcebergTestUtils.validatePartitionFolders;
+import static org.junit.jupiter.api.condition.OS.WINDOWS;
 
 public class TestPutIcebergWithHadoopCatalog {
 
@@ -116,6 +118,7 @@ public class TestPutIcebergWithHadoopCatalog {
         return catalog;
     }
 
+    @DisabledOnOs(WINDOWS)
     @ParameterizedTest
     @ValueSource(strings = {"avro", "orc", "parquet"})
     public void onTriggerYearTransform(String fileFormat) throws Exception {
@@ -143,6 +146,7 @@ public class TestPutIcebergWithHadoopCatalog {
         validatePartitionFolders(table.location(), Arrays.asList("date_year=2015", "date_year=2016", "date_year=2017"));
     }
 
+    @DisabledOnOs(WINDOWS)
     @ParameterizedTest
     @ValueSource(strings = {"avro", "orc", "parquet"})
     public void onTriggerMonthTransform(String fileFormat) throws Exception {
@@ -171,6 +175,7 @@ public class TestPutIcebergWithHadoopCatalog {
                 "timestampMicros_month=2015-02", "timestampMicros_month=2016-01", "timestampMicros_month=2017-01"));
     }
 
+    @DisabledOnOs(WINDOWS)
     @ParameterizedTest
     @ValueSource(strings = {"avro", "orc", "parquet"})
     public void onTriggerDayTransform(String fileFormat) throws Exception {

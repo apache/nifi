@@ -17,13 +17,19 @@
  */
 package org.apache.nifi.processors.iceberg;
 
+import org.apache.avro.file.DataFileWriter;
+import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.Files;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.avro.Avro;
 import org.apache.iceberg.avro.AvroIterable;
+import org.apache.iceberg.data.GenericRecord;
 import org.apache.iceberg.data.avro.DataReader;
+import org.apache.iceberg.data.avro.DataWriter;
 import org.apache.iceberg.data.orc.GenericOrcReader;
+import org.apache.iceberg.data.orc.GenericOrcWriter;
 import org.apache.iceberg.data.parquet.GenericParquetReaders;
+import org.apache.iceberg.data.parquet.GenericParquetWriter;
 import org.apache.iceberg.io.CloseableIterable;
 import org.apache.iceberg.io.FileAppender;
 import org.apache.iceberg.io.InputFile;
@@ -32,9 +38,7 @@ import org.apache.iceberg.orc.ORC;
 import org.apache.iceberg.parquet.Parquet;
 import org.apache.iceberg.relocated.com.google.common.collect.Lists;
 import org.apache.iceberg.types.Types;
-import org.apache.nifi.processors.iceberg.appender.avro.IcebergAvroWriter;
-import org.apache.nifi.processors.iceberg.appender.orc.IcebergOrcWriter;
-import org.apache.nifi.processors.iceberg.appender.parquet.IcebergParquetWriter;
+import org.apache.nifi.processors.iceberg.converter.IcebergRecordConverter;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
@@ -48,17 +52,14 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
 
 import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
-import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -69,14 +70,14 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.UUID;
 
 import static java.io.File.createTempFile;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.condition.OS.WINDOWS;
 
-public class TestFileAppender {
+public class TestIcebergRecordConverter {
 
     private OutputFile tempFile;
 
@@ -232,11 +233,11 @@ public class TestFileAppender {
         return new MapRecord(getMapSchema(), values);
     }
 
-    private static Record setupPrimitivesTestRecord(RecordSchema schema) throws ParseException {
-        String expectedTime = "2017-04-04 14:20:33.789";
-        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-        long timeLong = dateFormat.parse(expectedTime).getTime();
+    private static Record setupPrimitivesTestRecord(RecordSchema schema) {
+        LocalDate localDate = LocalDate.of(2017, 4, 4);
+        LocalTime localTime = LocalTime.of(14, 20, 33);
+        LocalDateTime localDateTime = LocalDateTime.of(2017, 4, 4, 14, 20, 33, 789000000);
+        OffsetDateTime offsetDateTime = OffsetDateTime.of(localDateTime, ZoneOffset.ofHours(-5));
 
         Map<String, Object> values = new HashMap<>();
         values.put("string", "Test String");
@@ -248,26 +249,32 @@ public class TestFileAppender {
         values.put("boolean", true);
         values.put("fixed", "hello".getBytes());
         values.put("binary", "hello".getBytes());
-        values.put("date", new Date(timeLong));
-        values.put("time", new Time(timeLong));
-        values.put("timestamp", new Timestamp(timeLong));
-        values.put("timestampTz", new Timestamp(timeLong));
+        values.put("date", localDate);
+        values.put("time", Time.valueOf(localTime));
+        values.put("timestamp", Timestamp.from(offsetDateTime.toInstant()));
+        values.put("timestampTz", Timestamp.valueOf(localDateTime));
         values.put("uuid", UUID.fromString("0000-00-00-00-000000"));
 
         return new MapRecord(schema, values);
     }
 
     @Test
-    public void testPrimitivesAvro() throws ParseException, IOException {
+    public void testPrimitivesAvro() throws IOException {
         RecordSchema nifiSchema = getPrimitivesSchema();
         Record record = setupPrimitivesTestRecord(nifiSchema);
 
-        writeToAvro(PRIMITIVES, nifiSchema, record, tempFile);
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(PRIMITIVES, nifiSchema, FileFormat.AVRO);
+        GenericRecord genericRecord = recordConverter.convert(record);
 
-        List<org.apache.iceberg.data.Record> results = readFromAvro(PRIMITIVES, tempFile.toInputFile());
+        writeToAvro(PRIMITIVES, genericRecord, tempFile);
+
+        List<GenericRecord> results = readFromAvro(PRIMITIVES, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
-        org.apache.iceberg.data.Record resultRecord = results.get(0);
+        GenericRecord resultRecord = results.get(0);
+
+        LocalDateTime localDateTime = LocalDateTime.of(2017, 4, 4, 14, 20, 33, 789000000);
+        OffsetDateTime offsetDateTime = OffsetDateTime.of(localDateTime, ZoneOffset.ofHours(-5));
 
         Assertions.assertEquals(resultRecord.get(0, String.class), "Test String");
         Assertions.assertEquals(resultRecord.get(1, Integer.class), new Integer(8));
@@ -279,23 +286,64 @@ public class TestFileAppender {
         Assertions.assertArrayEquals(resultRecord.get(7, byte[].class), new byte[]{104, 101, 108, 108, 111});
         Assertions.assertArrayEquals(resultRecord.get(8, ByteBuffer.class).array(), new byte[]{104, 101, 108, 108, 111});
         Assertions.assertEquals(resultRecord.get(9, LocalDate.class), LocalDate.of(2017, 4, 4));
-        Assertions.assertEquals(resultRecord.get(10, LocalTime.class), LocalTime.of(14, 20, 33, 789000000));
-        Assertions.assertEquals(resultRecord.get(11, OffsetDateTime.class), OffsetDateTime.of(2017, 4, 4, 14, 20, 33, 789000000, ZoneOffset.UTC));
+        Assertions.assertEquals(resultRecord.get(10, LocalTime.class), LocalTime.of(14, 20, 33));
+        Assertions.assertEquals(resultRecord.get(11, OffsetDateTime.class), offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC));
+        Assertions.assertEquals(resultRecord.get(12, LocalDateTime.class), LocalDateTime.of(2017, 4, 4, 14, 20, 33, 789000000));
+        Assertions.assertEquals(resultRecord.get(13, UUID.class), UUID.fromString("0000-00-00-00-000000"));
+    }
+
+    @DisabledOnOs(WINDOWS)
+    @Test
+    public void testPrimitivesOrc() throws IOException {
+        RecordSchema nifiSchema = getPrimitivesSchema();
+        Record record = setupPrimitivesTestRecord(nifiSchema);
+
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(PRIMITIVES, nifiSchema, FileFormat.ORC);
+        GenericRecord genericRecord = recordConverter.convert(record);
+
+        writeToOrc(PRIMITIVES, genericRecord, tempFile);
+
+        List<GenericRecord> results = readFromOrc(PRIMITIVES, tempFile.toInputFile());
+
+        Assertions.assertEquals(results.size(), 1);
+        GenericRecord resultRecord = results.get(0);
+
+        LocalDateTime localDateTime = LocalDateTime.of(2017, 4, 4, 14, 20, 33, 789000000);
+        OffsetDateTime offsetDateTime = OffsetDateTime.of(localDateTime, ZoneOffset.ofHours(-5));
+
+        Assertions.assertEquals(resultRecord.get(0, String.class), "Test String");
+        Assertions.assertEquals(resultRecord.get(1, Integer.class), new Integer(8));
+        Assertions.assertEquals(resultRecord.get(2, Float.class), new Float(1.23456F));
+        Assertions.assertEquals(resultRecord.get(3, Long.class), new Long(42L));
+        Assertions.assertEquals(resultRecord.get(4, Double.class), new Double(3.14159D));
+        Assertions.assertEquals(resultRecord.get(5, BigDecimal.class), new BigDecimal("12345678.12"));
+        Assertions.assertEquals(resultRecord.get(6, Boolean.class), Boolean.TRUE);
+        Assertions.assertArrayEquals(resultRecord.get(7, byte[].class), new byte[]{104, 101, 108, 108, 111});
+        Assertions.assertArrayEquals(resultRecord.get(8, ByteBuffer.class).array(), new byte[]{104, 101, 108, 108, 111});
+        Assertions.assertEquals(resultRecord.get(9, LocalDate.class), LocalDate.of(2017, 4, 4));
+        Assertions.assertEquals(resultRecord.get(10, LocalTime.class), LocalTime.of(14, 20, 33));
+        Assertions.assertEquals(resultRecord.get(11, OffsetDateTime.class), offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC));
         Assertions.assertEquals(resultRecord.get(12, LocalDateTime.class), LocalDateTime.of(2017, 4, 4, 14, 20, 33, 789000000));
         Assertions.assertEquals(resultRecord.get(13, UUID.class), UUID.fromString("0000-00-00-00-000000"));
     }
 
     @Test
-    public void testPrimitivesOrc() throws ParseException, IOException {
+    public void testPrimitivesParquet() throws IOException {
         RecordSchema nifiSchema = getPrimitivesSchema();
         Record record = setupPrimitivesTestRecord(nifiSchema);
 
-        writeToOrc(PRIMITIVES, nifiSchema, record, tempFile);
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(PRIMITIVES, nifiSchema, FileFormat.PARQUET);
+        GenericRecord genericRecord = recordConverter.convert(record);
 
-        List<org.apache.iceberg.data.Record> results = readFromOrc(PRIMITIVES, tempFile.toInputFile());
+        writeToParquet(PRIMITIVES, genericRecord, tempFile);
+
+        List<GenericRecord> results = readFromParquet(PRIMITIVES, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
-        org.apache.iceberg.data.Record resultRecord = results.get(0);
+        GenericRecord resultRecord = results.get(0);
+
+        LocalDateTime localDateTime = LocalDateTime.of(2017, 4, 4, 14, 20, 33, 789000000);
+        OffsetDateTime offsetDateTime = OffsetDateTime.of(localDateTime, ZoneOffset.ofHours(-5));
 
         Assertions.assertEquals(resultRecord.get(0, String.class), "Test String");
         Assertions.assertEquals(resultRecord.get(1, Integer.class), new Integer(8));
@@ -307,36 +355,8 @@ public class TestFileAppender {
         Assertions.assertArrayEquals(resultRecord.get(7, byte[].class), new byte[]{104, 101, 108, 108, 111});
         Assertions.assertArrayEquals(resultRecord.get(8, ByteBuffer.class).array(), new byte[]{104, 101, 108, 108, 111});
         Assertions.assertEquals(resultRecord.get(9, LocalDate.class), LocalDate.of(2017, 4, 4));
-        Assertions.assertEquals(resultRecord.get(10, LocalTime.class), LocalTime.of(14, 20, 33, 789000000));
-        Assertions.assertEquals(resultRecord.get(11, OffsetDateTime.class), OffsetDateTime.of(2017, 4, 4, 14, 20, 33, 789000000, ZoneOffset.UTC));
-        Assertions.assertEquals(resultRecord.get(12, LocalDateTime.class), LocalDateTime.of(2017, 4, 4, 14, 20, 33, 789000000));
-        Assertions.assertEquals(resultRecord.get(13, UUID.class), UUID.fromString("0000-00-00-00-000000"));
-    }
-
-    @Test
-    public void testPrimitivesParquet() throws ParseException, IOException {
-        RecordSchema nifiSchema = getPrimitivesSchema();
-        Record record = setupPrimitivesTestRecord(nifiSchema);
-
-        writeToParquet(PRIMITIVES, nifiSchema, record, tempFile);
-
-        List<org.apache.iceberg.data.Record> results = readFromParquet(PRIMITIVES, tempFile.toInputFile());
-
-        Assertions.assertEquals(results.size(), 1);
-        org.apache.iceberg.data.Record resultRecord = results.get(0);
-
-        Assertions.assertEquals(resultRecord.get(0, String.class), "Test String");
-        Assertions.assertEquals(resultRecord.get(1, Integer.class), new Integer(8));
-        Assertions.assertEquals(resultRecord.get(2, Float.class), new Float(1.23456F));
-        Assertions.assertEquals(resultRecord.get(3, Long.class), new Long(42L));
-        Assertions.assertEquals(resultRecord.get(4, Double.class), new Double(3.14159D));
-        Assertions.assertEquals(resultRecord.get(5, BigDecimal.class), new BigDecimal("12345678.12"));
-        Assertions.assertEquals(resultRecord.get(6, Boolean.class), Boolean.TRUE);
-        Assertions.assertArrayEquals(resultRecord.get(7, byte[].class), new byte[]{104, 101, 108, 108, 111});
-        Assertions.assertArrayEquals(resultRecord.get(8, ByteBuffer.class).array(), new byte[]{104, 101, 108, 108, 111});
-        Assertions.assertEquals(resultRecord.get(9, LocalDate.class), LocalDate.of(2017, 4, 4));
-        Assertions.assertEquals(resultRecord.get(10, LocalTime.class), LocalTime.of(14, 20, 33, 789000000));
-        Assertions.assertEquals(resultRecord.get(11, OffsetDateTime.class), OffsetDateTime.of(2017, 4, 4, 14, 20, 33, 789000000, ZoneOffset.UTC));
+        Assertions.assertEquals(resultRecord.get(10, LocalTime.class), LocalTime.of(14, 20, 33));
+        Assertions.assertEquals(resultRecord.get(11, OffsetDateTime.class), offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC));
         Assertions.assertEquals(resultRecord.get(12, LocalDateTime.class), LocalDateTime.of(2017, 4, 4, 14, 20, 33, 789000000));
         Assertions.assertArrayEquals(resultRecord.get(13, byte[].class), new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
     }
@@ -346,46 +366,53 @@ public class TestFileAppender {
         RecordSchema nifiSchema = getStructSchema();
         Record record = setupStructTestRecord();
 
-        writeToAvro(STRUCT, nifiSchema, record, tempFile);
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(STRUCT, nifiSchema, FileFormat.AVRO);
+        GenericRecord genericRecord = recordConverter.convert(record);
 
-        List<org.apache.iceberg.data.Record> results = readFromAvro(STRUCT, tempFile.toInputFile());
+        writeToAvro(STRUCT, genericRecord, tempFile);
+
+        List<GenericRecord> results = readFromAvro(STRUCT, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
-        Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, results.get(0));
-        org.apache.iceberg.data.Record resultRecord = results.get(0);
+        Assertions.assertInstanceOf(GenericRecord.class, results.get(0));
+        GenericRecord resultRecord = results.get(0);
 
         Assertions.assertEquals(resultRecord.size(), 1);
-        Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, resultRecord.get(0));
-        org.apache.iceberg.data.Record nestedRecord = (org.apache.iceberg.data.Record) resultRecord.get(0);
+        Assertions.assertInstanceOf(GenericRecord.class, resultRecord.get(0));
+        GenericRecord nestedRecord = (GenericRecord) resultRecord.get(0);
 
         Assertions.assertEquals(nestedRecord.size(), 1);
-        Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, nestedRecord.get(0));
-        org.apache.iceberg.data.Record baseRecord = (org.apache.iceberg.data.Record) nestedRecord.get(0);
+        Assertions.assertInstanceOf(GenericRecord.class, nestedRecord.get(0));
+        GenericRecord baseRecord = (GenericRecord) nestedRecord.get(0);
 
         Assertions.assertEquals(baseRecord.get(0, String.class), "Test String");
         Assertions.assertEquals(baseRecord.get(1, Integer.class), new Integer(10));
     }
 
+    @DisabledOnOs(WINDOWS)
     @Test
     public void testStructOrc() throws IOException {
         RecordSchema nifiSchema = getStructSchema();
         Record record = setupStructTestRecord();
 
-        writeToOrc(STRUCT, nifiSchema, record, tempFile);
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(STRUCT, nifiSchema, FileFormat.ORC);
+        GenericRecord genericRecord = recordConverter.convert(record);
 
-        List<org.apache.iceberg.data.Record> results = readFromOrc(STRUCT, tempFile.toInputFile());
+        writeToOrc(STRUCT, genericRecord, tempFile);
+
+        List<GenericRecord> results = readFromOrc(STRUCT, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
-        Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, results.get(0));
-        org.apache.iceberg.data.Record resultRecord = results.get(0);
+        Assertions.assertInstanceOf(GenericRecord.class, results.get(0));
+        GenericRecord resultRecord = results.get(0);
 
         Assertions.assertEquals(resultRecord.size(), 1);
-        Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, resultRecord.get(0));
-        org.apache.iceberg.data.Record nestedRecord = (org.apache.iceberg.data.Record) resultRecord.get(0);
+        Assertions.assertInstanceOf(GenericRecord.class, resultRecord.get(0));
+        GenericRecord nestedRecord = (GenericRecord) resultRecord.get(0);
 
         Assertions.assertEquals(nestedRecord.size(), 1);
-        Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, nestedRecord.get(0));
-        org.apache.iceberg.data.Record baseRecord = (org.apache.iceberg.data.Record) nestedRecord.get(0);
+        Assertions.assertInstanceOf(GenericRecord.class, nestedRecord.get(0));
+        GenericRecord baseRecord = (GenericRecord) nestedRecord.get(0);
 
         Assertions.assertEquals(baseRecord.get(0, String.class), "Test String");
         Assertions.assertEquals(baseRecord.get(1, Integer.class), new Integer(10));
@@ -396,21 +423,24 @@ public class TestFileAppender {
         RecordSchema nifiSchema = getStructSchema();
         Record record = setupStructTestRecord();
 
-        writeToParquet(STRUCT, nifiSchema, record, tempFile);
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(STRUCT, nifiSchema, FileFormat.PARQUET);
+        GenericRecord genericRecord = recordConverter.convert(record);
 
-        List<org.apache.iceberg.data.Record> results = readFromParquet(STRUCT, tempFile.toInputFile());
+        writeToParquet(STRUCT, genericRecord, tempFile);
+
+        List<GenericRecord> results = readFromParquet(STRUCT, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
-        Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, results.get(0));
-        org.apache.iceberg.data.Record resultRecord = results.get(0);
+        Assertions.assertInstanceOf(GenericRecord.class, results.get(0));
+        GenericRecord resultRecord = results.get(0);
 
         Assertions.assertEquals(resultRecord.size(), 1);
-        Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, resultRecord.get(0));
-        org.apache.iceberg.data.Record nestedRecord = (org.apache.iceberg.data.Record) resultRecord.get(0);
+        Assertions.assertInstanceOf(GenericRecord.class, resultRecord.get(0));
+        GenericRecord nestedRecord = (GenericRecord) resultRecord.get(0);
 
         Assertions.assertEquals(nestedRecord.size(), 1);
-        Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, nestedRecord.get(0));
-        org.apache.iceberg.data.Record baseRecord = (org.apache.iceberg.data.Record) nestedRecord.get(0);
+        Assertions.assertInstanceOf(GenericRecord.class, nestedRecord.get(0));
+        GenericRecord baseRecord = (GenericRecord) nestedRecord.get(0);
 
         Assertions.assertEquals(baseRecord.get(0, String.class), "Test String");
         Assertions.assertEquals(baseRecord.get(1, Integer.class), new Integer(10));
@@ -421,13 +451,16 @@ public class TestFileAppender {
         RecordSchema nifiSchema = getListSchema();
         Record record = setupListTestRecord();
 
-        writeToAvro(LIST, nifiSchema, record, tempFile);
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(LIST, nifiSchema, FileFormat.AVRO);
+        GenericRecord genericRecord = recordConverter.convert(record);
 
-        List<org.apache.iceberg.data.Record> results = readFromAvro(LIST, tempFile.toInputFile());
+        writeToAvro(LIST, genericRecord, tempFile);
+
+        List<GenericRecord> results = readFromAvro(LIST, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
-        Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, results.get(0));
-        org.apache.iceberg.data.Record resultRecord = results.get(0);
+        Assertions.assertInstanceOf(GenericRecord.class, results.get(0));
+        GenericRecord resultRecord = results.get(0);
 
         Assertions.assertEquals(resultRecord.size(), 1);
         Assertions.assertInstanceOf(List.class, resultRecord.get(0));
@@ -440,18 +473,22 @@ public class TestFileAppender {
         Assertions.assertEquals(baseList.get(0), "Test String");
     }
 
+    @DisabledOnOs(WINDOWS)
     @Test
     public void testListOrc() throws IOException {
         RecordSchema nifiSchema = getListSchema();
         Record record = setupListTestRecord();
 
-        writeToOrc(LIST, nifiSchema, record, tempFile);
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(LIST, nifiSchema, FileFormat.ORC);
+        GenericRecord genericRecord = recordConverter.convert(record);
 
-        List<org.apache.iceberg.data.Record> results = readFromOrc(LIST, tempFile.toInputFile());
+        writeToOrc(LIST, genericRecord, tempFile);
+
+        List<GenericRecord> results = readFromOrc(LIST, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
-        Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, results.get(0));
-        org.apache.iceberg.data.Record resultRecord = results.get(0);
+        Assertions.assertInstanceOf(GenericRecord.class, results.get(0));
+        GenericRecord resultRecord = results.get(0);
 
         Assertions.assertEquals(resultRecord.size(), 1);
         Assertions.assertInstanceOf(List.class, resultRecord.get(0));
@@ -469,13 +506,16 @@ public class TestFileAppender {
         RecordSchema nifiSchema = getListSchema();
         Record record = setupListTestRecord();
 
-        writeToParquet(LIST, nifiSchema, record, tempFile);
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(LIST, nifiSchema, FileFormat.PARQUET);
+        GenericRecord genericRecord = recordConverter.convert(record);
 
-        List<org.apache.iceberg.data.Record> results = readFromParquet(LIST, tempFile.toInputFile());
+        writeToParquet(LIST, genericRecord, tempFile);
+
+        List<GenericRecord> results = readFromParquet(LIST, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
-        Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, results.get(0));
-        org.apache.iceberg.data.Record resultRecord = results.get(0);
+        Assertions.assertInstanceOf(GenericRecord.class, results.get(0));
+        GenericRecord resultRecord = results.get(0);
 
         Assertions.assertEquals(resultRecord.size(), 1);
         Assertions.assertInstanceOf(List.class, resultRecord.get(0));
@@ -493,13 +533,16 @@ public class TestFileAppender {
         RecordSchema nifiSchema = getMapSchema();
         Record record = setupMapTestRecord();
 
-        writeToAvro(MAP, nifiSchema, record, tempFile);
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(MAP, nifiSchema, FileFormat.AVRO);
+        GenericRecord genericRecord = recordConverter.convert(record);
 
-        List<org.apache.iceberg.data.Record> results = readFromAvro(MAP, tempFile.toInputFile());
+        writeToAvro(MAP, genericRecord, tempFile);
+
+        List<GenericRecord> results = readFromAvro(MAP, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
-        Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, results.get(0));
-        org.apache.iceberg.data.Record resultRecord = results.get(0);
+        Assertions.assertInstanceOf(GenericRecord.class, results.get(0));
+        GenericRecord resultRecord = results.get(0);
 
         Assertions.assertEquals(resultRecord.size(), 1);
         Assertions.assertInstanceOf(Map.class, resultRecord.get(0));
@@ -512,18 +555,22 @@ public class TestFileAppender {
         Assertions.assertEquals(baseMap.get("nested_key"), 42L);
     }
 
+    @DisabledOnOs(WINDOWS)
     @Test
     public void testMapOrc() throws IOException {
         RecordSchema nifiSchema = getMapSchema();
         Record record = setupMapTestRecord();
 
-        writeToOrc(MAP, nifiSchema, record, tempFile);
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(MAP, nifiSchema, FileFormat.ORC);
+        GenericRecord genericRecord = recordConverter.convert(record);
 
-        List<org.apache.iceberg.data.Record> results = readFromOrc(MAP, tempFile.toInputFile());
+        writeToOrc(MAP, genericRecord, tempFile);
+
+        List<GenericRecord> results = readFromOrc(MAP, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
-        Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, results.get(0));
-        org.apache.iceberg.data.Record resultRecord = results.get(0);
+        Assertions.assertInstanceOf(GenericRecord.class, results.get(0));
+        GenericRecord resultRecord = results.get(0);
 
         Assertions.assertEquals(resultRecord.size(), 1);
         Assertions.assertInstanceOf(Map.class, resultRecord.get(0));
@@ -541,13 +588,16 @@ public class TestFileAppender {
         RecordSchema nifiSchema = getMapSchema();
         Record record = setupMapTestRecord();
 
-        writeToParquet(MAP, nifiSchema, record, tempFile);
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(MAP, nifiSchema, FileFormat.PARQUET);
+        GenericRecord genericRecord = recordConverter.convert(record);
 
-        List<org.apache.iceberg.data.Record> results = readFromParquet(MAP, tempFile.toInputFile());
+        writeToParquet(MAP, genericRecord, tempFile);
+
+        List<GenericRecord> results = readFromParquet(MAP, tempFile.toInputFile());
 
         Assertions.assertEquals(results.size(), 1);
-        Assertions.assertInstanceOf(org.apache.iceberg.data.Record.class, results.get(0));
-        org.apache.iceberg.data.Record resultRecord = results.get(0);
+        Assertions.assertInstanceOf(GenericRecord.class, results.get(0));
+        GenericRecord resultRecord = results.get(0);
 
         Assertions.assertEquals(resultRecord.size(), 1);
         Assertions.assertInstanceOf(Map.class, resultRecord.get(0));
@@ -565,18 +615,24 @@ public class TestFileAppender {
         RecordSchema nifiSchema = getListSchema();
         Record record = setupListTestRecord();
 
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> writeToAvro(STRUCT, nifiSchema, record, tempFile));
-        assertTrue(e.getMessage().contains("Structs do not match: field list != struct"));
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(LIST, nifiSchema, FileFormat.AVRO);
+        GenericRecord genericRecord = recordConverter.convert(record);
+
+        DataFileWriter.AppendWriteException e = assertThrows(DataFileWriter.AppendWriteException.class, () -> writeToAvro(STRUCT, genericRecord, tempFile));
+        assertTrue(e.getMessage().contains("java.lang.ClassCastException: java.util.ArrayList cannot be cast to org.apache.iceberg.data.Record"));
     }
 
+    @DisabledOnOs(WINDOWS)
     @Test
     public void testSchemaMismatchOrc() {
         RecordSchema nifiSchema = getListSchema();
         Record record = setupListTestRecord();
 
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> writeToOrc(STRUCT, nifiSchema, record, tempFile));
-        assertTrue(e.getMessage().contains(
-                "NestedField: 0: struct: required struct<1: nested_struct: required struct<2: string: required string, 3: integer: required int>> is not found in DataType: RECORD"));
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(LIST, nifiSchema, FileFormat.ORC);
+        GenericRecord genericRecord = recordConverter.convert(record);
+
+        ClassCastException e = assertThrows(ClassCastException.class, () -> writeToOrc(STRUCT, genericRecord, tempFile));
+        assertTrue(e.getMessage().contains("java.util.ArrayList cannot be cast to org.apache.iceberg.data.Record"));
     }
 
     @Test
@@ -584,22 +640,25 @@ public class TestFileAppender {
         RecordSchema nifiSchema = getListSchema();
         Record record = setupListTestRecord();
 
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> writeToParquet(STRUCT, nifiSchema, record, tempFile));
-        assertTrue(e.getMessage().contains("Schemas do not match: field struct != list"));
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(LIST, nifiSchema, FileFormat.PARQUET);
+        GenericRecord genericRecord = recordConverter.convert(record);
+
+        ClassCastException e = assertThrows(ClassCastException.class, () -> writeToParquet(STRUCT, genericRecord, tempFile));
+        assertTrue(e.getMessage().contains("java.util.ArrayList cannot be cast to org.apache.iceberg.data.Record"));
     }
 
-    public void writeToAvro(Schema schema, RecordSchema recordSchema, Record record, OutputFile outputFile) throws IOException {
-        try (FileAppender<Record> appender = Avro.write(outputFile)
+    public void writeToAvro(Schema schema, GenericRecord record, OutputFile outputFile) throws IOException {
+        try (FileAppender<GenericRecord> appender = Avro.write(outputFile)
                 .schema(schema)
-                .createWriterFunc(ignore -> new IcebergAvroWriter(recordSchema))
+                .createWriterFunc(DataWriter::create)
                 .overwrite()
                 .build()) {
             appender.add(record);
         }
     }
 
-    public ArrayList<org.apache.iceberg.data.Record> readFromAvro(Schema schema, InputFile inputFile) throws IOException {
-        try (AvroIterable<org.apache.iceberg.data.Record> reader = Avro.read(inputFile)
+    public ArrayList<GenericRecord> readFromAvro(Schema schema, InputFile inputFile) throws IOException {
+        try (AvroIterable<GenericRecord> reader = Avro.read(inputFile)
                 .project(schema)
                 .createReaderFunc(DataReader::create)
                 .build()) {
@@ -607,18 +666,18 @@ public class TestFileAppender {
         }
     }
 
-    public void writeToOrc(Schema schema, RecordSchema recordSchema, Record record, OutputFile outputFile) throws IOException {
-        try (FileAppender<Record> appender = ORC.write(outputFile)
+    public void writeToOrc(Schema schema, GenericRecord record, OutputFile outputFile) throws IOException {
+        try (FileAppender<GenericRecord> appender = ORC.write(outputFile)
                 .schema(schema)
-                .createWriterFunc((iSchema, typDesc) -> IcebergOrcWriter.buildWriter(recordSchema, iSchema))
+                .createWriterFunc(GenericOrcWriter::buildWriter)
                 .overwrite()
                 .build()) {
             appender.add(record);
         }
     }
 
-    public ArrayList<org.apache.iceberg.data.Record> readFromOrc(Schema schema, InputFile inputFile) throws IOException {
-        try (CloseableIterable<org.apache.iceberg.data.Record> reader = ORC.read(inputFile)
+    public ArrayList<GenericRecord> readFromOrc(Schema schema, InputFile inputFile) throws IOException {
+        try (CloseableIterable<GenericRecord> reader = ORC.read(inputFile)
                 .project(schema)
                 .createReaderFunc(fileSchema -> GenericOrcReader.buildReader(schema, fileSchema))
                 .build()) {
@@ -626,18 +685,18 @@ public class TestFileAppender {
         }
     }
 
-    public void writeToParquet(Schema schema, RecordSchema recordSchema, Record record, OutputFile outputFile) throws IOException {
-        try (FileAppender<Record> appender = Parquet.write(outputFile)
+    public void writeToParquet(Schema schema, GenericRecord record, OutputFile outputFile) throws IOException {
+        try (FileAppender<GenericRecord> appender = Parquet.write(outputFile)
                 .schema(schema)
-                .createWriterFunc(msgType -> IcebergParquetWriter.buildWriter(recordSchema, msgType))
+                .createWriterFunc(GenericParquetWriter::buildWriter)
                 .overwrite()
                 .build()) {
             appender.add(record);
         }
     }
 
-    public ArrayList<org.apache.iceberg.data.Record> readFromParquet(Schema schema, InputFile inputFile) throws IOException {
-        try (CloseableIterable<org.apache.iceberg.data.Record> reader = Parquet.read(inputFile)
+    public ArrayList<GenericRecord> readFromParquet(Schema schema, InputFile inputFile) throws IOException {
+        try (CloseableIterable<GenericRecord> reader = Parquet.read(inputFile)
                 .project(schema)
                 .createReaderFunc(fileSchema -> GenericParquetReaders.buildReader(schema, fileSchema))
                 .build()) {
