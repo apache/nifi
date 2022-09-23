@@ -2362,20 +2362,15 @@
      * @param registryEntity
      */
     var editRegistry = function (registryEntity) {
-        // get the controller service history
-        var loadConfig = $.ajax({
-            type: 'GET',
-            url: '../nifi-api/controller/registry-clients/' + encodeURIComponent(registryEntity.id),
-            dataType: 'json'
-        }).done(function (loadConfigResponse) {
-            var properties = loadConfigResponse.component.properties;
-            var descriptors = loadConfigResponse.component.descriptors;
+        reload(registryEntity.id).done(function (reloadResponse) {
+            var properties = reloadResponse.component.properties;
+            var descriptors = reloadResponse.component.descriptors;
 
             // populate the dialog
-            $('#registry-id-config').text(loadConfigResponse.id);
-            $('#registry-name-config').val(loadConfigResponse.component.name);
-            $('#registry-type-config').text(loadConfigResponse.component.type);
-            $('#registry-description-config').val(loadConfigResponse.component.description);
+            $('#registry-id-config').text(reloadResponse.id);
+            $('#registry-name-config').val(reloadResponse.component.name);
+            $('#registry-type-config').text(reloadResponse.component.type);
+            $('#registry-description-config').val(reloadResponse.component.description);
 
             // show the dialog
             $('#registry-configuration-dialog').modal('setHeaderText', 'Edit Registry Client').modal('setButtonModel', [{
@@ -2387,7 +2382,7 @@
                 },
                 handler: {
                     click: function () {
-                        updateRegistry(loadConfigResponse.id);
+                        updateRegistry(reloadResponse.id);
                     }
                 }
             }, {
@@ -2406,17 +2401,7 @@
 
             $('#registry-properties').propertytable('clear');
             $('#registry-properties').propertytable('loadProperties', properties, descriptors);
-            $('#registry-configuration-dialog').data('registryDetails', loadConfigResponse);
-        });
-
-
-        // load the properties
-        $.when(loadConfig).done(function (loadConfigResponse) {
-            // var properties = loadConfigResponse.component.properties;
-            // var descriptors = loadConfigResponse.component.descriptors;
-            // $('#registry-properties').propertytable('clear');
-            // $('#registry-properties').propertytable('loadProperties', properties, descriptors);
-            // $('#registry-configuration-dialog').data('registryDetails', loadConfigResponse);
+            $('#registry-configuration-dialog').data('registryDetails', reloadResponse);
         });
     };
 
@@ -2745,6 +2730,39 @@
     var reset = function () {
         // reset button state
         $('#settings-save').mouseout();
+    };
+
+    /**
+     * Renders the specified registry.
+     *
+     * @param {object} reportingTask
+     */
+     var renderRegistry = function (registryEntity) {
+        // get the table and update the row accordingly
+        var registryGrid = $('#registries-table').data('gridInstance');
+        var registryData = registryGrid.getData();
+        registryData.updateItem(registryEntity.id, $.extend({
+            type: 'Registry'
+        }, registryEntity));
+    };
+
+    /**
+         * Reloads the specified registry.
+         *
+         * @param {string} id
+         */
+     var reload = function (id) {
+        var registryGrid = $('#registries-table').data('gridInstance');
+        var registryData = registryGrid.getData();
+        var registryEntity = registryData.getItemById(id);
+
+        return $.ajax({
+            type: 'GET',
+            url: registryEntity.uri,
+            dataType: 'json'
+        }).done(function (response) {
+            renderRegistry(response);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     var nfSettings = {

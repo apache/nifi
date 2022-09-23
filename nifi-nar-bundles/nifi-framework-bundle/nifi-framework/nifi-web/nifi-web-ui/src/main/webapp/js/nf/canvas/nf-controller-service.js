@@ -262,6 +262,7 @@
                 var referencingComponentState = $('div.' + reference.id + '-state');
                 if (referencingComponentState.length) {
                     updateValidationErrors(referencingComponentState, reference);
+                    nfParameterProvider.reload(reference.id);
                 }
             } else {
                 // reload the referencing services
