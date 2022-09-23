@@ -19,11 +19,14 @@ package org.apache.nifi.c2.client.service.operation;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.write;
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Stream.concat;
 import static org.apache.nifi.c2.client.service.operation.DebugOperationHandler.NEW_LINE;
 import static org.apache.nifi.c2.client.service.operation.DebugOperationHandler.TARGET_ARG;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
@@ -42,8 +45,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -51,9 +56,6 @@ import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.nifi.c2.client.api.C2Client;
-import org.apache.nifi.c2.client.service.operation.DebugOperationHandler.ConfigFile;
-import org.apache.nifi.c2.client.service.operation.DebugOperationHandler.DebugBundleFile;
-import org.apache.nifi.c2.client.service.operation.DebugOperationHandler.LogFile;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
 import org.junit.jupiter.api.Test;
@@ -72,41 +74,36 @@ public class DebugOperationHandlerTest {
     private static final String OPERATION_ID = "operationId";
     private static final String C2_DEBUG_UPLOAD_ENDPOINT = "https://host/c2/api/upload";
     private static final String DEFAULT_FILE_CONTENT = "some_textual_data";
-    private static final String VALID_DIRECTORY_NAME = "directory";
+    private static final List<Path> VALID_BUNDLE_FILE_LIST = singletonList(Paths.get("path_to_file"));
     private static final Predicate<String> DEFAULT_CONTENT_FILTER = text -> true;
 
     @Mock
     private C2Client c2Client;
 
     @TempDir
-    private File confDir;
-
-    @TempDir
-    private File logDir;
+    private File tempDir;
 
     private static Stream<Arguments> invalidConstructorArguments() {
         C2Client mockC2Client = mock(C2Client.class);
         return Stream.of(
-            Arguments.of(null, null, null, null),
-            Arguments.of(null, VALID_DIRECTORY_NAME, VALID_DIRECTORY_NAME, DEFAULT_CONTENT_FILTER),
-            Arguments.of(mockC2Client, null, VALID_DIRECTORY_NAME, DEFAULT_CONTENT_FILTER),
-            Arguments.of(mockC2Client, VALID_DIRECTORY_NAME, null, DEFAULT_CONTENT_FILTER),
-            Arguments.of(mockC2Client, VALID_DIRECTORY_NAME, VALID_DIRECTORY_NAME, null),
-            Arguments.of(mockC2Client, "", VALID_DIRECTORY_NAME, DEFAULT_CONTENT_FILTER),
-            Arguments.of(mockC2Client, VALID_DIRECTORY_NAME, "", DEFAULT_CONTENT_FILTER)
+            Arguments.of(null, null, null),
+            Arguments.of(null, VALID_BUNDLE_FILE_LIST, DEFAULT_CONTENT_FILTER),
+            Arguments.of(mockC2Client, null, DEFAULT_CONTENT_FILTER),
+            Arguments.of(mockC2Client, emptyList(), DEFAULT_CONTENT_FILTER),
+            Arguments.of(mockC2Client, VALID_BUNDLE_FILE_LIST, null)
         );
     }
 
     @ParameterizedTest
     @MethodSource("invalidConstructorArguments")
-    public void testAttemptingCreateWithInvalidParametersWillThrowException(C2Client c2Client, String configDir, String logDir, Predicate<String> contentFilter) {
-        assertThrows(IllegalArgumentException.class, () -> DebugOperationHandler.create(c2Client, configDir, logDir, contentFilter));
+    public void testAttemptingCreateWithInvalidParametersWillThrowException(C2Client c2Client, List<Path> bundleFilePaths, Predicate<String> contentFilter) {
+        assertThrows(IllegalArgumentException.class, () -> DebugOperationHandler.create(c2Client, bundleFilePaths, contentFilter));
     }
 
     @Test
     public void testOperationAndOperandTypesAreMatching() {
         // given
-        DebugOperationHandler testHandler = DebugOperationHandler.create(c2Client, confDir.getAbsolutePath(), logDir.getAbsolutePath(), DEFAULT_CONTENT_FILTER);
+        DebugOperationHandler testHandler = DebugOperationHandler.create(c2Client, VALID_BUNDLE_FILE_LIST, DEFAULT_CONTENT_FILTER);
 
         // when + then
         assertEquals(TRANSFER, testHandler.getOperationType());
@@ -116,7 +113,7 @@ public class DebugOperationHandlerTest {
     @Test
     public void testC2CallbackUrlIsNullInArgs() {
         // given
-        DebugOperationHandler testHandler = DebugOperationHandler.create(c2Client, confDir.getAbsolutePath(), logDir.getAbsolutePath(), DEFAULT_CONTENT_FILTER);
+        DebugOperationHandler testHandler = DebugOperationHandler.create(c2Client, VALID_BUNDLE_FILE_LIST, DEFAULT_CONTENT_FILTER);
         C2Operation c2Operation = operation(null);
 
         // when
@@ -128,11 +125,16 @@ public class DebugOperationHandlerTest {
     }
 
     @Test
-    public void testAllPossibleFilesAreCollectedAndUploadedAsATarGzBundle() {
+    public void testFilesAreCollectedAndUploadedAsATarGzBundle() {
         // given
-        DebugOperationHandler testHandler = DebugOperationHandler.create(c2Client, confDir.getAbsolutePath(), logDir.getAbsolutePath(), DEFAULT_CONTENT_FILTER);
+        Map<String, String> bundleFileNamesWithContents = asList("file.log", "application.conf", "default.properties")
+            .stream()
+            .collect(toMap(identity(), __ -> DEFAULT_FILE_CONTENT));
+        List<Path> createBundleFiles = bundleFileNamesWithContents.entrySet().stream()
+            .map(entry -> placeFileWithContent(entry.getKey(), entry.getValue()))
+            .collect(toList());
+        DebugOperationHandler testHandler = DebugOperationHandler.create(c2Client, createBundleFiles, DEFAULT_CONTENT_FILTER);
         C2Operation c2Operation = operation(C2_DEBUG_UPLOAD_ENDPOINT);
-        createAllPossibleBundleFiles();
 
         // when
         C2OperationAck result = testHandler.handle(c2Operation);
@@ -145,13 +147,13 @@ public class DebugOperationHandlerTest {
         assertEquals(FULLY_APPLIED, result.getOperationState().getState());
         assertEquals(C2_DEBUG_UPLOAD_ENDPOINT, uploadUrlCaptor.getValue());
         Map<String, String> resultBundle = extractBundle(uploadBundleCaptor.getValue());
-        assertTrue(mapEqual(expectedBundleForAllPossibleBundleFiles(), resultBundle));
+        assertTrue(mapEqual(bundleFileNamesWithContents, resultBundle));
     }
 
     @Test
-    public void testNoFilesAvailableToCollect() {
+    public void testFileToCollectDoesNotExist() {
         // given
-        DebugOperationHandler testHandler = DebugOperationHandler.create(c2Client, confDir.getAbsolutePath(), logDir.getAbsolutePath(), DEFAULT_CONTENT_FILTER);
+        DebugOperationHandler testHandler = DebugOperationHandler.create(c2Client, singletonList(Paths.get(tempDir.getAbsolutePath(), "missing_file")), DEFAULT_CONTENT_FILTER);
         C2Operation c2Operation = operation(C2_DEBUG_UPLOAD_ENDPOINT);
 
         // when
@@ -166,11 +168,11 @@ public class DebugOperationHandlerTest {
     public void testContentIsFilteredOut() {
         // given
         String filterKeyword = "minifi";
+        String bundleFileName = "filter_content.file";
         String fileContent = Stream.of("line one", "line two " + filterKeyword, filterKeyword + "line three", "line four").collect(joining(NEW_LINE));
-        placeFileWithContent(logDir, LogFile.BOOTSTRAP_LOG_FILE.getFileName(), fileContent);
-        placeFileWithContent(confDir, ConfigFile.CONFIG_YML_FILE.getFileName(), fileContent);
+        Path bundleFile = placeFileWithContent(bundleFileName, fileContent);
         Predicate<String> testContentFilter = content -> !content.contains(filterKeyword);
-        DebugOperationHandler testHandler = DebugOperationHandler.create(c2Client, confDir.getAbsolutePath(), logDir.getAbsolutePath(), testContentFilter);
+        DebugOperationHandler testHandler = DebugOperationHandler.create(c2Client, singletonList(bundleFile), testContentFilter);
         C2Operation c2Operation = operation(C2_DEBUG_UPLOAD_ENDPOINT);
 
         // when
@@ -185,22 +187,18 @@ public class DebugOperationHandlerTest {
         assertEquals(C2_DEBUG_UPLOAD_ENDPOINT, uploadUrlCaptor.getValue());
         String expectedFileContent = Stream.of("line one", "line four").collect(joining("\n"));
         Map<String, String> resultBundle = extractBundle(uploadBundleCaptor.getValue());
-        assertEquals(2, resultBundle.size());
-        assertEquals(expectedFileContent, resultBundle.get(LogFile.BOOTSTRAP_LOG_FILE.getFileName()));
-        assertEquals(expectedFileContent, resultBundle.get(ConfigFile.CONFIG_YML_FILE.getFileName()));
+        assertEquals(1, resultBundle.size());
+        assertEquals(expectedFileContent, resultBundle.get(bundleFileName));
     }
 
-    private void createAllPossibleBundleFiles() {
-        Stream.of(LogFile.values()).forEach(logFile -> placeFileWithContent(logDir, logFile.getFileName(), DEFAULT_FILE_CONTENT));
-        Stream.of(ConfigFile.values()).forEach(configFile -> placeFileWithContent(confDir, configFile.getFileName(), DEFAULT_FILE_CONTENT));
-    }
-
-    private void placeFileWithContent(File baseDir, String fileName, String content) {
+    private Path placeFileWithContent(String fileName, String content) {
+        Path filePath = Paths.get(tempDir.getAbsolutePath(), fileName);
         try {
-            write(Paths.get(baseDir.getAbsolutePath(), fileName), content.getBytes(UTF_8));
+            write(filePath, content.getBytes(UTF_8));
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to write file to temp directory", e);
         }
+        return filePath;
     }
 
     private C2Operation operation(String uploadUrl) {
@@ -223,14 +221,6 @@ public class DebugOperationHandlerTest {
             throw new UncheckedIOException("Failed to extract bundle", e);
         }
         return fileNamesWithContents;
-    }
-
-    private Map<String, String> expectedBundleForAllPossibleBundleFiles() {
-        Stream<DebugBundleFile> logFiles = Stream.of(LogFile.values());
-        Stream<DebugBundleFile> configFiles = Stream.of(ConfigFile.values());
-        return concat(logFiles, configFiles)
-            .map(DebugBundleFile::getFileName)
-            .collect(toMap(identity(), __ -> DEFAULT_FILE_CONTENT));
     }
 
     private boolean mapEqual(Map<String, String> first, Map<String, String> second) {

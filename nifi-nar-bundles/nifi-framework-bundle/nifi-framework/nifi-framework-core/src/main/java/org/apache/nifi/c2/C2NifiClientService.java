@@ -17,9 +17,9 @@
 
 package org.apache.nifi.c2;
 
-import static java.lang.System.getProperty;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.collectingAndThen;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
 import java.io.File;
@@ -27,11 +27,13 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -69,18 +71,24 @@ import org.slf4j.LoggerFactory;
 
 public class C2NifiClientService {
 
-    public static final Set<String> SENSITIVE_PROPERTY_KEYWORDS = Stream.of("key:", "algorithm:", "secret.key", "sensitive.props.key", "sensitive.props.algorithm", "secret", "password", "passwd")
-        .map(String::toLowerCase)
-        .collect(collectingAndThen(toSet(), Collections::unmodifiableSet));
+    public static final Set<String> SENSITIVE_PROPERTY_KEYWORDS =
+        Stream.of("key:", "algorithm:", "secret.key", "sensitive.props.key", "sensitive.props.algorithm", "secret", "password", "passwd")
+            .map(String::toLowerCase)
+            .collect(collectingAndThen(toSet(), Collections::unmodifiableSet));
     public static final Predicate<String> EXCLUDE_SENSITIVE_TEXT = text ->
         ofNullable(text)
             .map(String::toLowerCase)
             .map(t -> SENSITIVE_PROPERTY_KEYWORDS.stream().noneMatch(keyword -> t.contains(keyword)))
             .orElse(true);
 
+    private static final String MINIFI_CONFIG_FILE_PATH = "nifi.minifi.config.file";
+    private static final String MINIFI_BOOTSTRAP_FILE_PATH = "nifi.minifi.bootstrap.file";
+    private static final String MINIFI_LOG_DIRECTORY = "nifi.minifi.log.directory";
+    private static final String MINIFI_APP_LOG_FILE = "nifi.minifi.app.log.file";
+    private static final String MINIFI_BOOTSTRAP_LOG_FILE = "nifi.minifi.bootstrap.log.file";
+
     private static final Logger logger = LoggerFactory.getLogger(C2NifiClientService.class);
-    private static final String LOG_DIR_KEY = "org.apache.nifi.minifi.bootstrap.config.log.dir";
-    private static final String DEFAULT_LOG_DIR = "./logs";
+
     private static final String DEFAULT_CONF_DIR = "./conf";
     private static final String TARGET_CONFIG_FILE = "/config-new.yml";
     private static final String ROOT_GROUP_ID = "root";
@@ -117,7 +125,7 @@ public class C2NifiClientService {
             new C2OperationService(Arrays.asList(
                 new UpdateConfigurationOperationHandler(client, flowIdHolder, this::updateFlowContent),
                 new DescribeManifestOperationHandler(heartbeatFactory, this::generateRuntimeInfo),
-                DebugOperationHandler.create(client, clientConfig.getConfDirectory(), getProperty(LOG_DIR_KEY, DEFAULT_LOG_DIR), EXCLUDE_SENSITIVE_TEXT)
+                DebugOperationHandler.create(client, debugBundleFiles(niFiProperties), EXCLUDE_SENSITIVE_TEXT)
             ))
         );
     }
@@ -234,5 +242,16 @@ public class C2NifiClientService {
             .map(File::getParent)
             .map(parentDir -> new File(parentDir + TARGET_CONFIG_FILE))
             .orElse(new File(DEFAULT_CONF_DIR + TARGET_CONFIG_FILE));
+    }
+
+    private List<Path> debugBundleFiles(NiFiProperties properties) {
+        return Stream.of(
+                Paths.get(properties.getProperty(MINIFI_CONFIG_FILE_PATH)),
+                Paths.get(properties.getProperty(MINIFI_BOOTSTRAP_FILE_PATH)),
+                Paths.get(properties.getProperty(MINIFI_LOG_DIRECTORY), properties.getProperty(MINIFI_APP_LOG_FILE)),
+                Paths.get(properties.getProperty(MINIFI_LOG_DIRECTORY), properties.getProperty(MINIFI_BOOTSTRAP_LOG_FILE)))
+            .filter(Files::exists)
+            .filter(Files::isRegularFile)
+            .collect(toList());
     }
 }

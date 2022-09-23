@@ -24,11 +24,8 @@ import static java.nio.file.Files.lines;
 import static java.nio.file.Files.write;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Stream.concat;
 import static org.apache.commons.compress.utils.IOUtils.closeQuietly;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
-import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
 import static org.apache.nifi.c2.protocol.api.OperandType.DEBUG;
@@ -37,13 +34,11 @@ import static org.apache.nifi.c2.protocol.api.OperationType.TRANSFER;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -71,32 +66,27 @@ public class DebugOperationHandler implements C2OperationHandler {
     static final String NEW_LINE = "\n";
 
     private final C2Client c2Client;
-    private final String configDir;
-    private final String logDir;
+    private final List<Path> bundleFilePaths;
     private final Predicate<String> contentFilter;
 
-    private DebugOperationHandler(C2Client c2Client, String configDir, String logDir, Predicate<String> contentFilter) {
+    private DebugOperationHandler(C2Client c2Client, List<Path> bundleFilePaths, Predicate<String> contentFilter) {
         this.c2Client = c2Client;
-        this.configDir = configDir;
-        this.logDir = logDir;
+        this.bundleFilePaths = bundleFilePaths;
         this.contentFilter = contentFilter;
     }
 
-    public static DebugOperationHandler create(C2Client c2Client, String configDir, String logDir, Predicate<String> contentFilter) {
+    public static DebugOperationHandler create(C2Client c2Client, List<Path> bundleFilePaths, Predicate<String> contentFilter) {
         if (c2Client == null) {
             throw new IllegalArgumentException("C2Client should not be null");
         }
-        if (isBlank(configDir)) {
-            throw new IllegalArgumentException("configDir should not be not null or empty");
-        }
-        if (isBlank(logDir)) {
-            throw new IllegalArgumentException("logDir should not be not null or empty");
+        if (bundleFilePaths == null || bundleFilePaths.isEmpty()) {
+            throw new IllegalArgumentException("bundleFilePaths should not be not null or empty");
         }
         if (contentFilter == null) {
             throw new IllegalArgumentException("Exclude sensitive filter should not be null");
         }
 
-        return new DebugOperationHandler(c2Client, configDir, logDir, contentFilter);
+        return new DebugOperationHandler(c2Client, bundleFilePaths, contentFilter);
     }
 
     @Override
@@ -111,18 +101,11 @@ public class DebugOperationHandler implements C2OperationHandler {
 
     @Override
     public C2OperationAck handle(C2Operation operation) {
-        Function<C2OperationState, C2OperationAck> operationAckCreate = operationAck(operation);
-
         String debugCallbackUrl = operation.getArgs().get(TARGET_ARG);
         if (debugCallbackUrl == null) {
             LOG.error("Callback URL was not found in C2 request.");
-            return operationAckCreate.apply(operationState(NOT_APPLIED, C2_CALLBACK_URL_NOT_FOUND));
+            return operationAck(operation, operationState(NOT_APPLIED, C2_CALLBACK_URL_NOT_FOUND));
         }
-
-        List<Path> bundleFilePaths = concat(
-            debugBundlePaths(logDir, LogFile.values()),
-            debugBundlePaths(configDir, ConfigFile.values()))
-            .collect(toList());
 
         List<Path> contentFilteredFilePaths = null;
         C2OperationState operationState;
@@ -140,17 +123,15 @@ public class DebugOperationHandler implements C2OperationHandler {
             ofNullable(contentFilteredFilePaths).ifPresent(this::cleanup);
         }
 
-        LOG.debug("Returning operation ack with state={} and details={}", operationState.getState(), operationState.getDetails());
-        return operationAckCreate.apply(operationState);
+        LOG.debug("Returning operation ack with state {} and details {}", operationState.getState(), operationState.getDetails());
+        return operationAck(operation, operationState);
     }
 
-    private Function<C2OperationState, C2OperationAck> operationAck(C2Operation operation) {
-        return state -> {
-            C2OperationAck operationAck = new C2OperationAck();
-            operationAck.setOperationId(ofNullable(operation.getIdentifier()).orElse(EMPTY));
-            operationAck.setOperationState(state);
-            return operationAck;
-        };
+    private C2OperationAck operationAck(C2Operation operation, C2OperationState state) {
+        C2OperationAck operationAck = new C2OperationAck();
+        operationAck.setOperationId(ofNullable(operation.getIdentifier()).orElse(EMPTY));
+        operationAck.setOperationState(state);
+        return operationAck;
     }
 
     private C2OperationState operationState(OperationState operationState, String details) {
@@ -160,21 +141,14 @@ public class DebugOperationHandler implements C2OperationHandler {
         return state;
     }
 
-    private Stream<Path> debugBundlePaths(String baseDir, DebugBundleFile... debugBundleFiles) {
-        return Stream.of(debugBundleFiles)
-            .map(bundleFile -> Paths.get(baseDir, bundleFile.getFileName()))
-            .filter(Files::exists)
-            .filter(Files::isRegularFile);
-    }
-
     private List<Path> filterContent(List<Path> bundleFilePaths) {
         List<Path> contentFilteredFilePaths = new ArrayList<>();
         for (Path path : bundleFilePaths) {
             String fileName = path.getFileName().toString();
-            try {
+            try (Stream<String> fileStream = lines(path)) {
                 Path tempDirectory = createTempDirectory(null);
                 Path tempFile = Paths.get(tempDirectory.toAbsolutePath().toString(), fileName);
-                write(tempFile, (Iterable<String>) lines(path).filter(contentFilter)::iterator);
+                write(tempFile, (Iterable<String>) fileStream.filter(contentFilter)::iterator);
                 contentFilteredFilePaths.add(tempFile);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
@@ -183,75 +157,40 @@ public class DebugOperationHandler implements C2OperationHandler {
         return contentFilteredFilePaths;
     }
 
-    public Optional<byte[]> createDebugBundle(List<Path> filePaths) {
-        if (filePaths.size() == 0) {
-            return empty();
-        }
-        ByteArrayOutputStream byteOutputStream = null;
-        try {
-            byteOutputStream = new ByteArrayOutputStream();
-            try (GzipCompressorOutputStream gzipCompressorOutputStream = new GzipCompressorOutputStream(byteOutputStream);
-                 TarArchiveOutputStream tarOutputStream = new TarArchiveOutputStream(gzipCompressorOutputStream)) {
-                for (Path filePath : filePaths) {
-                    TarArchiveEntry tarArchiveEntry = new TarArchiveEntry(filePath.toFile(), filePath.getFileName().toString());
-                    tarOutputStream.putArchiveEntry(tarArchiveEntry);
-                    copy(filePath, tarOutputStream);
-                    tarOutputStream.closeArchiveEntry();
-                }
-                tarOutputStream.finish();
+    private Optional<byte[]> createDebugBundle(List<Path> filePaths) {
+        ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream();
+        try (GzipCompressorOutputStream gzipCompressorOutputStream = new GzipCompressorOutputStream(byteOutputStream);
+             TarArchiveOutputStream tarOutputStream = new TarArchiveOutputStream(gzipCompressorOutputStream)) {
+            for (Path filePath : filePaths) {
+                TarArchiveEntry tarArchiveEntry = new TarArchiveEntry(filePath.toFile(), filePath.getFileName().toString());
+                tarOutputStream.putArchiveEntry(tarArchiveEntry);
+                copy(filePath, tarOutputStream);
+                tarOutputStream.closeArchiveEntry();
             }
+            tarOutputStream.finish();
         } catch (Exception e) {
             LOG.error("Error during create compressed bundle", e);
-            closeQuietly(byteOutputStream);
-            byteOutputStream = null;
+            return empty();
         } finally {
             closeQuietly(byteOutputStream);
         }
-        return ofNullable(byteOutputStream).map(ByteArrayOutputStream::toByteArray);
+        return Optional.of(byteOutputStream).map(ByteArrayOutputStream::toByteArray);
     }
 
     private void cleanup(List<Path> paths) {
-        paths.forEach(path -> {
-            try {
-                deleteIfExists(path);
-            } catch (IOException e) {
-                LOG.warn("Unable to delete temporary file", e);
-            }
-        });
-    }
-
-    interface DebugBundleFile {
-        String getFileName();
-    }
-
-    enum LogFile implements DebugBundleFile {
-        APP_LOG_FILE("minifi-app.log"),
-        BOOTSTRAP_LOG_FILE("minifi-bootstrap.log");
-
-        private final String fileName;
-
-        LogFile(String fileName) {
-            this.fileName = fileName;
-        }
-
-        public String getFileName() {
-            return fileName;
+        Optional<Path> firstPath = paths.stream().findFirst();
+        if (firstPath.isPresent()) {
+            Path baseDirectory = firstPath.get().getParent();
+            paths.forEach(path -> deleteQuietly(path, "Unable to delete temporary file"));
+            deleteQuietly(baseDirectory, "Unable to delete temporary directory");
         }
     }
 
-    enum ConfigFile implements DebugBundleFile {
-        CONFIG_YML_FILE("config.yml"),
-        CONFIG_NEW_YML_FILE("config-new.yml"),
-        BOOTSTRAP_CONF_FILE("bootstrap.conf");
-
-        private final String fileName;
-
-        ConfigFile(String fileName) {
-            this.fileName = fileName;
-        }
-
-        public String getFileName() {
-            return fileName;
+    private static void deleteQuietly(Path baseDirectory, String errorMessage) {
+        try {
+            deleteIfExists(baseDirectory);
+        } catch (IOException e) {
+            LOG.warn(errorMessage, e);
         }
     }
 }
