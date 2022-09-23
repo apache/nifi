@@ -1890,15 +1890,6 @@
     };
 
     var initRegistriesTable = function () {
-
-        var locationFormatter = function (row, cell, value, columnDef, dataContext) {
-            if (!dataContext.permissions.canRead) {
-                return '<span class="blank">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
-            }
-
-            return nfCommon.escapeHtml(dataContext.component.uri);
-        };
-
         var descriptionFormatter = function (row, cell, value, columnDef, dataContext) {
             if (!dataContext.permissions.canRead) {
                 return '<span class="blank">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
@@ -1962,14 +1953,6 @@
                 name: 'Name',
                 field: 'name',
                 formatter: nameFormatter,
-                sortable: true,
-                resizable: true
-            },
-            {
-                id: 'uri',
-                name: 'Location',
-                field: 'uri',
-                formatter: locationFormatter,
                 sortable: true,
                 resizable: true
             },
@@ -2064,24 +2047,7 @@
                 } else if (target.hasClass('remove-registry')) {
                     promptToRemoveRegistry(registryEntity);
                 }
-            } else if (registriesGrid.getColumns()[args.cell].id === 'moreDetails') {
-                // if (target.hasClass('view-reporting-task')) {
-                //     nfReportingTask.showDetails(reportingTaskEntity);
-                // } else if (target.hasClass('reporting-task-usage')) {
-                //     // close the settings dialog
-                //     $('#shell-close-button').click();
-                //
-                //     // open the documentation for this reporting task
-                //     nfShell.showPage('../nifi-docs/documentation?' + $.param({
-                //         select: reportingTaskEntity.component.type,
-                //         group: reportingTaskEntity.component.bundle.group,
-                //         artifact: reportingTaskEntity.component.bundle.artifact,
-                //         version: reportingTaskEntity.component.bundle.version
-                //     })).done(function () {
-                //         nfSettings.showSettings();
-                //     });
-                // }
-            }
+            } else if (registriesGrid.getColumns()[args.cell].id === 'moreDetails') { }
         });
 
         // wire up the dataview to the grid
