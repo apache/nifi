@@ -254,6 +254,9 @@
                     updateReferencingSchedulableComponentState(referencingComponentState, reference);
                 }
             } else if (reference.referenceType === 'ParameterProvider') {
+                // reload
+                nfParameterProvider.reload(reference.id);
+
                 // update the validation errors of this parameter provider
                 var referencingComponentState = $('div.' + reference.id + '-state');
                 if (referencingComponentState.length) {

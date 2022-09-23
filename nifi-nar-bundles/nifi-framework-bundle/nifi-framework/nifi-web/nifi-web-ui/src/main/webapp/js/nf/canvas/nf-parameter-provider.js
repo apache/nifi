@@ -665,6 +665,10 @@
             var initialFetchedGroups = getFetchedParameterGroups(response);
 
             // update visibility
+            $('#fetch-parameters-permissions-parameter-contexts-message').addClass('hidden');
+            $('#fetch-parameters-permissions-affected-components-message').addClass('hidden');
+            $('#fetch-parameters-missing-context-name-message').addClass('hidden');
+
             $('#fetch-parameters-usage-container').show();
             $('#parameters-container').show();
 
@@ -739,6 +743,8 @@
      * @param {object} initialFetchedGroups initialFetchedGroups
      */
     var disableApplyButton = function (updatedParameterProviderEntity, initialFetchedGroups) {
+        var disable = true;
+
         var canReadWrite = function (component) {
             return component.permissions.canRead && component.permissions.canWrite;
         }
@@ -792,9 +798,19 @@
         }
 
         if (!_.isEmpty(parameterContextNames)) {
-            return !parameterContextNames.every(isEmptyName);
+            var notMissingNewParamContextNames = parameterContextNames.every(paramContextNameNotEmpty);
 
+            if (notMissingNewParamContextNames) {
+                disable = false;
+                $('#fetch-parameters-missing-context-name-message').addClass('hidden');
+            } else {
+                // missing a parameter context name
+                // no need to continue checking
+                $('#fetch-parameters-missing-context-name-message').removeClass('hidden');
+                return true;
+            }
         }
+        $('#fetch-parameters-missing-context-name-message').addClass('hidden');
 
         // parameter sensitivities
         for (var k = 0; k < initialFetchedGroups.length; k++) {
@@ -818,7 +834,7 @@
             }
         }
 
-        return true;
+        return disable && _.isEmpty(parameterContextNames);
     };
 
     /**

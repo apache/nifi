@@ -195,6 +195,9 @@
     <div id="fetch-parameters-permissions-affected-components-message" class="ellipsis hidden">
         You do not have permissions to modify one or more affected components.
     </div>
+    <div id="fetch-parameters-missing-context-name-message" class="ellipsis fetch-parameters-dialog-message hidden">
+        Missing parameter context name.
+    </div>
     <div class="fetch-parameters-canceling hidden unset">
         Canceling...
     </div>
