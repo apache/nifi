@@ -25,20 +25,18 @@ public class ShopifyResource implements DescribedValue, Resource {
     private final String displayName;
     private final String description;
     private final IncrementalLoadingParameter incrementalLoadingParameter;
-    private final boolean isPaginationSupported;
 
     public ShopifyResource(final String value, final String displayName, final String description,
-                           final IncrementalLoadingParameter incrementalLoadingParameter, final boolean isPaginationSupported) {
+                           final IncrementalLoadingParameter incrementalLoadingParameter) {
         this.value = value;
         this.displayName = displayName;
         this.description = description;
         this.incrementalLoadingParameter = incrementalLoadingParameter;
-        this.isPaginationSupported = isPaginationSupported;
     }
 
     public static ShopifyResource newInstance(final String value, final String displayName, final String description,
-            final IncrementalLoadingParameter incrementalLoadingParameter, final boolean isPaginationSupported) {
-        return new ShopifyResource(value, displayName, description, incrementalLoadingParameter, isPaginationSupported);
+            final IncrementalLoadingParameter incrementalLoadingParameter) {
+        return new ShopifyResource(value, displayName, description, incrementalLoadingParameter);
     }
 
     @Override

@@ -25,56 +25,56 @@ public enum ResourceType implements DescribedValue {
     CUSTOMERS(
             "Customers",
             "Query a Customer resource",
-            "Customer Categories",
+            "Customer Category",
             "Customer resource to query",
             ResourceDirectory.CUSTOMER_RESOURCES
     ),
     DISCOUNTS(
             "Discounts",
             "Query a Discount resource",
-            "Discount Categories",
+            "Discount Category",
             "Discount resource to query",
             ResourceDirectory.DISCOUNT_RESOURCES
     ),
     INVENTORY(
             "Inventory",
             "Query an Inventory resource",
-            "Inventory Categories",
+            "Inventory Category",
             "Inventory resource to query",
             ResourceDirectory.INVENTORY_RESOURCES
     ),
     ONLINE_STORE(
             "Online Store",
             "Query an Online Store resource",
-            "Online Store Categories",
+            "Online Store Category",
             "Online Store resource to query",
             ResourceDirectory.ONLINE_STORE_RESOURCES
     ),
     ORDERS(
             "Orders",
             "Query an Order resource",
-            "Order Categories",
+            "Order Category",
             "Order resource to query",
             ResourceDirectory.ORDER_RESOURCES
     ),
     PRODUCT(
             "Products",
             "Query a Product resource",
-            "Product Categories",
+            "Product Category",
             "Product resource to query",
             ResourceDirectory.PRODUCT_RESOURCES
     ),
     SALES_CHANNELS(
             "Sales Channels",
             "Query a Sales Channel resource",
-            "Sales Channel Categories",
+            "Sales Channel Category",
             "Sales Channel resource to query",
             ResourceDirectory.SALES_CHANNEL_RESOURCES
     ),
     STORE_PROPERTIES(
             "Store Properties",
             "Query a Store Property resource",
-            "Store Property Categories",
+            "Store Property Category",
             "Store Property resource to query",
             ResourceDirectory.STORE_PROPERTY_RESOURCES
     );

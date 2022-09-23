@@ -19,7 +19,5 @@ package org.apache.nifi.processors.shopify.model;
 public enum IncrementalLoadingParameter {
     CREATED_AT,
     UPDATED_AT,
-    PUBLISHED_AT,
-    PROCESSED_AT,
     NONE
 }

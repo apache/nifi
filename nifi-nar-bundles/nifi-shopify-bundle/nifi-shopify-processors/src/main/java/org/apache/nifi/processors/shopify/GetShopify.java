@@ -76,8 +76,8 @@ import java.util.stream.Collectors;
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"shopify"})
 @Stateful(scopes = Scope.CLUSTER, description =
-        "For a few resources the processors support incremental loading. The list of the resources with the supported parameters" +
-                " can be found in additional details.")
+        "For a few resources the processor supports incremental loading. The list of the resources with the supported parameters" +
+                " can be found in the additional details.")
 @CapabilityDescription("Retrieves object from a custom Shopify store. The processor yield time must be set to the account's rate limit accordingly.")
 public class GetShopify extends AbstractProcessor {
 
@@ -149,10 +149,12 @@ public class GetShopify extends AbstractProcessor {
             .dependsOn(IS_INCREMENTAL, "true")
             .build();
 
-    static final PropertyDescriptor INITIAL_INCREMENTAL_FILTER = new PropertyDescriptor.Builder()
-            .name("initial-incremental-filter")
+    static final PropertyDescriptor INITIAL_INCREMENTAL_START_TIME = new PropertyDescriptor.Builder()
+            .name("initial-incremental-start-time")
             .displayName("Initial Incremental Start Time")
-            .description("This property specifies the start time as Epoch Time that the processor applies when running the first request.")
+            .description("This property specifies the start time when running the first request." +
+                    " Represents an ISO 8601-encoded date and time string. For example, 3:50 pm on September 7, 2019" +
+                    " in the time zone of UTC (Coordinated Universal Time) is represented as \"2019-09-07T15:50:00Z\".")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
@@ -203,7 +205,7 @@ public class GetShopify extends AbstractProcessor {
                 RESULT_LIMIT,
                 IS_INCREMENTAL,
                 INCREMENTAL_DELAY,
-                INITIAL_INCREMENTAL_FILTER,
+                INITIAL_INCREMENTAL_START_TIME,
                 WEB_CLIENT_PROVIDER)
         );
         return Collections.unmodifiableList(propertyDescriptors);
@@ -269,7 +271,7 @@ public class GetShopify extends AbstractProcessor {
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final StateMap state = getState(context);
         final boolean isIncremental = context.getProperty(IS_INCREMENTAL).asBoolean();
-        final String initialStartTime = context.getProperty(INITIAL_INCREMENTAL_FILTER).getValue();
+        final String initialStartTime = context.getProperty(INITIAL_INCREMENTAL_START_TIME).getValue();
         final Long incrDelayMs = context.getProperty(INCREMENTAL_DELAY).asTimePeriod(TimeUnit.MILLISECONDS);
 
         String lastExecutionTime = state.get(resourceName);
@@ -302,7 +304,7 @@ public class GetShopify extends AbstractProcessor {
                         getLogger().debug("Empty response when requested Shopify resource: [{}]", resourceName);
                         session.remove(flowFile);
                     }
-                } else if (response.statusCode() >= 400) {
+                } else if (response.statusCode() < 200 || response.statusCode() >= 300) {
                     if (response.statusCode() == TOO_MANY_REQUESTS) {
                         context.yield();
                         throw new ProcessException(String.format(
