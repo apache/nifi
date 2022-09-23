@@ -173,6 +173,16 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     }
 
     @Override
+    public String getSupportedStorageLocation() throws FlowRegistryException, IOException {
+        return execute(() -> client.get().getComponent().getSupportedStorageLocation(getConfigurationContext()));
+    }
+
+    @Override
+    public boolean isStorageLocationApplicable(final String location) throws FlowRegistryException, IOException {
+        return execute(() -> client.get().getComponent().isStorageLocationApplicable(getConfigurationContext(), location));
+    }
+
+    @Override
     public Set<FlowRegistryBucket> getBuckets(final FlowRegistryClientUserContext context) throws FlowRegistryException, IOException {
         return execute(() -> client.get().getComponent().getBuckets(getConfigurationContext(context)));
     }
@@ -265,6 +275,10 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         }
     }
 
+    private FlowRegistryClientConfigurationContext getConfigurationContext() {
+        return new StandardFlowRegistryClientConfigurationContext(null, getRawPropertyValues(), this, serviceProvider);
+    }
+
     private FlowRegistryClientConfigurationContext getConfigurationContext(FlowRegistryClientUserContext clientContext) {
         final String userIdentity = clientContext.getNiFiUserIdentity().orElse(null);
         return new StandardFlowRegistryClientConfigurationContext(userIdentity, getRawPropertyValues(), this, serviceProvider);
@@ -282,13 +296,11 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         final VersionedFlowCoordinates coordinates = group.getVersionedFlowCoordinates();
 
         if (coordinates != null) {
-            final String registryId = coordinates.getRegistryId();
+            final String storageLocation = coordinates.getStorageLocation();
             final String bucketId = coordinates.getBucketId();
             final String flowId = coordinates.getFlowId();
             final int version = coordinates.getVersion();
-
-            final FlowRegistryClientNode flowRegistry = flowManager.getFlowRegistryClient(registryId);
-            final RegisteredFlowSnapshot snapshot = flowRegistry.getFlowContents(context, bucketId, flowId, version, true);
+            final RegisteredFlowSnapshot snapshot =  getRegistryForInternalFlow(storageLocation).getFlowContents(context, bucketId, flowId, version, true);
             final VersionedProcessGroup contents = snapshot.getFlowContents();
 
             group.setComments(contents.getComments());
@@ -314,6 +326,16 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         for (final VersionedProcessGroup child : group.getProcessGroups()) {
             populateVersionedContentsRecursively(context, child);
         }
+    }
+
+    private FlowRegistryClientNode getRegistryForInternalFlow(final String storageLocation) throws FlowRegistryException, IOException {
+        for (FlowRegistryClientNode registryClientNode : flowManager.getAllFlowRegistryClients()) {
+            if (registryClientNode.isStorageLocationApplicable(storageLocation)) {
+                return registryClientNode;
+            }
+        }
+
+        throw new FlowRegistryException(String.format("No applicable registry found for storage location %s", storageLocation));
     }
 
     private RegisteredFlowSnapshot createRegisteredFlowSnapshot(

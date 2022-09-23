@@ -37,6 +37,16 @@ public class InMemoryFlowRegistry extends AbstractFlowRegistryClient implements 
     private final Map<FlowCoordinates, List<VersionedExternalFlow>> flowSnapshots = new ConcurrentHashMap<>();
 
     @Override
+    public String getSupportedStorageLocation(final FlowRegistryClientConfigurationContext context) {
+        return null;
+    }
+
+    @Override
+    public boolean isStorageLocationApplicable(final FlowRegistryClientConfigurationContext context, final String location) {
+        return false;
+    }
+
+    @Override
     public Set<FlowRegistryBucket> getBuckets(FlowRegistryClientConfigurationContext context) {
         throw new UnsupportedOperationException(USER_SPECIFIC_ACTIONS_NOT_SUPPORTED);
     }

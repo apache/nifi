@@ -66,26 +66,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     private volatile NiFiRegistryClient registryClient;
 
     private synchronized NiFiRegistryClient getRegistryClient(final FlowRegistryClientConfigurationContext context) {
-        final String configuredUrl = context.getProperty(PROPERTY_URL).evaluateAttributeExpressions().getValue();
-
-        final URI uri;
-
-        try {
-            final URI fullUri = URI.create(configuredUrl);
-            final int port = fullUri.getPort();
-            final String portSuffix = port < 0 ? "" : ":" + port;
-            final String uriString = fullUri.getScheme() + "://" + fullUri.getHost() + portSuffix;
-            uri = URI.create(uriString);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("The given Registry URL is not valid: " + configuredUrl);
-        }
-
-        final String uriScheme = uri.getScheme();
-        if (uriScheme == null) {
-            throw new IllegalArgumentException("The given Registry URL is not valid: " + configuredUrl);
-        }
-
-        final String proposedUrl = uri.toString();
+        final String proposedUrl = getProposedUri(context);
 
         if (!proposedUrl.equals(registryUrl)) {
             registryUrl = proposedUrl;
@@ -107,6 +88,30 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
                 .build();
 
         return registryClient;
+    }
+
+    private String getProposedUri(final FlowRegistryClientConfigurationContext context) {
+        final String configuredUrl = context.getProperty(PROPERTY_URL).evaluateAttributeExpressions().getValue();
+
+        final URI uri;
+
+        try {
+            final URI fullUri = URI.create(configuredUrl);
+            final int port = fullUri.getPort();
+            final String portSuffix = port < 0 ? "" : ":" + port;
+            final String uriString = fullUri.getScheme() + "://" + fullUri.getHost() + portSuffix;
+            uri = URI.create(uriString);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("The given Registry URL is not valid: " + configuredUrl);
+        }
+
+        final String uriScheme = uri.getScheme();
+
+        if (uriScheme == null) {
+            throw new IllegalArgumentException("The given Registry URL is not valid: " + configuredUrl);
+        }
+
+        return uri.toString();
     }
 
     @Override
@@ -154,6 +159,16 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
         } else {
             return getSystemSslContext().orElse(null);
         }
+    }
+
+    @Override
+    public String getSupportedStorageLocation(final FlowRegistryClientConfigurationContext context) {
+        return getProposedUri(context);
+    }
+
+    @Override
+    public boolean isStorageLocationApplicable(final FlowRegistryClientConfigurationContext context, final String location) {
+        return getProposedUri(context).equals(location);
     }
 
     @Override

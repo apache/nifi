@@ -23,6 +23,7 @@ import io.swagger.annotations.ApiModelProperty;
 
 public class VersionedFlowCoordinates {
     private String registryId;
+    private String storageLocation;
     private String registryUrl;
     private String bucketId;
     private String flowId;
@@ -36,6 +37,15 @@ public class VersionedFlowCoordinates {
 
     public void setRegistryId(String registryId) {
         this.registryId = registryId;
+    }
+
+    @ApiModelProperty("The location of the Flow Registry that stores the flow")
+    public String getStorageLocation() {
+        return storageLocation;
+    }
+
+    public void setStorageLocation(String storageLocation) {
+        this.storageLocation = storageLocation;
     }
 
     @Deprecated

@@ -57,18 +57,163 @@ import java.util.Set;
 public interface FlowRegistryClient extends ConfigurableComponent {
     void initialize(FlowRegistryClientInitializationContext context);
 
+    /**
+     * Returns with a string representation of the storage location the registry supports. The format of the string depends on the actual registry implementation.
+     *
+     * @param context Configuration context.
+     *
+     * @return The supported storage location.
+     */
+    String getSupportedStorageLocation(FlowRegistryClientConfigurationContext context);
+
+    /**
+     * Decides if the given location is applicable by the repository instance. The format depends on the implementation and in most cases it is expected to
+     * be the same as the one returned by {@code getSupportedStorageLocation}
+     *
+     * @param context Configuration context.
+     * @param location The location to check.
+     *
+     * @return True in case of the given storage location is applicable, false otherwise.
+     */
+    boolean isStorageLocationApplicable(FlowRegistryClientConfigurationContext context, String location);
+
+    /**
+     * Gets the buckets for the specified user.
+     *
+     * @param context Configuration context.
+     *
+     * @return Buckets for this user.
+     *
+     * @throws FlowRegistryException If an issue happens during processing the request.
+     * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
+     */
     Set<FlowRegistryBucket> getBuckets(FlowRegistryClientConfigurationContext context) throws FlowRegistryException, IOException;
+
+    /**
+     * Gets the bucket with the given id.
+     *
+     * @param context Configuration context.
+     * @param bucketId The id of the bucket.
+     * @return The bucket with the given id.
+     *
+     * @throws NoSuchBucketException If there is no bucket in the Registry with the given id.
+     * @throws FlowRegistryException If an issue happens during processing the request.
+     * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
+     */
     FlowRegistryBucket getBucket(FlowRegistryClientConfigurationContext context, String bucketId) throws FlowRegistryException, IOException;
 
+    /**
+     * Registers the given RegisteredFlow into the the Flow Registry.
+     *
+     * @param context Configuration context.
+     * @param flow The RegisteredFlow to add to the Registry.
+     *
+     * @return The fully populated RegisteredFlow
+     *
+     * @throws FlowAlreadyExistsException If a Flow with the given identifier already exists in the registry.
+     * @throws FlowRegistryException If an issue happens during processing the request.
+     * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
+     */
     RegisteredFlow registerFlow(FlowRegistryClientConfigurationContext context, RegisteredFlow flow) throws FlowRegistryException, IOException;
+
+
+    /**
+     * Deletes the specified flow from the Flow Registry.
+     *
+     * @param context Configuration context.
+     * @param bucketId The id of the bucket.
+     * @param flowId The id of the flow.
+     *
+     * @return The deleted Flow.
+     *
+     * @throws FlowRegistryException If an issue happens during processing the request.
+     * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
+     */
     RegisteredFlow deregisterFlow(FlowRegistryClientConfigurationContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
 
+
+    /**
+     * Retrieves a flow by bucket id and Flow id.
+     *
+     * @param context Configuration context.
+     * @param bucketId The id of the bucket.
+     * @param flowId The id of the Flow.
+     *
+     * @return The Flow for the given bucket and Flow id's.
+     *
+     * @throws NoSuchFlowException If there is no Flow in the bucket with the given id.
+     * @throws FlowRegistryException If an issue happens during processing the request.
+     * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
+     */
     RegisteredFlow getFlow(FlowRegistryClientConfigurationContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
+
+    /**
+     * Retrieves the set of all Flows for the specified bucket.
+     *
+     * @param context Configuration context.
+     * @param bucketId The id of the bucket.
+     *
+     * @return The set of all Flows from the specified bucket.
+     *
+     * @throws FlowRegistryException If an issue happens during processing the request.
+     * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
+     */
     Set<RegisteredFlow> getFlows(FlowRegistryClientConfigurationContext context, String bucketId) throws FlowRegistryException, IOException;
 
+    /**
+     * Retrieves the contents of the flow with the given Bucket id, Flow id, and version, from the Registry.
+     *
+     * @param context Configuration context.
+     * @param bucketId The id of the bucket.
+     * @param flowId The id of the Flow.
+     * @param version The version to retrieve.
+     *
+     * @return The contents of the Flow from the Flow Registry.
+     *
+     * @throws FlowRegistryException If an issue happens during processing the request.
+     * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
+     */
     RegisteredFlowSnapshot getFlowContents(FlowRegistryClientConfigurationContext context, String bucketId, String flowId, int version) throws FlowRegistryException, IOException;
+
+    /**
+     * Adds the given snapshot to the Flow Registry for the given Flow.
+     *
+     * @param context Configuration context.
+     * @param flowSnapshot The flow snapshot to register.
+     *
+     * @return The flow snapshot.
+     *
+     * @throws FlowRegistryException If an issue happens during processing the request.
+     * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
+     */
     RegisteredFlowSnapshot registerFlowSnapshot(FlowRegistryClientConfigurationContext context, RegisteredFlowSnapshot flowSnapshot) throws FlowRegistryException, IOException;
 
+
+    /**
+     * Retrieves the set of all versions of the specified flow.
+     *
+     * @param context Configuration context.
+     * @param bucketId The id of the bucket.
+     * @param flowId The id of the flow.
+     *
+     * @return The set of all versions of the specified flow.
+     *
+     * @throws FlowRegistryException If an issue happens during processing the request.
+     * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
+     */
     Set<RegisteredFlowSnapshotMetadata> getFlowVersions(FlowRegistryClientConfigurationContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
+
+    /**
+     * Returns the latest (most recent) version of the Flow in the Flow Registry for the given bucket and Flow.
+     *
+     * @param context Configuration context.
+     * @param bucketId The id of the bucket.
+     * @param flowId The id of the flow.
+     *
+     * @return The latest version of the Flow.
+     *
+     * @throws FlowRegistryException If an issue happens during processing the request.
+     * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
+     */
     int getLatestVersion(FlowRegistryClientConfigurationContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
 }

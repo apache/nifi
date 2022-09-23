@@ -43,6 +43,16 @@ public class GhostFlowRegistryClient implements FlowRegistryClient {
     }
 
     @Override
+    public String getSupportedStorageLocation(final FlowRegistryClientConfigurationContext context) {
+        return null;
+    }
+
+    @Override
+    public boolean isStorageLocationApplicable(final FlowRegistryClientConfigurationContext context, final String location) {
+        return false;
+    }
+
+    @Override
     public Collection<ValidationResult> validate(final ValidationContext context) {
         return Collections.singleton(new ValidationResult.Builder()
                 .input("Any Property")

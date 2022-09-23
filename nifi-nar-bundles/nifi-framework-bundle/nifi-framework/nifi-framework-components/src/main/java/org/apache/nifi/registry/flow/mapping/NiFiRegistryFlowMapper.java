@@ -79,10 +79,12 @@ import org.apache.nifi.parameter.ParameterReferencedControllerServiceData;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
+import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -164,6 +166,7 @@ public class NiFiRegistryFlowMapper {
 
                 coordinates.setRegistryId(registryId);
                 coordinates.setRegistryUrl(getRegistryUrl(registry));
+                coordinates.setStorageLocation(getStorageLocation(registry));
                 coordinates.setBucketId(versionControlInfo.getBucketIdentifier());
                 coordinates.setFlowId(versionControlInfo.getFlowIdentifier());
                 coordinates.setVersion(versionControlInfo.getVersion());
@@ -184,6 +187,16 @@ public class NiFiRegistryFlowMapper {
             }
             return true;
         });
+    }
+
+    private String getStorageLocation(final FlowRegistryClientNode registry) {
+        final String supportedStorageLocation;
+        try {
+            supportedStorageLocation = registry.getSupportedStorageLocation();
+        } catch (final FlowRegistryException | IOException e) {
+            throw new IllegalStateException(String.format("Could not determine supported storage location for registry $s", registry.getIdentifier()), e);
+        }
+        return supportedStorageLocation;
     }
 
     // This is specific for the {@code NifiRegistryFlowRegistryClient}, purely for backward compatibility
