@@ -103,17 +103,13 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
     }
 
     @OnScheduled
-    public void onScheduled() {
-        clientFactory = new DataLakeServiceClientFactory(getLogger());
+    public void onScheduled(final ProcessContext context) {
+        clientFactory = new DataLakeServiceClientFactory(getLogger(), AzureStorageUtils.getProxyOptions(context));
     }
 
     @OnStopped
     public void onStopped() {
         clientFactory = null;
-    }
-
-    public DataLakeServiceClientFactory getStorageClientFactory() {
-        return clientFactory;
     }
 
     public DataLakeServiceClient getStorageClient(PropertyContext context, FlowFile flowFile) {
@@ -123,7 +119,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
 
         final ADLSCredentialsDetails credentialsDetails = credentialsService.getCredentialsDetails(attributes);
 
-        final DataLakeServiceClient storageClient = getStorageClientFactory().getStorageClient(credentialsDetails, AzureStorageUtils.getProxyOptions(context));
+        final DataLakeServiceClient storageClient = clientFactory.getStorageClient(credentialsDetails);
 
         return storageClient;
     }

@@ -40,32 +40,33 @@ public class DataLakeServiceClientFactory {
     private static final long STORAGE_CLIENT_CACHE_SIZE = 10;
 
     private final ComponentLog logger;
+    private final ProxyOptions proxyOptions;
 
     private final Cache<ADLSCredentialsDetails, DataLakeServiceClient> clientCache;
 
-    public DataLakeServiceClientFactory(ComponentLog logger) {
+    public DataLakeServiceClientFactory(ComponentLog logger, ProxyOptions proxyOptions) {
         this.logger = logger;
+        this.proxyOptions = proxyOptions;
         this.clientCache = createCache();
     }
 
     private Cache<ADLSCredentialsDetails, DataLakeServiceClient> createCache() {
+        // Beware! By default, Caffeine does not perform cleanup and evict values
+        // "automatically" or instantly after a value expires. Because of that it
+        // can happen that there are more elements in the cache than the maximum size.
+        // See: https://github.com/ben-manes/caffeine/wiki/Cleanup
         return Caffeine.newBuilder()
                 .maximumSize(STORAGE_CLIENT_CACHE_SIZE)
                 .build();
-    }
-
-    public Cache<ADLSCredentialsDetails, DataLakeServiceClient> getCache() {
-        return clientCache;
     }
 
     /**
      * Retrieves a {@link DataLakeServiceClient}
      *
      * @param credentialsDetails used for caching because it can contain properties that are results of an expression
-     * @param proxyOptions not used for caching, because proxy parameters are set in the ProxyConfiguration service
      * @return DataLakeServiceClient
      */
-    public DataLakeServiceClient getStorageClient(ADLSCredentialsDetails credentialsDetails, ProxyOptions proxyOptions) {
+    public DataLakeServiceClient getStorageClient(ADLSCredentialsDetails credentialsDetails) {
         return clientCache.get(credentialsDetails, __ -> {
             logger.debug("DataLakeServiceClient is not found in the cache with the given credentials. Creating it.");
             return createStorageClient(credentialsDetails, proxyOptions);

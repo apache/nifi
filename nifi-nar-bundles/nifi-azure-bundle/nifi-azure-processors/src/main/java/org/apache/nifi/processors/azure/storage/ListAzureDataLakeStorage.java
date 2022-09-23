@@ -183,7 +183,7 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
     public void onScheduled(final ProcessContext context) {
         filePattern = getPattern(context, FILE_FILTER);
         pathPattern = getPattern(context, PATH_FILTER);
-        clientFactory = new DataLakeServiceClientFactory(getLogger());
+        clientFactory = new DataLakeServiceClientFactory(getLogger(), AzureStorageUtils.getProxyOptions(context));
     }
 
     @OnStopped
@@ -260,10 +260,6 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
         return attributes;
     }
 
-    public DataLakeServiceClientFactory getStorageClientFactory() {
-        return clientFactory;
-    }
-
     private List<ADLSFileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode,
                                               final boolean applyFilters) throws IOException {
         try {
@@ -278,7 +274,7 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
 
             final ADLSCredentialsDetails credentialsDetails = credentialsService.getCredentialsDetails(Collections.emptyMap());
 
-            final DataLakeServiceClient storageClient = clientFactory.getStorageClient(credentialsDetails, AzureStorageUtils.getProxyOptions(context));
+            final DataLakeServiceClient storageClient = clientFactory.getStorageClient(credentialsDetails);
             final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
 
             final ListPathsOptions options = new ListPathsOptions();

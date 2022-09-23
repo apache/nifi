@@ -18,7 +18,6 @@ package org.apache.nifi.processors.azure.storage;
 
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
-import org.apache.nifi.processors.azure.storage.utils.DataLakeServiceClientFactory;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
@@ -41,7 +40,6 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
@@ -491,37 +489,6 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         runProcessor();
 
         assertSuccess("dir 2/file 21", String.format("dir2/%s/1112file21", AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY));
-    }
-
-    @Test
-    public void testStorageClientCreatedOnce() {
-        assertNull(((ListAzureDataLakeStorage) runner.getProcessor()).getStorageClientFactory());
-
-        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
-
-        runner.assertValid();
-        runner.run(1, false);
-
-        assertSuccess("file1", "file2", "dir1/file11", "dir1/file12", "dir1/dir11/file111", "dir 2/file 21");
-
-        TestFile testFile3 = new TestFile("", "file3");
-        uploadFile(testFile3);
-        testFiles.put(testFile3.getFilePath(), testFile3);
-
-        runner.run(1, false);
-
-        assertSuccess("file1", "file2", "dir1/file11", "dir1/file12", "dir1/dir11/file111", "dir 2/file 21", "file3");
-
-        DataLakeServiceClientFactory clientFactory = ((ListAzureDataLakeStorage) runner.getProcessor()).getStorageClientFactory();
-
-        assertNotNull(clientFactory);
-
-        clientFactory.getCache().cleanUp();
-        assertEquals(1, clientFactory.getCache().estimatedSize());
-
-        runner.stop();
-
-        assertNull(((ListAzureDataLakeStorage) runner.getProcessor()).getStorageClientFactory());
     }
 
     private void runProcessor() {
