@@ -37,13 +37,14 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 
 public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
@@ -52,16 +53,16 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
 
     public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
                                    final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException, MalformedRecordException {
-        this(in, logger, schema, dateFormat, timeFormat, timestampFormat, null, null, null);
+        this(in, logger, schema, dateFormat, timeFormat, timestampFormat, null, null, null, null);
     }
 
     public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
                                    final String dateFormat, final String timeFormat, final String timestampFormat,
                                    final StartingFieldStrategy startingFieldStrategy, final String startingFieldName,
-                                   final SchemaApplicationStrategy schemaApplicationStrategy)
+                                   final SchemaApplicationStrategy schemaApplicationStrategy, final BiPredicate<String, String> captureFieldPredicate)
             throws IOException, MalformedRecordException {
 
-        super(in, logger, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName);
+        super(in, logger, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName, captureFieldPredicate);
         if (startingFieldStrategy == StartingFieldStrategy.NESTED_FIELD && schemaApplicationStrategy == SchemaApplicationStrategy.WHOLE_JSON) {
             this.schema = getSelectedSchema(schema, startingFieldName);
         } else {
@@ -79,7 +80,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
                 return getChildSchemaFromField(optionalRecordField.get());
             } else {
                 for (RecordField field : currentSchema.getFields()) {
-                    if (field.getDataType() instanceof  ArrayDataType || field.getDataType() instanceof RecordDataType) {
+                    if (field.getDataType() instanceof ArrayDataType || field.getDataType() instanceof RecordDataType) {
                         schemas.add(getChildSchemaFromField(field));
                     }
                 }
