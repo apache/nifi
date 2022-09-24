@@ -5047,10 +5047,21 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         vci.setGroupId(groupId);
         vci.setRegistryId(registryId);
         vci.setRegistryName(getFlowRegistryName(registryId));
+        vci.setStorageLocation(getStorageLocation(registeredSnapshot));
         vci.setVersion(registeredSnapshot.getSnapshotMetadata().getVersion());
         vci.setState(VersionedFlowState.UP_TO_DATE.name());
 
         return createVersionControlComponentMappingEntity(groupId, versionedProcessGroup, vci);
+    }
+
+    private String getStorageLocation(final RegisteredFlowSnapshot registeredSnapshot) {
+        VersionedFlowCoordinates versionedFlowCoordinates = registeredSnapshot.getFlowContents().getVersionedFlowCoordinates();
+
+        if (versionedFlowCoordinates == null) {
+            return null;
+        }
+
+        return versionedFlowCoordinates.getStorageLocation();
     }
 
     private VersionControlComponentMappingEntity createVersionControlComponentMappingEntity(String groupId, InstantiatedVersionedProcessGroup versionedProcessGroup, VersionControlInformationDTO vci) {

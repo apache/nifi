@@ -3629,6 +3629,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         svci.setBucketName(versionControlInformation.getBucketName());
         svci.setFlowName(versionControlInformation.getFlowName());
         svci.setFlowDescription(versionControlInformation.getFlowDescription());
+        svci.setStorageLocation(versionControlInformation.getStorageLocation());
 
         final VersionedFlowState flowState = versionControlInformation.getStatus().getState();
         versionControlFields.setStale(flowState == VersionedFlowState.STALE || flowState == VersionedFlowState.LOCALLY_MODIFIED_AND_STALE);

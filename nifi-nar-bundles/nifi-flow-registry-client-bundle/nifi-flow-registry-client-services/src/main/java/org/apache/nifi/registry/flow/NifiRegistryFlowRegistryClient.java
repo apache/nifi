@@ -19,6 +19,7 @@ package org.apache.nifi.registry.flow;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.client.BucketClient;
@@ -162,13 +163,8 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public String getSupportedStorageLocation(final FlowRegistryClientConfigurationContext context) {
-        return getProposedUri(context);
-    }
-
-    @Override
     public boolean isStorageLocationApplicable(final FlowRegistryClientConfigurationContext context, final String location) {
-        return getProposedUri(context).equals(location);
+        return location != null && location.startsWith(getProposedUri(context));
     }
 
     @Override
@@ -270,7 +266,20 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     public RegisteredFlowSnapshot registerFlowSnapshot(FlowRegistryClientConfigurationContext context, RegisteredFlowSnapshot flowSnapshot) throws FlowRegistryException, IOException {
         try {
             final FlowSnapshotClient snapshotClient = getFlowSnapshotClient(context);
-            return NifiRegistryUtil.convert(snapshotClient.create(NifiRegistryUtil.convert(flowSnapshot)));
+            final VersionedFlowSnapshot versionedFlowSnapshot = snapshotClient.create(NifiRegistryUtil.convert(flowSnapshot));
+            final VersionedFlowCoordinates versionedFlowCoordinates = new VersionedFlowCoordinates();
+
+            final String bucketId = versionedFlowSnapshot.getFlow().getBucketIdentifier();
+            final String flowId = versionedFlowSnapshot.getFlow().getIdentifier();
+            final int version = (int) versionedFlowSnapshot.getFlow().getVersionCount();
+
+            versionedFlowCoordinates.setRegistryId(getIdentifier());
+            versionedFlowCoordinates.setBucketId(bucketId);
+            versionedFlowCoordinates.setFlowId(flowId);
+            versionedFlowCoordinates.setVersion(version);
+            versionedFlowCoordinates.setStorageLocation(getProposedUri(context) + "/nifi-registry-api/buckets/" + bucketId + "/flows/" + flowId + "/versions/" + version);
+            versionedFlowSnapshot.getFlowContents().setVersionedFlowCoordinates(versionedFlowCoordinates);
+            return NifiRegistryUtil.convert(versionedFlowSnapshot);
         } catch (NiFiRegistryException e) {
             throw new FlowRegistryException(e.getMessage(), e);
         }

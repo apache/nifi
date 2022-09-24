@@ -313,6 +313,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             final String bucketId = remoteCoordinates.getBucketId();
             final String flowId = remoteCoordinates.getFlowId();
             final int version = remoteCoordinates.getVersion();
+            final String storageLocation = remoteCoordinates.getStorageLocation();
 
             final FlowRegistryClientNode flowRegistry = context.getFlowManager().getFlowRegistryClient(registryId);
             final String registryName = flowRegistry == null ? registryId : flowRegistry.getName();
@@ -330,6 +331,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 .bucketId(bucketId)
                 .bucketName(bucketId)
                 .flowId(flowId)
+                .storageLocation(storageLocation)
                 .flowName(flowId)
                 .version(version)
                 .flowSnapshot(syncOptions.isUpdateGroupVersionControlSnapshot() ? proposed : null)

@@ -58,17 +58,7 @@ public interface FlowRegistryClient extends ConfigurableComponent {
     void initialize(FlowRegistryClientInitializationContext context);
 
     /**
-     * Returns with a string representation of the storage location the registry supports. The format of the string depends on the actual registry implementation.
-     *
-     * @param context Configuration context.
-     *
-     * @return The supported storage location.
-     */
-    String getSupportedStorageLocation(FlowRegistryClientConfigurationContext context);
-
-    /**
-     * Decides if the given location is applicable by the repository instance. The format depends on the implementation and in most cases it is expected to
-     * be the same as the one returned by {@code getSupportedStorageLocation}
+     * Decides if the given location is applicable by the repository instance. The format depends on the implementation.
      *
      * @param context Configuration context.
      * @param location The location to check.
@@ -170,6 +160,7 @@ public interface FlowRegistryClient extends ConfigurableComponent {
      *
      * @return The contents of the Flow from the Flow Registry.
      *
+     * @throws NoSuchFlowVersionException If there is no version of the Flow with the given version number.
      * @throws FlowRegistryException If an issue happens during processing the request.
      * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
      */

@@ -267,6 +267,7 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
             addTextElement(versionControlInfoElement, "flowName", versionControlInfo.getFlowName());
             addTextElement(versionControlInfoElement, "flowDescription", versionControlInfo.getFlowDescription());
             addTextElement(versionControlInfoElement, "version", versionControlInfo.getVersion());
+            addTextElement(versionControlInfoElement, "storageLocation", versionControlInfo.getStorageLocation());
             element.appendChild(versionControlInfoElement);
         }
 

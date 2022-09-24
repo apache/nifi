@@ -173,11 +173,6 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     }
 
     @Override
-    public String getSupportedStorageLocation() throws FlowRegistryException, IOException {
-        return execute(() -> client.get().getComponent().getSupportedStorageLocation(getConfigurationContext()));
-    }
-
-    @Override
     public boolean isStorageLocationApplicable(final String location) throws FlowRegistryException, IOException {
         return execute(() -> client.get().getComponent().isStorageLocationApplicable(getConfigurationContext(), location));
     }
@@ -303,6 +298,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
             final RegisteredFlowSnapshot snapshot =  getRegistryForInternalFlow(storageLocation).getFlowContents(context, bucketId, flowId, version, true);
             final VersionedProcessGroup contents = snapshot.getFlowContents();
 
+            group.setVersionedFlowCoordinates(coordinates);
             group.setComments(contents.getComments());
             group.setConnections(contents.getConnections());
             group.setControllerServices(contents.getControllerServices());

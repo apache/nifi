@@ -398,6 +398,7 @@ public class FlowFromDOMFactory {
         dto.setFlowName(getString(versionControlInfoElement, "flowName"));
         dto.setFlowDescription(getString(versionControlInfoElement, "flowDescription"));
         dto.setVersion(getInt(versionControlInfoElement, "version"));
+        dto.setStorageLocation(getString(versionControlInfoElement, "storageLocation"));
         return dto;
     }
 
