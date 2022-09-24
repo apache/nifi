@@ -511,7 +511,7 @@ public class ConfigTransformerTest {
         nifiProperties.load(new FileInputStream(nifiPropertiesFile));
 
         // an absolute path is returned for bootstrap which is different per every environment. only testing that path ends with expected relative path
-        assertTrue(nifiProperties.getProperty(MINIFI_BOOTSTRAP_FILE_PATH).endsWith("./conf/bootstrap.conf"));
+        assertTrue(nifiProperties.getProperty(MINIFI_BOOTSTRAP_FILE_PATH).endsWith("bootstrap.conf"));
         assertEquals("./conf/config.yml", nifiProperties.getProperty(MINIFI_CONFIG_FILE_PATH));
         assertEquals("./logs", nifiProperties.getProperty(MINIFI_LOG_DIRECTORY));
         assertEquals("minifi-app.log", nifiProperties.getProperty(MINIFI_APP_LOG_FILE));
