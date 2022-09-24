@@ -34,9 +34,10 @@
                 'nf.Shell',
                 'nf.ComponentState',
                 'nf.ComponentVersion',
-                'nf.PolicyManagement'],
-            function ($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement) {
-                return (nf.Settings = factory($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement));
+                'nf.PolicyManagement',
+                'nf.ParameterProvider'],
+            function ($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement, nfParameterProvider) {
+                return (nf.Settings = factory($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement, nfParameterProvider));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Settings =
@@ -55,7 +56,8 @@
                 require('nf.Shell'),
                 require('nf.ComponentState'),
                 require('nf.ComponentVersion'),
-                require('nf.PolicyManagement')));
+                require('nf.PolicyManagement'),
+                require('nf.ParameterProvider')));
     } else {
         nf.Settings = factory(root.$,
             root.Slick,
@@ -72,9 +74,10 @@
             root.nf.Shell,
             root.nf.ComponentState,
             root.nf.ComponentVersion,
-            root.nf.PolicyManagement);
+            root.nf.PolicyManagement,
+            root.nf.ParameterProvider);
     }
-}(this, function ($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement) {
+}(this, function ($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement, nfParameterProvider) {
     'use strict';
 
 
@@ -85,7 +88,10 @@
             reportingTaskTypes: '../nifi-api/flow/reporting-task-types',
             createReportingTask: '../nifi-api/controller/reporting-tasks',
             reportingTasks: '../nifi-api/flow/reporting-tasks',
-            registries: '../nifi-api/controller/registry-clients'
+            registries: '../nifi-api/controller/registry-clients',
+            createParameterProvider: '../nifi-api/controller/parameter-providers',
+            parameterProviderTypes: '../nifi-api/flow/parameter-provider-types',
+            parameterProviders: '../nifi-api/flow/parameter-providers'
         }
     };
 
@@ -346,6 +352,15 @@
     };
 
     /**
+     * Get the text out of the filter field. If the filter field doesn't
+     * have any text it will contain the text 'filter list' so this method
+     * accounts for that.
+     */
+    var getParameterProviderTypeFilterText = function () {
+        return $('#parameter-provider-type-filter').val();
+    };
+
+    /**
      * Filters the reporting task type table.
      */
     var applyReportingTaskTypeFilter = function () {
@@ -373,6 +388,33 @@
     };
 
     /**
+     * Filters the parameter provider type table.
+     */
+    var applyParameterProviderTypeFilter = function () {
+        // get the dataview
+        var parameterProviderTypesGrid = $('#parameter-provider-types-table').data('gridInstance');
+
+        // ensure the grid has been initialized
+        if (nfCommon.isDefinedAndNotNull(parameterProviderTypesGrid)) {
+            var parameterProviderTypesData = parameterProviderTypesGrid.getData();
+
+            // update the search criteria
+            parameterProviderTypesData.setFilterArgs({
+                searchString: getParameterProviderTypeFilterText()
+            });
+            parameterProviderTypesData.refresh();
+
+            // update the buttons to possibly trigger the disabled state
+            $('#new-parameter-provider-dialog').modal('refreshButtons');
+
+            // update the selection if possible
+            if (parameterProviderTypesData.getLength() > 0) {
+                nfFilteredDialogCommon.choseFirstRow(parameterProviderTypesGrid);
+            }
+        }
+    };
+
+    /**
      * Hides the selected reporting task.
      */
     var clearSelectedReportingTask = function () {
@@ -385,6 +427,18 @@
     };
 
     /**
+     * Hides the selected parameter provider.
+     */
+    var clearSelectedParameterProvider = function () {
+        $('#parameter-provider-type-description').attr('title', '').text('');
+        $('#parameter-provider-type-name').attr('title', '').text('');
+        $('#parameter-provider-type-bundle').attr('title', '').text('');
+        $('#selected-parameter-provider-name').text('');
+        $('#selected-parameter-provider-type').text('').removeData('bundle');
+        $('#parameter-provider-description-container').hide();
+    };
+
+    /**
      * Clears the selected reporting task type.
      */
     var clearReportingTaskSelection = function () {
@@ -394,6 +448,18 @@
         // clear the active cell the it can be reselected when its included
         var reportingTaskTypesGrid = $('#reporting-task-types-table').data('gridInstance');
         reportingTaskTypesGrid.resetActiveCell();
+    };
+
+    /**
+     * Clears the selected parameter provider type.
+     */
+    var clearParameterProviderSelection = function () {
+        // clear the selected row
+        clearSelectedParameterProvider();
+
+        // clear the active cell then it can be reselected when its included
+        var parameterProviderTypesGrid = $('#parameter-provider-types-table').data('gridInstance');
+        parameterProviderTypesGrid.resetActiveCell();
     };
 
     /**
@@ -438,6 +504,47 @@
     };
 
     /**
+     * Performs the filtering.
+     *
+     * @param {object} item     The item subject to filtering
+     * @param {object} args     Filter arguments
+     * @returns {Boolean}       Whether or not to include the item
+     */
+    var filterParameterProviderTypes = function (item, args) {
+        // determine if the item matches the filter
+        var matchesFilter = matchesRegex(item, args);
+
+        // determine if the row matches the selected tags
+        var matchesTags = true;
+        if (matchesFilter) {
+            var tagFilters = $('#parameter-provider-tag-cloud').tagcloud('getSelectedTags');
+            var hasSelectedTags = tagFilters.length > 0;
+            if (hasSelectedTags) {
+                matchesTags = matchesSelectedTags(tagFilters, item['tags']);
+            }
+        }
+
+        // determine if the row matches the selected source group
+        var matchesGroup = true;
+        if (matchesFilter && matchesTags) {
+            var bundleGroup = $('#parameter-provider-bundle-group-combo').combo('getSelectedOption');
+            if (nfCommon.isDefinedAndNotNull(bundleGroup) && bundleGroup.value !== '') {
+                matchesGroup = (item.bundle.group === bundleGroup.value);
+            }
+        }
+
+        // determine if this row should be visible
+        var matches = matchesFilter && matchesTags && matchesGroup;
+
+        // if this row is currently selected and its being filtered
+        if (matches === false && $('#selected-parameter-provider-type').text() === item['type']) {
+            clearParameterProviderSelection();
+        }
+
+        return matches;
+    };
+
+    /**
      * Adds the currently selected reporting task.
      */
     var addSelectedReportingTask = function () {
@@ -452,6 +559,24 @@
             });
         } else {
             addReportingTask(selectedTaskType, selectedTaskBundle);
+        }
+    };
+
+    /**
+     * Adds the currently selected parameter provider.
+     */
+    var addSelectedParameterProvider = function () {
+        var selectedParameterProviderType = $('#selected-parameter-provider-type').text();
+        var selectedParameterProviderBundle = $('#selected-selected-parameter-type').data('bundle');
+
+        // ensure something was selected
+        if (selectedParameterProviderType === '') {
+            nfDialog.showOkDialog({
+                headerText: 'Settings',
+                dialogContent: 'The type of parameter provider to create must be selected.'
+            });
+        } else {
+            addParameterProvider(selectedParameterProviderType, selectedParameterProviderBundle);
         }
     };
 
@@ -556,6 +681,59 @@
 
 
         return addRegistry;
+    };
+
+    /**
+     * Adds a new parameter provider of the specified type.
+     *
+     * @param {string} parameterProviderType
+     * @param {object} parameterProviderBundle
+     */
+    var addParameterProvider = function (parameterProviderType, parameterProviderBundle) {
+        // build the parameter provider entity
+        var parameterProviderEntity = {
+            'revision': nfClient.getRevision({
+                'revision': {
+                    'version': 0
+                }
+            }),
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+            'component': {
+                'type': parameterProviderType,
+                'bundle': parameterProviderBundle
+            }
+        };
+
+        // add the new parameter provider
+        var addProvider = $.ajax({
+            type: 'POST',
+            url: config.urls.createParameterProvider,
+            data: JSON.stringify(parameterProviderEntity),
+            dataType: 'json',
+            contentType: 'application/json'
+        }).done(function (parameterProviderEntity) {
+            // add the item
+            var parameterProviderGrid = $('#parameter-providers-table').data('gridInstance');
+            var parameterProviderData = parameterProviderGrid.getData();
+            parameterProviderData.addItem($.extend({
+                type: 'ParameterProvider',
+                bulletins: []
+            }, parameterProviderEntity));
+
+            // resort
+            parameterProviderData.reSort();
+            parameterProviderGrid.invalidate();
+
+            // select the new parameter provider
+            var row = parameterProviderData.getRowById(parameterProviderEntity.id);
+            nfFilteredDialogCommon.choseRow(parameterProviderGrid, row);
+            parameterProviderGrid.scrollRowIntoView(row);
+        }).fail(nfErrorHandler.handleAjaxError);
+
+        // hide the dialog
+        $('#new-parameter-provider-dialog').modal('hide');
+
+        return addProvider;
     };
 
     /**
@@ -996,6 +1174,395 @@
                     $('#registry-name').val('');
                     $('#registry-location').val('');
                     $('#registry-description').val('');
+                }
+            }
+        });
+    };
+
+    /**
+     * Initializes the new parameter provider dialog.
+     */
+    var initNewParameterProviderDialog = function () {
+        // initialize the parameter provider type table
+        var parameterProviderColumns = [
+            {
+                id: 'type',
+                name: 'Type',
+                field: 'label',
+                formatter: nfCommon.typeFormatter,
+                sortable: true,
+                resizable: true
+            },
+            {
+                id: 'version',
+                name: 'Version',
+                field: 'version',
+                formatter: nfCommon.typeVersionFormatter,
+                sortable: true,
+                resizable: true
+            },
+            {
+                id: 'tags',
+                name: 'Tags',
+                field: 'tags',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            }
+        ];
+
+        // initialize the dataview
+        var parameterProviderTypesData = new Slick.Data.DataView({
+            inlineFilters: false
+        });
+        parameterProviderTypesData.setItems([]);
+        parameterProviderTypesData.setFilterArgs({
+            searchString: getParameterProviderTypeFilterText()
+        });
+        parameterProviderTypesData.setFilter(filterParameterProviderTypes);
+
+        // initialize the sort
+        nfCommon.sortType({
+            columnId: 'type',
+            sortAsc: true
+        }, parameterProviderTypesData);
+
+        // initialize the grid
+        var parameterProviderTypesGrid = new Slick.Grid('#parameter-provider-types-table', parameterProviderTypesData, parameterProviderColumns, gridOptions);
+        parameterProviderTypesGrid.setSelectionModel(new Slick.RowSelectionModel());
+        parameterProviderTypesGrid.registerPlugin(new Slick.AutoTooltips());
+        parameterProviderTypesGrid.setSortColumn('type', true);
+        parameterProviderTypesGrid.onSort.subscribe(function (e, args) {
+            nfCommon.sortType({
+                columnId: args.sortCol.field,
+                sortAsc: args.sortAsc
+            }, parameterProviderTypesData);
+        });
+        parameterProviderTypesGrid.onSelectedRowsChanged.subscribe(function (e, args) {
+            if ($.isArray(args.rows) && args.rows.length === 1) {
+                var parameterProviderTypeIndex = args.rows[0];
+                var parameterProviderType = parameterProviderTypesGrid.getDataItem(parameterProviderTypeIndex);
+
+                // set the parameter provider type description
+                if (nfCommon.isDefinedAndNotNull(parameterProviderType)) {
+                    // show the selected parameter provider
+                    $('#parameter-provider-description-container').show();
+
+                    if (nfCommon.isBlank(parameterProviderType.description)) {
+                        $('#parameter-provider-type-description')
+                            .attr('title', '')
+                            .html('<span class="unset">No description specified</span>');
+                    } else {
+                        $('#parameter-provider-type-description')
+                            .width($('#parameter-provider-description-container').innerWidth() - 1)
+                            .html(parameterProviderType.description)
+                            .ellipsis();
+                    }
+
+                    var bundle = nfCommon.formatBundle(parameterProviderType.bundle);
+                    var type = nfCommon.formatType(parameterProviderType);
+
+                    // populate the dom
+                    $('#parameter-provider-type-name').text(type).attr('title', type);
+                    $('#parameter-provider-type-bundle').text(bundle).attr('title', bundle);
+                    $('#selected-parameter-provider-name').text(parameterProviderType.label);
+                    $('#selected-parameter-provider-type').text(parameterProviderType.type).data('bundle', parameterProviderType.bundle);
+
+                    // refresh the buttons based on the current selection
+                    $('#new-parameter-provider-dialog').modal('refreshButtons');
+                }
+            }
+        });
+        parameterProviderTypesGrid.onDblClick.subscribe(function (e, args) {
+            var parameterProviderType = parameterProviderTypesGrid.getDataItem(args.row);
+
+            if (isSelectable(parameterProviderType)) {
+                addParameterProvider(parameterProviderType.type, parameterProviderType.bundle);
+            }
+        });
+        parameterProviderTypesGrid.onViewportChanged.subscribe(function (e, args) {
+            nfCommon.cleanUpTooltips($('#parameter-provider-types-table'), 'div.view-usage-restriction');
+        });
+
+        // wire up the dataview to the grid
+        parameterProviderTypesData.onRowCountChanged.subscribe(function (e, args) {
+            parameterProviderTypesGrid.updateRowCount();
+            parameterProviderTypesGrid.render();
+
+            // update the total number of displayed processors
+            $('#displayed-parameter-provider-types').text(args.current);
+        });
+        parameterProviderTypesData.onRowsChanged.subscribe(function (e, args) {
+            parameterProviderTypesGrid.invalidateRows(args.rows);
+            parameterProviderTypesGrid.render();
+        });
+        parameterProviderTypesData.syncGridSelection(parameterProviderTypesGrid, true);
+
+        // hold onto an instance of the grid
+        $('#parameter-provider-types-table').data('gridInstance', parameterProviderTypesGrid).on('mouseenter', 'div.slick-cell', function (e) {
+            var usageRestriction = $(this).find('div.view-usage-restriction');
+            if (usageRestriction.length && !usageRestriction.data('qtip')) {
+                var rowId = $(this).find('span.row-id').text();
+
+                // get the status item
+                var item = parameterProviderTypesData.getItemById(rowId);
+
+                // show the tooltip
+                if (item.restricted === true) {
+                    var restrictionTip = $('<div></div>');
+
+                    if (nfCommon.isBlank(item.usageRestriction)) {
+                        restrictionTip.append($('<p style="margin-bottom: 3px;"></p>').text('Requires the following permissions:'));
+                    } else {
+                        restrictionTip.append($('<p style="margin-bottom: 3px;"></p>').text(item.usageRestriction + ' Requires the following permissions:'));
+                    }
+
+                    var restrictions = [];
+                    if (nfCommon.isDefinedAndNotNull(item.explicitRestrictions)) {
+                        $.each(item.explicitRestrictions, function (_, explicitRestriction) {
+                            var requiredPermission = explicitRestriction.requiredPermission;
+                            restrictions.push("'" + requiredPermission.label + "' - " + nfCommon.escapeHtml(explicitRestriction.explanation));
+                        });
+                    } else {
+                        restrictions.push('Access to restricted components regardless of restrictions.');
+                    }
+                    restrictionTip.append(nfCommon.formatUnorderedList(restrictions));
+
+                    usageRestriction.qtip($.extend({}, nfCommon.config.tooltipConfig, {
+                        content: restrictionTip,
+                        position: {
+                            container: $('#summary'),
+                            at: 'bottom right',
+                            my: 'top left',
+                            adjust: {
+                                x: 4,
+                                y: 4
+                            }
+                        }
+                    }));
+                }
+            }
+        });
+
+        var generalRestriction = nfCommon.getPolicyTypeListing('restricted-components');
+
+        // load the available parameter providers
+        $.ajax({
+            type: 'GET',
+            url: config.urls.parameterProviderTypes,
+            dataType: 'json'
+        }).done(function (response) {
+            var id = 0;
+            var tags = [];
+            var groups = d3.set();
+            var restrictedUsage = d3.map();
+            var requiredPermissions = d3.map();
+
+            // begin the update
+            parameterProviderTypesData.beginUpdate();
+
+            // go through each parameter provider type
+            $.each(response.parameterProviderTypes, function (i, documentedType) {
+                if (documentedType.restricted === true) {
+                    if (nfCommon.isDefinedAndNotNull(documentedType.explicitRestrictions)) {
+                        $.each(documentedType.explicitRestrictions, function (_, explicitRestriction) {
+                            var requiredPermission = explicitRestriction.requiredPermission;
+
+                            // update required permissions
+                            if (!requiredPermissions.has(requiredPermission.id)) {
+                                requiredPermissions.set(requiredPermission.id, requiredPermission.label);
+                            }
+
+                            // update component restrictions
+                            if (!restrictedUsage.has(requiredPermission.id)) {
+                                restrictedUsage.set(requiredPermission.id, []);
+                            }
+
+                            restrictedUsage.get(requiredPermission.id).push({
+                                type: nfCommon.formatType(documentedType),
+                                bundle: nfCommon.formatBundle(documentedType.bundle),
+                                explanation: nfCommon.escapeHtml(explicitRestriction.explanation)
+                            })
+                        });
+                    } else {
+                        // update required permissions
+                        if (!requiredPermissions.has(generalRestriction.value)) {
+                            requiredPermissions.set(generalRestriction.value, generalRestriction.text);
+                        }
+
+                        // update component restrictions
+                        if (!restrictedUsage.has(generalRestriction.value)) {
+                            restrictedUsage.set(generalRestriction.value, []);
+                        }
+
+                        restrictedUsage.get(generalRestriction.value).push({
+                            type: nfCommon.formatType(documentedType),
+                            bundle: nfCommon.formatBundle(documentedType.bundle),
+                            explanation: nfCommon.escapeHtml(documentedType.usageRestriction)
+                        });
+                    }
+                }
+
+                // record the group
+                groups.add(documentedType.bundle.group);
+
+                // add the documented type
+                parameterProviderTypesData.addItem({
+                    id: id++ + '',
+                    label: nfCommon.substringAfterLast(documentedType.type, '.'),
+                    type: documentedType.type,
+                    bundle: documentedType.bundle,
+                    description: nfCommon.escapeHtml(documentedType.description),
+                    restricted:  documentedType.restricted,
+                    usageRestriction: nfCommon.escapeHtml(documentedType.usageRestriction),
+                    explicitRestrictions: documentedType.explicitRestrictions,
+                    tags: documentedType.tags.join(', ')
+                });
+
+                // count the frequency of each tag for this type
+                $.each(documentedType.tags, function (i, tag) {
+                    tags.push(tag.toLowerCase());
+                });
+            });
+
+            // end the update
+            parameterProviderTypesData.endUpdate();
+
+            // resort
+            parameterProviderTypesData.reSort();
+            parameterProviderTypesGrid.invalidate();
+
+            // set the component restrictions and the corresponding required permissions
+            nfCanvasUtils.addComponentRestrictions(restrictedUsage, requiredPermissions);
+
+            // set the total number of processors
+            $('#total-parameter-provider-types, #displayed-parameter-provider-types').text(response.parameterProviderTypes.length);
+
+            // create the tag cloud
+            $('#parameter-provider-tag-cloud').tagcloud({
+                tags: tags,
+                select: applyParameterProviderTypeFilter,
+                remove: applyParameterProviderTypeFilter
+            });
+
+            // build the combo options
+            var options = [{
+                text: 'all groups',
+                value: ''
+            }];
+            groups.each(function (group) {
+                options.push({
+                    text: group,
+                    value: group
+                });
+            });
+
+            // initialize the bundle group combo
+            $('#parameter-provider-bundle-group-combo').combo({
+                options: options,
+                select: applyParameterProviderTypeFilter
+            });
+        }).fail(nfErrorHandler.handleAjaxError);
+
+        var navigationKeys = [$.ui.keyCode.UP, $.ui.keyCode.PAGE_UP, $.ui.keyCode.DOWN, $.ui.keyCode.PAGE_DOWN];
+
+        // define the function for filtering the list
+        $('#parameter-provider-type-filter').off('keyup').on('keyup', function (e) {
+            var code = e.keyCode ? e.keyCode : e.which;
+
+            // ignore navigation keys
+            if ($.inArray(code, navigationKeys) !== -1) {
+                return;
+            }
+
+            if (code === $.ui.keyCode.ENTER) {
+                var selected = parameterProviderTypesGrid.getSelectedRows();
+
+                if (selected.length > 0) {
+                    // grid configured with multi-select = false
+                    var item = parameterProviderTypesGrid.getDataItem(selected[0]);
+                    if (isSelectable(item)) {
+                        addSelectedParameterProvider();
+                    }
+                }
+            } else {
+                applyParameterProviderTypeFilter();
+            }
+        });
+
+        // setup row navigation
+        nfFilteredDialogCommon.addKeydownListener('#parameter-provider-type-filter', parameterProviderTypesGrid, parameterProviderTypesGrid.getData());
+
+        // initialize the parameter provider dialog
+        $('#new-parameter-provider-dialog').modal({
+            scrollableContentStyle: 'scrollable',
+            headerText: 'Add Parameter Provider',
+            buttons: [{
+                buttonText: 'Add',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
+                disabled: function () {
+                    var selected = parameterProviderTypesGrid.getSelectedRows();
+
+                    if (selected.length > 0) {
+                        // grid configured with multi-select = false
+                        var item = parameterProviderTypesGrid.getDataItem(selected[0]);
+                        return isSelectable(item) === false;
+                    } else {
+                        return parameterProviderTypesGrid.getData().getLength() === 0;
+                    }
+                },
+                handler: {
+                    click: function () {
+                        addSelectedParameterProvider();
+                    }
+                }
+            },
+                {
+                    buttonText: 'Cancel',
+                    color: {
+                        base: '#E3E8EB',
+                        hover: '#C7D2D7',
+                        text: '#004849'
+                    },
+                    handler: {
+                        click: function () {
+                            $(this).modal('hide');
+                        }
+                    }
+                }],
+            handler: {
+                close: function () {
+                    // clear the selected row
+                    clearSelectedParameterProvider();
+
+                    // clear any filter strings
+                    $('#parameter-provider-type-filter').val('');
+
+                    // clear the tagcloud
+                    $('#parameter-provider-tag-cloud').tagcloud('clearSelectedTags');
+
+                    // reset the group combo
+                    $('#parameter-provider-bundle-group-combo').combo('setSelectedOption', {
+                        value: ''
+                    });
+
+                    // reset the filter
+                    applyParameterProviderTypeFilter();
+
+                    // unselect any current selection
+                    var parameterProviderTypesGrid = $('#parameter-provider-types-table').data('gridInstance');
+                    parameterProviderTypesGrid.setSelectedRows([]);
+                    parameterProviderTypesGrid.resetActiveCell();
+                },
+                resize: function () {
+                    $('#parameter-provider-type-description')
+                        .width($('#parameter-provider-description-container').innerWidth() - 1)
+                        .text($('#parameter-provider-type-description').attr('title'))
+                        .ellipsis();
                 }
             }
         });
@@ -1459,6 +2026,263 @@
     };
 
     /**
+     * Initializes the parameter providers tab.
+     */
+    var initParameterProvidersTable = function () {
+        // initialize the new parameter provider dialog
+        initNewParameterProviderDialog();
+
+        var moreParameterProvidersDetails = function (row, cell, value, columnDef, dataContext) {
+            if (!dataContext.permissions.canRead) {
+                return '';
+            }
+
+            var markup = '<div title="View Details" class="pointer view-parameter-provider fa fa-info-circle"></div>';
+
+            // always include a button to view the usage
+            markup += '<div title="Usage" class="pointer parameter-provider-usage fa fa-book"></div>';
+
+            var hasErrors = !nfCommon.isEmpty(dataContext.component.validationErrors);
+            var hasBulletins = !nfCommon.isEmpty(dataContext.bulletins);
+
+            if (hasErrors) {
+                markup += '<div class="pointer has-errors fa fa-warning" ></div>';
+            }
+
+            if (hasBulletins) {
+                markup += '<div class="has-bulletins fa fa-sticky-note-o"></div>';
+            }
+
+            if (hasErrors || hasBulletins) {
+                markup += '<span class="hidden row-id">' + nfCommon.escapeHtml(dataContext.component.id) + '</span>';
+            }
+
+            return markup;
+        };
+
+        var parameterProvidersActionFormatter = function (row, cell, value, columnDef, dataContext) {
+            var markup = '';
+
+            var canWrite = dataContext.permissions.canWrite;
+            var canRead = dataContext.permissions.canRead;
+
+            var hasErrors = canRead ? !nfCommon.isEmpty(dataContext.component.validationErrors) : null;
+
+            var hasReadParameterContextsPermissions = true;
+
+            if (canRead && dataContext.component.referencingParameterContexts) {
+                (dataContext.component.referencingParameterContexts).every(function (refParamContext) {
+                    return hasReadParameterContextsPermissions = refParamContext.permissions.canRead;
+                });
+            }
+
+            if (canRead && canWrite) {
+                markup += '<div title="Edit" class="pointer edit-parameter-provider fa fa-pencil"></div>';
+
+                if (hasReadParameterContextsPermissions && !hasErrors) {
+                    markup += '<div title="Fetch Parameters" class="pointer fetch-parameter-provider fa fa-arrow-circle-down"></div>';
+                }
+            }
+
+            if (canRead && canWrite && nfCommon.canModifyController()) {
+                markup += '<div title="Remove" class="pointer delete-parameter-provider fa fa-trash"></div>';
+            }
+
+            // allow policy configuration conditionally
+            if (nfCanvasUtils.isManagedAuthorizer() && nfCommon.canAccessTenants()) {
+                markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key"></div>';
+            }
+
+            return markup;
+        };
+
+        // define the column model for the parameter providers table
+        var parameterProvidersColumnModel = [
+            {
+                id: 'moreDetails',
+                name: '&nbsp;',
+                resizable: false,
+                formatter: moreParameterProvidersDetails,
+                sortable: true,
+                width: 90,
+                maxWidth: 90,
+                toolTip: 'Sorts based on presence of bulletins'
+            },
+            {
+                id: 'name',
+                name: 'Name',
+                sortable: true,
+                resizable: true,
+                formatter: nameFormatter
+            },
+            {
+                id: 'type',
+                name: 'Type',
+                formatter: nfCommon.instanceTypeFormatter,
+                sortable: true,
+                resizable: true
+            },
+            {
+                id: 'bundle',
+                name: 'Bundle',
+                formatter: nfCommon.instanceBundleFormatter,
+                sortable: true,
+                resizable: true
+            }
+        ];
+
+        // action column should always be last
+        parameterProvidersColumnModel.push({
+            id: 'actions',
+            name: '&nbsp;',
+            resizable: false,
+            formatter: parameterProvidersActionFormatter,
+            sortable: false,
+            width: 115,
+            maxWidth: 115
+        });
+
+        // initialize the dataview
+        var parameterProvidersData = new Slick.Data.DataView({
+            inlineFilters: false
+        });
+        parameterProvidersData.setItems([]);
+
+        // initialize the sort
+        sort({
+            columnId: 'name',
+            sortAsc: true
+        }, parameterProvidersData);
+
+        // initialize the grid
+        var parameterProvidersGrid = new Slick.Grid('#parameter-providers-table', parameterProvidersData, parameterProvidersColumnModel, gridOptions);
+        parameterProvidersGrid.setSelectionModel(new Slick.RowSelectionModel());
+        parameterProvidersGrid.registerPlugin(new Slick.AutoTooltips());
+        parameterProvidersGrid.setSortColumn('name', true);
+        parameterProvidersGrid.onSort.subscribe(function (e, args) {
+            sort({
+                columnId: args.sortCol.id,
+                sortAsc: args.sortAsc
+            }, parameterProvidersData);
+        });
+
+        // configure a click listener
+        parameterProvidersGrid.onClick.subscribe(function (e, args) {
+            var target = $(e.target);
+
+            // get the service at this row
+            var parameterProviderEntity = parameterProvidersData.getItem(args.row);
+
+            // determine the desired action
+            if (parameterProvidersGrid.getColumns()[args.cell].id === 'actions') {
+                if (target.hasClass('edit-parameter-provider')) {
+                    nfParameterProvider.showConfiguration(parameterProviderEntity);
+                } else if (target.hasClass('fetch-parameter-provider')) {
+                    nfParameterProvider.showFetchDialog(parameterProviderEntity);
+                } else if (target.hasClass('delete-parameter-provider')) {
+                    nfParameterProvider.promptToDeleteParameterProvider(parameterProviderEntity);
+                } else if (target.hasClass('edit-access-policies')) {
+                    // show the policies for this service
+                    nfPolicyManagement.showParameterProviderPolicy(parameterProviderEntity);
+
+                    // close the settings dialog
+                    $('#shell-close-button').click();
+                }
+            } else if (parameterProvidersGrid.getColumns()[args.cell].id === 'moreDetails') {
+                if (target.hasClass('view-parameter-provider')) {
+                    nfParameterProvider.showDetails(parameterProviderEntity);
+                } else if (target.hasClass('parameter-provider-usage')) {
+                    // close the settings dialog
+                    $('#shell-close-button').click();
+
+                    // open the documentation for this parameter provider
+                    nfShell.showPage('../nifi-docs/documentation?' + $.param({
+                        select: parameterProviderEntity.component.type,
+                        group: parameterProviderEntity.component.bundle.group,
+                        artifact: parameterProviderEntity.component.bundle.artifact,
+                        version: parameterProviderEntity.component.bundle.version
+                    })).done(function () {
+                        nfSettings.showSettings();
+                    });
+                }
+            }
+        });
+
+        // wire up the dataview to the grid
+        parameterProvidersData.onRowCountChanged.subscribe(function (e, args) {
+            parameterProvidersGrid.updateRowCount();
+            parameterProvidersGrid.render();
+        });
+        parameterProvidersData.onRowsChanged.subscribe(function (e, args) {
+            parameterProvidersGrid.invalidateRows(args.rows);
+            parameterProvidersGrid.render();
+        });
+        parameterProvidersData.syncGridSelection(parameterProvidersGrid, true);
+
+        // hold onto an instance of the grid
+        $('#parameter-providers-table').data('gridInstance', parameterProvidersGrid).on('mouseenter', 'div.slick-cell', function (e) {
+            var errorIcon = $(this).find('div.has-errors');
+            if (errorIcon.length && !errorIcon.data('qtip')) {
+                var providerId = $(this).find('span.row-id').text();
+
+                // get the provider item
+                var providerEntity = parameterProvidersData.getItemById(providerId);
+
+                // format the errors
+                var tooltip = nfCommon.formatUnorderedList(providerEntity.component.validationErrors);
+
+                // show the tooltip
+                if (nfCommon.isDefinedAndNotNull(tooltip)) {
+                    errorIcon.qtip($.extend({},
+                        nfCommon.config.tooltipConfig,
+                        {
+                            content: tooltip,
+                            position: {
+                                target: 'mouse',
+                                viewport: $('#shell-container'),
+                                adjust: {
+                                    x: 8,
+                                    y: 8,
+                                    method: 'flipinvert flipinvert'
+                                }
+                            }
+                        }));
+                }
+            }
+
+            var bulletinIcon = $(this).find('div.has-bulletins');
+            if (bulletinIcon.length && !bulletinIcon.data('qtip')) {
+                var providerId = $(this).find('span.row-id').text();
+
+                // get the provider item
+                var parameterProviderEntity = parameterProvidersData.getItemById(providerId);
+
+                // format the tooltip
+                var bulletins = nfCommon.getFormattedBulletins(parameterProviderEntity.bulletins);
+                var tooltip = nfCommon.formatUnorderedList(bulletins);
+
+                // show the tooltip
+                if (nfCommon.isDefinedAndNotNull(tooltip)) {
+                    bulletinIcon.qtip($.extend({},
+                        nfCommon.config.tooltipConfig,
+                        {
+                            content: tooltip,
+                            position: {
+                                target: 'mouse',
+                                viewport: $('#shell-container'),
+                                adjust: {
+                                    x: 8,
+                                    y: 8,
+                                    method: 'flipinvert flipinvert'
+                                }
+                            }
+                        }));
+                }
+            }
+        });
+    };
+
+    /**
      * Edits the specified registry entity.
      *
      * @param registryEntity
@@ -1608,8 +2432,11 @@
         // load the registries
         var registries = loadRegistries();
 
+        // load the parameter providers
+        var parameterProviders = loadParameterProviders();
+
         // return a deferred for all parts of the settings
-        return $.when(settings, controllerServicesXhr, reportingTasks).done(function (settingsResult, controllerServicesResult) {
+        return $.when(settings, controllerServicesXhr, reportingTasks, parameterProviders).done(function (settingsResult, controllerServicesResult) {
             var controllerServicesResponse = controllerServicesResult[0];
 
             // update the current time
@@ -1675,6 +2502,37 @@
     };
 
     /**
+     * Loads the parameter providers.
+     */
+    var loadParameterProviders = function () {
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.parameterProviders,
+            dataType: 'json'
+        }).done(function (response) {
+            var providers = [];
+            $.each(response.parameterProviders, function (_, provider) {
+                providers.push($.extend({
+                    type: 'ParameterProvider',
+                    bulletins: []
+                }, provider));
+            });
+
+            var parameterProvidersElement = $('#parameter-providers-table');
+            nfCommon.cleanUpTooltips(parameterProvidersElement, 'div.has-errors');
+            nfCommon.cleanUpTooltips(parameterProvidersElement, 'div.has-bulletins');
+
+            var parameterProvidersGrid = parameterProvidersElement.data('gridInstance');
+            var parameterProvidersData = parameterProvidersGrid.getData();
+
+            // update the parameter providers
+            parameterProvidersData.setItems(providers);
+            parameterProvidersData.reSort();
+            parameterProvidersGrid.invalidate();
+        });
+    };
+
+    /**
      * Shows the process group configuration.
      */
     var showSettings = function () {
@@ -1712,7 +2570,7 @@
                     name: 'General',
                     tabContentId: 'general-settings-tab-content'
                 }, {
-                    name: 'Reporting Task Controller Services',
+                    name: 'Management Controller Services',
                     tabContentId: 'controller-services-tab-content'
                 }, {
                     name: 'Reporting Tasks',
@@ -1720,6 +2578,9 @@
                 }, {
                     name: 'Registry Clients',
                     tabContentId: 'registries-tab-content'
+                }, {
+                    name: 'Parameter Providers',
+                    tabContentId: 'parameter-providers-tab-content'
                 }],
                 select: function () {
                     var tab = $(this).text();
@@ -1740,15 +2601,18 @@
 
                             // update the tooltip on the button
                             $('#new-service-or-task').attr('title', function () {
-                                if (tab === 'Reporting Task Controller Services') {
+                                if (tab === 'Management Controller Services') {
                                     $('#settings-save').hide();
-                                    return 'Create a new reporting task controller service';
+                                    return 'Create a new controller level controller service';
                                 } else if (tab === 'Reporting Tasks') {
                                     $('#settings-save').hide();
                                     return 'Create a new reporting task';
                                 } else if (tab === 'Registry Clients') {
                                     $('#settings-save').hide();
                                     return 'Register a new registry client';
+                                } else if (tab === 'Parameter Providers') {
+                                    $('#settings-save').hide();
+                                    return 'Add a new parameter provider';
                                 }
                             });
                         } else {
@@ -1756,9 +2620,9 @@
                             $('div.controller-settings-table').css('top', '0');
                         }
 
-                        if (tab === 'Reporting Task Controller Services') {
+                        if (tab === 'Management Controller Services') {
                             $('#controller-cs-availability').show();
-                        } else if (tab === 'Reporting Tasks' || tab === 'Registry Clients') {
+                        } else if (tab === 'Reporting Tasks' || tab === 'Registry Clients' || tab === 'Parameter Providers') {
                             $('#controller-cs-availability').hide();
                         }
 
@@ -1776,7 +2640,7 @@
             // create a new controller service or reporting task
             $('#new-service-or-task').on('click', function () {
                 var selectedTab = $('#settings-tabs li.selected-tab').text();
-                if (selectedTab === 'Reporting Task Controller Services') {
+                if (selectedTab === 'Management Controller Services') {
                     var controllerServicesUri = config.urls.api + '/controller/controller-services';
                     nfControllerServices.promptNewControllerService(controllerServicesUri, getControllerServicesTable());
                 } else if (selectedTab === 'Reporting Tasks') {
@@ -1826,6 +2690,24 @@
 
                     // set the initial focus
                     $('#registry-name').focus();
+                } else if (selectedTab === 'Parameter Providers') {
+                    $('#new-parameter-provider-dialog').modal('show');
+
+                    var parameterProviderTypesGrid = $('#parameter-provider-types-table').data('gridInstance');
+                    if (nfCommon.isDefinedAndNotNull(parameterProviderTypesGrid)) {
+                        var parameterProviderTypesData = parameterProviderTypesGrid.getData();
+
+                        // reset the canvas size after the dialog is shown
+                        parameterProviderTypesGrid.resizeCanvas();
+
+                        // select the first row if possible
+                        if (parameterProviderTypesData.getLength() > 0) {
+                            nfFilteredDialogCommon.choseFirstRow(parameterProviderTypesGrid);
+                        }
+                    }
+
+                    // set the initial focus
+                    $('#parameter-provider-type-filter').focus();
                 }
             });
 
@@ -1834,6 +2716,7 @@
             nfControllerServices.init(getControllerServicesTable(), nfSettings.showSettings);
             initReportingTasks();
             initRegistriesTable();
+            initParameterProvidersTable();
         },
 
         /**
@@ -1845,6 +2728,10 @@
             var reportingTasksGrid = $('#reporting-tasks-table').data('gridInstance');
             if (nfCommon.isDefinedAndNotNull(reportingTasksGrid)) {
                 reportingTasksGrid.resizeCanvas();
+            }
+            var parameterProvidersGrid = $('#parameter-providers-table').data('gridInstance');
+            if (nfCommon.isDefinedAndNotNull(parameterProvidersGrid)) {
+                parameterProvidersGrid.resizeCanvas();
             }
         },
 

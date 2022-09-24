@@ -86,6 +86,8 @@
 }(this, function ($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfNgBridge, nfErrorHandler, nfFilteredDialogCommon, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration, _) {
     'use strict';
 
+    var nfParameterProvider;
+
     var config = {
         urls: {
             parameterContexts: '../nifi-api/parameter-contexts'
@@ -130,6 +132,29 @@
         }
 
         return nfCommon.escapeHtml(dataContext.component.name);
+    };
+
+    /**
+     * Formatter for the provider column.
+     *
+     * @param {type} row
+     * @param {type} cell
+     * @param {type} value
+     * @param {type} columnDef
+     * @param {type} dataContext
+     * @returns {String}
+     */
+    var providerFormatter = function (row, cell, value, columnDef, dataContext) {
+        var component = dataContext.component ? dataContext.component : null;
+
+        if (component && component.parameterProviderConfiguration) {
+            if (!dataContext.permissions.canRead) {
+                return '<span class="blank">' + nfCommon.escapeHtml(component.parameterProviderConfiguration.id) + '</span>';
+            }
+
+            return nfCommon.escapeHtml(component.parameterProviderConfiguration.component.parameterGroupName +
+                ' from ' + component.parameterProviderConfiguration.component.parameterProviderName);
+        }
     };
 
     /**
@@ -215,6 +240,8 @@
         $('#process-group-parameter').text('');
         $('#parameter-process-group-id').text('').removeData('revision');
         $('#parameter-referencing-components-context').removeClass('unset').attr('title', '').text('');
+
+        $('#parameter-context-provider-setting').hide();
 
         var parameterGrid = $('#parameter-table').data('gridInstance');
         var parameterData = parameterGrid.getData();
@@ -1053,7 +1080,7 @@
                 referencingComponents: originalParameter.referencingComponents,
                 previousValue: originalParameter.value,
                 previousDescription: originalParameter.description,
-                isEditable: originalParameter.isEditable,
+                isEditable: originalParameter.isEditable || originalParameter.provided !== true,
                 isEmptyStringSet: serializedParam.isEmptyStringSet,
                 isNew: originalParameter.isNew,
                 hasValueChanged: serializedParam.hasValueChanged,
@@ -1086,12 +1113,11 @@
         $('#parameter-context-dialog').modal('refreshButtons');
     };
 
-
     var hasParameterContextChanged = function (parameterContextEntity) {
-        var parameters = marshalParameters();
         var proposedParamContextName = $('#parameter-context-name').val();
         var proposedParamContextDesc = $('#parameter-context-description-field').val();
         var inheritedParameterContexts = marshalInheritedParameterContexts();
+        var componentDescription = _.get(parameterContextEntity, 'component.description', '');
 
         var inheritedParameterContextEquals = isInheritedParameterContextEquals(parameterContextEntity, inheritedParameterContexts);
         if (inheritedParameterContextEquals) {
@@ -1100,15 +1126,23 @@
             $('#inherited-parameter-contexts-message').removeClass('hidden');
         }
 
-        if (_.isEmpty(parameters) &&
-            proposedParamContextName === _.get(parameterContextEntity, 'component.name') &&
-            proposedParamContextDesc === _.get(parameterContextEntity, 'component.description') &&
-            inheritedParameterContextEquals) {
-
-            return false;
+        if (parameterContextEntity.component.parameterProviderConfiguration) {
+            if (proposedParamContextName === _.get(parameterContextEntity, 'component.name') &&
+                proposedParamContextDesc === componentDescription &&
+                inheritedParameterContextEquals) {
+                return false;
+            }
         } else {
-            return true;
+            var parameters = marshalParameters();
+            if (_.isEmpty(parameters) &&
+                proposedParamContextName === _.get(parameterContextEntity, 'component.name') &&
+                proposedParamContextDesc === _.get(parameterContextEntity, 'component.description') &&
+                inheritedParameterContextEquals) {
+                return false;
+            }
         }
+
+        return true;
     };
 
     /**
@@ -1560,7 +1594,7 @@
                     description: parameterEntity.parameter.description,
                     previousValue: parameterEntity.parameter.value,
                     previousDescription: parameterEntity.parameter.description,
-                    isEditable: _.defaultTo(readOnly, false) ? false : parameterEntity.canWrite,
+                    isEditable: _.defaultTo(readOnly, false) || parameterEntity.parameter.provided ? false : parameterEntity.canWrite,
                     referencingComponents: parameterEntity.parameter.referencingComponents,
                     parameterContext: containingParameterContext,
                     isInherited: (containingParameterContext.id !== parameterContext.component.id),
@@ -2496,6 +2530,10 @@
                 markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key"></div>';
             }
 
+            if (canRead && dataContext.component.parameterProviderConfiguration) {
+                markup += '<div title="Go To Parameter Provider" class="pointer go-to-provider fa fa-long-arrow-right"></div>';
+            }
+
             return markup;
         };
 
@@ -2536,6 +2574,13 @@
                 sortable: true,
                 resizable: true,
                 formatter: nameFormatter
+            },
+            {
+                id: 'parameterProviderConfiguration',
+                name: 'Provider',
+                sortable: true,
+                resizable: true,
+                formatter: providerFormatter
             },
             {
                 id: 'description',
@@ -2600,6 +2645,13 @@
 
                     // close the settings dialog
                     $('#shell-close-button').click();
+                } else if (target.hasClass('go-to-provider')) {
+                    if (parameterContextEntity.component.parameterProviderConfiguration) {
+                        nfParameterProvider.showParameterProvider(parameterContextEntity.component.parameterProviderConfiguration.id);
+
+                        // close the settings dialog
+                        $('#shell-close-button').click();
+                    }
                 }
             } else if (parameterContextsGrid.getColumns()[args.cell].id === 'info') {
                 if (target.hasClass('view-parameter-context')) {
@@ -2657,8 +2709,12 @@
     var nfParameterContexts = {
         /**
          * Initializes the parameter contexts page.
+         *
+         * @param nfParameterProviderRef    The nfParameterProvider module.
          */
-        init: function () {
+        init: function (nfParameterProviderRef) {
+            nfParameterProvider = nfParameterProviderRef;
+
             // parameter context refresh button
             $('#parameter-contexts-refresh-button').on('click', function () {
                 loadParameterContexts();
@@ -2926,6 +2982,36 @@
                     .prop('title', parameterContextEntity.id)
                     .text(parameterContextEntity.id);
 
+                // if provided, show the provider setting
+                if (parameterContextEntity.component.parameterProviderConfiguration) {
+                    $('#parameter-context-provider-setting').show();
+
+                    var parameterContextProviderSetting = $('#parameter-context-provider-setting').empty();
+                    var providerContent = nfCommon.escapeHtml(parameterContextEntity.component.parameterProviderConfiguration.component.parameterGroupName +
+                        ' from ' + parameterContextEntity.component.parameterProviderConfiguration.component.parameterProviderName);
+
+                    $('<div class="setting-name">Provider</div>').appendTo(parameterContextProviderSetting);
+                    var settingEl = $('<div class="setting-field"></div>');
+
+                    // provider name
+                    var providerLinkEl = $('<span id="parameter-context-parameter-provider-name" class="parameter-context-parameter-provider-name link ellipsis"></span>')
+                        .prop('title', providerContent)
+                        .text(providerContent)
+                        .on('click', function () {
+                            // check if there are outstanding changes
+                            handleOutstandingChanges().done(function () {
+                                // close the shell
+                                $('#shell-dialog').modal('hide');
+
+                                // show the provider in question
+                                nfParameterProvider.showParameterProvider(parameterContextEntity.component.parameterProviderConfiguration.id)
+                            });
+                        });
+
+                    providerLinkEl.appendTo(settingEl);
+                    settingEl.appendTo(parameterContextProviderSetting);
+                }
+
                 // get the reference container
                 var referencingComponentsContainer = $('#parameter-context-referencing-components');
 
@@ -2995,6 +3081,22 @@
 
                     // select the parameters tab
                     $('#parameter-context-tabs').find('li:eq(1)').click();
+
+                    // if parameters are provided
+                    if (parameterContextEntity.component.parameterProviderConfiguration) {
+                        // hide the add parameter button
+                        $('#add-parameter').hide();
+                    } else {
+                        // hide the provider details
+                        if (!$('#parameter-context-provider-setting').hasClass('hidden')) {
+                            $('#parameter-context-provider-setting')
+                                .empty()
+                                .addClass('hidden');
+                        }
+
+                        // show the add parameter button
+                        $('#add-parameter').show();
+                    }
 
                     // check if border is necessary
                     updateReferencingComponentsBorder($('#parameter-referencing-components-container'));

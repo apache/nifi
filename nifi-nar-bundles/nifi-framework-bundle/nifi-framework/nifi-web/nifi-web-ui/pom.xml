@@ -541,6 +541,7 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-controller-service.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-controller-services.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-reporting-task.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-parameter-provider.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-settings.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-breadcrumbs-controller.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-header-controller.js</include>
@@ -734,6 +735,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/css/nf-canvas-all.css</output>
                                             <includes>
                                                 <include>${staging.dir}/css/reporting-task.css</include>
+                                                <include>${staging.dir}/css/parameter-provider.css</include>
                                                 <include>${staging.dir}/css/controller-service.css</include>
                                                 <include>${staging.dir}/css/processor-configuration.css</include>
                                                 <include>${staging.dir}/css/processor-details.css</include>
@@ -753,6 +755,7 @@
                                                 <include>${staging.dir}/css/new-port-dialog.css</include>
                                                 <include>${staging.dir}/css/new-controller-service-dialog.css</include>
                                                 <include>${staging.dir}/css/new-reporting-task-dialog.css</include>
+                                                <include>${staging.dir}/css/new-parameter-provider-dialog.css</include>
                                                 <include>${staging.dir}/css/new-parameter-context-dialog.css</include>
                                                 <include>${staging.dir}/css/graph.css</include>
                                                 <include>${staging.dir}/css/header.css</include>
