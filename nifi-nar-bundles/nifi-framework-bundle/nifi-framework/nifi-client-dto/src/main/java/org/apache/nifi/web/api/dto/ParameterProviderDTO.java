@@ -49,6 +49,7 @@ public class ParameterProviderDTO extends ComponentDTO {
     private Map<String, PropertyDescriptorDTO> descriptors;
     private Collection<ParameterGroupConfigurationEntity> parameterGroupConfigurations;
     private Set<AffectedComponentEntity> affectedComponents;
+    private Set<ParameterStatusDTO> parameterStatus;
     private Set<ParameterProviderReferencingComponentEntity> referencingParameterContexts;
 
     private String customUiUrl;
@@ -82,6 +83,15 @@ public class ParameterProviderDTO extends ComponentDTO {
 
     public void setReferencingParameterContexts(final Set<ParameterProviderReferencingComponentEntity> referencingParameterContexts) {
         this.referencingParameterContexts = referencingParameterContexts;
+    }
+
+    @ApiModelProperty("The status of all provided parameters for this parameter provider")
+    public Set<ParameterStatusDTO> getParameterStatus() {
+        return parameterStatus;
+    }
+
+    public void setParameterStatus(Set<ParameterStatusDTO> parameterStatus) {
+        this.parameterStatus = parameterStatus;
     }
 
     @ApiModelProperty(value = "The Parameter Contexts that reference this Parameter Provider", accessMode = ApiModelProperty.AccessMode.READ_ONLY)

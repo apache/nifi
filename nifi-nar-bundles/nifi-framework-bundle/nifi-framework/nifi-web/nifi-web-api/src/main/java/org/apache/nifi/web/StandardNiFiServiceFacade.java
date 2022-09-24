@@ -3476,6 +3476,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                             }
                         } else {
                             parameterEntity = dtoFactory.createParameterEntity(parameterContext, parameter, revisionManager, parameterContextDAO);
+                            // Need to unmask in order to actually apply the value
+                            if (parameterEntity.getParameter() != null && parameterEntity.getParameter().getSensitive() != null
+                                     && parameterEntity.getParameter().getSensitive()) {
+                                parameterEntity.getParameter().setValue(parameter.getValue());
+                            }
                             updatedParameterEntities.add(parameterEntity);
                         }
                     }

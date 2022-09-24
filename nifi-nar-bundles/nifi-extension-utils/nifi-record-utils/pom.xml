@@ -26,8 +26,9 @@
     <modules>
         <module>nifi-avro-record-utils</module>
         <module>nifi-standard-record-utils</module>
-	    <module>nifi-hadoop-record-utils</module>
-	    <module>nifi-mock-record-utils</module>
+	      <module>nifi-hadoop-record-utils</module>
+        <module>nifi-json-record-utils</module>
+	      <module>nifi-mock-record-utils</module>
     </modules>
 
     <dependencyManagement>
