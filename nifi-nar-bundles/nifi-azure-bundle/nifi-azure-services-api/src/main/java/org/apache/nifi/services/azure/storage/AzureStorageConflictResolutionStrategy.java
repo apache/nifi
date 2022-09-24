@@ -16,27 +16,37 @@
  */
 package org.apache.nifi.services.azure.storage;
 
-import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.DescribedValue;
 
-public enum AzureStorageCredentialsType {
-
-    ACCOUNT_KEY("Account Key", "The primary or secondary Account Key of the storage account that provides full access to the resources in the account"),
-    SAS_TOKEN("SAS Token", "SAS (Shared Access Signature) Token generated for accessing resources in the storage account"),
-    MANAGED_IDENTITY("Managed Identity", "Azure Virtual Machine Managed Identity (it can only be used when NiFi is running on Azure)"),
-    SERVICE_PRINCIPAL("Service Principal", "Azure Active Directory Service Principal with Client Id / Client Secret of a registered application"),
-    ACCESS_TOKEN("Access Token", "Access Token provided by custom controller service implementations");
+public enum AzureStorageConflictResolutionStrategy implements DescribedValue {
+    FAIL_RESOLUTION("fail", "Fail if the blob already exists"),
+    IGNORE_RESOLUTION("ignore",
+            String.format(
+                "Ignore if the blob already exists; the 'azure.error' attribute will be set to the value 'BLOB_ALREADY_EXISTS'"
+            )
+    ),
+    REPLACE_RESOLUTION("replace", "Replace blob contents if the blob already exist");
 
     private final String label;
     private final String description;
 
-    AzureStorageCredentialsType(String label, String description) {
+    AzureStorageConflictResolutionStrategy(String label, String description) {
         this.label = label;
         this.description = description;
     }
 
-    public AllowableValue getAllowableValue() {
-        return new AllowableValue(name(), label, description);
+    @Override
+    public String getValue() {
+        return this.name();
     }
 
-}
+    @Override
+    public String getDisplayName() {
+        return label;
+    }
 
+    @Override
+    public String getDescription() {
+        return description;
+    }
+}

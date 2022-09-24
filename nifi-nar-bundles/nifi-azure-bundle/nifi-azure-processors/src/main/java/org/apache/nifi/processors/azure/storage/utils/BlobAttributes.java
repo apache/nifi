@@ -45,4 +45,10 @@ public final class BlobAttributes {
     public static final String ATTR_NAME_LENGTH = "azure.length";
     public static final String ATTR_DESCRIPTION_LENGTH = "Length of the blob";
 
+    public static final String ATTR_NAME_ERROR_CODE = "azure.error.code";
+    public static final String ATTR_DESCRIPTION_ERROR_CODE = "Error code reported during blob operation";
+
+    public static final String ATTR_NAME_IGNORED = "azure.ignored";
+    public static final String ATTR_DESCRIPTION_IGNORED = "When Conflict Resolution Strategy is 'ignore', " +
+            "this property will be true/false depending on whether the blob was ignored.";
 }
