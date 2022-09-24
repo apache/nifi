@@ -65,6 +65,9 @@
             <div id="registries-tab-content" class="configuration-tab controller-settings-table">
                 <div id="registries-table" class="settings-table"></div>
             </div>
+            <div id="parameter-providers-tab-content" class="configuration-tab controller-settings-table">
+                <div id="parameter-providers-table" class="settings-table"></div>
+            </div>
         </div>
     </div>
     <div id="settings-refresh-container">

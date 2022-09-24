@@ -68,7 +68,9 @@
 }(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfVerify, nfCanvasUtils, nfProcessor) {
     'use strict';
 
-    var nfControllerServices, nfReportingTask;
+    var nfControllerServices,
+        nfReportingTask,
+        nfParameterProvider;
 
     var config = {
         edit: 'edit',
@@ -251,6 +253,15 @@
                 if (referencingComponentState.length) {
                     updateReferencingSchedulableComponentState(referencingComponentState, reference);
                 }
+            } else if (reference.referenceType === 'ParameterProvider') {
+                // reload
+                nfParameterProvider.reload(reference.id);
+
+                // update the validation errors of this parameter provider
+                var referencingComponentState = $('div.' + reference.id + '-state');
+                if (referencingComponentState.length) {
+                    updateValidationErrors(referencingComponentState, reference);
+                }
             } else {
                 // reload the referencing services
                 reloadControllerService(serviceTable, reference.id);
@@ -392,6 +403,42 @@
     };
 
     /**
+     * Updates validation errors. This is used for parameter providers and registry clients.
+     *
+     * @param validationErrorIcon
+     * @param referencingComponent
+     */
+    var updateValidationErrors = function (validationErrorIcon, referencingComponent) {
+        var currentValidationErrors = validationErrorIcon.data('validation-errors');
+
+        // update the validation errors if necessary
+        if (!_.isEqual(currentValidationErrors, referencingComponent.validationErrors)) {
+            validationErrorIcon.data('validation-errors', referencingComponent.validationErrors);
+
+            // if there are validation errors update them
+            if (!nfCommon.isEmpty(referencingComponent.validationErrors)) {
+                var list = nfCommon.formatUnorderedList(referencingComponent.validationErrors);
+
+                // update existing tooltip or initialize a new one if appropriate
+                if (validationErrorIcon.data('qtip')) {
+                    validationErrorIcon.qtip('option', 'content.text', list);
+                } else {
+                    validationErrorIcon.show().qtip($.extend({},
+                        nfCanvasUtils.config.systemTooltipConfig,
+                        {
+                            content: list
+                        }));
+                }
+            } else {
+                if (validationErrorIcon.data('qtip')) {
+                    validationErrorIcon.removeData('validation-errors').qtip('api').destroy(true);
+                }
+                validationErrorIcon.hide();
+            }
+        }
+    };
+
+    /**
      * Updates the bulletins for all referencing components.
      *
      * @param {array} bulletins
@@ -444,6 +491,7 @@
         var processors = $('<ul class="referencing-component-listing clear"></ul>');
         var services = $('<ul class="referencing-component-listing clear"></ul>');
         var tasks = $('<ul class="referencing-component-listing clear"></ul>');
+        var providers = $('<ul class="referencing-component-listing clear"></ul>');
         var unauthorized = $('<ul class="referencing-component-listing clear"></ul>');
         $.each(referencingComponents, function (_, referencingComponentEntity) {
             // check the access policy for this referencing component
@@ -582,6 +630,46 @@
                     // reporting task
                     var reportingTaskItem = $('<li></li>').append(reportingTaskState).append(reportingTaskBulletins).append(reportingTaskLink).append(reportingTaskType).append(reportingTaskActiveThreadCount);
                     tasks.append(reportingTaskItem);
+                } else if (referencingComponent.referenceType === 'ParameterProvider') {
+                    var parameterProviderLink = $('<span class="referencing-component-name link"></span>').text(referencingComponent.name).on('click', function () {
+                        var parameterProvidersGrid = $('#parameter-providers-table').data('gridInstance');
+                        var parameterProvidersData = parameterProvidersGrid.getData();
+
+                        // select the selected row
+                        var row = parameterProvidersData.getRowById(referencingComponent.id);
+                        parameterProvidersGrid.setSelectedRows([row]);
+                        parameterProvidersGrid.scrollRowIntoView(row);
+
+                        // close the dialog and shell
+                        referenceContainer.closest('.dialog').modal('hide');
+
+                        $('#settings-tabs').find('li:eq(4)').click();
+
+                        // adjust the table size
+                        parameterProvidersGrid.resizeCanvas();
+                    });
+
+                    // provider state - used to show the validation errors
+                    var providerState = $('<div class="referencing-component-state invalid"></div>').addClass(referencingComponent.id + '-state');
+                    if (nfCommon.isEmpty(referencingComponent.validationErrors)) {
+                        providerState.hide();
+                    } else {
+                        updateValidationErrors(providerState, referencingComponent);
+                    }
+
+                    // bulletin
+                    var providerBulletins = $('<div class="referencing-component-bulletins"></div>').addClass(referencingComponent.id + '-bulletins');
+                    if (!nfCommon.isEmpty(referencingComponentEntity.bulletins)) {
+                        updateBulletins(referencingComponentEntity.bulletins, providerBulletins);
+                    }
+
+                    // type
+                    var providerType = $('<span class="referencing-component-type"></span>').text(referencingComponent.type);
+
+                    // parameter provider
+                    var providerItem = $('<li></li>').append(providerState).append(providerBulletins).append(parameterProviderLink).append(providerType);
+
+                    providers.append(providerItem);
                 }
             }
         });
@@ -614,6 +702,7 @@
         createReferenceBlock('Processors', processors);
         createReferenceBlock('Reporting Tasks', tasks);
         createReferenceBlock('Controller Services', services);
+        createReferenceBlock('Parameter Providers', providers);
         createReferenceBlock('Unauthorized', unauthorized);
 
         // now that the dom elements are in place, we can show the bulletin icons.
@@ -734,7 +823,7 @@
                     referencingComponentRevisions[referencingComponentEntity.id] = nfClient.getRevision(referencingComponentEntity);
                 }
             } else {
-                if (referencingComponent.referenceType !== 'ControllerService') {
+                if (referencingComponent.referenceType === 'Processor' || referencingComponent.referenceType === 'ReportingTask') {
                     referencingComponentRevisions[referencingComponentEntity.id] = nfClient.getRevision(referencingComponentEntity);
                 }
             }
@@ -948,7 +1037,7 @@
             var referencingComponents = service.referencingComponents;
             $.each(referencingComponents, function (_, referencingComponentEntity) {
                 var referencingComponent = referencingComponentEntity.component;
-                if (referencingComponent.referenceType === 'Processor' || referencingComponent.referenceType === 'ReportingTask') {
+                if (referencingComponent.referenceType === 'Processor' || referencingComponent.referenceType === 'ReportingTask' || referencingComponent.referenceType === 'ParameterProvider') {
                     referencingSchedulableComponents.push(referencingComponent.id);
                 }
             });
@@ -1753,9 +1842,10 @@
         /**
          * Initializes the controller service configuration dialog.
          */
-        init: function (nfControllerServicesRef, nfReportingTaskRef) {
+        init: function (nfControllerServicesRef, nfReportingTaskRef, nfParameterProviderRef) {
             nfControllerServices = nfControllerServicesRef;
             nfReportingTask = nfReportingTaskRef;
+            nfParameterProvider = nfParameterProviderRef;
 
             // initialize the configuration dialog tabs
             $('#controller-service-configuration-tabs').tabbs({
@@ -1862,7 +1952,7 @@
                     }
                 }
             });
-            
+
             // initialize the bulletin combo
             $('#controller-service-bulletin-level-combo').combo({
                 options: [{

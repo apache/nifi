@@ -478,7 +478,9 @@ div.variable-step {
     margin-bottom: 2px;
 }
 
-div.parameter-context-step, div.referencing-components-loading {
+div.parameter-context-step,
+div.referencing-components-loading,
+div.fetch-parameters-step {
     min-width: 16px;
     width: 16px;
     height: 16px;
