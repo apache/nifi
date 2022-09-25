@@ -834,16 +834,16 @@
             }
         }
 
-        // check for changed parameter values
+        // check for changed or new parameter values
         if (updatedParameterProviderEntity.component.parameterStatus) {
-            var isChanged = function (parameterStatus) {
-                return parameterStatus.status === 'CHANGED';
+            var isChangedOrNew = function (parameterStatus) {
+                return parameterStatus.status === 'CHANGED' || parameterStatus.status === 'NEW';
             }
 
-            var isAnyParameterValueChanged = updatedParameterProviderEntity.component.parameterStatus.some(isChanged);
+            var isAnyParameterValueChangedOrNew = updatedParameterProviderEntity.component.parameterStatus.some(isChangedOrNew);
 
-            if (isAnyParameterValueChanged) {
-                // a fetched parameter value has changed... do not disable the Apply button
+            if (isAnyParameterValueChangedOrNew) {
+                // a fetched parameter value has changed or is new... do not disable the Apply button
                 return false;
             }
         }
@@ -911,6 +911,18 @@
             groupsData.endUpdate();
             groupsData.reSort();
 
+            // if there is a new parameter, update its sensitivity
+            if (!_.isEmpty(parameterProviderGroupEntity.component.parameterStatus)) {
+                $.each(parameterProviderGroupEntity.component.parameterStatus, function (i, status) {
+                    if (status.status === 'NEW') {
+                        var group = groupsData.getItems().find(function (group) { return group.name === status.parameter.parameter.parameterContext.component.name });
+
+                        loadSelectableParameters(group.id, group.parameterSensitivities, group, true);
+                        $('#fetch-parameters-dialog').modal('refreshButtons');
+                    }
+                })
+            }
+
             // select the first row
             groupsGrid.setSelectedRows([0]);
         }
@@ -940,8 +952,9 @@
      * @param groupId
      * @param {object} parametersEntity
      * @param {object} updatedGroup
+     * @param {boolean} saveToGroup
      */
-    var loadSelectableParameters = function (groupId, parametersEntity, updatedGroup) {
+    var loadSelectableParameters = function (groupId, parametersEntity, updatedGroup, saveToGroup = false) {
         if (nfCommon.isDefinedAndNotNull(parametersEntity)) {
             var selectableParametersGrid = $('#selectable-parameters-table').data('gridInstance');
             var parametersData = selectableParametersGrid.getData();
@@ -997,6 +1010,15 @@
                 parameterCount++;
                 if (parameter.isReferencingParameter === true) {
                     referencingParameters++;
+                }
+
+                // save to its group
+                if (saveToGroup) {
+                    var groupsData = $('#parameter-groups-table').data('gridInstance').getData();
+                    var currentGroup = groupsData.getItem([groupId]);
+
+                    currentGroup.parameterSensitivities[param] = parametersEntity[param] ? parametersEntity[param] : SENSITIVE;
+                    groupsData.updateItem(groupId, currentGroup);
                 }
             }
 
