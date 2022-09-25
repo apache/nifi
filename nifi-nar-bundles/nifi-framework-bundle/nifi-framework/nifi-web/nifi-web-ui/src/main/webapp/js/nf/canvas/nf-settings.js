@@ -1178,10 +1178,10 @@
             scrollableContentStyle: 'scrollable',
             handler: {
                 close: function () {
-                    $('#registry-id').text('');
-                    $('#registry-name').val('');
-                    $('#registry-location').val('');
-                    $('#registry-description').val('');
+                    $('#registry-id-config').text('');
+                    $('#registry-name-config').val('');
+                    $('#registry-type-config').val('');
+                    $('#registry-description-config').val('');
                 }
             }
         });
@@ -1390,7 +1390,7 @@
                                 type: nfCommon.formatType(documentedType),
                                 bundle: nfCommon.formatBundle(documentedType.bundle),
                                 explanation: nfCommon.escapeHtml(explicitRestriction.explanation)
-                            })
+                            });
                         });
                     } else {
                         // update required permissions
@@ -1541,7 +1541,8 @@
                             $(this).modal('hide');
                         }
                     }
-                }],
+                }
+            ],
             handler: {
                 close: function () {
                     // clear the selected row
@@ -1886,6 +1887,37 @@
                         }));
                 }
             }
+        });
+    };
+
+    var initNewRegistryDialog = function () {
+        $('#new-registry-client-dialog').modal({
+            headerText: 'Add Registry Client',
+            buttons: [{
+                buttonText: 'Add',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
+                handler: {
+                    click: function () {
+                        addRegistry();
+                    }
+                }
+            }, {
+                buttonText: 'Cancel',
+                color: {
+                    base: '#E3E8EB',
+                    hover: '#C7D2D7',
+                    text: '#004849'
+                },
+                handler: {
+                    click: function () {
+                        $(this).modal('hide');
+                    }
+                }
+            }]
         });
     };
 
@@ -2485,7 +2517,7 @@
         var parameterProviders = loadParameterProviders();
 
         // return a deferred for all parts of the settings
-        return $.when(settings, controllerServicesXhr, reportingTasks, parameterProviders).done(function (settingsResult, controllerServicesResult) {
+        return $.when(settings, controllerServicesXhr, reportingTasks, registries, parameterProviders).done(function (settingsResult, controllerServicesResult) {
             var controllerServicesResponse = controllerServicesResult[0];
 
             // update the current time
@@ -2596,14 +2628,14 @@
                     text: nfCommon.substringAfterLast(type.type, '.'),
                     value: type.type,
                     description: type.description || ''
-                })
+                });
             });
 
             $('#new-registry-type-combo').combo({
                 options: regTypeOptions
             });
-        }
-    )};
+        });
+    };
 
     /**
      * Determines whether the user has made any changes to the registry configuration
@@ -2841,36 +2873,12 @@
                     $('#new-registry-name').val('');
                     $('#new-registry-description').val('');
 
-                    $('#new-registry-client-dialog').modal('setHeaderText', 'Add Registry Client').modal('setButtonModel', [{
-                        buttonText: 'Add',
-                        color: {
-                            base: '#728E9B',
-                            hover: '#004849',
-                            text: '#ffffff'
-                        },
-                        handler: {
-                            click: function () {
-                                addRegistry();
-                            }
-                        }
-                    }, {
-                        buttonText: 'Cancel',
-                        color: {
-                            base: '#E3E8EB',
-                            hover: '#C7D2D7',
-                            text: '#004849'
-                        },
-                        handler: {
-                            click: function () {
-                                $(this).modal('hide');
-                            }
-                        }
-                    }]).modal('show');
-
                     loadRegistryTypes();
 
+                    $('#new-registry-client-dialog').modal('show');
+
                     // set the initial focus
-                    $('#registry-name').focus();
+                    $('#new-registry-name').focus();
                 } else if (selectedTab === 'Parameter Providers') {
                     $('#new-parameter-provider-dialog').modal('show');
 
@@ -2919,7 +2927,7 @@
                 }],
                 select: function () {
                     var tab = $(this).text();
-                    if (tab = 'Properties') {
+                    if (tab === 'Properties') {
                         $('#registry-properties').propertytable('resetTableSize');
                     }
                 }
@@ -2930,6 +2938,7 @@
             nfControllerServices.init(getControllerServicesTable(), nfSettings.showSettings);
             initReportingTasks();
             initRegistriesTable();
+            initNewRegistryDialog();
             initParameterProvidersTable();
         },
 
