@@ -1262,6 +1262,7 @@ class TestJsonTreeRowRecordReader {
         expectedCapturedFields.put("id", "1");
         expectedCapturedFields.put("zipCode", "11111");
         expectedCapturedFields.put("country", "USA");
+        expectedCapturedFields.put("job", null);
         Set<String> fieldsToCapture = expectedCapturedFields.keySet();
         BiPredicate<String, String> capturePredicate = (fieldName, fieldValue) -> fieldsToCapture.contains(fieldName);
         String startingFieldName = "accounts";
@@ -1272,18 +1273,24 @@ class TestJsonTreeRowRecordReader {
                 new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
         ));
 
+        SimpleRecordSchema jobRecordSchema = new SimpleRecordSchema(Arrays.asList(
+                new RecordField("salary", RecordFieldType.INT.getDataType()),
+                new RecordField("position", RecordFieldType.STRING.getDataType())
+        ));
+
         SimpleRecordSchema recordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("accounts", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(accountRecordSchema))),
                 new RecordField("name", RecordFieldType.STRING.getDataType()),
                 new RecordField("address", RecordFieldType.STRING.getDataType()),
                 new RecordField("city", RecordFieldType.STRING.getDataType()),
+                new RecordField("job", RecordFieldType.RECORD.getRecordDataType(jobRecordSchema)),
                 new RecordField("state", RecordFieldType.STRING.getDataType()),
                 new RecordField("zipCode", RecordFieldType.STRING.getDataType()),
                 new RecordField("country", RecordFieldType.STRING.getDataType())
         ));
 
-        try (InputStream in = new FileInputStream("src/test/resources/json/single-element-nested-array-middle.json")) {
+        try (InputStream in = new FileInputStream("src/test/resources/json/capture-fields.json")) {
             JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(
                     in, mock(ComponentLog.class), recordSchema,
                     dateFormat, timeFormat, timestampFormat,

@@ -65,7 +65,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     private StartingFieldStrategy strategy;
 
     private Map<String, String> capturedFields;
-    private BiPredicate<String, String> capturePredicate;
+    private BiPredicate<String, String> captureFieldsPredicate;
 
     private AbstractJsonRowRecordReader(final ComponentLog logger, final String dateFormat, final String timeFormat, final String timestampFormat) {
         this.logger = logger;
@@ -99,9 +99,9 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
      * @param timestampFormat  format for parsing timestamp fields
      * @param strategy         whether to start processing from a specific field
      * @param nestedFieldName  the name of the field to start the processing from
-     * @param capturePredicate predicate that takes a JSON fieldName and fieldValue to capture non-processed fields which can
+     * @param captureFieldsPredicate predicate that takes a JSON fieldName and fieldValue to capture top-level non-processed fields which can
      *                         be accessed by calling {@link #getCapturedFields()}
-     * @throws IOException in case of JSON stream processing failure
+     * @throws IOException              in case of JSON stream processing failure
      * @throws MalformedRecordException in case of malformed JSON input
      */
     protected AbstractJsonRowRecordReader(final InputStream in,
@@ -111,13 +111,13 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                                           final String timestampFormat,
                                           final StartingFieldStrategy strategy,
                                           final String nestedFieldName,
-                                          final BiPredicate<String, String> capturePredicate)
+                                          final BiPredicate<String, String> captureFieldsPredicate)
             throws IOException, MalformedRecordException {
 
         this(logger, dateFormat, timeFormat, timestampFormat);
 
         this.strategy = strategy;
-        this.capturePredicate = capturePredicate;
+        this.captureFieldsPredicate = captureFieldsPredicate;
         capturedFields = new HashMap<>();
 
         try {
@@ -129,11 +129,11 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                     if (nestedFieldName.equals(jsonParser.getCurrentName())) {
                         break;
                     }
-                    if (capturePredicate != null && jsonParser.getCurrentToken() == JsonToken.FIELD_NAME) {
+                    if (captureFieldsPredicate != null && jsonParser.getCurrentToken() == JsonToken.FIELD_NAME) {
                         jsonParser.nextToken();
                         final String fieldName = jsonParser.getCurrentName();
                         final String fieldValue = jsonParser.getValueAsString();
-                        if (capturePredicate.test(fieldName, fieldValue)) {
+                        if (captureFieldsPredicate.test(fieldName, fieldValue)) {
                             capturedFields.put(fieldName, fieldValue);
                         }
                     }
@@ -172,13 +172,13 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
         final JsonNode nextNode = getNextJsonNode();
         if (nextNode == null) {
-            if (capturePredicate != null) {
+            if (captureFieldsPredicate != null) {
                 while (jsonParser.nextToken() != null) {
                     if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME) {
                         jsonParser.nextToken();
                         final String fieldName = jsonParser.getCurrentName();
                         final String fieldValue = jsonParser.getValueAsString();
-                        if (capturePredicate.test(fieldName, fieldValue)) {
+                        if (captureFieldsPredicate.test(fieldName, fieldValue)) {
                             capturedFields.put(fieldName, fieldValue);
                         }
                     }
