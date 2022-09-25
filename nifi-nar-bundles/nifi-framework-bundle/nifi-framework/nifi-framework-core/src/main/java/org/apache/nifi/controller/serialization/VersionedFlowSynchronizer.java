@@ -439,6 +439,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                     .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
                     .mapInstanceIdentifiers(true)
                     .mapControllerServiceReferencesToVersionedId(false)
+                    .mapFlowRegistryClientId(true)
                     .build();
 
                 rootGroup.synchronizeFlow(versionedExternalFlow, syncOptions, flowMappingOptions);

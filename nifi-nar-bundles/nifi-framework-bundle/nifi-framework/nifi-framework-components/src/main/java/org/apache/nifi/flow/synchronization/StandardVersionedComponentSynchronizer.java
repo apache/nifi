@@ -309,7 +309,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         if (remoteCoordinates == null) {
             group.disconnectVersionControl(false);
         } else {
-            final String registryId = remoteCoordinates.getRegistryId();
+            final String registryId = determineRegistryId(remoteCoordinates);
             final String bucketId = remoteCoordinates.getBucketId();
             final String flowId = remoteCoordinates.getFlowId();
             final int version = remoteCoordinates.getVersion();
@@ -459,6 +459,42 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         // Start all components that are queued up to be started now
         context.getComponentScheduler().resume();
+    }
+
+    private String determineRegistryId(final VersionedFlowCoordinates coordinates) {
+        final String explicitRegistryId = coordinates.getRegistryId();
+        if (explicitRegistryId != null) {
+            final FlowRegistryClientNode clientNode = context.getFlowManager().getFlowRegistryClient(explicitRegistryId);
+            if (clientNode == null) {
+                LOG.debug("Encountered Versioned Flow Coordinates with a Client Registry ID of {} but that Registry ID does not exist. Will check for an applicable Registry Client",
+                    explicitRegistryId);
+            } else {
+                return explicitRegistryId;
+            }
+        }
+
+        final String location = coordinates.getStorageLocation() == null ? coordinates.getRegistryUrl() : coordinates.getStorageLocation();
+        if (location == null) {
+            return null;
+        }
+
+        for (final FlowRegistryClientNode flowRegistryClientNode : context.getFlowManager().getAllFlowRegistryClients()) {
+            final boolean locationApplicable;
+            try {
+                locationApplicable = flowRegistryClientNode.isStorageLocationApplicable(location);
+            } catch (final Exception e) {
+                LOG.error("Unable to determine if {} is an applicable Flow Registry Client for storage location {}", flowRegistryClientNode, location, e);
+                continue;
+            }
+
+            if (locationApplicable) {
+                LOG.debug("Found Flow Registry Client {} that is applicable for storage location {}", flowRegistryClientNode, location);
+                return flowRegistryClientNode.getIdentifier();
+            }
+        }
+
+        LOG.debug("Found no Flow Registry Client that is applicable for storage location {}; will return explicitly specified Registry ID {}", location, explicitRegistryId);
+        return explicitRegistryId;
     }
 
     private void synchronizeChildGroups(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, VersionedParameterContext> versionedParameterContexts,

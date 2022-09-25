@@ -33,7 +33,7 @@ public interface FlowRegistryClientNode extends ComponentNode {
 
     void setDescription(String description);
 
-    boolean isStorageLocationApplicable(String location) throws FlowRegistryException, IOException;
+    boolean isStorageLocationApplicable(String location);
 
     Set<FlowRegistryBucket> getBuckets(FlowRegistryClientUserContext context) throws FlowRegistryException, IOException;
     FlowRegistryBucket getBucket(FlowRegistryClientUserContext context, String bucketId) throws FlowRegistryException, IOException;

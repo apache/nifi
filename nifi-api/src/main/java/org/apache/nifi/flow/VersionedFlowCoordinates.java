@@ -17,9 +17,9 @@
 
 package org.apache.nifi.flow;
 
-import java.util.Objects;
-
 import io.swagger.annotations.ApiModelProperty;
+
+import java.util.Objects;
 
 public class VersionedFlowCoordinates {
     private String registryId;
@@ -97,7 +97,7 @@ public class VersionedFlowCoordinates {
 
     @Override
     public int hashCode() {
-        return Objects.hash(registryUrl, bucketId, flowId, version);
+        return Objects.hash(registryId, storageLocation, registryUrl, bucketId, flowId, version);
     }
 
     @Override

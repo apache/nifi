@@ -162,7 +162,10 @@ public class NiFiRegistryFlowMapper {
                     throw new IllegalStateException("Process Group refers to a Flow Registry with ID " + registryId + " but no Flow Registry exists with that ID. Cannot resolve to a URL.");
                 }
 
-                coordinates.setRegistryId(registryId);
+                if (flowMappingOptions.isMapFlowRegistryClientId()) {
+                    coordinates.setRegistryId(registryId);
+                }
+
                 coordinates.setRegistryUrl(getRegistryUrl(registry));
                 coordinates.setStorageLocation(versionControlInfo.getStorageLocation() == null ?getRegistryUrl(registry) : versionControlInfo.getStorageLocation());
                 coordinates.setBucketId(versionControlInfo.getBucketIdentifier());
@@ -186,6 +189,7 @@ public class NiFiRegistryFlowMapper {
             return true;
         });
     }
+
 
     // This is specific for the {@code NifiRegistryFlowRegistryClient}, purely for backward compatibility
     private String getRegistryUrl(final FlowRegistryClientNode registry) {

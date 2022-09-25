@@ -49,6 +49,7 @@ import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -173,8 +174,10 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     }
 
     @Override
-    public boolean isStorageLocationApplicable(final String location) throws FlowRegistryException, IOException {
-        return execute(() -> client.get().getComponent().isStorageLocationApplicable(getConfigurationContext(), location));
+    public boolean isStorageLocationApplicable(final String location) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getExtensionManager(), client.getClass(), getIdentifier())) {
+            return client.get().getComponent().isStorageLocationApplicable(getConfigurationContext(), location);
+        }
     }
 
     @Override
@@ -258,7 +261,12 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         final ValidationStatus validationStatus = getValidationStatus();
 
         if (validationStatus != ValidationStatus.VALID) {
-            final List<String> validationProblems = getValidationErrors().stream()
+            Collection<ValidationResult> validationResults = getValidationErrors();
+            if (validationResults == null) {
+                validationResults = Collections.emptyList();
+            }
+
+            final List<String> validationProblems = validationResults.stream()
                 .map(e -> e.getExplanation())
                 .collect(Collectors.toList());
 
@@ -291,7 +299,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         final VersionedFlowCoordinates coordinates = group.getVersionedFlowCoordinates();
 
         if (coordinates != null) {
-            final String storageLocation = coordinates.getStorageLocation();
+            final String storageLocation = coordinates.getStorageLocation() == null ? coordinates.getRegistryUrl() : coordinates.getStorageLocation();
             final String bucketId = coordinates.getBucketId();
             final String flowId = coordinates.getFlowId();
             final int version = coordinates.getVersion();

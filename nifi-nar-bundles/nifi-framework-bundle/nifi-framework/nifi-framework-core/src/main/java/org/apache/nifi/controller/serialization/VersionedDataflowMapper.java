@@ -72,6 +72,7 @@ public class VersionedDataflowMapper {
             .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
             .mapInstanceIdentifiers(true)
             .mapControllerServiceReferencesToVersionedId(false)
+            .mapFlowRegistryClientId(true)
             .build();
 
         flowMapper = new NiFiRegistryFlowMapper(extensionManager, mappingOptions);
