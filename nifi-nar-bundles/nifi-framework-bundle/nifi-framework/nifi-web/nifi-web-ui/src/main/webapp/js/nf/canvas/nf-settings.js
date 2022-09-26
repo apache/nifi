@@ -91,7 +91,8 @@
             registries: '../nifi-api/controller/registry-clients',
             createParameterProvider: '../nifi-api/controller/parameter-providers',
             parameterProviderTypes: '../nifi-api/flow/parameter-provider-types',
-            parameterProviders: '../nifi-api/flow/parameter-providers'
+            parameterProviders: '../nifi-api/flow/parameter-providers',
+            registryTypes: '../nifi-api/controller/registry-types'
         }
     };
 
@@ -634,9 +635,10 @@
     };
 
     /**
-     * Adds the specified entity.
+     * Adds the specified registry entity.
      */
     var addRegistry = function () {
+        var selectedRegistryType = $('#new-registry-type-combo').combo('getSelectedOption');
         var registryEntity = {
             'revision': nfClient.getRevision({
                 'revision': {
@@ -645,9 +647,9 @@
             }),
             'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
             'component': {
-                'name': $('#registry-name').val(),
-                'uri': $('#registry-location').val(),
-                'description': $('#registry-description').val()
+                'name': $('#new-registry-name').val(),
+                'description': $('#new-registry-description').val(),
+                'type': selectedRegistryType.value
             }
         };
 
@@ -677,6 +679,7 @@
 
             // hide the dialog
             $('#registry-configuration-dialog').modal('hide');
+            $('#new-registry-client-dialog').modal('hide');
         }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
 
 
@@ -744,6 +747,7 @@
     var updateRegistry = function (registryId) {
         var registriesGrid = $('#registries-table').data('gridInstance');
         var registriesData = registriesGrid.getData();
+        var properties = $('#registry-properties').propertytable('marshalProperties');
 
         var registryEntity = registriesData.getItemById(registryId);
         var requestRegistryEntity = {
@@ -751,13 +755,17 @@
             'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
             'component': {
                 'id': registryId,
-                'name': $('#registry-name').val(),
-                'uri': $('#registry-location').val(),
-                'description': $('#registry-description').val()
+                'name': $('#registry-name-config').val(),
+                'description': $('#registry-description-config').val()
             }
         };
 
-        // add the new reporting task
+        // set the properties
+        if ($.isEmptyObject(properties) === false) {
+            requestRegistryEntity['component']['properties'] = properties;
+        }
+
+        // add the new registry
         var updateRegistry = $.ajax({
             type: 'PUT',
             url: registryEntity.uri,
@@ -766,7 +774,7 @@
             contentType: 'application/json'
         }).done(function (registryEntity) {
             // add the item
-            registriesData.updateItem(registryId, $.extend({
+            registriesData.updateItem(registryEntity.id, $.extend({
                 type: 'Registry'
             }, registryEntity));
 
@@ -1170,10 +1178,10 @@
             scrollableContentStyle: 'scrollable',
             handler: {
                 close: function () {
-                    $('#registry-id').text('');
-                    $('#registry-name').val('');
-                    $('#registry-location').val('');
-                    $('#registry-description').val('');
+                    $('#registry-id-config').text('');
+                    $('#registry-name-config').val('');
+                    $('#registry-type-config').val('');
+                    $('#registry-description-config').val('');
                 }
             }
         });
@@ -1382,7 +1390,7 @@
                                 type: nfCommon.formatType(documentedType),
                                 bundle: nfCommon.formatBundle(documentedType.bundle),
                                 explanation: nfCommon.escapeHtml(explicitRestriction.explanation)
-                            })
+                            });
                         });
                     } else {
                         // update required permissions
@@ -1533,7 +1541,8 @@
                             $(this).modal('hide');
                         }
                     }
-                }],
+                }
+            ],
             handler: {
                 close: function () {
                     // clear the selected row
@@ -1881,16 +1890,38 @@
         });
     };
 
+    var initNewRegistryDialog = function () {
+        $('#new-registry-client-dialog').modal({
+            headerText: 'Add Registry Client',
+            buttons: [{
+                buttonText: 'Add',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
+                handler: {
+                    click: function () {
+                        addRegistry();
+                    }
+                }
+            }, {
+                buttonText: 'Cancel',
+                color: {
+                    base: '#E3E8EB',
+                    hover: '#C7D2D7',
+                    text: '#004849'
+                },
+                handler: {
+                    click: function () {
+                        $(this).modal('hide');
+                    }
+                }
+            }]
+        });
+    };
+
     var initRegistriesTable = function () {
-
-        var locationFormatter = function (row, cell, value, columnDef, dataContext) {
-            if (!dataContext.permissions.canRead) {
-                return '<span class="blank">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
-            }
-
-            return nfCommon.escapeHtml(dataContext.component.uri);
-        };
-
         var descriptionFormatter = function (row, cell, value, columnDef, dataContext) {
             if (!dataContext.permissions.canRead) {
                 return '<span class="blank">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
@@ -1913,21 +1944,47 @@
             return markup;
         };
 
+        var moreRegistryDetails = function (row, cell, value, columnDef, dataContext) {
+            if (!dataContext.permissions.canRead) {
+                return '';
+            }
+
+            var markup = '';
+
+            var hasErrors = !nfCommon.isEmpty(dataContext.component.validationErrors);
+            var hasBulletins = !nfCommon.isEmpty(dataContext.bulletins);
+
+            if (hasErrors) {
+                markup += '<div class="pointer has-errors fa fa-warning"></div>';
+            }
+
+            if (hasBulletins) {
+                markup += '<div class="has-bulletins fa fa-sticky-note-o"></div>';
+            }
+
+            if (hasErrors || hasBulletins) {
+                markup += '<span class="hidden row-id">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
+            }
+
+            return markup;
+        };
+
         // define the column model for the reporting tasks table
         var registriesColumnModel = [
+            {
+                id: 'moreDetails',
+                name: '&nbsp;',
+                resizable: false,
+                formatter: moreRegistryDetails,
+                sortable: true,
+                width: 90,
+                maxWidth: 90
+            },
             {
                 id: 'name',
                 name: 'Name',
                 field: 'name',
                 formatter: nameFormatter,
-                sortable: true,
-                resizable: true
-            },
-            {
-                id: 'uri',
-                name: 'Location',
-                field: 'uri',
-                formatter: locationFormatter,
                 sortable: true,
                 resizable: true
             },
@@ -1976,6 +2033,38 @@
             }, registriesData);
         });
 
+        // add tooltip for validation errors
+        $('#registries-table').data('gridInstance', registriesGrid).on('mouseenter', 'div.slick-cell', function (e) {
+            var errorIcon = $(this).find('div.has-errors');
+            if (errorIcon.length && !errorIcon.data('qtip')) {
+                var registryId = $(this).find('span.row-id').text();
+
+                // get the registry
+                var registryEntity = registriesData.getItemById(registryId);
+
+                // format the errors
+                var tooltip = nfCommon.formatUnorderedList(registryEntity.component.validationErrors);
+
+                // show the tooltip
+                if (nfCommon.isDefinedAndNotNull(tooltip)) {
+                    errorIcon.qtip($.extend({},
+                        nfCommon.config.tooltipConfig,
+                        {
+                            content: tooltip,
+                            position: {
+                                target: 'mouse',
+                                viewport: $('#shell-container'),
+                                adjust: {
+                                    x: 8,
+                                    y: 8,
+                                    method: 'flipinvert flipinvert'
+                                }
+                            }
+                        }));
+                }
+            }
+        });
+
         // configure a click listener
         registriesGrid.onClick.subscribe(function (e, args) {
             var target = $(e.target);
@@ -1990,24 +2079,7 @@
                 } else if (target.hasClass('remove-registry')) {
                     promptToRemoveRegistry(registryEntity);
                 }
-            } else if (registriesGrid.getColumns()[args.cell].id === 'moreDetails') {
-                // if (target.hasClass('view-reporting-task')) {
-                //     nfReportingTask.showDetails(reportingTaskEntity);
-                // } else if (target.hasClass('reporting-task-usage')) {
-                //     // close the settings dialog
-                //     $('#shell-close-button').click();
-                //
-                //     // open the documentation for this reporting task
-                //     nfShell.showPage('../nifi-docs/documentation?' + $.param({
-                //         select: reportingTaskEntity.component.type,
-                //         group: reportingTaskEntity.component.bundle.group,
-                //         artifact: reportingTaskEntity.component.bundle.artifact,
-                //         version: reportingTaskEntity.component.bundle.version
-                //     })).done(function () {
-                //         nfSettings.showSettings();
-                //     });
-                // }
-            }
+            } else if (registriesGrid.getColumns()[args.cell].id === 'moreDetails') { }
         });
 
         // wire up the dataview to the grid
@@ -2288,38 +2360,47 @@
      * @param registryEntity
      */
     var editRegistry = function (registryEntity) {
-        // populate the dialog
-        $('#registry-id').text(registryEntity.id);
-        $('#registry-name').val(registryEntity.component.name);
-        $('#registry-location').val(registryEntity.component.uri);
-        $('#registry-description').val(registryEntity.component.description);
+        reloadRegistryInfo(registryEntity.id).done(function (reloadResponse) {
+            var properties = reloadResponse.component.properties;
+            var descriptors = reloadResponse.component.descriptors;
 
-        // show the dialog
-        $('#registry-configuration-dialog').modal('setHeaderText', 'Edit Registry Client').modal('setButtonModel', [{
-            buttonText: 'Update',
-            color: {
-                base: '#728E9B',
-                hover: '#004849',
-                text: '#ffffff'
-            },
-            handler: {
-                click: function () {
-                    updateRegistry(registryEntity.id);
+            // populate the dialog
+            $('#registry-id-config').text(reloadResponse.id);
+            $('#registry-name-config').val(reloadResponse.component.name);
+            $('#registry-type-config').text(reloadResponse.component.type);
+            $('#registry-description-config').val(reloadResponse.component.description);
+
+            // show the dialog
+            $('#registry-configuration-dialog').modal('setHeaderText', 'Edit Registry Client').modal('setButtonModel', [{
+                buttonText: 'Update',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
+                handler: {
+                    click: function () {
+                        updateRegistry(reloadResponse.id);
+                    }
                 }
-            }
-        }, {
-            buttonText: 'Cancel',
-            color: {
-                base: '#E3E8EB',
-                hover: '#C7D2D7',
-                text: '#004849'
-            },
-            handler: {
-                click: function () {
-                    $(this).modal('hide');
+            }, {
+                buttonText: 'Cancel',
+                color: {
+                    base: '#E3E8EB',
+                    hover: '#C7D2D7',
+                    text: '#004849'
+                },
+                handler: {
+                    click: function () {
+                        $(this).modal('hide');
+                    }
                 }
-            }
-        }]).modal('show');
+            }]).modal('show');
+
+            $('#registry-properties').propertytable('clear');
+            $('#registry-properties').propertytable('loadProperties', properties, descriptors);
+            $('#registry-configuration-dialog').data('registryDetails', reloadResponse);
+        });
     };
 
     /**
@@ -2436,7 +2517,7 @@
         var parameterProviders = loadParameterProviders();
 
         // return a deferred for all parts of the settings
-        return $.when(settings, controllerServicesXhr, reportingTasks, parameterProviders).done(function (settingsResult, controllerServicesResult) {
+        return $.when(settings, controllerServicesXhr, reportingTasks, registries, parameterProviders).done(function (settingsResult, controllerServicesResult) {
             var controllerServicesResponse = controllerServicesResult[0];
 
             // update the current time
@@ -2533,6 +2614,99 @@
     };
 
     /**
+     * Loads available registry types.
+     */
+    var loadRegistryTypes = function () {
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.registryTypes,
+            dataType: 'json'
+        }).done(function (response) {
+            var regTypeOptions = [];
+            response.flowRegistryClientTypes.forEach(function (type) {
+                regTypeOptions.push({
+                    text: nfCommon.substringAfterLast(type.type, '.'),
+                    value: type.type,
+                    description: type.description || ''
+                });
+            });
+
+            $('#new-registry-type-combo').combo({
+                options: regTypeOptions
+            });
+        });
+    };
+
+    /**
+     * Determines whether the user has made any changes to the registry configuration
+     * that needs to be saved.
+     */
+     var isSaveRequired = function () {
+        var entity = $('#registry-configuration-dialog').data('registryDetails');
+        // determine if any registry settings have changed
+
+        if ($('#registry-name-config').val() !== entity.component['name']) {
+            return true;
+        }
+        if ($('#registry-description-config').val() !== entity.component['description']) {
+            return true;
+        }
+
+        return $('#registry-properties').propertytable('isSaveRequired');
+    };
+
+    /**
+     * Goes to a service configuration from the property table.
+     */
+     var goToServiceFromProperty = function () {
+        return $.Deferred(function (deferred) {
+            // close all fields currently being edited
+            $('#registry-properties').propertytable('saveRow');
+
+            // determine if changes have been made
+            if (isSaveRequired()) {
+                // see if those changes should be saved
+                nfDialog.showYesNoDialog({
+                    headerText: 'Save',
+                    dialogContent: 'Save changes before going to this Controller Service?',
+                    noHandler: function () {
+                        deferred.resolve();
+                    },
+                    yesHandler: function () {
+                        var registry = $('#registry-configuration-dialog').data('registryDetails');
+                        updateRegistry(registry.id).done(function () {
+                            deferred.resolve();
+                        }).fail(function () {
+                            deferred.reject();
+                        });
+                    }
+                });
+            } else {
+                deferred.resolve();
+            }
+        }).promise();
+    };
+
+    /**
+     * Gets a property descriptor for the registry currently being configured.
+     *
+     * @param {type} propertyName
+     * @param {type} sensitive Requested sensitive status
+     */
+     var getRegistryPropertyDescriptor = function (propertyName, sensitive) {
+        var details = $('#registry-configuration-dialog').data('registryDetails');
+        return $.ajax({
+            type: 'GET',
+            url: details.uri + '/descriptors',
+            data: {
+                propertyName: propertyName,
+                sensitive: sensitive
+            },
+            dataType: 'json'
+        }).fail(nfErrorHandler.handleAjaxError);
+    };
+
+    /**
      * Shows the process group configuration.
      */
     var showSettings = function () {
@@ -2554,6 +2728,39 @@
     var reset = function () {
         // reset button state
         $('#settings-save').mouseout();
+    };
+
+    /**
+     * Renders the specified registry.
+     *
+     * @param {object} reportingTask
+     */
+     var renderRegistry = function (registryEntity) {
+        // get the table and update the row accordingly
+        var registryGrid = $('#registries-table').data('gridInstance');
+        var registryData = registryGrid.getData();
+        registryData.updateItem(registryEntity.id, $.extend({
+            type: 'Registry'
+        }, registryEntity));
+    };
+
+    /**
+         * Reloads the specified registry.
+         *
+         * @param {string} id
+         */
+     var reloadRegistryInfo = function (id) {
+        var registryGrid = $('#registries-table').data('gridInstance');
+        var registryData = registryGrid.getData();
+        var registryEntity = registryData.getItemById(id);
+
+        return $.ajax({
+            type: 'GET',
+            url: registryEntity.uri,
+            dataType: 'json'
+        }).done(function (response) {
+            renderRegistry(response);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     var nfSettings = {
@@ -2662,34 +2869,16 @@
                     // set the initial focus
                     $('#reporting-task-type-filter').focus();
                 } else if (selectedTab === 'Registry Clients') {
-                    $('#registry-configuration-dialog').modal('setHeaderText', 'Add Registry Client').modal('setButtonModel', [{
-                        buttonText: 'Add',
-                        color: {
-                            base: '#728E9B',
-                            hover: '#004849',
-                            text: '#ffffff'
-                        },
-                        handler: {
-                            click: function () {
-                                addRegistry();
-                            }
-                        }
-                    }, {
-                        buttonText: 'Cancel',
-                        color: {
-                            base: '#E3E8EB',
-                            hover: '#C7D2D7',
-                            text: '#004849'
-                        },
-                        handler: {
-                            click: function () {
-                                $(this).modal('hide');
-                            }
-                        }
-                    }]).modal('show');
+                    // clear previous values
+                    $('#new-registry-name').val('');
+                    $('#new-registry-description').val('');
 
-                    // set the initial focus
-                    $('#registry-name').focus();
+                    loadRegistryTypes().done(function () {
+                        $('#new-registry-client-dialog').modal('show');
+
+                        // set the initial focus
+                        $('#new-registry-name').focus();
+                    });
                 } else if (selectedTab === 'Parameter Providers') {
                     $('#new-parameter-provider-dialog').modal('show');
 
@@ -2711,12 +2900,53 @@
                 }
             });
 
+            // initialize registry property table
+            $('#registry-properties').propertytable({
+                readOnly: false,
+                supportsGoTo: true,
+                dialogContainer: '#new-registry-property-container',
+                descriptorDeferred: getRegistryPropertyDescriptor,
+                controllerServiceCreatedDeferred: function (response) {
+                    var controllerServicesUri = config.urls.api + '/flow/controller/controller-services';
+                    return nfControllerServices.loadControllerServices(controllerServicesUri, $('#controller-services-table'));
+                },
+                goToServiceDeferred: goToServiceFromProperty
+            });
+
+            // initialize the settings tabs
+            $('#registry-configuration-tabs').tabbs({
+                tabStyle: 'tab',
+                selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
+                tabs: [{
+                    name: 'Settings',
+                    tabContentId: 'registry-configuration-settings-tab-content'
+                }, {
+                    name: 'Properties',
+                    tabContentId: 'registry-configuration-properties-tab-content'
+                }],
+                select: function () {
+                    var tab = $(this).text();
+                    if (tab === 'Properties') {
+                        $('#registry-properties').propertytable('resetTableSize');
+                    }
+                }
+            });
+
             // initialize each tab
             initGeneral();
             nfControllerServices.init(getControllerServicesTable(), nfSettings.showSettings);
             initReportingTasks();
             initRegistriesTable();
+            initNewRegistryDialog();
             initParameterProvidersTable();
+        },
+
+        /**
+         * Update the size of the grid based on its container's current size.
+         */
+        reloadRegistry: function (id) {
+            return reloadRegistryInfo(id);
         },
 
         /**

@@ -26,14 +26,13 @@
                 'nf.Dialog',
                 'nf.Storage',
                 'nf.Client',
-                'nf.Settings',
                 'nf.UniversalCapture',
                 'nf.CustomUi',
                 'nf.Verify',
                 'nf.CanvasUtils',
                 'nf.Processor'],
-            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfVerify, nfCanvasUtils, nfProcessor) {
-                return (nf.ControllerService = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfVerify, nfCustomUi, nfCanvasUtils, nfProcessor));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfUniversalCapture, nfCustomUi, nfVerify, nfCanvasUtils, nfProcessor) {
+                return (nf.ControllerService = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfUniversalCapture, nfVerify, nfCustomUi, nfCanvasUtils, nfProcessor));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ControllerService =
@@ -44,7 +43,6 @@
                 require('nf.Dialog'),
                 require('nf.Storage'),
                 require('nf.Client'),
-                require('nf.Settings'),
                 require('nf.UniversalCapture'),
                 require('nf.CustomUi'),
                 require('nf.Verify'),
@@ -58,19 +56,19 @@
             root.nf.Dialog,
             root.nf.Storage,
             root.nf.Client,
-            root.nf.Settings,
             root.nf.UniversalCapture,
             root.nf.CustomUi,
             root.nf.Verify,
             root.nf.CanvasUtils,
             root.nf.Processor);
     }
-}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfVerify, nfCanvasUtils, nfProcessor) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfUniversalCapture, nfCustomUi, nfVerify, nfCanvasUtils, nfProcessor) {
     'use strict';
 
     var nfControllerServices,
         nfReportingTask,
-        nfParameterProvider;
+        nfParameterProvider,
+        nfSettings;
 
     var config = {
         edit: 'edit',
@@ -258,6 +256,14 @@
                 nfParameterProvider.reload(reference.id);
 
                 // update the validation errors of this parameter provider
+                var referencingComponentState = $('div.' + reference.id + '-state');
+                if (referencingComponentState.length) {
+                    updateValidationErrors(referencingComponentState, reference);
+                }
+            } else if (reference.referenceType === 'FlowRegistryClient') {
+                // reload
+                nfSettings.reloadRegistry(reference.id);
+                // update the validation errors of this registry
                 var referencingComponentState = $('div.' + reference.id + '-state');
                 if (referencingComponentState.length) {
                     updateValidationErrors(referencingComponentState, reference);
@@ -491,6 +497,7 @@
         var processors = $('<ul class="referencing-component-listing clear"></ul>');
         var services = $('<ul class="referencing-component-listing clear"></ul>');
         var tasks = $('<ul class="referencing-component-listing clear"></ul>');
+        var registries = $('<ul class="referencing-component-listing clear"></ul>');
         var providers = $('<ul class="referencing-component-listing clear"></ul>');
         var unauthorized = $('<ul class="referencing-component-listing clear"></ul>');
         $.each(referencingComponents, function (_, referencingComponentEntity) {
@@ -643,7 +650,7 @@
                         // close the dialog and shell
                         referenceContainer.closest('.dialog').modal('hide');
 
-                        $('#settings-tabs').find('li:eq(4)').click();
+                        $('#settings-tabs').find('li:eq(5)').click();
 
                         // adjust the table size
                         parameterProvidersGrid.resizeCanvas();
@@ -670,6 +677,44 @@
                     var providerItem = $('<li></li>').append(providerState).append(providerBulletins).append(parameterProviderLink).append(providerType);
 
                     providers.append(providerItem);
+                } else if (referencingComponent.referenceType === 'FlowRegistryClient') {
+                    var registryLink = $('<span class="referencing-component-name link"></span>').text(referencingComponent.name).on('click', function () {
+                        var registryGrid = $('#registries-table').data('gridInstance');
+                        var registryData = registryGrid.getData();
+
+                        // select the selected row
+                        var row = registryData.getRowById(referencingComponent.id);
+                        registryGrid.setSelectedRows([row]);
+                        registryGrid.scrollRowIntoView(row);
+
+                        // select the reporting task tab
+                        $('#settings-tabs').find('li:nth-child(4)').click();
+
+                        // close the dialog and shell
+                        referenceContainer.closest('.dialog').modal('hide');
+                    });
+
+                    // registry state - used to show the validation errors
+                    var registryState = $('<div class="referencing-component-state invalid"></div>').addClass(referencingComponent.id + '-state');
+
+                    if (nfCommon.isEmpty(referencingComponent.validationErrors)) {
+                        registryState.hide();
+                    } else {
+                        updateValidationErrors(registryState, referencingComponent);
+                    }
+
+                    // type
+                    var registryType = $('<span class="referencing-component-type"></span>').text(nfCommon.substringAfterLast(referencingComponent.type, '.'));
+
+                    // active thread count
+                    var registryActiveThreadCount = $('<span class="referencing-component-active-thread-count"></span>').addClass(referencingComponent.id + '-active-threads');
+                    if (nfCommon.isDefinedAndNotNull(referencingComponent.activeThreadCount) && referencingComponent.activeThreadCount > 0) {
+                        registryActiveThreadCount.text('(' + referencingComponent.activeThreadCount + ')');
+                    }
+
+                    // registry item
+                    var registryItem = $('<li></li>').append(registryState).append(registryLink).append(registryType).append(registryActiveThreadCount);
+                    registries.append(registryItem);
                 }
             }
         });
@@ -701,6 +746,7 @@
         // create blocks for each type of component
         createReferenceBlock('Processors', processors);
         createReferenceBlock('Reporting Tasks', tasks);
+        createReferenceBlock('Registry Clients', registries);
         createReferenceBlock('Controller Services', services);
         createReferenceBlock('Parameter Providers', providers);
         createReferenceBlock('Unauthorized', unauthorized);
@@ -1037,7 +1083,7 @@
             var referencingComponents = service.referencingComponents;
             $.each(referencingComponents, function (_, referencingComponentEntity) {
                 var referencingComponent = referencingComponentEntity.component;
-                if (referencingComponent.referenceType === 'Processor' || referencingComponent.referenceType === 'ReportingTask' || referencingComponent.referenceType === 'ParameterProvider') {
+                if (referencingComponent.referenceType === 'Processor' || referencingComponent.referenceType === 'ReportingTask' || referencingComponent.referenceType === 'ParameterProvider' || referencingComponent.referenceType === 'FlowRegistryClient') {
                     referencingSchedulableComponents.push(referencingComponent.id);
                 }
             });
@@ -1842,10 +1888,11 @@
         /**
          * Initializes the controller service configuration dialog.
          */
-        init: function (nfControllerServicesRef, nfReportingTaskRef, nfParameterProviderRef) {
+        init: function (nfControllerServicesRef, nfReportingTaskRef, nfParameterProviderRef, nfSettingsRef) {
             nfControllerServices = nfControllerServicesRef;
             nfReportingTask = nfReportingTaskRef;
             nfParameterProvider = nfParameterProviderRef;
+            nfSettings = nfSettingsRef;
 
             // initialize the configuration dialog tabs
             $('#controller-service-configuration-tabs').tabbs({
