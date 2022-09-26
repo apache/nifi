@@ -1035,6 +1035,7 @@
                             name: status.parameter.parameter.name,
                             sensitivity: NON_SENSITIVE,
                             parameterStatus: status,
+                            isReferencingParameter: status.status ===  'MISSING_BUT_REFERENCED',
                             status: status.status
                         }
 
@@ -2439,7 +2440,7 @@
 
                 if (!_.isEmpty(dataContext.parameterStatus.parameter.parameter.referencingComponents)) {
                     // disable checkboxes
-                    if (dataContext.sensitivity === SENSITIVE || dataContext.status === 'REMOVED' || dataContext.status === 'MISSING_BUT_REFERENCED') {
+                    if (dataContext.sensitivity === SENSITIVE) {
                         return "<input type='checkbox' checked='checked' class='disabled checked-input-disabled' disabled><label for='selector'></label>";
                     } else {
                         return "<input type='checkbox' class='disabled unchecked-input-disabled' disabled><label for='selector'></label>";
