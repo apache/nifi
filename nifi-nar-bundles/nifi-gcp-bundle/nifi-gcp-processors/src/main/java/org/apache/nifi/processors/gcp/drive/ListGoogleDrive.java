@@ -72,7 +72,7 @@ import java.util.concurrent.TimeUnit;
         "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single flowfile. " +
         "This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the " +
         "previous node left off without duplicating all of the data. " +
-        "Requires Google Drive API enabled (https://developers.google.com/workspace/guides/enable-apis).")
+        "For how to setup access to Google Drive please see additional details.")
 @SeeAlso({FetchGoogleDrive.class})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @WritesAttributes({@WritesAttribute(attribute = GoogleDriveFileInfo.ID, description = "The id of the file"),
@@ -91,8 +91,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
             .name("folder-id")
             .displayName("Folder ID")
             .description("The ID of the folder from which to pull list of files." +
-                    " (To get the id open up the folder and check the sequence of characters at the end of the URL.)" +
-                    " The folder needs to be shared with the Service Account used to obtain credentials. (Sharing is done the same way as sharing with a User.) " +
+                    " For how to setup access to Google Drive and obtain Folder ID please see additional details." +
                     " WARNING: Unauthorized access to the folder is treated as if the folder was empty." +
                     " This results in the processor not creating outgoing FlowFiles. No additional error message is provided.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
