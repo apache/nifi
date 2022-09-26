@@ -318,7 +318,9 @@ public class GetHubSpot extends AbstractProcessor {
         final Long incrDelayMs = context.getProperty(INCREMENTAL_DELAY).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
 
         final ObjectNode root = OBJECT_MAPPER.createObjectNode();
-        root.put("limit", limit);
+        if (limit != null) {
+            root.put("limit", limit);
+        }
 
         final String cursor = stateMap.get(CURSOR_KEY);
         if (cursor != null && !NO_PAGING.equals(cursor)) {
