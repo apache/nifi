@@ -34,7 +34,7 @@ class DataLakeServiceClientFactoryTest {
     private ComponentLog logger;
 
     @Test
-    void testServiceClientIsCachedByCredentials() {
+    void testThatServiceClientIsCachedByCredentials() {
         final DataLakeServiceClientFactory clientFactory = new DataLakeServiceClientFactory(logger, null);
 
         final ADLSCredentialsDetails credentials = createCredentialDetails("account");
@@ -52,11 +52,26 @@ class DataLakeServiceClientFactoryTest {
         final ADLSCredentialsDetails credentialsOne = createCredentialDetails("accountOne");
         final ADLSCredentialsDetails credentialsTwo = createCredentialDetails("accountTwo");
 
-
         final DataLakeServiceClient clientOne = clientFactory.getStorageClient(credentialsOne);
         final DataLakeServiceClient clientTwo = clientFactory.getStorageClient(credentialsTwo);
 
         assertNotSame(clientOne, clientTwo);
+    }
+
+    @Test
+    void testThatCachedClientIsReturnedAfterDifferentClientIsCreated() {
+        final DataLakeServiceClientFactory clientFactory = new DataLakeServiceClientFactory(logger, null);
+
+        final ADLSCredentialsDetails credentialsOne = createCredentialDetails("accountOne");
+        final ADLSCredentialsDetails credentialsTwo = createCredentialDetails("accountTwo");
+        final ADLSCredentialsDetails credentialsThree = createCredentialDetails("accountOne");
+
+        final DataLakeServiceClient clientOne = clientFactory.getStorageClient(credentialsOne);
+        final DataLakeServiceClient clientTwo = clientFactory.getStorageClient(credentialsTwo);
+        final DataLakeServiceClient clientThree = clientFactory.getStorageClient(credentialsThree);
+
+        assertNotSame(clientOne, clientTwo);
+        assertSame(clientOne, clientThree);
     }
 
     private ADLSCredentialsDetails createCredentialDetails(String accountName) {
