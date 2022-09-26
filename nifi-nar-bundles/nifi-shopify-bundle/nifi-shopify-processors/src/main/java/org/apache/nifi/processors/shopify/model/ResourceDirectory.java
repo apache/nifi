@@ -153,10 +153,5 @@ public class ResourceDirectory {
                     "Shipping Zones",
                     "ShippingZone resource can be used to view shipping zones and their countries, provinces, and shipping rates.",
                     IncrementalLoadingParameter.UPDATED_AT
-            ), ShopifyResource.newInstance(
-                    "shop",
-                    "Shop",
-                    "The Shop resource is a collection of general business and store management settings and information about the store.",
-                    IncrementalLoadingParameter.NONE
             )));
 }

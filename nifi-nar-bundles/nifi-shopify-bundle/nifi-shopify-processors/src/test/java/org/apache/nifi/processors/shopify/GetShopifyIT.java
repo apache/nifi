@@ -32,7 +32,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.client.StandardHttpUriBuilder;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
-import org.apache.nifi.web.client.api.WebClientService;
+import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 import org.apache.nifi.web.client.provider.service.StandardWebClientServiceProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,6 +70,7 @@ class GetShopifyIT {
 
     @Test
     void testStateIsUpdatedIfIncrementalAndNotPaging() throws InitializationException, IOException {
+        final String lastExecutionTimeKey = "last_execution_time";
 
         final MockResponse mockResponse = new MockResponse()
                 .setResponseCode(200)
@@ -97,7 +98,7 @@ class GetShopifyIT {
         runner.run(1);
 
         final StateMap state = runner.getStateManager().getState(Scope.CLUSTER);
-        final String actualExecutionTime = state.get("products");
+        final String actualExecutionTime = state.get(lastExecutionTimeKey);
 
         assertEquals(expectedExecutionTime.toString(), actualExecutionTime);
     }
@@ -191,10 +192,10 @@ class GetShopifyIT {
         }
 
         @Override
-        ShopifyRestService getShopifyRestService(WebClientService webClientService, HttpUriBuilder uriBuilder,
-                                                 String apiVersion, String baseUrl, String accessToken, String resourceName,
-                                                 String limit, IncrementalLoadingParameter incrementalLoadingParameter) {
-            return new CustomShopifyRestService(webClientService, uriBuilder, apiVersion, baseUrl, accessToken,
+        ShopifyRestService getShopifyRestService(WebClientServiceProvider webClientServiceProvider, String apiVersion,
+                                                 String baseUrl, String accessToken, String resourceName, String limit,
+                                                 IncrementalLoadingParameter incrementalLoadingParameter) {
+            return new CustomShopifyRestService(webClientServiceProvider, apiVersion, baseUrl, accessToken,
                     resourceName, limit, incrementalLoadingParameter);
         }
 
@@ -206,10 +207,10 @@ class GetShopifyIT {
 
     static class CustomShopifyRestService extends ShopifyRestService {
 
-        public CustomShopifyRestService(WebClientService webClientService, HttpUriBuilder uriBuilder, String version,
+        public CustomShopifyRestService(WebClientServiceProvider webClientServiceProvider, String version,
                                         String baseUrl, String accessToken, String resourceName, String limit,
                                         IncrementalLoadingParameter incrementalLoadingParameter) {
-            super(webClientService, uriBuilder, version, baseUrl, accessToken, resourceName,
+            super(webClientServiceProvider, version, baseUrl, accessToken, resourceName,
                     limit, incrementalLoadingParameter);
         }
 

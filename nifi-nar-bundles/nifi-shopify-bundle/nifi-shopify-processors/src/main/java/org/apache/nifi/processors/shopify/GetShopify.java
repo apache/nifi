@@ -48,8 +48,6 @@ import org.apache.nifi.processors.shopify.model.ShopifyResource;
 import org.apache.nifi.processors.shopify.rest.ShopifyRestService;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.HttpResponseStatus;
-import org.apache.nifi.web.client.api.HttpUriBuilder;
-import org.apache.nifi.web.client.api.WebClientService;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
 import java.io.IOException;
@@ -78,7 +76,7 @@ import java.util.stream.Collectors;
 @Stateful(scopes = Scope.CLUSTER, description =
         "For a few resources the processor supports incremental loading. The list of the resources with the supported parameters" +
                 " can be found in the additional details.")
-@CapabilityDescription("Retrieves object from a custom Shopify store. The processor yield time must be set to the account's rate limit accordingly.")
+@CapabilityDescription("Retrieves objects from a custom Shopify store. The processor yield time must be set to the account's rate limit accordingly.")
 public class GetShopify extends AbstractProcessor {
 
     static final PropertyDescriptor STORE_DOMAIN = new PropertyDescriptor.Builder()
@@ -122,7 +120,7 @@ public class GetShopify extends AbstractProcessor {
             .name("result-limit")
             .displayName("Result Limit")
             .description("The maximum number of results to request for each invocation of the Processor")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
             .addValidator(StandardValidators.createLongValidator(1, 100, true))
             .build();
@@ -149,15 +147,15 @@ public class GetShopify extends AbstractProcessor {
             .dependsOn(IS_INCREMENTAL, "true")
             .build();
 
-    static final PropertyDescriptor INITIAL_INCREMENTAL_START_TIME = new PropertyDescriptor.Builder()
-            .name("initial-incremental-start-time")
-            .displayName("Initial Incremental Start Time")
+    static final PropertyDescriptor INCREMENTAL_INITIAL_START_TIME = new PropertyDescriptor.Builder()
+            .name("incremental-initial-start-time")
+            .displayName("Incremental Initial Start Time")
             .description("This property specifies the start time when running the first request." +
                     " Represents an ISO 8601-encoded date and time string. For example, 3:50 pm on September 7, 2019" +
                     " in the time zone of UTC (Coordinated Universal Time) is represented as \"2019-09-07T15:50:00Z\".")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
+            .addValidator(StandardValidators.ISO8601_INSTANT_VALIDATOR)
             .dependsOn(IS_INCREMENTAL, "true")
             .build();
 
@@ -205,7 +203,7 @@ public class GetShopify extends AbstractProcessor {
                 RESULT_LIMIT,
                 IS_INCREMENTAL,
                 INCREMENTAL_DELAY,
-                INITIAL_INCREMENTAL_START_TIME,
+                INCREMENTAL_INITIAL_START_TIME,
                 WEB_CLIENT_PROVIDER)
         );
         return Collections.unmodifiableList(propertyDescriptors);
@@ -215,39 +213,47 @@ public class GetShopify extends AbstractProcessor {
     private static final JsonFactory JSON_FACTORY = OBJECT_MAPPER.getFactory();
     private static final int TOO_MANY_REQUESTS = 429;
     private static final Pattern CURSOR_PATTERN = Pattern.compile("<([^<]*)>; rel=\"next\"");
+    private static final String LAST_EXECUTION_TIME_KEY = "last_execution_time";
 
     private volatile ShopifyRestService shopifyRestService;
-    private volatile ShopifyResource shopifyResource;
     private volatile String resourceName;
+    private volatile boolean isResetState;
+
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        if (Arrays.asList(ResourceType.values(), OBJECT_CATEGORY, IS_INCREMENTAL).contains(descriptor)) {
+            isResetState = true;
+        }
+    }
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
+        if (isResetState) {
+            clearState(context);
+            isResetState = false;
+        }
         final WebClientServiceProvider webClientServiceProvider =
                 context.getProperty(WEB_CLIENT_PROVIDER).asControllerService(WebClientServiceProvider.class);
-        final WebClientService webClientService = webClientServiceProvider.getWebClientService();
-        final HttpUriBuilder uriBuilder = webClientServiceProvider.getHttpUriBuilder();
 
-        final String apiVersion = context.getProperty(API_VERSION).getValue();
-        final String baseUrl = context.getProperty(STORE_DOMAIN).getValue();
-        final String accessToken = context.getProperty(ACCESS_TOKEN).getValue();
+        final String apiVersion = context.getProperty(API_VERSION).evaluateAttributeExpressions().getValue();
+        final String baseUrl = context.getProperty(STORE_DOMAIN).evaluateAttributeExpressions().getValue();
+        final String accessToken = context.getProperty(ACCESS_TOKEN).evaluateAttributeExpressions().getValue();
 
         final String category = context.getProperty(OBJECT_CATEGORY).getValue();
         final ResourceType resourceType = ResourceType.valueOf(category);
         resourceName = context.getProperty(propertyMap.get(resourceType)).getValue();
-        final String limit = context.getProperty(RESULT_LIMIT).getValue();
+        final String limit = context.getProperty(RESULT_LIMIT).evaluateAttributeExpressions().getValue();
 
-        shopifyResource = resourceType.getResource(resourceName);
+        final ShopifyResource shopifyResource = resourceType.getResource(resourceName);
 
-        shopifyRestService = getShopifyRestService(webClientService, uriBuilder, apiVersion, baseUrl, accessToken, resourceName,
+        shopifyRestService = getShopifyRestService(webClientServiceProvider, apiVersion, baseUrl, accessToken, resourceName,
                 limit, shopifyResource.getIncrementalLoadingParameter());
     }
 
-    ShopifyRestService getShopifyRestService(final WebClientService webClientService, final HttpUriBuilder uriBuilder,
-                                             final String apiVersion, final String baseUrl, final String accessToken, final String resourceName,
+    ShopifyRestService getShopifyRestService(final WebClientServiceProvider webClientServiceProvider, final String apiVersion,
+                                             final String baseUrl, final String accessToken, final String resourceName,
                                              final String limit, final IncrementalLoadingParameter incrementalLoadingParameter) {
         return new ShopifyRestService(
-                webClientService,
-                uriBuilder,
+                webClientServiceProvider,
                 apiVersion,
                 baseUrl,
                 accessToken,
@@ -269,56 +275,74 @@ public class GetShopify extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final StateMap state = getState(context);
+        final Map<String, String> stateMap = getStateMap(session);
         final boolean isIncremental = context.getProperty(IS_INCREMENTAL).asBoolean();
-        final String initialStartTime = context.getProperty(INITIAL_INCREMENTAL_START_TIME).getValue();
-        final Long incrDelayMs = context.getProperty(INCREMENTAL_DELAY).asTimePeriod(TimeUnit.MILLISECONDS);
-
-        String lastExecutionTime = state.get(resourceName);
-        if (lastExecutionTime == null && initialStartTime != null) {
-            lastExecutionTime = initialStartTime;
-        }
-
-        Instant now = getCurrentExecutionTime();
-        if (incrDelayMs != null) {
-            now = now.minus(incrDelayMs, ChronoUnit.MILLIS);
-        }
-        final String currentExecutionTime = now.toString();
+        final String initialStartTime = context.getProperty(INCREMENTAL_INITIAL_START_TIME).evaluateAttributeExpressions().getValue();
+        final Long incrDelayMs = context.getProperty(INCREMENTAL_DELAY).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
 
         String cursor = null;
+        String currentExecutionTime = null;
+        HttpResponseEntity response;
+
         do {
-            final AtomicInteger objectCountHolder = new AtomicInteger();
-            try (HttpResponseEntity response = shopifyRestService.getShopifyObjects(isIncremental, lastExecutionTime, currentExecutionTime, cursor)) {
-                cursor = getPageCursor(response);
-                if (response.statusCode() == HttpResponseStatus.OK.getCode()) {
-                    FlowFile flowFile = session.create();
-                    flowFile = session.write(flowFile, parseHttpResponse(response, objectCountHolder));
-                    if (objectCountHolder.get() > 0) {
-                        session.transfer(flowFile, REL_SUCCESS);
-                        if (cursor == null && isIncremental) {
-                            final Map<String, String> stateMap = new HashMap<>(state.toMap());
-                            stateMap.put(resourceName, currentExecutionTime);
-                            updateState(context, stateMap);
-                        }
-                    } else {
-                        getLogger().debug("Empty response when requested Shopify resource: [{}]", resourceName);
-                        session.remove(flowFile);
+            try {
+
+                if (isIncremental) {
+                    String lastExecutionTime = stateMap.get(LAST_EXECUTION_TIME_KEY);
+                    if (lastExecutionTime == null && initialStartTime != null) {
+                        lastExecutionTime = initialStartTime;
                     }
-                } else if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                    if (response.statusCode() == TOO_MANY_REQUESTS) {
-                        context.yield();
-                        throw new ProcessException(String.format(
-                                "Rate limit exceeded, yielding before retrying request. HTTP %d error for requested URI [%s]",
-                                response.statusCode(), resourceName));
-                    } else {
-                        context.yield();
-                        getLogger().warn("HTTP {} error for requested Shopify resource [{}]", response.statusCode(),
-                                resourceName);
+
+                    Instant now = getCurrentExecutionTime();
+                    if (incrDelayMs != null) {
+                        now = now.minus(incrDelayMs, ChronoUnit.MILLIS);
                     }
+                    currentExecutionTime = now.toString();
+
+                    response = shopifyRestService.getShopifyObjects(lastExecutionTime, currentExecutionTime, cursor);
+                } else {
+                    response = shopifyRestService.getShopifyObjects(cursor);
                 }
-            } catch (URISyntaxException | IOException e) {
-                e.printStackTrace();
+            } catch (URISyntaxException e) {
+                throw new ProcessException("Malformed URI", e);
             }
+
+            final AtomicInteger objectCountHolder = new AtomicInteger();
+            cursor = getPageCursor(response);
+            if (response.statusCode() == HttpResponseStatus.OK.getCode()) {
+                FlowFile flowFile = session.create();
+                flowFile = session.write(flowFile, parseHttpResponse(response, objectCountHolder));
+                if (cursor == null && isIncremental) {
+                    final Map<String, String> updatedStateMap = new HashMap<>(stateMap);
+                    updatedStateMap.put(LAST_EXECUTION_TIME_KEY, currentExecutionTime);
+                    updateState(session, updatedStateMap);
+                }
+                if (objectCountHolder.get() > 0) {
+                    session.transfer(flowFile, REL_SUCCESS);
+                } else {
+                    getLogger().debug("Empty response when requested Shopify resource: [{}]", resourceName);
+                    session.remove(flowFile);
+                    context.yield();
+                }
+            } else if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                if (response.statusCode() == TOO_MANY_REQUESTS) {
+                    context.yield();
+                    throw new ProcessException(String.format(
+                            "Rate limit exceeded, yielding before retrying request. HTTP %d error for requested URI [%s]",
+                            response.statusCode(), resourceName));
+                } else {
+                    context.yield();
+                    getLogger().warn("HTTP {} error for requested Shopify resource [{}]", response.statusCode(),
+                            resourceName);
+                }
+            }
+
+            try {
+                response.close();
+            } catch (IOException e) {
+                throw new ProcessException("Could not close response input stream", e);
+            }
+
         } while (cursor != null);
     }
 
@@ -359,21 +383,29 @@ public class GetShopify extends AbstractProcessor {
         return Instant.now();
     }
 
-    private StateMap getState(final ProcessContext context) {
+    private Map<String, String> getStateMap(final ProcessSession session) {
         StateMap state;
         try {
-            state = context.getStateManager().getState(Scope.CLUSTER);
+            state = session.getState(Scope.CLUSTER);
         } catch (IOException e) {
             throw new ProcessException("State retrieval failed", e);
         }
-        return state;
+        return state.toMap();
     }
 
-    private void updateState(ProcessContext context, Map<String, String> newState) {
+    private void updateState(ProcessSession session, Map<String, String> newState) {
         try {
-            context.getStateManager().setState(newState, Scope.CLUSTER);
+            session.setState(newState, Scope.CLUSTER);
         } catch (IOException e) {
             throw new ProcessException("State update failed", e);
+        }
+    }
+
+    private void clearState(ProcessContext context) {
+        try {
+            context.getStateManager().clear(Scope.CLUSTER);
+        } catch (IOException e) {
+            throw new ProcessException("Clearing state failed", e);
         }
     }
 }

@@ -21,6 +21,7 @@ import org.apache.nifi.web.client.api.HttpRequestUriSpec;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.api.WebClientService;
+import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,13 +33,11 @@ import java.net.URISyntaxException;
 import java.util.Locale;
 
 import static org.apache.nifi.processors.shopify.model.IncrementalLoadingParameter.CREATED_AT;
-import static org.apache.nifi.processors.shopify.model.IncrementalLoadingParameter.NONE;
 import static org.apache.nifi.processors.shopify.rest.ShopifyRestService.ACCESS_TOKEN_KEY;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,12 +52,15 @@ class ShopifyRestServiceTest {
     private static final String LIMIT = "2";
 
     @Mock
+    private WebClientServiceProvider webClientServiceProvider;
+    @Mock
     private WebClientService webClientService;
     @Mock
     private HttpUriBuilder uriBuilder;
 
     @BeforeEach
     void setup() {
+        doReturn(uriBuilder).when(webClientServiceProvider).getHttpUriBuilder();
         doReturn(uriBuilder).when(uriBuilder).scheme(anyString());
         doReturn(uriBuilder).when(uriBuilder).host(anyString());
         doReturn(uriBuilder).when(uriBuilder).addPathSegment(anyString());
@@ -68,8 +70,7 @@ class ShopifyRestServiceTest {
     @Test
     void testParameterAreAddedToUri() {
         final ShopifyRestService shopifyRestService = new ShopifyRestService(
-                webClientService,
-                uriBuilder,
+                webClientServiceProvider,
                 VERSION,
                 TEST_URL,
                 TEST_ACCESS_TOKEN,
@@ -80,37 +81,17 @@ class ShopifyRestServiceTest {
 
         doReturn(uriBuilder).when(uriBuilder).addQueryParameter(anyString(), anyString());
 
-        shopifyRestService.getUri(true, START_TIME, END_TIME);
+        shopifyRestService.getIncrementalUri(START_TIME, END_TIME);
 
         verify(uriBuilder).addQueryParameter(CREATED_AT.toString().toLowerCase(Locale.ROOT) + "_min", START_TIME);
         verify(uriBuilder).addQueryParameter(CREATED_AT.toString().toLowerCase(Locale.ROOT) + "_max", END_TIME);
         verify(uriBuilder).addQueryParameter("limit", LIMIT);
     }
 
-
-    @Test
-    void testParameterAreNotAddedToUrl() {
-        final ShopifyRestService shopifyRestService = new ShopifyRestService(
-                webClientService,
-                uriBuilder,
-                VERSION,
-                TEST_URL,
-                TEST_ACCESS_TOKEN,
-                TEST_RESOURCE_NAME,
-                null,
-                NONE
-        );
-
-        shopifyRestService.getUri(true, START_TIME, END_TIME);
-
-        verify(uriBuilder, never()).addQueryParameter(anyString(), anyString());
-    }
-
     @Test
     void testGetShopifyObjects() throws URISyntaxException {
         final ShopifyRestService shopifyRestService = new ShopifyRestService(
-                webClientService,
-                uriBuilder,
+                webClientServiceProvider,
                 VERSION,
                 TEST_URL,
                 TEST_ACCESS_TOKEN,
@@ -125,12 +106,13 @@ class ShopifyRestServiceTest {
         final HttpRequestBodySpec mockHttpRequestBodySpec = mock(HttpRequestBodySpec.class);
         final HttpResponseEntity mockHttpResponseEntity = mock(HttpResponseEntity.class);
 
+        doReturn(webClientService).when(webClientServiceProvider).getWebClientService();
         doReturn(mockHttpRequestUriSpec).when(webClientService).get();
         doReturn(mockHttpRequestBodySpec).when(mockHttpRequestUriSpec).uri(any());
         doReturn(mockHttpRequestBodySpec).when(mockHttpRequestBodySpec).header(anyString(), anyString());
         doReturn(mockHttpResponseEntity).when(mockHttpRequestBodySpec).retrieve();
 
-        shopifyRestService.getShopifyObjects(true, START_TIME, END_TIME, null);
+        shopifyRestService.getShopifyObjects(START_TIME, END_TIME, null);
 
         verify(mockHttpRequestUriSpec).uri(URI.create(TEST_URL));
         verify(mockHttpRequestBodySpec).header(ACCESS_TOKEN_KEY, TEST_ACCESS_TOKEN);

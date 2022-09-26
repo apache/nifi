@@ -16,20 +16,21 @@
  */
 package org.apache.nifi.processors.shopify.rest;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Locale;
 import org.apache.nifi.processors.shopify.model.IncrementalLoadingParameter;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
-import org.apache.nifi.web.client.api.WebClientService;
+import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Locale;
 
 public class ShopifyRestService {
 
+    private static final String HTTPS = "https";
     static final String ACCESS_TOKEN_KEY = "X-Shopify-Access-Token";
-    public static final String HTTPS = "https";
-    private final WebClientService webClientService;
-    private final HttpUriBuilder uriBuilder;
+
+    private final WebClientServiceProvider webClientServiceProvider;
     private final String version;
     private final String baseUrl;
     private final String accessToken;
@@ -37,16 +38,15 @@ public class ShopifyRestService {
     private final String limit;
     private final IncrementalLoadingParameter incrementalLoadingParameter;
 
-    public ShopifyRestService(final WebClientService webClientService,
-            final HttpUriBuilder uriBuilder,
+    public ShopifyRestService(
+            final WebClientServiceProvider webClientServiceProvider,
             final String version,
             final String baseUrl,
             final String accessToken,
             final String resourceName,
             final String limit,
             final IncrementalLoadingParameter incrementalLoadingParameter) {
-        this.webClientService = webClientService;
-        this.uriBuilder = uriBuilder;
+        this.webClientServiceProvider = webClientServiceProvider;
         this.version = version;
         this.baseUrl = baseUrl;
         this.accessToken = accessToken;
@@ -55,17 +55,30 @@ public class ShopifyRestService {
         this.incrementalLoadingParameter = incrementalLoadingParameter;
     }
 
-    public HttpResponseEntity getShopifyObjects(final boolean isIncremental,
-                                                final String startTime,
+    public HttpResponseEntity getShopifyObjects(final String startTime,
                                                 final String endTime,
                                                 final String cursor) throws URISyntaxException {
         final URI uri;
         if (cursor != null) {
             uri = new URI(cursor);
         } else {
-            uri = getUri(isIncremental, startTime, endTime);
+            uri = getIncrementalUri(startTime, endTime);
         }
-        return webClientService
+        return webClientServiceProvider.getWebClientService()
+                .get()
+                .uri(uri)
+                .header(ACCESS_TOKEN_KEY, accessToken)
+                .retrieve();
+    }
+
+    public HttpResponseEntity getShopifyObjects(final String cursor) throws URISyntaxException {
+        final URI uri;
+        if (cursor != null) {
+            uri = new URI(cursor);
+        } else {
+            uri = getUri();
+        }
+        return webClientServiceProvider.getWebClientService()
                 .get()
                 .uri(uri)
                 .header(ACCESS_TOKEN_KEY, accessToken)
@@ -73,7 +86,8 @@ public class ShopifyRestService {
     }
 
     protected HttpUriBuilder getBaseUri() {
-        return uriBuilder.scheme(HTTPS)
+        return webClientServiceProvider.getHttpUriBuilder()
+                .scheme(HTTPS)
                 .host(baseUrl)
                 .addPathSegment("admin")
                 .addPathSegment("api")
@@ -81,13 +95,20 @@ public class ShopifyRestService {
                 .addPathSegment(resourceName + ".json");
     }
 
-
-    URI getUri(final boolean isIncremental, final String startTime, final String endTime) {
+    URI getUri() {
         final HttpUriBuilder uriBuilder = getBaseUri();
         if (limit != null) {
             uriBuilder.addQueryParameter("limit", limit);
         }
-        if (isIncremental && incrementalLoadingParameter != IncrementalLoadingParameter.NONE) {
+        return uriBuilder.build();
+    }
+
+    URI getIncrementalUri(final String startTime, final String endTime) {
+        final HttpUriBuilder uriBuilder = getBaseUri();
+        if (limit != null) {
+            uriBuilder.addQueryParameter("limit", limit);
+        }
+        if (incrementalLoadingParameter != IncrementalLoadingParameter.NONE) {
             if (startTime != null) {
                 final String minTime = incrementalLoadingParameter.name().toLowerCase(Locale.ROOT) + "_min";
                 uriBuilder.addQueryParameter(minTime, startTime);
