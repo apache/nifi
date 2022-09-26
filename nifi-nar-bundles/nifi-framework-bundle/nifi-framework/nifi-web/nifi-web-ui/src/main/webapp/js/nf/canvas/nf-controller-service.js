@@ -257,12 +257,18 @@
                 // reload
                 nfParameterProvider.reload(reference.id);
 
-            } else if (reference.referenceType === 'FlowRegistryClient') {
                 // update the validation errors of this parameter provider
                 var referencingComponentState = $('div.' + reference.id + '-state');
                 if (referencingComponentState.length) {
                     updateValidationErrors(referencingComponentState, reference);
-                    nfParameterProvider.reload(reference.id);
+                }
+            } else if (reference.referenceType === 'FlowRegistryClient') {
+                // reload
+                nfSettings.reload(reference.id);
+                // update the validation errors of this registry
+                var referencingComponentState = $('div.' + reference.id + '-state');
+                if (referencingComponentState.length) {
+                    updateValidationErrors(referencingComponentState, reference);
                 }
             } else {
                 // reload the referencing services
@@ -404,36 +410,6 @@
         });
     };
 
-    var updateValidationErrors = function (validationErrorIcon, referencingComponent) {
-        var currentValidationErrors = validationErrorIcon.data('validation-errors');
-
-        // update the validation errors if necessary
-        if (!_.isEqual(currentValidationErrors, referencingComponent.validationErrors)) {
-            validationErrorIcon.data('validation-errors', referencingComponent.validationErrors);
-
-            // if there are validation errors update them
-            if (!nfCommon.isEmpty(referencingComponent.validationErrors)) {
-                var list = nfCommon.formatUnorderedList(referencingComponent.validationErrors);
-
-                // update existing tooltip or initialize a new one if appropriate
-                if (validationErrorIcon.data('qtip')) {
-                    validationErrorIcon.qtip('option', 'content.text', list);
-                } else {
-                    validationErrorIcon.show().qtip($.extend({},
-                        nfCanvasUtils.config.systemTooltipConfig,
-                        {
-                            content: list
-                        }));
-                }
-            } else {
-                if (validationErrorIcon.data('qtip')) {
-                    validationErrorIcon.removeData('validation-errors').qtip('api').destroy(true);
-                }
-                validationErrorIcon.hide();
-            }
-        }
-    };
-
     /**
      * Updates validation errors. This is used for parameter providers and registry clients.
      *
@@ -523,6 +499,7 @@
         var processors = $('<ul class="referencing-component-listing clear"></ul>');
         var services = $('<ul class="referencing-component-listing clear"></ul>');
         var tasks = $('<ul class="referencing-component-listing clear"></ul>');
+        var registries = $('<ul class="referencing-component-listing clear"></ul>');
         var providers = $('<ul class="referencing-component-listing clear"></ul>');
         var unauthorized = $('<ul class="referencing-component-listing clear"></ul>');
         $.each(referencingComponents, function (_, referencingComponentEntity) {
@@ -675,7 +652,7 @@
                         // close the dialog and shell
                         referenceContainer.closest('.dialog').modal('hide');
 
-                        $('#settings-tabs').find('li:eq(4)').click();
+                        $('#settings-tabs').find('li:eq(5)').click();
 
                         // adjust the table size
                         parameterProvidersGrid.resizeCanvas();
@@ -739,7 +716,7 @@
 
                     // registry item
                     var registryItem = $('<li></li>').append(registryState).append(registryLink).append(registryType).append(registryActiveThreadCount);
-                    tasks.append(registryItem);
+                    registries.append(registryItem);
                 }
             }
         });
@@ -771,6 +748,7 @@
         // create blocks for each type of component
         createReferenceBlock('Processors', processors);
         createReferenceBlock('Reporting Tasks', tasks);
+        createReferenceBlock('Registry Clients', registries);
         createReferenceBlock('Controller Services', services);
         createReferenceBlock('Parameter Providers', providers);
         createReferenceBlock('Unauthorized', unauthorized);
@@ -1107,7 +1085,7 @@
             var referencingComponents = service.referencingComponents;
             $.each(referencingComponents, function (_, referencingComponentEntity) {
                 var referencingComponent = referencingComponentEntity.component;
-                if (referencingComponent.referenceType === 'Processor' || referencingComponent.referenceType === 'ReportingTask' || referencingComponent.referenceType === 'ParameterProvider') {
+                if (referencingComponent.referenceType === 'Processor' || referencingComponent.referenceType === 'ReportingTask' || referencingComponent.referenceType === 'ParameterProvider' || referencingComponent.referenceType === 'FlowRegistryClient') {
                     referencingSchedulableComponents.push(referencingComponent.id);
                 }
             });

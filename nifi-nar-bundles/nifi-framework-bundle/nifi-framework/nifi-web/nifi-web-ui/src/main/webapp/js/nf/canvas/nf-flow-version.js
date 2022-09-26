@@ -207,7 +207,7 @@
                         text: registry.name,
                         value: registry.id,
                         description: nfCommon.escapeHtml(registry.description),
-                        disabled: registry.validationStatus !== 'VALID' // TODO: verify this logic is correct
+                        disabled: registry.validationStatus !== 'VALID'
                     });
                 });
             } else {
