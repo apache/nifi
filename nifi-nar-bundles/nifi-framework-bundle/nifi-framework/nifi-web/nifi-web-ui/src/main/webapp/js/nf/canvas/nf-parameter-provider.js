@@ -834,16 +834,16 @@
             }
         }
 
-        // check for changed parameter values
+        // check if a parameter is new, removed, missing but referenced, or has a changed value
         if (updatedParameterProviderEntity.component.parameterStatus) {
-            var isChanged = function (parameterStatus) {
-                return parameterStatus.status === 'CHANGED';
+            var isStatusChanged = function (parameterStatus) {
+                return parameterStatus.status !== 'UNCHANGED';
             }
 
-            var isAnyParameterValueChanged = updatedParameterProviderEntity.component.parameterStatus.some(isChanged);
+            var isAnyParameterChanged = updatedParameterProviderEntity.component.parameterStatus.some(isStatusChanged);
 
-            if (isAnyParameterValueChanged) {
-                // a fetched parameter value has changed... do not disable the Apply button
+            if (isAnyParameterChanged) {
+                // a fetched parameter is new, removed, missing but referenced, or has a changed value... do not disable the Apply button
                 return false;
             }
         }
@@ -911,6 +911,18 @@
             groupsData.endUpdate();
             groupsData.reSort();
 
+            // if there is a new parameter, update its sensitivity
+            if (!_.isEmpty(parameterProviderGroupEntity.component.parameterStatus)) {
+                $.each(parameterProviderGroupEntity.component.parameterStatus, function (i, status) {
+                    if (status.status !== 'UNCHANGED') {
+                        var group = groupsData.getItems().find(function (group) { return group.name === status.parameter.parameter.parameterContext.component.name });
+
+                        loadSelectableParameters(group.parameterSensitivities, group, true);
+                        $('#fetch-parameters-dialog').modal('refreshButtons');
+                    }
+                })
+            }
+
             // select the first row
             groupsGrid.setSelectedRows([0]);
         }
@@ -937,14 +949,17 @@
     /**
      * Loads the selectable parameters for a specified parameter group.
      *
-     * @param groupId
-     * @param {object} parametersEntity
+     * @param {object} parameterSensitivitiesEntity
      * @param {object} updatedGroup
+     * @param {boolean} saveToGroup
      */
-    var loadSelectableParameters = function (groupId, parametersEntity, updatedGroup) {
-        if (nfCommon.isDefinedAndNotNull(parametersEntity)) {
+    var loadSelectableParameters = function (parameterSensitivitiesEntity, updatedGroup, saveToGroup) {
+        if (nfCommon.isDefinedAndNotNull(parameterSensitivitiesEntity)) {
             var selectableParametersGrid = $('#selectable-parameters-table').data('gridInstance');
             var parametersData = selectableParametersGrid.getData();
+
+            var groupsData = $('#parameter-groups-table').data('gridInstance').getData();
+            var currentGroup = groupsData.getItem([updatedGroup.id]);
 
             // clear the rows
             selectableParametersGrid.setSelectedRows([]);
@@ -966,38 +981,74 @@
                 return isAffectedParameter;
             }
 
-            var getParameterStatus = function (parameterStatus, param) {
+            var getParameterStatusEntity = function (parameterStatus, param) {
                 return nfCommon.isDefinedAndNotNull(parameterStatus.find(function (status) { return status.parameter.parameter.name === param }))
                     ? parameterStatus.find(function (status) { return status.parameter.parameter.name === param })
                     : [];
             }
 
+            var getStatus = function (paramStatus, param) {
+                var status = getParameterStatusEntity(paramStatus, param);
+                return !_.isEmpty(status) && status.status;
+            }
+
             var isReferencedParameter = function (paramStatus, param) {
-                var status = getParameterStatus(paramStatus, param);
+                var status = getParameterStatusEntity(paramStatus, param);
                 return !_.isEmpty(status) && !_.isEmpty(status.parameter.parameter.referencingComponents);
             }
 
             var idx = 0;
-            var referencingParameters = 0;
+            var referencingParametersCount = 0;
             var parameterCount = 0;
-            for (var param in parametersEntity) {
+            for (var param in parameterSensitivitiesEntity) {
 
                 var parameter = {
                     id: idx++,
-                    groupId: groupId,
+                    groupId: updatedGroup.id,
                     name: param,
-                    sensitivity: parametersEntity[param] ? parametersEntity[param] : SENSITIVE,
+                    sensitivity: parameterSensitivitiesEntity[param] ? parameterSensitivitiesEntity[param] : SENSITIVE,
                     isAffectedParameter: currentParameterProviderEntity.component.affectedComponents ? isAffectedParameter(currentParameterProviderEntity, param) : false,
                     isReferencingParameter: !_.isEmpty(updatedGroup.parameterStatus) ? isReferencedParameter(updatedGroup.parameterStatus, param) : false,
-                    parameterStatus: !_.isEmpty(updatedGroup.parameterStatus) ? getParameterStatus(updatedGroup.parameterStatus, param) : []
+                    parameterStatus: !_.isEmpty(updatedGroup.parameterStatus) ? getParameterStatusEntity(updatedGroup.parameterStatus, param) : [],
+                    status: !_.isEmpty(updatedGroup.parameterStatus) ? getStatus(updatedGroup.parameterStatus, param) : null
+                }
+
+                parameterCount++;
+                if (parameter.isReferencingParameter === true) {
+                    referencingParametersCount++;
                 }
 
                 parametersData.addItem(parameter);
 
-                parameterCount++;
-                if (parameter.isReferencingParameter === true) {
-                    referencingParameters++;
+                // save to its group
+                if (saveToGroup) {
+                    currentGroup.parameterSensitivities[param] = parameterSensitivitiesEntity[param] ? parameterSensitivitiesEntity[param] : SENSITIVE;
+                    groupsData.updateItem(updatedGroup.id, currentGroup);
                 }
+            }
+
+            // add a parameter if the status has been REMOVED or MISSING_BUT_REFERENCED
+            if (!_.isEmpty(updatedGroup.parameterStatus)) {
+
+                $.each(updatedGroup.parameterStatus, function (i, status) {
+                    if (currentGroup.name === status.parameter.parameter.parameterContext.component.name &&
+                        (status.status === 'REMOVED' || status.status ===  'MISSING_BUT_REFERENCED')) {
+
+                        // add the parameter
+                        var parameter = {
+                            id: idx++,
+                            groupId: updatedGroup.id,
+                            name: status.parameter.parameter.name,
+                            sensitivity: NON_SENSITIVE,
+                            parameterStatus: status,
+                            isReferencingParameter: status.status ===  'MISSING_BUT_REFERENCED',
+                            status: status.status
+                        }
+
+                        parametersData.addItem(parameter);
+                        parameterCount++;
+                    }
+                })
             }
 
             // complete the update
@@ -1669,7 +1720,7 @@
         // show the appropriate parameters table when dialog first opens
         if (isParameterContext) {
             // get the active group's parameters to populate the selectable parameters container
-            loadSelectableParameters(updatedGroup.id, updatedGroup.parameterSensitivities, updatedGroup);
+            loadSelectableParameters(updatedGroup.parameterSensitivities, updatedGroup, false);
 
             $('#parameters-container').show();
             $('#selectable-parameters-container').show();
@@ -1704,7 +1755,7 @@
                     // select checkbox
                     $('<div id="create-parameter-context-field" class="nf-checkbox checkbox-checked"></div>').appendTo(checkboxMarkup);
 
-                    loadSelectableParameters(updatedGroup.id, updatedGroup.parameterSensitivities, updatedGroup);
+                    loadSelectableParameters(updatedGroup.parameterSensitivities, updatedGroup, false);
 
                     $('#parameters-container').show();
                     $('#selectable-parameters-container').show();
@@ -1795,7 +1846,7 @@
             if (args.isChecked) {
                 updatedGroup.createNewParameterContext = true;
 
-                loadSelectableParameters(updatedGroup.id, updatedGroup.parameterSensitivities, updatedGroup);
+                loadSelectableParameters(updatedGroup.parameterSensitivities, updatedGroup, false);
 
                 $('#fetched-parameters-container').hide();
                 $('#create-parameter-context-container').show();
@@ -1805,7 +1856,7 @@
                 // if unchecked, then hide the input and only show the parameters listing
                 updatedGroup.createNewParameterContext = false;
 
-                loadSelectableParameters(updatedGroup.id, updatedGroup.parameterSensitivities, updatedGroup);
+                loadSelectableParameters(updatedGroup.parameterSensitivities, updatedGroup, false);
 
                 $('#create-parameter-context-container').hide();
                 $('#selectable-parameters-container').hide();
@@ -2354,9 +2405,10 @@
                 formattedValue.addClass('required');
             }
 
-            if (dataContext.isAffectedParameter || dataContext.parameterStatus.status === 'CHANGED') {
+            if (dataContext.isAffectedParameter || (nfCommon.isDefinedAndNotNull(dataContext.parameterStatus.status) && dataContext.parameterStatus.status !== 'UNCHANGED')) {
                 valueWidthOffset += 30;
-                $('<div class="fa fa-asterisk" alt="Info" style="float: right;"></div>').appendTo(cellContent);
+                var status = nfCommon.escapeHtml(dataContext.parameterStatus.status.toLowerCase());
+                $('<div class="fa fa-asterisk ' + status + '" alt="Info" style="float: right;"></div>').appendTo(cellContent);
             }
 
             if (dataContext.isReferencingParameter) {
@@ -2373,6 +2425,11 @@
 
         var checkboxSelectionFormatter = function (row, cell, value, columnDef, dataContext) {
             if (dataContext) {
+                if (dataContext.status === 'REMOVED' || dataContext.status === 'MISSING_BUT_REFERENCED') {
+                    // disable checkboxes
+                    return "<input type='checkbox' class='disabled unchecked-input-disabled' disabled><label for='selector'></label>";
+                }
+
                 if (_.isEmpty(dataContext.parameterStatus) || _.isEmpty(dataContext.parameterStatus.parameter.parameter.referencingComponents)) {
                     if (dataContext.sensitivity === SENSITIVE) {
                         return "<input type='checkbox' checked='checked' class='checked-input-enabled'><label for='selector'></label>";
@@ -2542,7 +2599,17 @@
         // hold onto an instance of the grid and create an affected component tooltip
         selectableParametersTable.data('gridInstance', selectableParametersGrid).on('mouseenter', 'div.slick-cell', function (e) {
             var asteriskIconElement =  $(this).find('div.fa-asterisk');
-            var asteriskTooltipContent = nfCommon.escapeHtml('Value has changed.');
+
+            var asteriskTooltipContent = '';
+            if (asteriskIconElement.hasClass('new')) {
+                asteriskTooltipContent = nfCommon.escapeHtml('Newly discovered parameter.');
+            } else if (asteriskIconElement.hasClass('changed')) {
+                asteriskTooltipContent = nfCommon.escapeHtml('Value has changed.');
+            } else if (asteriskIconElement.hasClass('removed')) {
+                asteriskTooltipContent = nfCommon.escapeHtml('Parameter has been removed from its source. Apply to remove from the synced parameter context.');
+            } else if (asteriskIconElement.hasClass('missing_but_referenced')) {
+                asteriskTooltipContent = nfCommon.escapeHtml('Parameter has been removed from its source and is still being referenced in a component. To remove the parameter from the parameter context, first un-reference the parameter, then re-fetch and apply.');
+            }
 
             // initialize tooltip
             asteriskIconElement.qtip($.extend({},
