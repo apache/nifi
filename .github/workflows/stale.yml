@@ -20,8 +20,12 @@ on:
   schedule:
     - cron: "0 0 * * *"
 
+permissions: {}
 jobs:
   stale:
+    permissions:
+      pull-requests: write # to close stale PRs (actions/stale)
+
     runs-on: ubuntu-latest
     steps:
       - uses: actions/stale@v3
