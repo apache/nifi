@@ -91,10 +91,9 @@
             <artifactId>nifi-xml-processing</artifactId>
             <version>1.18.0-SNAPSHOT</version>
         </dependency>
-
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
-            <artifactId>nifi-registry-data-model</artifactId>
+            <artifactId>nifi-registry-client</artifactId>
             <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
@@ -102,13 +101,6 @@
             <artifactId>nifi-registry-flow-diff</artifactId>
             <version>1.18.0-SNAPSHOT</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.nifi.registry</groupId>
-            <artifactId>nifi-registry-client</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
-        </dependency>
-
-
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>

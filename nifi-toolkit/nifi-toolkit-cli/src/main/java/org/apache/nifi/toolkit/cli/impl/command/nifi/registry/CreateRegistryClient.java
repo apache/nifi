@@ -23,14 +23,16 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.StringResult;
-import org.apache.nifi.web.api.dto.RegistryDTO;
-import org.apache.nifi.web.api.entity.RegistryClientEntity;
+import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
+import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 
 import java.io.IOException;
 import java.util.Properties;
 
 /**
  * Command for creating a registry client in NiFi.
+ *
+ * Note: currently the NiFi Registry backed legacy creation is supported.
  */
 public class CreateRegistryClient extends AbstractNiFiCommand<StringResult> {
 
@@ -58,16 +60,16 @@ public class CreateRegistryClient extends AbstractNiFiCommand<StringResult> {
         final String url = getRequiredArg(properties, CommandOption.REGISTRY_CLIENT_URL);
         final String desc = getArg(properties, CommandOption.REGISTRY_CLIENT_DESC);
 
-        final RegistryDTO registryDTO = new RegistryDTO();
-        registryDTO.setName(name);
-        registryDTO.setUri(url);
-        registryDTO.setDescription(desc);
+        final FlowRegistryClientDTO flowRegistryClientDTO = new FlowRegistryClientDTO();
+        flowRegistryClientDTO.setName(name);
+        flowRegistryClientDTO.setUri(url);
+        flowRegistryClientDTO.setDescription(desc);
 
-        final RegistryClientEntity clientEntity = new RegistryClientEntity();
-        clientEntity.setComponent(registryDTO);
+        final FlowRegistryClientEntity clientEntity = new FlowRegistryClientEntity();
+        clientEntity.setComponent(flowRegistryClientDTO);
         clientEntity.setRevision(getInitialRevisionDTO());
 
-        final RegistryClientEntity createdEntity = client.getControllerClient().createRegistryClient(clientEntity);
+        final FlowRegistryClientEntity createdEntity = client.getControllerClient().createRegistryClient(clientEntity);
         return new StringResult(createdEntity.getId(), getContext().isInteractive());
     }
 }

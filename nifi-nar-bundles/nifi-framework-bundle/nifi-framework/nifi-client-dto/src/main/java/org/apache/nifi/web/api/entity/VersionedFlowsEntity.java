@@ -22,17 +22,17 @@ import java.util.Set;
 @XmlRootElement(name = "versionedFlowsEntity")
 public class VersionedFlowsEntity extends Entity {
 
-    private Set<VersionedFlowEntity> versionedFlows;
+    private Set<VersionedFlowEntity> versionedFlowsEntity;
 
     /**
-     * @return collection of VersionedEntity's that are being serialized
+     * @return collection of VersionedFlowEntity's that are being serialized
      */
     public Set<VersionedFlowEntity> getVersionedFlows() {
-        return versionedFlows;
+        return versionedFlowsEntity;
     }
 
-    public void setVersionedFlows(Set<VersionedFlowEntity> versionedFlows) {
-        this.versionedFlows = versionedFlows;
+    public void setVersionedFlows(Set<VersionedFlowEntity> versionedFlowsEntity) {
+        this.versionedFlowsEntity = versionedFlowsEntity;
     }
 
 }

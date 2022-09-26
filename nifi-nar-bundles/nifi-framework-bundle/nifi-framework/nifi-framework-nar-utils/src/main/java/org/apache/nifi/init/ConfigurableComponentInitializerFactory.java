@@ -16,11 +16,13 @@
  */
 package org.apache.nifi.init;
 
+import org.apache.nifi.FlowRegistryClientInitializer;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.reporting.ReportingTask;
 
 public class ConfigurableComponentInitializerFactory {
@@ -42,6 +44,8 @@ public class ConfigurableComponentInitializerFactory {
             return new ReportingTaskInitializer(extensionManager);
         } else if (ParameterProvider.class.isAssignableFrom(componentClass)) {
             return new ParameterProviderInitializer(extensionManager);
+        } else if (FlowRegistryClient.class.isAssignableFrom(componentClass)) {
+            return new FlowRegistryClientInitializer(extensionManager);
         }
 
         return null;

@@ -736,7 +736,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
 
     private Set<FlowDifference> getLocalModifications(final ProcessGroup processGroup, final VersionedExternalFlow VersionedExternalFlow) {
         final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(getFlowController().getExtensionManager());
-        final VersionedProcessGroup localGroup = mapper.mapProcessGroup(processGroup, getFlowController().getControllerServiceProvider(), getFlowController().getFlowRegistryClient(), true);
+        final VersionedProcessGroup localGroup = mapper.mapProcessGroup(processGroup, getFlowController().getControllerServiceProvider(), getFlowController().getFlowManager(), true);
         final VersionedProcessGroup registryGroup = VersionedExternalFlow.getFlowContents();
 
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", localGroup);

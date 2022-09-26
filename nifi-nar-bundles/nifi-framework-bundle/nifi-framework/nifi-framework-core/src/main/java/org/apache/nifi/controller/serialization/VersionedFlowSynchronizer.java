@@ -40,7 +40,7 @@ import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.flow.VersionedFlowEncodingVersion;
-import org.apache.nifi.controller.flow.VersionedRegistry;
+import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.controller.flow.VersionedTemplate;
 import org.apache.nifi.controller.inheritance.AuthorizerCheck;
 import org.apache.nifi.controller.inheritance.BundleCompatibilityCheck;
@@ -79,8 +79,7 @@ import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.persistence.FlowConfigurationArchiveManager;
-import org.apache.nifi.registry.flow.FlowRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.DifferenceDescriptor;
 import org.apache.nifi.registry.flow.diff.FlowComparator;
@@ -126,6 +125,11 @@ import java.util.zip.GZIPInputStream;
 
 public class VersionedFlowSynchronizer implements FlowSynchronizer {
     private static final Logger logger = LoggerFactory.getLogger(VersionedFlowSynchronizer.class);
+    /**
+     * The Registry Client Type to use for registry clients that are configured using the deprecated style
+     */
+    private static final String DEPRECATED_FLOW_REGISTRY_CLIENT_TYPE = "org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient";
+    private static final BundleCoordinate DEPRECATED_FLOW_REGISTRY_BUNDLE = new BundleCoordinate("org.apache.nifi", "nifi-flow-registry-client-nar", "1.18.0");
 
     private final ExtensionManager extensionManager;
     private final File flowStorageFile;
@@ -253,6 +257,23 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             }
         }
 
+        if (dataflow.getRegistries() == null) {
+            dataflow.setRegistries(new ArrayList<>());
+        }
+        for (final VersionedFlowRegistryClient registry : dataflow.getRegistries()) {
+            if (isOldStyleRegistryClient(registry)) {
+                continue;
+            }
+            if (missingComponentIds.contains(registry.getInstanceIdentifier())) {
+                continue;
+            }
+
+            final Bundle compatibleBundle = getCompatibleBundle(registry.getBundle(), extensionManager, registry.getType());
+            if (compatibleBundle != null) {
+                registry.setBundle(compatibleBundle);
+            }
+        }
+
         if (dataflow.getParameterProviders() == null) {
             dataflow.setParameterProviders(new ArrayList<>());
         }
@@ -330,6 +351,24 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         return null;
     }
 
+    private BundleCoordinate getCompatibleBundle(final BundleCoordinate coordinate, final ExtensionManager extensionManager, final String type) {
+        final org.apache.nifi.bundle.Bundle exactBundle = extensionManager.getBundle(coordinate);
+        if (exactBundle != null) {
+            return coordinate;
+        }
+
+        final BundleDTO bundleDto = new BundleDTO(coordinate.getGroup(), coordinate.getId(), coordinate.getVersion());
+        final Optional<BundleCoordinate> optionalCoordinate = BundleUtils.getOptionalCompatibleBundle(extensionManager, type, bundleDto);
+        if (optionalCoordinate.isPresent()) {
+            final BundleCoordinate selectedCoordinate = optionalCoordinate.get();
+            logger.debug("Found compatible bundle {} for {} and type {}", selectedCoordinate.getCoordinate(), coordinate, type);
+            return selectedCoordinate;
+        }
+
+        logger.debug("Could not find a compatible bundle for {} and type {}", coordinate, type);
+        return null;
+    }
+
     private void synchronizeFlow(final FlowController controller, final DataFlow existingFlow, final DataFlow proposedFlow, final AffectedComponentSet affectedComponentSet) {
         // attempt to sync controller with proposed flow
         try {
@@ -353,7 +392,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 inheritParameterProviders(controller, versionedFlow, affectedComponentSet);
                 inheritParameterContexts(controller, versionedFlow);
                 inheritReportingTasks(controller, versionedFlow, affectedComponentSet);
-                inheritRegistries(controller, versionedFlow);
+                inheritRegistries(controller, versionedFlow, affectedComponentSet);
 
                 final ComponentIdGenerator componentIdGenerator = (proposedId, instanceId, destinationGroupId) -> instanceId;
 
@@ -400,6 +439,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                     .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
                     .mapInstanceIdentifiers(true)
                     .mapControllerServiceReferencesToVersionedId(false)
+                    .mapFlowRegistryClientId(true)
                     .build();
 
                 rootGroup.synchronizeFlow(versionedExternalFlow, syncOptions, flowMappingOptions);
@@ -419,12 +459,14 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         final DifferenceDescriptor differenceDescriptor = new StaticDifferenceDescriptor();
 
         final VersionedDataflow existingVersionedFlow = existingFlow.getVersionedDataflow() == null ? createEmptyVersionedDataflow() : existingFlow.getVersionedDataflow();
-        final ComparableDataFlow localDataFlow = new StandardComparableDataFlow("Local Flow", existingVersionedFlow.getRootGroup(), toSet(existingVersionedFlow.getControllerServices()),
-            toSet(existingVersionedFlow.getReportingTasks()), toSet(existingVersionedFlow.getParameterContexts()), toSet(existingVersionedFlow.getParameterProviders()));
+        final ComparableDataFlow localDataFlow = new StandardComparableDataFlow(
+                "Local Flow", existingVersionedFlow.getRootGroup(), toSet(existingVersionedFlow.getControllerServices()), toSet(existingVersionedFlow.getReportingTasks()),
+                toSet(existingVersionedFlow.getParameterContexts()),toSet(existingVersionedFlow.getParameterProviders()), toSet(existingVersionedFlow.getRegistries()));
 
         final VersionedDataflow clusterVersionedFlow = proposedFlow.getVersionedDataflow();
-        final ComparableDataFlow clusterDataFlow = new StandardComparableDataFlow("Cluster Flow", clusterVersionedFlow.getRootGroup(), toSet(clusterVersionedFlow.getControllerServices()),
-            toSet(clusterVersionedFlow.getReportingTasks()), toSet(clusterVersionedFlow.getParameterContexts()), toSet(clusterVersionedFlow.getParameterProviders()));
+        final ComparableDataFlow clusterDataFlow = new StandardComparableDataFlow(
+                "Cluster Flow", clusterVersionedFlow.getRootGroup(), toSet(clusterVersionedFlow.getControllerServices()), toSet(clusterVersionedFlow.getReportingTasks()),
+                toSet(clusterVersionedFlow.getParameterContexts()), toSet(clusterVersionedFlow.getParameterProviders()), toSet(clusterVersionedFlow.getRegistries()));
 
         final FlowComparator flowComparator = new StandardFlowComparator(localDataFlow, clusterDataFlow, Collections.emptySet(),
             differenceDescriptor, encryptor::decrypt, VersionedComponent::getInstanceIdentifier);
@@ -486,36 +528,75 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         }
     }
 
-    private void inheritRegistries(final FlowController controller, final VersionedDataflow dataflow) {
-        final FlowRegistryClient registryClient = controller.getFlowRegistryClient();
+    private void inheritRegistries(final FlowController controller, final VersionedDataflow dataflow, final AffectedComponentSet affectedComponentSet) {
+        final FlowManager flowManger = controller.getFlowManager();
 
-        for (final VersionedRegistry versionedRegistry : dataflow.getRegistries()) {
-            final FlowRegistry flowRegistry = registryClient.getFlowRegistry(versionedRegistry.getId());
-            if (flowRegistry == null) {
-                // Check if there's any registry with the same name. If so, remove it so that we can add this one in.
-                for (final String registryId : registryClient.getRegistryIdentifiers()) {
-                    final FlowRegistry registry = registryClient.getFlowRegistry(registryId);
-                    if (Objects.equals(versionedRegistry.getName(), registry.getName())) {
-                        registryClient.removeFlowRegistry(registryId);
-                        break;
-                    }
-                }
+        for (final VersionedFlowRegistryClient versionedFlowRegistryClient : dataflow.getRegistries()) {
+            final FlowRegistryClientNode existing = flowManger.getFlowRegistryClient(versionedFlowRegistryClient.getIdentifier());
 
-                addRegistry(registryClient, versionedRegistry);
-            } else {
-                updateRegistry(flowRegistry, versionedRegistry);
+            if (existing == null) {
+                addFlowRegistryClient(controller, versionedFlowRegistryClient);
+            } else if (affectedComponentSet.isFlowRegistryClientAffected(existing.getIdentifier())) {
+                updateRegistry(existing, versionedFlowRegistryClient, controller);
             }
         }
     }
 
-    private void addRegistry(final FlowRegistryClient registryClient, final VersionedRegistry versionedRegistry) {
-        registryClient.addFlowRegistry(versionedRegistry.getId(), versionedRegistry.getName(), versionedRegistry.getUrl(), versionedRegistry.getDescription());
+    private void addFlowRegistryClient(final FlowController flowController, final VersionedFlowRegistryClient versionedFlowRegistryClient) {
+        if (isOldStyleRegistryClient(versionedFlowRegistryClient)) {
+            addOldStyleRegistryClient(flowController.getFlowManager(), versionedFlowRegistryClient);
+            return;
+        }
+
+        final BundleCoordinate coordinate = createBundleCoordinate(versionedFlowRegistryClient.getBundle(), versionedFlowRegistryClient.getType());
+
+        final FlowRegistryClientNode flowRegistryClient = flowController.getFlowManager().createFlowRegistryClient(
+                versionedFlowRegistryClient.getType(), versionedFlowRegistryClient.getIdentifier(), coordinate, Collections.emptySet() , false, true, null);
+        updateRegistry(flowRegistryClient, versionedFlowRegistryClient, flowController);
     }
 
-    private void updateRegistry(final FlowRegistry registry, final VersionedRegistry versionedRegistry) {
-        registry.setDescription(versionedRegistry.getDescription());
-        registry.setName(versionedRegistry.getName());
-        registry.setURL(versionedRegistry.getUrl());
+    /**
+     * Checks if hte given VersionedFlowRegistryClient matches the old configuration style, which was used before Registry Clients
+     * were made into an extension point
+     * @param client the client to check
+     * @return <code>true</code> if the client is from an older configuration, <code>false</code> otherwise.
+     */
+    private boolean isOldStyleRegistryClient(final VersionedFlowRegistryClient client) {
+        return client.getId() != null && client.getIdentifier() == null && client.getBundle() == null;
+    }
+
+    /**
+     * Creates and adds to the flow a Flow Registry Client using the old style configuration for the VersionedFlowRegistryClient
+     * @param flowManager the flow manager
+     * @param client the versioned client
+     */
+    private void addOldStyleRegistryClient(final FlowManager flowManager, final VersionedFlowRegistryClient client) {
+        BundleCoordinate chosenCoordinate = getCompatibleBundle(DEPRECATED_FLOW_REGISTRY_BUNDLE, extensionManager, DEPRECATED_FLOW_REGISTRY_CLIENT_TYPE);
+        if (chosenCoordinate == null) {
+            // If unable to find a compatible bundle coordinate just use the deprecated coordinates, which can create a Ghosted component
+            chosenCoordinate = DEPRECATED_FLOW_REGISTRY_BUNDLE;
+        }
+
+        final FlowRegistryClientNode flowRegistryClient = flowManager.createFlowRegistryClient(DEPRECATED_FLOW_REGISTRY_CLIENT_TYPE, client.getId(),
+            chosenCoordinate, Collections.emptySet(), false,true, null);
+
+        flowRegistryClient.setName(client.getName());
+        flowRegistryClient.setDescription(client.getDescription());
+        flowRegistryClient.setAnnotationData(null);
+
+        final Map<String, String> properties = new HashMap<>();
+        properties.put("url", client.getUrl());
+        flowRegistryClient.setProperties(properties, false, Collections.emptySet());
+    }
+
+    private void updateRegistry(final FlowRegistryClientNode flowRegistryClient, final VersionedFlowRegistryClient versionedFlowRegistryClient, final FlowController flowController) {
+        flowRegistryClient.setName(versionedFlowRegistryClient.getName());
+        flowRegistryClient.setDescription(versionedFlowRegistryClient.getDescription());
+        flowRegistryClient.setAnnotationData(versionedFlowRegistryClient.getAnnotationData());
+
+        final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(flowRegistryClient, versionedFlowRegistryClient);
+        final Map<String, String> decryptedProperties = decryptProperties(versionedFlowRegistryClient.getProperties(), flowController.getEncryptor());
+        flowRegistryClient.setProperties(decryptedProperties, false, sensitiveDynamicPropertyNames);
     }
 
     private void inheritReportingTasks(final FlowController controller, final VersionedDataflow dataflow, final AffectedComponentSet affectedComponentSet) throws ReportingTaskInstantiationException {
@@ -1011,9 +1092,9 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             return false;
         }
 
-        final Set<String> registryIdentifiers = controller.getFlowRegistryClient().getRegistryIdentifiers();
-        if (!registryIdentifiers.isEmpty()) {
-            logger.debug("Existing Dataflow is not empty because there are {} NiFi Registries", registryIdentifiers.size());
+        final Set<FlowRegistryClientNode> registryClients = controller.getFlowManager().getAllFlowRegistryClients();
+        if (!registryClients.isEmpty()) {
+            logger.debug("Existing Dataflow is not empty because there are {} NiFi Registries", registryClients.size());
             return false;
         }
 

@@ -20,7 +20,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.nifi.RegistryClientsResult;
-import org.apache.nifi.web.api.entity.RegistryClientsEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -42,7 +42,7 @@ public class ListRegistryClients extends AbstractNiFiCommand<RegistryClientsResu
     @Override
     public RegistryClientsResult doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException {
-        final RegistryClientsEntity registries = client.getControllerClient().getRegistryClients();
+        final FlowRegistryClientsEntity registries = client.getControllerClient().getRegistryClients();
         return new RegistryClientsResult(getResultType(properties), registries);
     }
 

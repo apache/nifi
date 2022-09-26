@@ -21,6 +21,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.remote.RemoteGroupPort;
 
 public interface ComponentSetFilter {
@@ -37,6 +38,8 @@ public interface ComponentSetFilter {
     boolean testRemoteInputPort(RemoteGroupPort port);
 
     boolean testRemoteOutputPort(RemoteGroupPort port);
+
+    boolean testFlowRegistryClient(FlowRegistryClientNode flowRegistryClient);
 
     default ComponentSetFilter reverse() {
         final ComponentSetFilter original = this;
@@ -75,6 +78,11 @@ public interface ComponentSetFilter {
             @Override
             public boolean testRemoteOutputPort(final RemoteGroupPort port) {
                 return !original.testRemoteOutputPort(port);
+            }
+
+            @Override
+            public boolean testFlowRegistryClient(final FlowRegistryClientNode flowRegistryClient) {
+                return !original.testFlowRegistryClient(flowRegistryClient);
             }
         };
     }

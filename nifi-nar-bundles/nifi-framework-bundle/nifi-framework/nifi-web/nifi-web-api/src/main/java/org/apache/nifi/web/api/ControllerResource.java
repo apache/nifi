@@ -36,9 +36,11 @@ import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
-import org.apache.nifi.web.api.dto.RegistryDTO;
+import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ClusterEntity;
@@ -46,15 +48,19 @@ import org.apache.nifi.web.api.entity.ComponentHistoryEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.Entity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientTypesEntity;
 import org.apache.nifi.web.api.entity.HistoryEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
-import org.apache.nifi.web.api.entity.RegistryClientEntity;
-import org.apache.nifi.web.api.entity.RegistryClientsEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
+import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.DateTimeParameter;
 import org.apache.nifi.web.api.request.LongParameter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -72,7 +78,10 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -84,6 +93,8 @@ import java.util.Set;
         description = "Provides realtime command and control of this NiFi instance"
 )
 public class ControllerResource extends ApplicationResource {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ControllerResource.class);
+    private static final String NIFI_REGISTRY_TYPE = "org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient";
 
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
@@ -91,17 +102,6 @@ public class ControllerResource extends ApplicationResource {
     private ReportingTaskResource reportingTaskResource;
     private ParameterProviderResource parameterProviderResource;
     private ControllerServiceResource controllerServiceResource;
-
-    /**
-     * Populate the uri's for the specified registry.
-     *
-     * @param registryClientEntity registry
-     * @return dtos
-     */
-    public RegistryClientEntity populateRemainingRegistryEntityContent(final RegistryClientEntity registryClientEntity) {
-        registryClientEntity.setUri(generateResourceUri("controller", "registry-clients", registryClientEntity.getId()));
-        return registryClientEntity;
-    }
 
     /**
      * Authorizes access to the flow.
@@ -423,11 +423,16 @@ public class ControllerResource extends ApplicationResource {
     // registries
     // ----------
 
+    /**
+     * Lists existing clients.
+     *
+     * @return A FlowRegistryClientsEntity which contains a set of FlowRegistryClientEntity
+     */
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("registry-clients")
-    @ApiOperation(value = "Gets the listing of available registry clients", response = RegistryClientsEntity.class, authorizations = {
+    @ApiOperation(value = "Gets the listing of available flow registry clients", response = FlowRegistryClientsEntity.class, authorizations = {
             @Authorization(value = "Read - /flow")
     })
     @ApiResponses(value = {
@@ -437,36 +442,34 @@ public class ControllerResource extends ApplicationResource {
             @ApiResponse(code = 404, message = "The specified resource could not be found."),
             @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
-    public Response getRegistryClients() {
+    public Response getFlowRegistryClients() {
         authorizeController(RequestAction.READ);
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
         }
 
-        final Set<RegistryClientEntity> registries = serviceFacade.getRegistryClients();
-        registries.forEach(registry -> populateRemainingRegistryEntityContent(registry));
+        final Set<FlowRegistryClientEntity> flowRegistryClients = serviceFacade.getRegistryClients();
+        final FlowRegistryClientsEntity flowRegistryClientEntities = new FlowRegistryClientsEntity();
+        flowRegistryClientEntities.setRegistries(flowRegistryClients);
 
-        final RegistryClientsEntity registryEntities = new RegistryClientsEntity();
-        registryEntities.setRegistries(registries);
-
-        return generateOkResponse(registryEntities).build();
+        return generateOkResponse(populateRemainingRegistryClientEntityContent(flowRegistryClientEntities)).build();
     }
 
     /**
-     * Creates a new Registry.
+     * Creates a new flow registry client.
      *
-     * @param httpServletRequest  request
-     * @param requestRegistryClientEntity A registryClientEntity.
-     * @return A registryClientEntity.
+     * @param httpServletRequest request
+     * @param requestFlowRegistryClientEntity A registryClientEntity.
+     * @return A FlowRegistryClientEntity.
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("registry-clients")
     @ApiOperation(
-            value = "Creates a new registry client",
-            response = RegistryClientEntity.class,
+            value = "Creates a new flow registry client",
+            response = FlowRegistryClientEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /controller")
             }
@@ -479,22 +482,28 @@ public class ControllerResource extends ApplicationResource {
                     @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response createRegistryClient(
+    public Response createFlowRegistryClient(
             @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
-                    value = "The registry configuration details.",
+                    value = "The flow registry client configuration details.",
                     required = true
-            ) final RegistryClientEntity requestRegistryClientEntity) {
+            ) final FlowRegistryClientEntity requestFlowRegistryClientEntity) {
+        // authorize access
+        authorizeController(RequestAction.READ);
 
-        if (requestRegistryClientEntity == null || requestRegistryClientEntity.getComponent() == null) {
-            throw new IllegalArgumentException("Registry details must be specified.");
+        preprocessObsoleteRequest(requestFlowRegistryClientEntity);
+
+        if (requestFlowRegistryClientEntity == null || requestFlowRegistryClientEntity.getComponent() == null) {
+            throw new IllegalArgumentException("Flow registry client details must be specified.");
         }
 
-        if (requestRegistryClientEntity.getRevision() == null || (requestRegistryClientEntity.getRevision().getVersion() == null || requestRegistryClientEntity.getRevision().getVersion() != 0)) {
+        if (requestFlowRegistryClientEntity.getRevision() == null
+                || (requestFlowRegistryClientEntity.getRevision().getVersion() == null
+                || requestFlowRegistryClientEntity.getRevision().getVersion() != 0)) {
             throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Registry.");
         }
 
-        final RegistryDTO requestRegistryClient = requestRegistryClientEntity.getComponent();
+        final FlowRegistryClientDTO requestRegistryClient = requestFlowRegistryClientEntity.getComponent();
         if (requestRegistryClient.getId() != null) {
             throw new IllegalArgumentException("Registry ID cannot be specified.");
         }
@@ -503,33 +512,29 @@ public class ControllerResource extends ApplicationResource {
             throw new IllegalArgumentException("Registry name must be specified.");
         }
 
-        if (StringUtils.isBlank(requestRegistryClient.getUri())) {
-            throw new IllegalArgumentException("Registry URL must be specified.");
-        }
-
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.POST, requestRegistryClientEntity);
+            return replicate(HttpMethod.POST, requestFlowRegistryClientEntity);
         } else if (isDisconnectedFromCluster()) {
-            verifyDisconnectedNodeModification(requestRegistryClientEntity.isDisconnectedNodeAcknowledged());
+            verifyDisconnectedNodeModification(requestFlowRegistryClientEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
                 serviceFacade,
-                requestRegistryClientEntity,
+                requestFlowRegistryClientEntity,
                 lookup -> {
                     authorizeController(RequestAction.WRITE);
                 },
                 null,
-                (registryEntity) -> {
-                    final RegistryDTO registry = registryEntity.getComponent();
+                (registryClientEntity) -> {
+                    final FlowRegistryClientDTO flowRegistryClient = registryClientEntity.getComponent();
 
                     // set the processor id as appropriate
-                    registry.setId(generateUuid());
+                    flowRegistryClient.setId(generateUuid());
 
                     // create the reporting task and generate the json
-                    final Revision revision = getRevision(registryEntity, registry.getId());
-                    final RegistryClientEntity entity = serviceFacade.createRegistryClient(revision, registry);
-                    populateRemainingRegistryEntityContent(entity);
+                    final Revision revision = getRevision(registryClientEntity, flowRegistryClient.getId());
+                    final FlowRegistryClientEntity entity = serviceFacade.createRegistryClient(revision, flowRegistryClient);
+                    populateRemainingRegistryClientEntityContent(entity);
 
                     // build the response
                     return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
@@ -538,18 +543,18 @@ public class ControllerResource extends ApplicationResource {
     }
 
     /**
-     * Retrieves the specified registry.
+     * Retrieves the specified flow registry client.
      *
-     * @param id The id of the registry to retrieve
-     * @return A registryClientEntity.
+     * @param id The id of the flow registry client to retrieve
+     * @return A flowRegistryClientEntity.
      */
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/registry-clients/{id}")
     @ApiOperation(
-            value = "Gets a registry client",
-            response = RegistryClientEntity.class,
+            value = "Gets a flow registry client",
+            response = FlowRegistryClientEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /controller")
             }
@@ -563,9 +568,9 @@ public class ControllerResource extends ApplicationResource {
                     @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response getRegistryClient(
+    public Response getFlowRegistryClient(
             @ApiParam(
-                    value = "The registry id.",
+                    value = "The flow registry client id.",
                     required = true
             )
             @PathParam("id") final String id) {
@@ -577,28 +582,26 @@ public class ControllerResource extends ApplicationResource {
         // authorize access
         authorizeController(RequestAction.READ);
 
-        // get the registry
-        final RegistryClientEntity entity = serviceFacade.getRegistryClient(id);
-        populateRemainingRegistryEntityContent(entity);
-
-        return generateOkResponse(entity).build();
+        // get the flow registry client
+        final FlowRegistryClientEntity entity = serviceFacade.getRegistryClient(id);
+        return generateOkResponse(populateRemainingRegistryClientEntityContent(entity)).build();
     }
 
     /**
-     * Updates the specified registry.
+     * Updates the specified flow registry client.
      *
      * @param httpServletRequest      request
-     * @param id                      The id of the controller service to update.
-     * @param requestRegistryEntity A controllerServiceEntity.
-     * @return A controllerServiceEntity.
+     * @param id The id of the flow registry client to update.
+     * @param requestFlowRegistryClientEntity A flowRegistryClientEntity.
+     * @return A flowRegistryClientEntity.
      */
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/registry-clients/{id}")
     @ApiOperation(
-            value = "Updates a registry client",
-            response = RegistryClientEntity.class,
+            value = "Updates a flow registry client",
+            response = FlowRegistryClientEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /controller")
             }
@@ -612,71 +615,71 @@ public class ControllerResource extends ApplicationResource {
                     @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response updateRegistryClient(
+    public Response updateFlowRegistryClient(
             @Context HttpServletRequest httpServletRequest,
             @ApiParam(
-                    value = "The registry id.",
+                    value = "The flow registry client id.",
                     required = true
             )
             @PathParam("id") final String id,
             @ApiParam(
-                    value = "The registry configuration details.",
+                    value = "The flow registry client configuration details.",
                     required = true
-            ) final RegistryClientEntity requestRegistryEntity) {
+            ) final FlowRegistryClientEntity requestFlowRegistryClientEntity) {
 
-        if (requestRegistryEntity == null || requestRegistryEntity.getComponent() == null) {
-            throw new IllegalArgumentException("Registry details must be specified.");
+        preprocessObsoleteRequest(requestFlowRegistryClientEntity);
+
+        if (requestFlowRegistryClientEntity == null || requestFlowRegistryClientEntity.getComponent() == null) {
+            throw new IllegalArgumentException("Flow registry client details must be specified.");
         }
 
-        if (requestRegistryEntity.getRevision() == null) {
+        if (requestFlowRegistryClientEntity.getRevision() == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
+        // authorize access
+        authorizeController(RequestAction.WRITE);
+
         // ensure the ids are the same
-        final RegistryDTO requestRegistryClient = requestRegistryEntity.getComponent();
+        final FlowRegistryClientDTO requestRegistryClient = requestFlowRegistryClientEntity.getComponent();
         if (!id.equals(requestRegistryClient.getId())) {
-            throw new IllegalArgumentException(String.format("The registry id (%s) in the request body does not equal the "
-                    + "registry id of the requested resource (%s).", requestRegistryClient.getId(), id));
+            throw new IllegalArgumentException(String.format("The flow registry client id (%s) in the request body does not equal the "
+                    + " id of the requested resource (%s).", requestRegistryClient.getId(), id));
         }
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.PUT, requestRegistryEntity);
+            return replicate(HttpMethod.PUT, requestFlowRegistryClientEntity);
         } else if (isDisconnectedFromCluster()) {
-            verifyDisconnectedNodeModification(requestRegistryEntity.isDisconnectedNodeAcknowledged());
+            verifyDisconnectedNodeModification(requestFlowRegistryClientEntity.isDisconnectedNodeAcknowledged());
         }
 
         if (requestRegistryClient.getName() != null && StringUtils.isBlank(requestRegistryClient.getName())) {
-            throw new IllegalArgumentException("Registry name must be specified.");
-        }
-
-        if (requestRegistryClient.getUri() != null && StringUtils.isBlank(requestRegistryClient.getUri())) {
-            throw new IllegalArgumentException("Registry URL must be specified.");
+            throw new IllegalArgumentException("Flow registry client name must be specified.");
         }
 
         // handle expects request (usually from the cluster manager)
-        final Revision requestRevision = getRevision(requestRegistryEntity, id);
+        final Revision requestRevision = getRevision(requestFlowRegistryClientEntity, id);
         return withWriteLock(
                 serviceFacade,
-                requestRegistryEntity,
+                requestFlowRegistryClientEntity,
                 requestRevision,
                 lookup -> {
                     authorizeController(RequestAction.WRITE);
                 },
                 null,
-                (revision, registryEntity) -> {
-                    final RegistryDTO registry = registryEntity.getComponent();
+                (revision, registryClientEntity) -> {
+                    final FlowRegistryClientDTO registry = registryClientEntity.getComponent();
 
                     // update the controller service
-                    final RegistryClientEntity entity = serviceFacade.updateRegistryClient(revision, registry);
-                    populateRemainingRegistryEntityContent(entity);
+                    final FlowRegistryClientEntity entity = serviceFacade.updateRegistryClient(revision, registry);
 
-                    return generateOkResponse(entity).build();
+                    return generateOkResponse(populateRemainingRegistryClientEntityContent(entity)).build();
                 }
         );
     }
 
     /**
-     * Removes the specified registry.
+     * Removes the specified flow registry client.
      *
      * @param httpServletRequest request
      * @param version            The revision is used to verify the client is working with
@@ -684,7 +687,7 @@ public class ControllerResource extends ApplicationResource {
      * @param clientId           Optional client id. If the client id is not specified, a
      *                           new one will be generated. This value (whether specified or generated) is
      *                           included in the response.
-     * @param id                 The id of the registry to remove.
+     * @param id                 The id of the flow registry client to remove.
      * @return A entity containing the client id and an updated revision.
      */
     @DELETE
@@ -692,8 +695,8 @@ public class ControllerResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/registry-clients/{id}")
     @ApiOperation(
-            value = "Deletes a registry client",
-            response = RegistryClientEntity.class,
+            value = "Deletes a flow registry client",
+            response = FlowRegistryClientEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /controller")
             }
@@ -707,7 +710,7 @@ public class ControllerResource extends ApplicationResource {
                     @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response deleteRegistryClient(
+    public Response deleteFlowRegistryClient(
             @Context HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The revision is used to verify the client is working with the latest version of the flow.",
@@ -725,7 +728,7 @@ public class ControllerResource extends ApplicationResource {
             )
             @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
             @ApiParam(
-                    value = "The registry id.",
+                    value = "The flow registry client id.",
                     required = true
             )
             @PathParam("id") final String id) {
@@ -736,26 +739,188 @@ public class ControllerResource extends ApplicationResource {
             verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
-        final RegistryClientEntity requestRegistryClientEntity = new RegistryClientEntity();
-        requestRegistryClientEntity.setId(id);
+        // authorize access
+        authorizeController(RequestAction.WRITE);
+
+        final FlowRegistryClientEntity requestFlowRegistryClientEntity = new FlowRegistryClientEntity();
+        requestFlowRegistryClientEntity.setId(id);
 
         // handle expects request (usually from the cluster manager)
         final Revision requestRevision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
         return withWriteLock(
                 serviceFacade,
-                requestRegistryClientEntity,
+                requestFlowRegistryClientEntity,
                 requestRevision,
                 lookup -> {
                     authorizeController(RequestAction.WRITE);
                 },
                 () -> serviceFacade.verifyDeleteRegistry(id),
-                (revision, registryEntity) -> {
-                    // delete the specified registry
-                    final RegistryClientEntity entity = serviceFacade.deleteRegistryClient(revision, registryEntity.getId());
-                    return generateOkResponse(entity).build();
+                (revision, registryClientEntity) -> {
+                    // delete the specified flow registry client
+                    final FlowRegistryClientEntity entity = serviceFacade.deleteRegistryClient(revision, registryClientEntity.getId());
+                    return generateOkResponse(populateRemainingRegistryClientEntityContent(entity)).build();
                 }
         );
     }
+
+    /**
+     * Returns the descriptor for the specified property.
+     *
+     * @param id           The id of the flow registry client.
+     * @param propertyName The property
+     * @return a propertyDescriptorEntity
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/registry-clients/{id}/descriptors")
+    @ApiOperation(
+            value = "Gets a flow registry client property descriptor",
+            response = PropertyDescriptorEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /controller/registry-clients/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getPropertyDescriptor(
+            @ApiParam(
+                    value = "The flow registry client id.",
+                    required = true
+            )
+            @PathParam("id") final String id,
+            @ApiParam(
+                    value = "The property name.",
+                    required = true
+            )
+            @QueryParam("propertyName") final String propertyName,
+            @ApiParam(
+                    value = "Property Descriptor requested sensitive status",
+                    defaultValue = "false"
+            )
+            @QueryParam("sensitive") final boolean sensitive
+    ) {
+
+        // ensure the property name is specified
+        if (propertyName == null) {
+            throw new IllegalArgumentException("The property name must be specified.");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // authorize access
+        authorizeController(RequestAction.READ);
+
+        // get the property descriptor
+        final PropertyDescriptorDTO descriptor = serviceFacade.getRegistryClientPropertyDescriptor(id, propertyName, sensitive);
+
+        // generate the response entity
+        final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();
+        entity.setPropertyDescriptor(descriptor);
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Retrieves the types of flow registry clients that this NiFi supports.
+     *
+     * @return A flowRegistryTypesEntity.
+     * @throws InterruptedException if interrupted
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("registry-types")
+    @ApiOperation(
+            value = "Retrieves the types of flow  that this NiFi supports",
+            notes = NON_GUARANTEED_ENDPOINT,
+            response = FlowRegistryClientTypesEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getRegistryClientTypes() {
+        // authorize access
+        authorizeController(RequestAction.READ);
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        final FlowRegistryClientTypesEntity entity = new FlowRegistryClientTypesEntity();
+        entity.setFlowRegistryClientTypes(serviceFacade.getFlowRegistryTypes());
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    private void preprocessObsoleteRequest(final FlowRegistryClientEntity requestFlowRegistryClientEntity) {
+        final FlowRegistryClientDTO dto = requestFlowRegistryClientEntity.getComponent();
+
+        if (dto.getType() == null && dto.getBundle() == null && dto.getUri() != null) {
+            LOGGER.warn("The flow registry client operation request is considered legacy, will be populated using defaults!");
+
+            final Optional<DocumentedTypeDTO> nifiRegistryBundle = serviceFacade.getFlowRegistryTypes().stream().filter(b -> NIFI_REGISTRY_TYPE.equals(b.getType())).findFirst();
+
+            if (!nifiRegistryBundle.isPresent()) {
+                throw new IllegalStateException("NiFi instance cannot find a NifiRegistryFlowRegistryClient implementation!");
+            }
+
+            dto.setType(NIFI_REGISTRY_TYPE);
+            dto.setBundle(nifiRegistryBundle.get().getBundle());
+            dto.setProperties(new HashMap<>(Collections.singletonMap("url", dto.getUri())));
+            dto.setUri(null);
+        }
+    }
+
+    /**
+     * Populate the uri's for the specified flow registry client and also extend the result to make it backward compatible.
+     *
+     * @param flowRegistryClientEntity flow registry client
+     * @return the updated entity
+     */
+    private FlowRegistryClientEntity populateRemainingRegistryClientEntityContent(final FlowRegistryClientEntity flowRegistryClientEntity) {
+        flowRegistryClientEntity.setUri(generateResourceUri("controller", "registry-clients", flowRegistryClientEntity.getId()));
+
+        if (flowRegistryClientEntity.getComponent().getType().equals(NIFI_REGISTRY_TYPE)) {
+            flowRegistryClientEntity.getComponent().setUri(flowRegistryClientEntity.getComponent().getProperties().get("url"));
+        }
+
+        return flowRegistryClientEntity;
+    }
+
+    /**
+     * Populate the uri's for all contained flow registry clients and also extend the result to make it backward compatible.
+     */
+    private FlowRegistryClientsEntity populateRemainingRegistryClientEntityContent(final FlowRegistryClientsEntity flowRegistryClientsEntity) {
+        for (final FlowRegistryClientEntity entity : flowRegistryClientsEntity.getRegistries()) {
+            populateRemainingRegistryClientEntityContent(entity);
+        }
+
+        return flowRegistryClientsEntity;
+    }
+
+    // -------------------
+    // bulletin
+    // -------------------
 
     /**
      * Creates a Bulletin.

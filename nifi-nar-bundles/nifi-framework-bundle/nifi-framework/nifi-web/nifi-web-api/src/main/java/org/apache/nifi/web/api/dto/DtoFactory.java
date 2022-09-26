@@ -146,7 +146,8 @@ import org.apache.nifi.provenance.lineage.LineageNode;
 import org.apache.nifi.provenance.lineage.ProvenanceEventLineageNode;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
-import org.apache.nifi.registry.flow.FlowRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedFlowStatus;
@@ -1892,6 +1893,15 @@ public final class DtoFactory {
             dto.setReferenceType(ParameterProvider.class.getSimpleName());
 
             propertyDescriptors = node.getParameterProvider().getPropertyDescriptors();
+            validationErrors = node.getValidationErrors();
+            processGroupId = null;
+        } else if (component instanceof FlowRegistryClientNode) {
+            final FlowRegistryClientNode node = (FlowRegistryClientNode) component;
+
+            dto.setType(node.getComponentType());
+            dto.setReferenceType(FlowRegistryClient.class.getSimpleName());
+
+            propertyDescriptors = node.getComponent().getPropertyDescriptors();
             validationErrors = node.getValidationErrors();
             processGroupId = null;
         }
@@ -4848,12 +4858,80 @@ public final class DtoFactory {
         return nodeDto;
     }
 
-    public RegistryDTO createRegistryDto(FlowRegistry registry) {
-        final RegistryDTO dto = new RegistryDTO();
-        dto.setDescription(registry.getDescription());
-        dto.setId(registry.getIdentifier());
-        dto.setName(registry.getName());
-        dto.setUri(registry.getURL());
+    public FlowRegistryClientDTO createRegistryDto(final FlowRegistryClientNode flowRegistryClientNode) {
+        final BundleCoordinate bundleCoordinate = flowRegistryClientNode.getBundleCoordinate();
+        final List<Bundle> compatibleBundles = extensionManager.getBundles(flowRegistryClientNode.getCanonicalClassName()).stream().filter(bundle -> {
+            final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
+            return bundleCoordinate.getGroup().equals(coordinate.getGroup()) && bundleCoordinate.getId().equals(coordinate.getId());
+        }).collect(Collectors.toList());
+
+        final FlowRegistryClientDTO dto = new FlowRegistryClientDTO();
+        dto.setId(flowRegistryClientNode.getIdentifier());
+        dto.setName(flowRegistryClientNode.getName());
+        dto.setDescription(flowRegistryClientNode.getDescription());
+        dto.setType(flowRegistryClientNode.getCanonicalClassName());
+        dto.setBundle(createBundleDto(bundleCoordinate));
+        dto.setAnnotationData(flowRegistryClientNode.getAnnotationData());
+        dto.setSupportsSensitiveDynamicProperties(flowRegistryClientNode.isSupportsSensitiveDynamicProperties());
+        dto.setRestricted(flowRegistryClientNode.isRestricted());
+        dto.setDeprecated(flowRegistryClientNode.isDeprecated());
+        dto.setExtensionMissing(flowRegistryClientNode.isExtensionMissing());
+        dto.setMultipleVersionsAvailable(compatibleBundles.size() > 1);
+
+        // sort a copy of the properties
+        final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
+            @Override
+            public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
+                return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
+            }
+        });
+        sortedProperties.putAll(flowRegistryClientNode.getRawPropertyValues());
+
+        // get the property order from the client
+        final Map<PropertyDescriptor, String> orderedProperties = new LinkedHashMap<>();
+        final List<PropertyDescriptor> descriptors = flowRegistryClientNode.getPropertyDescriptors();
+        if (descriptors != null && !descriptors.isEmpty()) {
+            for (final PropertyDescriptor descriptor : descriptors) {
+                orderedProperties.put(descriptor, null);
+            }
+        }
+        orderedProperties.putAll(sortedProperties);
+
+        dto.setDescriptors(new LinkedHashMap<>());
+        dto.setProperties(new LinkedHashMap<>());
+
+        for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+
+            // store the property descriptor
+            dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, null));
+
+            // determine the property value - don't include sensitive properties
+            String propertyValue = entry.getValue();
+            if (propertyValue != null && descriptor.isSensitive()) {
+                propertyValue = SENSITIVE_VALUE_MASK;
+            } else if (propertyValue == null && descriptor.getDefaultValue() != null) {
+                propertyValue = descriptor.getDefaultValue();
+            }
+
+            // set the property valueControllerResource
+            dto.getProperties().put(descriptor.getName(), propertyValue);
+        }
+
+        final ValidationStatus validationStatus = flowRegistryClientNode.getValidationStatus(1, TimeUnit.MILLISECONDS);
+        dto.setValidationStatus(validationStatus.name());
+
+        // add the validation errors
+        final Collection<ValidationResult> validationErrors = flowRegistryClientNode.getValidationErrors();
+        if (validationErrors != null && !validationErrors.isEmpty()) {
+            final List<String> errors = new ArrayList<>();
+            for (final ValidationResult validationResult : validationErrors) {
+                errors.add(validationResult.toString());
+            }
+
+            dto.setValidationErrors(errors);
+        }
+
         return dto;
     }
 

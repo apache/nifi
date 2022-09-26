@@ -30,11 +30,11 @@ import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.remote.RemoteGroupPort;
 
 import java.util.HashMap;
 import java.util.Map;
-
 public class RunningComponentSetFilter implements ComponentSetFilter {
     private final Map<String, VersionedControllerService> controllerServices = new HashMap<>();
     private final Map<String, VersionedProcessor> processors = new HashMap<>();
@@ -113,5 +113,10 @@ public class RunningComponentSetFilter implements ComponentSetFilter {
     public boolean testRemoteOutputPort(final RemoteGroupPort port) {
         final VersionedRemoteGroupPort versionedPort = remoteOutputPorts.get(port.getIdentifier());
         return versionedPort != null && versionedPort.getScheduledState() == ScheduledState.RUNNING;
+    }
+
+    @Override
+    public boolean testFlowRegistryClient(final FlowRegistryClientNode flowRegistryClient) {
+       return false;
     }
 }

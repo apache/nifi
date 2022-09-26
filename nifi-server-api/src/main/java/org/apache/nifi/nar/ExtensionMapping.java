@@ -32,6 +32,7 @@ public class ExtensionMapping {
     private final Map<String, Set<BundleCoordinate>> controllerServiceNames = new HashMap<>();
     private final Map<String, Set<BundleCoordinate>> reportingTaskNames = new HashMap<>();
     private final Map<String, Set<BundleCoordinate>> parameterProviderNames = new HashMap<>();
+    private final Map<String, Set<BundleCoordinate>> flowRegistryClientNames = new HashMap<>();
 
     private final BiFunction<Set<BundleCoordinate>, Set<BundleCoordinate>, Set<BundleCoordinate>> merger = (oldValue, newValue) -> {
         final Set<BundleCoordinate> merged = new HashSet<>();
@@ -80,6 +81,16 @@ public class ExtensionMapping {
         });
     }
 
+    void addFlowRegistryClient(final BundleCoordinate coordinate, final String flowRegistryClientName) {
+        parameterProviderNames.computeIfAbsent(flowRegistryClientName, name -> new HashSet<>()).add(coordinate);
+    }
+
+    void addAllFlowRegistryClients(final BundleCoordinate coordinate, final Collection<String> flowRegistryClientNames) {
+        flowRegistryClientNames.forEach(name -> {
+            addFlowRegistryClient(coordinate, name);
+        });
+    }
+
     void merge(final ExtensionMapping other) {
         other.getProcessorNames().forEach((name, otherCoordinates) -> {
             processorNames.merge(name, otherCoordinates, merger);
@@ -92,6 +103,9 @@ public class ExtensionMapping {
         });
         other.getParameterProviderNames().forEach((name, otherCoordinates) -> {
             parameterProviderNames.merge(name, otherCoordinates, merger);
+        });
+        other.getFlowRegistryClientNames().forEach((name, otherCoordinates) -> {
+            flowRegistryClientNames.merge(name, otherCoordinates, merger);
         });
     }
 
@@ -111,12 +125,17 @@ public class ExtensionMapping {
         return Collections.unmodifiableMap(parameterProviderNames);
     }
 
+    public Map<String, Set<BundleCoordinate>> getFlowRegistryClientNames() {
+        return Collections.unmodifiableMap(flowRegistryClientNames);
+    }
+
     public Map<String, Set<BundleCoordinate>> getAllExtensionNames() {
         final Map<String, Set<BundleCoordinate>> extensionNames = new HashMap<>();
         extensionNames.putAll(processorNames);
         extensionNames.putAll(controllerServiceNames);
         extensionNames.putAll(reportingTaskNames);
         extensionNames.putAll(parameterProviderNames);
+        extensionNames.putAll(flowRegistryClientNames);
         return extensionNames;
     }
 
@@ -135,11 +154,14 @@ public class ExtensionMapping {
         for (final Set<BundleCoordinate> coordinates : parameterProviderNames.values()) {
             size += coordinates.size();
         }
+        for (final Set<BundleCoordinate> coordinates : flowRegistryClientNames.values()) {
+            size += coordinates.size();
+        }
 
         return size;
     }
 
     public boolean isEmpty() {
-        return processorNames.isEmpty() && controllerServiceNames.isEmpty() && reportingTaskNames.isEmpty() && parameterProviderNames.isEmpty();
+        return processorNames.isEmpty() && controllerServiceNames.isEmpty() && reportingTaskNames.isEmpty() && parameterProviderNames.isEmpty() && flowRegistryClientNames.isEmpty();
     }
 }

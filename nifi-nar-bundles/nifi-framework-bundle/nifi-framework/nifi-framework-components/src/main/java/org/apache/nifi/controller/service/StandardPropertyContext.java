@@ -27,6 +27,7 @@ import org.apache.nifi.components.resource.ResourceContext;
 import org.apache.nifi.components.resource.StandardResourceContext;
 import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.registry.VariableRegistry;
 
@@ -38,9 +39,12 @@ public class StandardPropertyContext implements PropertyContext {
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
     private final Map<PropertyDescriptor, String> properties;
     private final ConfigurableComponent component;
+    private final ControllerServiceLookup controllerServiceLookup;
 
-    public StandardPropertyContext(final Map<PropertyDescriptor, String> effectivePropertyValues, final ConfigurableComponent component) {
+    public StandardPropertyContext(
+            final Map<PropertyDescriptor, String> effectivePropertyValues, final ConfigurableComponent component, final ControllerServiceLookup controllerServiceLookup) {
         this.properties = effectivePropertyValues;
+        this.controllerServiceLookup = controllerServiceLookup;
         this.preparedQueries = new HashMap<>();
         this.component = component;
 
@@ -66,7 +70,7 @@ public class StandardPropertyContext implements PropertyContext {
         final String resolvedValue = (configuredValue == null) ? resolvedDescriptor.getDefaultValue() : configuredValue;
 
         final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), property);
-        return new StandardPropertyValue(resourceContext, resolvedValue, null, ParameterLookup.EMPTY, preparedQueries.get(property), VariableRegistry.EMPTY_REGISTRY);
+        return new StandardPropertyValue(resourceContext, resolvedValue, controllerServiceLookup, ParameterLookup.EMPTY, preparedQueries.get(property), VariableRegistry.EMPTY_REGISTRY);
     }
 
     @Override

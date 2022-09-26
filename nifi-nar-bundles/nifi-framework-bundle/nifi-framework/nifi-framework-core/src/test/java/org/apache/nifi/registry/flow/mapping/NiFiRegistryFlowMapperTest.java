@@ -34,6 +34,7 @@ import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.parameter.ParameterProviderLookup;
 import org.apache.nifi.controller.queue.FlowFileQueue;
@@ -43,6 +44,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
+import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.PortType;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
@@ -71,9 +73,7 @@ import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
-import org.apache.nifi.registry.flow.FlowRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.flow.ParameterProviderReference;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
@@ -84,6 +84,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Answers;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.Arrays;
@@ -117,7 +118,7 @@ public class NiFiRegistryFlowMapperTest {
     @Mock
     private ControllerServiceProvider controllerServiceProvider;
     @Mock
-    private FlowRegistryClient flowRegistryClient;
+    private FlowManager flowManager;
     @Mock
     private ParameterProviderLookup parameterProviderLookup;
     @Mock
@@ -131,9 +132,11 @@ public class NiFiRegistryFlowMapperTest {
 
     @Before
     public void setup() {
-        final FlowRegistry flowRegistry = mock(FlowRegistry.class);
-        when(flowRegistryClient.getFlowRegistry(anyString())).thenReturn(flowRegistry);
-        when(flowRegistry.getURL()).thenReturn("url");
+        final FlowRegistryClientNode flowRegistry = mock(FlowRegistryClientNode.class);
+        Mockito.when(flowRegistry.getComponentType()).thenReturn("org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient");
+        Mockito.when(flowRegistry.getRawPropertyValue(Mockito.any())).thenReturn("");
+
+        when(flowManager.getFlowRegistryClient(anyString())).thenReturn(flowRegistry);
 
         when(parameterProviderLookup.getParameterProvider(PARAMETER_PROVIDER_ID)).thenReturn(parameterProviderNode);
         when(parameterProviderNode.getName()).thenReturn("name");
@@ -227,7 +230,7 @@ public class NiFiRegistryFlowMapperTest {
 
         // perform the mapping, excluding descendant versioned flows
         final InstantiatedVersionedProcessGroup versionedProcessGroup =
-                flowMapper.mapProcessGroup(processGroup, controllerServiceProvider, flowRegistryClient,
+                flowMapper.mapProcessGroup(processGroup, controllerServiceProvider, flowManager,
                         false);
         final VersionedProcessGroup innerVersionedProcessGroup =
                 versionedProcessGroup.getProcessGroups().iterator().next();

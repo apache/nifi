@@ -564,6 +564,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             readUiExtensions(uiExtensions, UiExtensionType.ControllerServiceConfiguration, jarFile, jarFile.getJarEntry("META-INF/nifi-controller-service-configuration"));
             readUiExtensions(uiExtensions, UiExtensionType.ReportingTaskConfiguration, jarFile, jarFile.getJarEntry("META-INF/nifi-reporting-task-configuration"));
             readUiExtensions(uiExtensions, UiExtensionType.ParameterProviderConfiguration, jarFile, jarFile.getJarEntry("META-INF/nifi-parameter-provider-configuration"));
+            readUiExtensions(uiExtensions, UiExtensionType.FlowRegistryClientConfiguration, jarFile, jarFile.getJarEntry("META-INF/nifi-flow-registry-client-configuration"));
         } catch (IOException ioe) {
             logger.warn(String.format("Unable to inspect %s for a UI extensions.", warFile));
         }

@@ -107,6 +107,7 @@ import org.apache.nifi.flow.VersionedConfigurableComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedExternalFlowMetadata;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -136,17 +137,16 @@ import org.apache.nifi.prometheus.util.JvmMetricsRegistry;
 import org.apache.nifi.prometheus.util.NiFiMetricsRegistry;
 import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.registry.ComponentVariableRegistry;
-import org.apache.nifi.registry.VersionedFlowConverter;
-import org.apache.nifi.registry.authorization.Permissions;
-import org.apache.nifi.registry.bucket.Bucket;
-import org.apache.nifi.registry.client.NiFiRegistryException;
-import org.apache.nifi.registry.flow.FlowRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.registry.flow.RestBasedFlowRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryBucket;
+import org.apache.nifi.registry.flow.FlowRegistryClientContextFactory;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
+import org.apache.nifi.registry.flow.FlowRegistryException;
+import org.apache.nifi.registry.flow.FlowRegistryPermissions;
+import org.apache.nifi.registry.flow.FlowRegistryUtil;
+import org.apache.nifi.registry.flow.RegisteredFlow;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.VersionControlInformation;
-import org.apache.nifi.registry.flow.VersionedFlow;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.ConciseEvolvingDifferenceDescriptor;
@@ -177,7 +177,6 @@ import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.AccessPolicySummaryDTO;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
-import org.apache.nifi.web.api.dto.BucketDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
@@ -206,6 +205,8 @@ import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.EntityFactory;
 import org.apache.nifi.web.api.dto.FlowConfigurationDTO;
 import org.apache.nifi.web.api.dto.FlowFileDTO;
+import org.apache.nifi.web.api.dto.FlowRegistryBucketDTO;
+import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
@@ -225,7 +226,6 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.PropertyHistoryDTO;
-import org.apache.nifi.web.api.dto.RegistryDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
@@ -269,7 +269,6 @@ import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
-import org.apache.nifi.web.api.entity.BucketEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
@@ -286,6 +285,8 @@ import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryBucketEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
@@ -304,8 +305,6 @@ import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
-import org.apache.nifi.web.api.entity.RegistryClientEntity;
-import org.apache.nifi.web.api.entity.RegistryEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
@@ -329,6 +328,7 @@ import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.apache.nifi.web.dao.ConnectionDAO;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
+import org.apache.nifi.web.dao.FlowRegistryDAO;
 import org.apache.nifi.web.dao.FunnelDAO;
 import org.apache.nifi.web.dao.LabelDAO;
 import org.apache.nifi.web.dao.ParameterContextDAO;
@@ -336,7 +336,6 @@ import org.apache.nifi.web.dao.ParameterProviderDAO;
 import org.apache.nifi.web.dao.PortDAO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.apache.nifi.web.dao.ProcessorDAO;
-import org.apache.nifi.web.dao.RegistryDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
 import org.apache.nifi.web.dao.ReportingTaskDAO;
 import org.apache.nifi.web.dao.SnippetDAO;
@@ -416,7 +415,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private UserDAO userDAO;
     private UserGroupDAO userGroupDAO;
     private AccessPolicyDAO accessPolicyDAO;
-    private RegistryDAO registryDAO;
+    private FlowRegistryDAO flowRegistryDAO;
     private ParameterContextDAO parameterContextDAO;
     private ClusterCoordinator clusterCoordinator;
     private HeartbeatMonitor heartbeatMonitor;
@@ -424,9 +423,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     // administrative services
     private AuditService auditService;
-
-    // flow registry
-    private FlowRegistryClient flowRegistryClient;
 
     // properties
     private NiFiProperties properties;
@@ -3104,105 +3100,107 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
 
     @Override
-    public RegistryClientEntity createRegistryClient(Revision revision, RegistryDTO registryDTO) {
+    public FlowRegistryClientEntity createRegistryClient(final Revision revision, final FlowRegistryClientDTO flowRegistryClientDTO) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         // request claim for component to be created... revision already verified (version == 0)
         final RevisionClaim claim = new StandardRevisionClaim(revision);
 
         // update revision through revision manager
-        final RevisionUpdate<FlowRegistry> revisionUpdate = revisionManager.updateRevision(claim, user, () -> {
+        final RevisionUpdate<FlowRegistryClientDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
             // add the component
-            final FlowRegistry registry = registryDAO.createFlowRegistry(registryDTO);
+            final FlowRegistryClientNode registryClient = flowRegistryDAO.createFlowRegistryClient(flowRegistryClientDTO);
 
             // save the flow
             controllerFacade.save();
+            awaitValidationCompletion(registryClient);
 
+
+            final FlowRegistryClientDTO dto = dtoFactory.createRegistryDto(registryClient);
             final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
-            return new StandardRevisionUpdate<>(registry, lastMod);
+            return new StandardRevisionUpdate<>(dto, lastMod);
         });
 
-        final FlowRegistry registry = revisionUpdate.getComponent();
-        return createRegistryClientEntity(registry);
+        return createRegistryClientEntity(flowRegistryClientDTO, snapshot);
     }
 
     @Override
-    public RegistryClientEntity getRegistryClient(final String registryId) {
-        final FlowRegistry registry = registryDAO.getFlowRegistry(registryId);
-        return createRegistryClientEntity(registry);
-    }
-
-    private RegistryClientEntity createRegistryClientEntity(final FlowRegistry flowRegistry) {
-        if (flowRegistry == null) {
-            return null;
-        }
-
-        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(flowRegistry.getIdentifier()));
-        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(authorizableLookup.getController());
-        final RegistryDTO dto = dtoFactory.createRegistryDto(flowRegistry);
-
-        return entityFactory.createRegistryClientEntity(dto, revision, permissions);
-    }
-
-    private VersionedFlowEntity createVersionedFlowEntity(final String registryId, final VersionedFlow versionedFlow) {
-        if (versionedFlow == null) {
-            return null;
-        }
-
-        final VersionedFlowDTO dto = new VersionedFlowDTO();
-        dto.setRegistryId(registryId);
-        dto.setBucketId(versionedFlow.getBucketIdentifier());
-        dto.setFlowId(versionedFlow.getIdentifier());
-        dto.setFlowName(versionedFlow.getName());
-        dto.setDescription(versionedFlow.getDescription());
-
-        final VersionedFlowEntity entity = new VersionedFlowEntity();
-        entity.setVersionedFlow(dto);
-
-        return entity;
-    }
-
-    private VersionedFlowSnapshotMetadataEntity createVersionedFlowSnapshotMetadataEntity(final String registryId, final VersionedFlowSnapshotMetadata metadata) {
-        if (metadata == null) {
-            return null;
-        }
-
-        final VersionedFlowSnapshotMetadataEntity entity = new VersionedFlowSnapshotMetadataEntity();
-        entity.setRegistryId(registryId);
-        entity.setVersionedFlowMetadata(metadata);
-
-        return entity;
+    public FlowRegistryClientEntity getRegistryClient(final String registryClientId) {
+        final FlowRegistryClientNode flowRegistryClient = flowRegistryDAO.getFlowRegistryClient(registryClientId);
+        return createRegistryClientEntity(flowRegistryClient);
     }
 
     @Override
-    public Set<RegistryClientEntity> getRegistryClients() {
-        return registryDAO.getFlowRegistries().stream()
+    public Set<FlowRegistryClientEntity> getRegistryClients() {
+        return flowRegistryDAO.getFlowRegistryClients().stream()
             .map(this::createRegistryClientEntity)
             .collect(Collectors.toSet());
     }
 
     @Override
-    public Set<RegistryEntity> getRegistriesForUser(final NiFiUser user) {
-        return registryDAO.getFlowRegistriesForUser(user).stream()
-                .map(flowRegistry -> entityFactory.createRegistryEntity(dtoFactory.createRegistryDto(flowRegistry)))
-                .collect(Collectors.toSet());
+    public Set<FlowRegistryClientEntity> getRegistryClientsForUser() {
+        return flowRegistryDAO.getFlowRegistryClientsForUser(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser())).stream()
+            .map(this::createRegistryClientEntity)
+            .collect(Collectors.toSet());
     }
 
     @Override
-    public Set<BucketEntity> getBucketsForUser(final String registryId, final NiFiUser user) {
-        return registryDAO.getBucketsForUser(registryId, user).stream()
+    public PropertyDescriptorDTO getRegistryClientPropertyDescriptor(final String id, final String property, final boolean sensitive) {
+        final FlowRegistryClientNode flowRegistryClient = flowRegistryDAO.getFlowRegistryClient(id);
+        final PropertyDescriptor descriptor = getPropertyDescriptor(flowRegistryClient, property, sensitive);
+        return dtoFactory.createPropertyDescriptorDto(descriptor, null);
+    }
+
+    @Override
+    public FlowRegistryClientEntity updateRegistryClient(final Revision revision, final FlowRegistryClientDTO flowRegistryClientDTO) {
+        final FlowRegistryClientNode flowRegistryClient = flowRegistryDAO.getFlowRegistryClient(flowRegistryClientDTO.getId());
+
+        final RevisionUpdate<FlowRegistryClientDTO> snapshot = updateComponent(revision,
+                flowRegistryClient,
+                () -> flowRegistryDAO.updateFlowRegistryClient(flowRegistryClientDTO),
+                client -> {
+                    awaitValidationCompletion(client);
+                    return dtoFactory.createRegistryDto(client);
+                });
+
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(flowRegistryClient);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(flowRegistryClient));
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(flowRegistryClient.getIdentifier()));
+        final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+        return entityFactory.createFlowRegistryClientEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions, bulletinEntities);
+    }
+
+    @Override
+    public FlowRegistryClientEntity deleteRegistryClient(final Revision revision, final String registryClientId) {
+        final FlowRegistryClientNode flowRegistryClient = flowRegistryDAO.getFlowRegistryClient(registryClientId);
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(flowRegistryClient);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(flowRegistryClient));
+        final FlowRegistryClientDTO snapshot = deleteComponent(
+                revision,
+                flowRegistryClient.getResource(),
+                () -> flowRegistryDAO.removeFlowRegistry(registryClientId),
+                true,
+                dtoFactory.createRegistryDto(flowRegistryClient)
+        );
+
+        return entityFactory.createFlowRegistryClientEntity(snapshot, null, permissions, operatePermissions, null);
+    }
+
+    @Override
+    public Set<FlowRegistryBucketEntity> getBucketsForUser(final String registryClientId) {
+        return flowRegistryDAO.getBucketsForUser(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), registryClientId).stream()
                 .map(bucket -> {
                     if (bucket == null) {
                         return null;
                     }
 
-                    final BucketDTO dto = new BucketDTO();
+                    final FlowRegistryBucketDTO dto = new FlowRegistryBucketDTO();
                     dto.setId(bucket.getIdentifier());
                     dto.setName(bucket.getName());
                     dto.setDescription(bucket.getDescription());
                     dto.setCreated(bucket.getCreatedTimestamp());
 
-                    final Permissions regPermissions = bucket.getPermissions();
+                    final FlowRegistryPermissions regPermissions = bucket.getPermissions();
                     final PermissionsDTO permissions = new PermissionsDTO();
                     permissions.setCanRead(regPermissions.getCanRead());
                     permissions.setCanWrite(regPermissions.getCanWrite());
@@ -3213,66 +3211,69 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public Set<VersionedFlowEntity> getFlowsForUser(String registryId, String bucketId, NiFiUser user) {
-        return registryDAO.getFlowsForUser(registryId, bucketId, user).stream()
-                .map(vf -> createVersionedFlowEntity(registryId, vf))
+    public Set<VersionedFlowEntity> getFlowsForUser(String registryClientId, String bucketId) {
+        return flowRegistryDAO.getFlowsForUser(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), registryClientId, bucketId).stream()
+                .map(rf -> createVersionedFlowEntity(registryClientId, rf))
                 .collect(Collectors.toSet());
     }
 
     @Override
-    public Set<VersionedFlowSnapshotMetadataEntity> getFlowVersionsForUser(String registryId, String bucketId, String flowId, NiFiUser user) {
-        return registryDAO.getFlowVersionsForUser(registryId, bucketId, flowId, user).stream()
-                .map(md -> createVersionedFlowSnapshotMetadataEntity(registryId, md))
+    public Set<VersionedFlowSnapshotMetadataEntity> getFlowVersionsForUser(String registryClientId, String bucketId, String flowId) {
+        return flowRegistryDAO.getFlowVersionsForUser(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), registryClientId, bucketId, flowId).stream()
+                .map(md -> createVersionedFlowSnapshotMetadataEntity(registryClientId, md))
                 .collect(Collectors.toSet());
     }
 
     @Override
-    public RegistryClientEntity updateRegistryClient(Revision revision, RegistryDTO registryDTO) {
-        final RevisionClaim revisionClaim = new StandardRevisionClaim(revision);
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        final FlowRegistry registry = registryDAO.getFlowRegistry(registryDTO.getId());
-        final RevisionUpdate<FlowRegistry> revisionUpdate = revisionManager.updateRevision(revisionClaim, user, () -> {
-            final boolean duplicateName = registryDAO.getFlowRegistries().stream()
-                    .anyMatch(reg -> reg.getName().equals(registryDTO.getName()) && !reg.getIdentifier().equals(registryDTO.getId()));
-
-            if (duplicateName) {
-                throw new IllegalStateException("Cannot update Flow Registry because a Flow Registry already exists with the name " + registryDTO.getName());
-            }
-
-            registry.setDescription(registryDTO.getDescription());
-            registry.setName(registryDTO.getName());
-            registry.setURL(registryDTO.getUri());
-
-            controllerFacade.save();
-
-            final Revision updatedRevision = revisionManager.getRevision(revision.getComponentId()).incrementRevision(revision.getClientId());
-            final FlowModification lastModification = new FlowModification(updatedRevision, user.getIdentity());
-
-            return new StandardRevisionUpdate<>(registry, lastModification);
-        });
-
-        final FlowRegistry updatedReg = revisionUpdate.getComponent();
-        return createRegistryClientEntity(updatedReg);
+    public void verifyDeleteRegistry(String registryClientId) {
+        processGroupDAO.verifyDeleteFlowRegistry(registryClientId);
     }
 
-    @Override
-    public void verifyDeleteRegistry(String registryId) {
-        processGroupDAO.verifyDeleteFlowRegistry(registryId);
+    private FlowRegistryClientEntity createRegistryClientEntity(final FlowRegistryClientDTO flowRegistryClientDTO, final RevisionUpdate<FlowRegistryClientDTO> snapshot) {
+        final FlowRegistryClientNode flowRegistryClient = flowRegistryDAO.getFlowRegistryClient(flowRegistryClientDTO.getId());
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(authorizableLookup.getController());
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(authorizableLookup.getController()));
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(flowRegistryClient.getIdentifier()));
+        final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+        final RevisionDTO revisionDto = dtoFactory.createRevisionDTO(revisionManager.getRevision(flowRegistryClientDTO.getId()));
+        return entityFactory.createFlowRegistryClientEntity(snapshot.getComponent(), revisionDto, permissions, operatePermissions, bulletinEntities);
     }
 
-    @Override
-    public RegistryClientEntity deleteRegistryClient(final Revision revision, final String registryId) {
-        final RevisionClaim claim = new StandardRevisionClaim(revision);
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+    private FlowRegistryClientEntity createRegistryClientEntity(final FlowRegistryClientNode flowRegistryClientNode) {
+        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(flowRegistryClientNode.getIdentifier()));
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(authorizableLookup.getController());
+        final FlowRegistryClientDTO dto = dtoFactory.createRegistryDto(flowRegistryClientNode);
+        return entityFactory.createFlowRegistryClientEntity(dto, revision, permissions);
+    }
 
-        final FlowRegistry registry = revisionManager.deleteRevision(claim, user, () -> {
-            final FlowRegistry reg = registryDAO.removeFlowRegistry(registryId);
-            controllerFacade.save();
-            return reg;
-        });
+    private VersionedFlowEntity createVersionedFlowEntity(final String registryId, final RegisteredFlow registeredFlow) {
+        if (registeredFlow == null) {
+            return null;
+        }
 
-        return createRegistryClientEntity(registry);
+        final VersionedFlowDTO dto = new VersionedFlowDTO();
+        dto.setRegistryId(registryId);
+        dto.setBucketId(registeredFlow.getBucketIdentifier());
+        dto.setFlowId(registeredFlow.getIdentifier());
+        dto.setFlowName(registeredFlow.getName());
+        dto.setDescription(registeredFlow.getDescription());
+
+        final VersionedFlowEntity entity = new VersionedFlowEntity();
+        entity.setVersionedFlow(dto);
+
+        return entity;
+    }
+
+    private VersionedFlowSnapshotMetadataEntity createVersionedFlowSnapshotMetadataEntity(final String registryId, final RegisteredFlowSnapshotMetadata metadata) {
+        if (metadata == null) {
+            return null;
+        }
+
+        final VersionedFlowSnapshotMetadataEntity entity = new VersionedFlowSnapshotMetadataEntity();
+        entity.setRegistryId(registryId);
+        entity.setVersionedFlowSnapshotMetadata(metadata);
+
+        return entity;
     }
 
     @Override
@@ -3850,6 +3851,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public Set<DocumentedTypeDTO> getFlowRegistryTypes() {
+        return controllerFacade.getFlowRegistryTypes();
+    }
+
+    @Override
     public RuntimeManifest getRuntimeManifest() {
         return controllerFacade.getRuntimeManifest();
     }
@@ -3991,7 +3997,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void resolveParameterProviders(final VersionedFlowSnapshot versionedFlowSnapshot, final NiFiUser user) {
+    public void resolveParameterProviders(final RegisteredFlowSnapshot versionedFlowSnapshot, final NiFiUser user) {
         final Map<String, ParameterProviderReference> parameterProviderReferences = versionedFlowSnapshot.getParameterProviders();
         if (parameterProviderReferences == null || parameterProviderReferences.isEmpty()
                 || versionedFlowSnapshot.getParameterContexts() == null || versionedFlowSnapshot.getParameterContexts().isEmpty()) {
@@ -4041,7 +4047,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void resolveInheritedControllerServices(final VersionedFlowSnapshot versionedFlowSnapshot, final String processGroupId, final NiFiUser user) {
+    public void resolveInheritedControllerServices(final RegisteredFlowSnapshot versionedFlowSnapshot, final String processGroupId, final NiFiUser user) {
         final VersionedProcessGroup versionedGroup = versionedFlowSnapshot.getFlowContents();
         resolveInheritedControllerServices(versionedGroup, processGroupId, versionedFlowSnapshot.getExternalControllerServices(), user);
     }
@@ -4342,6 +4348,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             }
         }
         controllerBulletinsEntity.setParameterProviderBulletins(parameterProviderBulletinEntities);
+
+        // get the flow registry client task bulletins
+        final BulletinQuery flowRegistryClientQuery = new BulletinQuery.Builder().sourceType(ComponentType.FLOW_REGISTRY_CLIENT).build();
+        final List<Bulletin> allFlowClientRegistryBulletins = bulletinRepository.findBulletins(flowRegistryClientQuery);
+        final List<BulletinEntity> flowRegistryClientBulletinEntities = new ArrayList<>();
+        for (final Bulletin bulletin : allFlowClientRegistryBulletins) {
+            try {
+                final Authorizable flowRegistryClientAuthorizable = authorizableLookup.getFlowRegistryClient(bulletin.getSourceId()).getAuthorizable();
+                final boolean flowRegistryClientkAuthorizableAuthorized = flowRegistryClientAuthorizable.isAuthorized(authorizer, RequestAction.READ, user);
+
+                final BulletinEntity flowRegistryClient = entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), flowRegistryClientkAuthorizableAuthorized);
+                flowRegistryClientBulletinEntities.add(flowRegistryClient);
+                controllerBulletinEntities.add(flowRegistryClient);
+            } catch (final ResourceNotFoundException e) {
+                // flow registry client missing.. skip
+            }
+        }
+        controllerBulletinsEntity.setFlowRegistryClientBulletins(flowRegistryClientBulletinEntities);
 
         controllerBulletinsEntity.setBulletins(pruneAndSortBulletins(controllerBulletinEntities, BulletinRepository.MAX_BULLETINS_FOR_CONTROLLER));
         return controllerBulletinsEntity;
@@ -4676,7 +4700,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         entity.setPoliciesPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getPolicies()));
         entity.setSystemPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getSystem()));
         entity.setParameterContextPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getParameterContexts()));
-        entity.setCanVersionFlows(CollectionUtils.isNotEmpty(flowRegistryClient.getRegistryIdentifiers()));
+        entity.setCanVersionFlows(CollectionUtils.isNotEmpty(flowRegistryDAO.getFlowRegistryClients().stream().map(c -> c.getIdentifier()).collect(Collectors.toSet())));
 
         entity.setRestrictedComponentsPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getRestrictedComponents()));
 
@@ -4960,18 +4984,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final String flowId = versionedFlowDto.getFlowId() == null ? UUID.randomUUID().toString() : versionedFlowDto.getFlowId();
 
-        final VersionedFlow versionedFlow = new VersionedFlow();
+        final RegisteredFlow versionedFlow = new RegisteredFlow();
         versionedFlow.setBucketIdentifier(versionedFlowDto.getBucketId());
         versionedFlow.setCreatedTimestamp(System.currentTimeMillis());
         versionedFlow.setDescription(versionedFlowDto.getDescription());
-        versionedFlow.setModifiedTimestamp(versionedFlow.getCreatedTimestamp());
+        versionedFlow.setLastModifiedTimestamp(versionedFlow.getCreatedTimestamp());
         versionedFlow.setName(versionedFlowDto.getFlowName());
         versionedFlow.setIdentifier(flowId);
 
         // Add the Versioned Flow and first snapshot to the Flow Registry
         final String registryId = requestEntity.getVersionedFlow().getRegistryId();
-        final VersionedFlowSnapshot registeredSnapshot;
-        final VersionedFlow registeredFlow;
+        final RegisteredFlowSnapshot registeredSnapshot;
+        final RegisteredFlow registeredFlow;
         final boolean registerNewFlow = versionedFlowDto.getFlowId() == null;
 
         try {
@@ -4981,7 +5005,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             } else {
                 registeredFlow = getVersionedFlow(registryId, versionedFlowDto.getBucketId(), versionedFlowDto.getFlowId());
             }
-        } catch (final NiFiRegistryException e) {
+        } catch (final FlowRegistryException e) {
             throw new IllegalArgumentException(e.getLocalizedMessage());
         } catch (final IOException ioe) {
             throw new IllegalStateException("Failed to communicate with Flow Registry when attempting to create the flow");
@@ -5015,8 +5039,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             throw e;
         }
 
-        final Bucket bucket = registeredSnapshot.getBucket();
-        final VersionedFlow flow = registeredSnapshot.getFlow();
+        final FlowRegistryBucket bucket = registeredSnapshot.getBucket();
+        final RegisteredFlow flow = registeredSnapshot.getFlow();
 
         // Update the Process Group with the new VersionControlInformation. (Send this to all nodes).
         final VersionControlInformationDTO vci = new VersionControlInformationDTO();
@@ -5028,10 +5052,21 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         vci.setGroupId(groupId);
         vci.setRegistryId(registryId);
         vci.setRegistryName(getFlowRegistryName(registryId));
+        vci.setStorageLocation(getStorageLocation(registeredSnapshot));
         vci.setVersion(registeredSnapshot.getSnapshotMetadata().getVersion());
         vci.setState(VersionedFlowState.UP_TO_DATE.name());
 
         return createVersionControlComponentMappingEntity(groupId, versionedProcessGroup, vci);
+    }
+
+    private String getStorageLocation(final RegisteredFlowSnapshot registeredSnapshot) {
+        VersionedFlowCoordinates versionedFlowCoordinates = registeredSnapshot.getFlowContents().getVersionedFlowCoordinates();
+
+        if (versionedFlowCoordinates == null) {
+            return null;
+        }
+
+        return versionedFlowCoordinates.getStorageLocation();
     }
 
     private VersionControlComponentMappingEntity createVersionControlComponentMappingEntity(String groupId, InstantiatedVersionedProcessGroup versionedProcessGroup, VersionControlInformationDTO vci) {
@@ -5048,12 +5083,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public VersionedFlowSnapshot getCurrentFlowSnapshotByGroupId(final String processGroupId) {
+    public RegisteredFlowSnapshot getCurrentFlowSnapshotByGroupId(final String processGroupId) {
         return getCurrentFlowSnapshotByGroupId(processGroupId, false);
     }
 
     @Override
-    public VersionedFlowSnapshot getCurrentFlowSnapshotByGroupIdWithReferencedControllerServices(final String processGroupId) {
+    public RegisteredFlowSnapshot getCurrentFlowSnapshotByGroupIdWithReferencedControllerServices(final String processGroupId) {
         return getCurrentFlowSnapshotByGroupId(processGroupId, true);
     }
 
@@ -5065,7 +5100,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return result;
     }
 
-    private VersionedFlowSnapshot getCurrentFlowSnapshotByGroupId(final String processGroupId, final boolean includeReferencedControllerServices) {
+    private RegisteredFlowSnapshot getCurrentFlowSnapshotByGroupId(final String processGroupId, final boolean includeReferencedControllerServices) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
 
         // Create a complete (include descendant flows) VersionedProcessGroup snapshot of the flow as it is
@@ -5082,7 +5117,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences =
                 Optional.ofNullable(nonVersionedProcessGroup.getExternalControllerServiceReferences()).orElse(Collections.emptyMap());
         final Set<VersionedControllerService> controllerServices = new HashSet<>(nonVersionedProcessGroup.getControllerServices());
-        final VersionedFlowSnapshot nonVersionedFlowSnapshot = new VersionedFlowSnapshot();
+        final RegisteredFlowSnapshot nonVersionedFlowSnapshot = new RegisteredFlowSnapshot();
 
         ProcessGroup parentGroup = processGroup.getParent();
 
@@ -5113,13 +5148,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         nonVersionedFlowSnapshot.setFlowContents(nonVersionedProcessGroup);
         nonVersionedFlowSnapshot.setParameterProviders(parameterProviderReferences);
         nonVersionedFlowSnapshot.setParameterContexts(parameterContexts);
-        nonVersionedFlowSnapshot.setFlowEncodingVersion(RestBasedFlowRegistry.FLOW_ENCODING_VERSION);
+        nonVersionedFlowSnapshot.setFlowEncodingVersion(FlowRegistryUtil.FLOW_ENCODING_VERSION);
 
         return nonVersionedFlowSnapshot;
     }
 
     @Override
-    public VersionedFlowSnapshot getVersionedFlowSnapshotByGroupId(final String processGroupId) {
+    public RegisteredFlowSnapshot getVersionedFlowSnapshotByGroupId(final String processGroupId) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
         final VersionControlInformation versionControlInfo = processGroup.getVersionControlInformation();
 
@@ -5128,7 +5163,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public VersionedFlowSnapshot getVersionedFlowSnapshot(final VersionControlInformationDTO versionControlInfo, final boolean fetchRemoteFlows) {
+    public RegisteredFlowSnapshot getVersionedFlowSnapshot(final VersionControlInformationDTO versionControlInfo, final boolean fetchRemoteFlows) {
         return getVersionedFlowSnapshot(versionControlInfo.getRegistryId(), versionControlInfo.getBucketId(), versionControlInfo.getFlowId(),
                 versionControlInfo.getVersion(), fetchRemoteFlows);
     }
@@ -5142,17 +5177,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      * @param fetchRemoteFlows  indicator to include remote flows when retrieving the flow
      * @return a VersionedFlowSnapshot from a registry with the given version
      */
-    private VersionedFlowSnapshot getVersionedFlowSnapshot(final String registryId, final String bucketId, final String flowId,
+    private RegisteredFlowSnapshot getVersionedFlowSnapshot(final String registryId, final String bucketId, final String flowId,
                                                            final Integer flowVersion, final boolean fetchRemoteFlows) {
-        final FlowRegistry flowRegistry = flowRegistryClient.getFlowRegistry(registryId);
+        final FlowRegistryClientNode flowRegistry = flowRegistryDAO.getFlowRegistryClient(registryId);
         if (flowRegistry == null) {
             throw new ResourceNotFoundException("Could not find any Flow Registry registered with identifier " + registryId);
         }
 
-        final VersionedFlowSnapshot snapshot;
+        final RegisteredFlowSnapshot snapshot;
         try {
-            snapshot = flowRegistry.getFlowContents(bucketId, flowId, flowVersion, fetchRemoteFlows, NiFiUserUtils.getNiFiUser());
-        } catch (final NiFiRegistryException e) {
+            snapshot = flowRegistry.getFlowContents(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), bucketId, flowId, flowVersion, fetchRemoteFlows);
+        } catch (final FlowRegistryException e) {
             logger.error(e.getMessage(), e);
             throw new IllegalArgumentException("The Flow Registry with ID " + registryId + " reports that no Flow exists with Bucket "
                     + bucketId + ", Flow " + flowId + ", Version " + flowVersion);
@@ -5165,15 +5200,15 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public VersionedFlow deleteVersionedFlow(final String registryId, final String bucketId, final String flowId) {
-        final FlowRegistry registry = flowRegistryClient.getFlowRegistry(registryId);
+    public RegisteredFlow deleteVersionedFlow(final String registryId, final String bucketId, final String flowId) {
+        final FlowRegistryClientNode registry = flowRegistryDAO.getFlowRegistryClient(registryId);
         if (registry == null) {
             throw new IllegalArgumentException("No Flow Registry exists with ID " + registryId);
         }
 
         try {
-            return registry.deleteVersionedFlow(bucketId, flowId, NiFiUserUtils.getNiFiUser());
-        } catch (final IOException | NiFiRegistryException e) {
+            return registry.deregisterFlow(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), bucketId, flowId);
+        } catch (final IOException | FlowRegistryException e) {
             throw new NiFiCoreException("Failed to remove flow from Flow Registry due to " + e.getMessage(), e);
         }
     }
@@ -5211,7 +5246,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private InstantiatedVersionedProcessGroup createFlowSnapshot(final String processGroupId) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
         final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
-        final InstantiatedVersionedProcessGroup versionedGroup = mapper.mapProcessGroup(processGroup, controllerFacade.getControllerServiceProvider(), flowRegistryClient, false);
+        final InstantiatedVersionedProcessGroup versionedGroup = mapper.mapProcessGroup(processGroup, controllerFacade.getControllerServiceProvider(), controllerFacade.getFlowManager(), false);
         return versionedGroup;
     }
 
@@ -5228,7 +5263,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             throw new IllegalStateException("Process Group with ID " + processGroupId + " is not under Version Control");
         }
 
-        final FlowRegistry flowRegistry = flowRegistryClient.getFlowRegistry(versionControlInfo.getRegistryIdentifier());
+        final FlowRegistryClientNode flowRegistry = flowRegistryDAO.getFlowRegistryClient(versionControlInfo.getRegistryIdentifier());
         if (flowRegistry == null) {
             throw new IllegalStateException("Process Group with ID " + processGroupId + " is tracking to a flow in Flow Registry with ID " + versionControlInfo.getRegistryIdentifier()
                 + " but cannot find a Flow Registry with that identifier");
@@ -5242,16 +5277,16 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         if (registryGroup == null) {
             try {
-                final VersionedFlowSnapshot versionedFlowSnapshot = flowRegistry.getFlowContents(versionControlInfo.getBucketIdentifier(),
-                    versionControlInfo.getFlowIdentifier(), versionControlInfo.getVersion(), true, NiFiUserUtils.getNiFiUser());
+                final RegisteredFlowSnapshot versionedFlowSnapshot = flowRegistry.getFlowContents(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()),
+                        versionControlInfo.getBucketIdentifier(), versionControlInfo.getFlowIdentifier(), versionControlInfo.getVersion(), true);
                 registryGroup = versionedFlowSnapshot.getFlowContents();
-            } catch (final IOException | NiFiRegistryException e) {
+            } catch (final IOException | FlowRegistryException e) {
                 throw new NiFiCoreException("Failed to retrieve flow with Flow Registry in order to calculate local differences due to " + e.getMessage(), e);
             }
         }
 
         final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
-        final VersionedProcessGroup localGroup = mapper.mapProcessGroup(processGroup, controllerFacade.getControllerServiceProvider(), flowRegistryClient, true);
+        final VersionedProcessGroup localGroup = mapper.mapProcessGroup(processGroup, controllerFacade.getControllerServiceProvider(), controllerFacade.getFlowManager(), true);
 
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", localGroup);
         final ComparableDataFlow registryFlow = new StandardComparableDataFlow("Versioned Flow", registryGroup);
@@ -5269,43 +5304,44 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public VersionedFlow registerVersionedFlow(final String registryId, final VersionedFlow flow) {
-        final FlowRegistry registry = flowRegistryClient.getFlowRegistry(registryId);
+    public RegisteredFlow registerVersionedFlow(final String registryId, final RegisteredFlow flow) {
+        final FlowRegistryClientNode registry = flowRegistryDAO.getFlowRegistryClient(registryId);
         if (registry == null) {
             throw new ResourceNotFoundException("No Flow Registry exists with ID " + registryId);
         }
 
         try {
-            return registry.registerVersionedFlow(flow, NiFiUserUtils.getNiFiUser());
-        } catch (final IOException | NiFiRegistryException e) {
+            return registry.registerFlow(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), flow);
+        } catch (final IOException | FlowRegistryException e) {
             throw new NiFiCoreException("Failed to register flow with Flow Registry due to " + e.getMessage(), e);
         }
     }
 
-    private VersionedFlow getVersionedFlow(final String registryId, final String bucketId, final String flowId) throws IOException, NiFiRegistryException {
-        final FlowRegistry registry = flowRegistryClient.getFlowRegistry(registryId);
+    private RegisteredFlow getVersionedFlow(final String registryId, final String bucketId, final String flowId) throws IOException, FlowRegistryException {
+        final FlowRegistryClientNode registry = flowRegistryDAO.getFlowRegistryClient(registryId);
         if (registry == null) {
             throw new ResourceNotFoundException("No Flow Registry exists with ID " + registryId);
         }
 
-        return registry.getVersionedFlow(bucketId, flowId, NiFiUserUtils.getNiFiUser());
+        return registry.getFlow(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), bucketId, flowId);
     }
 
     @Override
-    public VersionedFlowSnapshot registerVersionedFlowSnapshot(final String registryId, final VersionedFlow flow, final VersionedProcessGroup snapshot,
-                                                               final Map<String, VersionedParameterContext> parameterContexts,
-                                                               final Map<String, ParameterProviderReference> parameterProviderReferences,
-                                                               final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences,
-                                                               final String comments, final int expectedVersion) {
-        final FlowRegistry registry = flowRegistryClient.getFlowRegistry(registryId);
+    public RegisteredFlowSnapshot registerVersionedFlowSnapshot(final String registryId, final RegisteredFlow flow, final VersionedProcessGroup snapshot,
+                                                                final Map<String, VersionedParameterContext> parameterContexts,
+                                                                final Map<String, ParameterProviderReference> parameterProviderReferences,
+                                                               final Map<String,ExternalControllerServiceReference> externalControllerServiceReferences, final String comments,
+                                                                final int expectedVersion) {
+        final FlowRegistryClientNode registry = flowRegistryDAO.getFlowRegistryClient(registryId);
         if (registry == null) {
             throw new ResourceNotFoundException("No Flow Registry exists with ID " + registryId);
         }
 
         try {
-            return registry.registerVersionedFlowSnapshot(flow, snapshot, externalControllerServiceReferences, parameterContexts,
-                    parameterProviderReferences, comments, expectedVersion, NiFiUserUtils.getNiFiUser());
-        } catch (final IOException | NiFiRegistryException e) {
+            return registry.registerFlowSnapshot(FlowRegistryClientContextFactory.getContextForUser(
+                    NiFiUserUtils.getNiFiUser()), flow, snapshot, externalControllerServiceReferences, parameterContexts,
+                    parameterProviderReferences, comments, expectedVersion);
+        } catch (final IOException | FlowRegistryException e) {
             throw new NiFiCoreException("Failed to register flow with Flow Registry due to " + e.getMessage(), e);
         }
     }
@@ -5337,10 +5373,38 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void verifyCanUpdate(final String groupId, final VersionedFlowSnapshot proposedFlow, final boolean verifyConnectionRemoval, final boolean verifyNotDirty) {
+    public void verifyCanUpdate(final String groupId, final RegisteredFlowSnapshot proposedFlow, final boolean verifyConnectionRemoval, final boolean verifyNotDirty) {
         final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
-        final VersionedExternalFlow externalFlow = VersionedFlowConverter.createVersionedExternalFlow(proposedFlow);
+        final VersionedExternalFlow externalFlow = createVersionedExternalFlow(proposedFlow);
         group.verifyCanUpdate(externalFlow, verifyConnectionRemoval, verifyNotDirty);
+    }
+
+    private static VersionedExternalFlow createVersionedExternalFlow(final RegisteredFlowSnapshot flowSnapshot) {
+        final VersionedExternalFlowMetadata externalFlowMetadata = new VersionedExternalFlowMetadata();
+        final RegisteredFlowSnapshotMetadata snapshotMetadata = flowSnapshot.getSnapshotMetadata();
+        if (snapshotMetadata != null) {
+            externalFlowMetadata.setAuthor(snapshotMetadata.getAuthor());
+            externalFlowMetadata.setBucketIdentifier(snapshotMetadata.getBucketIdentifier());
+            externalFlowMetadata.setComments(snapshotMetadata.getComments());
+            externalFlowMetadata.setFlowIdentifier(snapshotMetadata.getFlowIdentifier());
+            externalFlowMetadata.setTimestamp(snapshotMetadata.getTimestamp());
+            externalFlowMetadata.setVersion(snapshotMetadata.getVersion());
+        }
+
+        final RegisteredFlow versionedFlow = flowSnapshot.getFlow();
+        if (versionedFlow == null) {
+            externalFlowMetadata.setFlowName(flowSnapshot.getFlowContents().getName());
+        } else {
+            externalFlowMetadata.setFlowName(versionedFlow.getName());
+        }
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(flowSnapshot.getFlowContents());
+        externalFlow.setExternalControllerServices(flowSnapshot.getExternalControllerServices());
+        externalFlow.setParameterContexts(flowSnapshot.getParameterContexts());
+        externalFlow.setMetadata(externalFlowMetadata);
+
+        return externalFlow;
     }
 
     @Override
@@ -5350,23 +5414,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void verifyCanRevertLocalModifications(final String groupId, final VersionedFlowSnapshot versionedFlowSnapshot) {
+    public void verifyCanRevertLocalModifications(final String groupId, final RegisteredFlowSnapshot versionedFlowSnapshot) {
         final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
         group.verifyCanRevertLocalModifications();
 
         // verify that the process group can be updated to the given snapshot. We do not verify that connections can
         // be removed, because the flow may still be running, and it only matters that the connections can be removed once the components
         // have been stopped.
-        final VersionedExternalFlow externalFlow = VersionedFlowConverter.createVersionedExternalFlow(versionedFlowSnapshot);
+        final VersionedExternalFlow externalFlow = createVersionedExternalFlow(versionedFlowSnapshot);
         group.verifyCanUpdate(externalFlow, false, false);
     }
 
     @Override
-    public Set<AffectedComponentEntity> getComponentsAffectedByFlowUpdate(final String processGroupId, final VersionedFlowSnapshot updatedSnapshot) {
+    public Set<AffectedComponentEntity> getComponentsAffectedByFlowUpdate(final String processGroupId, final RegisteredFlowSnapshot updatedSnapshot) {
         final ProcessGroup group = processGroupDAO.getProcessGroup(processGroupId);
 
         final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
-        final VersionedProcessGroup localContents = mapper.mapProcessGroup(group, controllerFacade.getControllerServiceProvider(), flowRegistryClient, true);
+        final VersionedProcessGroup localContents = mapper.mapProcessGroup(group, controllerFacade.getControllerServiceProvider(), controllerFacade.getFlowManager(), true);
 
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Current Flow", localContents);
         final ComparableDataFlow proposedFlow = new StandardComparableDataFlow("New Flow", updatedSnapshot.getFlowContents());
@@ -5708,7 +5772,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public String getFlowRegistryName(final String flowRegistryId) {
-        final FlowRegistry flowRegistry = flowRegistryClient.getFlowRegistry(flowRegistryId);
+        final FlowRegistryClientNode flowRegistry = flowRegistryDAO.getFlowRegistryClient(flowRegistryId);
         return flowRegistry == null ? flowRegistryId : flowRegistry.getName();
     }
 
@@ -5755,7 +5819,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public ProcessGroupEntity updateProcessGroupContents(final Revision revision, final String groupId, final VersionControlInformationDTO versionControlInfo,
-                                                         final VersionedFlowSnapshot proposedFlowSnapshot, final String componentIdSeed, final boolean verifyNotModified,
+                                                         final RegisteredFlowSnapshot proposedFlowSnapshot, final String componentIdSeed, final boolean verifyNotModified,
                                                          final boolean updateSettings, final boolean updateDescendantVersionedFlows) {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -5770,7 +5834,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             @Override
             public RevisionUpdate<ProcessGroupDTO> update() {
                 // update the Process Group
-                final VersionedExternalFlow externalFlow = VersionedFlowConverter.createVersionedExternalFlow(proposedFlowSnapshot);
+                final VersionedExternalFlow externalFlow = createVersionedExternalFlow(proposedFlowSnapshot);
                 processGroupDAO.updateProcessGroupFlow(groupId, externalFlow, versionControlInfo, componentIdSeed, verifyNotModified, updateSettings,
                     updateDescendantVersionedFlows);
 
@@ -5813,6 +5877,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     break;
                 case ReportingTask:
                     authorizable = authorizableLookup.getReportingTask(sourceId).getAuthorizable();
+                    break;
+                case FlowRegistryClient:
+                    authorizable = authorizableLookup.getFlowRegistryClient(sourceId).getAuthorizable();
                     break;
                 case ControllerService:
                     authorizable = authorizableLookup.getControllerService(sourceId).getAuthorizable();
@@ -6423,11 +6490,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         this.leaderElectionManager = leaderElectionManager;
     }
 
-    public void setRegistryDAO(RegistryDAO registryDao) {
-        this.registryDAO = registryDao;
-    }
-
-    public void setFlowRegistryClient(FlowRegistryClient flowRegistryClient) {
-        this.flowRegistryClient = flowRegistryClient;
+    public void setFlowRegistryDAO(FlowRegistryDAO flowRegistryDao) {
+        this.flowRegistryDAO = flowRegistryDao;
     }
 }

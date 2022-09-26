@@ -44,7 +44,7 @@ import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.ReferenceOnlyParameterContext;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterReferenceManager;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.util.ReflectionUtils;
@@ -74,10 +74,10 @@ public abstract class AbstractFlowManager implements FlowManager {
     private final ConcurrentMap<String, Funnel> allFunnels = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, ReportingTaskNode> allReportingTasks = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, ParameterProviderNode> allParameterProviders = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, FlowRegistryClientNode> allFlowRegistryClients = new ConcurrentHashMap<>();
 
     private final FlowFileEventRepository flowFileEventRepository;
     private final ParameterContextManager parameterContextManager;
-    private final FlowRegistryClient flowRegistryClient;
     private final BooleanSupplier flowInitializedCheck;
 
     private volatile ControllerServiceProvider controllerServiceProvider;
@@ -86,10 +86,9 @@ public abstract class AbstractFlowManager implements FlowManager {
     private final ThreadLocal<Boolean> withParameterContextResolution = ThreadLocal.withInitial(() -> false);
 
     public AbstractFlowManager(final FlowFileEventRepository flowFileEventRepository, final ParameterContextManager parameterContextManager,
-                               final FlowRegistryClient flowRegistryClient, final BooleanSupplier flowInitializedCheck) {
+                               final BooleanSupplier flowInitializedCheck) {
         this.flowFileEventRepository = flowFileEventRepository;
         this.parameterContextManager = parameterContextManager;
-        this.flowRegistryClient = flowRegistryClient;
         this.flowInitializedCheck = flowInitializedCheck;
     }
 
@@ -221,6 +220,7 @@ public abstract class AbstractFlowManager implements FlowManager {
         componentCounts.put("Process Groups", allProcessGroups.size() - 2); // -2 to account for the root group because we don't want it in our counts and the 'root group alias' key.
         componentCounts.put("Remote Process Groups", getRootGroup().findAllRemoteProcessGroups().size());
         componentCounts.put("Parameter Providers", getAllParameterProviders().size());
+        componentCounts.put("Flow Registry Clients", getAllFlowRegistryClients().size());
 
         int localInputPorts = 0;
         int publicInputPorts = 0;
@@ -279,9 +279,7 @@ public abstract class AbstractFlowManager implements FlowManager {
         getAllReportingTasks().forEach(this::removeReportingTask);
         getAllParameterProviders().forEach(this::removeParameterProvider);
 
-        for (final String registryId : flowRegistryClient.getRegistryIdentifiers()) {
-            flowRegistryClient.removeFlowRegistry(registryId);
-        }
+        getAllFlowRegistryClients().forEach(this::removeFlowRegistryClientNode);
 
         for (final ParameterContext parameterContext : parameterContextManager.getParameterContexts()) {
             parameterContextManager.removeParameterContext(parameterContext.getIdentifier());
@@ -480,6 +478,27 @@ public abstract class AbstractFlowManager implements FlowManager {
     @Override
     public Set<ReportingTaskNode> getAllReportingTasks() {
         return new HashSet<>(allReportingTasks.values());
+    }
+
+    @Override
+    public FlowRegistryClientNode getFlowRegistryClient(final String id) {
+        if (id == null) {
+            return null;
+        }
+        return allFlowRegistryClients.get(id);
+    }
+
+    @Override
+    public Set<FlowRegistryClientNode> getAllFlowRegistryClients() {
+        return new HashSet<>(allFlowRegistryClients.values());
+    }
+
+    public void onFlowRegistryClientAdded(final FlowRegistryClientNode clientNode) {
+        allFlowRegistryClients.put(clientNode.getIdentifier(), clientNode);
+    }
+
+    public void onFlowRegistryClientRemoved(final FlowRegistryClientNode clientNode) {
+        allFlowRegistryClients.remove(clientNode.getIdentifier());
     }
 
     @Override

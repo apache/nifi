@@ -33,6 +33,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.flowrepository.FlowRepositoryClientInstantiationException;
 import org.apache.nifi.controller.inheritance.AuthorizerCheck;
 import org.apache.nifi.controller.inheritance.BundleCompatibilityCheck;
 import org.apache.nifi.controller.inheritance.ConnectionMissingCheck;
@@ -73,8 +74,7 @@ import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.registry.flow.FlowRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.remote.PublicPort;
@@ -93,6 +93,7 @@ import org.apache.nifi.web.api.dto.ComponentReferenceDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
@@ -331,6 +332,7 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
         flowManager.getAllControllerServices().stream().filter(ComponentNode::isExtensionMissing).forEach(cs -> missingComponents.add(cs.getIdentifier()));
         flowManager.getAllReportingTasks().stream().filter(ComponentNode::isExtensionMissing).forEach(r -> missingComponents.add(r.getIdentifier()));
         flowManager.getAllParameterProviders().stream().filter(ComponentNode::isExtensionMissing).forEach(r -> missingComponents.add(r.getIdentifier()));
+        flowManager.getAllFlowRegistryClients().stream().filter(ComponentNode::isExtensionMissing).forEach(c -> missingComponents.add(c.getIdentifier()));
         root.findAllProcessors().stream().filter(AbstractComponentNode::isExtensionMissing).forEach(p -> missingComponents.add(p.getIdentifier()));
 
         logger.trace("Exporting snippets from controller");
@@ -381,7 +383,7 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
     }
 
     private void updateFlow(final FlowController controller, final Document configuration, final DataFlow existingFlow, final boolean existingFlowEmpty)
-            throws ReportingTaskInstantiationException, ParameterProviderInstantiationException {
+            throws ReportingTaskInstantiationException, ParameterProviderInstantiationException, FlowRepositoryClientInstantiationException {
         final boolean flowAlreadySynchronized = controller.isFlowSynchronized();
         final FlowManager flowManager = controller.getFlowManager();
 
@@ -420,22 +422,18 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
             parameterProviderNodesToDTOs.put(parameterProvider, dto);
         }
 
+        // get all the flow registry client elements
+        final Element registriesElement = DomUtils.getChild(rootElement, "registries");
+        if (registriesElement != null) {
+            for (final Element flowRegistryElement : DomUtils.getChildElementsByTagName(registriesElement, "flowRegistry")) {
+                final FlowRegistryClientDTO dto = FlowFromDOMFactory.getFlowRegistryClient(flowRegistryElement, encryptor, encodingVersion);
+                getOrCreateFlowRegistryClient(controller, dto, flowAlreadySynchronized, existingFlowEmpty);
+            }
+        }
+
         // if this controller isn't initialized or its empty, add the root group, otherwise update
         final ProcessGroup rootGroup;
         if (!flowAlreadySynchronized || existingFlowEmpty) {
-            final Element registriesElement = DomUtils.getChild(rootElement, "registries");
-            if (registriesElement != null) {
-                final List<Element> flowRegistryElems = DomUtils.getChildElementsByTagName(registriesElement, "flowRegistry");
-                for (final Element flowRegistryElement : flowRegistryElems) {
-                    final String registryId = getString(flowRegistryElement, "id");
-                    final String registryName = getString(flowRegistryElement, "name");
-                    final String registryUrl = getString(flowRegistryElement, "url");
-                    final String description = getString(flowRegistryElement, "description");
-
-                    final FlowRegistryClient client = controller.getFlowRegistryClient();
-                    client.addFlowRegistry(registryId, registryName, registryUrl, description);
-                }
-            }
             controller.getFlowManager().withParameterContextResolution(() -> {
                 final Element parameterContextsElement = DomUtils.getChild(rootElement, "parameterContexts");
                 if (parameterContextsElement != null) {
@@ -797,6 +795,35 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
         } else {
             // otherwise, return the existing parameter provider node
             return controller.getFlowManager().getParameterProvider(dto.getId());
+        }
+    }
+
+    private FlowRegistryClientNode getOrCreateFlowRegistryClient(final FlowController controller, final FlowRegistryClientDTO dto,
+                                                                 final boolean controllerInitialized, final boolean existingFlowEmpty) {
+        // create a new flow registry client node when the controller is not initialized or the flow is empty
+        if (!controllerInitialized || existingFlowEmpty) {
+            BundleCoordinate coordinate;
+            try {
+                coordinate = BundleUtils.getCompatibleBundle(extensionManager, dto.getType(), dto.getBundle());
+            } catch (final IllegalStateException e) {
+                final BundleDTO bundleDTO = dto.getBundle();
+                if (bundleDTO == null) {
+                    coordinate = BundleCoordinate.UNKNOWN_COORDINATE;
+                } else {
+                    coordinate = new BundleCoordinate(bundleDTO.getGroup(), bundleDTO.getArtifact(), bundleDTO.getVersion());
+                }
+            }
+
+            final FlowRegistryClientNode registryClient = controller.getFlowManager().createFlowRegistryClient(dto.getType(), dto.getId(), coordinate, Collections.emptySet(), false, true, null);
+            registryClient.setName(dto.getName());
+            registryClient.setDescription(dto.getDescription());
+            registryClient.setAnnotationData(dto.getAnnotationData());
+            final Set<String> sensitiveDynamicPropertyNames = dto.getSensitiveDynamicPropertyNames();
+            registryClient.setProperties(dto.getProperties(), false, sensitiveDynamicPropertyNames == null ? Collections.emptySet() : sensitiveDynamicPropertyNames);
+            return registryClient;
+        } else {
+            // otherwise return the existing flow registry client node
+            return controller.getFlowManager().getFlowRegistryClient(dto.getId());
         }
     }
 
@@ -1465,7 +1492,7 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
     private void addVersionControlInfo(final ProcessGroup processGroup, final ProcessGroupDTO processGroupDTO, final FlowController flowController) {
         final VersionControlInformationDTO versionControlInfoDto = processGroupDTO.getVersionControlInformation();
         if (versionControlInfoDto != null) {
-            final FlowRegistry flowRegistry = flowController.getFlowRegistryClient().getFlowRegistry(versionControlInfoDto.getRegistryId());
+            final FlowRegistryClientNode flowRegistry = flowController.getFlowManager().getFlowRegistryClient(versionControlInfoDto.getRegistryId());
             final String registryName = flowRegistry == null ? versionControlInfoDto.getRegistryId() : flowRegistry.getName();
 
             versionControlInfoDto.setState(VersionedFlowState.SYNC_FAILURE.name());
