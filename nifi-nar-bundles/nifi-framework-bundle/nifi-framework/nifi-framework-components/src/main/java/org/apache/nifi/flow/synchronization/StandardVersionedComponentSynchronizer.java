@@ -2104,8 +2104,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private Map<String, VersionedParameterContext> getVersionedParameterContexts(final VersionedFlowCoordinates versionedFlowCoordinates) {
-        final String registryId = versionedFlowCoordinates.getRegistryId();
-
+        final String registryId = determineRegistryId(versionedFlowCoordinates);
         final FlowRegistryClientNode flowRegistry = context.getFlowManager().getFlowRegistryClient(registryId);
         if (flowRegistry == null) {
             throw new ResourceNotFoundException("Could not find any Flow Registry registered with identifier " + registryId);
