@@ -35,7 +35,7 @@ import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
-import org.apache.nifi.registry.flow.FlowRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
@@ -398,11 +398,11 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
         final String registryId = versionControlInformation.getRegistryId();
-        final FlowRegistry flowRegistry = flowController.getFlowRegistryClient().getFlowRegistry(registryId);
+        final FlowRegistryClientNode flowRegistry = flowController.getFlowManager().getFlowRegistryClient(registryId);
         final String registryName = flowRegistry == null ? registryId : flowRegistry.getName();
 
         final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(flowController.getExtensionManager());
-        final VersionedProcessGroup flowSnapshot = mapper.mapProcessGroup(group, flowController.getControllerServiceProvider(), flowController.getFlowRegistryClient(), false);
+        final VersionedProcessGroup flowSnapshot = mapper.mapProcessGroup(group, flowController.getControllerServiceProvider(), flowController.getFlowManager(), false);
 
         final StandardVersionControlInformation vci = StandardVersionControlInformation.Builder.fromDto(versionControlInformation)
             .registryName(registryName)

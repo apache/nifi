@@ -35,6 +35,7 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 
 import java.net.URL;
@@ -323,6 +324,15 @@ public interface FlowManager extends ParameterProviderLookup {
     void removeParameterProvider(ParameterProviderNode parameterProvider);
 
     Set<ParameterProviderNode> getAllParameterProviders();
+
+    FlowRegistryClientNode createFlowRegistryClient(
+            String type, String id, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls, boolean firstTimeAdded, boolean registerLogObserver, String classloaderIsolationKey);
+
+    FlowRegistryClientNode getFlowRegistryClient(String id);
+
+    void removeFlowRegistryClientNode(FlowRegistryClientNode clientNode);
+
+    Set<FlowRegistryClientNode> getAllFlowRegistryClients();
 
     Set<ControllerServiceNode> getAllControllerServices();
 

@@ -70,8 +70,8 @@ import org.apache.nifi.web.api.entity.AboutEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.BannerEntity;
-import org.apache.nifi.web.api.entity.BucketEntity;
-import org.apache.nifi.web.api.entity.BucketsEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryBucketEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryBucketsEntity;
 import org.apache.nifi.web.api.entity.BulletinBoardEntity;
 import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
 import org.apache.nifi.web.api.entity.ClusterSearchResultsEntity;
@@ -85,6 +85,8 @@ import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ControllerStatusEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
 import org.apache.nifi.web.api.entity.HistoryEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextsEntity;
@@ -98,9 +100,6 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorTypesEntity;
-import org.apache.nifi.web.api.entity.RegistriesEntity;
-import org.apache.nifi.web.api.entity.RegistryClientsEntity;
-import org.apache.nifi.web.api.entity.RegistryEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskTypesEntity;
@@ -171,6 +170,7 @@ import static org.apache.nifi.web.api.entity.ScheduleComponentsEntity.STATE_ENAB
 )
 public class FlowResource extends ApplicationResource {
 
+    private static final String NIFI_REGISTRY_TYPE = "org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient";
     private static final String RECURSIVE = "false";
 
     private NiFiServiceFacade serviceFacade;
@@ -1617,7 +1617,7 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("registries")
-    @ApiOperation(value = "Gets the listing of available registries", response = RegistryClientsEntity.class, authorizations = {
+    @ApiOperation(value = "Gets the listing of available flow registry clients", response = FlowRegistryClientsEntity.class, authorizations = {
             @Authorization(value = "Read - /flow")
     })
     @ApiResponses(value = {
@@ -1627,22 +1627,49 @@ public class FlowResource extends ApplicationResource {
             @ApiResponse(code = 404, message = "The specified resource could not be found."),
             @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
-    public Response getRegistries() {
+    public Response getRegistryClients() {
         authorizeFlow();
 
-        final Set<RegistryEntity> registries = serviceFacade.getRegistriesForUser(NiFiUserUtils.getNiFiUser());
+        final Set<FlowRegistryClientEntity> registryClients = serviceFacade.getRegistryClientsForUser();
+        final FlowRegistryClientsEntity registryClientEntities = new FlowRegistryClientsEntity();
+        registryClientEntities.setRegistries(registryClients);
 
-        final RegistriesEntity registryEntities = new RegistriesEntity();
-        registryEntities.setRegistries(registries);
-
-        return generateOkResponse(registryEntities).build();
+        return generateOkResponse(populateRemainingRegistryClientEntityContent(registryClientEntities)).build();
     }
+
+    /**
+     * Populate the uri's for the specified flow registry client and also extend the result to make it backward compatible.
+     *
+     * @param flowRegistryClientEntity flow registry client
+     * @return the updated entity
+     */
+    private FlowRegistryClientEntity populateRemainingRegistryClientEntityContent(final FlowRegistryClientEntity flowRegistryClientEntity) {
+        flowRegistryClientEntity.setUri(generateResourceUri("controller", "registry-clients", flowRegistryClientEntity.getId()));
+
+        if (flowRegistryClientEntity.getComponent().getType().equals(NIFI_REGISTRY_TYPE)) {
+            flowRegistryClientEntity.getComponent().setUri(flowRegistryClientEntity.getComponent().getProperties().get("url"));
+        }
+
+        return flowRegistryClientEntity;
+    }
+
+    /**
+     * Populate the uri's for all contained flow registry clients and also extend the result to make it backward compatible.
+     */
+    private FlowRegistryClientsEntity populateRemainingRegistryClientEntityContent(final FlowRegistryClientsEntity flowRegistryClientsEntity) {
+        for (final FlowRegistryClientEntity entity : flowRegistryClientsEntity.getRegistries()) {
+            populateRemainingRegistryClientEntityContent(entity);
+        }
+
+        return flowRegistryClientsEntity;
+    }
+
 
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("registries/{id}/buckets")
-    @ApiOperation(value = "Gets the buckets from the specified registry for the current user", response = BucketsEntity.class, authorizations = {
+    @ApiOperation(value = "Gets the buckets from the specified registry for the current user", response = FlowRegistryBucketsEntity.class, authorizations = {
             @Authorization(value = "Read - /flow")
     })
     @ApiResponses(value = {
@@ -1661,23 +1688,23 @@ public class FlowResource extends ApplicationResource {
 
         authorizeFlow();
 
-        final Set<BucketEntity> buckets = serviceFacade.getBucketsForUser(id, NiFiUserUtils.getNiFiUser());
-        final SortedSet<BucketEntity> sortedBuckets = sortBuckets(buckets);
+        final Set<FlowRegistryBucketEntity> buckets = serviceFacade.getBucketsForUser(id);
+        final SortedSet<FlowRegistryBucketEntity> sortedBuckets = sortBuckets(buckets);
 
-        final BucketsEntity bucketsEntity = new BucketsEntity();
-        bucketsEntity.setBuckets(sortedBuckets);
+        final FlowRegistryBucketsEntity flowRegistryBucketsEntity = new FlowRegistryBucketsEntity();
+        flowRegistryBucketsEntity.setBuckets(sortedBuckets);
 
-        return generateOkResponse(bucketsEntity).build();
+        return generateOkResponse(flowRegistryBucketsEntity).build();
     }
 
-    private SortedSet<BucketEntity> sortBuckets(final Set<BucketEntity> buckets) {
-        final SortedSet<BucketEntity> sortedBuckets = new TreeSet<>((entity1, entity2) -> Collator.getInstance().compare(getBucketName(entity1), getBucketName(entity2)));
+    private SortedSet<FlowRegistryBucketEntity> sortBuckets(final Set<FlowRegistryBucketEntity> buckets) {
+        final SortedSet<FlowRegistryBucketEntity> sortedBuckets = new TreeSet<>((entity1, entity2) -> Collator.getInstance().compare(getBucketName(entity1), getBucketName(entity2)));
 
         sortedBuckets.addAll(buckets);
         return sortedBuckets;
     }
 
-    private String getBucketName(final BucketEntity entity) {
+    private String getBucketName(final FlowRegistryBucketEntity entity) {
         return entity.getBucket() == null ? null : entity.getBucket().getName();
     }
 
@@ -1697,7 +1724,7 @@ public class FlowResource extends ApplicationResource {
     })
     public Response getFlows(
             @ApiParam(
-                value = "The registry id.",
+                value = "The registry client id.",
                 required = true
             )
             @PathParam("registry-id") String registryId,
@@ -1709,8 +1736,8 @@ public class FlowResource extends ApplicationResource {
 
         authorizeFlow();
 
-        final Set<VersionedFlowEntity> versionedFlows = serviceFacade.getFlowsForUser(registryId, bucketId, NiFiUserUtils.getNiFiUser());
-        final SortedSet<VersionedFlowEntity> sortedFlows = sortFlows(versionedFlows);
+        final Set<VersionedFlowEntity> registeredFlows = serviceFacade.getFlowsForUser(registryId, bucketId);
+        final SortedSet<VersionedFlowEntity> sortedFlows = sortFlows(registeredFlows);
 
         final VersionedFlowsEntity versionedFlowsEntity = new VersionedFlowsEntity();
         versionedFlowsEntity.setVersionedFlows(sortedFlows);
@@ -1747,7 +1774,7 @@ public class FlowResource extends ApplicationResource {
     })
     public Response getVersions(
             @ApiParam(
-                    value = "The registry id.",
+                    value = "The registry client id.",
                     required = true
             )
             @PathParam("registry-id") String registryId,
@@ -1764,10 +1791,10 @@ public class FlowResource extends ApplicationResource {
 
         authorizeFlow();
 
-        final Set<VersionedFlowSnapshotMetadataEntity> versionedFlowSnapshotMetadataSet = serviceFacade.getFlowVersionsForUser(registryId, bucketId, flowId, NiFiUserUtils.getNiFiUser());
+        final Set<VersionedFlowSnapshotMetadataEntity> registeredFlowSnapshotMetadataSet = serviceFacade.getFlowVersionsForUser(registryId, bucketId, flowId);
 
         final VersionedFlowSnapshotMetadataSetEntity versionedFlowSnapshotMetadataSetEntity = new VersionedFlowSnapshotMetadataSetEntity();
-        versionedFlowSnapshotMetadataSetEntity.setVersionedFlowSnapshotMetadataSet(versionedFlowSnapshotMetadataSet);
+        versionedFlowSnapshotMetadataSetEntity.setVersionedFlowSnapshotMetadataSet(registeredFlowSnapshotMetadataSet);
 
         return generateOkResponse(versionedFlowSnapshotMetadataSetEntity).build();
     }

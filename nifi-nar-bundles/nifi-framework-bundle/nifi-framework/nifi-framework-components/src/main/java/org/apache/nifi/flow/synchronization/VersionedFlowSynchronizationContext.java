@@ -25,7 +25,6 @@ import org.apache.nifi.groups.ComponentIdGenerator;
 import org.apache.nifi.groups.ComponentScheduler;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 
 import java.util.function.Function;
@@ -35,7 +34,6 @@ import static java.util.Objects.requireNonNull;
 public class VersionedFlowSynchronizationContext {
     private final ComponentIdGenerator componentIdGenerator;
     private final FlowManager flowManager;
-    private final FlowRegistryClient flowRegistryClient;
     private final ReloadComponent reloadComponent;
     private final ControllerServiceProvider controllerServiceProvider;
     private final ExtensionManager extensionManager;
@@ -47,7 +45,6 @@ public class VersionedFlowSynchronizationContext {
     private VersionedFlowSynchronizationContext(final Builder builder) {
         this.componentIdGenerator = builder.componentIdGenerator;
         this.flowManager = builder.flowManager;
-        this.flowRegistryClient = builder.flowRegistryClient;
         this.reloadComponent = builder.reloadComponent;
         this.controllerServiceProvider = builder.controllerServiceProvider;
         this.extensionManager = builder.extensionManager;
@@ -62,10 +59,6 @@ public class VersionedFlowSynchronizationContext {
 
     public FlowManager getFlowManager() {
         return flowManager;
-    }
-
-    public FlowRegistryClient getFlowRegistryClient() {
-        return flowRegistryClient;
     }
 
     public ReloadComponent getReloadComponent() {
@@ -95,7 +88,6 @@ public class VersionedFlowSynchronizationContext {
     public static class Builder {
         private ComponentIdGenerator componentIdGenerator;
         private FlowManager flowManager;
-        private FlowRegistryClient flowRegistryClient;
         private ReloadComponent reloadComponent;
         private ControllerServiceProvider controllerServiceProvider;
         private ExtensionManager extensionManager;
@@ -110,11 +102,6 @@ public class VersionedFlowSynchronizationContext {
 
         public Builder flowManager(final FlowManager flowManager) {
             this.flowManager = flowManager;
-            return this;
-        }
-
-        public Builder flowRegistryClient(final FlowRegistryClient client) {
-            this.flowRegistryClient = client;
             return this;
         }
 
@@ -151,7 +138,6 @@ public class VersionedFlowSynchronizationContext {
         public VersionedFlowSynchronizationContext build() {
             requireNonNull(componentIdGenerator, "Component ID Generator must be set");
             requireNonNull(flowManager, "Flow Manager must be set");
-            requireNonNull(flowRegistryClient, "Flow Registry Client must be set");
             requireNonNull(reloadComponent, "Reload Component must be set");
             requireNonNull(controllerServiceProvider, "Controller Service Provider must be set");
             requireNonNull(extensionManager, "Extension Manager must be set");

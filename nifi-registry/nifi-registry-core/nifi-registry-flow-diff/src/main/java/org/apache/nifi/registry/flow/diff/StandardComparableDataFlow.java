@@ -18,6 +18,7 @@
 package org.apache.nifi.registry.flow.diff;
 
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
@@ -34,20 +35,22 @@ public class StandardComparableDataFlow implements ComparableDataFlow {
     private final Set<VersionedReportingTask> reportingTasks;
     private final Set<VersionedParameterContext> parameterContexts;
     private final Set<VersionedParameterProvider> parameterProviders;
+    private final Set<VersionedFlowRegistryClient> flowRegistryClients;
 
     public StandardComparableDataFlow(final String name, final VersionedProcessGroup contents) {
-        this(name, contents, Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
+        this(name, contents, Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
     }
 
     public StandardComparableDataFlow(final String name, final VersionedProcessGroup contents, final Set<VersionedControllerService> controllerLevelServices,
                                       final Set<VersionedReportingTask> reportingTasks, final Set<VersionedParameterContext> parameterContexts,
-                                      final Set<VersionedParameterProvider> parameterProviders) {
+                                      final Set<VersionedParameterProvider> parameterProviders, final Set<VersionedFlowRegistryClient> flowRegistryClients) {
         this.name = name;
         this.contents = contents;
         this.controllerLevelServices = controllerLevelServices == null ? Collections.emptySet() : new HashSet<>(controllerLevelServices);
         this.reportingTasks = reportingTasks == null ? Collections.emptySet() : new HashSet<>(reportingTasks);
         this.parameterContexts = parameterContexts == null ? Collections.emptySet() : new HashSet<>(parameterContexts);
         this.parameterProviders = parameterProviders == null ? Collections.emptySet() : new HashSet<>(parameterProviders);
+        this.flowRegistryClients = flowRegistryClients == null ? Collections.emptySet() : new HashSet<>(flowRegistryClients);
     }
 
     @Override
@@ -78,5 +81,10 @@ public class StandardComparableDataFlow implements ComparableDataFlow {
     @Override
     public Set<VersionedParameterProvider> getParameterProviders() {
         return parameterProviders;
+    }
+
+    @Override
+    public Set<VersionedFlowRegistryClient> getFlowRegistryClients() {
+        return flowRegistryClients;
     }
 }

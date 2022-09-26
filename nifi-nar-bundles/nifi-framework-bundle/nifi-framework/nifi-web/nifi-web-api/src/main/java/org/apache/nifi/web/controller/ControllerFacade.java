@@ -85,6 +85,8 @@ import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.search.SearchTerm;
 import org.apache.nifi.provenance.search.SearchTerms;
 import org.apache.nifi.provenance.search.SearchableField;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.reporting.BulletinRepository;
@@ -570,6 +572,14 @@ public class ControllerFacade implements Authorizable {
         return dtoFactory.fromDocumentedTypes(getExtensionManager().getExtensions(ReportingTask.class), bundleGroupFilter, bundleArtifactFilter, typeFilter);
     }
 
+    /**
+     * Gets the FlowRegistryClient types that this controller supports.
+     *
+     * @return the FlowRegistryClient types that this controller supports
+     */
+    public Set<DocumentedTypeDTO> getFlowRegistryTypes() {
+        return dtoFactory.fromDocumentedTypes(getExtensionManager().getExtensions(FlowRegistryClient.class), null, null, null);
+    }
 
     /**
      * Gets the RuntimeManifest for this overall NiFi instance.
@@ -1010,6 +1020,14 @@ public class ControllerFacade implements Authorizable {
             resources.add(parameterProviderResource);
             resources.add(ResourceFactory.getPolicyResource(parameterProviderResource));
             resources.add(ResourceFactory.getOperationResource(parameterProviderResource));
+        }
+
+        // add each flow registry client
+        for (final FlowRegistryClientNode flowRegistryClient : flowController.getFlowManager().getAllFlowRegistryClients()) {
+            final Resource flowRegistryResource = flowRegistryClient.getResource();
+            resources.add(flowRegistryResource);
+            resources.add(ResourceFactory.getPolicyResource(flowRegistryResource));
+            resources.add(ResourceFactory.getOperationResource(flowRegistryResource));
         }
 
         // add each template

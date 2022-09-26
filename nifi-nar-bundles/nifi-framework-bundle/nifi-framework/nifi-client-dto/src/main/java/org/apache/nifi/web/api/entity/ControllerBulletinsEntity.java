@@ -32,6 +32,7 @@ public class ControllerBulletinsEntity extends Entity {
     private List<BulletinEntity> controllerServiceBulletins;
     private List<BulletinEntity> reportingTaskBulletins;
     private List<BulletinEntity> parameterProviderBulletins;
+    private List<BulletinEntity> flowRegistryClientBulletins;
 
     /**
      * @return System bulletins to be reported to the user
@@ -81,6 +82,18 @@ public class ControllerBulletinsEntity extends Entity {
         this.parameterProviderBulletins = parameterProviderBulletins;
     }
 
+    /**
+     * @return Flow registry client bulletins to be reported to the user
+     */
+    @ApiModelProperty("Flow registry client bulletins to be reported to the user.")
+    public List<BulletinEntity> getFlowRegistryClientBulletins() {
+        return flowRegistryClientBulletins;
+    }
+
+    public void setFlowRegistryClientBulletins(List<BulletinEntity> flowRegistryClientBulletins) {
+        this.flowRegistryClientBulletins = flowRegistryClientBulletins;
+    }
+
     @Override
     public ControllerBulletinsEntity clone() {
         final ControllerBulletinsEntity other = new ControllerBulletinsEntity();
@@ -88,6 +101,7 @@ public class ControllerBulletinsEntity extends Entity {
         other.setControllerServiceBulletins(getControllerServiceBulletins() == null ? null : new ArrayList<>(getControllerServiceBulletins()));
         other.setReportingTaskBulletins(getReportingTaskBulletins() == null ? null : new ArrayList<>(getReportingTaskBulletins()));
         other.setParameterProviderBulletins(getParameterProviderBulletins() == null ? null : new ArrayList<>(getParameterProviderBulletins()));
+        other.setFlowRegistryClientBulletins(getFlowRegistryClientBulletins() == null ? null : new ArrayList<>(getFlowRegistryClientBulletins()));
         return other;
     }
 }

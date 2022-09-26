@@ -49,9 +49,7 @@ import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.provenance.IdentifierLookup;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.InMemoryFlowRegistry;
-import org.apache.nifi.registry.flow.StandardFlowRegistryClient;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.stateless.bootstrap.ExtensionDiscovery;
@@ -84,6 +82,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -109,11 +108,6 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             if (!narExpansionDirectory.exists() && !narExpansionDirectory.mkdirs()) {
                 throw new IOException("Working Directory " + narExpansionDirectory + " does not exist and could not be created");
             }
-
-            final InMemoryFlowRegistry flowRegistry = new InMemoryFlowRegistry();
-            flowRegistry.addFlowSnapshot(dataflowDefinition.getVersionedExternalFlow());
-            final FlowRegistryClient flowRegistryClient = new StandardFlowRegistryClient();
-            flowRegistryClient.addFlowRegistry(flowRegistry);
 
             final NarClassLoaders narClassLoaders = new NarClassLoaders();
             final File extensionsWorkingDir = new File(narExpansionDirectory, "extensions");
@@ -185,7 +179,6 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                     .bulletinRepository(bulletinRepository)
                     .encryptor(lazyInitializedEncryptor)
                     .extensionManager(extensionManager)
-                    .flowRegistryClient(flowRegistryClient)
                     .stateManagerProvider(stateManagerProvider)
                     .variableRegistry(variableRegistry)
                     .processScheduler(processScheduler)
@@ -198,6 +191,9 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                     .build();
 
             final StatelessFlowManager flowManager = new StatelessFlowManager(flowFileEventRepo, parameterContextManager, statelessEngine, () -> true, sslContext, bulletinRepository);
+            flowManager.createFlowRegistryClient(InMemoryFlowRegistry.class.getTypeName(), "in-memory-flow-registry", null, Collections.emptySet(), true, true, null);
+            ((InMemoryFlowRegistry) flowManager.getFlowRegistryClient("in-memory-flow-registry").getComponent()).addFlowSnapshot(dataflowDefinition.getVersionedExternalFlow());
+
             final ControllerServiceProvider controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, flowManager, extensionManager);
 
             final ProcessContextFactory rawProcessContextFactory = new StatelessProcessContextFactory(controllerServiceProvider, lazyInitializedEncryptor, stateManagerProvider);

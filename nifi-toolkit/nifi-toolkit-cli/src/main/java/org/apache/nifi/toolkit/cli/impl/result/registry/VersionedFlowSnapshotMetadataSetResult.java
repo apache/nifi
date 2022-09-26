@@ -17,6 +17,7 @@
 package org.apache.nifi.toolkit.cli.impl.result.registry;
 
 import org.apache.commons.lang3.Validate;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.api.WritableResult;
@@ -59,9 +60,21 @@ public class VersionedFlowSnapshotMetadataSetResult extends AbstractWritableResu
         // this will be sorted by the child result below
         final List<VersionedFlowSnapshotMetadata> snapshots = entities.stream()
                 .map(v -> v.getVersionedFlowSnapshotMetadata())
+                .map(this::convert)
                 .collect(Collectors.toList());
 
-        final WritableResult<List<VersionedFlowSnapshotMetadata>> result = new VersionedFlowSnapshotMetadataResult(resultType, snapshots);
+        final WritableResult<List<VersionedFlowSnapshotMetadata>> result = new RegisteredFlowSnapshotMetadataResult(resultType, snapshots);
         result.write(output);
+    }
+
+    private VersionedFlowSnapshotMetadata convert(RegisteredFlowSnapshotMetadata metadata) {
+        final VersionedFlowSnapshotMetadata result = new VersionedFlowSnapshotMetadata();
+        result.setComments(metadata.getComments());
+        result.setVersion(metadata.getVersion());
+        result.setAuthor(metadata.getAuthor());
+        result.setTimestamp(metadata.getTimestamp());
+        result.setFlowIdentifier(metadata.getFlowIdentifier());
+        result.setBucketIdentifier(metadata.getBucketIdentifier());
+        return result;
     }
 }

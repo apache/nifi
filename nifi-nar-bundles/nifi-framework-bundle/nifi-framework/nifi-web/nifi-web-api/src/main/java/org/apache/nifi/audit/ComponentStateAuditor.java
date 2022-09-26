@@ -28,6 +28,7 @@ import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -218,6 +219,52 @@ public class ComponentStateAuditor extends NiFiAuditor {
             configAction.setSourceName(parameterProvider.getName());
             configAction.setSourceType(Component.ParameterProvider);
             configAction.setComponentDetails(parameterProviderDetails);
+            actions.add(configAction);
+
+            // record the action
+            saveActions(actions, logger);
+        }
+
+        return stateMap;
+    }
+
+    /**
+     * Audits clearing of state from a Flow Registry Client.
+     *
+     * @param proceedingJoinPoint join point
+     * @param flowRegistryClient the flow registry client
+     * @throws java.lang.Throwable ex
+     */
+    @Around("within(org.apache.nifi.web.dao.ComponentStateDAO+) && "
+            + "execution(void clearState(org.apache.nifi.registry.flow.FlowRegistryClientNode)) && "
+            + "args(flowRegistryClient)")
+    public StateMap clearFlowRegistryClientStateAdvice(final ProceedingJoinPoint proceedingJoinPoint, final FlowRegistryClientNode flowRegistryClient) throws Throwable {
+
+        // update the flow registry client state
+        final StateMap stateMap = (StateMap) proceedingJoinPoint.proceed();
+
+        // if no exception were thrown, add the clear action...
+
+        // get the current user
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        // ensure the user was found
+        if (user != null) {
+            final Collection<Action> actions = new ArrayList<>();
+
+            // create the flow registry client details
+            final FlowChangeExtensionDetails flowRegistryClientDetails = new FlowChangeExtensionDetails();
+            flowRegistryClientDetails.setType(flowRegistryClient.getComponent().getClass().getSimpleName());
+
+            // create the clear action
+            final FlowChangeAction configAction = new FlowChangeAction();
+            configAction.setUserIdentity(user.getIdentity());
+            configAction.setOperation(Operation.ClearState);
+            configAction.setTimestamp(new Date());
+            configAction.setSourceId(flowRegistryClient.getIdentifier());
+            configAction.setSourceName(flowRegistryClient.getName());
+            configAction.setSourceType(Component.FlowRegistryClient);
+            configAction.setComponentDetails(flowRegistryClientDetails);
             actions.add(configAction);
 
             // record the action

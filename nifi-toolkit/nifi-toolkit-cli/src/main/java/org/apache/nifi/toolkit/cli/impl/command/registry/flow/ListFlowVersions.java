@@ -24,7 +24,7 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
-import org.apache.nifi.toolkit.cli.impl.result.registry.VersionedFlowSnapshotMetadataResult;
+import org.apache.nifi.toolkit.cli.impl.result.registry.RegisteredFlowSnapshotMetadataResult;
 
 import java.io.IOException;
 import java.util.List;
@@ -33,10 +33,10 @@ import java.util.Properties;
 /**
  * Lists the metadata for the versions of a specific flow in a specific bucket.
  */
-public class ListFlowVersions extends AbstractNiFiRegistryCommand<VersionedFlowSnapshotMetadataResult> {
+public class ListFlowVersions extends AbstractNiFiRegistryCommand<RegisteredFlowSnapshotMetadataResult> {
 
     public ListFlowVersions() {
-        super("list-flow-versions", VersionedFlowSnapshotMetadataResult.class);
+        super("list-flow-versions", RegisteredFlowSnapshotMetadataResult.class);
     }
 
     @Override
@@ -50,13 +50,13 @@ public class ListFlowVersions extends AbstractNiFiRegistryCommand<VersionedFlowS
     }
 
     @Override
-    public VersionedFlowSnapshotMetadataResult doExecute(final NiFiRegistryClient client, final Properties properties)
+    public RegisteredFlowSnapshotMetadataResult doExecute(final NiFiRegistryClient client, final Properties properties)
             throws ParseException, IOException, NiFiRegistryException {
         final String flow = getRequiredArg(properties, CommandOption.FLOW_ID);
 
         final FlowSnapshotClient snapshotClient = client.getFlowSnapshotClient();
         final List<VersionedFlowSnapshotMetadata> snapshotMetadata = snapshotClient.getSnapshotMetadata(flow);
-        return new VersionedFlowSnapshotMetadataResult(getResultType(properties), snapshotMetadata);
+        return new RegisteredFlowSnapshotMetadataResult(getResultType(properties), snapshotMetadata);
     }
 
 }

@@ -40,7 +40,7 @@ import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
-import org.apache.nifi.web.api.entity.BucketEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryBucketEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
@@ -53,6 +53,7 @@ import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
@@ -70,8 +71,6 @@ import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusSnapshotEntity;
-import org.apache.nifi.web.api.entity.RegistryClientEntity;
-import org.apache.nifi.web.api.entity.RegistryEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
@@ -615,6 +614,42 @@ public final class EntityFactory {
         return entity;
     }
 
+    public FlowRegistryClientEntity createFlowRegistryClientEntity(
+            final FlowRegistryClientDTO dto,
+            final RevisionDTO revision,
+            final PermissionsDTO permissions,
+            final PermissionsDTO operatePermissions,
+            final List<BulletinEntity> bulletins
+    ) {
+        final FlowRegistryClientEntity entity = createFlowRegistryClientEntity(dto, revision, permissions);
+
+        if (dto != null) {
+            entity.setOperatePermissions(operatePermissions);
+
+            if (permissions != null && permissions.getCanRead()) {
+                entity.setBulletins(bulletins);
+            }
+        }
+
+        return entity;
+    }
+
+    public FlowRegistryClientEntity createFlowRegistryClientEntity(final FlowRegistryClientDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
+        final FlowRegistryClientEntity entity = new FlowRegistryClientEntity();
+        entity.setRevision(revision);
+        entity.setPermissions(permissions);
+
+        if (dto != null) {
+            entity.setId(dto.getId());
+
+            if (permissions != null && permissions.getCanRead()) {
+                entity.setComponent(dto);
+            }
+        }
+
+        return entity;
+    }
+
     public ParameterContextEntity createParameterContextEntity(final ParameterContextDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
         final ParameterContextEntity entity = new ParameterContextEntity();
         entity.setRevision(revision);
@@ -753,34 +788,18 @@ public final class EntityFactory {
         return entity;
     }
 
-    public RegistryClientEntity createRegistryClientEntity(final RegistryDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
-        final RegistryClientEntity entity = new RegistryClientEntity();
-        entity.setRevision(revision);
-        entity.setPermissions(permissions);
+    public FlowRegistryClientEntity createRegistryEntity(final FlowRegistryClientDTO dto) {
+        final FlowRegistryClientEntity entity = new FlowRegistryClientEntity();
 
         if (dto != null) {
-            entity.setId(dto.getId());
-
-            if (permissions != null && permissions.getCanRead()) {
-                entity.setComponent(dto);
-            }
+            entity.setComponent(dto);
         }
 
         return entity;
     }
 
-    public RegistryEntity createRegistryEntity(final RegistryDTO dto) {
-        final RegistryEntity entity = new RegistryEntity();
-
-        if (dto != null) {
-            entity.setRegistry(dto);
-        }
-
-        return entity;
-    }
-
-    public BucketEntity createBucketEntity(final BucketDTO dto, final PermissionsDTO permissions) {
-        final BucketEntity entity = new BucketEntity();
+    public FlowRegistryBucketEntity createBucketEntity(final FlowRegistryBucketDTO dto, final PermissionsDTO permissions) {
+        final FlowRegistryBucketEntity entity = new FlowRegistryBucketEntity();
         entity.setId(dto.getId());
         entity.setPermissions(permissions);
 
