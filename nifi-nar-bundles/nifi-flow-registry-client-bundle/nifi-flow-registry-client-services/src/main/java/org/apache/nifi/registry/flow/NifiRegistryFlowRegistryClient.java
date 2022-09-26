@@ -133,7 +133,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
             final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
 
 
-            if (!(sslContextService.isTrustStoreConfigured() ^ sslContextService.isKeyStoreConfigured())) {
+            if (sslContextService.isTrustStoreConfigured() ^ sslContextService.isKeyStoreConfigured()) {
                 result.add(new ValidationResult.Builder().subject(this.getClass().getSimpleName())
                     .valid(false)
                     .explanation("It is expected to either set all the properties for the SSLContext or set none")
