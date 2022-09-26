@@ -434,7 +434,12 @@ div.slick-cell div.overridden {
     Registry configuration dialog
  */
 
-#registry-description {
+#registry-description,
+#registry-description-config {
+    height: 85px;
+}
+
+#new-registry-description {
     height: 85px;
 }
 
