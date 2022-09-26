@@ -40,6 +40,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ProvenanceClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RemoteProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.SnippetClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TemplatesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
@@ -380,6 +381,16 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         @Override
         public AccessClient getAccessClient() {
             return wrappedClient.getAccessClient();
+        }
+
+        @Override
+        public SnippetClient getSnippetClient() {
+            return wrappedClient.getSnippetClient();
+        }
+
+        @Override
+        public SnippetClient getSnippetClient(final RequestConfig requestConfig) {
+            return wrappedClient.getSnippetClient(requestConfig);
         }
 
         @Override

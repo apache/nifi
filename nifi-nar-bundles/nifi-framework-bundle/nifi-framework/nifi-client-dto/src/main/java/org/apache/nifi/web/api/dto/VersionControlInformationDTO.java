@@ -23,6 +23,13 @@ import javax.xml.bind.annotation.XmlType;
 
 @XmlType(name = "versionControlInformation")
 public class VersionControlInformationDTO {
+    public static final String LOCALLY_MODIFIED = "LOCALLY_MODIFIED";
+    public static final String STALE = "STALE";
+    public static final String LOCALLY_MODIFIED_AND_STALE = "LOCALLY_MODIFIED_AND_STALE";
+    public static final String UP_TO_DATE = "UP_TO_DATE";
+    public static final String SYNC_FAILURE = "SYNC_FAILURE";
+    private static final String ALLOWABLE_STATES = String.join(", ", LOCALLY_MODIFIED, STALE, LOCALLY_MODIFIED_AND_STALE, UP_TO_DATE, SYNC_FAILURE);
+
     private String groupId;
     private String registryId;
     private String registryName;
@@ -128,7 +135,7 @@ public class VersionControlInformationDTO {
 
     @ApiModelProperty(accessMode = ApiModelProperty.AccessMode.READ_ONLY,
         value = "The current state of the Process Group, as it relates to the Versioned Flow",
-        allowableValues = "LOCALLY_MODIFIED, STALE, LOCALLY_MODIFIED_AND_STALE, UP_TO_DATE, SYNC_FAILURE")
+        allowableValues = LOCALLY_MODIFIED + ", " + STALE + ", " + LOCALLY_MODIFIED_AND_STALE + ", " + UP_TO_DATE + ", " + SYNC_FAILURE)
     public String getState() {
         return state;
     }

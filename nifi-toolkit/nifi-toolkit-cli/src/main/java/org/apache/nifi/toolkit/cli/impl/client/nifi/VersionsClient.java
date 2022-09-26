@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
+import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowUpdateRequestEntity;
 
@@ -31,5 +32,13 @@ public interface VersionsClient {
     VersionedFlowUpdateRequestEntity getUpdateRequest(String updateRequestId) throws IOException, NiFiClientException;
 
     VersionedFlowUpdateRequestEntity deleteUpdateRequest(String updateRequestId) throws IOException, NiFiClientException;
+
+    VersionControlInformationEntity startVersionControl(String processGroupId, StartVersionControlRequestEntity startVersionControlRequestEntity) throws IOException, NiFiClientException;
+
+    VersionedFlowUpdateRequestEntity initiateRevertFlowVersion(String processGroupId, VersionControlInformationEntity versionControlInformation) throws IOException, NiFiClientException;
+
+    VersionedFlowUpdateRequestEntity getRevertFlowVersionRequest(String requestId) throws IOException, NiFiClientException;
+
+    VersionedFlowUpdateRequestEntity deleteRevertFlowVersionRequest(String requestId) throws IOException, NiFiClientException;
 
 }
