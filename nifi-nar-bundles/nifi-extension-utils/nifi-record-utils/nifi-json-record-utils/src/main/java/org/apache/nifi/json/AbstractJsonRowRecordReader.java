@@ -51,6 +51,8 @@ import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 
 public abstract class AbstractJsonRowRecordReader implements RecordReader {
+    private static final String ARRAY_OR_OBJECT_TYPE = "array or object type field";
+
     private final ComponentLog logger;
     private final Supplier<DateFormat> LAZY_DATE_FORMAT;
     private final Supplier<DateFormat> LAZY_TIME_FORMAT;
@@ -65,7 +67,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     private StartingFieldStrategy strategy;
 
     private Map<String, String> capturedFields;
-    private BiPredicate<String, String> captureFieldsPredicate;
+    private BiPredicate<String, String> captureFieldPredicate;
 
     private AbstractJsonRowRecordReader(final ComponentLog logger, final String dateFormat, final String timeFormat, final String timestampFormat) {
         this.logger = logger;
@@ -92,15 +94,15 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     /**
      * Constructor with initial logic for JSON to NiFi record parsing.
      *
-     * @param in               the input stream to parse
-     * @param logger           ComponentLog
-     * @param dateFormat       format for parsing date fields
-     * @param timeFormat       format for parsing time fields
-     * @param timestampFormat  format for parsing timestamp fields
-     * @param strategy         whether to start processing from a specific field
-     * @param nestedFieldName  the name of the field to start the processing from
-     * @param captureFieldsPredicate predicate that takes a JSON fieldName and fieldValue to capture top-level non-processed fields which can
-     *                         be accessed by calling {@link #getCapturedFields()}
+     * @param in                     the input stream to parse
+     * @param logger                 ComponentLog
+     * @param dateFormat             format for parsing date fields
+     * @param timeFormat             format for parsing time fields
+     * @param timestampFormat        format for parsing timestamp fields
+     * @param strategy               whether to start processing from a specific field
+     * @param nestedFieldName        the name of the field to start the processing from
+     * @param captureFieldPredicate predicate that takes a JSON fieldName and fieldValue to capture top-level non-processed fields which can
+     *                               be accessed by calling {@link #getCapturedFields()}
      * @throws IOException              in case of JSON stream processing failure
      * @throws MalformedRecordException in case of malformed JSON input
      */
@@ -111,13 +113,13 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                                           final String timestampFormat,
                                           final StartingFieldStrategy strategy,
                                           final String nestedFieldName,
-                                          final BiPredicate<String, String> captureFieldsPredicate)
+                                          final BiPredicate<String, String> captureFieldPredicate)
             throws IOException, MalformedRecordException {
 
         this(logger, dateFormat, timeFormat, timestampFormat);
 
         this.strategy = strategy;
-        this.captureFieldsPredicate = captureFieldsPredicate;
+        this.captureFieldPredicate = captureFieldPredicate;
         capturedFields = new HashMap<>();
 
         try {
@@ -129,13 +131,8 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                     if (nestedFieldName.equals(jsonParser.getCurrentName())) {
                         break;
                     }
-                    if (captureFieldsPredicate != null && jsonParser.getCurrentToken() == JsonToken.FIELD_NAME) {
-                        jsonParser.nextToken();
-                        final String fieldName = jsonParser.getCurrentName();
-                        final String fieldValue = jsonParser.getValueAsString();
-                        if (captureFieldsPredicate.test(fieldName, fieldValue)) {
-                            capturedFields.put(fieldName, fieldValue);
-                        }
+                    if (captureFieldPredicate != null) {
+                        captureCurrentField(captureFieldPredicate);
                     }
                 }
                 logger.debug("Parsing starting at nested field [{}]", nestedFieldName);
@@ -172,16 +169,9 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
         final JsonNode nextNode = getNextJsonNode();
         if (nextNode == null) {
-            if (captureFieldsPredicate != null) {
+            if (captureFieldPredicate != null) {
                 while (jsonParser.nextToken() != null) {
-                    if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME) {
-                        jsonParser.nextToken();
-                        final String fieldName = jsonParser.getCurrentName();
-                        final String fieldValue = jsonParser.getValueAsString();
-                        if (captureFieldsPredicate.test(fieldName, fieldValue)) {
-                            capturedFields.put(fieldName, fieldValue);
-                        }
-                    }
+                    captureCurrentField(captureFieldPredicate);
                 }
             }
             return null;
@@ -294,6 +284,19 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         }
 
         return null;
+    }
+
+    private void captureCurrentField(BiPredicate<String, String> captureFieldPredicate) throws IOException {
+        if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME) {
+            jsonParser.nextToken();
+
+            final String fieldName = jsonParser.getCurrentName();
+            final String fieldValue = jsonParser.getValueAsString();
+
+            if (captureFieldPredicate.test(fieldName, fieldValue)) {
+                capturedFields.put(fieldName, fieldValue);
+            }
+        }
     }
 
     private Map<String, Object> getMapFromRawValue(final JsonNode fieldNode, final DataType dataType, final String fieldName) throws IOException {

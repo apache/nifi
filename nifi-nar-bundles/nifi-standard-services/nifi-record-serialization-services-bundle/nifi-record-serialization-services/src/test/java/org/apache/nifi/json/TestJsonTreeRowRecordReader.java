@@ -57,7 +57,6 @@ import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.apache.nifi.json.JsonTreeRowRecordReader.FALSE_BI_PREDICATE;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -95,14 +94,6 @@ class TestJsonTreeRowRecordReader {
         accountFields.add(new RecordField("balance", RecordFieldType.DOUBLE.getDataType()));
 
         return new SimpleRecordSchema(accountFields);
-    }
-
-    private RecordSchema getSchema() {
-        final DataType accountType = RecordFieldType.RECORD.getRecordDataType(getAccountSchema());
-        final List<RecordField> fields = getDefaultFields();
-        fields.add(new RecordField("account", accountType));
-        fields.remove(new RecordField("balance", RecordFieldType.DOUBLE.getDataType()));
-        return new SimpleRecordSchema(fields);
     }
 
     @Test
@@ -1076,7 +1067,7 @@ class TestJsonTreeRowRecordReader {
                 }})
         );
 
-        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_FIELD, "accounts", FALSE_BI_PREDICATE);
+        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_FIELD, "accounts", null);
     }
 
     @Test
@@ -1095,7 +1086,7 @@ class TestJsonTreeRowRecordReader {
                 }})
         );
 
-        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_FIELD, "account", FALSE_BI_PREDICATE);
+        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_FIELD, "account", null);
     }
 
     @Test
@@ -1118,14 +1109,14 @@ class TestJsonTreeRowRecordReader {
                     }})
         );
 
-        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_FIELD, "accountIds", FALSE_BI_PREDICATE);
+        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_FIELD, "accountIds", null);
     }
 
     @Test
     void testStartFromSimpleFieldReturnsEmptyJson() throws IOException, MalformedRecordException {
         String jsonPath = "src/test/resources/json/single-element-nested.json";
 
-        testReadRecords(jsonPath, Collections.emptyList(), StartingFieldStrategy.NESTED_FIELD, "name", FALSE_BI_PREDICATE);
+        testReadRecords(jsonPath, Collections.emptyList(), StartingFieldStrategy.NESTED_FIELD, "name", null);
     }
 
     @Test
@@ -1136,7 +1127,7 @@ class TestJsonTreeRowRecordReader {
         List<Object> expected = Collections.emptyList();
 
         testReadRecords(jsonPath, expectedRecordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
-                "notfound", SchemaApplicationStrategy.SELECTED_PART, FALSE_BI_PREDICATE);
+                "notfound", SchemaApplicationStrategy.SELECTED_PART, null);
     }
 
     @Test
@@ -1160,7 +1151,7 @@ class TestJsonTreeRowRecordReader {
         );
 
         testReadRecords(jsonPath, expectedRecordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
-                "accounts", SchemaApplicationStrategy.SELECTED_PART, FALSE_BI_PREDICATE);
+                "accounts", SchemaApplicationStrategy.SELECTED_PART, null);
     }
 
     @Test
@@ -1186,7 +1177,7 @@ class TestJsonTreeRowRecordReader {
         );
 
         testReadRecords(jsonPath, recordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
-                "account", SchemaApplicationStrategy.WHOLE_JSON, FALSE_BI_PREDICATE);
+                "account", SchemaApplicationStrategy.WHOLE_JSON, null);
     }
 
     @Test
@@ -1216,7 +1207,7 @@ class TestJsonTreeRowRecordReader {
         );
 
         testReadRecords(jsonPath, recordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
-                "accounts", SchemaApplicationStrategy.WHOLE_JSON, FALSE_BI_PREDICATE);
+                "accounts", SchemaApplicationStrategy.WHOLE_JSON, null);
     }
 
     @Test
@@ -1253,7 +1244,7 @@ class TestJsonTreeRowRecordReader {
         );
 
         testReadRecords(jsonPath, recordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
-                "nestedLevel2Record", SchemaApplicationStrategy.WHOLE_JSON, FALSE_BI_PREDICATE);
+                "nestedLevel2Record", SchemaApplicationStrategy.WHOLE_JSON, null);
     }
 
     @Test
