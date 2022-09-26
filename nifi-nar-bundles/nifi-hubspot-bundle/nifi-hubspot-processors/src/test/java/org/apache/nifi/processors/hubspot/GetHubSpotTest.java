@@ -47,7 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static org.apache.nifi.processors.hubspot.GetHubSpot.CURSOR_KEY_PATTERN;
+import static org.apache.nifi.processors.hubspot.GetHubSpot.CURSOR_KEY;
 import static org.apache.nifi.processors.hubspot.GetHubSpot.END_INCREMENTAL_KEY;
 import static org.apache.nifi.processors.hubspot.GetHubSpot.START_INCREMENTAL_KEY;
 import static org.apache.nifi.processors.hubspot.HubSpotObjectType.COMPANIES;
@@ -179,7 +179,7 @@ class GetHubSpotTest {
         final String limit = "2";
         final String after = "nextPage";
         final String objectType = COMPANIES.getValue();
-        final String cursorKey = String.format(CURSOR_KEY_PATTERN, objectType);
+        final String cursorKey = String.format(CURSOR_KEY, objectType);
         final Instant now = Instant.now();
         final String startTime = String.valueOf(now.toEpochMilli());
         final String endTime = String.valueOf(now.plus(2, ChronoUnit.MINUTES).toEpochMilli());
