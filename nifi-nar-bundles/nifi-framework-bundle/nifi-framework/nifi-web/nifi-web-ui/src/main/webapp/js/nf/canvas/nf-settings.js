@@ -2360,7 +2360,7 @@
      * @param registryEntity
      */
     var editRegistry = function (registryEntity) {
-        reload(registryEntity.id).done(function (reloadResponse) {
+        reloadRegistryInfo(registryEntity.id).done(function (reloadResponse) {
             var properties = reloadResponse.component.properties;
             var descriptors = reloadResponse.component.descriptors;
 
@@ -2749,7 +2749,7 @@
          *
          * @param {string} id
          */
-     var reload = function (id) {
+     var reloadRegistryInfo = function (id) {
         var registryGrid = $('#registries-table').data('gridInstance');
         var registryData = registryGrid.getData();
         var registryEntity = registryData.getItemById(id);
@@ -2940,6 +2940,13 @@
             initRegistriesTable();
             initNewRegistryDialog();
             initParameterProvidersTable();
+        },
+
+        /**
+         * Update the size of the grid based on its container's current size.
+         */
+        reloadRegistry: function (id) {
+            return reloadRegistryInfo(id);
         },
 
         /**

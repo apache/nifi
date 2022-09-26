@@ -26,14 +26,13 @@
                 'nf.Dialog',
                 'nf.Storage',
                 'nf.Client',
-                'nf.Settings',
                 'nf.UniversalCapture',
                 'nf.CustomUi',
                 'nf.Verify',
                 'nf.CanvasUtils',
                 'nf.Processor'],
-            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfVerify, nfCanvasUtils, nfProcessor) {
-                return (nf.ControllerService = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfVerify, nfCustomUi, nfCanvasUtils, nfProcessor));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfUniversalCapture, nfCustomUi, nfVerify, nfCanvasUtils, nfProcessor) {
+                return (nf.ControllerService = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfUniversalCapture, nfVerify, nfCustomUi, nfCanvasUtils, nfProcessor));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ControllerService =
@@ -44,7 +43,6 @@
                 require('nf.Dialog'),
                 require('nf.Storage'),
                 require('nf.Client'),
-                require('nf.Settings'),
                 require('nf.UniversalCapture'),
                 require('nf.CustomUi'),
                 require('nf.Verify'),
@@ -58,19 +56,19 @@
             root.nf.Dialog,
             root.nf.Storage,
             root.nf.Client,
-            root.nf.Settings,
             root.nf.UniversalCapture,
             root.nf.CustomUi,
             root.nf.Verify,
             root.nf.CanvasUtils,
             root.nf.Processor);
     }
-}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfVerify, nfCanvasUtils, nfProcessor) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfUniversalCapture, nfCustomUi, nfVerify, nfCanvasUtils, nfProcessor) {
     'use strict';
 
     var nfControllerServices,
         nfReportingTask,
-        nfParameterProvider;
+        nfParameterProvider,
+        nfSettings;
 
     var config = {
         edit: 'edit',
@@ -264,7 +262,7 @@
                 }
             } else if (reference.referenceType === 'FlowRegistryClient') {
                 // reload
-                nfSettings.reload(reference.id);
+                nfSettings.reloadRegistry(reference.id);
                 // update the validation errors of this registry
                 var referencingComponentState = $('div.' + reference.id + '-state');
                 if (referencingComponentState.length) {
@@ -1890,10 +1888,11 @@
         /**
          * Initializes the controller service configuration dialog.
          */
-        init: function (nfControllerServicesRef, nfReportingTaskRef, nfParameterProviderRef) {
+        init: function (nfControllerServicesRef, nfReportingTaskRef, nfParameterProviderRef, nfSettingsRef) {
             nfControllerServices = nfControllerServicesRef;
             nfReportingTask = nfReportingTaskRef;
             nfParameterProvider = nfParameterProviderRef;
+            nfSettings = nfSettingsRef;
 
             // initialize the configuration dialog tabs
             $('#controller-service-configuration-tabs').tabbs({
