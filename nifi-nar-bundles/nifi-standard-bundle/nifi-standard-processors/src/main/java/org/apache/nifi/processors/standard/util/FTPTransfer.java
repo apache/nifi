@@ -32,6 +32,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
@@ -49,6 +50,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.ftp.FTPClientProvider;
 import org.apache.nifi.processors.standard.ftp.StandardFTPClientProvider;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -152,6 +154,9 @@ public class FTPTransfer implements FileTransfer {
     private FTPClient client;
     private String homeDirectory;
     private String remoteHostName;
+    private String remotePort;
+    private String remoteUsername;
+    private String remotePassword;
 
     public FTPTransfer(final ProcessContext context, final ComponentLog logger) {
         this.ctx = context;
@@ -546,10 +551,16 @@ public class FTPTransfer implements FileTransfer {
 
     private FTPClient getClient(final FlowFile flowFile) throws IOException {
         final String hostname = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String port = ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).getValue();
+        final String username = ctx.getProperty(FileTransfer.USERNAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String password = ctx.getProperty(FileTransfer.PASSWORD).evaluateAttributeExpressions(flowFile).getValue();
 
         if (client != null) {
-            if (remoteHostName.equals(hostname)) {
-                // destination matches so we can keep our current session
+            if (Objects.equals(remoteHostName, hostname)
+                    && Objects.equals(remotePort, port)
+                    && Objects.equals(remoteUsername, username)
+                    && Objects.equals(remotePassword, password)) {
+                // The key things match so we can keep our current session
                 resetWorkingDirectory();
                 return client;
             } else {
@@ -561,6 +572,9 @@ public class FTPTransfer implements FileTransfer {
         final Map<String, String> attributes = flowFile == null ? Collections.emptyMap() : flowFile.getAttributes();
         client = createClient(ctx, attributes);
         remoteHostName = hostname;
+        remotePort = port;
+        remoteUsername = username;
+        remotePassword = password;
         closed = false;
         homeDirectory = client.printWorkingDirectory();
         return client;
