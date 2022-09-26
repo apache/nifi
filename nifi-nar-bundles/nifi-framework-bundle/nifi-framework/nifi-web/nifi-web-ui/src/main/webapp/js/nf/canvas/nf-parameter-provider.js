@@ -958,6 +958,9 @@
             var selectableParametersGrid = $('#selectable-parameters-table').data('gridInstance');
             var parametersData = selectableParametersGrid.getData();
 
+            var groupsData = $('#parameter-groups-table').data('gridInstance').getData();
+            var currentGroup = groupsData.getItem([updatedGroup.id]);
+
             // clear the rows
             selectableParametersGrid.setSelectedRows([]);
             parametersData.setItems([]);
@@ -1016,12 +1019,15 @@
                 }
 
                 parametersData.addItem(parameter);
+
+                // save to its group
+                if (saveToGroup) {
+                    currentGroup.parameterSensitivities[param] = parameterSensitivitiesEntity[param] ? parameterSensitivitiesEntity[param] : SENSITIVE;
+                    groupsData.updateItem(updatedGroup.id, currentGroup);
+                }
             }
 
             // add a parameter if the status has been REMOVED or MISSING_BUT_REFERENCED
-            var groupsData = $('#parameter-groups-table').data('gridInstance').getData();
-            var currentGroup = groupsData.getItem([updatedGroup.id]);
-
             if (!_.isEmpty(updatedGroup.parameterStatus)) {
 
                 $.each(updatedGroup.parameterStatus, function (i, status) {
@@ -1043,12 +1049,6 @@
                         parameterCount++;
                     }
                 })
-            }
-
-            // save to its group
-            if (saveToGroup) {
-                currentGroup.parameterSensitivities[param] = parameterSensitivitiesEntity[param] ? parameterSensitivitiesEntity[param] : SENSITIVE;
-                groupsData.updateItem(updatedGroup.id, currentGroup);
             }
 
             // complete the update
