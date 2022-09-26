@@ -695,7 +695,7 @@
                     });
 
                     // registry state - used to show the validation errors
-                    var registryState = $('<div class="referencing-component-state invalid"></div>').addClass(referencingComponent.id + 'state');
+                    var registryState = $('<div class="referencing-component-state invalid"></div>').addClass(referencingComponent.id + '-state');
 
                     if (nfCommon.isEmpty(referencingComponent.validationErrors)) {
                         registryState.hide();
