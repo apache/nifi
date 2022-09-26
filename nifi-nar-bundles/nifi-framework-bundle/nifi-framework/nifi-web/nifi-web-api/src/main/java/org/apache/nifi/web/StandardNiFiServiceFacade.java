@@ -5190,10 +5190,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         } catch (final FlowRegistryException e) {
             logger.error(e.getMessage(), e);
             throw new IllegalArgumentException("The Flow Registry with ID " + registryId + " reports that no Flow exists with Bucket "
-                    + bucketId + ", Flow " + flowId + ", Version " + flowVersion);
+                    + bucketId + ", Flow " + flowId + ", Version " + flowVersion, e);
         } catch (final IOException ioe) {
-            throw new IllegalStateException(
-                    "Failed to communicate with Flow Registry when attempting to retrieve a versioned flow");
+            throw new IllegalStateException("Failed to communicate with Flow Registry when attempting to retrieve a versioned flow", ioe);
         }
 
         return snapshot;
