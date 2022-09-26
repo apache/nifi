@@ -2873,12 +2873,12 @@
                     $('#new-registry-name').val('');
                     $('#new-registry-description').val('');
 
-                    loadRegistryTypes();
+                    loadRegistryTypes().done(function () {
+                        $('#new-registry-client-dialog').modal('show');
 
-                    $('#new-registry-client-dialog').modal('show');
-
-                    // set the initial focus
-                    $('#new-registry-name').focus();
+                        // set the initial focus
+                        $('#new-registry-name').focus();
+                    });
                 } else if (selectedTab === 'Parameter Providers') {
                     $('#new-parameter-provider-dialog').modal('show');
 
