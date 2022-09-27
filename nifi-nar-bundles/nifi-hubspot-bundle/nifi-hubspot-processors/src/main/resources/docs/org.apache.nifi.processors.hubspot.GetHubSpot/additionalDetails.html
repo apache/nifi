@@ -33,7 +33,8 @@
     is based on the objects last modified time.
 </p>
 <p>
-    There is no deletion tolerance in the current implementation. Some objects may be omitted if any object is deleted between fetching two pages.
+    Due to the page handling mechanism of the HubSpot API, parallel deletions are not supported.
+    Some objects may be omitted if any object is deleted between fetching two pages.
 </p>
 <h2>Paging</h2>
 <p>

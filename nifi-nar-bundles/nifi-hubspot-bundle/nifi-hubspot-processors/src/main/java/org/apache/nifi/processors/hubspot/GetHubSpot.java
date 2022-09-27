@@ -125,7 +125,7 @@ public class GetHubSpot extends AbstractProcessor {
             .description(("The ending timestamp of the time window will be adjusted earlier by the amount configured in this property." +
                     " For example, with a property value of 10 seconds, an ending timestamp of 12:30:45 would be changed to 12:30:35." +
                     " Set this property to avoid missing objects when the clock of your local machines and HubSpot servers' clock are not in sync" +
-                    " and to protect against HubSpot's mechanism that changes last updated dates after object creation."))
+                    " and to protect against HubSpot's mechanism that changes last updated timestamps after object creation."))
             .required(true)
             .defaultValue("30 sec")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
