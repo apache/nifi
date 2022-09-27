@@ -17,6 +17,7 @@
  */
 package org.apache.nifi.processors.iceberg.catalog;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.hive.HiveCatalog;
@@ -47,6 +48,11 @@ public class TestHiveCatalogService extends AbstractControllerService implements
     @Override
     public Catalog getCatalog() {
         return catalog;
+    }
+
+    @Override
+    public Configuration getConfiguration() {
+        return null;
     }
 
 }

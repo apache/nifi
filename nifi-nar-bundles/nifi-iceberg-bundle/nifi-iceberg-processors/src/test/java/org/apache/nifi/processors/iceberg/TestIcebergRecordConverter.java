@@ -619,7 +619,7 @@ public class TestIcebergRecordConverter {
         GenericRecord genericRecord = recordConverter.convert(record);
 
         DataFileWriter.AppendWriteException e = assertThrows(DataFileWriter.AppendWriteException.class, () -> writeToAvro(STRUCT, genericRecord, tempFile));
-        assertTrue(e.getMessage().contains("java.lang.ClassCastException: java.util.ArrayList cannot be cast to org.apache.iceberg.data.Record"));
+        assertTrue(e.getMessage().contains("java.util.ArrayList cannot be cast"), e.getMessage());
     }
 
     @DisabledOnOs(WINDOWS)
@@ -632,7 +632,7 @@ public class TestIcebergRecordConverter {
         GenericRecord genericRecord = recordConverter.convert(record);
 
         ClassCastException e = assertThrows(ClassCastException.class, () -> writeToOrc(STRUCT, genericRecord, tempFile));
-        assertTrue(e.getMessage().contains("java.util.ArrayList cannot be cast to org.apache.iceberg.data.Record"));
+        assertTrue(e.getMessage().contains("java.util.ArrayList cannot be cast"));
     }
 
     @Test
@@ -644,7 +644,7 @@ public class TestIcebergRecordConverter {
         GenericRecord genericRecord = recordConverter.convert(record);
 
         ClassCastException e = assertThrows(ClassCastException.class, () -> writeToParquet(STRUCT, genericRecord, tempFile));
-        assertTrue(e.getMessage().contains("java.util.ArrayList cannot be cast to org.apache.iceberg.data.Record"));
+        assertTrue(e.getMessage().contains("java.util.ArrayList cannot be cast"));
     }
 
     public void writeToAvro(Schema schema, GenericRecord record, OutputFile outputFile) throws IOException {

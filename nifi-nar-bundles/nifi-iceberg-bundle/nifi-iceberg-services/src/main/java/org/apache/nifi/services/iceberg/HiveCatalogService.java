@@ -17,7 +17,6 @@
  */
 package org.apache.nifi.services.iceberg;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.hive.HiveCatalog;
@@ -70,7 +69,6 @@ public class HiveCatalogService extends AbstractCatalogService {
 
     private HiveCatalog catalog;
 
-
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         final String metastoreUri = context.getProperty(METASTORE_URI).evaluateAttributeExpressions().getValue();
@@ -81,8 +79,8 @@ public class HiveCatalogService extends AbstractCatalogService {
         if (context.getProperty(HADOOP_CONFIGURATION_RESOURCES).isSet()) {
             final String configFiles = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
 
-            final Configuration hadoopConfig = getConfigurationFromFiles(configFiles);
-            catalog.setConf(hadoopConfig);
+            configuration = getConfigurationFromFiles(configFiles);
+            catalog.setConf(configuration);
         }
 
         Map<String, String> properties = new HashMap<>();

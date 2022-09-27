@@ -43,4 +43,9 @@ public class TestHadoopCatalogService extends AbstractControllerService implemen
         return catalog;
     }
 
+    @Override
+    public Configuration getConfiguration() {
+        return null;
+    }
+
 }

@@ -62,8 +62,8 @@ public class HadoopCatalogService extends AbstractCatalogService {
         if (context.getProperty(HADOOP_CONFIGURATION_RESOURCES).isSet()) {
             final String configFiles = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
 
-            final Configuration hadoopConfig = getConfigurationFromFiles(configFiles);
-            catalog = new HadoopCatalog(hadoopConfig, warehousePath);
+            configuration = getConfigurationFromFiles(configFiles);
+            catalog = new HadoopCatalog(configuration, warehousePath);
         } else {
             catalog = new HadoopCatalog(new Configuration(), warehousePath);
         }
@@ -73,4 +73,5 @@ public class HadoopCatalogService extends AbstractCatalogService {
     public Catalog getCatalog() {
         return catalog;
     }
+
 }

@@ -32,6 +32,8 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
  */
 public abstract class AbstractCatalogService extends AbstractControllerService implements IcebergCatalogService {
 
+    protected Configuration configuration = new Configuration();
+
     static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
             .name("hadoop-config-resources")
             .displayName("Hadoop Configuration Resources")
@@ -44,6 +46,7 @@ public abstract class AbstractCatalogService extends AbstractControllerService i
 
     /**
      * Loads configuration files from the provided paths.
+     *
      * @param configFiles list of config file paths separated with comma
      * @return merged configuration
      */
@@ -55,5 +58,10 @@ public abstract class AbstractCatalogService extends AbstractControllerService i
             }
         }
         return conf;
+    }
+
+    @Override
+    public Configuration getConfiguration() {
+        return configuration;
     }
 }

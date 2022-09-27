@@ -77,14 +77,6 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .required(true)
             .build();
 
-    static final PropertyDescriptor CATALOG = new PropertyDescriptor.Builder()
-            .name("catalog-service")
-            .displayName("Catalog Service")
-            .description("Specifies the Controller Service to use for handling references to table’s metadata files.")
-            .identifiesControllerService(IcebergCatalogService.class)
-            .required(true)
-            .build();
-
     static final PropertyDescriptor CATALOG_NAMESPACE = new PropertyDescriptor.Builder()
             .name("catalog-namespace")
             .displayName("Catalog Namespace")
@@ -166,7 +158,16 @@ public class PutIceberg extends AbstractIcebergProcessor {
         final String fileFormat = context.getProperty(FILE_FORMAT).evaluateAttributeExpressions().getValue();
         final String targetFileSize = context.getProperty(TARGET_FILE_SIZE).evaluateAttributeExpressions().getValue();
 
-        final Table table = loadTable(context);
+        Table table;
+
+        try {
+            table = loadTable(context);
+        } catch (Exception e) {
+            getLogger().error("Failed to load table from catalog", e);
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        }
+
         final FileFormat format = getFileFormat(table.properties(), fileFormat);
 
         TaskWriter<org.apache.iceberg.data.Record> taskWriter = null;
@@ -187,13 +188,13 @@ public class PutIceberg extends AbstractIcebergProcessor {
             final WriteResult result = taskWriter.complete();
             appendDataFiles(table, result);
         } catch (Exception e) {
-            getLogger().error("Exception occurred while writing iceberg records. Removing uncommitted data files.", e);
+            getLogger().error("Exception occurred while writing iceberg records. Removing uncommitted data files", e);
             try {
                 if (taskWriter != null) {
                     taskWriter.abort();
                 }
             } catch (Exception ex) {
-                getLogger().error("Failed to abort uncommitted data files.", ex);
+                getLogger().error("Failed to abort uncommitted data files", ex);
             }
 
             session.transfer(flowFile, REL_FAILURE);
@@ -230,7 +231,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
      * @param result datafiles created by the {@link TaskWriter}
      */
     private void appendDataFiles(Table table, WriteResult result) {
-        RowDelta rowDelta = table.newRowDelta().validateDataFilesExist(ImmutableList.copyOf(result.referencedDataFiles()));
+        final RowDelta rowDelta = table.newRowDelta().validateDataFilesExist(ImmutableList.copyOf(result.referencedDataFiles()));
         Arrays.stream(result.dataFiles()).forEach(rowDelta::addRows);
 
         rowDelta.commit();
@@ -240,11 +241,11 @@ public class PutIceberg extends AbstractIcebergProcessor {
      * Determines the write file format from the requested value and the table configuration.
      *
      * @param tableProperties table properties
-     * @param fileFormat requested file format from the processor
+     * @param fileFormat      requested file format from the processor
      * @return file format to use
      */
     private FileFormat getFileFormat(Map<String, String> tableProperties, String fileFormat) {
-        String fileFormatName = fileFormat != null ? fileFormat : tableProperties.getOrDefault(DEFAULT_FILE_FORMAT, DEFAULT_FILE_FORMAT_DEFAULT);
+        final String fileFormatName = fileFormat != null ? fileFormat : tableProperties.getOrDefault(DEFAULT_FILE_FORMAT, DEFAULT_FILE_FORMAT_DEFAULT);
         return FileFormat.valueOf(fileFormatName.toUpperCase(Locale.ENGLISH));
     }
 

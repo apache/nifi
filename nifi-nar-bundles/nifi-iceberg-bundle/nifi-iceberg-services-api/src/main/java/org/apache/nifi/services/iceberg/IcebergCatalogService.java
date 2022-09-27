@@ -17,6 +17,7 @@
  */
 package org.apache.nifi.services.iceberg;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.nifi.controller.ControllerService;
 
@@ -26,4 +27,6 @@ import org.apache.nifi.controller.ControllerService;
 public interface IcebergCatalogService extends ControllerService {
 
     Catalog getCatalog();
+
+    Configuration getConfiguration();
 }
