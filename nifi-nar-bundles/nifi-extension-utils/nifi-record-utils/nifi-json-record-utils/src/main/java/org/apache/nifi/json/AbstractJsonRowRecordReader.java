@@ -129,13 +129,13 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
             if (strategy == StartingFieldStrategy.NESTED_FIELD) {
                 while (jsonParser.nextToken() != null) {
                     if (nestedFieldName.equals(jsonParser.getCurrentName())) {
+                        logger.debug("Parsing starting at nested field [{}]", nestedFieldName);
                         break;
                     }
                     if (captureFieldPredicate != null) {
                         captureCurrentField(captureFieldPredicate);
                     }
                 }
-                logger.debug("Parsing starting at nested field [{}]", nestedFieldName);
             }
 
             JsonToken token = jsonParser.nextToken();
