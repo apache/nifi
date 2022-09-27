@@ -36,7 +36,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processor.util.JsonValidator;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -87,7 +87,7 @@ public class ValidateJson extends AbstractProcessor {
         .description("The text of a JSON schema")
         .required(true)
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .addValidator(JsonValidator.INSTANCE)
         .build();
 
     public static final Relationship REL_VALID = new Relationship.Builder()
@@ -183,21 +183,20 @@ public class ValidateJson extends AbstractProcessor {
             if (errors.size() > 0) {
                 // Schema checks failed
                 flowFile = session.putAttribute(flowFile, ERROR_ATTRIBUTE_KEY, errors.toString());
-                this.getLogger().info("Found {} to be invalid when validated against schema; routing to 'invalid'", new Object[]{flowFile});
+                this.getLogger().info("Found {} to be invalid when validated against schema; routing to 'invalid'", flowFile);
                 session.getProvenanceReporter().route(flowFile, REL_INVALID);
                 session.transfer(flowFile, REL_INVALID);
             } else {
                 // Schema check passed
-                this.getLogger().debug("Successfully validated {} against schema; routing to 'valid'", new Object[]{flowFile});
+                this.getLogger().debug("Successfully validated {} against schema; routing to 'valid'", flowFile);
                 session.getProvenanceReporter().route(flowFile, REL_VALID);
                 session.transfer(flowFile, REL_VALID);
             }
 
         } catch (IOException ioe) {
             // Failed to read flowFile
-            this.getLogger().error("Failed to process {} due to {}; routing to 'failure'", new Object[]{flowFile, ioe});
+            this.getLogger().error("Failed to process {}, routing to 'failure' details:", flowFile, ioe);
             session.transfer(flowFile, REL_FAILURE);
         }
-
     }
 }
