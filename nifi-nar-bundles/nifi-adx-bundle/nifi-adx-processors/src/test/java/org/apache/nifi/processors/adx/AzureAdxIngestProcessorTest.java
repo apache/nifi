@@ -193,7 +193,7 @@ public class AzureAdxIngestProcessorTest {
         //missing property tableName
         testRunner.setProperty(AzureAdxIngestProcessor.IM_KIND,AzureAdxIngestProcessor.IM_KIND_CSV);
         testRunner.setProperty(AzureAdxIngestProcessor.DB_NAME,MOCK_DB_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
+        //testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
         testRunner.setProperty(AzureAdxIngestProcessor.DATA_FORMAT,"CSV");
         testRunner.setProperty(AzureAdxIngestProcessor.IR_LEVEL,"IRL_FAS");
         testRunner.setProperty(AzureAdxIngestProcessor.WAIT_FOR_STATUS,"ST_SUCCESS");

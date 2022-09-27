@@ -23,7 +23,11 @@ import java.util.List;
 
 
 import com.google.common.base.Strings;
+import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -126,6 +130,8 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
 
     private IngestClient _ingestClient;
 
+    private Client executionClient;
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
@@ -155,6 +161,8 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
         }
 
         this._ingestClient = createAdxClient(ingestUrl, app_id, app_key, app_tenant,isStreamingEnabled,kustoEngineUrl,kustoAuthStrategy);
+        this.executionClient = createKustoExecutionClient(ingestUrl,app_id,app_key,app_tenant,kustoAuthStrategy);
+
     }
 
     @OnStopped
@@ -168,6 +176,7 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
                 this._ingestClient = null;
             }
         }
+        this.executionClient = null;
     }
 
 
@@ -183,6 +192,11 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
     @Override
     public IngestClient getAdxClient() {
         return this._ingestClient;
+    }
+
+    @Override
+    public Client getKustoExecutionClient(){
+        return this.executionClient;
     }
 
     public IngestClient createKustoIngestClient(final String ingestUrl,
@@ -238,6 +252,14 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
 
         kcsb.setClientVersionForTracing(Version.CLIENT_NAME + ":" + Version.getVersion());
         return kcsb;
+    }
+
+    public Client createKustoExecutionClient(final String clusterUrl,final String appId,final String appKey,final String appTenant, final String kustoAuthStrategy) {
+        try {
+            return ClientFactory.createClient(createKustoEngineConnectionString(clusterUrl,appId,appKey,appTenant,kustoAuthStrategy));
+        } catch (Exception e) {
+            throw new ProcessException("Failed to initialize KustoEngineClient", e);
+        }
     }
 
 }

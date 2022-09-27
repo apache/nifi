@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.processors.adx;
 
+import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.ClientRequestProperties;
+import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.ingest.ManagedStreamingIngestClient;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.adx.AdxConnectionService;
 import com.microsoft.azure.kusto.ingest.IngestClient;
@@ -60,6 +66,18 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Tags({"azure", "adx", "microsoft", "data", "explorer"})
 @CapabilityDescription("The Azure ADX Processor sends flowFiles using the ADX-Service to the provided Azure Data" +
@@ -67,12 +85,13 @@ import java.util.Set;
 @ReadsAttributes({
         @ReadsAttribute(attribute="DB_NAME", description="Specifies the name of the database where the data needs to be stored."),
         @ReadsAttribute(attribute="TABLE_NAME", description="Specifies the name of the table where the data needs to be stored."),
-        @ReadsAttribute(attribute="MAPPING_NAME", description="Specifies the name of the mapping responsible for storing the data in appropriate columns."),
+       // @ReadsAttribute(attribute="MAPPING_NAME", description="Specifies the name of the mapping responsible for storing the data in appropriate columns."),
         @ReadsAttribute(attribute="FLUSH_IMMEDIATE", description="In case of queued ingestion, this property determines whether the data should be flushed immediately to the ingest endpoint."),
         @ReadsAttribute(attribute="DATA_FORMAT", description="Specifies the format of data that is send to Azure Data Explorer."),
         @ReadsAttribute(attribute="IM_KIND", description="Specifies the type of ingestion mapping related to the table in Azure Data Explorer."),
         @ReadsAttribute(attribute="IR_LEVEL", description="ADX can report events on several levels. Ex- None, Failure and Failure & Success."),
         @ReadsAttribute(attribute="IR_METHOD", description="ADX can report events on several methods. Ex- Table, Queue, Table&Queue.")
+
 })
 public class AzureAdxIngestProcessor extends AbstractProcessor {
 
@@ -199,7 +218,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             .Builder().name(AzureAdxIngestProcessorParamsEnum.MAPPING_NAME.name())
             .displayName(AzureAdxIngestProcessorParamsEnum.MAPPING_NAME.getParamDisplayName())
             .description(AzureAdxIngestProcessorParamsEnum.MAPPING_NAME.getParamDescription())
-            .required(true)
+            .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -210,7 +229,6 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             .required(true)
             .defaultValue("false")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .dependsOn(AzureAdxConnectionService.IS_STREAMING_ENABLED,"false")
             .build();
 
     static final PropertyDescriptor DATA_FORMAT = new PropertyDescriptor.Builder()
@@ -226,7 +244,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             .name(AzureAdxIngestProcessorParamsEnum.IM_KIND.name())
             .displayName(AzureAdxIngestProcessorParamsEnum.IM_KIND.getParamDisplayName())
             .description(AzureAdxIngestProcessorParamsEnum.IM_KIND.getParamDescription())
-            .required(true)
+            .required(false)
             .allowableValues(IM_KIND_AVRO, IM_KIND_APACHEAVRO, IM_KIND_CSV, IM_KIND_JSON, IM_KIND_ORC, IM_KIND_PARQUET)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -284,6 +302,14 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
 
     private IngestClient ingestClient;
 
+    private Client executionClient;
+
+    public static final String FETCH_TABLE_COMMAND = "%s | count";
+
+    public static final String STREAMING_POLICY_SHOW_COMMAND = ".show %s %s policy streamingingestion";
+
+    public static final String DATABASE = "database";
+
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
@@ -319,11 +345,42 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
     public void onScheduled(final ProcessContext context) {
         service = context.getProperty(ADX_SERVICE).asControllerService(AdxConnectionService.class);
         ingestClient = service.getAdxClient();
+        executionClient = service.getKustoExecutionClient();
+
+        if(!isIngestorRole(context.getProperty(DB_NAME).getValue(),context.getProperty(TABLE_NAME).getValue(),executionClient)){
+            throw new ProcessException("User might not have ingestion privileges ");
+        }
+        if(ingestClient instanceof ManagedStreamingIngestClient){
+            try {
+                isStreamingPolicyEnabled(DATABASE,context.getProperty(DB_NAME).getValue(),executionClient,context.getProperty(DB_NAME).getValue());
+            } catch (DataClientException | DataServiceException e) {
+                throw new ProcessException("Streaming policy is not enabled ");
+            }
+        }
+    }
+
+
+    private boolean isIngestorRole(String databaseName,String tableName,Client executionClient) {
+        try {
+            executionClient.execute(databaseName, String.format(FETCH_TABLE_COMMAND, tableName));
+        } catch (DataServiceException | DataClientException err) {
+            if (err.getCause().getMessage().contains("Forbidden:")) {
+                getLogger().warn("User might not have ingestor privileges, table validation will be skipped for all table mappings ");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isStreamingPolicyEnabled(
+            String entityType, String entityName, Client engineClient, String database) throws DataClientException, DataServiceException {
+        KustoResultSetTable res = engineClient.execute(database, String.format(STREAMING_POLICY_SHOW_COMMAND, entityType, entityName)).getPrimaryResults();
+        res.next();
+        return res.getString("Policy") != null;
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-
         FlowFile flowFile = session.get();
         if ( flowFile == null ) {
             context.yield();
@@ -335,21 +392,23 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             IngestionProperties ingestionProperties = new IngestionProperties(context.getProperty(DB_NAME).getValue(),
                     context.getProperty(TABLE_NAME).getValue());
 
-
-            switch(IngestionMappingKindEnum.valueOf(context.getProperty(IM_KIND).getValue()) ) {
-                case IM_KIND_AVRO: ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
-                        IngestionMapping.IngestionMappingKind.AVRO); break;
-                case IM_KIND_APACHEAVRO: ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
-                        IngestionMapping.IngestionMappingKind.APACHEAVRO); break;
-                case IM_KIND_CSV: ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
-                        IngestionMapping.IngestionMappingKind.CSV); break;
-                case IM_KIND_JSON: ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
-                        IngestionMapping.IngestionMappingKind.JSON); break;
-                case IM_KIND_ORC: ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
-                        IngestionMapping.IngestionMappingKind.ORC); break;
-                case IM_KIND_PARQUET: ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
-                        IngestionMapping.IngestionMappingKind.PARQUET); break;
+            if(StringUtils.isNotEmpty(context.getProperty(MAPPING_NAME).getValue())){
+                switch(IngestionMappingKindEnum.valueOf(context.getProperty(IM_KIND).getValue()) ) {
+                    case IM_KIND_AVRO: ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
+                            IngestionMapping.IngestionMappingKind.AVRO); break;
+                    case IM_KIND_APACHEAVRO: ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
+                            IngestionMapping.IngestionMappingKind.APACHEAVRO); break;
+                    case IM_KIND_CSV: ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
+                            IngestionMapping.IngestionMappingKind.CSV); break;
+                    case IM_KIND_JSON: ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
+                            IngestionMapping.IngestionMappingKind.JSON); break;
+                    case IM_KIND_ORC: ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
+                            IngestionMapping.IngestionMappingKind.ORC); break;
+                    case IM_KIND_PARQUET: ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(),
+                            IngestionMapping.IngestionMappingKind.PARQUET); break;
+                }
             }
+
 
             switch(DataFormatEnum.valueOf(context.getProperty(DATA_FORMAT).getValue())) {
                 case AVRO : ingestionProperties.setDataFormat(IngestionProperties.DataFormat.AVRO); break;
@@ -403,14 +462,27 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
 
             List<IngestionStatus> statuses = result.getIngestionStatusCollection();
 
+
             if(StringUtils.equalsIgnoreCase(context.getProperty(WAIT_FOR_STATUS).getValue(),IngestionStatusEnum.ST_SUCCESS.name())) {
-                while (statuses.get(0).status == OperationStatus.Pending) {
-                    Thread.sleep(50);
-                    statuses = result.getIngestionStatusCollection();
-                    if(statuses.get(0).status == OperationStatus.Succeeded || statuses.get(0).status == OperationStatus.Failed) {
-                        break;
+
+                CompletableFuture<List<IngestionStatus>> future = new CompletableFuture<>();
+
+                ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
+                Runnable task = () -> {
+                    try {
+                        List<IngestionStatus> statuses1 = result.getIngestionStatusCollection();
+                        if(statuses1.get(0).status == OperationStatus.Succeeded || statuses1.get(0).status == OperationStatus.Failed) {
+                            future.complete(statuses1);
+                        }
+                    } catch (Exception e) {
+                        future.completeExceptionally(new ProcessException("Error occurred while checking ingestion status",e));
                     }
-                }
+                };
+
+                scheduler.scheduleWithFixedDelay(task,1L,2L,TimeUnit.SECONDS);
+                statuses = future.get(1800, TimeUnit.SECONDS);
+
             } else {
                 IngestionStatus status = new IngestionStatus();
                 status.status = OperationStatus.Succeeded;
@@ -429,9 +501,9 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                 session.transfer(flowFile, RL_FAILED);
             }
 
-        } catch (IOException | IngestionClientException | IngestionServiceException | StorageException | URISyntaxException | InterruptedException e) {
+        } catch (IOException | IngestionClientException | IngestionServiceException | StorageException | URISyntaxException | InterruptedException | ExecutionException | TimeoutException e) {
             getLogger().error("Exception occurred while ingesting data into ADX with exception {} ",e);
-            throw new ProcessException(e);
+            throw new ProcessException("Exception occurred while ingesting data into ADX",e);
         }
 
     }
