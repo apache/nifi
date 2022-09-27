@@ -69,8 +69,8 @@ public class SalesforceRestService {
         return request(request);
     }
 
-    public InputStream queryNextRecords(String uri) {
-        String url = baseUrl + uri;
+    public InputStream getNextRecords(String nextRecordsUrl) {
+        String url = baseUrl + nextRecordsUrl;
 
         HttpUrl httpUrl = HttpUrl.get(url).newBuilder()
                 .build();

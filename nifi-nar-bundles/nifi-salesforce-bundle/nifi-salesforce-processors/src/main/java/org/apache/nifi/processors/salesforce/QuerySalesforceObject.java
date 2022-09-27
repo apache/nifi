@@ -222,8 +222,8 @@ public class QuerySalesforceObject extends AbstractProcessor {
     private static final String DATE_FORMAT = "yyyy-MM-dd";
     private static final String TIME_FORMAT = "HH:mm:ss.SSSX";
     private static final String DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZ";
-    private static final String CURSOR_URL = "nextRecordsUrl";
-    private static final BiPredicate<String, String> CAPTURE_PREDICATE = (fieldName, fieldValue) -> CURSOR_URL.equals(fieldName);
+    private static final String NEXT_RECORDS_URL = "nextRecordsUrl";
+    private static final BiPredicate<String, String> CAPTURE_PREDICATE = (fieldName, fieldValue) -> NEXT_RECORDS_URL.equals(fieldName);
 
     private volatile SalesforceToRecordSchemaConverter salesForceToRecordSchemaConverter;
     private volatile SalesforceRestService salesforceRestService;
@@ -338,14 +338,11 @@ public class QuerySalesforceObject extends AbstractProcessor {
 
         do {
 
-        FlowFile flowFile = session.create();
+            FlowFile flowFile = session.create();
+            Map<String, String> originalAttributes = flowFile.getAttributes();
+            Map<String, String> attributes = new HashMap<>();
 
-        Map<String, String> originalAttributes = flowFile.getAttributes();
-        Map<String, String> attributes = new HashMap<>();
-
-        AtomicInteger recordCountHolder = new AtomicInteger();
-
-
+            AtomicInteger recordCountHolder = new AtomicInteger();
 
             flowFile = session.write(flowFile, out -> {
                 try (
@@ -383,9 +380,9 @@ public class QuerySalesforceObject extends AbstractProcessor {
 
                     WriteResult writeResult = writer.finishRecordSet();
 
-                    Map<String, String> storedFields = jsonReader.getCapturedFields();
+                    Map<String, String> capturedFields = jsonReader.getCapturedFields();
 
-                    nextRecordsUrl.set(storedFields.getOrDefault(CURSOR_URL, null));
+                    nextRecordsUrl.set(capturedFields.getOrDefault(NEXT_RECORDS_URL, null));
 
                     attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
                     attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
@@ -423,7 +420,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
         if (nextRecordsUrl.get() == null) {
             return salesforceRestService.query(querySObject);
         }
-        return salesforceRestService.queryNextRecords(nextRecordsUrl.get());
+        return salesforceRestService.getNextRecords(nextRecordsUrl.get());
     }
 
     private ConvertedSalesforceSchema getConvertedSalesforceSchema(String sObject, String fields) {

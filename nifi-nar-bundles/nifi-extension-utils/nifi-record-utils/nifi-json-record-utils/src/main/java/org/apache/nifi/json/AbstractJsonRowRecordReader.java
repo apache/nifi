@@ -51,7 +51,6 @@ import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 
 public abstract class AbstractJsonRowRecordReader implements RecordReader {
-    private static final String ARRAY_OR_OBJECT_TYPE = "array or object type field";
 
     private final ComponentLog logger;
     private final Supplier<DateFormat> LAZY_DATE_FORMAT;
