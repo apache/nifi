@@ -73,9 +73,8 @@ import java.util.stream.Collectors;
 @TriggerSerially
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"shopify"})
-@Stateful(scopes = Scope.CLUSTER, description =
-        "For a few resources the processor supports incremental loading. The list of the resources with the supported parameters" +
-                " can be found in the additional details.")
+@Stateful(scopes = Scope.CLUSTER, description = "For a few resources the processor supports incremental loading." +
+        " The list of the resources with the supported parameters can be found in the additional details.")
 @CapabilityDescription("Retrieves objects from a custom Shopify store. The processor yield time must be set to the account's rate limit accordingly.")
 public class GetShopify extends AbstractProcessor {
 
@@ -214,6 +213,7 @@ public class GetShopify extends AbstractProcessor {
     private static final int TOO_MANY_REQUESTS = 429;
     private static final Pattern CURSOR_PATTERN = Pattern.compile("<([^<]*)>; rel=\"next\"");
     private static final String LAST_EXECUTION_TIME_KEY = "last_execution_time";
+    private static final int EXCLUSIVE_TIME_WINDOW_ADJUSTMENT = 1;
 
     private volatile ShopifyRestService shopifyRestService;
     private volatile String resourceName;
@@ -281,25 +281,26 @@ public class GetShopify extends AbstractProcessor {
         final Long incrDelayMs = context.getProperty(INCREMENTAL_DELAY).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
 
         String cursor = null;
-        String currentExecutionTime = null;
+        String endTime = null;
         HttpResponseEntity response;
 
         do {
             try {
 
                 if (isIncremental) {
-                    String lastExecutionTime = stateMap.get(LAST_EXECUTION_TIME_KEY);
-                    if (lastExecutionTime == null && initialStartTime != null) {
-                        lastExecutionTime = initialStartTime;
+                    String startTime = stateMap.get(LAST_EXECUTION_TIME_KEY);
+                    if (startTime == null && initialStartTime != null) {
+                        startTime = initialStartTime;
                     }
 
                     Instant now = getCurrentExecutionTime();
                     if (incrDelayMs != null) {
                         now = now.minus(incrDelayMs, ChronoUnit.MILLIS);
                     }
-                    currentExecutionTime = now.toString();
+                    endTime = now.truncatedTo(ChronoUnit.SECONDS).toString();
+                    final String exclusiveEndTime = now.minus(EXCLUSIVE_TIME_WINDOW_ADJUSTMENT, ChronoUnit.MILLIS).toString();
 
-                    response = shopifyRestService.getShopifyObjects(lastExecutionTime, currentExecutionTime, cursor);
+                    response = shopifyRestService.getShopifyObjects(startTime, exclusiveEndTime, cursor);
                 } else {
                     response = shopifyRestService.getShopifyObjects(cursor);
                 }
@@ -314,7 +315,7 @@ public class GetShopify extends AbstractProcessor {
                 flowFile = session.write(flowFile, parseHttpResponse(response, objectCountHolder));
                 if (cursor == null && isIncremental) {
                     final Map<String, String> updatedStateMap = new HashMap<>(stateMap);
-                    updatedStateMap.put(LAST_EXECUTION_TIME_KEY, currentExecutionTime);
+                    updatedStateMap.put(LAST_EXECUTION_TIME_KEY, endTime);
                     updateState(session, updatedStateMap);
                 }
                 if (objectCountHolder.get() > 0) {
