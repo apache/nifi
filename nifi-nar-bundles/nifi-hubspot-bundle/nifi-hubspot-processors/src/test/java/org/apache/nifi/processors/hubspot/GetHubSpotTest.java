@@ -135,7 +135,7 @@ class GetHubSpotTest {
         server.enqueue(new MockResponse().setBody(response));
 
         final String limit = "2";
-        final int defaultDelay = 3000;
+        final int defaultDelay = 30000;
         final String endTime = String.valueOf(Instant.now().toEpochMilli());
         final Map<String, String> stateMap = new HashMap<>();
         stateMap.put(END_INCREMENTAL_KEY, endTime);
@@ -178,13 +178,11 @@ class GetHubSpotTest {
 
         final String limit = "2";
         final String after = "nextPage";
-        final String objectType = COMPANIES.getValue();
-        final String cursorKey = String.format(CURSOR_KEY, objectType);
         final Instant now = Instant.now();
         final String startTime = String.valueOf(now.toEpochMilli());
         final String endTime = String.valueOf(now.plus(2, ChronoUnit.MINUTES).toEpochMilli());
         final Map<String, String> stateMap = new HashMap<>();
-        stateMap.put(cursorKey, after);
+        stateMap.put(CURSOR_KEY, after);
         stateMap.put(START_INCREMENTAL_KEY, startTime);
         stateMap.put(END_INCREMENTAL_KEY, endTime);
 
