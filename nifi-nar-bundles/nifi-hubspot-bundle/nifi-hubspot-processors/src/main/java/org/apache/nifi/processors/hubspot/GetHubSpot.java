@@ -116,7 +116,7 @@ public class GetHubSpot extends AbstractProcessor {
                     " the previous run time and the current time (optionally adjusted by the Incremental Delay property).")
             .required(true)
             .allowableValues("true", "false")
-            .defaultValue("false")
+            .defaultValue("true")
             .build();
 
     static final PropertyDescriptor INCREMENTAL_DELAY = new PropertyDescriptor.Builder()
@@ -124,9 +124,10 @@ public class GetHubSpot extends AbstractProcessor {
             .displayName("Incremental Delay")
             .description(("The ending timestamp of the time window will be adjusted earlier by the amount configured in this property." +
                     " For example, with a property value of 10 seconds, an ending timestamp of 12:30:45 would be changed to 12:30:35." +
-                    " Set this property to avoid missing objects when the clock of your local machines and HubSpot servers' clock are not in sync."))
+                    " Set this property to avoid missing objects when the clock of your local machines and HubSpot servers' clock are not in sync" +
+                    " and to protect against HubSpot's mechanism that changes last updated timestamps after object creation."))
             .required(true)
-            .defaultValue("3 sec")
+            .defaultValue("30 sec")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .dependsOn(IS_INCREMENTAL, "true")

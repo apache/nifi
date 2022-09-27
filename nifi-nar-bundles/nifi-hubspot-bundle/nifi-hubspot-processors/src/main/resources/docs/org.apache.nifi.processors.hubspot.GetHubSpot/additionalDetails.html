@@ -32,5 +32,14 @@
     last run time of the processor are processed. The processor state can be reset in the context menu. The incremental loading
     is based on the objects last modified time.
 </p>
+<h2>Paging</h2>
+<p>
+    GetHubSpot supports both paging and incrementality at the same time. In case the number of results exceeds the 'Result Limit',
+    in the next processor run the remaining objects will be returned.
+</p>
+<p>
+    Due to the page handling mechanism of the HubSpot API, parallel deletions are not supported.
+    Some objects may be omitted if any object is deleted between fetching two pages.
+</p>
 </body>
 </html>
