@@ -113,5 +113,11 @@
             <version>${nifi.groovy.version}</version>
             <scope>test</scope>
         </dependency>
+
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mongodb</artifactId>
+        </dependency>
     </dependencies>
 </project>

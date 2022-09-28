@@ -30,9 +30,13 @@ import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bson.Document;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -60,6 +64,19 @@ public class MongoDBLookupServiceIT {
     private MongoDatabase db;
     private MongoCollection col;
 
+    protected static MongoDBContainer mongoDBContainer;
+
+    @BeforeAll
+    public static void beforeAll() {
+        mongoDBContainer = new MongoDBContainer(DockerImageName.parse("mongo:5"));
+        mongoDBContainer.start();
+    }
+
+    @AfterAll
+    public static void afterAll() {
+        mongoDBContainer.stop();
+    }
+
     @BeforeEach
     public void before() throws Exception {
         runner = TestRunners.newTestRunner(TestLookupServiceProcessor.class);
@@ -70,7 +87,7 @@ public class MongoDBLookupServiceIT {
         runner.setProperty(TestLookupServiceProcessor.CLIENT_SERVICE, "Client Service");
         runner.setProperty(service, MongoDBLookupService.DATABASE_NAME, DB_NAME);
         runner.setProperty(service, MongoDBLookupService.COLLECTION_NAME, COL_NAME);
-        runner.setProperty(controllerService, MongoDBControllerService.URI, "mongodb://localhost:27017");
+        runner.setProperty(controllerService, MongoDBControllerService.URI, mongoDBContainer.getConnectionString());
         runner.setProperty(service, MongoDBLookupService.LOOKUP_VALUE_FIELD, "message");
         runner.setProperty(service, MongoDBLookupService.CONTROLLER_SERVICE, "Client Service 2");
         SchemaRegistry registry = new StubSchemaRegistry();

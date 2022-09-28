@@ -29,7 +29,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
-
 import java.util.List;
 
 import static org.junit.Assert.assertNotNull;

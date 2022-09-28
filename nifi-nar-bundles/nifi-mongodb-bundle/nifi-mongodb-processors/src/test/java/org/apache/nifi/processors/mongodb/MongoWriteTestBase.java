@@ -27,8 +27,8 @@ import org.bson.Document;
 import java.util.Arrays;
 import java.util.List;
 
-public class MongoWriteTestBase {
-    protected static final String MONGO_URI = "mongodb://localhost";
+public class MongoWriteTestBase extends AbstractMongoDBIT {
+    protected String MONGO_URI;
     protected static final String COLLECTION_NAME = "test";
     protected String DATABASE_NAME;
 
@@ -44,6 +44,7 @@ public class MongoWriteTestBase {
     protected MongoCollection<Document> collection;
 
     public void setup(Class processor) {
+        MONGO_URI = mongoDBContainer.getConnectionString();
         DATABASE_NAME = processor.getSimpleName().toLowerCase();
         mongoClient = new MongoClient(new MongoClientURI(MONGO_URI));
         collection = mongoClient.getDatabase(DATABASE_NAME).getCollection(COLLECTION_NAME);

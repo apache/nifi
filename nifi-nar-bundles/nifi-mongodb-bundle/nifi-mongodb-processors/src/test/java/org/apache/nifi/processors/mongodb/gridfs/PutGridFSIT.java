@@ -80,7 +80,7 @@ public class PutGridFSIT extends GridFSITTestBase {
         runner.run();
         runner.assertAllFlowFilesTransferred(PutGridFS.REL_SUCCESS);
 
-        attrs = new HashMap<String, String>(){{
+        attrs = new HashMap<>() {{
             put("created_by", "john.smith");
             put("created_for", "jane.doe");
             put("restrictions", "PHI&PII");

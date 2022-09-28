@@ -38,14 +38,13 @@ import org.junit.jupiter.api.Test
 
 import static groovy.json.JsonOutput.*
 
-class GetMongoRecordIT {
+class GetMongoRecordIT extends AbstractMongoDBIT {
     TestRunner runner
     MongoDBClientService service
 
     static RecordSchema SCHEMA
     static final String DB_NAME = GetMongoRecord.class.simpleName + Calendar.instance.timeInMillis
     static final String COL_NAME = "test"
-    static final String URI = "mongodb://localhost:27017"
 
     static {
         def fields = [
@@ -67,7 +66,7 @@ class GetMongoRecordIT {
         runner = TestRunners.newTestRunner(GetMongoRecord.class)
         service = new MongoDBControllerService()
         runner.addControllerService("client", service)
-        runner.setProperty(service, MongoDBControllerService.URI, URI)
+        runner.setProperty(service, MongoDBControllerService.URI, mongoDBContainer.connectionString)
         runner.enableControllerService(service)
 
         def writer = new JsonRecordSetWriter()

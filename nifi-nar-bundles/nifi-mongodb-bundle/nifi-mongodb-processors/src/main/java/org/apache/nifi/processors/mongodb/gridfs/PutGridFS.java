@@ -27,6 +27,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -44,6 +46,7 @@ import org.bson.types.ObjectId;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -85,9 +88,18 @@ public class PutGridFS extends AbstractGridFSProcessor {
     static final PropertyDescriptor HASH_ATTRIBUTE = new PropertyDescriptor.Builder()
         .name("putgridfs-hash-attribute")
         .displayName("Hash Attribute")
-        .description("If uniquness enforcement is enabled and the file hash is part of the constraint, this must be set to an attribute that " +
+        .description("If uniqueness enforcement is enabled and the file hash is part of the constraint, this must be set to an attribute that " +
                 "exists on all incoming flowfiles.")
         .defaultValue("hash.value")
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+    static final PropertyDescriptor HASH_METADATA_FIELD_NAME = new PropertyDescriptor.Builder()
+        .name("putgridfs-hash-metadata-field-name")
+        .displayName("Hash Metadata Field Name")
+        .description("If uniqueness enforcement is enabled and the file hash is part of the constraint, this value will be used " +
+                "to name the attribute on the GridFS entry that stores that metadata of the file.")
+        .defaultValue("hash")
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
@@ -128,6 +140,7 @@ public class PutGridFS extends AbstractGridFSProcessor {
         _temp.add(PROPERTIES_PREFIX);
         _temp.add(ENFORCE_UNIQUENESS);
         _temp.add(HASH_ATTRIBUTE);
+        _temp.add(HASH_METADATA_FIELD_NAME);
         _temp.add(CHUNK_SIZE);
         DESCRIPTORS = Collections.unmodifiableList(_temp);
 
@@ -137,13 +150,37 @@ public class PutGridFS extends AbstractGridFSProcessor {
         RELATIONSHIP_SET = Collections.unmodifiableSet(_rels);
     }
 
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+        String uniqueness = context.getProperty(ENFORCE_UNIQUENESS).getValue();
+        List<ValidationResult> results = new ArrayList<>();
+
+        if (uniqueness.equals(UNIQUE_BOTH.getValue()) || uniqueness.equals(UNIQUE_HASH.getValue())) {
+            boolean attributeIsSet = context.getProperty(HASH_ATTRIBUTE).isSet();
+            boolean metadataIsSet = context.getProperty(HASH_METADATA_FIELD_NAME).isSet();
+
+            if (!attributeIsSet || !metadataIsSet) {
+                results.add(new ValidationResult.Builder()
+                        .explanation("Both Hash Attribute and Hash Metadata Field Name must be set when uniqueness " +
+                                "enforcement requires hashing.")
+                        .valid(false)
+                        .build()
+                );
+            }
+        }
+
+        return results;
+    }
+
     private String uniqueness;
     private String hashAttribute;
+    private String hashMetadataName;
 
     @OnScheduled
     public void onScheduled(ProcessContext context) {
         this.uniqueness = context.getProperty(ENFORCE_UNIQUENESS).getValue();
         this.hashAttribute = context.getProperty(HASH_ATTRIBUTE).evaluateAttributeExpressions().getValue();
+        this.hashMetadataName = context.getProperty(HASH_METADATA_FIELD_NAME).evaluateAttributeExpressions().getValue();
         this.clientService = context.getProperty(CLIENT_SERVICE).asControllerService(MongoDBClientService.class);
     }
 
@@ -161,6 +198,12 @@ public class PutGridFS extends AbstractGridFSProcessor {
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         FlowFile input = session.get();
         if (input == null) {
+            return;
+        }
+
+        if (!hasRequiredHashAttribute(context, input)) {
+            getLogger().error("Input flowfile is missing a hash attribute and hash-based uniqueness enforcement is enabled");
+            session.transfer(input, REL_FAILURE);
             return;
         }
 
@@ -196,6 +239,18 @@ public class PutGridFS extends AbstractGridFSProcessor {
         }
     }
 
+    private boolean hasRequiredHashAttribute(ProcessContext context, FlowFile input) {
+        String uniquenessOption = context.getProperty(ENFORCE_UNIQUENESS).getValue();
+        if (uniquenessOption.equals(NO_UNIQUE.getValue()) || uniquenessOption.equals(UNIQUE_NAME.getValue())) {
+            return true;
+        } else {
+            String attributeName = context.getProperty(HASH_ATTRIBUTE).evaluateAttributeExpressions().getValue();
+
+            return input.getAttributes().containsKey(attributeName)
+                && !StringUtils.isEmpty(input.getAttribute(attributeName));
+        }
+    }
+
     private boolean canUploadFile(ProcessContext context, FlowFile input, String bucketName) {
         boolean retVal;
 
@@ -212,9 +267,10 @@ public class PutGridFS extends AbstractGridFSProcessor {
 
             Document query;
             if (uniqueness.equals(UNIQUE_BOTH.getValue())) {
-                query = new Document().append("filename", fileName).append("md5", hash);
+                query = new Document().append("filename", fileName)
+                        .append("metadata", new Document(hashMetadataName, hash));
             } else if (uniqueness.equals(UNIQUE_HASH.getValue())) {
-                query = new Document().append("md5", hash);
+                query = new Document().append("metadata", new Document(hashMetadataName, hash));
             } else {
                 query = new Document().append("filename", fileName);
             }
@@ -241,6 +297,14 @@ public class PutGridFS extends AbstractGridFSProcessor {
                     doc.append(cleanKey, entry.getValue());
                 }
             }
+        }
+
+        String hashAttribute = context.getProperty(HASH_ATTRIBUTE).evaluateAttributeExpressions().getValue();
+        String hashMetadata  = context.getProperty(HASH_METADATA_FIELD_NAME).evaluateAttributeExpressions().getValue();
+        String hashValue     = input.getAttribute(hashAttribute);
+
+        if (!StringUtils.isEmpty(hashValue)) {
+            doc.append(hashMetadata, input.getAttribute(hashAttribute));
         }
 
         return doc;

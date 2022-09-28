@@ -55,8 +55,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class GetMongoIT {
-    private static final String MONGO_URI = "mongodb://localhost";
+public class GetMongoIT extends AbstractMongoDBIT {
+    private String MONGO_URI;
     private static final String DB_NAME = GetMongoIT.class.getSimpleName().toLowerCase();
     private static final String COLLECTION_NAME = "test";
 
@@ -77,6 +77,8 @@ public class GetMongoIT {
 
     @BeforeEach
     public void setup() {
+        MONGO_URI = mongoDBContainer.getConnectionString();
+
         runner = TestRunners.newTestRunner(GetMongo.class);
         runner.setVariable("uri", MONGO_URI);
         runner.setVariable("db", DB_NAME);
