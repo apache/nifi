@@ -18,8 +18,10 @@ package org.apache.nifi.web.security.token;
 
 import org.apache.nifi.security.util.CertificateUtils;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 
 import java.time.Instant;
+import java.util.Collection;
 
 /**
  * This is an Authentication Token for logging in. Once a user is authenticated, they can be issued an ID token.
@@ -39,19 +41,32 @@ public class LoginAuthenticationToken extends AbstractAuthenticationToken {
      * @param issuer     The IdentityProvider implementation that generated this token
      */
     public LoginAuthenticationToken(final String identity, final long expiration, final String issuer) {
-        this(identity, null, expiration, issuer);
+        this(identity, null, expiration, issuer, null);
     }
 
     /**
      * Creates a representation of the authentication token for a user.
      *
-     * @param identity   The unique identifier for this user (cannot be null or empty)
-     * @param username   The preferred username for this user
-     * @param expiration The relative time to expiration in milliseconds
-     * @param issuer     The IdentityProvider implementation that generated this token
+     * @param identity    The unique identifier for this user (cannot be null or empty)
+     * @param username    The preferred username for this user
+     * @param expiration  The relative time to expiration in milliseconds
+     * @param issuer      The IdentityProvider implementation that generated this token
      */
     public LoginAuthenticationToken(final String identity, final String username, final long expiration, final String issuer) {
-        super(null);
+        this(identity, username, expiration, issuer, null);
+    }
+
+    /**
+     * Creates a representation of the authentication token for a user.
+     *
+     * @param identity    The unique identifier for this user (cannot be null or empty)
+     * @param username    The preferred username for this user
+     * @param expiration  The relative time to expiration in milliseconds
+     * @param issuer      The IdentityProvider implementation that generated this token
+     * @param authorities The authorities that have been granted this token.
+     */
+    public LoginAuthenticationToken(final String identity, final String username, final long expiration, final String issuer, Collection<? extends GrantedAuthority> authorities) {
+        super(authorities);
         setAuthenticated(true);
         this.identity = identity;
         this.username = username;
