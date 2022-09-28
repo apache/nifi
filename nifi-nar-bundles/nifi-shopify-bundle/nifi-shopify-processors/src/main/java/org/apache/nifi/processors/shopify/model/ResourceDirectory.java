@@ -23,18 +23,13 @@ import java.util.List;
 public class ResourceDirectory {
 
     public static final List<ShopifyResource> CUSTOMER_RESOURCES =
-            Collections.unmodifiableList(Arrays.asList(ShopifyResource.newInstance(
+            Collections.singletonList(ShopifyResource.newInstance(
                     "customers",
                     "Customers",
                     "The Customer resource stores information about a shop's customers, such as their contact details,"
                             + " their order history, and whether they've agreed to receive email marketing.",
                     IncrementalLoadingParameter.UPDATED_AT
-            ), ShopifyResource.newInstance(
-                    "customer_saved_searches",
-                    "Customer Saved Searches",
-                    "A customer saved search is a search query that represents a group of customers defined by the shop owner.",
-                    IncrementalLoadingParameter.NONE
-            )));
+            ));
     public static final List<ShopifyResource> DISCOUNT_RESOURCES =
             Collections.singletonList(ShopifyResource.newInstance(
                     "price_rules",

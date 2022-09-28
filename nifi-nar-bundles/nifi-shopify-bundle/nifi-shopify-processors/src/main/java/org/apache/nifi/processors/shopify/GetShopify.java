@@ -132,7 +132,7 @@ public class GetShopify extends AbstractProcessor {
                     " but before the current time.")
             .required(true)
             .allowableValues("true", "false")
-            .defaultValue("false")
+            .defaultValue("true")
             .build();
 
     static final PropertyDescriptor INCREMENTAL_DELAY = new PropertyDescriptor.Builder()
@@ -214,13 +214,23 @@ public class GetShopify extends AbstractProcessor {
     private static final Pattern CURSOR_PATTERN = Pattern.compile("<([^<]*)>; rel=\"next\"");
     private static final String LAST_EXECUTION_TIME_KEY = "last_execution_time";
     private static final int EXCLUSIVE_TIME_WINDOW_ADJUSTMENT = 1;
+    private static final List<String> RESET_STATE_PROPERTY_NAMES;
+
+    static {
+        RESET_STATE_PROPERTY_NAMES = Arrays.stream(ResourceType.values())
+            .map(Enum::name)
+            .collect(Collectors.toList());
+        RESET_STATE_PROPERTY_NAMES.add(OBJECT_CATEGORY.getName());
+        RESET_STATE_PROPERTY_NAMES.add(IS_INCREMENTAL.getName());
+    }
+
 
     private volatile ShopifyRestService shopifyRestService;
     private volatile String resourceName;
     private volatile boolean isResetState;
 
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        if (Arrays.asList(ResourceType.values(), OBJECT_CATEGORY, IS_INCREMENTAL).contains(descriptor)) {
+        if (RESET_STATE_PROPERTY_NAMES.contains(descriptor.getName())) {
             isResetState = true;
         }
     }
