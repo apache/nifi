@@ -37,6 +37,7 @@ import org.apache.nifi.diagnostics.bootstrap.tasks.NarsDiagnosticTask;
 import org.apache.nifi.diagnostics.bootstrap.tasks.NiFiPropertiesDiagnosticTask;
 import org.apache.nifi.diagnostics.bootstrap.tasks.OperatingSystemDiagnosticTask;
 import org.apache.nifi.diagnostics.bootstrap.tasks.ProcessorTimingDiagnosticTask;
+import org.apache.nifi.diagnostics.bootstrap.tasks.PythonBridgeDiagnosticTask;
 import org.apache.nifi.diagnostics.bootstrap.tasks.RepositoryDiagnosticTask;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -72,6 +73,7 @@ public class BootstrapDiagnosticsFactory implements DiagnosticsFactory {
         final List<DiagnosticTask> tasks = new ArrayList<>();
         tasks.add(new DiagnosticAnalysisTask(flowController));
         tasks.add(new JVMDiagnosticTask());
+        tasks.add(new PythonBridgeDiagnosticTask(flowController.getPythonBridge()));
         tasks.add(new OperatingSystemDiagnosticTask());
         tasks.add(new NarsDiagnosticTask(flowController.getExtensionManager()));
         tasks.add(new FlowConfigurationDiagnosticTask(flowController));

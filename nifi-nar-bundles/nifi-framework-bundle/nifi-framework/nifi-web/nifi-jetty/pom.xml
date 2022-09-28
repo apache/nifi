@@ -126,8 +126,8 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>cglib</groupId> 
-            <artifactId>cglib-nodep</artifactId> 
+            <groupId>cglib</groupId>
+            <artifactId>cglib-nodep</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -197,12 +197,12 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-docs</artifactId>
             <type>war</type>
-        </dependency> 
+        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-content-viewer</artifactId>
             <type>war</type>
-        </dependency>   
+        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-cluster</artifactId>

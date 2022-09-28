@@ -167,6 +167,10 @@ public class NiFiClientUtil {
         waitForStoppedProcessor(currentEntity.getId());
     }
 
+    public ProcessorEntity createPythonProcessor(final String typeName) throws NiFiClientException, IOException {
+        return createProcessor( "python." + typeName, NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_PYTHON_EXTENSIONS_ARTIFACT_ID, "0.0.1-SNAPSHOT");
+    }
+
     public ProcessorEntity createProcessor(final String simpleTypeName) throws NiFiClientException, IOException {
         return createProcessor(NiFiSystemIT.TEST_PROCESSORS_PACKAGE + "." + simpleTypeName, NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_EXTENSIONS_ARTIFACT_ID, nifiVersion);
     }

@@ -31,6 +31,7 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -328,6 +329,18 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String DIAGNOSTICS_ON_SHUTDOWN_DIRECTORY = "nifi.diagnostics.on.shutdown.directory";
     public static final String DIAGNOSTICS_ON_SHUTDOWN_MAX_FILE_COUNT = "nifi.diagnostics.on.shutdown.max.filecount";
     public static final String DIAGNOSTICS_ON_SHUTDOWN_MAX_DIRECTORY_SIZE = "nifi.diagnostics.on.shutdown.max.directory.size";
+
+    // python properties
+    public static final String PYTHON_COMMAND = "nifi.python.command";
+    public static final String PYTHON_FRAMEWORK_SOURCE_DIRECTORY = "nifi.python.framework.source.directory";
+    public static final String PYTHON_EXTENSION_DIRECTORY_PREFIX = "nifi.python.extensions.source.directory.";
+    public static final String PYTHON_WORKING_DIRECTORY = "nifi.python.working.directory";
+    public static final String PYTHON_LOGS_DIRECTORY = "nifi.python.logs.directory";
+    public static final String PYTHON_MAX_PROCESSES = "nifi.python.max.processes";
+    public static final String PYTHON_MAX_PROCESSES_PER_TYPE = "nifi.python.max.processes.per.extension.type";
+    public static final String PYTHON_COMMS_TIMEOUT = "nifi.python.comms.timeout";
+
+    public static final String DEFAULT_PYTHON_WORKING_DIRECTORY = "./work/python";
 
     // automatic diagnostic defaults
     public static final String DEFAULT_DIAGNOSTICS_ON_SHUTDOWN_DIRECTORY = "./diagnostics";
@@ -2065,6 +2078,25 @@ public class NiFiProperties extends ApplicationProperties {
      */
     public Path getQuestDbStatusRepositoryPath() {
         return Paths.get(getProperty(STATUS_REPOSITORY_QUESTDB_PERSIST_LOCATION, DEFAULT_COMPONENT_STATUS_REPOSITORY_PERSIST_LOCATION));
+    }
+
+    /**
+     * @return the directory in which the Python framework source code is located
+     */
+    public File getPythonFrameworkSourceDirectory() {
+        final String directory = getProperty(PYTHON_FRAMEWORK_SOURCE_DIRECTORY);
+        return directory == null ? null : new File(directory);
+    }
+
+    /**
+     * @return a List of directories containing Python extensions
+     */
+    public List<File> getPythonExtensionsDirectories() {
+        final Collection<String> directories = getPropertiesWithPrefix(PYTHON_EXTENSION_DIRECTORY_PREFIX).values();
+        return directories.stream()
+            .distinct()
+            .map(File::new)
+            .collect(Collectors.toList());
     }
 
     /**

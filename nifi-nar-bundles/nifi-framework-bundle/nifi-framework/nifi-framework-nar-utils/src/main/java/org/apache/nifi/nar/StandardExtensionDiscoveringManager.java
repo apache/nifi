@@ -23,6 +23,7 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.UserGroupProvider;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -38,9 +39,16 @@ import org.apache.nifi.flow.resource.ExternalResourceProvider;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.init.ConfigurableComponentInitializer;
 import org.apache.nifi.init.ConfigurableComponentInitializerFactory;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.mock.MockComponentLogger;
+import org.apache.nifi.nar.ExtensionDefinition.ExtensionRuntime;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.provenance.ProvenanceRepository;
+import org.apache.nifi.python.PythonBridge;
+import org.apache.nifi.python.PythonProcessorDetails;
+import org.apache.nifi.python.processor.PythonProcessorBridge;
+import org.apache.nifi.python.processor.PythonProcessorInitializationContext;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingTask;
@@ -81,6 +89,7 @@ import java.util.stream.Collectors;
 public class StandardExtensionDiscoveringManager implements ExtensionDiscoveringManager {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardExtensionDiscoveringManager.class);
+    private static final String PYTHON_TYPE_PREFIX = "python.";
 
     // Maps a service definition (interface) to those classes that implement the interface
     private final Map<Class, Set<ExtensionDefinition>> definitionMap = new HashMap<>();
@@ -93,6 +102,9 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
     private final Map<String, InstanceClassLoader> instanceClassloaderLookup = new ConcurrentHashMap<>();
     private final ConcurrentMap<BaseClassLoaderKey, SharedInstanceClassLoader> sharedBaseClassloaders = new ConcurrentHashMap<>();
+
+    // TODO: Make final and provide via constructor?
+    private PythonBridge pythonBridge;
 
     public StandardExtensionDiscoveringManager() {
         this(Collections.emptyList());
@@ -119,6 +131,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         definitionMap.put(ExternalResourceProvider.class, new HashSet<>());
         definitionMap.put(FlowRegistryClient.class, new HashSet<>());
         definitionMap.put(LeaderElectionManager.class, new HashSet<>());
+        definitionMap.put(PythonBridge.class, new HashSet<>());
 
         additionalExtensionTypes.forEach(type -> definitionMap.putIfAbsent(type, new HashSet<>()));
     }
@@ -167,6 +180,80 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         if (currentContextClassLoader != null) {
             Thread.currentThread().setContextClassLoader(currentContextClassLoader);
         }
+    }
+
+    public void setPythonBridge(final PythonBridge pythonBridge) {
+        this.pythonBridge = pythonBridge;
+    }
+
+    @Override
+    public void discoverPythonExtensions(final Bundle pythonBundle) {
+        logger.debug("Scanning to discover which Python extensions are available and importing any necessary dependencies. If new components are discovered, this may take a few minutes. " +
+            "See python logs for more details.");
+        final long start = System.currentTimeMillis();
+        pythonBridge.discoverExtensions();
+
+        bundleCoordinateBundleLookup.putIfAbsent(pythonBundle.getBundleDetails().getCoordinate(), pythonBundle);
+
+        final Set<ExtensionDefinition> processorDefinitions = definitionMap.get(Processor.class);
+        final List<PythonProcessorDetails> pythonProcessorDetails = pythonBridge.getProcessorTypes();
+
+        int processorsFound = 0;
+        for (final PythonProcessorDetails details : pythonProcessorDetails) {
+            final BundleDetails bundleDetails = createBundleDetailsWithOverriddenVersion(pythonBundle.getBundleDetails(), details.getProcessorVersion());
+            final Bundle bundle = new Bundle(bundleDetails, pythonBundle.getClassLoader());
+
+            // TODO: This is a workaround because the UI has a bug that causes it not to work properly if the type doesn't have a '.' in it
+            final String className = "python." + details.getProcessorType();
+            final ExtensionDefinition extensionDefinition = new ExtensionDefinition.Builder()
+                .implementationClassName(className)
+                .runtime(ExtensionRuntime.PYTHON)
+                .bundle(bundle)
+                .extensionType(Processor.class)
+                .description(details.getCapabilityDescription())
+                .tags(details.getTags())
+                .version(details.getProcessorVersion())
+                .build();
+
+            final boolean added = processorDefinitions.add(extensionDefinition);
+            if (added) {
+                processorsFound++;
+                final List<Bundle> bundlesForClass = classNameBundleLookup.computeIfAbsent(className, key -> new ArrayList<>());
+                bundlesForClass.add(bundle);
+                bundleCoordinateBundleLookup.putIfAbsent(bundleDetails.getCoordinate(), bundle);
+                logger.info("Discovered Python Processor {}", details.getProcessorType());
+            } else {
+                logger.debug("Python Processor {} is already known", details.getProcessorType());
+            }
+        }
+
+        if (processorsFound == 0) {
+            logger.debug("Discovered no new or updated Python Processors. Process took in {} millis", System.currentTimeMillis() - start);
+        } else {
+            logger.info("Discovered or updated {} Python Processors in {} millis", processorsFound, System.currentTimeMillis() - start);
+        }
+    }
+
+    private BundleDetails createBundleDetailsWithOverriddenVersion(final BundleDetails details, final String version) {
+        final BundleCoordinate overriddenCoordinate = new BundleCoordinate(details.getCoordinate().getGroup(), details.getCoordinate().getId(), version);
+
+        return new BundleDetails.Builder()
+            .buildBranch(details.getBuildBranch())
+            .buildJdk(details.getBuildJdk())
+            .buildRevision(details.getBuildRevision())
+            .buildTag(details.getBuildTag())
+            .buildTimestamp(details.getBuildTimestamp())
+            .builtBy(details.getBuiltBy())
+            .dependencyCoordinate(details.getDependencyCoordinate())
+            .coordinate(overriddenCoordinate)
+            .workingDir(details.getWorkingDirectory())
+            .build();
+    }
+
+    @Override
+    public void discoverNewPythonExtensions(final Bundle pythonBundle) {
+        logger.debug("Scanning to discover new Python extensions...");
+        discoverPythonExtensions(pythonBundle);
     }
 
     /**
@@ -327,7 +414,13 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         if (!alreadyRegistered) {
             registeredBundles.add(bundle);
 
-            final ExtensionDefinition extensionDefinition = new ExtensionDefinition(className, bundle, extensionType);
+            final ExtensionDefinition extensionDefinition = new ExtensionDefinition.Builder()
+                .implementationClassName(className)
+                .bundle(bundle)
+                .extensionType(extensionType)
+                .runtime(ExtensionRuntime.JAVA)
+                .build();
+
             bundleExtensionDefinitions.add(extensionDefinition);
             classes.add(extensionDefinition);
         }
@@ -616,8 +709,34 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
         final ClassLoader bundleClassLoader = bundle.getClassLoader();
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(bundleClassLoader)) {
-            final Class<?> componentClass = Class.forName(classType, true, bundleClassLoader);
-            final ConfigurableComponent tempComponent = (ConfigurableComponent) componentClass.newInstance();
+            final ConfigurableComponent tempComponent;
+            if (PythonBundle.isPythonCoordinate(bundle.getBundleDetails().getCoordinate())) {
+                // TODO: This is a workaround due to bug in UI. Fix bug in UI.
+                final String type = classType.startsWith(PYTHON_TYPE_PREFIX) ? classType.substring(PYTHON_TYPE_PREFIX.length()) : classType;
+
+                final String procId = "temp-component-" + type;
+                final PythonProcessorBridge processorBridge = pythonBridge.createProcessor(procId, type, bundleCoordinate.getVersion(), false);
+                tempComponent = processorBridge.getProcessorProxy();
+
+                final ComponentLog componentLog = new MockComponentLogger();
+                final PythonProcessorInitializationContext initContext = new PythonProcessorInitializationContext() {
+                    @Override
+                    public String getIdentifier() {
+                        return procId;
+                    }
+
+                    @Override
+                    public ComponentLog getLogger() {
+                        return componentLog;
+                    }
+                };
+
+                processorBridge.initialize(initContext);
+            } else {
+                final Class<?> componentClass = Class.forName(classType, true, bundleClassLoader);
+                tempComponent = (ConfigurableComponent) componentClass.newInstance();
+            }
+
             initializeTempComponent(tempComponent);
             tempComponentLookup.put(bundleKey, tempComponent);
             return tempComponent;
@@ -632,6 +751,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             return null;
         }
     }
+
 
     private static String getClassBundleKey(final String classType, final BundleCoordinate bundleCoordinate) {
         return classType + "_" + bundleCoordinate.getCoordinate();

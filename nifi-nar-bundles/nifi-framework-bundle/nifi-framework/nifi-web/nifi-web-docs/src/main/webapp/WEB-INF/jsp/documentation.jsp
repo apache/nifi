@@ -75,6 +75,8 @@
                             <ul>
                                 <li class="component-item"><a class="document-link rest-api" href="rest-api/index.html" target="component-usage">REST API</a></li>
                                 <li class="component-item"><a class="document-link developer-guide" href="html/developer-guide.html" target="component-usage">Developer Guide</a></li>
+                                <li class="component-item"><a class="document-link python-developer-guide" href="html/python-developer-guide.html" target="component-usage">Python Developer
+                                Guide</a></li>
                                 <li class="component-item"><a class="document-link apache-nifi-in-depth" href="html/nifi-in-depth.html" target="component-usage">Apache NiFi In Depth</a></li>
                             </ul>
                             <span class="no-matching no-components hidden">No matching developer guides</span>

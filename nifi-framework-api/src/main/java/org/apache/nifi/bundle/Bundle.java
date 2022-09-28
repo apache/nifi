@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.bundle;
 
+import java.util.Objects;
+
 /**
  * Represents a bundle that contains one or more extensions.
  */
@@ -49,5 +51,22 @@ public class Bundle {
     @Override
     public String toString() {
         return bundleDetails.toString();
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final Bundle bundle = (Bundle) o;
+        return Objects.equals(bundleDetails.getCoordinate(), bundle.bundleDetails.getCoordinate()) && Objects.equals(classLoader, bundle.classLoader);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(bundleDetails.getCoordinate(), classLoader);
     }
 }

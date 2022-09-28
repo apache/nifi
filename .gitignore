@@ -17,3 +17,4 @@ nb-configuration.xml
 
 .vscode/
 .java-version
+/nifi-nar-bundles/nifi-py4j-bundle/nifi-python-extension-api/src/main/python/dist/

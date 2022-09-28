@@ -48,6 +48,8 @@ import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.provenance.IdentifierLookup;
 import org.apache.nifi.provenance.ProvenanceRepository;
+import org.apache.nifi.python.DisabledPythonBridge;
+import org.apache.nifi.python.PythonBridge;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.InMemoryFlowRegistry;
 import org.apache.nifi.reporting.Bulletin;
@@ -230,7 +232,9 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                 }
             });
             flowFileRepo.initialize(resourceClaimManager);
-            flowManager.initialize(controllerServiceProvider);
+
+            final PythonBridge pythonBridge = new DisabledPythonBridge();
+            flowManager.initialize(controllerServiceProvider, pythonBridge);
 
             // Create flow
             final ProcessGroup rootGroup = flowManager.createProcessGroup("root");

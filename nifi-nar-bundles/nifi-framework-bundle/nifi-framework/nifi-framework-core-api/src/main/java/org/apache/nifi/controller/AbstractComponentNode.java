@@ -112,7 +112,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     private volatile boolean triggerValidation = true;
     private final Map<String, Integer> parameterReferenceCounts = new ConcurrentHashMap<>();
 
-    // guaraded by lock
+    // guarded by lock
     private ValidationContext validationContext = null;
 
     public AbstractComponentNode(final String id,

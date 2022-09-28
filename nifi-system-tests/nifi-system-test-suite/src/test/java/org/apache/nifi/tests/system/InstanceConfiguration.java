@@ -28,6 +28,7 @@ public class InstanceConfiguration {
     private final File stateDirectory;
     private final boolean autoStart;
     private final Map<String, String> nifiPropertiesOverrides;
+    private final boolean unpackPythonExtensions;
 
     private InstanceConfiguration(Builder builder) {
         this.bootstrapConfigFile = builder.bootstrapConfigFile;
@@ -36,6 +37,7 @@ public class InstanceConfiguration {
         this.stateDirectory = builder.stateDirectory;
         this.autoStart = builder.autoStart;
         this.nifiPropertiesOverrides = builder.nifiPropertiesOverrides;
+        this.unpackPythonExtensions = builder.unpackPythonExtensions;
     }
 
     public File getBootstrapConfigFile() {
@@ -58,6 +60,10 @@ public class InstanceConfiguration {
         return autoStart;
     }
 
+    public boolean isUnpackPythonExtensions() {
+        return unpackPythonExtensions;
+    }
+
     public Map<String, String> getNifiPropertiesOverrides() {
         return nifiPropertiesOverrides;
     }
@@ -68,6 +74,7 @@ public class InstanceConfiguration {
         private File flowXmlGz;
         private File stateDirectory;
         private boolean autoStart = true;
+        private boolean unpackPythonExtensions = false;
         private final Map<String, String> nifiPropertiesOverrides = new HashMap<>();
 
         public Builder overrideNifiProperties(final Map<String, String> overrides) {
@@ -129,6 +136,11 @@ public class InstanceConfiguration {
 
         public Builder autoStart(boolean autoStart) {
             this.autoStart = autoStart;
+            return this;
+        }
+
+        public Builder unpackPythonExtensions(final boolean unpackPythonExtensions) {
+            this.unpackPythonExtensions = unpackPythonExtensions;
             return this;
         }
 

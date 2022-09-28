@@ -44,6 +44,7 @@ import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.ReferenceOnlyParameterContext;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterReferenceManager;
+import org.apache.nifi.python.PythonBridge;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -81,6 +82,7 @@ public abstract class AbstractFlowManager implements FlowManager {
     private final BooleanSupplier flowInitializedCheck;
 
     private volatile ControllerServiceProvider controllerServiceProvider;
+    private volatile PythonBridge pythonBridge;
     private volatile ProcessGroup rootGroup;
 
     private final ThreadLocal<Boolean> withParameterContextResolution = ThreadLocal.withInitial(() -> false);
@@ -92,8 +94,9 @@ public abstract class AbstractFlowManager implements FlowManager {
         this.flowInitializedCheck = flowInitializedCheck;
     }
 
-    public void initialize(final ControllerServiceProvider controllerServiceProvider) {
+    public void initialize(final ControllerServiceProvider controllerServiceProvider, final PythonBridge pythonBridge) {
         this.controllerServiceProvider = controllerServiceProvider;
+        this.pythonBridge = pythonBridge;
     }
 
     public ProcessGroup getGroup(final String id) {
@@ -116,6 +119,9 @@ public abstract class AbstractFlowManager implements FlowManager {
         String identifier = procNode.getIdentifier();
         flowFileEventRepository.purgeTransferEvents(identifier);
         allProcessors.remove(identifier);
+
+        final String version = procNode.getBundleCoordinate().getVersion();
+        pythonBridge.onProcessorRemoved(identifier, procNode.getComponentType(), procNode.getBundleCoordinate().getVersion());
     }
 
     public Set<ProcessorNode> findAllProcessors(final Predicate<ProcessorNode> filter) {

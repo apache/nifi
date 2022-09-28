@@ -129,6 +129,7 @@ import org.apache.nifi.history.History;
 import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoadersHolder;
+import org.apache.nifi.nar.PythonBundle;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextLookup;
@@ -269,6 +270,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeMap;
@@ -3233,6 +3235,10 @@ public final class DtoFactory {
             final Bundle bundle = classes.get(cls);
             final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
 
+            if (PythonBundle.isPythonCoordinate(coordinate)) {
+                continue;
+            }
+
             // only include classes that meet the criteria if specified
             if (bundleGroupFilter != null && !bundleGroupFilter.equals(coordinate.getGroup())) {
                 continue;
@@ -3260,6 +3266,56 @@ public final class DtoFactory {
         return types;
     }
 
+
+    /**
+     * Gets the DocumentedTypeDTOs for the given Python ExtensionDefinition
+     *
+     * @param extensionDefinition the extension definition
+     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter if specified, type must match
+     * @return dtos
+     */
+    private Optional<DocumentedTypeDTO> createDocumentedTypeFromPythonExtension(final ExtensionDefinition extensionDefinition, final String bundleGroupFilter,
+                                                                                final String bundleArtifactFilter, final String typeFilter) {
+        // only provide documented type if it meets the criteria
+        final BundleCoordinate coordinate = extensionDefinition.getBundle().getBundleDetails().getCoordinate();
+        if (bundleGroupFilter != null && !bundleGroupFilter.equals(coordinate.getGroup())) {
+            return Optional.empty();
+        }
+        if (bundleArtifactFilter != null && !bundleArtifactFilter.equals(coordinate.getId())) {
+            return Optional.empty();
+        }
+        if (typeFilter != null && !typeFilter.equals(extensionDefinition.getImplementationClassName())) {
+            return Optional.empty();
+        }
+
+        final DocumentedTypeDTO dto = new DocumentedTypeDTO();
+        dto.setType(extensionDefinition.getImplementationClassName());
+
+        final BundleDTO bundleDto = new BundleDTO();
+        bundleDto.setGroup(coordinate.getGroup());
+        bundleDto.setArtifact(coordinate.getId());
+        bundleDto.setVersion(extensionDefinition.getVersion());
+        dto.setBundle(bundleDto);
+
+        dto.setControllerServiceApis(Collections.emptyList());
+        dto.setDescription(extensionDefinition.getDescription());
+        dto.setRestricted(false);
+        dto.setUsageRestriction(null);
+        dto.setExplicitRestrictions(Collections.emptySet());
+        dto.setDeprecationReason(null);
+
+        final List<String> specified = extensionDefinition.getTags();
+        final Set<String> tags = new HashSet<>(Arrays.asList("python", "beta", "test"));
+        if (specified != null) {
+            tags.addAll(specified);
+        }
+        dto.setTags(tags);
+
+        return Optional.of(dto);
+    }
+
     /**
      * Gets the DocumentedTypeDTOs from the specified classes.
      *
@@ -3271,12 +3327,28 @@ public final class DtoFactory {
      */
     public Set<DocumentedTypeDTO> fromDocumentedTypes(final Set<ExtensionDefinition> extensionDefinitions, final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
         final Map<Class, Bundle> classBundles = new HashMap<>();
+        final Set<ExtensionDefinition> pythonExtensionDefinitions = new HashSet<>();
+
         for (final ExtensionDefinition extensionDefinition : extensionDefinitions) {
+            if (PythonBundle.isPythonCoordinate(extensionDefinition.getBundle().getBundleDetails().getCoordinate())) {
+                pythonExtensionDefinitions.add(extensionDefinition);
+                continue;
+            }
+
             final Class cls = extensionManager.getClass(extensionDefinition);
             classBundles.put(cls, extensionDefinition.getBundle());
         }
-        return fromDocumentedTypes(classBundles, bundleGroupFilter, bundleArtifactFilter, typeFilter);
+
+        final Set<DocumentedTypeDTO> documentedTypes = fromDocumentedTypes(classBundles, bundleGroupFilter, bundleArtifactFilter, typeFilter);
+
+        for (final ExtensionDefinition extensionDefinition : pythonExtensionDefinitions) {
+            final Optional<DocumentedTypeDTO> optionalDto = createDocumentedTypeFromPythonExtension(extensionDefinition, bundleGroupFilter, bundleArtifactFilter, typeFilter);
+            optionalDto.ifPresent(documentedTypes::add);
+        }
+
+        return documentedTypes;
     }
+
 
     public ProcessorDTO createProcessorDto(final ProcessorNode node) {
         return createProcessorDto(node, false);

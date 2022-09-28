@@ -20,6 +20,7 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.PythonBundle;
 import org.apache.nifi.web.api.dto.BundleDTO;
 
 import java.util.List;
@@ -55,6 +56,11 @@ public final class BundleUtils {
 
     private static BundleCoordinate findCompatibleBundle(final ExtensionManager extensionManager, final String type,
                                                          final BundleDTO bundleDTO, final boolean allowCompatibleBundle) {
+
+        if (PythonBundle.isPythonCoordinate(bundleDTO.getGroup(), bundleDTO.getArtifact())) {
+            return new BundleCoordinate(bundleDTO.getGroup(), bundleDTO.getArtifact(), bundleDTO.getVersion());
+        }
+
         final BundleCoordinate coordinate = new BundleCoordinate(bundleDTO.getGroup(), bundleDTO.getArtifact(), bundleDTO.getVersion());
         final Bundle bundle = extensionManager.getBundle(coordinate);
 

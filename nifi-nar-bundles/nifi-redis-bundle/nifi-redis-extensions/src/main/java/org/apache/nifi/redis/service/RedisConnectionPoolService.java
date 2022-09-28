@@ -39,7 +39,8 @@ import java.util.List;
 
 @Tags({"redis", "cache"})
 @CapabilityDescription("A service that provides connections to Redis.")
-public class RedisConnectionPoolService extends AbstractControllerService implements RedisConnectionPool {
+public class
+RedisConnectionPoolService extends AbstractControllerService implements RedisConnectionPool {
 
     private volatile PropertyContext context;
     private volatile RedisType redisType;

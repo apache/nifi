@@ -28,7 +28,6 @@ import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
-import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
@@ -72,7 +71,7 @@ public class StandardFlowServiceTest {
     private PropertyEncryptor mockEncryptor;
     private RevisionManager revisionManager;
     private VariableRegistry variableRegistry;
-    private ExtensionManager extensionManager;
+    private ExtensionDiscoveringManager extensionManager;
     private StatusHistoryRepository statusHistoryRepository;
 
     @BeforeAll
