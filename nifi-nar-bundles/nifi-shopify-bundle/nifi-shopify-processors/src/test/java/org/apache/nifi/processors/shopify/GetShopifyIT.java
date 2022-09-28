@@ -40,6 +40,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -78,11 +79,13 @@ class GetShopifyIT {
 
         server.enqueue(mockResponse);
 
-        final Instant expectedExecutionTime = Instant.parse("2022-08-16T10:15:30Z");
+        final Instant testExecutionTime = Instant.parse("2022-08-16T10:15:30Z");
+        final Duration defaultDelay = Duration.ofSeconds(3);
+        final Instant expectedExecutionTime = testExecutionTime.minus(defaultDelay);
 
         final StandardWebClientServiceProvider standardWebClientServiceProvider =
                 new StandardWebClientServiceProvider();
-        final CustomGetShopify customGetShopify = new CustomGetShopify(expectedExecutionTime);
+        final CustomGetShopify customGetShopify = new CustomGetShopify(testExecutionTime);
 
         TestRunner runner = TestRunners.newTestRunner(customGetShopify);
         runner.addControllerService("standardWebClientServiceProvider", standardWebClientServiceProvider);

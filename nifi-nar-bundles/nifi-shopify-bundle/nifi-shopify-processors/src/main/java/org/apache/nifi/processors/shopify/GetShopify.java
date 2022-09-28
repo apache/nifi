@@ -139,11 +139,13 @@ public class GetShopify extends AbstractProcessor {
             .name("incremental-delay")
             .displayName("Incremental Delay")
             .description("The ending timestamp of the time window will be adjusted earlier by the amount configured in this property." +
-                    " For example, with a property value of 10 seconds, an ending timestamp of 12:30:45 would be changed to 12:30:35.")
+                    " For example, with a property value of 10 seconds, an ending timestamp of 12:30:45 would be changed to 12:30:35." +
+                    " Set this property to avoid missing objects when the clock of your local machines and Shopify servers' clock are not in sync.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .dependsOn(IS_INCREMENTAL, "true")
+            .defaultValue("3 sec")
             .build();
 
     static final PropertyDescriptor INCREMENTAL_INITIAL_START_TIME = new PropertyDescriptor.Builder()
