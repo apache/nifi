@@ -218,8 +218,8 @@ public class GetShopify extends AbstractProcessor {
 
     static {
         RESET_STATE_PROPERTY_NAMES = Arrays.stream(ResourceType.values())
-            .map(Enum::name)
-            .collect(Collectors.toList());
+                .map(ResourceType::getValue)
+                .collect(Collectors.toList());
         RESET_STATE_PROPERTY_NAMES.add(OBJECT_CATEGORY.getName());
         RESET_STATE_PROPERTY_NAMES.add(IS_INCREMENTAL.getName());
     }
