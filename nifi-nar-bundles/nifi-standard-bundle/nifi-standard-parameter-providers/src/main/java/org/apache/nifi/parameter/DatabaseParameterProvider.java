@@ -90,7 +90,7 @@ public class DatabaseParameterProvider extends AbstractParameterProvider impleme
             .displayName("Parameter Grouping Strategy")
             .description("The strategy used to group parameters.")
             .required(true)
-            .allowableValues(new AllowableValue[] { GROUPING_BY_COLUMN, GROUPING_BY_TABLE_NAME })
+            .allowableValues(GROUPING_BY_COLUMN, GROUPING_BY_TABLE_NAME)
             .defaultValue(GROUPING_BY_COLUMN.getValue())
             .build();
 
@@ -212,6 +212,7 @@ public class DatabaseParameterProvider extends AbstractParameterProvider impleme
                     }
                 }
             } catch (final SQLException e) {
+                getLogger().error("Encountered a database error when fetching parameters: {}", e.getMessage(), e);
                 throw new RuntimeException("Encountered a database error when fetching parameters: " + e.getMessage(), e);
             }
         }

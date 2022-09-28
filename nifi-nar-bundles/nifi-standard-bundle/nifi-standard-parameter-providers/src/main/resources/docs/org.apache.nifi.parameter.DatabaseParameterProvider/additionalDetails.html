@@ -73,7 +73,8 @@
 </ul>
 
 <p>
-    Note: in some databases, the words 'PARAMETER', 'PARAMETERS', 'GROUP', and even 'VALUE' are reserved words.
+    Note: in some databases, the words 'PARAMETER', 'PARAMETERS', 'GROUP', and even 'VALUE' are reserved words.  If you choose
+    a column name that is a reserved word in the database you are using, make sure to quote it per the database documentation.
 </p>
 
 <p>
@@ -181,6 +182,25 @@
         <li>bucket - my-bucket</li>
         <li>secret.access.key - my-key</li>
     </ul>
+</p>
+
+<h3>Filtering rows</h3>
+
+<p>
+    If you need to include only some rows in a table as parameters, you can use the 'SQL WHERE clause' property.  An example of this is as follows:
+</p>
+
+<ul>
+    <li><b>Parameter Grouping Strategy</b> - Table</li>
+    <li><b>Table Names</b> - KAFKA, S3</li>
+    <li><b>Parameter Name Column</b> - PARAMETER_NAME</li>
+    <li><b>Parameter Value Column</b> - PARAMETER_VALUE</li>
+    <li><b>SQL WHERE clause</b> - OTHER_COLUMN = 'my-parameters'</li>
+</ul>
+
+<p>
+    Here we are assuming there is another column, 'OTHER_COLUMN' in both the KAFKA and S3 tables.  Only rows whose 'OTHER_COLUMN' value is 'my-parameters'
+    will then be fetched from these tables.
 </p>
 
 </body>
