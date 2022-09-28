@@ -127,9 +127,6 @@ public class LegacyBlobStorageEventPositionProvider implements EventPositionProv
                     final JsonNode sequenceNumberField = lease.get(LEASE_SEQUENCE_NUMBER_FIELD);
                     final long sequenceNumber = sequenceNumberField.asLong();
                     eventPosition = EventPosition.fromSequenceNumber(sequenceNumber);
-
-                    blobAsyncClient.delete().block();
-                    logger.info("Legacy Event Position deleted [{}]", blobName);
                 } else {
                     eventPosition = null;
                 }

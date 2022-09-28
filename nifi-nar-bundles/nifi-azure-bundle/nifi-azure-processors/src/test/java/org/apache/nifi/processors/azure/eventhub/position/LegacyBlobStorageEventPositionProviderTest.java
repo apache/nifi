@@ -110,8 +110,6 @@ class LegacyBlobStorageEventPositionProviderTest {
     void testSequenceNumberFound() {
         setBlobData(SEQUENCE_NUMBER_OBJECT);
 
-        when(blobAsyncClient.delete()).thenReturn(Mono.empty());
-
         final Map<String, EventPosition> partitionEventPosition = provider.getInitialPartitionEventPosition();
 
         assertNotNull(partitionEventPosition);
