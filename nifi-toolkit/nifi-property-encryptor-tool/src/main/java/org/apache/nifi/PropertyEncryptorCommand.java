@@ -68,6 +68,7 @@ public class PropertyEncryptorCommand {
     private final static String TEMP_FILE_PREFIX = "tmp";
     private final ApplicationProperties properties;
     private final File applicationPropertiesFile;
+    private final Path outputDirectory;
 
     public PropertyEncryptorCommand(final Path baseDirectory, final String passphrase) throws PropertyEncryptorException {
         confDirectory = ConfigurationFileUtils.resolveAbsoluteConfDirectory(baseDirectory);
@@ -80,6 +81,8 @@ public class PropertyEncryptorCommand {
             configurationFiles = fileResolver.resolveFilesFromApplicationProperties(properties);
             sensitivePropertyResolver = getSensitivePropertyResolver(confDirectory);
             hexKey = getEncodedRootKey(confDirectory, passphrase);
+            outputDirectory = ConfigurationFileUtils.getOutputDirectory(confDirectory);
+            logger.info("Output directory created at [{}]", outputDirectory.toAbsolutePath());
         } catch (final Exception e) {
             throw new PropertyEncryptorException("Failed to run property encryptor", e);
         }
@@ -110,37 +113,35 @@ public class PropertyEncryptorCommand {
             }
         }
 
-        final File tempPropertiesFile = ConfigurationFileUtils.getTemporaryOutputFile(TEMP_FILE_PREFIX, applicationPropertiesFile);
+        final File outputPropertiesFile = ConfigurationFileUtils.getOutputFile(outputDirectory, applicationPropertiesFile);
         try (FileInputStream inputStream = new FileInputStream(applicationPropertiesFile);
-             FileOutputStream outputStream = new FileOutputStream(tempPropertiesFile)) {
+             FileOutputStream outputStream = new FileOutputStream(outputPropertiesFile)) {
             new StandardPropertiesWriter().writePropertiesFile(inputStream, outputStream, encryptedProperties);
         }
     }
 
     public void outputKeyToBootstrap() throws IOException {
         final File bootstrapFile = bootstrapLoader.getBootstrapFileWithinConfDirectory(confDirectory);
-        final File tempBootstrapFile = ConfigurationFileUtils.getTemporaryOutputFile(TEMP_FILE_PREFIX, bootstrapFile);
+        final File outputBootstrapFile = ConfigurationFileUtils.getOutputFile(outputDirectory, bootstrapFile);
         final MutableBootstrapProperties bootstrapProperties = bootstrapLoader.loadMutableBootstrapProperties(bootstrapFile.getPath());
         bootstrapProperties.setProperty(BootstrapProperties.BootstrapPropertyKey.SENSITIVE_KEY.getKey(), hexKey);
         try (InputStream inputStream = new FileInputStream(bootstrapFile);
-             FileOutputStream outputStream = new FileOutputStream(tempBootstrapFile)) {
+             FileOutputStream outputStream = new FileOutputStream(outputBootstrapFile)) {
             new StandardPropertiesWriter().writePropertiesFile(inputStream, outputStream, bootstrapProperties);
-            logger.info("Output the bootstrap key to {}", tempBootstrapFile);
+            logger.info("Output the bootstrap key to {}", outputBootstrapFile);
         }
     }
 
-    private void encryptXmlConfigurationFiles(final List<File> configurationFiles, final XmlEncryptor encryptor) throws IOException {
+    private void encryptXmlConfigurationFiles(final List<File> configurationFiles, final XmlEncryptor encryptor) {
         for (final File configurationFile : configurationFiles) {
-            File temp = ConfigurationFileUtils.getTemporaryOutputFile(TEMP_FILE_PREFIX, configurationFile);
+            File outputFile = ConfigurationFileUtils.getOutputFile(outputDirectory, configurationFile);
             try (InputStream inputStream = new FileInputStream(configurationFile);
-                FileOutputStream outputStream = new FileOutputStream(temp)) {
+                FileOutputStream outputStream = new FileOutputStream(outputFile)) {
                 encryptor.encrypt(inputStream, outputStream);
-                logger.info("Successfully encrypted [{}]", configurationFile.getAbsolutePath());
+                logger.info("Successfully encrypted file at [{}], and output to [{}]", configurationFile.getAbsolutePath(), outputFile.getAbsolutePath());
             } catch (Exception e) {
                 throw new PropertyEncryptorException(String.format("Failed to encrypt configuration file: [%s]", configurationFile.getAbsolutePath()), e);
             }
-
-            //Files.copy(temp.toPath(), configurationFile.toPath());
         }
     }
 

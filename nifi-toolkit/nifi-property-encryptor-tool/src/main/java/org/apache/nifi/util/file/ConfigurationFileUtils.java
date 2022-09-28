@@ -24,6 +24,7 @@ import java.util.Arrays;
 
 public class ConfigurationFileUtils {
 
+    private final static String OUTPUT_DIR = "encryptor-command-output";
     public static String DEFAULT_CONF_DIR = "conf";
     public static String NIFI_PROPERTIES_DEFAULT_NAME = "nifi.properties";
     public static String NIFI_REGISTRY_DEFAULT_PROPERTIES_NAME = "nifi-registry.properties";
@@ -36,9 +37,21 @@ public class ConfigurationFileUtils {
         }
     }
 
-    public static boolean isSafeToWrite(final File fileToWrite) {
-        assert(fileToWrite != null);
-        return (!fileToWrite.exists() && fileToWrite.getParentFile().canWrite() || (fileToWrite.exists() && fileToWrite.canWrite()));
+    public static File getOutputFile(final Path outputPath, final File siblingFile) {
+        return new File(outputPath.toAbsolutePath() + File.separator + siblingFile.getName());
+    }
+
+    public static Path getOutputDirectory(final Path baseDirectory) throws IOException {
+        final Path outputPath = new File(baseDirectory.toAbsolutePath() + File.separator + OUTPUT_DIR).toPath();
+        try {
+            if (Files.exists(outputPath)) {
+                return outputPath;
+            } else {
+                return Files.createDirectory(outputPath);
+            }
+        } catch (IOException e) {
+            throw new IOException(String.format("Failed to create the output directory [%s]", outputPath));
+        }
     }
 
     public static boolean isNiFiConfDirectory(final Path baseDirectory) {
@@ -91,7 +104,7 @@ public class ConfigurationFileUtils {
         if (relativeFile.isAbsolute() ) {
             return relativeFile;
         } else {
-            return new File(confDirectory.getParent(), relativeFile.getPath());
+            return new File(confDirectory.getParent().toString(), relativeFile.toString());
         }
     }
 
