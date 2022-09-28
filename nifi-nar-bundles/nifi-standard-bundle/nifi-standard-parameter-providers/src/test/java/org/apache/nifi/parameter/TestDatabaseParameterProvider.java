@@ -222,6 +222,13 @@ public class TestDatabaseParameterProvider {
     }
 
     @Test
+    public void testNullGroupNameColumn() throws SQLException {
+        mockTableResults(new MockTable(TABLE_NAME,
+                Arrays.asList(new HashMap<String, String>() { {  put("name", "param"); put("value", "value"); put("group", null); } })));
+        runTestWithExpectedFailure(columnBasedProperties);
+    }
+
+    @Test
     public void testNullValueColumn() throws SQLException {
         mockTableResults(new MockTable(TABLE_NAME,
                 Arrays.asList(new HashMap<String, String>() { { put("name", "param"); put("value", null); } })));
@@ -230,7 +237,7 @@ public class TestDatabaseParameterProvider {
 
     public void runTestWithExpectedFailure(final Map<PropertyDescriptor, String> properties) {
         final ConfigurationContext context = new MockConfigurationContext(properties, initializationContext);
-        assertThrows(RuntimeException.class, () -> parameterProvider.fetchParameters(context));
+        assertThrows(IllegalStateException.class, () -> parameterProvider.fetchParameters(context));
     }
 
     private void mockTableResults(final MockTable... mockTables) throws SQLException {

@@ -195,11 +195,15 @@ public class DatabaseParameterProvider extends AbstractParameterProvider impleme
                 getLogger().info("Fetching parameters with query: " + query);
                 try (final ResultSet rs = st.executeQuery(query)) {
                     while (rs.next()) {
-                        final String parameterName = Objects.requireNonNull(rs.getString(parameterNameColumn), "Parameter Name may not be null");
-                        final String parameterValue = Objects.requireNonNull(rs.getString(parameterValueColumn), "Parameter Value may not be null");
+                        final String parameterName = rs.getString(parameterNameColumn);
+                        final String parameterValue = rs.getString(parameterValueColumn);
+
+                        validateValueNotNull(parameterName, parameterNameColumn);
+                        validateValueNotNull(parameterValue, parameterValueColumn);
                         final String parameterGroupName;
                         if (groupByColumn) {
                             parameterGroupName = parameterGroupNameColumn == null ? null : rs.getString(parameterGroupNameColumn);
+                            validateValueNotNull(parameterGroupName, parameterGroupName);
                         } else {
                             parameterGroupName = tableName;
                         }
@@ -208,6 +212,7 @@ public class DatabaseParameterProvider extends AbstractParameterProvider impleme
                                 .name(parameterName)
                                 .build();
                         final Parameter parameter = new Parameter(parameterDescriptor, parameterValue);
+
                         parameterMap.computeIfAbsent(parameterGroupName, key -> new ArrayList<>()).add(parameter);
                     }
                 }
@@ -220,6 +225,12 @@ public class DatabaseParameterProvider extends AbstractParameterProvider impleme
         return parameterMap.entrySet().stream()
                 .map(entry -> new ParameterGroup(entry.getKey(), entry.getValue()))
                 .collect(Collectors.toList());
+    }
+
+    private void validateValueNotNull(final String value, final String columnName) {
+        if (value == null) {
+            throw new IllegalStateException(String.format("Expected %s column to be non-null", columnName));
+        }
     }
 
     String getQuery(final ConfigurationContext context, final String tableName, final List<String> columns, final String whereClause) {
