@@ -122,6 +122,12 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             final File destinationLib = new File(instanceDirectory, "lib");
             copyContents(new File("target/nifi-lib-assembly/lib"), destinationLib);
 
+            if (instanceConfiguration.isUnpackPythonExtensions()) {
+                final File destinationPythonDir = new File(instanceDirectory, "python");
+                destinationPythonDir.mkdir();
+                copyContents(new File("target/nifi-lib-assembly/python"), destinationPythonDir);
+            }
+
             final File destinationNarProviderNars = new File(instanceDirectory, "nifi-nar-provider-nars");
             copyContents(new File("target/nifi-nar-provider-nars"), destinationNarProviderNars);
 

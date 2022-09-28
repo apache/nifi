@@ -220,6 +220,8 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      */
     Set<String> getControllerServiceIdentifiers(Class<? extends ControllerService> serviceType, String groupId) throws IllegalArgumentException;
 
+    Class<? extends ControllerService> getControllerServiceType(String serviceTypeName);
+
     /**
      * @param serviceIdentifier the identifier of the controller service
      * @param componentId the identifier of the component that is referencing the service.

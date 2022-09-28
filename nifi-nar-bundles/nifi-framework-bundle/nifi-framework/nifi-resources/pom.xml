@@ -257,6 +257,16 @@
         <nifi.monitor.long.running.task.schedule>1 min</nifi.monitor.long.running.task.schedule>
         <nifi.monitor.long.running.task.threshold>5 mins</nifi.monitor.long.running.task.threshold>
 
+        <!-- python properties -->
+        <nifi.python.command>python3</nifi.python.command>
+        <nifi.python.source.directory>python</nifi.python.source.directory>
+        <nifi.python.framework.source.directory>./python/framework</nifi.python.framework.source.directory>
+        <nifi.python.extensions.source.directory.default>./python/extensions</nifi.python.extensions.source.directory.default>
+        <nifi.python.working.directory>./work/python</nifi.python.working.directory>
+        <nifi.python.max.processes>100</nifi.python.max.processes>
+        <nifi.python.max.processes.per.extension.type>10</nifi.python.max.processes.per.extension.type>
+        <nifi.python.logs.dir>./logs</nifi.python.logs.dir>
+
         <nifi.performance.tracking.percentage>0</nifi.performance.tracking.percentage>
     </properties>
     <build>

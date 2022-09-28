@@ -30,6 +30,7 @@ import org.apache.nifi.groups.ComponentScheduler;
 import org.apache.nifi.groups.DefaultComponentScheduler;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogRepositoryFactory;
+import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
@@ -581,6 +582,35 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             .collect(Collectors.toSet());
     }
 
+    @Override
+    public Class<? extends ControllerService> getControllerServiceType(final String serviceTypeName) {
+        final Set<ExtensionDefinition> serviceDefinitions = extensionManager.getExtensions(ControllerService.class);
+        for (final ExtensionDefinition definition : serviceDefinitions) {
+            final Class<?> serviceClass = extensionManager.getClass(definition);
+            final Class<? extends ControllerService> serviceType = getServiceInterfaceByName(serviceClass, serviceTypeName);
+            if (serviceType != null) {
+                return serviceType;
+            }
+        }
+
+        return null;
+    }
+
+    private Class<? extends ControllerService> getServiceInterfaceByName(final Class<?> serviceClass, final String type) {
+        for (final Class<?> serviceInterface : serviceClass.getInterfaces()) {
+            if (!ControllerService.class.isAssignableFrom(serviceInterface)) {
+                continue;
+            }
+
+            if (type.equals(serviceInterface.getSimpleName()) || type.equals(serviceInterface.getCanonicalName())) {
+                if (ControllerService.class.isAssignableFrom(serviceInterface)) {
+                    return (Class<? extends ControllerService>) serviceInterface;
+                }
+            }
+        }
+
+        return null;
+    }
 
     @Override
     public String getControllerServiceName(final String serviceIdentifier) {

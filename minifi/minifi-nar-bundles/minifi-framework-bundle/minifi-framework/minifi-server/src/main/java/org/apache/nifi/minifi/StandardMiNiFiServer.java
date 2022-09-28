@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.minifi;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import org.apache.nifi.headless.HeadlessNiFiServer;
 import org.apache.nifi.minifi.bootstrap.BootstrapListener;
 import org.apache.nifi.minifi.c2.C2NifiClientService;
@@ -26,6 +24,9 @@ import org.apache.nifi.minifi.status.StatusConfigReporter;
 import org.apache.nifi.minifi.status.StatusRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
 /**
  *
  */
@@ -45,7 +46,7 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
     }
 
     public FlowStatusReport getStatusReport(String requestString) throws StatusRequestException {
-        return StatusConfigReporter.getStatus(flowController, requestString, logger);
+        return StatusConfigReporter.getStatus(getFlowController(), requestString, logger);
     }
 
     @Override
@@ -78,9 +79,9 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
     }
 
     private void initC2() {
-        if (Boolean.parseBoolean(props.getProperty(MiNiFiProperties.C2_ENABLE.getKey(), MiNiFiProperties.C2_ENABLE.getDefaultValue()))) {
+        if (Boolean.parseBoolean(getNiFiProperties().getProperty(MiNiFiProperties.C2_ENABLE.getKey(), MiNiFiProperties.C2_ENABLE.getDefaultValue()))) {
             logger.info("C2 enabled, creating a C2 client instance");
-            c2NifiClientService = new C2NifiClientService(props, flowController, bootstrapListener);
+            c2NifiClientService = new C2NifiClientService(getNiFiProperties(), getFlowController(), bootstrapListener);
         } else {
             logger.debug("C2 Property [{}] missing or disabled: C2 client not created", MiNiFiProperties.C2_ENABLE.getKey());
             c2NifiClientService = null;

@@ -1,0 +1,20 @@
+To build the extension API Project:
+
+First, update the version in the pyproject.toml file. After deploying to the pypi repository,
+the version cannot be overwritten. So you will need to create a unique version.
+
+Build the distribution artifacts:
+```
+cd ${nifi-python-extension-api-dir}/src/main/python
+rm -rf dist/*
+python3 -m build
+```
+
+This will create several files in the dist/ directory.
+These can then be uploaded to the testpypi repository:
+
+```
+python3 -m twine upload --repository testpypi dist/*
+```
+
+You will be prompted for a username and password. For the username, use __token__. For the password, use the token value, including the pypi- prefix.

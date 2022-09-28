@@ -39,7 +39,6 @@ import org.apache.nifi.flow.resource.ExternalResourceProviderServiceBuilder;
 import org.apache.nifi.flow.resource.NarProviderAdapter;
 import org.apache.nifi.flow.resource.PropertyBasedExternalResourceProviderInitializationContext;
 import org.apache.nifi.lifecycle.LifeCycleStartException;
-import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionManagerHolder;
 import org.apache.nifi.nar.ExtensionMapping;
@@ -777,7 +776,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     public void start() {
         try {
             // Create a standard extension manager and discover extensions
-            final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
+            final StandardExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
             extensionManager.discoverExtensions(systemBundle, bundles);
             extensionManager.logClassLoaderMapping();
 
@@ -1099,6 +1098,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         }
 
     }
+
 
     /**
      * Holds the result of loading WARs for custom UIs.

@@ -46,6 +46,7 @@ import org.apache.nifi.controller.service.StandardControllerServiceNode;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.nar.PythonBundle;
 import org.apache.nifi.parameter.GhostParameterProvider;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterProviderInitializationContext;
@@ -56,6 +57,9 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.StandardValidationContextFactory;
+import org.apache.nifi.python.PythonBridge;
+import org.apache.nifi.python.processor.PythonProcessorBridge;
+import org.apache.nifi.python.processor.PythonProcessorInitializationContext;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
@@ -102,6 +106,7 @@ public class ExtensionBuilder {
     private StateManagerProvider stateManagerProvider;
     private String classloaderIsolationKey;
     private SSLContext systemSslContext;
+    private PythonBridge pythonBridge;
 
     public ExtensionBuilder type(final String type) {
         this.type = type;
@@ -191,6 +196,11 @@ public class ExtensionBuilder {
         return this;
     }
 
+    public ExtensionBuilder pythonBridge(final PythonBridge pythonBridge) {
+        this.pythonBridge = pythonBridge;
+        return this;
+    }
+
     public ProcessorNode buildProcessor() {
         if (identifier == null) {
             throw new IllegalStateException("Processor ID must be specified");
@@ -222,10 +232,7 @@ public class ExtensionBuilder {
         try {
             loggableComponent = createLoggableProcessor();
         } catch (final ProcessorInstantiationException pie) {
-            logger.error("Could not create Processor of type " + type + " for ID " + identifier + " due to: " + pie.getMessage() + "; creating \"Ghost\" implementation");
-            if (logger.isDebugEnabled()) {
-                logger.debug(pie.getMessage(), pie);
-            }
+            logger.error("Could not create Processor of type " + type + " for ID " + identifier + " due to: " + pie.getMessage() + "; creating \"Ghost\" implementation", pie);
 
             final GhostProcessor ghostProc = new GhostProcessor();
             ghostProc.setIdentifier(identifier);
@@ -234,7 +241,17 @@ public class ExtensionBuilder {
             creationSuccessful = false;
         }
 
-        final ProcessorNode processorNode = createProcessorNode(loggableComponent, creationSuccessful);
+        final String componentType;
+        if (PythonBundle.isPythonCoordinate(bundleCoordinate)) {
+            componentType = type.substring("python.".length());
+        } else if (creationSuccessful) {
+            componentType = loggableComponent.getComponent().getClass().getSimpleName();
+        } else {
+            final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
+            componentType = "(Missing) " + simpleClassName;
+        }
+
+        final ProcessorNode processorNode = createProcessorNode(loggableComponent, componentType, !creationSuccessful);
         return processorNode;
     }
 
@@ -416,20 +433,12 @@ public class ExtensionBuilder {
     }
 
 
-    private ProcessorNode createProcessorNode(final LoggableComponent<Processor> processor, final boolean creationSuccessful) {
+    private ProcessorNode createProcessorNode(final LoggableComponent<Processor> processor, final String componentType, final boolean extensionMissing) {
         final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(serviceProvider, componentVarRegistry);
 
-        final ProcessorNode procNode;
-        if (creationSuccessful) {
-            procNode = new StandardProcessorNode(processor, identifier, validationContextFactory, processScheduler, serviceProvider,
-                    componentVarRegistry, reloadComponent, extensionManager, validationTrigger);
-        } else {
-            final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
-            final String componentType = "(Missing) " + simpleClassName;
-            procNode = new StandardProcessorNode(processor, identifier, validationContextFactory, processScheduler, serviceProvider,
-                    componentType, type, componentVarRegistry, reloadComponent, extensionManager, validationTrigger, true);
-        }
+        final ProcessorNode procNode = new StandardProcessorNode(processor, identifier, validationContextFactory, processScheduler, serviceProvider,
+                    componentType, type, componentVarRegistry, reloadComponent, extensionManager, validationTrigger, extensionMissing);
 
         applyDefaultSettings(procNode);
         applyDefaultRunDuration(procNode);
@@ -690,7 +699,13 @@ public class ExtensionBuilder {
 
     private LoggableComponent<Processor> createLoggableProcessor() throws ProcessorInstantiationException {
         try {
-            final LoggableComponent<Processor> processorComponent = createLoggableComponent(Processor.class);
+            final LoggableComponent<Processor> processorComponent;
+            if (PythonBundle.isPythonCoordinate(bundleCoordinate)) {
+                processorComponent = createLoggablePythonProcessor();
+            } else {
+                processorComponent = createLoggableComponent(Processor.class);
+            }
+
             final Processor processor = processorComponent.getComponent();
 
             final ProcessorInitializationContext initiContext = new StandardProcessorInitializationContext(identifier, processorComponent.getLogger(),
@@ -758,6 +773,47 @@ public class ExtensionBuilder {
             return providerComponent;
         } catch (final Exception e) {
             throw new ParameterProviderInstantiationException(type, e);
+        }
+    }
+
+    private LoggableComponent<Processor> createLoggablePythonProcessor() {
+        final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
+            if (bundle == null) {
+                throw new IllegalStateException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
+            }
+
+            final ClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(type, identifier, bundle, classpathUrls == null ? Collections.emptySet() : classpathUrls, true,
+                classloaderIsolationKey);
+            Thread.currentThread().setContextClassLoader(detectedClassLoader);
+
+            // TODO: This is a hack because there's a bug in the UI that causes it to not load extensions that don't have a `.` in the type.
+            final String processorType = type.startsWith("python.") ? type.substring("python.".length()) : type;
+            final PythonProcessorBridge processorBridge = pythonBridge.createProcessor(identifier, processorType, bundleCoordinate.getVersion(), true);
+            final Processor processor = processorBridge.getProcessorProxy();
+
+            final ComponentLog componentLog = new SimpleProcessLogger(identifier, processor);
+            final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);
+
+            final PythonProcessorInitializationContext initContext = new PythonProcessorInitializationContext() {
+                @Override
+                public String getIdentifier() {
+                    return identifier;
+                }
+
+                @Override
+                public ComponentLog getLogger() {
+                    return terminationAwareLogger;
+                }
+            };
+            processorBridge.initialize(initContext);
+
+            return new LoggableComponent<>(processor, bundleCoordinate, terminationAwareLogger);
+        } finally {
+            if (ctxClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(ctxClassLoader);
+            }
         }
     }
 

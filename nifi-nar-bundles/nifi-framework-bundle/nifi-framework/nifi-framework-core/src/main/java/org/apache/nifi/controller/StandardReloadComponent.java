@@ -83,6 +83,10 @@ public class StandardReloadComponent implements ReloadComponent {
             extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
         }
 
+        // Before creating a new processor, ensure that we notify the Python Bridge that we're removing the old one.
+        // This way we can shutdown the Process if necessary before creating a new processor (which may then spawn a new process).
+        flowController.getPythonBridge().onProcessorRemoved(id, existingNode.getComponentType(), existingNode.getBundleCoordinate().getVersion());
+
         // create a new node with firstTimeAdded as true so lifecycle methods get fired
         // attempt the creation to make sure it works before firing the OnRemoved methods below
         final String classloaderIsolationKey = existingNode.getClassLoaderIsolationKey(processContext);

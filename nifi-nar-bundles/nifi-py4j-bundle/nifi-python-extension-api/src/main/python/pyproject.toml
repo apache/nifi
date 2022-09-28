@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nifiapi"
+version = "0.0.1-13"
+license = "Apache-2.0"
+maintainers = [
+    { name="Apache NiFi Developer Community", email="dev@nifi.apache.org" }
+]
+description = "The API for building Python-based NiFi extensions"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/apache/nifi"
+"Bug Tracker" = "https://issues.apache.org/jira/projects/NIFI/summary"

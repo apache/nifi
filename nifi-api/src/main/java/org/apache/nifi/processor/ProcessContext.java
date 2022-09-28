@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processor;
 
-import java.util.Map;
-import java.util.Set;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateManager;
@@ -25,6 +23,9 @@ import org.apache.nifi.context.ClusterContext;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.scheduling.ExecutionNode;
+
+import java.util.Map;
+import java.util.Set;
 
 /**
  * <p>
@@ -152,7 +153,7 @@ public interface ProcessContext extends PropertyContext, ClusterContext {
     boolean isRelationshipRetried(Relationship relationship);
 
     /**
-     * @return the actual value of the retry counter of this processor
+     * @return the max number of times that the Processor will retry a FlowFile that is routed to a Relationship that is marked for Retry
      */
     int getRetryCount();
 }

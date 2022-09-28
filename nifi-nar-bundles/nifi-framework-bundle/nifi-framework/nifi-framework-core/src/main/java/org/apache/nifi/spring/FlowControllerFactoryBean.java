@@ -26,7 +26,7 @@ import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.encrypt.PropertyEncryptor;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
@@ -52,7 +52,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
     private ClusterCoordinator clusterCoordinator;
     private VariableRegistry variableRegistry;
     private LeaderElectionManager leaderElectionManager;
-    private ExtensionManager extensionManager;
+    private ExtensionDiscoveringManager extensionManager;
     private RevisionManager revisionManager;
     private StatusHistoryRepository statusHistoryRepository;
 
@@ -146,7 +146,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
         this.leaderElectionManager = leaderElectionManager;
     }
 
-    public void setExtensionManager(ExtensionManager extensionManager) {
+    public void setExtensionManager(ExtensionDiscoveringManager extensionManager) {
         this.extensionManager = extensionManager;
     }
 
@@ -154,7 +154,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
         this.revisionManager = revisionManager;
     }
 
-    public void setStatusHistoryRepository(StatusHistoryRepository statusHistoryRepository) {
+    public void setStatusHistoryRepository(final StatusHistoryRepository statusHistoryRepository) {
         this.statusHistoryRepository = statusHistoryRepository;
     }
 }

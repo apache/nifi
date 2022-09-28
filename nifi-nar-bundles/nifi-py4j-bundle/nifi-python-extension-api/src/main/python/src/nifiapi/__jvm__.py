@@ -1,0 +1,2 @@
+class JvmHolder:
+    jvm = None
