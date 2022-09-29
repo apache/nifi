@@ -29,7 +29,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Locale;
 
 import static org.apache.nifi.processors.shopify.model.IncrementalLoadingParameter.CREATED_AT;
@@ -89,7 +88,7 @@ class ShopifyRestServiceTest {
     }
 
     @Test
-    void testGetShopifyObjects() throws URISyntaxException {
+    void testGetShopifyObjects() {
         final ShopifyRestService shopifyRestService = new ShopifyRestService(
                 webClientServiceProvider,
                 VERSION,
@@ -112,7 +111,7 @@ class ShopifyRestServiceTest {
         doReturn(mockHttpRequestBodySpec).when(mockHttpRequestBodySpec).header(anyString(), anyString());
         doReturn(mockHttpResponseEntity).when(mockHttpRequestBodySpec).retrieve();
 
-        shopifyRestService.getShopifyObjects(START_TIME, END_TIME, null);
+        shopifyRestService.getShopifyObjects(START_TIME, END_TIME);
 
         verify(mockHttpRequestUriSpec).uri(URI.create(TEST_URL));
         verify(mockHttpRequestBodySpec).header(ACCESS_TOKEN_KEY, TEST_ACCESS_TOKEN);

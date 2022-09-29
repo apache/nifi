@@ -46,14 +46,13 @@ import org.apache.nifi.processors.shopify.model.IncrementalLoadingParameter;
 import org.apache.nifi.processors.shopify.model.ResourceType;
 import org.apache.nifi.processors.shopify.model.ShopifyResource;
 import org.apache.nifi.processors.shopify.rest.ShopifyRestService;
+import org.apache.nifi.processors.shopify.util.IncrementalTimers;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.HttpResponseStatus;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -292,68 +291,60 @@ public class GetShopify extends AbstractProcessor {
         final String initialStartTime = context.getProperty(INCREMENTAL_INITIAL_START_TIME).evaluateAttributeExpressions().getValue();
         final Long incrDelayMs = context.getProperty(INCREMENTAL_DELAY).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
 
+        IncrementalTimers timers = null;
+        if (isIncremental) {
+            timers = IncrementalTimers.ofState(stateMap, initialStartTime, incrDelayMs, Instant.now());
+        }
         String cursor = null;
-        String endTime = null;
-        HttpResponseEntity response;
+        HttpResponseEntity response = null;
 
         do {
             try {
-
-                if (isIncremental) {
-                    String startTime = stateMap.get(LAST_EXECUTION_TIME_KEY);
-                    if (startTime == null && initialStartTime != null) {
-                        startTime = initialStartTime;
-                    }
-
-                    Instant now = getCurrentExecutionTime();
-                    if (incrDelayMs != null) {
-                        now = now.minus(incrDelayMs, ChronoUnit.MILLIS);
-                    }
-                    endTime = now.truncatedTo(ChronoUnit.SECONDS).toString();
-                    final String exclusiveEndTime = now.minus(EXCLUSIVE_TIME_WINDOW_ADJUSTMENT, ChronoUnit.MILLIS).toString();
-
-                    response = shopifyRestService.getShopifyObjects(startTime, exclusiveEndTime, cursor);
-                } else {
+                if (cursor != null) {
                     response = shopifyRestService.getShopifyObjects(cursor);
-                }
-            } catch (URISyntaxException e) {
-                throw new ProcessException("Malformed URI", e);
-            }
-
-            final AtomicInteger objectCountHolder = new AtomicInteger();
-            cursor = getPageCursor(response);
-            if (response.statusCode() == HttpResponseStatus.OK.getCode()) {
-                FlowFile flowFile = session.create();
-                flowFile = session.write(flowFile, parseHttpResponse(response, objectCountHolder));
-                if (cursor == null && isIncremental) {
-                    final Map<String, String> updatedStateMap = new HashMap<>(stateMap);
-                    updatedStateMap.put(LAST_EXECUTION_TIME_KEY, endTime);
-                    updateState(session, updatedStateMap);
-                }
-                if (objectCountHolder.get() > 0) {
-                    session.transfer(flowFile, REL_SUCCESS);
+                } else if (isIncremental) {
+                    response = shopifyRestService.getShopifyObjects(timers.getStartTime(), timers.getExclusiveEndTime());
                 } else {
-                    getLogger().debug("Empty response when requested Shopify resource: [{}]", resourceName);
-                    session.remove(flowFile);
-                    context.yield();
+                    response = shopifyRestService.getShopifyObjects();
                 }
-            } else if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                if (response.statusCode() == TOO_MANY_REQUESTS) {
-                    context.yield();
-                    throw new ProcessException(String.format(
-                            "Rate limit exceeded, yielding before retrying request. HTTP %d error for requested URI [%s]",
-                            response.statusCode(), resourceName));
-                } else {
-                    context.yield();
-                    getLogger().warn("HTTP {} error for requested Shopify resource [{}]", response.statusCode(),
-                            resourceName);
-                }
-            }
 
-            try {
-                response.close();
-            } catch (IOException e) {
-                throw new ProcessException("Could not close response input stream", e);
+                final AtomicInteger objectCountHolder = new AtomicInteger();
+                cursor = getPageCursor(response);
+                if (response.statusCode() == HttpResponseStatus.OK.getCode()) {
+                    FlowFile flowFile = session.create();
+                    flowFile = session.write(flowFile, parseHttpResponse(response, objectCountHolder));
+                    if (cursor == null && isIncremental) {
+                        final Map<String, String> updatedStateMap = new HashMap<>(stateMap);
+                        updatedStateMap.put(LAST_EXECUTION_TIME_KEY, timers.getEndTime());
+                        updateState(session, updatedStateMap);
+                    }
+                    if (objectCountHolder.get() > 0) {
+                        session.transfer(flowFile, REL_SUCCESS);
+                    } else {
+                        getLogger().debug("Empty response when requested Shopify resource: [{}]", resourceName);
+                        session.remove(flowFile);
+                        context.yield();
+                    }
+                } else if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                    if (response.statusCode() == TOO_MANY_REQUESTS) {
+                        context.yield();
+                        throw new ProcessException(String.format(
+                                "Rate limit exceeded, yielding before retrying request. HTTP %d error for requested URI [%s]",
+                                response.statusCode(), resourceName));
+                    } else {
+                        context.yield();
+                        getLogger().warn("HTTP {} error for requested Shopify resource [{}]", response.statusCode(),
+                                resourceName);
+                    }
+                }
+            } finally {
+                try {
+                    if (response != null) {
+                        response.close();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
 
         } while (cursor != null);
@@ -392,10 +383,6 @@ public class GetShopify extends AbstractProcessor {
         };
     }
 
-    Instant getCurrentExecutionTime() {
-        return Instant.now();
-    }
-
     private Map<String, String> getStateMap(final ProcessSession session) {
         StateMap state;
         try {
@@ -406,7 +393,7 @@ public class GetShopify extends AbstractProcessor {
         return state.toMap();
     }
 
-    private void updateState(ProcessSession session, Map<String, String> newState) {
+    void updateState(ProcessSession session, Map<String, String> newState) {
         try {
             session.setState(newState, Scope.CLUSTER);
         } catch (IOException e) {

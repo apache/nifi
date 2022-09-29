@@ -20,8 +20,6 @@ import okhttp3.HttpUrl;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.apache.commons.io.IOUtils;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.processors.shopify.model.IncrementalLoadingParameter;
 import org.apache.nifi.processors.shopify.model.ResourceType;
 import org.apache.nifi.processors.shopify.rest.ShopifyRestService;
@@ -40,13 +38,15 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 class GetShopifyIT {
 
@@ -79,13 +79,9 @@ class GetShopifyIT {
 
         server.enqueue(mockResponse);
 
-        final Instant testExecutionTime = Instant.parse("2022-08-16T10:15:30Z");
-        final Duration defaultDelay = Duration.ofSeconds(3);
-        final Instant expectedExecutionTime = testExecutionTime.minus(defaultDelay);
-
         final StandardWebClientServiceProvider standardWebClientServiceProvider =
                 new StandardWebClientServiceProvider();
-        final CustomGetShopify customGetShopify = new CustomGetShopify(testExecutionTime);
+        final CustomGetShopify customGetShopify = spy(new CustomGetShopify());
 
         TestRunner runner = TestRunners.newTestRunner(customGetShopify);
         runner.addControllerService("standardWebClientServiceProvider", standardWebClientServiceProvider);
@@ -100,21 +96,16 @@ class GetShopifyIT {
 
         runner.run(1);
 
-        final StateMap state = runner.getStateManager().getState(Scope.CLUSTER);
-        final String actualExecutionTime = state.get(lastExecutionTimeKey);
-
-        assertEquals(expectedExecutionTime.toString(), actualExecutionTime);
+        verify(customGetShopify).updateState(any(), any());
     }
 
     @Test
     void testHttpError429() throws InitializationException {
         server.enqueue(new MockResponse().setResponseCode(429));
 
-        final Instant expectedExecutionTime = Instant.parse("2022-08-16T10:15:30Z");
-
         final StandardWebClientServiceProvider standardWebClientServiceProvider =
                 new StandardWebClientServiceProvider();
-        final CustomGetShopify customGetShopify = new CustomGetShopify(expectedExecutionTime);
+        final CustomGetShopify customGetShopify = new CustomGetShopify();
 
         TestRunner runner = TestRunners.newTestRunner(customGetShopify);
         runner.addControllerService("standardWebClientServiceProvider", standardWebClientServiceProvider);
@@ -135,11 +126,9 @@ class GetShopifyIT {
     void testHttpError404() throws InitializationException {
         server.enqueue(new MockResponse().setResponseCode(404));
 
-        final Instant expectedExecutionTime = Instant.parse("2022-08-16T10:15:30Z");
-
         final StandardWebClientServiceProvider standardWebClientServiceProvider =
                 new StandardWebClientServiceProvider();
-        final CustomGetShopify customGetShopify = new CustomGetShopify(expectedExecutionTime);
+        final CustomGetShopify customGetShopify = new CustomGetShopify();
 
         TestRunner runner = TestRunners.newTestRunner(customGetShopify);
         runner.addControllerService("standardWebClientServiceProvider", standardWebClientServiceProvider);
@@ -168,7 +157,7 @@ class GetShopifyIT {
 
         final StandardWebClientServiceProvider standardWebClientServiceProvider =
                 new StandardWebClientServiceProvider();
-        final CustomGetShopify customGetShopify = new CustomGetShopify(expectedExecutionTime);
+        final CustomGetShopify customGetShopify = new CustomGetShopify();
 
         TestRunner runner = TestRunners.newTestRunner(customGetShopify);
         runner.addControllerService("standardWebClientServiceProvider", standardWebClientServiceProvider);
@@ -188,11 +177,6 @@ class GetShopifyIT {
 
     static class CustomGetShopify extends GetShopify {
 
-        private final Instant executionTime;
-
-        public CustomGetShopify(final Instant executionTime) {
-            this.executionTime = executionTime;
-        }
 
         @Override
         ShopifyRestService getShopifyRestService(WebClientServiceProvider webClientServiceProvider, String apiVersion,
@@ -200,11 +184,6 @@ class GetShopifyIT {
                                                  IncrementalLoadingParameter incrementalLoadingParameter) {
             return new CustomShopifyRestService(webClientServiceProvider, apiVersion, baseUrl, accessToken,
                     resourceName, limit, incrementalLoadingParameter);
-        }
-
-        @Override
-        Instant getCurrentExecutionTime() {
-            return executionTime;
         }
     }
 

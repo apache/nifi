@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.shopify.rest;
 
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.shopify.model.IncrementalLoadingParameter;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
@@ -55,15 +56,8 @@ public class ShopifyRestService {
         this.incrementalLoadingParameter = incrementalLoadingParameter;
     }
 
-    public HttpResponseEntity getShopifyObjects(final String startTime,
-                                                final String endTime,
-                                                final String cursor) throws URISyntaxException {
-        final URI uri;
-        if (cursor != null) {
-            uri = new URI(cursor);
-        } else {
-            uri = getIncrementalUri(startTime, endTime);
-        }
+    public HttpResponseEntity getShopifyObjects() {
+        final URI uri = getUri();
         return webClientServiceProvider.getWebClientService()
                 .get()
                 .uri(uri)
@@ -71,12 +65,21 @@ public class ShopifyRestService {
                 .retrieve();
     }
 
-    public HttpResponseEntity getShopifyObjects(final String cursor) throws URISyntaxException {
+    public HttpResponseEntity getShopifyObjects(final String startTime, final String endTime) {
+        final URI uri = getIncrementalUri(startTime, endTime);
+        return webClientServiceProvider.getWebClientService()
+                .get()
+                .uri(uri)
+                .header(ACCESS_TOKEN_KEY, accessToken)
+                .retrieve();
+    }
+
+    public HttpResponseEntity getShopifyObjects(final String cursor) {
         final URI uri;
-        if (cursor != null) {
+        try {
             uri = new URI(cursor);
-        } else {
-            uri = getUri();
+        } catch (URISyntaxException e) {
+            throw new ProcessException("Could not create URI from cursor while paging", e);
         }
         return webClientServiceProvider.getWebClientService()
                 .get()
