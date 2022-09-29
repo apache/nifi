@@ -47,8 +47,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doReturn;
@@ -76,6 +76,41 @@ public class TestGcpSecretManagerParameterProvider {
             new ParameterGroup("OtherSecret", otherSecretParameters),
             new ParameterGroup("Unrelated", unrelatedParameters) // will not be picked up
     );
+
+    @Test
+    public void testFetchParametersWithNoSecrets() throws InitializationException, IOException {
+        final List<ParameterGroup> expectedGroups = Collections.singletonList(new ParameterGroup("MySecret", Collections.emptyList()));
+        runProviderTest(mockSecretManagerClient(expectedGroups), 0, ConfigVerificationResult.Outcome.SUCCESSFUL);
+    }
+
+    @Test
+    public void testFetchParameters() throws InitializationException, IOException {
+        runProviderTest(mockSecretManagerClient(mockParameterGroups), 8, ConfigVerificationResult.Outcome.SUCCESSFUL);
+    }
+
+    @Test
+    public void testFetchParametersListFailure() throws InitializationException, IOException {
+        final SecretManagerServiceClient mockSecretsManager = mock(SecretManagerServiceClient.class);
+        when(mockSecretsManager.listSecrets(any(ProjectName.class))).thenThrow(new RuntimeException("Fake exception"));
+        runProviderTest(mockSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED);
+    }
+
+    @Test
+    public void testFetchParametersGetSecretFailure() throws InitializationException, IOException {
+        final SecretManagerServiceClient mockSecretsManager = mock(SecretManagerServiceClient.class);
+        final ListSecretsPagedResponse listSecretsPagedResponse = mock(ListSecretsPagedResponse.class);
+        final ListSecretsPage page = mock(ListSecretsPage.class);
+        when(listSecretsPagedResponse.getPage()).thenReturn(page);
+
+        when(page.hasNextPage()).thenReturn(false);
+        final Secret secret = mock(Secret.class);
+        when(secret.getName()).thenReturn("paramA");
+        when(secret.getLabelsOrDefault("group-name", null)).thenReturn("Secret");
+        when(page.getValues()).thenReturn(Collections.singletonList(secret));
+
+        when(mockSecretsManager.accessSecretVersion(any(SecretVersionName.class))).thenThrow(new RuntimeException("Fake exception"));
+        runProviderTest(mockSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED);
+    }
 
     private GcpSecretManagerParameterProvider getParameterProvider() {
         return spy(new GcpSecretManagerParameterProvider());
@@ -164,41 +199,6 @@ public class TestGcpSecretManagerParameterProvider {
         assertEquals(expectedOutcome, results.get(0).getOutcome());
 
         return parameterGroups;
-    }
-
-    @Test
-    public void testFetchParametersWithNoSecrets() throws InitializationException, IOException {
-        final List<ParameterGroup> expectedGroups = Collections.singletonList(new ParameterGroup("MySecret", Collections.emptyList()));
-        runProviderTest(mockSecretManagerClient(expectedGroups), 0, ConfigVerificationResult.Outcome.SUCCESSFUL);
-    }
-
-    @Test
-    public void testFetchParameters() throws InitializationException, IOException {
-        runProviderTest(mockSecretManagerClient(mockParameterGroups), 8, ConfigVerificationResult.Outcome.SUCCESSFUL);
-    }
-
-    @Test
-    public void testFetchParametersListFailure() throws InitializationException, IOException {
-        final SecretManagerServiceClient mockSecretsManager = mock(SecretManagerServiceClient.class);
-        when(mockSecretsManager.listSecrets(any(ProjectName.class))).thenThrow(new RuntimeException("Fake exception"));
-        runProviderTest(mockSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED);
-    }
-
-    @Test
-    public void testFetchParametersGetSecretFailure() throws InitializationException, IOException {
-        final SecretManagerServiceClient mockSecretsManager = mock(SecretManagerServiceClient.class);
-        final ListSecretsPagedResponse listSecretsPagedResponse = mock(ListSecretsPagedResponse.class);
-        final ListSecretsPage page = mock(ListSecretsPage.class);
-        when(listSecretsPagedResponse.getPage()).thenReturn(page);
-
-        when(page.hasNextPage()).thenReturn(false);
-        final Secret secret = mock(Secret.class);
-        when(secret.getName()).thenReturn("paramA");
-        when(secret.getLabelsOrDefault("group-name", null)).thenReturn("Secret");
-        when(page.getValues()).thenReturn(Collections.singletonList(secret));
-
-        when(mockSecretsManager.accessSecretVersion(any(SecretVersionName.class))).thenThrow(new RuntimeException("Fake exception"));
-        runProviderTest(mockSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED);
     }
 
     private static Parameter parameter(final String name, final String value) {

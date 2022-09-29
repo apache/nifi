@@ -88,16 +88,18 @@ public class GcpSecretManagerParameterProvider extends AbstractParameterProvider
             .required(true)
             .identifiesControllerService(GCPCredentialsService.class)
             .build();
-    public static final String GROUP_NAME_LABEL = "group-name";
-    public static final String SECRETS_PATH = "secrets/";
+
+    private static final String GROUP_NAME_LABEL = "group-name";
+    private static final String SECRETS_PATH = "secrets/";
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            GROUP_NAME_PATTERN,
+            PROJECT_ID,
+            GCP_CREDENTIALS_PROVIDER_SERVICE
+    ));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.unmodifiableList(Arrays.asList(
-                GROUP_NAME_PATTERN,
-                PROJECT_ID,
-                GCP_CREDENTIALS_PROVIDER_SERVICE
-        ));
+        return PROPERTIES;
     }
 
     @Override
@@ -139,7 +141,7 @@ public class GcpSecretManagerParameterProvider extends AbstractParameterProvider
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
                     .verificationStepName("Fetch Parameters")
-                    .explanation(String.format("Fetched %s secret keys as parameters within %s groups",
+                    .explanation(String.format("Fetched secret keys [%d] as parameters within groups [%d]",
                             count, parameterGroups.size()))
                     .build());
         } catch (final Exception e) {
@@ -155,12 +157,11 @@ public class GcpSecretManagerParameterProvider extends AbstractParameterProvider
 
     private void fetchSecret(final SecretManagerServiceClient secretsManager, final ConfigurationContext context, final String secretName,
                                                      final String groupName, final Map<String, ParameterGroup> providedParameterGroups) {
-        final Pattern contextNamePattern = context.getProperty(GROUP_NAME_PATTERN).isSet()
-                ? Pattern.compile(context.getProperty(GROUP_NAME_PATTERN).getValue()) : null;
+        final Pattern groupNamePattern = Pattern.compile(context.getProperty(GROUP_NAME_PATTERN).getValue());
         final String projectId = context.getProperty(PROJECT_ID).getValue();
 
-        if (!contextNamePattern.matcher(groupName).matches()) {
-            logger.debug("Secret [{}] label [{}] does not match the context name pattern {}", secretName, groupName, contextNamePattern);
+        if (!groupNamePattern.matcher(groupName).matches()) {
+            logger.debug("Secret [{}] label [{}] does not match the group name pattern {}", secretName, groupName, groupNamePattern);
             return;
         }
 
