@@ -16,22 +16,14 @@
  */
 package org.apache.nifi.processors.script;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
-import org.junit.jupiter.api.condition.EnabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 
-import java.io.IOException;
-import java.io.File;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -94,73 +86,6 @@ public class TestExecuteJython extends BaseScriptTest {
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS);
         result.get(0).assertAttributeEquals("key", "helloWorld");
     }
-
-
-    /**
-     * Tests a Jython script when adding comma separated list of all existing directories from PYTHONPATH
-     * as value for {@link ScriptingComponentUtils} MODULES property.
-     *
-     * This test can only be run if python is installed on hosting machine.
-     * It will exit if this is not the case.
-     *
-     * @throws Exception If PYTHONPATH cannot be retrieved.
-     */
-    @Test
-    @EnabledOnOs(OS.LINUX)
-    public void testAccessPythonPackageModulesAndStoreInFlowFileAttributeWithScriptBody() throws Exception {
-        List<String> pythonDirectories = getExistingPythonPathModuleDirectories();
-        if (pythonDirectories.isEmpty()) {
-            // if we are here, then hosting machine does not have python installed and this test can not be run.  Exiting test.
-            return;
-        }
-
-        String attributeName = "key";
-        String attributeValue = "helloWorld";
-        runner.setValidateExpressionUsage(false);
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
-        runner.setProperty(ScriptingComponentUtils.MODULES,
-                String.join(",", pythonDirectories));
-        runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY,
-                "from org.apache.nifi.processors.script import ExecuteScript\n"
-                        + "flowFile = session.get()\n"
-                        + "flowFile = session.putAttribute(flowFile," +  "\"" + attributeName + "\", '" + attributeValue + "')\n"
-                        + "session.transfer(flowFile, ExecuteScript.REL_SUCCESS)");
-
-        runner.assertValid();
-        runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS, 1);
-        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS);
-        result.get(0).assertAttributeEquals(attributeName, attributeValue);
-    }
-
-    /**
-     * Method which retrieves the PYTHONPATH and builds a java.util.List of existing directories on the PYTHONPATH.
-     * This method uses java.lang.ProcessBuilder and java.lang.Process to execute python to obtain the PYTHONPATH.
-     *
-     * @return java.util.List of existing directories on PYTHONPATH.  Empty if python installation is not found.
-     * @throws Exception If an error occurs when executing a java.lang.Process.
-     */
-    List<String> getExistingPythonPathModuleDirectories() throws Exception{
-        try {
-            Runtime.getRuntime().exec("python --version");
-        } catch (IOException e) {
-            // if we are here, then hosting machine does not have python installed.  Returning empty directory list
-            return new ArrayList<String>();
-        }
-
-        String pathDelimiter = ",";
-        ProcessBuilder processBuilder = new ProcessBuilder();
-        processBuilder.command("python", "-c", "import sys; print('" + pathDelimiter + "'.join(sys.path))");
-        Process process = processBuilder.start();
-        String pythonPath = IOUtils.toString(process.getInputStream(), StandardCharsets.UTF_8);
-
-        return Arrays.stream(pythonPath.split(pathDelimiter))
-                .filter(path -> new File(path).isDirectory())
-                .collect(Collectors.toList());
-    }
-
 
     /**
      * Tests a script that does not transfer or remove the original flow file, thereby causing an error during commit.
