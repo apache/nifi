@@ -74,10 +74,23 @@
         <dependency>
             <groupId>org.neo4j.driver</groupId>
             <artifactId>neo4j-java-driver</artifactId>
-            <version>4.3.7</version>
+            <version>4.4.9</version>
             <scope>compile</scope>
         </dependency>
-
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-security-utils</artifactId>
+            <version>1.19.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>neo4j</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
@@ -91,6 +104,12 @@
                         <exclude>src/test/resources/test.csv</exclude>
                         <exclude>src/test/resources/test.properties</exclude>
                         <exclude>src/test/resources/test.xml</exclude>
+                        <exclude>src/test/resources/neo4j/ssl/bolt/trusted/public.crt</exclude>
+                        <exclude>src/test/resources/neo4j/ssl/bolt/public.crt</exclude>
+                        <exclude>src/test/resources/neo4j/ssl/bolt/private.key</exclude>
+                        <exclude>src/test/resources/neo4j/ssl/https/trusted/public.crt</exclude>
+                        <exclude>src/test/resources/neo4j/ssl/https/public.crt</exclude>
+                        <exclude>src/test/resources/neo4j/ssl/https/private.key</exclude>
                     </excludes>
                 </configuration>
             </plugin>
