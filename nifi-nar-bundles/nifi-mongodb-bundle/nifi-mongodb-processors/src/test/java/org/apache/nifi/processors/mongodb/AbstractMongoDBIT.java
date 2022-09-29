@@ -16,22 +16,13 @@
  */
 package org.apache.nifi.processors.mongodb;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+@Testcontainers
 public class AbstractMongoDBIT {
-    protected static MongoDBContainer mongoDBContainer;
-
-    @BeforeAll
-    public static void beforeAll() {
-        mongoDBContainer = new MongoDBContainer(DockerImageName.parse("mongo:5"));
-        mongoDBContainer.start();
-    }
-
-    @AfterAll
-    public static void afterAll() {
-        mongoDBContainer.stop();
-    }
+    @Container
+    protected static MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse("mongo:5"));;
 }
