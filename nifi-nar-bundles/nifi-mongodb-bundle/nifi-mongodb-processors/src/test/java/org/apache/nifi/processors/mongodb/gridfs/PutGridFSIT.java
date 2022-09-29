@@ -80,12 +80,11 @@ public class PutGridFSIT extends GridFSITTestBase {
         runner.run();
         runner.assertAllFlowFilesTransferred(PutGridFS.REL_SUCCESS);
 
-        attrs = new HashMap<>() {{
-            put("created_by", "john.smith");
-            put("created_for", "jane.doe");
-            put("restrictions", "PHI&PII");
-            put("department", "Accounting");
-        }};
+        attrs = new HashMap<>();
+        attrs.put("created_by", "john.smith");
+        attrs.put("created_for", "jane.doe");
+        attrs.put("restrictions", "PHI&PII");
+        attrs.put("department", "Accounting");
 
         assertTrue(fileExists(fileName, BUCKET), "File does not exist");
         assertTrue(fileHasProperties(fileName, BUCKET, attrs), "File is missing PARENT_PROPERTIES");
