@@ -89,7 +89,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             .name("aws-credentials-provider-service")
             .displayName("AWS Credentials Provider Service")
             .description("Service used to obtain an Amazon Web Services Credentials Provider")
-            .required(false)
+            .required(true)
             .identifiesControllerService(AWSCredentialsProviderService.class)
             .build();
 
@@ -119,18 +119,19 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
 
     private static final String DEFAULT_USER_AGENT = "NiFi";
     private static final Protocol DEFAULT_PROTOCOL = Protocol.HTTPS;
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            SECRET_NAME_PATTERN,
+            REGION,
+            AWS_CREDENTIALS_PROVIDER_SERVICE,
+            TIMEOUT,
+            SSL_CONTEXT_SERVICE
+    ));
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.unmodifiableList(Arrays.asList(
-                SECRET_NAME_PATTERN,
-                REGION,
-                AWS_CREDENTIALS_PROVIDER_SERVICE,
-                TIMEOUT,
-                SSL_CONTEXT_SERVICE
-        ));
+        return PROPERTIES;
     }
 
     @Override
@@ -160,7 +161,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
                     .verificationStepName("Fetch Parameters")
-                    .explanation(String.format("Fetched %s secret keys as parameters, across %s groups",
+                    .explanation(String.format("Fetched secret keys [%s] as parameters, across groups [%s]",
                             parameterCount, parameterGroups.size()))
                     .build());
         } catch (final Exception e) {
@@ -176,8 +177,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
 
     private List<ParameterGroup> fetchSecret(final AWSSecretsManager secretsManager, final ConfigurationContext context, final String secretName) {
         final List<ParameterGroup> groups = new ArrayList<>();
-        final Pattern secretNamePattern = context.getProperty(SECRET_NAME_PATTERN).isSet()
-                ? Pattern.compile(context.getProperty(SECRET_NAME_PATTERN).getValue()) : null;
+        final Pattern secretNamePattern = Pattern.compile(context.getProperty(SECRET_NAME_PATTERN).getValue());
 
         final List<Parameter> parameters = new ArrayList<>();
 

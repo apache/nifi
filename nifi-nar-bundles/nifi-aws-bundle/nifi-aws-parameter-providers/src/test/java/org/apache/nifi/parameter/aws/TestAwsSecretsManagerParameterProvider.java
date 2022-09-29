@@ -48,8 +48,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doReturn;
@@ -84,6 +84,32 @@ public class TestAwsSecretsManagerParameterProvider {
             new ParameterGroup("MySecret", mySecretParameters),
             new ParameterGroup("OtherSecret", otherSecretParameters)
     );
+
+    @Test
+    public void testFetchParametersWithNoSecrets() throws InitializationException {
+        final List<ParameterGroup> expectedGroups = Collections.singletonList(new ParameterGroup("MySecret", Collections.emptyList()));
+        runProviderTest(mockSecretsManager(expectedGroups), 0, ConfigVerificationResult.Outcome.SUCCESSFUL);
+    }
+
+    @Test
+    public void testFetchParameters() throws InitializationException {
+        runProviderTest(mockSecretsManager(mockParameterGroups), 8, ConfigVerificationResult.Outcome.SUCCESSFUL);
+    }
+
+    @Test
+    public void testFetchParametersListFailure() throws InitializationException {
+        when(defaultSecretsManager.listSecrets(any())).thenThrow(new AWSSecretsManagerException("Fake exception"));
+        runProviderTest(defaultSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED);
+    }
+
+    @Test
+    public void testFetchParametersGetSecretFailure() throws InitializationException {
+        final List<SecretListEntry> secretList = Collections.singletonList(new SecretListEntry().withName("MySecret"));
+        when(listSecretsResult.getSecretList()).thenReturn(secretList);
+        when(defaultSecretsManager.listSecrets(any())).thenReturn(listSecretsResult);
+        when(defaultSecretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("MySecret")))).thenThrow(new AWSSecretsManagerException("Fake exception"));
+        runProviderTest(defaultSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED);
+    }
 
     private AwsSecretsManagerParameterProvider getParameterProvider() {
         return spy(new AwsSecretsManagerParameterProvider());
@@ -147,32 +173,6 @@ public class TestAwsSecretsManagerParameterProvider {
         assertEquals(expectedOutcome, results.get(0).getOutcome());
 
         return parameterGroups;
-    }
-
-    @Test
-    public void testFetchParametersWithNoSecrets() throws InitializationException {
-        final List<ParameterGroup> expectedGroups = Collections.singletonList(new ParameterGroup("MySecret", Collections.emptyList()));
-        runProviderTest(mockSecretsManager(expectedGroups), 0, ConfigVerificationResult.Outcome.SUCCESSFUL);
-    }
-
-    @Test
-    public void testFetchParameters() throws InitializationException {
-        runProviderTest(mockSecretsManager(mockParameterGroups), 8, ConfigVerificationResult.Outcome.SUCCESSFUL);
-    }
-
-    @Test
-    public void testFetchParametersListFailure() throws InitializationException {
-        when(defaultSecretsManager.listSecrets(any())).thenThrow(new AWSSecretsManagerException("Fake exception"));
-        runProviderTest(defaultSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED);
-    }
-
-    @Test
-    public void testFetchParametersGetSecretFailure() throws InitializationException {
-        final List<SecretListEntry> secretList = Collections.singletonList(new SecretListEntry().withName("MySecret"));
-        when(listSecretsResult.getSecretList()).thenReturn(secretList);
-        when(defaultSecretsManager.listSecrets(any())).thenReturn(listSecretsResult);
-        when(defaultSecretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("MySecret")))).thenThrow(new AWSSecretsManagerException("Fake exception"));
-        runProviderTest(defaultSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED);
     }
 
     private static Parameter parameter(final String name, final String value) {
