@@ -161,7 +161,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
                     .verificationStepName("Fetch Parameters")
-                    .explanation(String.format("Fetched secret keys [%s] as parameters, across groups [%s]",
+                    .explanation(String.format("Fetched secret keys [%d] as parameters, across groups [%d]",
                             parameterCount, parameterGroups.size()))
                     .build());
         } catch (final Exception e) {
