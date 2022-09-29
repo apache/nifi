@@ -28,14 +28,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.c2.protocol.api.SupportedOperation;
 import org.apache.nifi.c2.protocol.component.api.Bundle;
 
 public class ManifestHashProvider {
-    private volatile String currentBundles = null;
-    private volatile Set<SupportedOperation> currentSupportedOperations = Collections.emptySet();
-    private volatile Pair<Integer, String> currentHashCodeManifestHashMapping = Pair.of(-1, null);
+    private String currentBundles = null;
+    private Set<SupportedOperation> currentSupportedOperations = Collections.emptySet();
+    private int currentHashCode;
+    private String currentManifestHash;
 
     public String calculateManifestHash(List<Bundle> loadedBundles, Set<SupportedOperation> supportedOperations) {
         String bundleString = loadedBundles.stream()
@@ -43,7 +43,7 @@ public class ManifestHashProvider {
             .sorted()
             .collect(Collectors.joining(","));
         int hashCode = Objects.hash(bundleString, supportedOperations);
-        if (hashCode != currentHashCodeManifestHashMapping.getKey()
+        if (hashCode != currentHashCode
             || !(Objects.equals(bundleString, currentBundles) && Objects.equals(supportedOperations, currentSupportedOperations))) {
             byte[] bytes;
             try {
@@ -51,11 +51,12 @@ public class ManifestHashProvider {
             } catch (NoSuchAlgorithmException e) {
                 throw new RuntimeException("Unable to set up manifest hash calculation due to not having support for the chosen digest algorithm", e);
             }
-            currentHashCodeManifestHashMapping = Pair.of(hashCode, bytesToHex(bytes));
+            currentHashCode = hashCode;
+            currentManifestHash = bytesToHex(bytes);
             currentBundles = bundleString;
             currentSupportedOperations = supportedOperations;
         }
-        return currentHashCodeManifestHashMapping.getValue();
+        return currentManifestHash;
     }
 
     private byte[] getBytes(Set<SupportedOperation> supportedOperations, String bundleString) {
