@@ -343,7 +343,7 @@ public class GetShopify extends AbstractProcessor {
                         response.close();
                     }
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    getLogger().error("Could not close http response", e);
                 }
             }
 

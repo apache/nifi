@@ -58,20 +58,12 @@ public class ShopifyRestService {
 
     public HttpResponseEntity getShopifyObjects() {
         final URI uri = getUri();
-        return webClientServiceProvider.getWebClientService()
-                .get()
-                .uri(uri)
-                .header(ACCESS_TOKEN_KEY, accessToken)
-                .retrieve();
+        return retrieveResponse(uri);
     }
 
     public HttpResponseEntity getShopifyObjects(final String startTime, final String endTime) {
         final URI uri = getIncrementalUri(startTime, endTime);
-        return webClientServiceProvider.getWebClientService()
-                .get()
-                .uri(uri)
-                .header(ACCESS_TOKEN_KEY, accessToken)
-                .retrieve();
+        return retrieveResponse(uri);
     }
 
     public HttpResponseEntity getShopifyObjects(final String cursor) {
@@ -81,6 +73,10 @@ public class ShopifyRestService {
         } catch (URISyntaxException e) {
             throw new ProcessException("Could not create URI from cursor while paging", e);
         }
+        return retrieveResponse(uri);
+    }
+
+    private HttpResponseEntity retrieveResponse(URI uri) {
         return webClientServiceProvider.getWebClientService()
                 .get()
                 .uri(uri)
