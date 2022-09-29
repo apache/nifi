@@ -32,6 +32,7 @@ public class VersionControlInformationDTO {
     private String flowName;
     private String flowDescription;
     private Integer version;
+    private String storageLocation;
     private String state;
     private String stateExplanation;
 
@@ -114,6 +115,15 @@ public class VersionControlInformationDTO {
 
     public void setVersion(final Integer version) {
         this.version = version;
+    }
+
+    @ApiModelProperty("The storage location")
+    public String getStorageLocation() {
+        return storageLocation;
+    }
+
+    public void setStorageLocation(String storageLocation) {
+        this.storageLocation = storageLocation;
     }
 
     @ApiModelProperty(accessMode = ApiModelProperty.AccessMode.READ_ONLY,

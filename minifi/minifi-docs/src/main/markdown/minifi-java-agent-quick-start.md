@@ -136,7 +136,8 @@ nifi.minifi.notifier.ingestors.file.polling.period.seconds=5
 4. Start MiNiFi
 5. When a new flow is available on the C2 server, MiNiFi will download it via C2 and restart itself to pick up the changes
 
-**Note:** Flow definitions are class based. Each class has one flow defined for it. As a result, all the agents belonging to the same class will get the flow at update.
+**Note:** Flow definitions are class based. Each class has one flow defined for it. As a result, all the agents belonging to the same class will get the flow at update.<br>
+**Note:** Compression can be turned on for C2 requests by setting `c2.request.compression=gzip`. Compression is turned off by default when the parameter is omitted, or when `c2.request.compression=none` is given. It can be beneficial to turn compression on to prevent network saturation.
 
 ## Loading a New Dataflow
 

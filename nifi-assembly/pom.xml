@@ -516,12 +516,6 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-azure-record-sink-nar</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-azure-services-api-nar</artifactId>
             <version>1.18.0-SNAPSHOT</version>
             <type>nar</type>
@@ -894,6 +888,12 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-zendesk-nar</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dropbox-processors-nar</artifactId>
             <version>1.18.0-SNAPSHOT</version>
             <type>nar</type>
@@ -913,6 +913,12 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-airtable-nar</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-flow-registry-client-nar</artifactId>
             <version>1.18.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>

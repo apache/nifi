@@ -46,6 +46,7 @@ import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.remote.PortAuthorizationResult;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.util.BundleUtils;
@@ -56,6 +57,7 @@ import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.apache.nifi.web.dao.ConnectionDAO;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
+import org.apache.nifi.web.dao.FlowRegistryDAO;
 import org.apache.nifi.web.dao.FunnelDAO;
 import org.apache.nifi.web.dao.LabelDAO;
 import org.apache.nifi.web.dao.ParameterContextDAO;
@@ -180,6 +182,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     private ControllerServiceDAO controllerServiceDAO;
     private ReportingTaskDAO reportingTaskDAO;
     private ParameterProviderDAO parameterProviderDAO;
+    private FlowRegistryDAO flowRegistryDAO;
     private TemplateDAO templateDAO;
     private AccessPolicyDAO accessPolicyDAO;
     private ParameterContextDAO parameterContextDAO;
@@ -382,6 +385,12 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     public ComponentAuthorizable getParameterProvider(final String id) {
         final ParameterProviderNode parameterProviderNode = parameterProviderDAO.getParameterProvider(id);
         return new ParameterProviderComponentAuthorizable(parameterProviderNode, controllerFacade.getExtensionManager());
+    }
+
+    @Override
+    public ComponentAuthorizable getFlowRegistryClient(final String id) {
+        final FlowRegistryClientNode flowRegistryClientNode = flowRegistryDAO.getFlowRegistryClient(id);
+        return new FlowRegistryClientComponentAuthorizable(flowRegistryClientNode, controllerFacade.getExtensionManager());
     }
 
     @Override
@@ -1089,6 +1098,64 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
     }
 
+    /**
+     * ComponentAuthorizable for a FlowRegistryClientNode.
+     */
+    private static class FlowRegistryClientComponentAuthorizable implements ComponentAuthorizable {
+        private final FlowRegistryClientNode flowRegistryClientNode;
+        private final ExtensionManager extensionManager;
+
+        public FlowRegistryClientComponentAuthorizable(final FlowRegistryClientNode flowRegistryClientNode, final ExtensionManager extensionManager) {
+            this.flowRegistryClientNode = flowRegistryClientNode;
+            this.extensionManager = extensionManager;
+        }
+
+        @Override
+        public Authorizable getAuthorizable() {
+            return flowRegistryClientNode;
+        }
+
+        @Override
+        public boolean isRestricted() {
+            return flowRegistryClientNode.isRestricted();
+        }
+
+        @Override
+        public Set<Authorizable> getRestrictedAuthorizables() {
+            return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(flowRegistryClientNode.getComponentClass());
+        }
+
+        @Override
+        public ParameterContext getParameterContext() {
+            return null;
+        }
+
+        @Override
+        public String getValue(PropertyDescriptor propertyDescriptor) {
+            return flowRegistryClientNode.getEffectivePropertyValue(propertyDescriptor);
+        }
+
+        @Override
+        public String getRawValue(final PropertyDescriptor propertyDescriptor) {
+            return flowRegistryClientNode.getRawPropertyValue(propertyDescriptor);
+        }
+
+        @Override
+        public PropertyDescriptor getPropertyDescriptor(String propertyName) {
+            return flowRegistryClientNode.getComponent().getPropertyDescriptor(propertyName);
+        }
+
+        @Override
+        public List<PropertyDescriptor> getPropertyDescriptors() {
+            return flowRegistryClientNode.getComponent().getPropertyDescriptors();
+        }
+
+        @Override
+        public void cleanUpResources() {
+            extensionManager.removeInstanceClassLoader(flowRegistryClientNode.getIdentifier());
+        }
+    }
+
     private static class StandardProcessGroupAuthorizable implements ProcessGroupAuthorizable {
         private final ProcessGroup processGroup;
         private final ExtensionManager extensionManager;
@@ -1247,6 +1314,10 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
 
     public void setParameterProviderDAO(final ParameterProviderDAO parameterProviderDAO) {
         this.parameterProviderDAO = parameterProviderDAO;
+    }
+
+    public void setFlowRegistryDAO(FlowRegistryDAO flowRegistryDAO) {
+        this.flowRegistryDAO = flowRegistryDAO;
     }
 
     public void setTemplateDAO(TemplateDAO templateDAO) {

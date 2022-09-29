@@ -43,7 +43,7 @@
                 <exclude>*:nifi-property-protection-factory</exclude>
                 <exclude>*:nifi-resources</exclude>
                 <exclude>*:nifi-docs</exclude>
-                <exclude>*:org.apache.nifi:nifi-ranger-resources:jar</exclude>
+                <exclude>org.apache.nifi:nifi-ranger-resources:jar</exclude>
 
                 <!-- exclude jaxb/activation/annotation libs from lib, they'll be included in the java11 subdir -->
                 <!-- TODO: remove these once minimum Java version is 11 -->

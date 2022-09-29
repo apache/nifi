@@ -30,6 +30,7 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.Triggerable;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.QueueSize;
@@ -40,7 +41,6 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.ComponentVariableRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -1093,7 +1093,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      *
      * @param flowRegistry the Flow Registry to synchronize with
      */
-    void synchronizeWithFlowRegistry(FlowRegistryClient flowRegistry);
+    void synchronizeWithFlowRegistry(FlowManager flowRegistry);
 
     /**
      * Called whenever a component within this group or the group itself is modified

@@ -18,25 +18,25 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "versionedFlowSnapshotEntity")
 public class VersionedFlowSnapshotEntity extends Entity {
-    private VersionedFlowSnapshot versionedFlowSnapshot;
+    private RegisteredFlowSnapshot versionedFlowSnapshot;
     private RevisionDTO processGroupRevision;
     private String registryId;
     private Boolean updateDescendantVersionedFlows;
     private Boolean disconnectedNodeAcknowledged;
 
     @ApiModelProperty("The versioned flow snapshot")
-    public VersionedFlowSnapshot getVersionedFlowSnapshot() {
+    public RegisteredFlowSnapshot getVersionedFlowSnapshot() {
         return versionedFlowSnapshot;
     }
 
-    public void setVersionedFlow(VersionedFlowSnapshot versionedFlowSnapshot) {
+    public void setVersionedFlow(RegisteredFlowSnapshot versionedFlowSnapshot) {
         this.versionedFlowSnapshot = versionedFlowSnapshot;
     }
 

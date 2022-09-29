@@ -57,6 +57,7 @@ public class ControllerBulletinsEndpointMerger extends AbstractSingleEntityEndpo
         final Map<NodeIdentifier, List<BulletinEntity>> bulletinDtos = new HashMap<>();
         final Map<NodeIdentifier, List<BulletinEntity>> controllerServiceBulletinDtos = new HashMap<>();
         final Map<NodeIdentifier, List<BulletinEntity>> reportingTaskBulletinDtos = new HashMap<>();
+        final Map<NodeIdentifier, List<BulletinEntity>> flowRegistryClientBulletinDtos = new HashMap<>();
         final Map<NodeIdentifier, List<BulletinEntity>> parameterProviderBulletinDtos = new HashMap<>();
         for (final Map.Entry<NodeIdentifier, ControllerBulletinsEntity> entry : entityMap.entrySet()) {
             final NodeIdentifier nodeIdentifier = entry.getKey();
@@ -91,6 +92,15 @@ public class ControllerBulletinsEndpointMerger extends AbstractSingleEntityEndpo
                     reportingTaskBulletinDtos.computeIfAbsent(nodeIdentifier, nodeId -> new ArrayList<>()).add(bulletin);
                 });
             }
+            if (entity.getFlowRegistryClientBulletins() != null) {
+                entity.getFlowRegistryClientBulletins().forEach(bulletin -> {
+                    if (bulletin.getNodeAddress() == null) {
+                        bulletin.setNodeAddress(nodeAddress);
+                    }
+
+                    flowRegistryClientBulletinDtos.computeIfAbsent(nodeIdentifier, nodeId -> new ArrayList<>()).add(bulletin);
+                });
+            }
             if (entity.getParameterProviderBulletins() != null) {
                 entity.getParameterProviderBulletins().forEach(bulletin -> {
                     if (bulletin.getNodeAddress() == null) {
@@ -105,6 +115,7 @@ public class ControllerBulletinsEndpointMerger extends AbstractSingleEntityEndpo
         clientEntity.setBulletins(BulletinMerger.mergeBulletins(bulletinDtos, entityMap.size()));
         clientEntity.setControllerServiceBulletins(BulletinMerger.mergeBulletins(controllerServiceBulletinDtos, entityMap.size()));
         clientEntity.setReportingTaskBulletins(BulletinMerger.mergeBulletins(reportingTaskBulletinDtos, entityMap.size()));
+        clientEntity.setFlowRegistryClientBulletins(BulletinMerger.mergeBulletins(flowRegistryClientBulletinDtos, entityMap.size()));
 
         // sort the bulletins
         Collections.sort(clientEntity.getBulletins(), BULLETIN_COMPARATOR);

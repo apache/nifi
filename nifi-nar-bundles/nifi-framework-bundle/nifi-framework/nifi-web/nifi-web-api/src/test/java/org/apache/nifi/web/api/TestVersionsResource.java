@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api;
 
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -47,14 +47,14 @@ public class TestVersionsResource {
     @Test
     public void testExportFlowVersion() {
         final String groupId = UUID.randomUUID().toString();
-        final VersionedFlowSnapshot versionedFlowSnapshot = mock(VersionedFlowSnapshot.class);
+        final RegisteredFlowSnapshot versionedFlowSnapshot = mock(RegisteredFlowSnapshot.class);
 
         when(serviceFacade.getVersionedFlowSnapshotByGroupId(groupId)).thenReturn(versionedFlowSnapshot);
 
         final String flowName = "flowname";
         final int flowVersion = 1;
         final VersionedProcessGroup versionedProcessGroup = mock(VersionedProcessGroup.class);
-        final VersionedFlowSnapshotMetadata snapshotMetadata = mock(VersionedFlowSnapshotMetadata.class);
+        final RegisteredFlowSnapshotMetadata snapshotMetadata = mock(RegisteredFlowSnapshotMetadata.class);
         when(versionedFlowSnapshot.getFlowContents()).thenReturn(versionedProcessGroup);
         when(versionedProcessGroup.getName()).thenReturn(flowName);
         when(versionedFlowSnapshot.getSnapshotMetadata()).thenReturn(snapshotMetadata);
@@ -67,7 +67,7 @@ public class TestVersionsResource {
 
         final Response response = versionsResource.exportFlowVersion(groupId);
 
-        final VersionedFlowSnapshot resultEntity = (VersionedFlowSnapshot)response.getEntity();
+        final RegisteredFlowSnapshot resultEntity = (RegisteredFlowSnapshot)response.getEntity();
 
         assertEquals(200, response.getStatus());
         assertEquals(versionedFlowSnapshot, resultEntity);

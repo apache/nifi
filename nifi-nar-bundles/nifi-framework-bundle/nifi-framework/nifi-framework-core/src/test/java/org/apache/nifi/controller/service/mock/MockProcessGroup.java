@@ -48,7 +48,6 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
@@ -712,7 +711,7 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void synchronizeWithFlowRegistry(FlowRegistryClient flowRegistry) {
+    public void synchronizeWithFlowRegistry(FlowManager flowRegistry) {
     }
 
     @Override

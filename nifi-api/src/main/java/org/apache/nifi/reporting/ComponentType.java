@@ -59,5 +59,10 @@ public enum ComponentType {
     /**
      * Bulletin is a system-level bulletin, associated with the Flow Controller
      */
-    FLOW_CONTROLLER;
+    FLOW_CONTROLLER,
+
+    /**
+     * Bulletin is associated with a Flow Registry Client
+     */
+    FLOW_REGISTRY_CLIENT;
 }

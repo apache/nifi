@@ -607,8 +607,9 @@ public final class NarUnpacker {
             final JarEntry reportingTaskEntry = jarFile.getJarEntry("META-INF/services/org.apache.nifi.reporting.ReportingTask");
             final JarEntry controllerServiceEntry = jarFile.getJarEntry("META-INF/services/org.apache.nifi.controller.ControllerService");
             final JarEntry parameterProviderEntry = jarFile.getJarEntry("META-INF/services/org.apache.nifi.parameter.ParameterProvider");
+            final JarEntry flowRegistryClientEntry = jarFile.getJarEntry("META-INF/services/org.apache.nifi.registry.flow.FlowRegistryClient");
 
-            if (processorEntry==null && reportingTaskEntry==null && controllerServiceEntry==null && parameterProviderEntry==null) {
+            if (processorEntry == null && reportingTaskEntry == null && controllerServiceEntry == null && parameterProviderEntry == null) {
                 return mapping;
             }
 
@@ -616,6 +617,7 @@ public final class NarUnpacker {
             mapping.addAllReportingTasks(coordinate, determineDocumentedNiFiComponents(jarFile, reportingTaskEntry));
             mapping.addAllControllerServices(coordinate, determineDocumentedNiFiComponents(jarFile, controllerServiceEntry));
             mapping.addAllParameterProviders(coordinate, determineDocumentedNiFiComponents(jarFile, parameterProviderEntry));
+            mapping.addAllFlowRegistryClients(coordinate, determineDocumentedNiFiComponents(jarFile, flowRegistryClientEntry));
             return mapping;
         }
     }

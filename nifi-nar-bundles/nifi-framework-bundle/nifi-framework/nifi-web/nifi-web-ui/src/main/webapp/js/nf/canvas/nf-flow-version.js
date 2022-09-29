@@ -206,7 +206,8 @@
                     registries.push({
                         text: registry.name,
                         value: registry.id,
-                        description: nfCommon.escapeHtml(registry.description)
+                        description: nfCommon.escapeHtml(registry.description),
+                        disabled: registry.validationStatus !== 'VALID'
                     });
                 });
             } else {

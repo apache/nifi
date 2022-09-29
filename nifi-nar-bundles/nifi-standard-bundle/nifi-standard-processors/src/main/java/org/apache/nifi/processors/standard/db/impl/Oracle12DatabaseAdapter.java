@@ -150,7 +150,8 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
                         uniqueKey -> column.equalsIgnoreCase(getColumnAssignment(table, uniqueKey, newTableAlias))))
                 .collect(Collectors.toList());
 
-        if (conflictColumnsClause.isEmpty()) {
+        // Compare list sizes instead of emptyness
+        if (conflictColumnsClause.size() != uniqueKeyColumnNames.size()) {
 
             // Try it with normalized columns
             conflictColumnsClause = conflictColumns.stream()

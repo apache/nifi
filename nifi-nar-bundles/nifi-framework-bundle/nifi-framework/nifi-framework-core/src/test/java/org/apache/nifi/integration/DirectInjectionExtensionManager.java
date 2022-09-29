@@ -23,6 +23,7 @@ import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.reporting.ReportingTask;
 
 import java.io.File;
@@ -43,6 +44,8 @@ public class DirectInjectionExtensionManager extends StandardExtensionDiscoverin
             extensionType = ReportingTask.class;
         } else if (extension instanceof ParameterProvider) {
             extensionType = ParameterProvider.class;
+        } else if (extension instanceof FlowRegistryClient) {
+            extensionType = FlowRegistryClient.class;
         } else {
             throw new IllegalArgumentException("Given extension is not a Processor, Controller Service, or Reporting Task");
         }

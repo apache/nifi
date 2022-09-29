@@ -29,6 +29,7 @@ import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Template;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
@@ -45,8 +46,7 @@ import org.apache.nifi.persistence.TemplateSerializer;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.flow.FlowRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -69,6 +69,7 @@ import java.io.OutputStream;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Serializes a Flow Controller as XML to an output stream.
@@ -101,7 +102,7 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
 
             final Element registriesElement = doc.createElement("registries");
             rootNode.appendChild(registriesElement);
-            addFlowRegistries(registriesElement, controller.getFlowRegistryClient());
+            addFlowRegistryClients(registriesElement, controller.getFlowManager(), encryptor);
 
             final Element parameterContextsElement = doc.createElement("parameterContexts");
             rootNode.appendChild(parameterContextsElement);
@@ -200,17 +201,19 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         }
     }
 
-    private void addFlowRegistries(final Element parentElement, final FlowRegistryClient registryClient) {
-        for (final String registryId : registryClient.getRegistryIdentifiers()) {
-            final FlowRegistry flowRegistry = registryClient.getFlowRegistry(registryId);
+    private void addFlowRegistryClients(final Element parentElement, final FlowManager flowManager, final PropertyEncryptor encryptor) {
+        for (final String registryId : flowManager.getAllFlowRegistryClients().stream().map(FlowRegistryClientNode::getIdentifier).collect(Collectors.toSet())) {
+            final FlowRegistryClientNode flowRegistry = flowManager.getFlowRegistryClient(registryId);
 
             final Element registryElement = parentElement.getOwnerDocument().createElement("flowRegistry");
             parentElement.appendChild(registryElement);
 
-            addStringElement(registryElement, "id", flowRegistry.getIdentifier());
-            addStringElement(registryElement, "name", flowRegistry.getName());
-            addStringElement(registryElement, "url", flowRegistry.getURL());
-            addStringElement(registryElement, "description", flowRegistry.getDescription());
+            addTextElement(registryElement, "id", flowRegistry.getIdentifier());
+            addTextElement(registryElement, "name", flowRegistry.getName());
+            addTextElement(registryElement, "description", flowRegistry.getDescription());
+            addTextElement(registryElement, "class", flowRegistry.getCanonicalClassName());
+            addBundle(registryElement, flowRegistry.getBundleCoordinate());
+            addConfiguration(registryElement, flowRegistry.getRawPropertyValues(), flowRegistry.getAnnotationData(), encryptor);
         }
     }
 
@@ -264,6 +267,7 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
             addTextElement(versionControlInfoElement, "flowName", versionControlInfo.getFlowName());
             addTextElement(versionControlInfoElement, "flowDescription", versionControlInfo.getFlowDescription());
             addTextElement(versionControlInfoElement, "version", versionControlInfo.getVersion());
+            addTextElement(versionControlInfoElement, "storageLocation", versionControlInfo.getStorageLocation());
             element.appendChild(versionControlInfoElement);
         }
 
