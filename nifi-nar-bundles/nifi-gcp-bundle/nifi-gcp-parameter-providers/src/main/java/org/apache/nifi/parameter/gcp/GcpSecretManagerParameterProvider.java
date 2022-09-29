@@ -76,6 +76,7 @@ public class GcpSecretManagerParameterProvider extends AbstractParameterProvider
             .displayName("Project ID")
             .description("Google Cloud Project ID")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(true)
             .build();
 
     /**
