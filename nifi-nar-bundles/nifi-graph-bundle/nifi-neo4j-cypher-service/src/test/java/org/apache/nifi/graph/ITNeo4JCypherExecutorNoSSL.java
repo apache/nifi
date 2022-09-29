@@ -22,11 +22,16 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.Session;
+import org.testcontainers.containers.Neo4jContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,12 +41,18 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 
 /**
- * Neo4J Cypher integration tests.  Please set the neo4j url, user and password according to your setup.
+ * Neo4J Cypher integration tests.
  */
-public class ITNeo4JCypherExecutor {
+@Testcontainers
+@DisabledIfSystemProperty(named = "neo4j.ssl.test", matches = "true")
+public class ITNeo4JCypherExecutorNoSSL {
+    @Container
+    private static Neo4jContainer<?> neo4jContainer =
+            new Neo4jContainer<>(DockerImageName.parse("neo4j:4.4"))
+                    .withAdminPassword("testing1234");
+
     protected TestRunner runner;
     protected Driver driver;
-    protected String neo4jUrl = "neo4j://localhost:7687";
     protected String user = "neo4j";
     protected String password = "testing1234";
 
@@ -53,10 +64,11 @@ public class ITNeo4JCypherExecutor {
         clientService = new Neo4JCypherClientService();
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("clientService", clientService);
+        runner.setProperty(clientService, Neo4JCypherClientService.CONNECTION_URL, neo4jContainer.getBoltUrl());
         runner.setProperty(clientService, Neo4JCypherClientService.USERNAME, user);
         runner.setProperty(clientService, Neo4JCypherClientService.PASSWORD, password);
         runner.enableControllerService(clientService);
-        driver = GraphDatabase.driver(neo4jUrl, AuthTokens.basic(user, password));
+        driver = GraphDatabase.driver(neo4jContainer.getBoltUrl(), AuthTokens.basic(user, password));
         executeSession("match (n) detach delete n");
 
         List<Record> result = executeSession("match (n) return n");
