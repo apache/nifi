@@ -921,78 +921,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <configuration>
-                    <checkstyleRules>
-                        <module name="Checker">
-                            <property name="charset" value="UTF-8" />
-                            <property name="severity" value="warning" />
-                            <!-- Checks for whitespace -->
-                            <!-- See http://checkstyle.sf.net/config_whitespace.html -->
-                            <module name="FileTabCharacter">
-                                <property name="eachLine" value="true" />
-                            </module>
-                            <module name="LineLength">
-                                <!-- needs extra, because Eclipse formatter
-                                    ignores the ending left brace -->
-                                <property name="max" value="200" />
-                                <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
-                            </module>
-                            <module name="TreeWalker">
-                                <module name="RegexpSinglelineJava">
-                                    <property name="format" value="\s+$" />
-                                    <property name="message" value="Line has trailing whitespace." />
-                                </module>
-                                <module name="RegexpSinglelineJava">
-                                    <property name="format" value="[@]see\s+[{][@]link" />
-                                    <property name="message" value="Javadoc @see does not need @link: pick one or the other." />
-                                </module>
-                                <module name="OuterTypeFilename" />
-                                <module name="AvoidStarImport" />
-                                <module name="UnusedImports">
-                                    <property name="processJavadoc" value="true" />
-                                </module>
-                                <module name="NoLineWrap" />
-                                <module name="LeftCurly" />
-                                <module name="RightCurly" />
-                                <module name="RightCurly">
-                                    <property name="option" value="alone_or_singleline" />
-                                    <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, STATIC_INIT" />
-                                </module>
-                                <module name="SeparatorWrap">
-                                    <property name="tokens" value="DOT" />
-                                    <property name="option" value="nl" />
-                                </module>
-                                <module name="SeparatorWrap">
-                                    <property name="tokens" value="COMMA" />
-                                    <property name="option" value="EOL" />
-                                </module>
-                                <module name="PackageName">
-                                    <property name="format" value="^[a-z]+(\.[a-z][a-zA-Z0-9]*)*$" />
-                                </module>
-                                <module name="MethodTypeParameterName">
-                                    <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)" />
-                                </module>
-                                <module name="MethodParamPad" />
-                                <module name="OperatorWrap">
-                                    <property name="option" value="NL" />
-                                    <property name="tokens" value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, QUESTION, SL, SR, STAR " />
-                                </module>
-                                <module name="AnnotationLocation">
-                                    <property name="tokens" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF" />
-                                </module>
-                                <module name="AnnotationLocation">
-                                    <property name="tokens" value="VARIABLE_DEF" />
-                                    <property name="allowSamelineMultipleAnnotations" value="true" />
-                                </module>
-                                <module name="NonEmptyAtclauseDescription" />
-                                <module name="JavadocMethod">
-                                    <property name="allowMissingParamTags" value="true" />
-                                    <property name="allowMissingReturnTag" value="true" />
-                                    <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After" />
-                                </module>
-                                <module name="SingleLineJavadoc" />
-                            </module>
-                        </module>
-                    </checkstyleRules>
+                    <configLocation>checkstyle.xml</configLocation>
                     <violationSeverity>warning</violationSeverity>
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
                 </configuration>
