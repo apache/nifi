@@ -25,8 +25,10 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
+import java.io.IOException;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -98,17 +100,26 @@ public class TestExecuteJython extends BaseScriptTest {
      * Tests a Jython script when adding comma separated list of all existing directories from PYTHONPATH
      * as value for {@link ScriptingComponentUtils} MODULES property.
      *
+     * This test can only be run if python is installed on hosting machine.
+     * It will exit if this is not the case.
+     *
      * @throws Exception If PYTHONPATH cannot be retrieved.
      */
     @Test
     @EnabledOnOs(OS.LINUX)
     public void testAccessPythonPackageModulesAndStoreInFlowFileAttributeWithScriptBody() throws Exception {
+        List<String> pythonDirectories = getExistingPythonPathModuleDirectories();
+        if (pythonDirectories.isEmpty()) {
+            // if we are here, then hosting machine does not have python installed and this test can not be run.  Exiting test.
+            return;
+        }
+
         String attributeName = "key";
         String attributeValue = "helloWorld";
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
         runner.setProperty(ScriptingComponentUtils.MODULES,
-                String.join(",", getExistingPythonPathModuleDirectories()));
+                String.join(",", pythonDirectories));
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY,
                 "from org.apache.nifi.processors.script import ExecuteScript\n"
                         + "flowFile = session.get()\n"
@@ -128,10 +139,17 @@ public class TestExecuteJython extends BaseScriptTest {
      * Method which retrieves the PYTHONPATH and builds a java.util.List of existing directories on the PYTHONPATH.
      * This method uses java.lang.ProcessBuilder and java.lang.Process to execute python to obtain the PYTHONPATH.
      *
-     * @return java.util.List of existing directories on PYTHONPATH.
+     * @return java.util.List of existing directories on PYTHONPATH.  Empty if python installation is not found.
      * @throws Exception If an error occurs when executing a java.lang.Process.
      */
     List<String> getExistingPythonPathModuleDirectories() throws Exception{
+        try {
+            Runtime.getRuntime().exec("python --version");
+        } catch (IOException e) {
+            // if we are here, then hosting machine does not have python installed.  Returning empty directory list
+            return new ArrayList<String>();
+        }
+
         String pathDelimiter = ",";
         ProcessBuilder processBuilder = new ProcessBuilder();
         processBuilder.command("python", "-c", "import sys; print('" + pathDelimiter + "'.join(sys.path))");
