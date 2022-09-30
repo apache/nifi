@@ -15,37 +15,38 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.elasticsearch.integration
+package org.apache.nifi.elasticsearch;
 
-import org.apache.nifi.components.PropertyDescriptor
-import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl
-import org.apache.nifi.elasticsearch.ElasticSearchLookupService
-import org.apache.nifi.processor.AbstractProcessor
-import org.apache.nifi.processor.ProcessContext
-import org.apache.nifi.processor.ProcessSession
-import org.apache.nifi.processor.exception.ProcessException
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 
-class TestControllerServiceProcessor extends AbstractProcessor {
+import java.util.Arrays;
+import java.util.List;
+
+public class TestControllerServiceProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor CLIENT_SERVICE = new PropertyDescriptor.Builder()
             .name("Client Service")
             .description("ElasticSearchClientServiceImpl")
             .identifiesControllerService(ElasticSearchClientServiceImpl.class)
             .required(true)
-            .build()
+            .build();
     public static final PropertyDescriptor LOOKUP_SERVICE = new PropertyDescriptor.Builder()
             .name("Lookup Service")
             .description("ElasticSearchClientServiceImpl")
             .identifiesControllerService(ElasticSearchLookupService.class)
             .required(false)
-            .build()
+            .build();
 
     @Override
-    void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        [ CLIENT_SERVICE, LOOKUP_SERVICE ]
+        return Arrays.asList(CLIENT_SERVICE, LOOKUP_SERVICE);
     }
 }

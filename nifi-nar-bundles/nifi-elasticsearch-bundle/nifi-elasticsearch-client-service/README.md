@@ -17,60 +17,32 @@
 
 ## Integration Tests
 
-The `nifi-elasticsearch-client-service` component build allows for optional Integration Tests to be executed to verify
-additional functionality.
+### Overview
 
-The Integration Tests create an in-memory instance of Elasticsearch, populate it with known data, perform operations
-upon the instance and verify the results.
+The integration tests use [Testcontainers](https://www.testcontainers.org/) to provide a sane default for developers who have installed Docker. Testcontainers support can be disabled by setting the system property `elasticsearch.testcontainers.enabled` to something other than `true`. If Testcontainers are disabled, the endpoint will need to be configured. It can be set manually with the system property `elasticsearch.endpoint`. The default value is `http://localhost:9200`.
 
-These can be activated by running the following build commands:
+### Maven Profiles
 
-### Elasticsearch 5
+* `integration-tests`
+* `elasticsearch6`
+* `elasticsearch7`
 
-Test integration with Elasticsearch 5.x:
+### Configurable System Properties
 
-```bash
-mvn -P integration-tests,elasticsearch-oss clean verify
-```
+* `elasticsearch.endpoint` - Manually configure the endpoint root for a non-Docker version of Elasticsearch,
+* `elasticsearch.testcontainers.enabled` - Set to anything other than `true` to disable Testcontainers and use a non-Docker version of Elasticsearch.
+* `elasticsearch.elastic_user.password` - Set the Elasticsearch `elastic` user's password. When Testcontainers are enabled, this sets up the Docker container and the rest clients for accessing it within the tests. When Testcontainers are disabled, it needs to be set to whatever password is used on the external Elasticsearch node or cluster.
 
-### Elasticsearch 6
+### Maven Run Examples
 
-Test integration with Elasticsearch 6.x:
+Elasticsearch 8.X is the current default version of Elasticsearch when Testcontainers are used. An example run of the integration tests with Elasticsearch 7 support would be like this:
 
-```bash
-mvn -P integration-tests,elasticsearch-oss,elasticsearch-6 clean verify
-```
+`mvn clean install -Pintegration-tests,elasticsearch7`
 
-### Elasticsearch 7
+An example using a non-Docker version of Elasticsearch:
 
-[elasticsearch-oss](https://www.elastic.co/downloads/past-releases#elasticsearch-oss) was discontinued after `7.10.2`,
-so the use of `elasticsearch-oss` is unnecessary for newer versions.
+`mvn clean install -Pintegration-tests -Delasticsearch.testcontainers.enabled=false -Delasticsearch.elastic_user.password=s3cret1234`
 
-For 7.x, we have two separate profiles:
+### Misc
 
-1. `elasticsearch-7` that can be used with `oss` (no X-Pack) and `default` (with X-Pack) flavours
-2. `elasticsearch-7-no-oss` that can only be used with the `default` flavour (using a newer version of [elasticsearch](https://www.elastic.co/downloads/past-releases#elasticsearch))
-
-#### With X-Pack
-
-Allows for testing of some X-Pack only features such as "Point in Time" querying:
-
-```bash
-mvn -P integration-tests,elasticsearch-default,elasticsearch-7 clean verify
-sleep 2
-mvn -P integration-tests,elasticsearch-default,elasticsearch-7-no-oss clean verify
-```
-
-#### Without X-Pack
-
-```bash
-mvn -P integration-tests,elasticsearch-oss,elasticsearch-7 clean verify
-```
-
-### Elasticsearch 8
-
-Test integration with Elasticsearch 8.x (with X-Pack):
-
-```bash
-mvn -P integration-tests,elasticsearch-default,elasticsearch-8 clean verify
-```
+The Testcontainers support currently only supports the x64 release of Dockerized Elasticsearch. ARM64 support may be added later.
