@@ -35,6 +35,7 @@ import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.c2.protocol.component.api.SchedulingDefaults;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.extension.manifest.AllowableValue;
 import org.apache.nifi.extension.manifest.DefaultSchedule;
@@ -48,6 +49,7 @@ import org.apache.nifi.extension.manifest.Property;
 import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 import org.apache.nifi.extension.manifest.ResourceDefinition;
 import org.apache.nifi.extension.manifest.Restricted;
+import org.apache.nifi.extension.manifest.Stateful;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.runtime.manifest.ComponentManifestBuilder;
 import org.apache.nifi.runtime.manifest.RuntimeManifestBuilder;
@@ -361,6 +363,32 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
                 restricted.getRestrictions().forEach(r -> explicitRestrictions.add(createRestriction(r)));
                 extensionComponent.setExplicitRestrictions(explicitRestrictions);
             }
+        }
+
+        final Stateful stateful = extension.getStateful();
+        if (stateful != null) {
+            final org.apache.nifi.c2.protocol.component.api.Stateful componentStateful = new org.apache.nifi.c2.protocol.component.api.Stateful();
+            componentStateful.setDescription(stateful.getDescription());
+            if (stateful.getScopes() != null) {
+                componentStateful.setScopes(
+                        stateful.getScopes().stream()
+                                .map(this::getScope)
+                                .collect(Collectors.toSet())
+                );
+                extensionComponent.setStateful(componentStateful);
+            }
+
+        }
+    }
+
+    private Scope getScope(final org.apache.nifi.extension.manifest.Scope sourceScope) {
+        switch (sourceScope) {
+            case LOCAL:
+                return Scope.LOCAL;
+            case CLUSTER:
+                return Scope.CLUSTER;
+            default:
+                throw new IllegalArgumentException("Unknown scope: " + sourceScope);
         }
     }
 

@@ -33,6 +33,7 @@ import org.apache.nifi.c2.protocol.component.api.SchedulingDefaults;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.junit.jupiter.api.Test;
 
@@ -146,6 +147,10 @@ public class TestRuntimeManifest {
         assertNull(listHdfsDefinition.isRestricted());
         assertNull(listHdfsDefinition.getRestrictedExplanation());
         assertNull(listHdfsDefinition.getExplicitRestrictions());
+        assertNotNull(listHdfsDefinition.getStateful());
+        assertNotNull(listHdfsDefinition.getStateful().getDescription());
+        assertNotNull(listHdfsDefinition.getStateful().getScopes());
+        assertEquals(Scope.CLUSTER, listHdfsDefinition.getStateful().getScopes().stream().findFirst().get());
 
         // Verify FetchHDFS definition has restrictions
         final ProcessorDefinition fetchHdfsDefinition = getProcessorDefinition(bundles, "nifi-hadoop-nar",
