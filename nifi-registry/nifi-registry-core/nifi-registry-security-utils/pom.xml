@@ -42,10 +42,5 @@
             <artifactId>spock-core</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy-test</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 </project>

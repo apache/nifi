@@ -104,12 +104,6 @@
             <artifactId>jersey-hk2</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <scope>test</scope>
-        </dependency>
-
         <dependency> <!-- handling this explicitly  Must be in root lib -->
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
