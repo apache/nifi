@@ -50,11 +50,11 @@ public interface C2Client {
     void acknowledgeOperation(C2OperationAck operationAck);
 
     /**
-     * Uploads the debug bundle to C2 server
+     * Uploads a binary bundle to C2 server
      *
-     * @param debugCallbackUrl url where the content should be uploaded to
-     * @param debugBundle      debug bundle content as byte array to be uploaded
+     * @param callbackUrl url where the content should be uploaded to
+     * @param bundle      bundle content as byte array to be uploaded
      * @return optional error message if any issues occurred
      */
-    Optional<String> uploadDebugBundle(String debugCallbackUrl, byte[] debugBundle);
+    Optional<String> uploadBundle(String callbackUrl, byte[] bundle);
 }

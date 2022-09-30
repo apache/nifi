@@ -55,8 +55,8 @@ public class C2HttpClient implements C2Client {
     static final MediaType MEDIA_TYPE_APPLICATION_JSON = MediaType.parse("application/json");
     private static final Logger logger = LoggerFactory.getLogger(C2HttpClient.class);
     private static final String MULTIPART_FORM_FILE_FIELD_NAME = "file";
-    private static final String DEBUG_BUNDLE_FILE_NAME = "debug.tar.gz";
-    private static final MediaType DEBUG_BUNDLE_MIME_TYPE = MediaType.parse("application/gzip");
+    private static final String BUNDLE_FILE_NAME = "debug.tar.gz";
+    private static final MediaType BUNDLE_MIME_TYPE = MediaType.parse("application/gzip");
 
     private final AtomicReference<OkHttpClient> httpClientReference = new AtomicReference<>();
     private final C2ClientConfig clientConfig;
@@ -129,7 +129,7 @@ public class C2HttpClient implements C2Client {
 
     @Override
     public void acknowledgeOperation(C2OperationAck operationAck) {
-        logger.info("Acknowledging Operation {} C2 URL {}", operationAck.getOperationId(), clientConfig.getC2AckUrl());
+        logger.info("Acknowledging Operation {} to C2 server {}", operationAck.getOperationId(), clientConfig.getC2AckUrl());
         serializer.serialize(operationAck)
             .map(operationAckBody -> create(operationAckBody, MEDIA_TYPE_APPLICATION_JSON))
             .map(requestBody -> new Request.Builder().post(requestBody).url(clientConfig.getC2AckUrl()).build())
@@ -138,24 +138,24 @@ public class C2HttpClient implements C2Client {
     }
 
     @Override
-    public Optional<String> uploadDebugBundle(String debugCallbackUrl, byte[] debugBundle) {
+    public Optional<String> uploadBundle(String callbackUrl, byte[] bundle) {
         Request request = new Request.Builder()
-            .url(debugCallbackUrl)
+            .url(callbackUrl)
             .post(new MultipartBody.Builder()
                 .setType(FORM)
-                .addFormDataPart(MULTIPART_FORM_FILE_FIELD_NAME, DEBUG_BUNDLE_FILE_NAME, create(debugBundle, DEBUG_BUNDLE_MIME_TYPE))
+                .addFormDataPart(MULTIPART_FORM_FILE_FIELD_NAME, BUNDLE_FILE_NAME, create(bundle, BUNDLE_MIME_TYPE))
                 .build())
             .build();
 
-        logger.info("Uploading debug bundle to url {} with size {}", debugCallbackUrl, debugBundle.length);
+        logger.info("Uploading bundle to C2 server {} with size {}", callbackUrl, bundle.length);
         try (Response response = httpClientReference.get().newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                logger.warn("Upload debug bundle failed to C2 server {} with status code {}", debugCallbackUrl, response.code());
-                return Optional.of("Upload debug bundle failed to C2 server");
+                logger.error("Upload bundle failed to C2 server {} with status code {}", callbackUrl, response.code());
+                return Optional.of("Upload bundle failed to C2 server");
             }
         } catch (IOException e) {
-            logger.error("Could not upload debug bundle to C2 server {}", debugCallbackUrl, e);
-            return Optional.of("Could not upload debug bundle to C2 server");
+            logger.error("Could not upload bundle to C2 server {}", callbackUrl, e);
+            return Optional.of("Could not upload bundle to C2 server");
         }
         return Optional.empty();
     }
@@ -172,7 +172,7 @@ public class C2HttpClient implements C2Client {
         try (Response heartbeatResponse = httpClientReference.get().newCall(decoratedRequest).execute()) {
             c2HeartbeatResponse = getResponseBody(heartbeatResponse).flatMap(response -> serializer.deserialize(response, C2HeartbeatResponse.class));
         } catch (IOException ce) {
-            logger.error("Send Heartbeat failed to url {}", clientConfig.getC2Url(), ce);
+            logger.error("Send Heartbeat failed to C2 server {}", clientConfig.getC2Url(), ce);
         }
 
         return c2HeartbeatResponse;
@@ -272,10 +272,10 @@ public class C2HttpClient implements C2Client {
     private void sendAck(Request request) {
         try (Response heartbeatResponse = httpClientReference.get().newCall(request).execute()) {
             if (!heartbeatResponse.isSuccessful()) {
-                logger.warn("Acknowledgement was not successful with c2 server {} with status code {}", clientConfig.getC2AckUrl(), heartbeatResponse.code());
+                logger.warn("Acknowledgement was not successful with C2 server {} with status code {}", clientConfig.getC2AckUrl(), heartbeatResponse.code());
             }
         } catch (IOException e) {
-            logger.error("Could not transmit ack to c2 server {}", clientConfig.getC2AckUrl(), e);
+            logger.error("Could not transmit ack to C2 server {}", clientConfig.getC2AckUrl(), e);
         }
     }
 }

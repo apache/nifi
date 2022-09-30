@@ -19,9 +19,8 @@ package org.apache.nifi.c2.client.service.operation;
 
 import static java.nio.file.Files.copy;
 import static java.nio.file.Files.createTempDirectory;
-import static java.nio.file.Files.deleteIfExists;
 import static java.nio.file.Files.lines;
-import static java.nio.file.Files.write;
+import static java.nio.file.Files.walk;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.compress.utils.IOUtils.closeQuietly;
@@ -32,8 +31,10 @@ import static org.apache.nifi.c2.protocol.api.OperandType.DEBUG;
 import static org.apache.nifi.c2.protocol.api.OperationType.TRANSFER;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -83,7 +84,7 @@ public class DebugOperationHandler implements C2OperationHandler {
             throw new IllegalArgumentException("bundleFilePaths should not be not null or empty");
         }
         if (contentFilter == null) {
-            throw new IllegalArgumentException("Exclude sensitive filter should not be null");
+            throw new IllegalArgumentException("Content filter should not be null");
         }
 
         return new DebugOperationHandler(c2Client, bundleFilePaths, contentFilter);
@@ -110,9 +111,9 @@ public class DebugOperationHandler implements C2OperationHandler {
         List<Path> contentFilteredFilePaths = null;
         C2OperationState operationState;
         try {
-            contentFilteredFilePaths = filterContent(bundleFilePaths);
+            contentFilteredFilePaths = filterContent(operation.getIdentifier(), bundleFilePaths);
             operationState = createDebugBundle(contentFilteredFilePaths)
-                .map(bundle -> c2Client.uploadDebugBundle(debugCallbackUrl, bundle)
+                .map(bundle -> c2Client.uploadBundle(debugCallbackUrl, bundle)
                     .map(errorMessage -> operationState(NOT_APPLIED, errorMessage))
                     .orElseGet(() -> operationState(FULLY_APPLIED, SUCCESSFUL_UPLOAD)))
                 .orElseGet(() -> operationState(NOT_APPLIED, UNABLE_TO_CREATE_BUNDLE));
@@ -123,7 +124,7 @@ public class DebugOperationHandler implements C2OperationHandler {
             ofNullable(contentFilteredFilePaths).ifPresent(this::cleanup);
         }
 
-        LOG.debug("Returning operation ack with state {} and details {}", operationState.getState(), operationState.getDetails());
+        LOG.debug("Returning operation ack for operation {} with state {} and details {}", operation.getIdentifier(), operationState.getState(), operationState.getDetails());
         return operationAck(operation, operationState);
     }
 
@@ -141,14 +142,14 @@ public class DebugOperationHandler implements C2OperationHandler {
         return state;
     }
 
-    private List<Path> filterContent(List<Path> bundleFilePaths) {
+    private List<Path> filterContent(String operationId, List<Path> bundleFilePaths) {
         List<Path> contentFilteredFilePaths = new ArrayList<>();
         for (Path path : bundleFilePaths) {
             String fileName = path.getFileName().toString();
             try (Stream<String> fileStream = lines(path)) {
-                Path tempDirectory = createTempDirectory(null);
+                Path tempDirectory = createTempDirectory(operationId);
                 Path tempFile = Paths.get(tempDirectory.toAbsolutePath().toString(), fileName);
-                write(tempFile, (Iterable<String>) fileStream.filter(contentFilter)::iterator);
+                Files.write(tempFile, (Iterable<String>) fileStream.filter(contentFilter)::iterator);
                 contentFilteredFilePaths.add(tempFile);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
@@ -178,19 +179,15 @@ public class DebugOperationHandler implements C2OperationHandler {
     }
 
     private void cleanup(List<Path> paths) {
-        Optional<Path> firstPath = paths.stream().findFirst();
-        if (firstPath.isPresent()) {
-            Path baseDirectory = firstPath.get().getParent();
-            paths.forEach(path -> deleteQuietly(path, "Unable to delete temporary file"));
-            deleteQuietly(baseDirectory, "Unable to delete temporary directory");
-        }
-    }
-
-    private static void deleteQuietly(Path baseDirectory, String errorMessage) {
-        try {
-            deleteIfExists(baseDirectory);
-        } catch (IOException e) {
-            LOG.warn(errorMessage, e);
-        }
+        paths.stream()
+            .findFirst()
+            .map(Path::getParent)
+            .ifPresent(basePath -> {
+                try (Stream<Path> walk = walk(basePath)) {
+                    walk.map(Path::toFile).forEach(File::delete);
+                } catch (IOException e) {
+                    LOG.warn("Unable to clean up temporary directory {}", basePath, e);
+                }
+            });
     }
 }

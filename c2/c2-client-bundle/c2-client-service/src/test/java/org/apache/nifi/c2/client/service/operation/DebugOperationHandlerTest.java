@@ -19,7 +19,6 @@ package org.apache.nifi.c2.client.service.operation;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.write;
-import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -94,7 +93,7 @@ public class DebugOperationHandlerTest {
         );
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "c2Client={0} bundleFileList={1} contentFilter={2}")
     @MethodSource("invalidConstructorArguments")
     public void testAttemptingCreateWithInvalidParametersWillThrowException(C2Client c2Client, List<Path> bundleFilePaths, Predicate<String> contentFilter) {
         assertThrows(IllegalArgumentException.class, () -> DebugOperationHandler.create(c2Client, bundleFilePaths, contentFilter));
@@ -127,8 +126,7 @@ public class DebugOperationHandlerTest {
     @Test
     public void testFilesAreCollectedAndUploadedAsATarGzBundle() {
         // given
-        Map<String, String> bundleFileNamesWithContents = asList("file.log", "application.conf", "default.properties")
-            .stream()
+        Map<String, String> bundleFileNamesWithContents = Stream.of("file.log", "application.conf", "default.properties")
             .collect(toMap(identity(), __ -> DEFAULT_FILE_CONTENT));
         List<Path> createBundleFiles = bundleFileNamesWithContents.entrySet().stream()
             .map(entry -> placeFileWithContent(entry.getKey(), entry.getValue()))
@@ -142,7 +140,7 @@ public class DebugOperationHandlerTest {
         // then
         ArgumentCaptor<String> uploadUrlCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<byte[]> uploadBundleCaptor = ArgumentCaptor.forClass(byte[].class);
-        verify(c2Client).uploadDebugBundle(uploadUrlCaptor.capture(), uploadBundleCaptor.capture());
+        verify(c2Client).uploadBundle(uploadUrlCaptor.capture(), uploadBundleCaptor.capture());
         assertEquals(OPERATION_ID, result.getOperationId());
         assertEquals(FULLY_APPLIED, result.getOperationState().getState());
         assertEquals(C2_DEBUG_UPLOAD_ENDPOINT, uploadUrlCaptor.getValue());
@@ -164,13 +162,33 @@ public class DebugOperationHandlerTest {
         assertEquals(NOT_APPLIED, result.getOperationState().getState());
     }
 
-    @Test
-    public void testContentIsFilteredOut() {
-        // given
+    private static Stream<Arguments> contentFilterArguments() {
         String filterKeyword = "minifi";
-        String bundleFileName = "filter_content.file";
-        String fileContent = Stream.of("line one", "line two " + filterKeyword, filterKeyword + "line three", "line four").collect(joining(NEW_LINE));
-        Path bundleFile = placeFileWithContent(bundleFileName, fileContent);
+        return Stream.of(
+            Arguments.of(
+                "files_containing_keyword_filtered_out.file",
+                filterKeyword,
+                Stream.of("line one", "line two " + filterKeyword, filterKeyword + "line three", "line four", "line " + filterKeyword + " five").collect(joining(NEW_LINE)),
+                Stream.of("line one", "line four").collect(joining(NEW_LINE))),
+            Arguments.of(
+                "all_content_filtered_out.file",
+                filterKeyword,
+                Stream.of("line one " + filterKeyword, filterKeyword, filterKeyword + "line three",
+                    filterKeyword + "line four" + filterKeyword, "line " + filterKeyword + " five").collect(joining(NEW_LINE)),
+                ""),
+            Arguments.of(
+                "all_content_kept.file",
+                filterKeyword,
+                Stream.of("line one", "line two", "line three", "line four", "line five").collect(joining(NEW_LINE)),
+                Stream.of("line one", "line two", "line three", "line four", "line five").collect(joining(NEW_LINE)))
+        );
+    }
+
+    @ParameterizedTest(name = "file={0}")
+    @MethodSource("contentFilterArguments")
+    public void testContentIsFilteredOut(String fileName, String filterKeyword, String inputContent, String expectedContent) {
+        // given
+        Path bundleFile = placeFileWithContent(fileName, inputContent);
         Predicate<String> testContentFilter = content -> !content.contains(filterKeyword);
         DebugOperationHandler testHandler = DebugOperationHandler.create(c2Client, singletonList(bundleFile), testContentFilter);
         C2Operation c2Operation = operation(C2_DEBUG_UPLOAD_ENDPOINT);
@@ -181,14 +199,13 @@ public class DebugOperationHandlerTest {
         // then
         ArgumentCaptor<String> uploadUrlCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<byte[]> uploadBundleCaptor = ArgumentCaptor.forClass(byte[].class);
-        verify(c2Client).uploadDebugBundle(uploadUrlCaptor.capture(), uploadBundleCaptor.capture());
+        verify(c2Client).uploadBundle(uploadUrlCaptor.capture(), uploadBundleCaptor.capture());
         assertEquals(OPERATION_ID, result.getOperationId());
         assertEquals(FULLY_APPLIED, result.getOperationState().getState());
         assertEquals(C2_DEBUG_UPLOAD_ENDPOINT, uploadUrlCaptor.getValue());
-        String expectedFileContent = Stream.of("line one", "line four").collect(joining("\n"));
         Map<String, String> resultBundle = extractBundle(uploadBundleCaptor.getValue());
         assertEquals(1, resultBundle.size());
-        assertEquals(expectedFileContent, resultBundle.get(bundleFileName));
+        assertEquals(expectedContent, resultBundle.get(fileName));
     }
 
     private Path placeFileWithContent(String fileName, String content) {
