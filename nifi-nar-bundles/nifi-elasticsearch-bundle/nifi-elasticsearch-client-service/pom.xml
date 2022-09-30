@@ -25,20 +25,6 @@
     <artifactId>nifi-elasticsearch-client-service</artifactId>
     <packaging>jar</packaging>
 
-    <properties>
-        <!-- use with integration-tests only -->
-        <es.int.version>5.6.16</es.int.version>
-        <alexcojocaru.plugin.version>6.19</alexcojocaru.plugin.version>
-        <es.int.script.name>setup-5.script</es.int.script.name>
-        <es.int.type.name>faketype</es.int.type.name>
-        <es.int.path.conf>src/test/resources/conf-5/</es.int.path.conf>
-        <es.int.clusterName>testCluster</es.int.clusterName>
-        <es.int.transportPort>9500</es.int.transportPort>
-        <es.int.httpPort>9400</es.int.httpPort>
-        <es.int.timeout>90</es.int.timeout>
-        <es.int.logLevel>ERROR</es.int.logLevel>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -196,6 +182,17 @@
             <version>${nifi.groovy.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>elasticsearch</artifactId>
+            <version>${testcontainers.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${testcontainers.version}</version>
+        </dependency>
     </dependencies>
 
     <profiles>
@@ -204,181 +201,40 @@
             <activation>
                 <activeByDefault>false</activeByDefault>
             </activation>
+            <properties>
+                <elasticsearch_docker_image>8.4.3</elasticsearch_docker_image>
+                <elasticsearch.elastic.password>s3cret</elasticsearch.elastic.password>
+            </properties>
             <build>
                 <pluginManagement>
                     <plugins>
                         <plugin>
                             <groupId>org.apache.maven.plugins</groupId>
                             <artifactId>maven-failsafe-plugin</artifactId>
+                            <configuration>
+                                <systemPropertyVariables>
+                                    <elasticsearch.endpoint>http://localhost:9200</elasticsearch.endpoint>
+                                    <elasticsearch.testcontainers.enabled>true</elasticsearch.testcontainers.enabled>
+                                    <elasticsearch.docker.image>docker.elastic.co/elasticsearch/elasticsearch:${elasticsearch_docker_image}</elasticsearch.docker.image>
+                                    <elasticsearch.elastic_user.password>${elasticsearch.elastic.password}</elasticsearch.elastic_user.password>
+                                </systemPropertyVariables>
+                            </configuration>
                         </plugin>
                     </plugins>
                 </pluginManagement>
             </build>
         </profile>
-
         <profile>
-            <!-- use with elasticsearch-oss only (-default can be used if x-pack-ml permissions fixed) -->
-            <id>elasticsearch-6</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
+            <id>elasticsearch6</id>
             <properties>
-                <es.int.version>6.8.23</es.int.version>
-                <es.int.type.name>_doc</es.int.type.name>
-                <es.int.script.name>setup-6.script</es.int.script.name>
-                <es.int.path.conf />
+                <elasticsearch_docker_image>6.8.23</elasticsearch_docker_image>
             </properties>
         </profile>
         <profile>
-            <!-- use with elasticsearch-oss or elasticsearch-default -->
-            <id>elasticsearch-7</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
+            <id>elasticsearch7</id>
             <properties>
-                <es.int.version>7.10.2</es.int.version>
-                <es.int.script.name>setup-7.script</es.int.script.name>
-                <es.int.type.name />
-                <es.int.path.conf />
+                <elasticsearch_docker_image>7.17.6</elasticsearch_docker_image>
             </properties>
-        </profile>
-        <profile>
-            <!-- use with elasticsearch-default -->
-            <id>elasticsearch-7-no-oss</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <es.int.version>7.17.3</es.int.version>
-                <es.int.script.name>setup-7.script</es.int.script.name>
-                <es.int.type.name />
-                <es.int.path.conf />
-            </properties>
-        </profile>
-        <profile>
-            <!-- use with elasticsearch-default -->
-            <id>elasticsearch-8</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <es.int.version>8.2.0</es.int.version>
-                <!-- elasticsearch-maven-plugin version 6.20+ required for Elasticsearch 8.x+ -->
-                <alexcojocaru.plugin.version>6.22</alexcojocaru.plugin.version>
-                <es.int.script.name>setup-8.script</es.int.script.name>
-                <es.int.type.name />
-                <es.int.path.conf />
-            </properties>
-        </profile>
-
-        <profile>
-            <!-- OSS Elasticsearch (no XPack features); required for ES 5.x or < 6.3 and option for 7.x up to 7.10.2 -->
-            <id>elasticsearch-oss</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-failsafe-plugin</artifactId>
-                        <configuration>
-                            <systemPropertyVariables>
-                                <type_name>${es.int.type.name}</type_name>
-                                <es_version>${es.int.version}</es_version>
-                                <es_flavour>oss</es_flavour>
-                            </systemPropertyVariables>
-                        </configuration>
-                    </plugin>
-                    <plugin>
-                        <groupId>com.github.alexcojocaru</groupId>
-                        <artifactId>elasticsearch-maven-plugin</artifactId>
-                        <version>${alexcojocaru.plugin.version}</version>
-                        <configuration>
-                            <clusterName>${es.int.clusterName}</clusterName>
-                            <transportPort>${es.int.transportPort}</transportPort>
-                            <httpPort>${es.int.httpPort}</httpPort>
-                            <version>${es.int.version}</version>
-                            <timeout>${es.int.timeout}</timeout>
-                            <logLevel>${es.int.logLevel}</logLevel>
-			                <pathInitScript>${project.basedir}/src/test/resources/${es.int.script.name}</pathInitScript>
-                            <keepExistingData>false</keepExistingData>
-                            <pathConf>${es.int.path.conf}</pathConf>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>start-elasticsearch</id>
-                                <phase>pre-integration-test</phase>
-                                <goals>
-                                    <goal>runforked</goal>
-                                </goals>
-                            </execution>
-                            <execution>
-                                <id>stop-elasticsearch</id>
-                                <phase>post-integration-test</phase>
-                                <goals>
-                                    <goal>stop</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
-        <profile>
-            <!-- Elasticsearch (default) with XPack (only for ES 6.3+ & 7.x although there are XPack permission problems in 6.x startup) -->
-            <id>elasticsearch-default</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-failsafe-plugin</artifactId>
-                        <configuration>
-                            <systemPropertyVariables>
-                                <type_name>${es.int.type.name}</type_name>
-                                <es_version>${es.int.version}</es_version>
-                                <es_flavour>default</es_flavour>
-                            </systemPropertyVariables>
-                        </configuration>
-                    </plugin>
-                    <plugin>
-                        <groupId>com.github.alexcojocaru</groupId>
-                        <artifactId>elasticsearch-maven-plugin</artifactId>
-                        <version>${alexcojocaru.plugin.version}</version>
-                        <configuration>
-                            <flavour>default</flavour>
-                            <clusterName>${es.int.clusterName}</clusterName>
-                            <transportPort>${es.int.transportPort}</transportPort>
-                            <httpPort>${es.int.httpPort}</httpPort>
-                            <version>${es.int.version}</version>
-                            <timeout>${es.int.timeout}</timeout>
-                            <logLevel>${es.int.logLevel}</logLevel>
-			                <pathInitScript>${project.basedir}/src/test/resources/${es.int.script.name}</pathInitScript>
-                            <keepExistingData>false</keepExistingData>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>start-elasticsearch</id>
-                                <phase>pre-integration-test</phase>
-                                <goals>
-                                    <goal>runforked</goal>
-                                </goals>
-                            </execution>
-                            <execution>
-                                <id>stop-elasticsearch</id>
-                                <phase>post-integration-test</phase>
-                                <goals>
-                                    <goal>stop</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
         </profile>
     </profiles>
 </project>
