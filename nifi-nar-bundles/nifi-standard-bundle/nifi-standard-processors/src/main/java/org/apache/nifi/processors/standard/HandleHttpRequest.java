@@ -52,6 +52,7 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import javax.net.ssl.SSLContext;
 import javax.servlet.AsyncContext;
@@ -250,6 +251,14 @@ public class HandleHttpRequest extends AbstractProcessor {
             .allowableValues("true", "false")
             .defaultValue("false")
             .build();
+    public static final PropertyDescriptor MAXIMUM_THREADS = new PropertyDescriptor.Builder()
+            .name("Maximum Threads")
+            .displayName("Maximum Threads")
+            .description("The maximum number of threads that the embedded HTTP server will use for handling requests.")
+            .required(true)
+            .defaultValue("200")
+            .addValidator(StandardValidators.createLongValidator(8, 1000, true))
+            .build();
     public static final PropertyDescriptor ADDITIONAL_METHODS = new PropertyDescriptor.Builder()
             .name("Additional HTTP Methods")
             .description("A comma-separated list of non-standard HTTP Methods that should be allowed")
@@ -318,6 +327,7 @@ public class HandleHttpRequest extends AbstractProcessor {
         descriptors.add(ALLOW_DELETE);
         descriptors.add(ALLOW_HEAD);
         descriptors.add(ALLOW_OPTIONS);
+        descriptors.add(MAXIMUM_THREADS);
         descriptors.add(ADDITIONAL_METHODS);
         descriptors.add(CLIENT_AUTH);
         descriptors.add(CONTAINER_QUEUE_SIZE);
@@ -362,7 +372,7 @@ public class HandleHttpRequest extends AbstractProcessor {
         final long requestTimeout = httpContextMap.getRequestTimeout(TimeUnit.MILLISECONDS);
 
         final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
-        final Server server = new Server();
+        final Server server = createServer(context);
 
         final StandardServerConnectorFactory serverConnectorFactory = new StandardServerConnectorFactory(server, port);
         final boolean needClientAuth = CLIENT_NEED.getValue().equals(clientAuthValue);
@@ -836,6 +846,13 @@ public class HandleHttpRequest extends AbstractProcessor {
         } catch (final Exception e) {
             getLogger().error("Send Error Failed: HTTP {} [{}] Method [{}] URI [{}] Address [{}]", statusCode, message, method, uri, remoteAddr, e);
         }
+    }
+
+    private Server createServer(final ProcessContext context) {
+        final int maximumThreads = context.getProperty(MAXIMUM_THREADS).asInteger();
+        final QueuedThreadPool queuedThreadPool = new QueuedThreadPool(maximumThreads);
+        queuedThreadPool.setName(String.format("%s[id=%s] Server", getClass().getSimpleName(), getIdentifier()));
+        return new Server(queuedThreadPool);
     }
 
     private static class HttpRequestContainer {

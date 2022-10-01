@@ -30,7 +30,6 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
@@ -43,7 +42,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.IntStream;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.servlet.AsyncContext;
@@ -506,98 +504,6 @@ public class ITestHandleHttpRequest {
 
         runner.assertTransferCount(HandleHttpRequest.REL_SUCCESS, 0);
         assertEquals(503, responseCode[0]);
-    }
-
-    @Test
-    public void testCleanup() throws Exception {
-        // GIVEN
-        int nrOfRequests = 5;
-
-        CountDownLatch serverReady = new CountDownLatch(1);
-        CountDownLatch requestSent = new CountDownLatch(nrOfRequests);
-        CountDownLatch cleanupDone = new CountDownLatch(nrOfRequests - 1);
-
-        processor = new HandleHttpRequest() {
-            @Override
-            synchronized void initializeServer(ProcessContext context) throws Exception {
-                super.initializeServer(context);
-                serverReady.countDown();
-
-                requestSent.await();
-                while (getRequestQueueSize() < nrOfRequests) {
-                    Thread.sleep(200);
-                }
-            }
-        };
-
-        final TestRunner runner = TestRunners.newTestRunner(processor);
-        runner.setProperty(HandleHttpRequest.PORT, "0");
-
-        final MockHttpContextMap contextMap = new MockHttpContextMap();
-        runner.addControllerService("http-context-map", contextMap);
-        runner.enableControllerService(contextMap);
-        runner.setProperty(HandleHttpRequest.HTTP_CONTEXT_MAP, "http-context-map");
-
-        List<Response> responses = new ArrayList<>(nrOfRequests);
-        final Thread httpThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    serverReady.await();
-
-                    final int port = ((HandleHttpRequest) runner.getProcessor()).getPort();
-
-                    OkHttpClient client =
-                            new OkHttpClient.Builder()
-                                    .readTimeout(3000, TimeUnit.MILLISECONDS)
-                                    .writeTimeout(3000, TimeUnit.MILLISECONDS)
-                                    .build();
-                    client.dispatcher().setMaxRequests(nrOfRequests);
-                    client.dispatcher().setMaxRequestsPerHost(nrOfRequests);
-
-                    Callback callback = new Callback() {
-                        @Override
-                        public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                            // Will only happen once for the first non-rejected request, but not important
-                        }
-
-                        @Override
-                        public void onResponse(@NotNull Call call, @NotNull Response response) {
-                            responses.add(response);
-                            cleanupDone.countDown();
-                        }
-                    };
-                    IntStream.rangeClosed(1, nrOfRequests).forEach(
-                            requestCounter -> {
-                                Request request = new Request.Builder()
-                                        .url(String.format("http://localhost:%s/my/" + requestCounter, port))
-                                        .get()
-                                        .build();
-                                sendRequest(client, request, callback, requestSent);
-                            }
-                    );
-                } catch (final Throwable t) {
-                    // Do nothing as HandleHttpRequest doesn't respond normally
-                }
-            }
-        });
-
-        // WHEN
-        httpThread.start();
-        runner.run(1, false);
-        cleanupDone.await();
-
-        // THEN
-        int nrOfPendingRequests = processor.getRequestQueueSize();
-
-        runner.assertAllFlowFilesTransferred(HandleHttpRequest.REL_SUCCESS, 1);
-
-        assertEquals(1, contextMap.size());
-        assertEquals(0, nrOfPendingRequests);
-        assertEquals(responses.size(), nrOfRequests - 1);
-        for (Response response : responses) {
-            assertEquals(HttpServletResponse.SC_SERVICE_UNAVAILABLE, response.code());
-        }
     }
 
     @Test
