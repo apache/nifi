@@ -230,18 +230,13 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
             throw new AuthorizerCreationException(String.format("Prefix shouldn't have any reserved keywords ([%s])", StringUtils.join(REST_CALL_KEYWORDS, ",")));
         }
 
-        try {
-            refreshUserGroup(groupFilterList, prefix, suffix, substring, pageSize);
-        } catch (final IOException | ClientException e) {
-            throw new AuthorizerCreationException(String.format("Failed to load UserGroup due to %s", e.getMessage()), e);
-        }
         scheduler.scheduleWithFixedDelay(() -> {
             try {
                 refreshUserGroup(groupFilterList, prefix, suffix, substring, pageSize);
             } catch (final Throwable t) {
                 logger.error("Error refreshing user groups due to {}", t.getMessage(), t);
             }
-        }, fixedDelay, fixedDelay, TimeUnit.MILLISECONDS);
+        }, 0, fixedDelay, TimeUnit.MILLISECONDS);
     }
 
     private void refreshUserGroup(String groupFilterList, String prefix, String suffix, String substring, int pageSize) throws IOException, ClientException {
