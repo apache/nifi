@@ -23,9 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -53,8 +51,6 @@ import org.apache.nifi.authorization.UserGroupProviderInitializationContext;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
@@ -64,19 +60,10 @@ import org.slf4j.LoggerFactory;
  * The AzureGraphUserGroupProvider provides support for retrieving users and
  * groups from Azure Activy Driectory (AAD) using graph rest-api & SDK.
  */
-public class AzureGraphUserGroupProvider implements UserGroupProvider {
+public class AzureGraphUserGroupProvider extends AbstractAzureUserGroupProvider implements UserGroupProvider {
     private final static Logger logger = LoggerFactory.getLogger(AzureGraphUserGroupProvider.class);
-
     private String claimForUserName;
-
     private ScheduledExecutorService scheduler;
-
-    public static final String REFRESH_DELAY_PROPERTY = "Refresh Delay";
-    private static final long MINIMUM_SYNC_INTERVAL_MILLISECONDS = 10_000;
-    public static final String AUTHORITY_ENDPOINT_PROPERTY = "Authority Endpoint";
-    public static final String TENANT_ID_PROPERTY = "Directory ID";
-    public static final String APP_REG_CLIENT_ID_PROPERTY = "Application ID";
-    public static final String APP_REG_CLIENT_SECRET_PROPERTY = "Client Secret";
     // comma separated list of group names to search from AAD
     public static final String GROUP_FILTER_LIST_PROPERTY = "Group Filter List Inclusion";
     // group filter with startswith
@@ -89,11 +76,9 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     // default: upn (or userPrincipalName). possible choices ['upn', 'email']
     // this should be matched with oidc configuration in nifi.properties
     public static final String CLAIM_FOR_USERNAME = "Claim for Username";
-    public static final String DEFAULT_REFRESH_DELAY = "5 mins";
     public static final String DEFAULT_PAGE_SIZE = "50";
     public static final String DEFAULT_CLAIM_FOR_USERNAME = "upn";
     public static final int MAX_PAGE_SIZE = 999;
-    public static final String AZURE_PUBLIC_CLOUD = "https://login.microsoftonline.com/";
     static final List<String> REST_CALL_KEYWORDS = Arrays.asList("$select", "$top", "$expand", "$search", "$filter", "$format", "$count", "$skip", "$orderby");
 
 
@@ -134,42 +119,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     @Override
     public void initialize(UserGroupProviderInitializationContext initializationContext)
             throws AuthorizerCreationException {
-        this.scheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                final Thread thread = Executors.defaultThreadFactory().newThread(r);
-                thread.setName(String.format("%s (%s) - UserGroup Refresh", getClass().getSimpleName(), initializationContext.getIdentifier()));
-                return thread;
-            }
-        });
-    }
-
-    private String getProperty(AuthorizerConfigurationContext authContext, String propertyName, String defaultValue) {
-        final PropertyValue property = authContext.getProperty(propertyName);
-
-        if (property != null && property.isSet()) {
-            final String value = property.getValue();
-            if (StringUtils.isNotBlank(value)) {
-                return value;
-            }
-        }
-
-        return defaultValue;
-    }
-
-    private long getDelayProperty(AuthorizerConfigurationContext authContext, String propertyName, String defaultValue) {
-        final String propertyValue = getProperty(authContext, propertyName, defaultValue);
-        final long syncInterval;
-        try {
-            syncInterval = Math.round(FormatUtils.getPreciseTimeDuration(propertyValue, TimeUnit.MILLISECONDS));
-        } catch (final IllegalArgumentException ignored) {
-            throw new AuthorizerCreationException(String.format("The %s '%s' is not a valid time interval.", propertyName, propertyValue));
-        }
-
-        if (syncInterval < MINIMUM_SYNC_INTERVAL_MILLISECONDS) {
-            throw new AuthorizerCreationException(String.format("The %s '%s' is below the minimum value of '%d ms'", propertyName, propertyValue, MINIMUM_SYNC_INTERVAL_MILLISECONDS));
-        }
-        return syncInterval;
+        this.scheduler = newScheduler(initializationContext);
     }
 
     private boolean hasReservedKeyword(String prefix) {
@@ -179,41 +129,27 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     @Override
     public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
         final long fixedDelay = getDelayProperty(configurationContext, REFRESH_DELAY_PROPERTY, DEFAULT_REFRESH_DELAY);
-        final String authorityEndpoint = getProperty(configurationContext, AUTHORITY_ENDPOINT_PROPERTY, AZURE_PUBLIC_CLOUD);
-        final String tenantId = getProperty(configurationContext, TENANT_ID_PROPERTY, null);
-        final String clientId = getProperty(configurationContext, APP_REG_CLIENT_ID_PROPERTY, null);
-        final String clientSecret = getProperty(configurationContext, APP_REG_CLIENT_SECRET_PROPERTY, null);
+
         int pageSize = Integer.parseInt(getProperty(configurationContext, PAGE_SIZE_PROPERTY, DEFAULT_PAGE_SIZE));
         this.claimForUserName = getProperty(configurationContext, CLAIM_FOR_USERNAME, DEFAULT_CLAIM_FOR_USERNAME);
         final String providerClassName = getClass().getSimpleName();
-        if (StringUtils.isBlank(tenantId)) {
-            throw new AuthorizerCreationException(String.format("%s is a required field for %s", TENANT_ID_PROPERTY, providerClassName));
-        }
-        if (StringUtils.isBlank(clientId)) {
-            throw new AuthorizerCreationException(String.format("%s is a required field for %s", APP_REG_CLIENT_ID_PROPERTY, providerClassName));
-        }
-        if (StringUtils.isBlank(clientSecret)) {
-            throw new AuthorizerCreationException(String.format("%s is a required field for %s", APP_REG_CLIENT_SECRET_PROPERTY, providerClassName));
-        }
+
         if (pageSize > MAX_PAGE_SIZE) {
             throw new AuthorizerCreationException(String.format("Max page size for Microsoft Graph is %d.", MAX_PAGE_SIZE));
         }
 
         try {
-            authProvider = new ClientCredentialAuthProvider.Builder()
-                .authorityEndpoint(authorityEndpoint)
-                .tenantId(tenantId)
-                .clientId(clientId)
-                .clientSecret(clientSecret)
-                .build();
+            authProvider = getClientCredentialAuthProvider(configurationContext);
             graphClient = GraphServiceClient.builder().authenticationProvider(authProvider).buildClient();
+        } catch (final AuthorizerCreationException e) {
+            throw new AuthorizerCreationException(String.format("%s for %s", e.getMessage(), providerClassName));
         } catch (final ClientException e) {
             throw new AuthorizerCreationException(String.format("Failed to create a GraphServiceClient due to %s", e.getMessage()), e);
         }
 
         // first, load list of group name if there is any prefix, suffix, substring
-        // filter defined, paging thru groups.
-        // then, add additonal group list if there is group list inclusion defined.
+        // filter defined, paging through groups.
+        // then, add additional group list if there is group list inclusion defined.
         final String prefix = getProperty(configurationContext, GROUP_FILTER_PREFIX_PROPERTY, null);
         final String suffix = getProperty(configurationContext, GROUP_FILTER_SUFFIX_PROPERTY, null);
         final String substring = getProperty(configurationContext, GROUP_FILTER_SUBSTRING_PROPERTY, null);

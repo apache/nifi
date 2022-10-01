@@ -198,9 +198,12 @@ class ConfigEncryptionTool {
      *   .*?</userGroupProvider>          -> find everything as needed up until and including occurrence of '</userGroupProvider>'
      */
 
-    private static final String AZURE_USER_GROUP_PROVIDER_CLASS = "org.apache.nifi.authorization.azure.AzureGraphUserGroupProvider"
-    private static final String AZURE_USER_GROUP_PROVIDER_REGEX =
+    private static final String AZURE_GRAPH_USER_GROUP_PROVIDER_CLASS = "org.apache.nifi.authorization.azure.AzureGraphUserGroupProvider"
+    private static final String AZURE_APP_ROLES_USER_GROUP_PROVIDER_CLASS = "org.apache.nifi.authorization.azure.AzureAppRolesUserGroupProvider"
+    private static final String AZURE_GRAPH_USER_GROUP_PROVIDER_REGEX =
             /(?s)<userGroupProvider>(?:(?!<userGroupProvider>).)*?<class>\s*org\.apache\.nifi\.authorization\.azure\.AzureGraphUserGroupProvider.*?<\/userGroupProvider>/
+    private static final String AZURE_APP_ROLES_USER_GROUP_PROVIDER_REGEX =
+            /(?s)<userGroupProvider>(?:(?!<userGroupProvider>).)*?<class>\s*org\.apache\.nifi\.authorization\.azure\.AzureAppRolesUserGroupProvider.*?<\/userGroupProvider>/
 
     private static final String XML_DECLARATION_REGEX = /<\?xml version="1.0" encoding="UTF-8"\?>/
     private static final String WRAPPED_FLOW_XML_CIPHER_TEXT_REGEX = /enc\{[a-fA-F0-9]+?\}/
@@ -811,7 +814,9 @@ class ConfigEncryptionTool {
             def doc = getXmlSlurper().parseText(encryptedXml)
             // Find the provider element by class even if it has been renamed
             def userGroupProvider = doc.userGroupProvider.findAll {
-                it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS || it.'class' as String == AZURE_USER_GROUP_PROVIDER_CLASS
+                it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS ||
+                it.'class' as String == AZURE_GRAPH_USER_GROUP_PROVIDER_CLASS ||
+                it.'class' as String == AZURE_APP_ROLES_USER_GROUP_PROVIDER_CLASS
             }
             String groupIdentifier = userGroupProvider.identifier.text()
             def passwords = userGroupProvider.property.findAll {
@@ -911,7 +916,9 @@ class ConfigEncryptionTool {
 
             // Find the provider element by class even if it has been renamed
             def userGroupProvider = doc.userGroupProvider.findAll {
-                it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS || it.'class' as String == AZURE_USER_GROUP_PROVIDER_CLASS
+                it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS ||
+                it.'class' as String == AZURE_GRAPH_USER_GROUP_PROVIDER_CLASS ||
+                it.'class' as String == AZURE_APP_ROLES_USER_GROUP_PROVIDER_CLASS
             }
             String groupIdentifier = userGroupProvider.identifier.text()
             def passwords = userGroupProvider.property.findAll {
@@ -1254,7 +1261,8 @@ class ConfigEncryptionTool {
         try {
             def parsedXml = getXmlSlurper().parseText(xmlContent)
             fileContents = serializeProvider(fileContents, parsedXml, LDAP_USER_GROUP_PROVIDER_CLASS, LDAP_USER_GROUP_PROVIDER_REGEX)
-            fileContents = serializeProvider(fileContents, parsedXml, AZURE_USER_GROUP_PROVIDER_CLASS, AZURE_USER_GROUP_PROVIDER_REGEX)
+            fileContents = serializeProvider(fileContents, parsedXml, AZURE_GRAPH_USER_GROUP_PROVIDER_CLASS, AZURE_GRAPH_USER_GROUP_PROVIDER_REGEX)
+            fileContents = serializeProvider(fileContents, parsedXml, AZURE_APP_ROLES_USER_GROUP_PROVIDER_CLASS, AZURE_APP_ROLES_USER_GROUP_PROVIDER_REGEX)
 
             return fileContents.split("\n")
         } catch (SAXException e) {

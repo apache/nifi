@@ -91,7 +91,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
 
     private static final int LIP_PASSWORD_LINE_COUNT = 3
     private static final int AUTHORIZERS_PASSWORD_LINE_COUNT = 3
-    private static final int AUTHORIZERS_SECRET_LINE_COUNT = 1
+    private static final int AUTHORIZERS_SECRET_LINE_COUNT = 2
     private final String PASSWORD_PROP_REGEX = "<property[^>]* name=\".* Password\""
     private final String SECRET_PROP_REGEX = "<property[^>]* name=\".* Secret\""
 
@@ -2787,7 +2787,9 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         // Ensure the replacement actually occurred
         assert trimmedSerializedLines.findAll { it =~ "encryption=" }.size() == AUTHORIZERS_PASSWORD_LINE_COUNT + AUTHORIZERS_SECRET_LINE_COUNT
         assert trimmedSerializedLines.find {it =~ ConfigEncryptionTool.LDAP_USER_GROUP_PROVIDER_CLASS }
-        assert trimmedSerializedLines.find {it =~ ConfigEncryptionTool.AZURE_USER_GROUP_PROVIDER_CLASS }
+        assert trimmedSerializedLines.find {it =~ ConfigEncryptionTool.AZURE_GRAPH_USER_GROUP_PROVIDER_CLASS }
+        assert trimmedSerializedLines.find {it =~ ConfigEncryptionTool.AZURE_APP_ROLES_USER_GROUP_PROVIDER_CLASS }
+
     }
 
     @Test

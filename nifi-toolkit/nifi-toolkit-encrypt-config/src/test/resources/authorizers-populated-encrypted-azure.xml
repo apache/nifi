@@ -78,4 +78,14 @@
         <property name="Page Size"/>
         <property name="Claim for Username">upn</property>
     </userGroupProvider>
+    <userGroupProvider>
+        <identifier>aad-app-roles-user-group-provider</identifier>
+        <class>org.apache.nifi.authorization.azure.AzureAppRolesUserGroupProvider</class>
+        <property name="Refresh Delay">5 mins</property>
+        <property name="Authority Endpoint">https://login.microsoftonline.com</property>
+        <property name="Directory ID">XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXX</property>
+        <property name="Application ID">XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXX</property>
+        <property name="Object ID">XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXX</property>
+        <property name="Client Secret" encryption="aes/gcm/128">zOfN7Fy4XnHmd/x0||rTLB/FXB4CLFsCunBwtNMR2hYtj7CdvgF7iFgNNr49g1pw==</property>
+    </userGroupProvider>
 </authorizers>
