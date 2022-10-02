@@ -52,6 +52,9 @@ env:
     -pl nifi-system-tests/nifi-system-test-suite
     -pl nifi-system-tests/nifi-stateless-system-test-suite
 
+permissions:
+  contents: read
+
 jobs:
   ubuntu-17:
     timeout-minutes: 120
