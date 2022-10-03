@@ -66,7 +66,7 @@ services:
       dockerfile: Dockerfile.minific2.test
     image: apacheminific2-test
     ports:
-      - "10080"
+      - "10090"
     hostname: c2-edge2
     volumes:
       - ./c2/hierarchical/c2-edge2/conf/c2.properties:/opt/minifi-c2/minifi-c2-${minifi.c2.version}/conf/c2.properties
