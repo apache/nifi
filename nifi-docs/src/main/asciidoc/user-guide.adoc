@@ -191,7 +191,7 @@ The available global access policies are:
 |======================
 |Policy  |Privilege
 |view the UI   |Allows users to view the UI
-|access the controller  |Allows users to view and modify the controller including reporting tasks, Controller Services, and nodes in the cluster
+|access the controller  |Allows users to view and modify the controller including Management Controller Services, Reporting Tasks, Registry Clients, Parameter Providers and nodes in the cluster
 |query provenance     |Allows users to submit a provenance search and request even lineage
 |access restricted components     |Allows users to create/modify restricted components assuming other permissions are sufficient. The restricted
 components may indicate which specific permissions are required. Permissions can be granted for specific restrictions or be granted regardless
@@ -885,7 +885,7 @@ The values of properties in the flow, including sensitive properties, can be par
  - A sensitive property can only reference a Sensitive Parameter
  - A non-sensitive property can only reference a Non-Sensitive Parameter
  - Properties that reference Controller Services can not use Parameters
- - Parameters cannot be referenced in Reporting Tasks or in controller-level Controller Services
+ - Parameters cannot be referenced in Reporting Tasks or in Management Controller Services
 
 The UI indicates whether a Parameter can be used for a property value.
 
@@ -1062,6 +1062,45 @@ Hovering over the question mark icon (image:iconInfo.png["Info"]) displays the p
 Sensitive properties may only reference sensitive Parameters. This is important for <<versioning_dataflow, versioned flows>>. The value of the sensitive Parameter itself will NOT be sent to the flow registry, only the fact that the property references the sensitive Parameter. For more information see <<parameters-in-versioned-flows>>.
 
 The value of a sensitive property must be set to a single Parameter reference. For example, values of `+#{password}123+` and `+#{password}#{suffix}+` are not allowed. Sending `+#{password}123+` would lead to exposing part of the sensitive property's value. This is in contrast to a non-sensitive property, where a value such as `+#{path}/child/file.txt+` is valid.
+
+
+==== Parameter Providers
+
+Parameter Providers allow parameters to be stored in sources external to NiFi (e.g. HashiCorp Vault). The parameters of a Parameter Provider can be fetched and applied to all referencing Parameter Contexts.
+
+To add a Parameter Provider, select Controller Settings from the Global Menu.
+
+image:controller-settings-selection.png["Global Menu - Controller Settings"]
+
+This displays the NiFi Settings window. Select the Parameter Providers tab and click the `+` button in the upper-right corner to create a new Parameter Provider.
+
+image:parameter-providers-tab.png["Parameter Providers Tab"]
+
+The Add Parameter Provider window opens. This window is similar to the Add Processor window. It provides a list of the available Parameter Providers on the right and a tag cloud, showing the most common category tags used for Parameter Providers, on the left. The DFM may click any tag in the tag cloud in order to narrow down the list of Parameter Providers to those that fit the categories desired. The DFM may also use the Filter field at the top-right of the window to search for the desired Parameter Provider or use the Source drop-down at the top-left to filter the list by the group who created them. Upon selecting a Parameter Provider from the list, the DFM can see a description of the provider below. Select the desired parameter provider and click Add, or simply double-click the name of the provider to add it.
+
+image:add-parameter-provider-window.png["Add Parameter Provider Window"]
+
+Once a Parameter Provider has been added, the DFM may configure it by clicking the "Edit" button in the far-right column. Other buttons in this column include "Fetch Parameters", "Remove" and "Access Policies".
+
+image:parameter-provider-edit-buttons.png["Parameter Providers Edit Buttons"]
+
+You can obtain information about Parameter Providers by clicking the "View Details", "Usage", and "Alerts" buttons in the left-hand column.
+
+image:parameter-provider-tasks-info-buttons.png["Parameter Providers Information Buttons"]
+
+When the DFM clicks the "Edit" button, a Configure Parameter Provider window opens. It has three tabs: Settings, Properties, and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Parameter Provider a unique name (if desired). It also lists the UUID, Type, and Bundle information for the provider and displays a list of other components (e.g. parameter contexts) that reference the parameter provider. The DFM may hover the mouse over the question mark icons to see more information about each setting.
+
+image:configure-parameter-provider-settings.png["Configure Parameter Provider Settings"]
+
+The Properties tab lists the various properties that may be configured for the parameter provider. The DFM may hover the mouse over the question mark icons to see more information about each property.
+
+image:configure-parameter-provider-properties.png["Configure Parameter Provider Properties"]
+
+The Comments tab is just an open-text field, where the DFM may include comments about the provider. After configuring the Parameter Provider, click "Apply" to save the configuration and close the window, or click "Cancel" to discard the changes and close the window.
+
+When you want to fetch parameters from the Parameter Provider, click the "Fetch" button (image:iconFetch.png["Fetch Button"]).
+
+
 
 [[accessing-parameters]]
 ==== Accessing Parameters
@@ -1240,18 +1279,18 @@ IMPORTANT: Controller Services defined on the controller level are limited to re
 
 NOTE: If your NiFi instance is secured, your ability to view and add Controller Services is dependent on the privileges assigned to you. If you do not have access to one or more Controller Services, you are not able to see or access it in the UI. Access privileges can be assigned on a global or Controller Service-specific basis (see <<UI-with-multi-tenant-authorization>> for more information).
 
-[[Controller_Services_for_Reporting_Tasks]]
-==== Adding Controller Services for Reporting Tasks
+[[Management_Controller_Services]]
+==== Adding Management Controller Services
 
-To add a Controller Service for a reporting task, select Controller Settings from the Global Menu.
+To add a Management Controller Service, select Controller Settings from the Global Menu.
 
 image:controller-settings-selection.png["Global Menu - Controller Settings"]
 
-This displays the NiFi Settings window. The window has four tabs: General, Reporting Task Controller Services, Reporting Tasks and Registry Clients. The General tab provides settings for the overall maximum thread counts of the instance.
+This displays the NiFi Settings window. The window has five tabs: General, Management Controller Services, Reporting Tasks, Registry Clients and Parameter Providers. The General tab provides settings for the overall maximum thread counts of the instance.
 
 image:settings-general-tab.png["Controller Settings General Tab"]
 
-To the right of the General tab is the Reporting Task Controller Services tab. From this tab, the DFM may click the `+` button in the upper-right corner to create a new Controller Service.
+To the right of the General tab is the Management Controller Services tab. From this tab, the DFM may click the `+` button in the upper-right corner to create a new Controller Service.
 
 image:controller-services-tab.png["Controller Services Tab"]
 
@@ -2333,17 +2372,27 @@ To connect NiFi to a Registry, select Controller Settings from the Global Menu.
 
 image::controller-settings-selection.png["Global Menu - Controller Settings"]
 
-This displays the NiFi Settings window. Select the Registry Clients tab and click the `+` button in the upper-right corner to register a new Registry client.
+This displays the NiFi Settings window. Select the Registry Clients tab and click the `+` button in the upper-right corner to register a new Registry Client.
 
 image::registry-clients-tab.png["Registry Clients Tab"]
 
-In the Add Registry Client window, provide a name and URL.
+In the Add Registry Client window, provide a name, select type and add a description (if desired).
 
 image::add-registry-client.png["Add Registry Client Dialog"]
 
-Click "Add" to complete the registration.
+Click "Add".
 
 image::registry-client-added.png["Registry Client Added"]
+
+Once a Registry Client has been added, the DFM may configure it by clicking the "Edit" button (image:iconEdit.png["Edit Button"]) in the far-right column. When the DFM clicks the "Edit" button, an Edit Registry Client window opens. It has two tabs: Settings and Properties. The Settings tab provides a place for the DFM to edit the Registry Client name. It also lists the UUID, Type, and provides an open-text field to edit or add a Description.
+
+image::configure-registry-client-settings.png["Registry Client Settings"]
+
+The Properties tab lists the various properties that may be configured for the client. The DFM may hover the mouse over the question mark icons to see more information about each property.
+
+image:configure-registry-client-properties.png["Configure Registry Client Properties"]
+
+After configuring a Registry Client, click "Update" to save the configuration and close the window, or click "Cancel" to discard the changes and close the window.
 
 NOTE: Versioned flows are stored and organized in registry buckets. Bucket Policies and Special Privileges configured by the registry administrator determine which buckets a user can import versioned flows from and which buckets a user can save versioned flows to. Information on Bucket Policies and Special Privileges can be found in the NiFi Registry User Guide (link:https://nifi.apache.org/docs/nifi-registry-docs/html/user-guide.html[https://nifi.apache.org/docs/nifi-registry-docs/html/user-guide.html^]).
 
