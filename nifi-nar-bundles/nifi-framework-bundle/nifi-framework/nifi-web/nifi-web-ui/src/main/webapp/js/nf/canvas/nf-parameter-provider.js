@@ -2427,23 +2427,23 @@
             if (dataContext) {
                 if (dataContext.status === 'REMOVED' || dataContext.status === 'MISSING_BUT_REFERENCED') {
                     // disable checkboxes
-                    return "<div class='disabled nf-checkbox checkbox-unchecked'></div>";
+                    return '<div class="disabled nf-checkbox checkbox-unchecked"></div>';
                 }
 
                 if (_.isEmpty(dataContext.parameterStatus) || _.isEmpty(dataContext.parameterStatus.parameter.parameter.referencingComponents)) {
                     if (dataContext.sensitivity === SENSITIVE) {
-                        return "<div class='checked-input-enabled nf-checkbox checkbox-checked'></div>";
+                        return '<div class="checked-input-enabled nf-checkbox checkbox-checked"></div>';
                     } else {
-                        return "<div class='unchecked-input-enabled nf-checkbox checkbox-unchecked'></div>";
+                        return '<div class="unchecked-input-enabled nf-checkbox checkbox-unchecked"></div>';
                     }
                 }
 
                 if (!_.isEmpty(dataContext.parameterStatus.parameter.parameter.referencingComponents)) {
                     // disable checkboxes
                     if (dataContext.sensitivity === SENSITIVE) {
-                        return "<div class='disabled nf-checkbox checkbox-unchecked'></div>";
+                        return '<div class="disabled nf-checkbox checkbox-checked"></div>';
                     } else {
-                        return "<div class='disabled nf-checkbox checkbox-checked'></div>";
+                        return '<div class="disabled nf-checkbox checkbox-unchecked"></div>';
                     }
                 }
 
@@ -2474,7 +2474,7 @@
             width: 30,
             resizable: false,
             sortable: false,
-            cssClass: 'slick-cell-checkbox',
+            cssClass: 'slick-cell-checkbox slick-cell-checkboxsel',
             hideSelectAllCheckbox: false,
             formatter: checkboxSelectionFormatter
         }
