@@ -1939,6 +1939,13 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             }
         }
 
+        // If any variables were removed from the proposed flow, add those as null values to remove them from the variable registry.
+        for (final String existingVariableName : existingVariableMap.keySet()) {
+            if (!proposed.getVariables().containsKey(existingVariableName)) {
+                updatedVariableMap.put(existingVariableName, null);
+            }
+        }
+
         group.setVariables(updatedVariableMap);
     }
 
