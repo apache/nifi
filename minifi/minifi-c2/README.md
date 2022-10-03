@@ -38,7 +38,7 @@ When using the `CacheConfigurationProvider`, by default, the server will look fo
 
 The pattern can be configured in [./conf/minifi-c2-context.xml](./minifi-c2-assembly/src/main/resources/conf/minifi-c2-context.xml) and the default value (${class}/config) will replace ${class} with the class query parameter and then look for CLASS/config.CONTENT_TYPE.vVERSION in the directory structure.
 
-Ex: http://localhost:10080/c2/config?class=raspi&version=1 with an Accept header that matches text/yml would result in [./files/raspi3/config.text.yml.v1](./minifi-c2-assembly/src/main/resources/files/raspi3/config.text.yml.v1) and omitting the version parameter would look for the highest version number in the directory.
+Ex: http://localhost:10090/c2/config?class=raspi&version=1 with an Accept header that matches text/yml would result in [./files/raspi3/config.text.yml.v1](./minifi-c2-assembly/src/main/resources/files/raspi3/config.text.yml.v1) and omitting the version parameter would look for the highest version number in the directory.
 
 The version resolution is cached in memory to accommodate many devices polling periodically.  The cache duration can be configured with additional arguments in  [./conf/minifi-c2-context.xml](../minifi-integration-tests/src/test/resources/c2/hierarchical/c2-edge2/conf/minifi-c2-context.xml#L55) that call the [overloaded constructor.](./minifi-c2-service/src/main/java/org/apache/nifi/minifi/c2/service/ConfigService.java#L81)
 

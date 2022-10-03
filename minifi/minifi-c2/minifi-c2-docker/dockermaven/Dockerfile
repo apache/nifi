@@ -38,7 +38,7 @@ RUN chown -R c2:c2 $MINIFI_C2_HOME
 USER c2
 
 #Default http port
-EXPOSE 10080
+EXPOSE 10090
 
 # Startup MiNiFi c2
 CMD $MINIFI_C2_HOME/bin/c2.sh run
