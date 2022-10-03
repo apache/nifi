@@ -67,6 +67,12 @@ public class StandardSSHConfigProvider implements SSHConfigProvider {
         getOptionalProperty(context, KEY_EXCHANGE_ALGORITHMS_ALLOWED).ifPresent(property -> config.setKeyExchangeFactories(getFilteredValues(property, config.getKeyExchangeFactories())));
         getOptionalProperty(context, MESSAGE_AUTHENTICATION_CODES_ALLOWED).ifPresent(property -> config.setMACFactories(getFilteredValues(property, config.getMACFactories())));
 
+        final String keyAlgorithmsAllowed = context.getProperty(KEY_ALGORITHMS_ALLOWED).evaluateAttributeExpressions().getValue();
+        if (keyAlgorithmsAllowed == null) {
+            // Prioritize ssh-rsa when Key Algorithms Allowed is not specified
+            config.prioritizeSshRsaKeyAlgorithm();
+        }
+
         return config;
     }
 
