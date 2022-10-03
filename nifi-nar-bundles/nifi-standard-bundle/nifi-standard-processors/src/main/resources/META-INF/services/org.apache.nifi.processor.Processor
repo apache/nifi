@@ -47,6 +47,7 @@ org.apache.nifi.processors.standard.FetchSFTP
 org.apache.nifi.processors.standard.FlattenJson
 org.apache.nifi.processors.standard.ForkRecord
 org.apache.nifi.processors.standard.ForkEnrichment
+org.apache.nifi.processors.standard.GenerateRecord
 org.apache.nifi.processors.standard.GenerateFlowFile
 org.apache.nifi.processors.standard.GenerateTableFetch
 org.apache.nifi.processors.standard.GetFile
