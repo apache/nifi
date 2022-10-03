@@ -181,7 +181,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .description("The prefix used to filter the object list. In most cases, it should end with a forward slash ('/').")
+            .description("The prefix used to filter the object list. Do not begin with a forward slash '/'. In most cases, it should end with a forward slash '/'.")
             .build();
 
     public static final PropertyDescriptor USE_VERSIONS = new Builder()
