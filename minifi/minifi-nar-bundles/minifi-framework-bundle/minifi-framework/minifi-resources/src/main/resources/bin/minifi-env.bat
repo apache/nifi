@@ -27,3 +27,7 @@ set MINIFI_PID_DIR=%MINIFI_ROOT%\run
 
 rem The directory for NiFi log files
 set MINIFI_LOG_DIR=%MINIFI_ROOT%\logs
+set MINIFI_APP_LOG_FILE_NAME="minifi-app"
+set MINIFI_APP_LOG_FILE_EXTENSION="log"
+set MINIFI_BOOTSTRAP_LOG_FILE_NAME="minifi-bootstrap"
+set MINIFI_BOOTSTRAP_LOG_FILE_EXTENSION="log"

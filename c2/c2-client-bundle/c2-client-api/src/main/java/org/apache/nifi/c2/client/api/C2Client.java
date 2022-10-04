@@ -35,7 +35,7 @@ public interface C2Client {
     Optional<C2HeartbeatResponse> publishHeartbeat(C2Heartbeat heartbeat);
 
     /**
-     * Retrive the content of the new flow from the C2 Server
+     * Retrieve the content of the new flow from the C2 Server
      *
      * @param flowUpdateUrl url where the content should be downloaded from
      * @return the actual downloaded content. Will be empty if no content can be downloaded
@@ -48,4 +48,13 @@ public interface C2Client {
      * @param operationAck the acknowledge details to be sent
      */
     void acknowledgeOperation(C2OperationAck operationAck);
+
+    /**
+     * Uploads a binary bundle to C2 server
+     *
+     * @param callbackUrl url where the content should be uploaded to
+     * @param bundle      bundle content as byte array to be uploaded
+     * @return optional error message if any issues occurred
+     */
+    Optional<String> uploadBundle(String callbackUrl, byte[] bundle);
 }
