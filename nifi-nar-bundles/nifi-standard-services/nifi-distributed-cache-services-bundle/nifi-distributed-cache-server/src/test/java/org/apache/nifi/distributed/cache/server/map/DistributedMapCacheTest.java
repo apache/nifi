@@ -36,7 +36,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -149,7 +149,7 @@ public class DistributedMapCacheTest {
         for (int i = 0; (i < 3); ++i) {
             client.put(key + i, value + i, serializer, serializer);
         }
-        final Set<String> keys = new HashSet<>(Arrays.asList("keySubMap0", "keySubMap1", "keySubMap2"));
+        final Set<String> keys = new LinkedHashSet<>(Arrays.asList("keySubMap0", "keySubMap1", "keySubMap2"));
         final Map<String, String> subMap = client.subMap(keys, serializer, deserializer);
         assertEquals(3, subMap.size());
         for (int i = 0; (i < 3); ++i) {
