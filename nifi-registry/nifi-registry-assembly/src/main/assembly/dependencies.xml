@@ -96,6 +96,7 @@
                 <exclude>*:nifi-registry-bootstrap</exclude>
                 <exclude>*:nifi-registry-utils</exclude>
                 <exclude>*:nifi-registry-docs</exclude>
+                <exclude>*:nifi-registry-ranger-assembly</exclude>
                 <exclude>*:nifi-registry-aws-assembly</exclude>
                 <exclude>*:nifi-registry-properties-loader</exclude>
 
