@@ -57,9 +57,9 @@ class StandardPropertySecretKeyProvider implements PropertySecretKeyProvider {
     public SecretKey getSecretKey(final PropertyEncryptionMethod propertyEncryptionMethod, final String password) {
         Objects.requireNonNull(propertyEncryptionMethod, "Property Encryption Method is required");
         Objects.requireNonNull(password, "Password is required");
-        if (StringUtils.length(password) < MINIMUM_PASSWORD_LENGTH) {
-            throw new EncryptionException(PASSWORD_LENGTH_MESSAGE);
-        }
+//        if (StringUtils.length(password) < MINIMUM_PASSWORD_LENGTH) {
+//            throw new EncryptionException(PASSWORD_LENGTH_MESSAGE);
+//        }
 
         final KeyDerivationFunction keyDerivationFunction = propertyEncryptionMethod.getKeyDerivationFunction();
         final int keyLength = propertyEncryptionMethod.getKeyLength();

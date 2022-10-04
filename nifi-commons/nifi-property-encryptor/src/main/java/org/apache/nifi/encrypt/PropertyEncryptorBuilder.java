@@ -33,6 +33,7 @@ public class PropertyEncryptorBuilder {
     private final String password;
 
     private String algorithm = PropertyEncryptionMethod.NIFI_ARGON2_AES_GCM_256.toString();
+    private PropertyEncryptionMethod encryptionMethod = null;
 
     /**
      * Property Encryptor Builder with required password
@@ -56,13 +57,24 @@ public class PropertyEncryptorBuilder {
         return this;
     }
 
+    public PropertyEncryptorBuilder setAlgorithm(final PropertyEncryptionMethod encryptionMethod) {
+        Objects.requireNonNull(algorithm, "Algorithm required");
+        this.encryptionMethod = encryptionMethod;
+        return this;
+    }
+
     /**
      * Build Property Encryptor using current configuration
      *
      * @return Property Encryptor
      */
     public PropertyEncryptor build() {
-        final PropertyEncryptionMethod propertyEncryptionMethod = findPropertyEncryptionAlgorithm(algorithm);
+        PropertyEncryptionMethod propertyEncryptionMethod = encryptionMethod;
+
+        if (propertyEncryptionMethod == null) {
+            propertyEncryptionMethod = findPropertyEncryptionAlgorithm(algorithm);
+        }
+
         if (propertyEncryptionMethod == null) {
             return getPasswordBasedCipherPropertyEncryptor();
         } else {

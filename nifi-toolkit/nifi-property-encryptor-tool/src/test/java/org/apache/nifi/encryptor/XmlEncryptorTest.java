@@ -47,7 +47,7 @@ class XmlEncryptorTest {
         String encryptedXmlFilename = "/login-identity-providers-populated-encrypted.xml";
         XmlDecryptor decryptor = intializeXmlDecryptor();
         File encryptedXmlFile = new File(XmlEncryptorTest.class.getResource(encryptedXmlFilename).toURI());
-        File temporaryOutputFile = ConfigurationFileUtils.getTemporaryOutputFile("decrypted", encryptedXmlFile);
+        File temporaryOutputFile = getTemporaryOutputFile("decrypted", encryptedXmlFile);
 
         try (InputStream inputStream = new FileInputStream(encryptedXmlFile);
              FileOutputStream outputStream = new FileOutputStream(temporaryOutputFile)) {
@@ -59,10 +59,10 @@ class XmlEncryptorTest {
 
     @Test
     void testEncryptLoginIdentityProviders() throws URISyntaxException, IOException {
-        String unencryptedXmlFilename = "/login-identity-providers-populated-unecrypted.xml";
+        String unencryptedXmlFilename = "/login-identity-providers-populated-unencrypted.xml";
         XmlEncryptor encryptor = intializeXmlEncryptor();
         File unencryptedXmlFile = new File(XmlEncryptorTest.class.getResource(unencryptedXmlFilename).toURI());
-        File temporaryOutputFile = ConfigurationFileUtils.getTemporaryOutputFile("encrypted", unencryptedXmlFile);
+        File temporaryOutputFile = getTemporaryOutputFile("encrypted", unencryptedXmlFile);
 
         try (InputStream inputStream = new FileInputStream(unencryptedXmlFile);
              FileOutputStream outputStream = new FileOutputStream(temporaryOutputFile)) {
@@ -77,7 +77,7 @@ class XmlEncryptorTest {
         String unencryptedXmlFilename = "/authorizers-populated-unencrypted.xml";
         XmlEncryptor encryptor = intializeXmlEncryptor();
         File unencryptedXmlFile = new File(XmlEncryptorTest.class.getResource(unencryptedXmlFilename).toURI());
-        File temporaryOutputFile = ConfigurationFileUtils.getTemporaryOutputFile("encrypted", unencryptedXmlFile);
+        File temporaryOutputFile = getTemporaryOutputFile("encrypted", unencryptedXmlFile);
 
         try (InputStream inputStream = new FileInputStream(unencryptedXmlFile);
              FileOutputStream outputStream = new FileOutputStream(temporaryOutputFile)) {
@@ -106,4 +106,13 @@ class XmlEncryptorTest {
         }
         return count;
     }
+
+    private File getTemporaryOutputFile(final String prefix, final File siblingFile) throws IOException {
+        if (siblingFile != null && siblingFile.isFile()) {
+            return Files.createTempFile(siblingFile.getParentFile().toPath(), prefix, siblingFile.getName()).toFile();
+        } else {
+            throw new IOException(String.format("Failed to create temporary output file because sibling file [%s] with prefix [%s] null or is not a file", siblingFile, prefix));
+        }
+    }
+
 }

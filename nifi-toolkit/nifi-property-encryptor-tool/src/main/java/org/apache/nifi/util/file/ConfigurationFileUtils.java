@@ -29,14 +29,6 @@ public class ConfigurationFileUtils {
     public static String NIFI_PROPERTIES_DEFAULT_NAME = "nifi.properties";
     public static String NIFI_REGISTRY_DEFAULT_PROPERTIES_NAME = "nifi-registry.properties";
 
-    public static File getTemporaryOutputFile(final String prefix, final File siblingFile) throws IOException {
-        if (siblingFile != null && siblingFile.isFile()) {
-            return Files.createTempFile(siblingFile.getParentFile().toPath(), prefix, siblingFile.getName()).toFile();
-        } else {
-            throw new IOException(String.format("Failed to create temporary output file because sibling file [%s] with prefix [%s] null or is not a file", siblingFile, prefix));
-        }
-    }
-
     public static File getOutputFile(final Path outputPath, final File siblingFile) {
         return new File(outputPath.toAbsolutePath() + File.separator + siblingFile.getName());
     }
