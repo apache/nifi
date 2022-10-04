@@ -454,12 +454,12 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
             propertyDependency.setPropertyName(dependency.getPropertyName());
             propertyDependency.setPropertyDisplayName(dependency.getPropertyDisplayName());
 
-            final List<String> values = new ArrayList<>();
             final DependentValues dependentValues = dependency.getDependentValues();
             if (dependentValues != null && dependentValues.getValues() != null) {
+                final List<String> values = new ArrayList();
                 values.addAll(dependentValues.getValues());
+                propertyDependency.setDependentValues(values);
             }
-            propertyDependency.setDependentValues(values);
             propertyDependencies.add(propertyDependency);
         }
         return propertyDependencies;
