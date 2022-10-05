@@ -69,9 +69,9 @@ public class TestPutIcebergWithHiveCatalog {
     @RegisterExtension
     public ThriftMetastore metastore = new ThriftMetastore();
 
-    private static final Namespace namespace = Namespace.of("test_metastore");
+    private static final Namespace NAMESPACE = Namespace.of("test_metastore");
 
-    private static final TableIdentifier tableIdentifier = TableIdentifier.of(namespace, "users");
+    private static final TableIdentifier TABLE_IDENTIFIER = TableIdentifier.of(NAMESPACE, "users");
 
     private static final org.apache.iceberg.Schema USER_SCHEMA = new org.apache.iceberg.Schema(
             Types.NestedField.required(1, "id", Types.IntegerType.get()),
@@ -114,7 +114,7 @@ public class TestPutIcebergWithHiveCatalog {
         tableProperties.put(TableProperties.FORMAT_VERSION, "2");
         tableProperties.put(TableProperties.DEFAULT_FILE_FORMAT, fileFormat);
 
-        catalog.createTable(tableIdentifier, USER_SCHEMA, spec, tableProperties);
+        catalog.createTable(TABLE_IDENTIFIER, USER_SCHEMA, spec, tableProperties);
 
         runner.addControllerService("catalog-service", catalogService);
         runner.enableControllerService(catalogService);
@@ -141,7 +141,7 @@ public class TestPutIcebergWithHiveCatalog {
         runner.enqueue(new byte[0]);
         runner.run();
 
-        Table table = catalog.loadTable(tableIdentifier);
+        Table table = catalog.loadTable(TABLE_IDENTIFIER);
 
         List<Record> expectedRecords = IcebergTestUtils.RecordsBuilder.newInstance(USER_SCHEMA)
                 .add(0, "John", "Finance")
@@ -179,7 +179,7 @@ public class TestPutIcebergWithHiveCatalog {
         runner.enqueue(new byte[0]);
         runner.run();
 
-        Table table = catalog.loadTable(tableIdentifier);
+        Table table = catalog.loadTable(TABLE_IDENTIFIER);
 
         List<Record> expectedRecords = IcebergTestUtils.RecordsBuilder.newInstance(USER_SCHEMA)
                 .add(0, "John", "Finance")
@@ -218,7 +218,7 @@ public class TestPutIcebergWithHiveCatalog {
         runner.enqueue(new byte[0]);
         runner.run();
 
-        Table table = catalog.loadTable(tableIdentifier);
+        Table table = catalog.loadTable(TABLE_IDENTIFIER);
 
         List<Record> expectedRecords = IcebergTestUtils.RecordsBuilder.newInstance(USER_SCHEMA)
                 .add(0, "John", "Finance")
@@ -256,7 +256,7 @@ public class TestPutIcebergWithHiveCatalog {
         runner.enqueue(new byte[0]);
         runner.run();
 
-        Table table = catalog.loadTable(tableIdentifier);
+        Table table = catalog.loadTable(TABLE_IDENTIFIER);
 
         List<Record> expectedRecords = IcebergTestUtils.RecordsBuilder.newInstance(USER_SCHEMA)
                 .add(0, "John", "Finance")

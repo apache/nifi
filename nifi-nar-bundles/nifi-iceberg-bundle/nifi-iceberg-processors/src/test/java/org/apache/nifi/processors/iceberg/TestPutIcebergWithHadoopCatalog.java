@@ -63,9 +63,9 @@ public class TestPutIcebergWithHadoopCatalog {
     private PutIceberg processor;
     private Schema inputSchema;
 
-    private static final Namespace namespace = Namespace.of("test_metastore");
+    private static final Namespace NAMESPACE = Namespace.of("default");
 
-    private static final TableIdentifier tableIdentifier = TableIdentifier.of(namespace, "date");
+    private static final TableIdentifier TABLE_IDENTIFIER = TableIdentifier.of(NAMESPACE, "date");
 
     private static final org.apache.iceberg.Schema DATE_SCHEMA = new org.apache.iceberg.Schema(
             Types.NestedField.required(1, "timeMicros", Types.TimeType.get()),
@@ -108,7 +108,7 @@ public class TestPutIcebergWithHadoopCatalog {
         tableProperties.put(TableProperties.FORMAT_VERSION, "2");
         tableProperties.put(TableProperties.DEFAULT_FILE_FORMAT, fileFormat);
 
-        catalog.createTable(tableIdentifier, DATE_SCHEMA, spec, tableProperties);
+        catalog.createTable(TABLE_IDENTIFIER, DATE_SCHEMA, spec, tableProperties);
 
         runner.addControllerService("catalog-service", catalogService);
         runner.enableControllerService(catalogService);
@@ -129,13 +129,13 @@ public class TestPutIcebergWithHadoopCatalog {
         runner = TestRunners.newTestRunner(processor);
         initRecordReader();
         Catalog catalog = initCatalog(spec, fileFormat);
-        runner.setProperty(PutIceberg.CATALOG_NAMESPACE, "test_metastore");
+        runner.setProperty(PutIceberg.CATALOG_NAMESPACE, "default");
         runner.setProperty(PutIceberg.TABLE_NAME, "date");
         runner.setValidateExpressionUsage(false);
         runner.enqueue(new byte[0]);
         runner.run();
 
-        Table table = catalog.loadTable(tableIdentifier);
+        Table table = catalog.loadTable(TABLE_IDENTIFIER);
 
         runner.assertTransferCount(PutIceberg.REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
@@ -157,13 +157,13 @@ public class TestPutIcebergWithHadoopCatalog {
         runner = TestRunners.newTestRunner(processor);
         initRecordReader();
         Catalog catalog = initCatalog(spec, fileFormat);
-        runner.setProperty(PutIceberg.CATALOG_NAMESPACE, "test_metastore");
+        runner.setProperty(PutIceberg.CATALOG_NAMESPACE, "default");
         runner.setProperty(PutIceberg.TABLE_NAME, "date");
         runner.setValidateExpressionUsage(false);
         runner.enqueue(new byte[0]);
         runner.run();
 
-        Table table = catalog.loadTable(tableIdentifier);
+        Table table = catalog.loadTable(TABLE_IDENTIFIER);
 
         runner.assertTransferCount(PutIceberg.REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
@@ -186,13 +186,13 @@ public class TestPutIcebergWithHadoopCatalog {
         runner = TestRunners.newTestRunner(processor);
         initRecordReader();
         Catalog catalog = initCatalog(spec, fileFormat);
-        runner.setProperty(PutIceberg.CATALOG_NAMESPACE, "test_metastore");
+        runner.setProperty(PutIceberg.CATALOG_NAMESPACE, "default");
         runner.setProperty(PutIceberg.TABLE_NAME, "date");
         runner.setValidateExpressionUsage(false);
         runner.enqueue(new byte[0]);
         runner.run();
 
-        Table table = catalog.loadTable(tableIdentifier);
+        Table table = catalog.loadTable(TABLE_IDENTIFIER);
 
         runner.assertTransferCount(PutIceberg.REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);

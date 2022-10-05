@@ -16,15 +16,16 @@
  */
 package org.apache.nifi.processors.iceberg;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.iceberg.AppendFiles;
+import org.apache.iceberg.DataFile;
 import org.apache.iceberg.FileFormat;
-import org.apache.iceberg.RowDelta;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.catalog.Namespace;
 import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.io.TaskWriter;
 import org.apache.iceberg.io.WriteResult;
+import org.apache.iceberg.util.Tasks;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -148,12 +149,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
     }
 
     @Override
-    public void doOnTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
-        if (flowFile == null) {
-            return;
-        }
-
+    public void doOnTrigger(ProcessContext context, ProcessSession session, FlowFile flowFile) throws ProcessException {
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final String fileFormat = context.getProperty(FILE_FORMAT).evaluateAttributeExpressions().getValue();
         final String targetFileSize = context.getProperty(TARGET_FILE_SIZE).evaluateAttributeExpressions().getValue();
@@ -168,12 +164,11 @@ public class PutIceberg extends AbstractIcebergProcessor {
             return;
         }
 
-        final FileFormat format = getFileFormat(table.properties(), fileFormat);
-
         TaskWriter<org.apache.iceberg.data.Record> taskWriter = null;
         int recordCount = 0;
 
         try (final InputStream in = session.read(flowFile); final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
+            final FileFormat format = getFileFormat(table.properties(), fileFormat);
             final IcebergTaskWriterFactory taskWriterFactory = new IcebergTaskWriterFactory(table, flowFile.getId(), format, targetFileSize);
             taskWriter = taskWriterFactory.create();
 
@@ -191,7 +186,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             getLogger().error("Exception occurred while writing iceberg records. Removing uncommitted data files", e);
             try {
                 if (taskWriter != null) {
-                    taskWriter.abort();
+                    abort(taskWriter.dataFiles(), table);
                 }
             } catch (Exception ex) {
                 getLogger().error("Failed to abort uncommitted data files", ex);
@@ -231,10 +226,10 @@ public class PutIceberg extends AbstractIcebergProcessor {
      * @param result datafiles created by the {@link TaskWriter}
      */
     private void appendDataFiles(Table table, WriteResult result) {
-        final RowDelta rowDelta = table.newRowDelta().validateDataFilesExist(ImmutableList.copyOf(result.referencedDataFiles()));
-        Arrays.stream(result.dataFiles()).forEach(rowDelta::addRows);
+        final AppendFiles appender = table.newAppend();
+        Arrays.stream(result.dataFiles()).forEach(appender::appendFile);
 
-        rowDelta.commit();
+        appender.commit();
     }
 
     /**
@@ -247,6 +242,19 @@ public class PutIceberg extends AbstractIcebergProcessor {
     private FileFormat getFileFormat(Map<String, String> tableProperties, String fileFormat) {
         final String fileFormatName = fileFormat != null ? fileFormat : tableProperties.getOrDefault(DEFAULT_FILE_FORMAT, DEFAULT_FILE_FORMAT_DEFAULT);
         return FileFormat.valueOf(fileFormatName.toUpperCase(Locale.ENGLISH));
+    }
+
+    /**
+     * Deletes the completed data files that have not been committed to the table yet.
+     *
+     * @param dataFiles files created by the task writer
+     * @param table     table
+     */
+    void abort(DataFile[] dataFiles, Table table) {
+        Tasks.foreach(dataFiles)
+                .throwFailureWhenFinished()
+                .noRetry()
+                .run(file -> table.io().deleteFile(file.path().toString()));
     }
 
 }

@@ -17,6 +17,7 @@
  */
 package org.apache.nifi.services.iceberg;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.hive.HiveCatalog;
@@ -24,11 +25,15 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -42,17 +47,14 @@ public class HiveCatalogService extends AbstractCatalogService {
             .name("hive-metastore-uri")
             .displayName("Hive Metastore URI")
             .description("The URI location(s) for the Hive metastore; note that this is not the location of the Hive Server. The default port for the Hive metastore is 9043.")
-            .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.URI_LIST_VALIDATOR)
-            .defaultValue("thrift://localhost:9083")
             .build();
 
     static final PropertyDescriptor WAREHOUSE_LOCATION = new PropertyDescriptor.Builder()
             .name("warehouse-location")
             .displayName("Default Warehouse Location")
             .description("Location of default database for the warehouse. This field sets or overrides the 'hive.metastore.warehouse.dir' configuration property.")
-            .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -69,12 +71,57 @@ public class HiveCatalogService extends AbstractCatalogService {
 
     private HiveCatalog catalog;
 
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+
+        final List<ValidationResult> problems = new ArrayList<>();
+        String configMetastoreUri = null;
+        String configWarehouseLocation = null;
+
+        if (validationContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).isSet()) {
+            final String configFiles = validationContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
+
+            Configuration configuration = getConfigurationFromFiles(configFiles);
+            configMetastoreUri = configuration.get("hive.metastore.uris");
+            configWarehouseLocation = configuration.get("hive.metastore.warehouse.dir");
+        }
+
+        final String propertyMetastoreUri = validationContext.getProperty(METASTORE_URI).evaluateAttributeExpressions().getValue();
+        final String propertyWarehouseLocation = validationContext.getProperty(WAREHOUSE_LOCATION).evaluateAttributeExpressions().getValue();
+
+        if (configMetastoreUri == null && propertyMetastoreUri == null) {
+            problems.add(new ValidationResult.Builder()
+                    .subject("Hive Metastore URI")
+                    .valid(false)
+                    .explanation("cannot find hive metastore uri, please provide it in the 'Hive Metastore URI' property" +
+                            " or provide a configuration file which contains 'hive.metastore.uris' value.")
+                    .build());
+        }
+
+        if (configWarehouseLocation == null && propertyWarehouseLocation == null) {
+            problems.add(new ValidationResult.Builder()
+                    .subject("Default Warehouse Location")
+                    .valid(false)
+                    .explanation("cannot find default warehouse location, please provide it in the 'Default Warehouse Location' property" +
+                            " or provide a configuration file which contains 'hive.metastore.warehouse.dir' value.")
+                    .build());
+        }
+
+        return problems;
+    }
+
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        final String metastoreUri = context.getProperty(METASTORE_URI).evaluateAttributeExpressions().getValue();
-        final String warehouseLocation = context.getProperty(WAREHOUSE_LOCATION).evaluateAttributeExpressions().getValue();
-
         catalog = new HiveCatalog();
+        Map<String, String> properties = new HashMap<>();
+
+        if (context.getProperty(METASTORE_URI).isSet()) {
+            properties.put(CatalogProperties.URI, context.getProperty(METASTORE_URI).evaluateAttributeExpressions().getValue());
+        }
+
+        if (context.getProperty(WAREHOUSE_LOCATION).isSet()) {
+            properties.put(CatalogProperties.WAREHOUSE_LOCATION, context.getProperty(WAREHOUSE_LOCATION).evaluateAttributeExpressions().getValue());
+        }
 
         if (context.getProperty(HADOOP_CONFIGURATION_RESOURCES).isSet()) {
             final String configFiles = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
@@ -82,10 +129,6 @@ public class HiveCatalogService extends AbstractCatalogService {
             configuration = getConfigurationFromFiles(configFiles);
             catalog.setConf(configuration);
         }
-
-        Map<String, String> properties = new HashMap<>();
-        properties.put(CatalogProperties.WAREHOUSE_LOCATION, warehouseLocation);
-        properties.put(CatalogProperties.URI, metastoreUri);
 
         catalog.initialize("hive-catalog", properties);
     }

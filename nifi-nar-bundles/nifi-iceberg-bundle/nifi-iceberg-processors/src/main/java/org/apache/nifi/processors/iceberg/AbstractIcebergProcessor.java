@@ -17,11 +17,11 @@
  */
 package org.apache.nifi.processors.iceberg;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -31,9 +31,11 @@ import org.apache.nifi.security.krb.KerberosLoginException;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.services.iceberg.IcebergCatalogService;
 
+import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 
 import static org.apache.nifi.hadoop.SecurityUtil.getUgiForKerberosUser;
+import static org.apache.nifi.processors.iceberg.PutIceberg.REL_FAILURE;
 
 /**
  * Base Iceberg processor class.
@@ -57,58 +59,68 @@ public abstract class AbstractIcebergProcessor extends AbstractProcessor {
             .build();
 
     private volatile KerberosUser kerberosUser;
-
-    private Configuration configuration;
+    private volatile UserGroupInformation ugi;
 
     @OnScheduled
     public final void onScheduled(final ProcessContext context) {
-        final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
-        final IcebergCatalogService catalogService = context.getProperty(CATALOG).asControllerService(IcebergCatalogService.class);
+        IcebergCatalogService catalogService = context.getProperty(CATALOG).asControllerService(IcebergCatalogService.class);
+        KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
 
         if (kerberosUserService != null) {
             this.kerberosUser = kerberosUserService.createKerberosUser();
-        }
-
-        if (catalogService != null) {
-            this.configuration = catalogService.getConfiguration();
+            try {
+                this.ugi = getUgiForKerberosUser(catalogService.getConfiguration(), kerberosUser);
+            } catch (IOException e) {
+                throw new ProcessException("Kerberos Authentication failed", e);
+            }
         }
     }
 
     @OnStopped
-    public final void closeClient() {
+    public final void onStopped() {
         if (kerberosUser != null) {
             try {
                 kerberosUser.logout();
-                kerberosUser = null;
             } catch (KerberosLoginException e) {
-                getLogger().debug("Error logging out keytab user", e);
+                getLogger().error("Error logging out kerberos user", e);
+            } finally {
+                kerberosUser = null;
+                ugi = null;
             }
         }
     }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        final KerberosUser kerberosUser = getKerberosUser();
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
+
         if (kerberosUser == null) {
-            doOnTrigger(context, session);
+            doOnTrigger(context, session, flowFile);
         } else {
             try {
-                final UserGroupInformation ugi = getUgiForKerberosUser(configuration, kerberosUser);
-
-                ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
-                    doOnTrigger(context, session);
+                getUgi().doAs((PrivilegedExceptionAction<Void>) () -> {
+                    doOnTrigger(context, session, flowFile);
                     return null;
                 });
 
             } catch (Exception e) {
-                throw new ProcessException(e);
+                getLogger().error("Privileged action failed with kerberos user " + kerberosUser, e);
+                session.transfer(flowFile, REL_FAILURE);
             }
         }
     }
 
-    protected abstract void doOnTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
-
-    protected final KerberosUser getKerberosUser() {
-        return kerberosUser;
+    private UserGroupInformation getUgi() {
+        try {
+            kerberosUser.checkTGTAndRelogin();
+        } catch (KerberosLoginException e) {
+            throw new ProcessException("Unable to re-login with kerberos credentials for " + kerberosUser.getPrincipal(), e);
+        }
+        return ugi;
     }
+
+    protected abstract void doOnTrigger(ProcessContext context, ProcessSession session, FlowFile flowFile) throws ProcessException;
 }

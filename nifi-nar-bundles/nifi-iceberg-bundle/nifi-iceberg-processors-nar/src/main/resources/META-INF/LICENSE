@@ -214,6 +214,8 @@ licenses.
 This product includes code from Apache Hive.
 
 * Hive metastore derby schema in hive-schema-3.2.0.derby.sql
+* Test methods from IcebergTestUtils.java
+* Test metastore from MetastoreCore.java, ScriptRunner.java, ThriftMetastore.java
 
 Copyright: 2011-2018 The Apache Software Foundation
 Home page: https://hive.apache.org/

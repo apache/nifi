@@ -84,24 +84,24 @@ public class IcebergRecordConverter {
                     case TIME:
                         return GenericDataConverters.TimeConverter.INSTANCE;
                     case TIMESTAMP:
-                        Types.TimestampType timestampType = (Types.TimestampType) type;
+                        final Types.TimestampType timestampType = (Types.TimestampType) type;
                         if (timestampType.shouldAdjustToUTC()) {
                             return GenericDataConverters.TimestampWithTimezoneConverter.INSTANCE;
                         }
                         return GenericDataConverters.TimestampConverter.INSTANCE;
                     case UUID:
-                        UUIDDataType uuidType = (UUIDDataType) dataType;
+                        final UUIDDataType uuidType = (UUIDDataType) dataType;
                         if (uuidType.getFileFormat() == FileFormat.PARQUET) {
                             return GenericDataConverters.UUIDtoByteArrayConverter.INSTANCE;
                         }
                         return GenericDataConverters.SameTypeConverter.INSTANCE;
                     case FIXED:
-                        Types.FixedType fixedType = (Types.FixedType) type;
+                        final Types.FixedType fixedType = (Types.FixedType) type;
                         return new GenericDataConverters.FixedConverter(fixedType.length());
                     case BINARY:
                         return GenericDataConverters.BinaryConverter.INSTANCE;
                     case DECIMAL:
-                        Types.DecimalType decimalType = (Types.DecimalType) type;
+                        final Types.DecimalType decimalType = (Types.DecimalType) type;
                         return new GenericDataConverters.BigDecimalConverter(decimalType.precision(), decimalType.scale());
                     default:
                         throw new UnsupportedOperationException("Unsupported type: " + type.typeId());
