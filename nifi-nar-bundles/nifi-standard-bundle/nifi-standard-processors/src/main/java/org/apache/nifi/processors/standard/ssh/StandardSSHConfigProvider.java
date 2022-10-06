@@ -73,7 +73,6 @@ public class StandardSSHConfigProvider implements SSHConfigProvider {
             config.prioritizeSshRsaKeyAlgorithm();
         }
 
-        config.prioritizeSshRsaKeyAlgorithm();
         return config;
     }
 
