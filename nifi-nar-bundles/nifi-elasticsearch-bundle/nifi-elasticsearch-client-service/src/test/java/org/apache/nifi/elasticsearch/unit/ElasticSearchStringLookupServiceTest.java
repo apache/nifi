@@ -36,9 +36,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ElasticSearchStringLookupServiceTest {
-    ElasticSearchClientService mockClientService;
-    ElasticSearchStringLookupService lookupService;
-    TestRunner runner;
+    private ElasticSearchClientService mockClientService;
+    private ElasticSearchStringLookupService lookupService;
+    private TestRunner runner;
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @BeforeEach
     public void setup() throws Exception {
@@ -65,7 +67,7 @@ public class ElasticSearchStringLookupServiceTest {
         assertNotNull(result);
         assertTrue(result.isPresent());
         String json = result.get();
-        Map<String, Object> parsed = new ObjectMapper().readValue(json, Map.class);
+        Map<String, Object> parsed = MAPPER.readValue(json, Map.class);
         assertEquals(((TestElasticSearchClientService)mockClientService).getData(), parsed);
     }
 }

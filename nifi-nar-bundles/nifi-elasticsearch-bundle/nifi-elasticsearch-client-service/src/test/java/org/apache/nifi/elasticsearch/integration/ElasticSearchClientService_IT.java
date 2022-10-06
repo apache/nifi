@@ -18,7 +18,6 @@
 package org.apache.nifi.elasticsearch.integration;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.elasticsearch.DeleteOperationResponse;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl;
@@ -62,8 +61,6 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
 
     static final String INDEX = "messages";
     public static String TYPE;
-
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static TlsConfiguration generatedTlsConfiguration;
     private static TlsConfiguration truststoreTlsConfiguration;
@@ -364,7 +361,7 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         assertEquals(5, ((List)termCounts.get("buckets")).size(), "Buckets count is wrong");
 
         // search the next page
-        queryMap.put("search_after", new ObjectMapper().readValue(response.getSearchAfter(), List.class));
+        queryMap.put("search_after", MAPPER.readValue(response.getSearchAfter(), List.class));
         queryMap.remove("aggs");
         final String secondPage = prettyJson(queryMap);
         final SearchResponse secondResponse = service.search(secondPage, INDEX, TYPE, null);
@@ -431,7 +428,7 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         assertEquals(5, ((List)termCounts.get("buckets")).size(), "Buckets count is wrong");
 
         // search the next page
-        queryMap.put("search_after", new ObjectMapper().readValue(response.getSearchAfter(), List.class));
+        queryMap.put("search_after", MAPPER.readValue(response.getSearchAfter(), List.class));
         queryMap.remove("aggs");
         final String secondPage = prettyJson(queryMap);
         final SearchResponse secondResponse = service.search(secondPage, null, TYPE, null);

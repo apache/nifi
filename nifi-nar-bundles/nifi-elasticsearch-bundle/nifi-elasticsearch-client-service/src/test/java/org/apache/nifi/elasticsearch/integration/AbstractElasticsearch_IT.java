@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.elasticsearch.integration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -49,6 +50,8 @@ public abstract class AbstractElasticsearch_IT {
     protected static final boolean ENABLE_TEST_CONTAINERS = System.getProperty("elasticsearch.testcontainers.enabled")
             != null && System.getProperty("elasticsearch.testcontainers.enabled").equalsIgnoreCase("true");
     protected static String ELASTIC_HOST;
+
+    protected static final ObjectMapper MAPPER = new ObjectMapper();
 
     public static void startTestcontainer() {
         if (ENABLE_TEST_CONTAINERS) {
