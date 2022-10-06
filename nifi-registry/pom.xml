@@ -42,7 +42,7 @@
         <swagger.ui.version>3.12.0</swagger.ui.version>
         <groovy.eclipse.compiler.version>3.4.0-01</groovy.eclipse.compiler.version>
         <jaxb.version>2.3.2</jaxb.version>
-        <jgit.version>5.13.0.202109080827-r</jgit.version>
+        <jgit.version>5.13.1.202206130422-r</jgit.version>
     </properties>
 
     <dependencyManagement>
