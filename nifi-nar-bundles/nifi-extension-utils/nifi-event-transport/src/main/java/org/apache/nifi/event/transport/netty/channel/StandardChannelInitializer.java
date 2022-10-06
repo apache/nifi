@@ -60,7 +60,7 @@ public class StandardChannelInitializer<T extends Channel> extends ChannelInitia
     }
 
     /**
-     * Set the idle timeout period for outgoing client connections
+     * Set the idle timeout period for channel connections, monitoring both read and write times
      */
     public void setIdleTimeout(final Duration idleTimeout) {
         this.idleTimeout = Objects.requireNonNull(idleTimeout);
