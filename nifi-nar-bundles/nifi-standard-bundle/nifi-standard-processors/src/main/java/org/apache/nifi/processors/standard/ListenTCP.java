@@ -58,6 +58,7 @@ import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.charset.Charset;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -69,6 +70,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 @SupportsBatching
@@ -133,6 +135,15 @@ public class ListenTCP extends AbstractProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
+    protected static final PropertyDescriptor IDLE_CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("idle-timeout")
+            .displayName("Idle Connection Timeout")
+            .description("The amount of time a client's connection will remain open if no data is received. The default of 0 seconds will leave connections open until they are closed by the client.")
+            .required(true)
+            .defaultValue("0 seconds")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Messages received successfully will be sent out this relationship.")
@@ -163,6 +174,7 @@ public class ListenTCP extends AbstractProcessor {
         descriptors.add(ListenerProperties.WORKER_THREADS);
         descriptors.add(ListenerProperties.MAX_BATCH_SIZE);
         descriptors.add(ListenerProperties.MESSAGE_DELIMITER);
+        descriptors.add(IDLE_CONNECTION_TIMEOUT);
         // Deprecated
         descriptors.add(MAX_RECV_THREAD_POOL_SIZE);
         descriptors.add(POOL_RECV_BUFFERS);
@@ -180,6 +192,7 @@ public class ListenTCP extends AbstractProcessor {
         int workerThreads = context.getProperty(ListenerProperties.WORKER_THREADS).asInteger();
         int bufferSize = context.getProperty(ListenerProperties.RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         int socketBufferSize = context.getProperty(ListenerProperties.MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+        Duration idleTimeout = Duration.ofSeconds(context.getProperty(IDLE_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.SECONDS));
         final String networkInterface = context.getProperty(ListenerProperties.NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
         final InetAddress address = NetworkUtils.getInterfaceAddress(networkInterface);
         final Charset charset = Charset.forName(context.getProperty(ListenerProperties.CHARSET).getValue());
@@ -203,7 +216,7 @@ public class ListenTCP extends AbstractProcessor {
         final boolean poolReceiveBuffers = context.getProperty(POOL_RECV_BUFFERS).asBoolean();
         final BufferAllocator bufferAllocator = poolReceiveBuffers ? BufferAllocator.POOLED : BufferAllocator.UNPOOLED;
         eventFactory.setBufferAllocator(bufferAllocator);
-
+        eventFactory.setIdleTimeout(idleTimeout);
         eventFactory.setSocketReceiveBuffer(socketBufferSize);
         eventFactory.setWorkerThreads(workerThreads);
         eventFactory.setThreadNamePrefix(String.format("%s[%s]", getClass().getSimpleName(), getIdentifier()));
