@@ -41,8 +41,12 @@ public class C2ClientService {
     }
 
     public void sendHeartbeat(RuntimeInfoWrapper runtimeInfoWrapper) {
-        C2Heartbeat c2Heartbeat = c2HeartbeatFactory.create(runtimeInfoWrapper);
-        client.publishHeartbeat(c2Heartbeat).ifPresent(this::processResponse);
+        try {
+            C2Heartbeat c2Heartbeat = c2HeartbeatFactory.create(runtimeInfoWrapper);
+            client.publishHeartbeat(c2Heartbeat).ifPresent(this::processResponse);
+        } catch (Exception e) {
+            logger.error("Failed to send/process heartbeat:", e);
+        }
     }
 
     private void processResponse(C2HeartbeatResponse response) {

@@ -21,8 +21,14 @@
 
 export MINIFI_HOME=$(cd "${SCRIPT_DIR}" && cd .. && pwd)
 
-#The directory for the NiFi pid file
+#The directory for the MiNiFi pid file
 export MINIFI_PID_DIR="${MINIFI_HOME}/run"
 
-#The directory for NiFi log files
+#The directory for MiNiFi log files
 export MINIFI_LOG_DIR="${MINIFI_HOME}/logs"
+
+# MiNiFi log file names and extensions
+export MINIFI_APP_LOG_FILE_NAME=minifi-app
+export MINIFI_APP_LOG_FILE_EXTENSION=log
+export MINIFI_BOOTSTRAP_LOG_FILE_NAME=minifi-bootstrap
+export MINIFI_BOOTSTRAP_LOG_FILE_EXTENSION=log

@@ -1347,7 +1347,7 @@ Global access policies govern the following system level authorizations:
 |`/flow`
 
 |access the controller
-|Allows users to view/modify the controller including Reporting Tasks, Controller Services, Parameter Contexts and Nodes in the Cluster
+|Allows users to view/modify the controller including Management Controller Services, Reporting Tasks, Registry Clients, Parameter Providers and nodes in the cluster
 |Controller Settings
 |`/controller`
 

@@ -43,10 +43,12 @@ public class DescribeManifestOperationHandlerTest {
 
     @Mock
     private C2HeartbeatFactory heartbeatFactory;
+    @Mock
+    private OperandPropertiesProvider operandPropertiesProvider;
 
     @Test
     void testDescribeManifestOperationHandlerCreateSuccess() {
-        DescribeManifestOperationHandler handler = new DescribeManifestOperationHandler(null, null);
+        DescribeManifestOperationHandler handler = new DescribeManifestOperationHandler(null, null, operandPropertiesProvider);
 
         assertEquals(OperationType.DESCRIBE, handler.getOperationType());
         assertEquals(OperandType.MANIFEST, handler.getOperandType());
@@ -67,7 +69,7 @@ public class DescribeManifestOperationHandlerTest {
         heartbeat.setFlowInfo(flowInfo);
 
         when(heartbeatFactory.create(runtimeInfoWrapper)).thenReturn(heartbeat);
-        DescribeManifestOperationHandler handler = new DescribeManifestOperationHandler(heartbeatFactory, () -> runtimeInfoWrapper);
+        DescribeManifestOperationHandler handler = new DescribeManifestOperationHandler(heartbeatFactory, () -> runtimeInfoWrapper, operandPropertiesProvider);
 
         C2Operation operation = new C2Operation();
         operation.setIdentifier(OPERATION_ID);
