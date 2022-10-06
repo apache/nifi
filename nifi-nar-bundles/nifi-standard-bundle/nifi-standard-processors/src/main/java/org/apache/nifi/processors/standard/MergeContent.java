@@ -92,7 +92,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
@@ -834,14 +834,11 @@ public class MergeContent extends BinFiles {
         }
 
         private long getMaxEntrySize(List<FlowFile> contents) {
-            Optional<FlowFile> ffOpt = contents.stream()
+            OptionalLong maxSize = contents.stream()
                 .parallel()
-                .max(Comparator.comparingLong(ff -> ff.getSize()));
-            if (ffOpt.isPresent()) {
-                return ffOpt.get().getSize();
-            } else {
-                return 0L;
-            }
+                .mapToLong(ff -> ff.getSize())
+                .max();
+            return maxSize.orElse(0L);
         }
 
         @Override
