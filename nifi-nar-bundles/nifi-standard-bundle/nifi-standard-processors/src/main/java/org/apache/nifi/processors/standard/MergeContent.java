@@ -773,12 +773,6 @@ public class MergeContent extends BinFiles {
         public FlowFile merge(final Bin bin, final ProcessContext context) {
             final List<FlowFile> contents = bin.getContents();
             final ProcessSession session = bin.getSession();
-            // if any one of the FlowFiles is larger than the default maximum tar entry size, then we set bigNumberMode to handle it
-            boolean setBigNumberMode = false;
-            if (getMaxEntrySize(contents) >= TarConstants.MAXSIZE) {
-                setBigNumberMode = true;
-            }
-
             final boolean keepPath = context.getProperty(KEEP_PATH).asBoolean();
             FlowFile bundle = session.create(); // we don't pass the parents to the #create method because the parents belong to different sessions
 
@@ -789,8 +783,10 @@ public class MergeContent extends BinFiles {
                     public void process(final OutputStream rawOut) throws IOException {
                         try (final OutputStream bufferedOut = new BufferedOutputStream(rawOut);
                             final TarArchiveOutputStream out = new TarArchiveOutputStream(bufferedOut)) {
+
                             out.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
-                            if (setBigNumberMode) {
+                            // if any one of the FlowFiles is larger than the default maximum tar entry size, then we set bigNumberMode to handle it
+                            if (getMaxEntrySize(contents) >= TarConstants.MAXSIZE) {
                                 out.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX);
                             }
                             for (final FlowFile flowFile : contents) {
