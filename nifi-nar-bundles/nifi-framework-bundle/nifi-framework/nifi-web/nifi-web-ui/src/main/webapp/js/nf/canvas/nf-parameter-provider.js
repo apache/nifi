@@ -2549,14 +2549,15 @@
 
                     // only populate referencing components if this parameter is different than the last selected
                     if (lastSelectedParameterId === null || lastSelectedParameterId !== parameter.id) {
+                        if ($('#selectable-parameters-table').is(':visible')) {
+                            populateReferencingComponents(parameter.parameterStatus)
+                                .then(function () {
+                                    updateReferencingComponentsBorder($('#fetch-parameter-referencing-components-container'));
 
-                        populateReferencingComponents(parameter.parameterStatus)
-                            .then(function () {
-                                updateReferencingComponentsBorder($('#fetch-parameter-referencing-components-container'));
-
-                                // update the last selected id
-                                lastSelectedParameterId = parameter.id;
-                            });
+                                    // update the last selected id
+                                    lastSelectedParameterId = parameter.id;
+                                });
+                        }
                     }
                 }
             }
