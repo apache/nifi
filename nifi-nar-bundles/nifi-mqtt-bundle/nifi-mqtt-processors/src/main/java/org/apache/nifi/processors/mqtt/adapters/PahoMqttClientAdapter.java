@@ -30,6 +30,7 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
+import java.net.URI;
 import java.util.Properties;
 
 public class PahoMqttClientAdapter implements MqttClient {
@@ -40,8 +41,8 @@ public class PahoMqttClientAdapter implements MqttClient {
     private final MqttClientProperties clientProperties;
     private final ComponentLog logger;
 
-    public PahoMqttClientAdapter(MqttClientProperties clientProperties, ComponentLog logger) {
-        this.client = createClient(clientProperties, logger);
+    public PahoMqttClientAdapter(URI brokerUri, MqttClientProperties clientProperties, ComponentLog logger) {
+        this.client = createClient(brokerUri, clientProperties, logger);
         this.clientProperties = clientProperties;
         this.logger = logger;
     }
@@ -178,11 +179,11 @@ public class PahoMqttClientAdapter implements MqttClient {
         return  properties;
     }
 
-    private static org.eclipse.paho.client.mqttv3.MqttClient createClient(MqttClientProperties clientProperties, ComponentLog logger) {
+    private static org.eclipse.paho.client.mqttv3.MqttClient createClient(URI brokerUri, MqttClientProperties clientProperties, ComponentLog logger) {
         logger.debug("Creating Mqtt v3 client");
 
         try {
-            return new org.eclipse.paho.client.mqttv3.MqttClient(clientProperties.getBroker(), clientProperties.getClientId(), new MemoryPersistence());
+            return new org.eclipse.paho.client.mqttv3.MqttClient(brokerUri.toString(), clientProperties.getClientId(), new MemoryPersistence());
         } catch (org.eclipse.paho.client.mqttv3.MqttException e) {
             throw new MqttException("An error has occurred during creating adapter for MQTT v3 client", e);
         }

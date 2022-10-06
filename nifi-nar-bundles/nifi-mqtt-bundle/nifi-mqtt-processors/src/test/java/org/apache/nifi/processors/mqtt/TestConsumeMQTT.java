@@ -68,6 +68,11 @@ public class TestConsumeMQTT {
     private static final int PUBLISH_WAIT_MS = 0;
     private static final String THIS_IS_NOT_JSON = "ThisIsNotAJSON";
     private static final String BROKER_URI = "tcp://localhost:1883";
+    private static final String SSL_BROKER_URI = "ssl://localhost:1883";
+    private static final String CLUSTERED_BROKER_URI = "tcp://localhost:1883,tcp://localhost:1884";
+    private static final String SSL_CLUSTERED_BROKER_URI = "ssl://localhost:1883,ssl://localhost:1884";
+    private static final String INVALID_BROKER_URI = "http://localhost:1883";
+    private static final String INVALID_CLUSTERED_BROKER_URI = "ssl://localhost:1883,tcp://localhost:1884";
     private static final String CLIENT_ID = "TestClient";
     private static final String TOPIC_NAME = "testTopic";
     private static final String INTERNAL_QUEUE_SIZE = "100";
@@ -114,6 +119,42 @@ public class TestConsumeMQTT {
         testRunner.assertValid();
     }
 
+    @Test
+    public void testBrokerUriConfig() {
+        mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber);
+        testRunner = initializeTestRunner(mqttTestClient);
+
+        testRunner.setProperty(ConsumeMQTT.PROP_BROKER_URI, INVALID_BROKER_URI);
+        testRunner.assertNotValid();
+
+        testRunner.setProperty(ConsumeMQTT.PROP_BROKER_URI, INVALID_CLUSTERED_BROKER_URI);
+        testRunner.assertNotValid();
+
+        testRunner.setProperty(ConsumeMQTT.PROP_BROKER_URI, BROKER_URI);
+        testRunner.assertValid();
+
+        testRunner.setProperty(ConsumeMQTT.PROP_BROKER_URI, CLUSTERED_BROKER_URI);
+        testRunner.assertValid();
+    }
+
+    @Test
+    public void testSSLBrokerUriRequiresSSLContextServiceConfig() throws TlsException, InitializationException {
+        mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber);
+        testRunner = initializeTestRunner(mqttTestClient);
+
+        testRunner.setProperty(ConsumeMQTT.PROP_BROKER_URI, SSL_BROKER_URI);
+        testRunner.assertNotValid();
+
+        testRunner.setProperty(ConsumeMQTT.PROP_BROKER_URI, SSL_CLUSTERED_BROKER_URI);
+        testRunner.assertNotValid();
+
+        final String identifier = addSSLContextService(testRunner);
+        testRunner.setProperty(ConsumeMQTT.PROP_SSL_CONTEXT_SERVICE, identifier);
+        testRunner.assertValid();
+
+        testRunner.setProperty(ConsumeMQTT.PROP_BROKER_URI, SSL_BROKER_URI);
+        testRunner.assertValid();
+    }
 
     @Test
     public void testQoS2() throws Exception {
@@ -554,14 +595,7 @@ public class TestConsumeMQTT {
         testRunner.setVariable("brokerURI",  "ssl://localhost:8883");
         testRunner.setProperty(ConsumeMQTT.PROP_BROKER_URI, "${brokerURI}");
 
-        final SSLContextService sslContextService = mock(SSLContextService.class);
-        final String identifier = SSLContextService.class.getSimpleName();
-        when(sslContextService.getIdentifier()).thenReturn(identifier);
-        final SSLContext sslContext = SslContextFactory.createSslContext(new TemporaryKeyStoreBuilder().build());
-        when(sslContextService.createContext()).thenReturn(sslContext);
-
-        testRunner.addControllerService(identifier, sslContextService);
-        testRunner.enableControllerService(sslContextService);
+        final String identifier = addSSLContextService(testRunner);
         testRunner.setProperty(ConsumeMQTT.PROP_SSL_CONTEXT_SERVICE, identifier);
 
         final ConsumeMQTT processor = (ConsumeMQTT) testRunner.getProcessor();
@@ -665,5 +699,17 @@ public class TestConsumeMQTT {
     private void publishMessage(final String payload, final int qos) {
         final StandardMqttMessage message = new StandardMqttMessage(payload.getBytes(StandardCharsets.UTF_8), qos, false);
         mqttTestClient.publish(TOPIC_NAME, message);
+    }
+
+    private static String addSSLContextService(TestRunner testRunner) throws TlsException, InitializationException {
+        final SSLContextService sslContextService = mock(SSLContextService.class);
+        final String identifier = SSLContextService.class.getSimpleName();
+        when(sslContextService.getIdentifier()).thenReturn(identifier);
+        final SSLContext sslContext = SslContextFactory.createSslContext(new TemporaryKeyStoreBuilder().build());
+        when(sslContextService.createContext()).thenReturn(sslContext);
+
+        testRunner.addControllerService(identifier, sslContextService);
+        testRunner.enableControllerService(sslContextService);
+        return identifier;
     }
 }

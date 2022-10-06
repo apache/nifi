@@ -263,7 +263,7 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
                 provenanceEventDetails = String.format(PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS, processedRecords.get());
             }
 
-            session.getProvenanceReporter().send(flowfile, clientProperties.getBroker(), provenanceEventDetails, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().send(flowfile, clientProperties.getRawBrokerUris(), provenanceEventDetails, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(successFlowFile, REL_SUCCESS);
         } catch (Exception e) {
             logger.error("An error happened during publishing records. Routing to failure.", e);
@@ -273,7 +273,7 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
             if (processedRecords.get() > 0) {
                 session.getProvenanceReporter().send(
                         failedFlowFile,
-                        clientProperties.getBroker(),
+                        clientProperties.getRawBrokerUris(),
                         String.format(PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE, processedRecords.get()),
                         stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             }
@@ -289,7 +289,7 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
             final StopWatch stopWatch = new StopWatch(true);
             publishMessage(context, flowfile, topic, messageContent);
-            session.getProvenanceReporter().send(flowfile, clientProperties.getBroker(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().send(flowfile, clientProperties.getRawBrokerUris(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowfile, REL_SUCCESS);
         } catch (Exception e) {
             logger.error("An error happened during publishing a message. Routing to failure.", e);
@@ -309,23 +309,18 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
         // NOTE: This method is called when isConnected returns false which can happen when the client is null, or when it is
         // non-null but not connected, so we need to handle each case and only create a new client when it is null
         try {
-            if (mqttClient == null) {
-                mqttClient = createMqttClient();
-                mqttClient.setCallback(this);
-            }
-
-            if (!mqttClient.isConnected()) {
-                mqttClient.connect();
-            }
+            mqttClient = createMqttClient();
+            mqttClient.setCallback(this);
+            mqttClient.connect();
         } catch (Exception e) {
-            logger.error("Connection to {} lost (or was never connected) and connection failed. Yielding processor", clientProperties.getBroker(), e);
+            logger.error("Connection failed to {}. Yielding processor", clientProperties.getRawBrokerUris(), e);
             context.yield();
         }
     }
 
     @Override
     public void connectionLost(Throwable cause) {
-        logger.error("Connection to {} lost", clientProperties.getBroker(), cause);
+        logger.error("Connection to {} lost", clientProperties.getRawBrokerUris(), cause);
     }
 
     @Override
