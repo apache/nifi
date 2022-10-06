@@ -65,6 +65,13 @@ public class JsonConfigBasedBoxClientServiceTestRunnerTest {
     }
 
     @Test
+    void invalidWhenAppConfigFileDoesNotExist() {
+        testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.ACCOUNT_ID, "account_id");
+        testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.APP_CONFIG_FILE, "doesnotexist.xml");
+        testRunner.assertNotValid(testSubject);
+    }
+
+    @Test
     void invalidWhenBothAppConfigFileAndAppConfigJsonIsSet() {
         testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.ACCOUNT_ID, "account_id");
         testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.APP_CONFIG_FILE, "pom.xml");
