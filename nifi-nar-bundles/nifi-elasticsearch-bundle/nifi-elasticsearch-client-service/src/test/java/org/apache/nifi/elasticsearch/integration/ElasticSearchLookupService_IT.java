@@ -33,6 +33,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,14 +49,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class ElasticSearchLookupService_IT extends AbstractElasticsearchIT {
+public class ElasticSearchLookupService_IT extends AbstractElasticsearch_IT {
     private TestRunner runner;
     private ElasticSearchClientService service;
     private ElasticSearchLookupService lookupService;
 
     @BeforeAll
     public static void beforeAll() throws IOException {
+        startTestcontainer();
         setupTestData();
+    }
+
+    @AfterAll
+    public static void afterAll() throws IOException {
+        tearDownTestData();
+        stopTestcontainer();
     }
 
     @BeforeEach
@@ -65,11 +73,11 @@ public class ElasticSearchLookupService_IT extends AbstractElasticsearchIT {
         lookupService = new ElasticSearchLookupService();
         runner.addControllerService("Client Service", service);
         runner.addControllerService("Lookup Service", lookupService);
-        runner.setProperty(service, ElasticSearchClientService.HTTP_HOSTS, String.format("http://%s", ELASTICSEARCH_CONTAINER.getHttpHostAddress()));
+        runner.setProperty(service, ElasticSearchClientService.HTTP_HOSTS, ELASTIC_HOST);
         runner.setProperty(service, ElasticSearchClientService.CONNECT_TIMEOUT, "10000");
         runner.setProperty(service, ElasticSearchClientService.SOCKET_TIMEOUT, "60000");
         runner.setProperty(service, ElasticSearchClientService.USERNAME, "elastic");
-        runner.setProperty(service, ElasticSearchClientService.PASSWORD, "s3cret");
+        runner.setProperty(service, ElasticSearchClientService.PASSWORD, ELASTIC_USER_PASSWORD);
         runner.setProperty(TestControllerServiceProcessor.CLIENT_SERVICE, "Client Service");
         runner.setProperty(TestControllerServiceProcessor.LOOKUP_SERVICE, "Lookup Service");
         runner.setProperty(lookupService, ElasticSearchLookupService.CLIENT_SERVICE, "Client Service");
@@ -80,7 +88,6 @@ public class ElasticSearchLookupService_IT extends AbstractElasticsearchIT {
             runner.enableControllerService(service);
             runner.enableControllerService(lookupService);
         } catch (Exception ex) {
-            ex.printStackTrace();
             throw ex;
         }
 

@@ -23,10 +23,9 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.nio.entity.NStringEntity;
 import org.elasticsearch.client.Request;
+import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.RestClient;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.io.BufferedReader;
@@ -39,14 +38,32 @@ import java.util.List;
 
 import static org.apache.http.auth.AuthScope.ANY;
 
-@Testcontainers
-public abstract class AbstractElasticsearchIT {
+public abstract class AbstractElasticsearch_IT {
     protected static final DockerImageName IMAGE = DockerImageName
-            .parse(System.getProperty("elastic.docker.image"));
-    @Container
+            .parse(System.getProperty("elasticsearch.docker.image"));
     protected static final ElasticsearchContainer ELASTICSEARCH_CONTAINER = new ElasticsearchContainer(IMAGE)
-            .withPassword("s3cret")
+            .withPassword(System.getProperty("elasticsearch.elastic_user.password"))
             .withEnv("xpack.security.enabled", "true");
+
+    protected static final String ELASTIC_USER_PASSWORD = System.getProperty("elasticsearch.elastic_user.password");
+    protected static final boolean ENABLE_TEST_CONTAINERS = System.getProperty("elasticsearch.testcontainers.enabled")
+            != null && System.getProperty("elasticsearch.testcontainers.enabled").equalsIgnoreCase("true");
+    protected static String ELASTIC_HOST;
+
+    public static void startTestcontainer() {
+        if (ENABLE_TEST_CONTAINERS) {
+            ELASTICSEARCH_CONTAINER.start();
+            ELASTIC_HOST = String.format("http://%s", ELASTICSEARCH_CONTAINER.getHttpHostAddress());
+        } else {
+            ELASTIC_HOST = System.getProperty("elasticsearch.endpoint");
+        }
+    }
+
+    public static void stopTestcontainer() {
+        if (ENABLE_TEST_CONTAINERS) {
+            ELASTICSEARCH_CONTAINER.stop();
+        }
+    }
 
     private static String[] getElasticVersion() {
         String fullVersion = IMAGE.getVersionPart();
@@ -66,14 +83,15 @@ public abstract class AbstractElasticsearchIT {
         return Integer.valueOf(getElasticVersion()[1]);
     }
 
+    private static RestClient testDataManagementClient;
+
     protected static void setupTestData() throws IOException {
         int majorVersion = getElasticMajorVersion();
-        String connectionString = "http://" + ELASTICSEARCH_CONTAINER.getHttpHostAddress();
-        URL url = new URL(connectionString);
-        RestClient client = RestClient
+        URL url = new URL(ELASTIC_HOST);
+        testDataManagementClient = RestClient
                 .builder(new HttpHost(url.getHost(), url.getPort(), url.getProtocol()))
                 .setHttpClientConfigCallback(httpClientBuilder -> {
-                    UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("elastic", "s3cret");
+                    UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("elastic", ELASTIC_USER_PASSWORD);
                     BasicCredentialsProvider provider = new BasicCredentialsProvider();
                     provider.setCredentials(ANY, credentials);
                     httpClientBuilder.setDefaultCredentialsProvider(provider);
@@ -85,13 +103,33 @@ public abstract class AbstractElasticsearchIT {
         List<SetupAction> actions = readSetupActions(script);
 
         for (SetupAction action : actions) {
-            String endpoint = String.format("http://%s/%s", ELASTICSEARCH_CONTAINER.getHttpHostAddress(), action.path);
+            String endpoint = String.format("%s/%s", ELASTIC_HOST, action.path);
             Request request = new Request(action.verb, endpoint);
             HttpEntity jsonBody = new NStringEntity(action.json, ContentType.APPLICATION_JSON);
             request.setEntity(jsonBody);
 
-            client.performRequest(request);
+            try {
+                testDataManagementClient.performRequest(request);
+            } catch (ResponseException re) {
+                throw new RuntimeException(re);
+            }
         }
+    }
+
+    protected static void tearDownTestData() throws IOException {
+        deleteIndex("user_details");
+        deleteIndex("complex");
+        deleteIndex("nested");
+        deleteIndex("bulk_a");
+        deleteIndex("bulk_b");
+        deleteIndex("bulk_c");
+        deleteIndex("error_handler");
+        deleteIndex("messages");
+    }
+
+    private static void deleteIndex(String name) throws IOException {
+        Request request = new Request("DELETE", String.format("%s/%s", ELASTIC_HOST, name));
+        testDataManagementClient.performRequest(request);
     }
 
     private static List<SetupAction> readSetupActions(String scriptPath) throws IOException {

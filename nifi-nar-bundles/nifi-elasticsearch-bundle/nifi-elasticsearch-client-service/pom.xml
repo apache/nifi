@@ -216,7 +216,8 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <elastic_docker_image>7.17.6</elastic_docker_image>
+                <elasticsearch_docker_image>7.17.6</elasticsearch_docker_image>
+                <elasticsearch.elastic.password>s3cret</elasticsearch.elastic.password>
             </properties>
             <build>
                 <pluginManagement>
@@ -226,7 +227,10 @@
                             <artifactId>maven-failsafe-plugin</artifactId>
                             <configuration>
                                 <systemPropertyVariables>
-                                    <elastic.docker.image>docker.elastic.co/elasticsearch/elasticsearch:${elastic_docker_image}</elastic.docker.image>
+                                    <elasticsearch.endpoint>http://localhost:9200</elasticsearch.endpoint>
+                                    <elasticsearch.testcontainers.enabled>true</elasticsearch.testcontainers.enabled>
+                                    <elasticsearch.docker.image>docker.elastic.co/elasticsearch/elasticsearch:${elasticsearch_docker_image}</elasticsearch.docker.image>
+                                    <elasticsearch.elastic_user.password>${elasticsearch.elastic.password}</elasticsearch.elastic_user.password>
                                 </systemPropertyVariables>
                             </configuration>
                         </plugin>
@@ -235,21 +239,15 @@
             </build>
         </profile>
         <profile>
-            <id>elastic5</id>
+            <id>elasticsearch6</id>
             <properties>
-                <elastic_docker_image>5.6</elastic_docker_image>
+                <elasticsearch_docker_image>6.8.23</elasticsearch_docker_image>
             </properties>
         </profile>
         <profile>
-            <id>elastic6</id>
+            <id>elasticsearch8</id>
             <properties>
-                <elastic_docker_image>6.8.9</elastic_docker_image>
-            </properties>
-        </profile>
-        <profile>
-            <id>elastic8</id>
-            <properties>
-                <elastic_docker_image>8.4.2</elastic_docker_image>
+                <elasticsearch_docker_image>8.4.3</elasticsearch_docker_image>
             </properties>
         </profile>
     </profiles>

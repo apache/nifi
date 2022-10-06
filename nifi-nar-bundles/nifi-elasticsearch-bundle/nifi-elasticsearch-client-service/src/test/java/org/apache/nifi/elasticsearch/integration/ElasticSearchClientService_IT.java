@@ -19,7 +19,6 @@ package org.apache.nifi.elasticsearch.integration;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.maven.artifact.versioning.ComparableVersion;
 import org.apache.nifi.elasticsearch.DeleteOperationResponse;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl;
@@ -34,6 +33,7 @@ import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,25 +56,21 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-public class ElasticSearchClientService_IT extends AbstractElasticsearchIT {
+public class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     private TestRunner runner;
     private ElasticSearchClientServiceImpl service;
 
     static final String INDEX = "messages";
     public static String TYPE;
 
-    static final ComparableVersion VERSION = new ComparableVersion(System.getProperty("es_version", "0.0.0"));
-    static final ComparableVersion ES_7_10 = new ComparableVersion("7.10");
-    static final ComparableVersion ES_8_0 = new ComparableVersion("8.0");
-
-    static final String FLAVOUR = System.getProperty("es_flavour");
-    static final String DEFAULT = "default";
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static TlsConfiguration generatedTlsConfiguration;
     private static TlsConfiguration truststoreTlsConfiguration;
 
     @BeforeAll
     static void beforeAll() throws IOException {
+        startTestcontainer();
         TYPE = getElasticMajorVersion() == 6 ? "_doc" : "";
         System.out.println(
                 String.format("%n%n%n%n%n%n%n%n%n%n%n%n%n%n%nTYPE: %s%n%s%s%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n",
@@ -94,23 +90,28 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearchIT {
         setupTestData();
     }
 
+    @AfterAll
+    public static void afterAll() throws IOException {
+        tearDownTestData();
+        stopTestcontainer();
+    }
+
     @BeforeEach
     void before() throws Exception {
         runner = TestRunners.newTestRunner(TestControllerServiceProcessor.class);
         service = new ElasticSearchClientServiceImpl();
         runner.addControllerService("Client Service", service);
-        runner.setProperty(service, ElasticSearchClientService.HTTP_HOSTS, String.format("http://%s", ELASTICSEARCH_CONTAINER.getHttpHostAddress()));
+        runner.setProperty(service, ElasticSearchClientService.HTTP_HOSTS, ELASTIC_HOST);
         runner.setProperty(service, ElasticSearchClientService.CONNECT_TIMEOUT, "10000");
         runner.setProperty(service, ElasticSearchClientService.SOCKET_TIMEOUT, "60000");
         runner.setProperty(service, ElasticSearchClientService.RETRY_TIMEOUT, "60000");
         runner.setProperty(service, ElasticSearchClientService.SUPPRESS_NULLS, ElasticSearchClientService.ALWAYS_SUPPRESS.getValue());
         runner.setProperty(service, ElasticSearchClientService.USERNAME, "elastic");
-        runner.setProperty(service, ElasticSearchClientService.PASSWORD, "s3cret");
+        runner.setProperty(service, ElasticSearchClientService.PASSWORD, ELASTIC_USER_PASSWORD);
 
         try {
             runner.enableControllerService(service);
         } catch (Exception ex) {
-            ex.printStackTrace();
             throw ex;
         }
 
@@ -122,13 +123,8 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearchIT {
         service.onDisabled();
     }
 
-    @Test
-    public void bootstrapTest() {
-
-    }
-
     private String prettyJson(Object o) throws JsonProcessingException {
-        return new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(o);
+        return MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(o);
     }
 
     private class MapBuilder {
