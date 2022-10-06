@@ -619,8 +619,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
     }
 
     private String getTransitUri(String... appends) {
-        final String broker = clientProperties.getRawBrokerUris();
-        final StringBuilder stringBuilder = new StringBuilder(broker.endsWith("/") ? broker : broker + "/");
+        final StringBuilder stringBuilder = new StringBuilder(clientProperties.getProvenanceFormattedBrokerUris()).append("/");
         for (String append : appends) {
             stringBuilder.append(append);
         }

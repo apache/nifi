@@ -252,6 +252,9 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
         try {
             final List<URI> brokerUris = parseBrokerUris(validationContext.getProperty(PROP_BROKER_URI).evaluateAttributeExpressions().getValue());
+
+            boolean sameSchemeValidationErrorAdded = false;
+            boolean sslValidationErrorAdded = false;
             for(URI brokerUri : brokerUris) {
                 if (!EMPTY.equals(brokerUri.getPath())) {
                     results.add(new ValidationResult.Builder().subject(PROP_BROKER_URI.getName()).valid(false)
@@ -260,14 +263,20 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
                 final String scheme = brokerUri.getScheme();
                 if (!isValidEnumIgnoreCase(MqttProtocolScheme.class, scheme)) {
                     results.add(new ValidationResult.Builder().subject(PROP_BROKER_URI.getName()).valid(false)
-                            .explanation("scheme is invalid. Supported schemes are: " + getSupportedSchemeList()).build());
+                            .explanation(scheme + " is an invalid scheme. Supported schemes are: " + getSupportedSchemeList()).build());
                 }
                 if (!scheme.equals(brokerUris.get(0).getScheme())) {
-                    results.add(new ValidationResult.Builder().subject(PROP_BROKER_URI.getName()).valid(false).explanation("all URIs should use the same scheme.").build());
+                    if (!sameSchemeValidationErrorAdded) {
+                        results.add(new ValidationResult.Builder().subject(PROP_BROKER_URI.getName()).valid(false).explanation("all URIs should use the same scheme.").build());
+                        sameSchemeValidationErrorAdded = true;
+                    }
                 }
                 if (scheme.equalsIgnoreCase("ssl") && !validationContext.getProperty(PROP_SSL_CONTEXT_SERVICE).isSet()) {
-                    results.add(new ValidationResult.Builder().subject(PROP_SSL_CONTEXT_SERVICE.getName() + " or " + PROP_BROKER_URI.getName()).valid(false)
-                            .explanation("if the 'ssl' scheme is used in the broker URI, the SSL Context Service must be set.").build());
+                    if (!sslValidationErrorAdded) {
+                        results.add(new ValidationResult.Builder().subject(PROP_SSL_CONTEXT_SERVICE.getName() + " or " + PROP_BROKER_URI.getName()).valid(false)
+                                .explanation("if the 'ssl' scheme is used in the broker URI, the SSL Context Service must be set.").build());
+                        sslValidationErrorAdded = true;
+                    }
                 }
             }
         } catch (Exception e) {
@@ -343,7 +352,6 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         final MqttClientProperties clientProperties = new MqttClientProperties();
 
         final String rawBrokerUris = context.getProperty(PROP_BROKER_URI).evaluateAttributeExpressions().getValue();
-        clientProperties.setRawBrokerUris(rawBrokerUris);
         clientProperties.setBrokerUris(parseBrokerUris(rawBrokerUris));
 
         String clientId = context.getProperty(PROP_CLIENTID).evaluateAttributeExpressions().getValue();
