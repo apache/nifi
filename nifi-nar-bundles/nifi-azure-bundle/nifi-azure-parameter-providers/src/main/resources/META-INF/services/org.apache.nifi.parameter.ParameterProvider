@@ -12,11 +12,5 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-org.apache.nifi.services.azure.eventhub.AzureEventHubRecordSink
-org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService
-org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerServiceLookup
-org.apache.nifi.services.azure.storage.ADLSCredentialsControllerService
-org.apache.nifi.services.azure.cosmos.document.AzureCosmosDBClientService
-org.apache.nifi.services.azure.storage.AzureStorageEmulatorCredentialsControllerService
-org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService_v12
-org.apache.nifi.services.azure.StandardAzureCredentialsControllerService
+org.apache.nifi.parameter.azure.AzureKeyVaultSecretsParameterProvider
+
