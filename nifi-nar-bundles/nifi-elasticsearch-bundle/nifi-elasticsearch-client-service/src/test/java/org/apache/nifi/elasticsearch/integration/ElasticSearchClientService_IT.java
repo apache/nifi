@@ -131,8 +131,40 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
             toBuild = new HashMap<>();
         }
 
-        public MapBuilder put(String key, Object value) {
+        public MapBuilder of(String key, Object value) {
             toBuild.put(key, value);
+            return this;
+        }
+
+        public MapBuilder of(String key, Object value, String key2, Object value2) {
+            toBuild.put(key, value);
+            toBuild.put(key2, value2);
+            return this;
+        }
+
+        public MapBuilder of(String key, Object value, String key2, Object value2, String key3, Object value3) {
+            toBuild.put(key, value);
+            toBuild.put(key2, value2);
+            toBuild.put(key3, value3);
+            return this;
+        }
+
+        public MapBuilder of(String key, Object value, String key2, Object value2, String key3, Object value3,
+                             String key4, Object value4) {
+            toBuild.put(key, value);
+            toBuild.put(key2, value2);
+            toBuild.put(key3, value3);
+            toBuild.put(key4, value4);
+            return this;
+        }
+
+        public MapBuilder of(String key, Object value, String key2, Object value2, String key3, Object value3,
+                             String key4, Object value4, String key5, Object value5) {
+            toBuild.put(key, value);
+            toBuild.put(key2, value2);
+            toBuild.put(key3, value3);
+            toBuild.put(key4, value4);
+            toBuild.put(key5, value5);
             return this;
         }
 
@@ -144,16 +176,14 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     @Test
     void testBasicSearch() throws Exception {
         Map<String, Object> temp = new MapBuilder()
-            .put("size", 10)
-            .put("query", new MapBuilder().put("match_all", new HashMap<>()).build())
-            .put("aggs", new MapBuilder()
-                .put("term_counts", new MapBuilder()
-                        .put("terms", new MapBuilder()
-                                .put("field", "msg")
-                                .put("size", 5)
-                                .build())
-                        .build())
-                    .build())
+            .of("size", 10, "query", new MapBuilder().of("match_all", new HashMap<>()).build(),
+                    "aggs", new MapBuilder()
+                            .of("term_counts", new MapBuilder()
+                                    .of("terms", new MapBuilder()
+                                            .of("field", "msg", "size", 5)
+                                            .build())
+                                    .build())
+                            .build())
                 .build();
         String query = prettyJson(temp);
 
@@ -175,11 +205,8 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         List<Map<String, Object>> buckets = (List<java.util.Map<String, Object>>) termCounts.get("buckets");
         assertNotNull(buckets, "Buckets branch was empty");
         Map<String, Object> expected = new MapBuilder()
-                .put("one", 1)
-                .put("two", 2)
-                .put("three", 3)
-                .put("four", 4)
-                .put("five", 5)
+                .of("one", 1, "two", 2, "three", 3,
+                        "four", 4, "five", 5)
                 .build();
 
         buckets.forEach( aggRes -> {
@@ -192,13 +219,11 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     @Test
     void testBasicSearchRequestParameters() throws Exception {
         Map<String, Object> temp = new MapBuilder()
-                .put("size", 10)
-                .put("query", new MapBuilder().put("match_all", new HashMap<>()).build())
-                .put("aggs", new MapBuilder()
-                        .put("term_counts", new MapBuilder()
-                                .put("terms", new MapBuilder()
-                                        .put("field", "msg")
-                                        .put("size", 5)
+                .of("size", 10, "query", new MapBuilder().of("match_all", new HashMap<>()).build(),
+                        "aggs", new MapBuilder()
+                        .of("term_counts", new MapBuilder()
+                                .of("terms", new MapBuilder()
+                                        .of("field", "msg", "size", 5)
                                         .build())
                                 .build())
                         .build())
@@ -221,11 +246,8 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         List<Map<String, Object>> buckets = (List<Map<String, Object>>) termCounts.get("buckets");
         assertNotNull(buckets, "Buckets branch was empty");
         Map<String, Object> expected = new MapBuilder()
-                .put("one", 1)
-                .put("two", 2)
-                .put("three", 3)
-                .put("four", 4)
-                .put("five", 5)
+                .of("one", 1, "two", 2, "three", 3,
+                        "four", 4, "five", 5)
                 .build();
 
         buckets.forEach( (aggRes) -> {
@@ -241,11 +263,8 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         assumeTrue(version == 5, "Requires version 5 (no search API deprecations yet for 8.x)");
 
         String query = prettyJson(new MapBuilder()
-                .put("size", 1)
-                .put("query", new MapBuilder().put("query_string", new MapBuilder()
-                        .put("query", 1)
-                        .put("all_fields", true)
-                        .build()).build())
+                .of("size", 1, "query", new MapBuilder().of("query_string", new MapBuilder()
+                        .of("query", 1, "all_fields", true).build()).build())
                 .build());
         final SearchResponse response = service.search(query, INDEX, TYPE, null);
         assertTrue(!response.getWarnings().isEmpty(), "Missing warnings");
@@ -256,8 +275,7 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         assumeTrue(getElasticMajorVersion() == 7,
                 "Requires Elasticsearch 7");
         String query = prettyJson(new MapBuilder()
-                .put("size", 1)
-                .put("query", new MapBuilder().put("match_all", new HashMap<>()).build())
+                .of("size", 1, "query", new MapBuilder().of("match_all", new HashMap<>()).build())
                 .build());
         String type = "a-type";
         final SearchResponse response = service.search(query, INDEX, type, null);
@@ -267,13 +285,11 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     @Test
     void testScroll() throws JsonProcessingException {
         final String query = prettyJson(new MapBuilder()
-                .put("size", 2)
-                .put("query", new MapBuilder().put("match_all", new HashMap<>()).build())
-                .put("aggs", new MapBuilder()
-                        .put("term_counts", new MapBuilder()
-                                .put("terms", new MapBuilder()
-                                        .put("field", "msg")
-                                        .put("size", 5)
+                .of("size", 2, "query", new MapBuilder().of("match_all", new HashMap<>()).build(),
+                        "aggs", new MapBuilder()
+                        .of("term_counts", new MapBuilder()
+                                .of("terms", new MapBuilder()
+                                        .of("field", "msg", "size", 5)
                                         .build())
                                 .build())
                         .build())
@@ -328,16 +344,15 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     @Test
     void testSearchAfter() throws JsonProcessingException {
         final Map<String, Object> queryMap = new MapBuilder()
-                .put("size", 2)
-                .put("query", new MapBuilder().put("match_all", new HashMap<>()).build())
-                .put("aggs", new MapBuilder().put("term_counts", new MapBuilder()
-                        .put("terms", new MapBuilder()
-                                .put("field", "msg")
-                                .put("size", 5)
-                                .build())
-                        .build()).build())
-                .put("sort", Arrays.asList(
-                    new MapBuilder().put("msg", "desc").build()
+                .of("size", 2, "query", new MapBuilder()
+                        .of("match_all", new HashMap<>()).build(), "aggs", new MapBuilder()
+                        .of("term_counts", new MapBuilder()
+                            .of("terms", new MapBuilder()
+                                    .of("field", "msg", "size", 5)
+                                    .build())
+                            .build()).build())
+                .of("sort", Arrays.asList(
+                    new MapBuilder().of("msg", "desc").build()
                 ))
                 .build();
         final String query = prettyJson(queryMap);
@@ -391,20 +406,17 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         final String pitId = service.initialisePointInTime(INDEX, "10s");
 
         final Map<String, Object> queryMap = new MapBuilder()
-                .put("size", 2)
-                .put("query", new MapBuilder().put("match_all", new HashMap<>()).build())
-                .put("aggs", new MapBuilder().put("term_counts", new MapBuilder()
-                        .put("terms", new MapBuilder()
-                                .put("field", "msg")
-                                .put("size", 5)
+                .of("size", 2, "query", new MapBuilder().of("match_all", new HashMap<>()).build())
+                .of("aggs", new MapBuilder().of("term_counts", new MapBuilder()
+                        .of("terms", new MapBuilder()
+                                .of("field", "msg", "size", 5)
                                 .build())
                         .build()).build())
-                .put("sort", Arrays.asList(
-                        new MapBuilder().put("msg", "desc").build()
+                .of("sort", Arrays.asList(
+                        new MapBuilder().of("msg", "desc").build()
                 ))
-                .put("pit", new MapBuilder()
-                        .put("id", pitId)
-                        .put("keep_alive", "10s")
+                .of("pit", new MapBuilder()
+                        .of("id", pitId, "keep_alive", "10s")
                         .build())
                 .build();
         final String query = prettyJson(queryMap);
@@ -460,8 +472,8 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     @Test
     void testDeleteByQuery() throws Exception {
         String query = prettyJson(new MapBuilder()
-                .put("query", new MapBuilder()
-                        .put("match", new MapBuilder().put("msg", "five").build())
+                .of("query", new MapBuilder()
+                        .of("match", new MapBuilder().of("msg", "five").build())
                                 .build()).build());
         DeleteOperationResponse response = service.deleteByQuery(query, INDEX, TYPE, null);
         assertNotNull(response);
@@ -471,8 +483,8 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     @Test
     void testDeleteByQueryRequestParameters() throws Exception {
         String query = prettyJson(new MapBuilder()
-                .put("query", new MapBuilder()
-                        .put("match", new MapBuilder().put("msg", "six").build())
+                .of("query", new MapBuilder()
+                        .of("match", new MapBuilder().of("msg", "six").build())
                         .build()).build());
         Map<String, String> parameters = new HashMap<>();
         parameters.put("refresh", "true");
@@ -484,8 +496,8 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     @Test
     void testUpdateByQuery() throws Exception {
         String query = prettyJson(new MapBuilder()
-                .put("query", new MapBuilder()
-                        .put("match", new MapBuilder().put("msg", "four").build())
+                .of("query", new MapBuilder()
+                        .of("match", new MapBuilder().of("msg", "four").build())
                         .build()).build());
         UpdateOperationResponse response = service.updateByQuery(query, INDEX, TYPE, null);
         assertNotNull(response);
@@ -495,8 +507,8 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     @Test
     void testUpdateByQueryRequestParameters() throws Exception {
         String query = prettyJson(new MapBuilder()
-                .put("query", new MapBuilder()
-                        .put("match", new MapBuilder().put("msg", "four").build())
+                .of("query", new MapBuilder()
+                        .of("match", new MapBuilder().of("msg", "four").build())
                         .build()).build());
         Map<String, String> parameters = new HashMap<>();
         parameters.put("refresh", "true");
@@ -632,10 +644,10 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         List<IndexOperationRequest> payload = new ArrayList<>();
         for (int x = 0; x < 20; x++) {
             String index = x % 2 == 0 ? "bulk_a": "bulk_b";
-            payload.add(new IndexOperationRequest(index, TYPE, String.valueOf(x), new MapBuilder().put("msg", "test").build(), IndexOperationRequest.Operation.Index));
+            payload.add(new IndexOperationRequest(index, TYPE, String.valueOf(x), new MapBuilder().of("msg", "test").build(), IndexOperationRequest.Operation.Index));
         }
         for (int x = 0; x < 5; x++) {
-            payload.add(new IndexOperationRequest("bulk_c", TYPE, String.valueOf(x), new MapBuilder().put("msg", "test").build(), IndexOperationRequest.Operation.Index));
+            payload.add(new IndexOperationRequest("bulk_c", TYPE, String.valueOf(x), new MapBuilder().of("msg", "test").build(), IndexOperationRequest.Operation.Index));
         }
         IndexOperationResponse response = service.bulk(payload, createParameters("refresh", "true"));
         assertNotNull(response);
@@ -707,9 +719,9 @@ public class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     @Test
     void testGetBulkResponsesWithErrors() {
         List ops = Arrays.asList(
-                new IndexOperationRequest(INDEX, TYPE, "1", new MapBuilder().put("msg", "one").put("intField", 1).build(), IndexOperationRequest.Operation.Index), // OK
-                new IndexOperationRequest(INDEX, TYPE, "2", new MapBuilder().put("msg", "two").put("intField", 1).build(), IndexOperationRequest.Operation.Create), // already exists
-                new IndexOperationRequest(INDEX, TYPE, "1", new MapBuilder().put("msg", "one").put("intField", "notaninteger").build(), IndexOperationRequest.Operation.Index) // can't parse int field
+                new IndexOperationRequest(INDEX, TYPE, "1", new MapBuilder().of("msg", "one", "intField", 1).build(), IndexOperationRequest.Operation.Index), // OK
+                new IndexOperationRequest(INDEX, TYPE, "2", new MapBuilder().of("msg", "two", "intField", 1).build(), IndexOperationRequest.Operation.Create), // already exists
+                new IndexOperationRequest(INDEX, TYPE, "1", new MapBuilder().of("msg", "one", "intField", "notaninteger").build(), IndexOperationRequest.Operation.Index) // can't parse int field
         );
         IndexOperationResponse response = service.bulk(ops, createParameters("refresh", "true"));
         assertTrue(response.hasErrors());
