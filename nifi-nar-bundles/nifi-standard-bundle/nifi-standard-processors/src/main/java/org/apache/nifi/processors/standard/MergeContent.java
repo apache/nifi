@@ -774,7 +774,7 @@ public class MergeContent extends BinFiles {
             final List<FlowFile> contents = bin.getContents();
             final ProcessSession session = bin.getSession();
             // if any one of the FlowFiles is larger than the default maximum tar entry size, then we set bigNumberMode to handle it
-            boolean setBigNumberMode;
+            boolean setBigNumberMode = false;
             if (getMaxEntrySize(contents) >= TarConstants.MAXSIZE) {
                 setBigNumberMode = true;
             }
