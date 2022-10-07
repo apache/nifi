@@ -23,12 +23,12 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Delegating implementation of Evaluation Context that blocks access to Sensitive Parameter Values
+ * Delegating implementation of Evaluation Context that blocks access to Parameter Values
  */
-public class NonSensitiveParameterEvaluationContext implements EvaluationContext {
+public class ParametersDisabledEvaluationContext implements EvaluationContext {
     private final EvaluationContext evaluationContext;
 
-    public NonSensitiveParameterEvaluationContext(final EvaluationContext evaluationContext) {
+    public ParametersDisabledEvaluationContext(final EvaluationContext evaluationContext) {
         this.evaluationContext = Objects.requireNonNull(evaluationContext, "Evaluation Context required");
     }
 
@@ -53,14 +53,13 @@ public class NonSensitiveParameterEvaluationContext implements EvaluationContext
     }
 
     /**
-     * Get Parameter using Parameter Name and return when Parameter Descriptor is not sensitive
+     * Get Parameter returns null in all cases to block access to Parameter Values
      *
      * @param parameterName Parameter Name
-     * @return Non-Sensitive Parameter or null
+     * @return Null Parameter
      */
     @Override
     public Parameter getParameter(final String parameterName) {
-        final Parameter parameter = evaluationContext.getParameter(parameterName);
-        return (parameter == null || parameter.getDescriptor().isSensitive()) ? null : parameter;
+        return null;
     }
 }

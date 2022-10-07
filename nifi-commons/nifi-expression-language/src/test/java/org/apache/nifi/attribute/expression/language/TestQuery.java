@@ -196,7 +196,7 @@ public class TestQuery {
 
         final String evaluated = Query.prepare(query).evaluateExpressions(evaluationContext, null);
 
-        assertEquals(value, evaluated);
+        assertEquals(StringUtils.EMPTY, evaluated);
     }
 
     @Test

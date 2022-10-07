@@ -17,7 +17,7 @@
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
-import org.apache.nifi.attribute.expression.language.NonSensitiveParameterEvaluationContext;
+import org.apache.nifi.attribute.expression.language.ParametersDisabledEvaluationContext;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
@@ -35,8 +35,8 @@ public class EvaluateELStringEvaluator extends StringEvaluator {
     @Override
     public QueryResult<String> evaluate(EvaluationContext evaluationContext) {
         final String subjectValue = subject.evaluate(evaluationContext).getValue();
-        final NonSensitiveParameterEvaluationContext nonSensitiveParameterEvaluationContext = new NonSensitiveParameterEvaluationContext(evaluationContext);
-        final String evaluated = Query.prepare(subjectValue).evaluateExpressions(nonSensitiveParameterEvaluationContext, null);
+        final ParametersDisabledEvaluationContext parametersDisabledEvaluationContext = new ParametersDisabledEvaluationContext(evaluationContext);
+        final String evaluated = Query.prepare(subjectValue).evaluateExpressions(parametersDisabledEvaluationContext, null);
         return new StringQueryResult(evaluated);
     }
 
