@@ -30,11 +30,12 @@ import java.security.Security
 import java.security.cert.X509Certificate
 
 class TlsHelperGroovyTest {
-    private final BCRSAPublicKey BAD_PUBLIC_KEY = new BCRSAPublicKey(new RSAKeyParameters(false, new BigInteger("1", 10), new BigInteger("1", 10)))
 
     @BeforeAll
     static void setProvider() {
+        System.setProperty("org.bouncycastle.rsa.allow_unsafe_mod","true")
         Security.addProvider(new BouncyCastleProvider())
+        BCRSAPublicKey badPublicKey = new BCRSAPublicKey(new RSAKeyParameters(false, new BigInteger("3", 10), new BigInteger("1", 10)))
     }
 
     @Test
@@ -55,7 +56,7 @@ class TlsHelperGroovyTest {
 
         X509Certificate mockCertificate = [
                 getSubjectX500Principal: { -> new X500Principal("CN=Mock Certificate") },
-                getPublicKey           : { -> BAD_PUBLIC_KEY }
+                getPublicKey           : { -> badPublicKey }
         ] as X509Certificate
 
         boolean isCertificateSigned = TlsHelper.verifyCertificateSignature(certificate, [mockCertificate, certificate])
@@ -80,7 +81,7 @@ class TlsHelperGroovyTest {
 
         X509Certificate mockCertificate = [
                 getSubjectX500Principal: { -> new X500Principal("CN=Mock Certificate") },
-                getPublicKey           : { -> BAD_PUBLIC_KEY }
+                getPublicKey           : { -> badPublicKey }
         ] as X509Certificate
 
         boolean isCertificateSigned = TlsHelper.verifyCertificateSignature(certificate, [mockCertificate])
