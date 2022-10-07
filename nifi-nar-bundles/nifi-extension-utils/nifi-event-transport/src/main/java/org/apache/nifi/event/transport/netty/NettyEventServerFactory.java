@@ -37,7 +37,6 @@ import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.channel.StandardChannelInitializer;
-import org.apache.nifi.event.transport.netty.channel.ssl.ClientSslStandardChannelInitializer;
 import org.apache.nifi.event.transport.netty.channel.ssl.ServerSslHandlerChannelInitializer;
 import org.apache.nifi.security.util.ClientAuth;
 
@@ -207,7 +206,7 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
     private ChannelInitializer getChannelInitializer() {
         final StandardChannelInitializer<Channel> channelInitializer = sslContext == null
                 ? new StandardChannelInitializer<>(handlerSupplier)
-                : new ClientSslStandardChannelInitializer<>(handlerSupplier, sslContext);
+                : new ServerSslHandlerChannelInitializer<>(handlerSupplier, sslContext, clientAuth);
         if (idleTimeout != null) {
             channelInitializer.setIdleTimeout(idleTimeout);
         }
