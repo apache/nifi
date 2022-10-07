@@ -19,6 +19,7 @@ package org.apache.nifi.processors.jslt;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.schibsted.spt.data.jslt.Expression;
@@ -53,7 +54,6 @@ import org.apache.nifi.util.StopWatch;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -200,31 +200,33 @@ public class JSLTTransformJSON extends AbstractProcessor {
             return;
         }
 
-        final String jsonString;
-        final String transform;
         try {
-            transform = context.getProperty(JSLT_TRANSFORM).evaluateAttributeExpressions(original).getValue();
+            final String transform = context.getProperty(JSLT_TRANSFORM).evaluateAttributeExpressions(original).getValue();
             Expression jsltExpression = transformCache.get(transform, currString -> Parser.compileString(transform));
 
             final JsonNode transformedJson = jsltExpression.apply(firstJsonNode);
-            if (transformedJson == null) {
-                jsonString = "";
+            final ObjectWriter writer = context.getProperty(PRETTY_PRINT).asBoolean() ? jsonObjectMapper.writerWithDefaultPrettyPrinter() : jsonObjectMapper.writer();
+            final Object outputObject;
+            if (transformedJson == null || transformedJson.isNull()) {
                 logger.warn("JSLT transform resulted in no data");
+                outputObject = null;
             } else {
-                jsonString = context.getProperty(PRETTY_PRINT).asBoolean() ? transformedJson.toPrettyString() : transformedJson.toString();
+                outputObject = transformedJson;
             }
+            FlowFile transformed = session.write(original, out -> {
+                if (outputObject != null) {
+                    writer.writeValue(out, outputObject);
+                }
+            });
+            transformed = session.putAttribute(transformed, CoreAttributes.MIME_TYPE.key(), "application/json");
+            session.transfer(transformed, REL_SUCCESS);
+            session.getProvenanceReporter().modifyContent(transformed, "Modified With " + transform, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            logger.debug("Transformed {}", original);
         } catch (final Exception ex) {
-            logger.error("Unable to transform {} due to {}", new Object[]{original, ex.toString()}, ex);
+            logger.error("JSLT Transform failed {}", original, ex);
             session.transfer(original, REL_FAILURE);
             return;
         }
-
-        FlowFile transformed = session.write(original, out -> out.write(jsonString.getBytes(StandardCharsets.UTF_8)));
-
-        transformed = session.putAttribute(transformed, CoreAttributes.MIME_TYPE.key(), "application/json");
-        session.transfer(transformed, REL_SUCCESS);
-        session.getProvenanceReporter().modifyContent(transformed, "Modified With " + transform, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-        logger.debug("Transformed {}", original);
     }
 
     @OnStopped

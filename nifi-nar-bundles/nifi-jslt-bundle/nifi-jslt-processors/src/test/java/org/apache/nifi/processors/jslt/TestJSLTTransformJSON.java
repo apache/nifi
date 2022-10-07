@@ -140,6 +140,20 @@ public class TestJSLTTransformJSON {
         flowFile.assertContentEquals(translateNewLines(expectedOutput));
     }
 
+    @Test
+    public void testJSLTNoOutput() throws IOException {
+        final String input = "{\"a\":1}";
+        final String transform = ".b";
+        runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transform);
+        runner.setProperty(JSLTTransformJSON.PRETTY_PRINT, "true");
+        runner.enqueue(input);
+        runner.run();
+        runner.assertTransferCount(JSLTTransformJSON.REL_SUCCESS, 1);
+        runner.assertTransferCount(JSLTTransformJSON.REL_FAILURE, 0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(JSLTTransformJSON.REL_SUCCESS).get(0);
+        flowFile.assertContentEquals(new byte[0]);
+    }
+
     /*
      * Translate newlines (expected to be in *nix format to be in the codebase) to the system's line separator (to support Windows, e.g.)
      */
