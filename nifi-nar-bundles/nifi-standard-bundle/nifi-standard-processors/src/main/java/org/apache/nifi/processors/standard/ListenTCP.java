@@ -139,7 +139,7 @@ public class ListenTCP extends AbstractProcessor {
             .name("idle-timeout")
             .displayName("Idle Connection Timeout")
             .description("The amount of time a client's connection will remain open if no data is received. The default of 0 seconds will leave connections open until they are closed by the client.")
-            .required(false)
+            .required(true)
             .defaultValue("0 seconds")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
