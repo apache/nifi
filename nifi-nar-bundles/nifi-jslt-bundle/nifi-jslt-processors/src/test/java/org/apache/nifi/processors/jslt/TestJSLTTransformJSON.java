@@ -125,6 +125,21 @@ public class TestJSLTTransformJSON {
         flowFile.assertContentEquals(translateNewLines(expectedOutput));
     }
 
+    @Test
+    public void testArrayJSLT() throws IOException {
+        final String inputFlowFile = new String(Files.readAllBytes(Paths.get("src/test/resources/inputArray.json")));
+        final String transform = new String(Files.readAllBytes(Paths.get("src/test/resources/arrayTransform.json")));
+        runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transform);
+        runner.setProperty(JSLTTransformJSON.PRETTY_PRINT, "true");
+        runner.enqueue(inputFlowFile);
+        runner.run();
+        runner.assertTransferCount(JSLTTransformJSON.REL_SUCCESS, 1);
+        runner.assertTransferCount(JSLTTransformJSON.REL_FAILURE, 0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(JSLTTransformJSON.REL_SUCCESS).get(0);
+        final String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/arrayOutput.json")));
+        flowFile.assertContentEquals(translateNewLines(expectedOutput));
+    }
+
     /*
      * Translate newlines (expected to be in *nix format to be in the codebase) to the system's line separator (to support Windows, e.g.)
      */

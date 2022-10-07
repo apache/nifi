@@ -16,10 +16,7 @@
  */
 package org.apache.nifi.processors.jslt;
 
-import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -116,8 +113,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
 
     private List<PropertyDescriptor> descriptors;
     private Set<Relationship> relationships;
-    private static final JsonFactory jsonFactory = new JsonFactory();
-    private static final ObjectMapper codec = new ObjectMapper();
+    private static final ObjectMapper jsonObjectMapper = new ObjectMapper();
 
     /**
      * A cache for transform objects. It keeps values indexed by JSLT specification string.
@@ -247,19 +243,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
     private JsonNode readJson(final InputStream in) throws IOException {
         JsonNode firstJsonNode;
         try {
-            JsonParser jsonParser = jsonFactory.createParser(in);
-            jsonParser.setCodec(codec);
-
-            JsonToken token = jsonParser.nextToken();
-            if (token == JsonToken.START_ARRAY) {
-                token = jsonParser.nextToken(); // advance to START_OBJECT token
-            }
-
-            if (token == JsonToken.START_OBJECT) { // could be END_ARRAY also
-                firstJsonNode = jsonParser.readValueAsTree();
-            } else {
-                firstJsonNode = null;
-            }
+            firstJsonNode = jsonObjectMapper.readTree(in);
         } catch (final JsonParseException e) {
             throw new IOException("Could not parse data as JSON", e);
         }

@@ -1,0 +1,15 @@
+[ {
+  "SecondaryRatings" : {
+    "quality" : {
+      "Value" : 3,
+      "RatingRange" : 3
+    }
+  }
+}, {
+  "SecondaryRatings" : {
+    "quality" : {
+      "Value" : 13,
+      "RatingRange" : 13
+    }
+  }
+} ]
