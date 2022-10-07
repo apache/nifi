@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class TestJSLTTransformJSON {
 
@@ -71,7 +72,7 @@ public class TestJSLTTransformJSON {
         runner.assertTransferCount(JSLTTransformJSON.REL_FAILURE, 0);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(JSLTTransformJSON.REL_SUCCESS).get(0);
         final String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/simpleOutput.json")));
-        flowFile.assertContentEquals(expectedOutput);
+        flowFile.assertContentEquals(translateNewLines(expectedOutput));
     }
 
     @Test
@@ -86,7 +87,7 @@ public class TestJSLTTransformJSON {
         runner.assertTransferCount(JSLTTransformJSON.REL_FAILURE, 0);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(JSLTTransformJSON.REL_SUCCESS).get(0);
         final String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/dynamicKeyTransformOutput.json")));
-        flowFile.assertContentEquals(expectedOutput);
+        flowFile.assertContentEquals(translateNewLines(expectedOutput));
     }
 
     // This test verifies the capability of JSLT to perform a "cardinality ONE" operation (i.e. get first element if array) like JOLT has
@@ -102,7 +103,7 @@ public class TestJSLTTransformJSON {
         runner.assertTransferCount(JSLTTransformJSON.REL_FAILURE, 0);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(JSLTTransformJSON.REL_SUCCESS).get(0);
         final String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/cardinalityOutput.json")));
-        flowFile.assertContentEquals(expectedOutput);
+        flowFile.assertContentEquals(translateNewLines(expectedOutput));
     }
 
     @Test
@@ -121,6 +122,16 @@ public class TestJSLTTransformJSON {
         runner.assertTransferCount(JSLTTransformJSON.REL_FAILURE, 0);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(JSLTTransformJSON.REL_SUCCESS).get(0);
         final String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/simpleOutput.json")));
-        flowFile.assertContentEquals(expectedOutput);
+        flowFile.assertContentEquals(translateNewLines(expectedOutput));
+    }
+
+    /*
+     * Translate newlines (expected to be in *nix format to be in the codebase) to the system's line separator (to support Windows, e.g.)
+     */
+    private String translateNewLines(final String text) {
+        final String lineSeparator = System.getProperty("line.separator");
+        final Pattern pattern = Pattern.compile("\n", Pattern.MULTILINE);
+        final String translated = pattern.matcher(text).replaceAll(lineSeparator);
+        return translated;
     }
 }

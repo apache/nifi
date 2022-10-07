@@ -27,7 +27,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.schibsted.spt.data.jslt.Expression;
 import com.schibsted.spt.data.jslt.JsltException;
 import com.schibsted.spt.data.jslt.Parser;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -66,20 +65,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @Tags({"json", "jslt", "transform"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 @WritesAttribute(attribute = "mime.type", description = "Always set to application/json")
-@CapabilityDescription("Applies a JSLT transformation to the flowfile JSON payload. A new FlowFile is created "
-        + "with transformed content and is routed to the 'success' relationship. If the JSON transform "
+@CapabilityDescription("Applies a JSLT transformation to the FlowFile JSON payload. A new FlowFile is created "
+        + "with transformed content and is routed to the 'success' relationship. If the JSLT transform "
         + "fails, the original FlowFile is routed to the 'failure' relationship.")
 public class JSLTTransformJSON extends AbstractProcessor {
 
     public static final PropertyDescriptor JSLT_TRANSFORM = new PropertyDescriptor.Builder()
-            .name("jslt-transform")
+            .name("jslt-transform-transformation")
             .displayName("JSLT Transformation")
             .description("JSLT Transformation for transform of JSON data. Any NiFi Expression Language present will be evaluated first to get the final transform to be applied.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -88,7 +86,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor PRETTY_PRINT = new PropertyDescriptor.Builder()
-            .name("pretty_print")
+            .name("jslt-transform-pretty_print")
             .displayName("Pretty Print")
             .description("Apply pretty-print formatting to the output of the JSLT transform")
             .required(true)
@@ -97,7 +95,8 @@ public class JSLTTransformJSON extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor TRANSFORM_CACHE_SIZE = new PropertyDescriptor.Builder()
-            .name("Transform Cache Size")
+            .name("jslt-transform-cache-size")
+            .displayName("Transform Cache Size")
             .description("Compiling a JSLT Transform can be fairly expensive. Ideally, this will be done only once. However, if the Expression Language is used in the transform, we may need "
                     + "a new Transform for each FlowFile. This value controls how many of those Transforms we cache in memory in order to avoid having to compile the Transform each time.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -200,7 +199,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
         try (final InputStream in = session.read(original)) {
             firstJsonNode = readJson(in);
         } catch (final Exception e) {
-            logger.error("Failed to transform {}; routing to failure", new Object[]{original}, e);
+            logger.error("Failed to transform {}; routing to failure", original, e);
             session.transfer(original, REL_FAILURE);
             return;
         }
@@ -214,7 +213,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
             final JsonNode transformedJson = jsltExpression.apply(firstJsonNode);
             if (transformedJson == null) {
                 jsonString = "";
-                logger.info("JSLT transform resulted in no data!");
+                logger.warn("JSLT transform resulted in no data");
             } else {
                 jsonString = context.getProperty(PRETTY_PRINT).asBoolean() ? transformedJson.toPrettyString() : transformedJson.toString();
             }
