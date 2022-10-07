@@ -40,6 +40,16 @@
                 <groupId>com.hierynomus</groupId>
                 <artifactId>smbj</artifactId>
                 <version>0.11.5</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.bouncycastle</groupId>
+                        <artifactId>bcprov-jdk15on</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk18on</artifactId>
             </dependency>
             <dependency>
                 <groupId>net.engio</groupId>

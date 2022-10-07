@@ -114,7 +114,7 @@
         <org.apache.commons.text.version>1.10.0</org.apache.commons.text.version>
         <org.apache.httpcomponents.httpclient.version>4.5.13</org.apache.httpcomponents.httpclient.version>
         <org.apache.httpcomponents.httpcore.version>4.4.15</org.apache.httpcomponents.httpcore.version>
-        <org.bouncycastle.version>1.70</org.bouncycastle.version>
+        <org.bouncycastle.version>1.71</org.bouncycastle.version>
         <testcontainers.version>1.17.5</testcontainers.version>
         <org.slf4j.version>1.7.36</org.slf4j.version>
         <ranger.version>2.3.0</ranger.version>
@@ -206,17 +206,27 @@
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bcprov-jdk15on</artifactId>
+                <artifactId>bcprov-jdk18on</artifactId>
                 <version>${org.bouncycastle.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bcpkix-jdk15on</artifactId>
+                <artifactId>bcpkix-jdk18on</artifactId>
                 <version>${org.bouncycastle.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bcpg-jdk15on</artifactId>
+                <artifactId>bcpg-jdk18on</artifactId>
+                <version>${org.bouncycastle.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcutil-jdk18on</artifactId>
+                <version>${org.bouncycastle.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcmail-jdk18on</artifactId>
                 <version>${org.bouncycastle.version}</version>
             </dependency>
             <dependency>
@@ -911,6 +921,12 @@
                                         <exclude>commons-logging:commons-logging:*</exclude>
                                         <!-- Apache Xalan is no longer maintained and is bundled in the standard JRE -->
                                         <exclude>xalan:xalan</exclude>
+                                        <!-- As of Bouncycastle 1.71 Java 8 is the minimum required so jdk15on artifacts not allowed -->
+                                        <exclude>org.bouncycastle:bcprov-jdk15on</exclude>
+                                        <exclude>org.bouncycastle:bcpg-jdk15on</exclude>
+                                        <exclude>org.bouncycastle:bcpkix-jdk15on</exclude>
+                                        <exclude>org.bouncycastle:bcutil-jdk15on</exclude>
+                                        <exclude>org.bouncycastle:bcmail-jdk15on</exclude>
                                     </excludes>
                                     <includes>
                                         <!-- Versions of JSR305 after 3.0.1 are allowed https://github.com/findbugsproject/findbugs/issues/128 -->
