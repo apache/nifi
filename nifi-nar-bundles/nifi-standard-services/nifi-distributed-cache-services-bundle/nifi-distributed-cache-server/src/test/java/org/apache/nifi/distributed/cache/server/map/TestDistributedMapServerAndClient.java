@@ -29,6 +29,14 @@ import org.apache.nifi.distributed.cache.protocol.ProtocolVersion;
 import org.apache.nifi.distributed.cache.server.CacheServer;
 import org.apache.nifi.distributed.cache.server.DistributedCacheServer;
 import org.apache.nifi.distributed.cache.server.EvictionPolicy;
+import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
+import org.apache.nifi.event.transport.configuration.TransportProtocol;
+import org.apache.nifi.event.transport.message.ByteArrayMessage;
+import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.remote.StandardVersionNegotiator;
@@ -44,23 +52,25 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.net.InetSocketAddress;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.channels.ServerSocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestDistributedMapServerAndClient {
 
@@ -304,40 +314,39 @@ public class TestDistributedMapServerAndClient {
     @Test
     public void testIncompleteHandshakeScenario() throws InitializationException, IOException {
         // Default port used by Distributed Server and Client
-        final int port = 4557;
+        final int port = NetworkUtils.getAvailableTcpPort();
 
         // This is used to simulate a DistributedCacheServer that does not complete the handshake response
-        final ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
-        serverSocketChannel.configureBlocking(true);
-        serverSocketChannel.bind(new InetSocketAddress(port));
-        final Thread thread = startServerSocket(serverSocketChannel);
+        final BlockingQueue<ByteArrayMessage> messages = new LinkedBlockingQueue<>();
+        final NettyEventServerFactory serverFactory = getEventServerFactory(port, messages);
+        final EventServer eventServer = serverFactory.getEventServer();
 
         DistributedMapCacheClientService client = new DistributedMapCacheClientService();
-        MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client");
-        client.initialize(clientInitContext);
 
-        final Map<PropertyDescriptor, String> clientProperties = new HashMap<>();
-        clientProperties.put(DistributedMapCacheClientService.HOSTNAME, "localhost");
-        clientProperties.put(DistributedMapCacheClientService.PORT, String.valueOf(port));
-        clientProperties.put(DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "1 sec");
-
-        MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup());
-        client.onEnabled(clientContext);
+        runner.addControllerService("client", client);
+        runner.setProperty(client, DistributedMapCacheClientService.HOSTNAME, "localhost");
+        runner.setProperty(client, DistributedMapCacheClientService.PORT, String.valueOf(port));
+        runner.setProperty(client, DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "1 sec");
+        runner.enableControllerService(client);
 
         final Serializer<String> valueSerializer = new StringSerializer();
         final Serializer<String> keySerializer = new StringSerializer();
         final Deserializer<String> deserializer = new StringDeserializer();
 
         try {
-            client.getAndPutIfAbsent("testKey", "test", keySerializer, valueSerializer, deserializer);
-            fail("Client operation should have failed due to it not being connected to a DistributedCacheServer");
-        } catch (IOException e) {
-            // Verify cause of exception was handshake completion timeout
-            assertEquals("Handshake timed out before completion.", e.getCause().getMessage());
+            assertThrows(IOException.class, () -> client.getAndPutIfAbsent("testKey", "test", keySerializer, valueSerializer, deserializer));
         } finally {
-            thread.interrupt();
-            serverSocketChannel.close();
+            eventServer.shutdown();
         }
+    }
+
+    private NettyEventServerFactory getEventServerFactory(final int port, final BlockingQueue<ByteArrayMessage> messages) throws UnknownHostException {
+        final ByteArrayMessageNettyEventServerFactory factory = new ByteArrayMessageNettyEventServerFactory(Mockito.mock(ComponentLog.class),
+                InetAddress.getByName("127.0.0.1"), port, TransportProtocol.TCP, "\n".getBytes(), 1024, messages);
+        factory.setWorkerThreads(1);
+        factory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        factory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
+        return factory;
     }
 
     private DistributedMapCacheClientService createClient(final int port) throws InitializationException {
@@ -352,26 +361,6 @@ public class TestDistributedMapServerAndClient {
         client.onEnabled(clientContext);
 
         return client;
-    }
-
-    private Thread startServerSocket(ServerSocketChannel serverSocketChannel) {
-        final Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                while (true) {
-                    try {
-                        serverSocketChannel.accept();
-                    } catch (final IOException e) {
-                        return;
-                    }
-                }
-            }
-        };
-        final Thread thread = new Thread(runnable);
-        thread.setDaemon(true);
-        thread.setName("Test Server Socket");
-        thread.start();
-        return thread;
     }
 
     private static class StringSerializer implements Serializer<String> {
