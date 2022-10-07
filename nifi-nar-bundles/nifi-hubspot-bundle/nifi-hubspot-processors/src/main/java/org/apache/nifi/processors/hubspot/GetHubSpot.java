@@ -201,7 +201,7 @@ public class GetHubSpot extends AbstractProcessor {
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        if (OBJECT_TYPE.equals(descriptor) || IS_INCREMENTAL.equals(descriptor)) {
+        if (isConfigurationRestored() && (OBJECT_TYPE.equals(descriptor) || IS_INCREMENTAL.equals(descriptor))) {
             isObjectTypeModified = true;
         }
     }
