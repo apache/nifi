@@ -25,20 +25,6 @@
     <artifactId>nifi-elasticsearch-client-service</artifactId>
     <packaging>jar</packaging>
 
-    <properties>
-        <!-- use with integration-tests only -->
-        <es.int.version>5.6.16</es.int.version>
-        <alexcojocaru.plugin.version>6.19</alexcojocaru.plugin.version>
-        <es.int.script.name>setup-5.script</es.int.script.name>
-        <es.int.type.name>faketype</es.int.type.name>
-        <es.int.path.conf>src/test/resources/conf-5/</es.int.path.conf>
-        <es.int.clusterName>testCluster</es.int.clusterName>
-        <es.int.transportPort>9500</es.int.transportPort>
-        <es.int.httpPort>9400</es.int.httpPort>
-        <es.int.timeout>90</es.int.timeout>
-        <es.int.logLevel>ERROR</es.int.logLevel>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -216,7 +202,7 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <elasticsearch_docker_image>7.17.6</elasticsearch_docker_image>
+                <elasticsearch_docker_image>8.4.3</elasticsearch_docker_image>
                 <elasticsearch.elastic.password>s3cret</elasticsearch.elastic.password>
             </properties>
             <build>
@@ -245,9 +231,9 @@
             </properties>
         </profile>
         <profile>
-            <id>elasticsearch8</id>
+            <id>elasticsearch7</id>
             <properties>
-                <elasticsearch_docker_image>8.4.3</elasticsearch_docker_image>
+                <elasticsearch_docker_image>7.17.6</elasticsearch_docker_image>
             </properties>
         </profile>
     </profiles>
