@@ -16,14 +16,11 @@
  */
 package org.apache.nifi.processors.aws.sns;
 
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
+import com.amazonaws.services.sns.AmazonSNSClient;
+import com.amazonaws.services.sns.model.MessageAttributeValue;
+import com.amazonaws.services.sns.model.PublishRequest;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -39,15 +36,20 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.sqs.GetSQS;
 import org.apache.nifi.processors.aws.sqs.PutSQS;
 
-import com.amazonaws.services.sns.AmazonSNSClient;
-import com.amazonaws.services.sns.model.MessageAttributeValue;
-import com.amazonaws.services.sns.model.PublishRequest;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 @SupportsBatching
 @SeeAlso({GetSQS.class, PutSQS.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"amazon", "aws", "sns", "topic", "put", "publish", "pubsub"})
 @CapabilityDescription("Sends the content of a FlowFile as a notification to the Amazon Simple Notification Service")
+@DynamicProperty(name = "A name of an attribute to be added to the notification", value = "The attribute value", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+        description = "User specified dynamic Properties are added as attributes to the notification")
 public class PutSNS extends AbstractSNSProcessor {
 
     public static final PropertyDescriptor CHARACTER_ENCODING = new PropertyDescriptor.Builder()
