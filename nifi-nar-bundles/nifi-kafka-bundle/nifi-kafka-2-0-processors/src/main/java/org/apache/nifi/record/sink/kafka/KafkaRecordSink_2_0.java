@@ -25,6 +25,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -70,6 +71,11 @@ import java.util.concurrent.TimeoutException;
 
 @Tags({"kafka", "record", "sink"})
 @CapabilityDescription("Provides a service to write records to a Kafka 2.x topic.")
+@DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
+        description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
+                + " In the event a dynamic property represents a property that was already set, its value will be ignored and WARN message logged."
+                + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration. ",
+        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
 public class KafkaRecordSink_2_0 extends AbstractControllerService implements RecordSinkService {
 
     static final AllowableValue DELIVERY_REPLICATED = new AllowableValue("all", "Guarantee Replicated Delivery",

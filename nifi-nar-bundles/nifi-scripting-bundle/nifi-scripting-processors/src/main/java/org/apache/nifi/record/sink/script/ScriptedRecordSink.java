@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.record.sink.script;
 
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -52,6 +53,9 @@ import java.util.concurrent.atomic.AtomicReference;
 @Tags({"record", "record sink", "script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj"})
 @CapabilityDescription("Allows the user to provide a scripted RecordSinkService instance in order to transmit records to the desired target. The script must set a variable 'recordSink' to an "
         + "implementation of RecordSinkService.")
+@DynamicProperty(name = "Script Engine Binding property", value = "Binding property value passed to Script Runner",
+        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+        description = "Updates a script engine property specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
 @Restricted(
         restrictions = {
                 @Restriction(
