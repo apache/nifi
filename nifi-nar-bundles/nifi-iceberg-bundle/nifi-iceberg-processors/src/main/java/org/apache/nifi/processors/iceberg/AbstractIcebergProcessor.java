@@ -55,7 +55,6 @@ public abstract class AbstractIcebergProcessor extends AbstractProcessor {
             .displayName("Kerberos User Service")
             .description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos.")
             .identifiesControllerService(KerberosUserService.class)
-            .required(false)
             .build();
 
     private volatile KerberosUser kerberosUser;
@@ -63,8 +62,8 @@ public abstract class AbstractIcebergProcessor extends AbstractProcessor {
 
     @OnScheduled
     public final void onScheduled(final ProcessContext context) {
-        IcebergCatalogService catalogService = context.getProperty(CATALOG).asControllerService(IcebergCatalogService.class);
-        KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
+        final IcebergCatalogService catalogService = context.getProperty(CATALOG).asControllerService(IcebergCatalogService.class);
+        final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
 
         if (kerberosUserService != null) {
             this.kerberosUser = kerberosUserService.createKerberosUser();

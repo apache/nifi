@@ -38,6 +38,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.condition.DisabledOnOs;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -46,6 +47,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+
+import static org.junit.jupiter.api.condition.OS.WINDOWS;
 
 public class TestFileAbort {
 
@@ -56,6 +59,7 @@ public class TestFileAbort {
             Types.NestedField.required(0, "id", Types.IntegerType.get())
     );
 
+    @DisabledOnOs(WINDOWS)
     @Test
     public void abortUncommittedFiles() throws IOException {
         Table table = initCatalog();

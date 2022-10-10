@@ -113,7 +113,7 @@ public class IcebergRecordConverter {
         @Override
         public DataConverter<?, ?> struct(Types.StructType type, DataType dataType, List<DataConverter<?, ?>> converters) {
             Validate.notNull(type, "Can not create reader for null type");
-            List<RecordField> recordFields = ((RecordDataType) dataType).getChildSchema().getFields();
+            final List<RecordField> recordFields = ((RecordDataType) dataType).getChildSchema().getFields();
             return new GenericDataConverters.RecordConverter(converters, recordFields, type);
         }
 
@@ -138,11 +138,11 @@ public class IcebergRecordConverter {
         @Override
         public DataType fieldPartner(DataType dataType, int fieldId, String name) {
             Validate.isTrue(dataType instanceof RecordDataType, String.format("Invalid record: %s is not a record", dataType));
-            RecordDataType recordType = (RecordDataType) dataType;
-            Optional<RecordField> recordField = recordType.getChildSchema().getField(name);
+            final RecordDataType recordType = (RecordDataType) dataType;
+            final Optional<RecordField> recordField = recordType.getChildSchema().getField(name);
 
             Validate.isTrue(recordField.isPresent(), String.format("Cannot find record field with name %s", name));
-            RecordField field = recordField.get();
+            final RecordField field = recordField.get();
 
             if (field.getDataType().getFieldType().equals(RecordFieldType.UUID)) {
                 return new UUIDDataType(field.getDataType(), fileFormat);
@@ -159,14 +159,14 @@ public class IcebergRecordConverter {
         @Override
         public DataType mapValuePartner(DataType dataType) {
             Validate.isTrue(dataType instanceof MapDataType, String.format("Invalid map: %s is not a map", dataType));
-            MapDataType mapType = (MapDataType) dataType;
+            final MapDataType mapType = (MapDataType) dataType;
             return mapType.getValueType();
         }
 
         @Override
         public DataType listElementPartner(DataType dataType) {
             Validate.isTrue(dataType instanceof ArrayDataType, String.format("Invalid array: %s is not an array", dataType));
-            ArrayDataType arrayType = (ArrayDataType) dataType;
+            final ArrayDataType arrayType = (ArrayDataType) dataType;
             return arrayType.getElementType();
         }
     }

@@ -102,7 +102,6 @@ public class PutIceberg extends AbstractIcebergProcessor {
                     new AllowableValue("AVRO"),
                     new AllowableValue("PARQUET"),
                     new AllowableValue("ORC"))
-            .required(false)
             .build();
 
     static final PropertyDescriptor TARGET_FILE_SIZE = new PropertyDescriptor.Builder()
@@ -110,7 +109,6 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .displayName("Target File Size")
             .description("Controls the size of files generated to target about this many bytes. If not set the 'write.target-file-size-bytes' table property will be used, default value is 512 MB.")
             .addValidator(StandardValidators.LONG_VALIDATOR)
-            .required(false)
             .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()

@@ -211,7 +211,7 @@ public class GenericDataConverters {
 
         @Override
         public GenericRecord convert(Record data) {
-            GenericRecord template = GenericRecord.create(schema);
+            final GenericRecord template = GenericRecord.create(schema);
             // GenericRecord.copy() is more performant then GenericRecord.create(StructType) since NAME_MAP_CACHE access is eliminated. Using copy here to gain performance.
             GenericRecord result = template.copy();
 
