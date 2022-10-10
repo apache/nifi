@@ -18,7 +18,7 @@
     <artifactId>nifi-spring-processors</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <spring.integration.version>5.5.14</spring.integration.version>
+        <spring.integration.version>5.5.15</spring.integration.version>
     </properties>
     <dependencies>
 
