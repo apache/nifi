@@ -53,6 +53,7 @@ public class NiFiRegistryProperties extends ApplicationProperties {
     public static final String WEB_HTTPS_HOST = "nifi.registry.web.https.host";
     public static final String WEB_HTTPS_CIPHERSUITES_INCLUDE = "nifi.registry.web.https.ciphersuites.include";
     public static final String WEB_HTTPS_CIPHERSUITES_EXCLUDE = "nifi.registry.web.https.ciphersuites.exclude";
+    public static final String WEB_HTTPS_APPLICATION_PROTOCOLS = "nifi.registry.web.https.application.protocols";
     public static final String WEB_WORKING_DIR = "nifi.registry.web.jetty.working.directory";
     public static final String WEB_THREADS = "nifi.registry.web.jetty.threads";
     public static final String WEB_SHOULD_SEND_SERVER_VERSION = "nifi.registry.web.should.send.server.version";
@@ -119,6 +120,7 @@ public class NiFiRegistryProperties extends ApplicationProperties {
 
     // Defaults
     public static final String DEFAULT_WEB_WORKING_DIR = "./work/jetty";
+    public static final String DEFAULT_WEB_HTTPS_APPLICATION_PROTOCOLS = "http/1.1";
     public static final String DEFAULT_WAR_DIR = "./lib";
     public static final String DEFAULT_PROVIDERS_CONFIGURATION_FILE = "./conf/providers.xml";
     public static final String DEFAULT_REGISTRY_ALIAS_CONFIGURATION_FILE = "./conf/registry-aliases.xml";
@@ -227,6 +229,16 @@ public class NiFiRegistryProperties extends ApplicationProperties {
 
     public File getWebWorkingDirectory() {
         return new File(getProperty(WEB_WORKING_DIR, DEFAULT_WEB_WORKING_DIR));
+    }
+
+    /**
+     * Get Web HTTPS Application Protocols defaults to HTTP/1.1
+     *
+     * @return Set of configured HTTPS Application Protocols
+     */
+    public Set<String> getWebHttpsApplicationProtocols() {
+        final String protocols = getProperty(WEB_HTTPS_APPLICATION_PROTOCOLS, DEFAULT_WEB_HTTPS_APPLICATION_PROTOCOLS);
+        return Arrays.stream(protocols.split("\\s+")).collect(Collectors.toSet());
     }
 
     public File getExtensionsWorkingDirectory() {
