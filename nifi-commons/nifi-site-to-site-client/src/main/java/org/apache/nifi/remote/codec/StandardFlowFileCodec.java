@@ -29,6 +29,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,9 +52,11 @@ public class StandardFlowFileCodec implements FlowFileCodec {
 
         final Map<String, String> attributes = dataPacket.getAttributes();
         out.writeInt(attributes.size());
-        for (final Map.Entry<String, String> entry : attributes.entrySet()) {
-            writeString(entry.getKey(), out);
-            writeString(entry.getValue(), out);
+        String[] keys = attributes.keySet().toArray(new String[0]);
+        Arrays.sort(keys);
+        for (String key : keys) {
+            writeString(key, out);
+            writeString(attributes.get(key), out);
         }
 
         out.writeLong(dataPacket.getSize());

@@ -803,7 +803,7 @@ public class TestHttpClient {
     private void testSend(SiteToSiteClient client) throws Exception {
 
         testSendIgnoreProxyError(client, transaction -> {
-            serverChecksum = "1071206772";
+            serverChecksum = "40272532";
 
             for (int i = 0; i < 20; i++) {
                 DataPacket packet = new DataPacketBuilder()
@@ -952,7 +952,7 @@ public class TestHttpClient {
     private static void testSendLargeFile(SiteToSiteClient client) throws IOException {
 
         testSendIgnoreProxyError(client, transaction -> {
-            serverChecksum = "1527414060";
+            serverChecksum = "2387509971";
 
             final int contentSize = 10_000;
             final StringBuilder sb = new StringBuilder(contentSize);
@@ -1067,7 +1067,7 @@ public class TestHttpClient {
 
             assertNotNull(transaction);
 
-            serverChecksum = "1071206772";
+            serverChecksum = "40272532";
 
 
             for (int i = 0; i < 20; i++) {
@@ -1101,7 +1101,7 @@ public class TestHttpClient {
 
             assertNotNull(transaction);
 
-            serverChecksum = "3882825556";
+            serverChecksum = "3203143366";
 
 
             for (int i = 0; i < 3; i++) {
