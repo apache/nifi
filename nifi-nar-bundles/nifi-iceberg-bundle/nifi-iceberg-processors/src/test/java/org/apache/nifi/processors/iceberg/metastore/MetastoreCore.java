@@ -82,6 +82,7 @@ class MetastoreCore {
             IllegalAccessException, NoSuchFieldException, SQLException {
         thriftServer = Executors.newSingleThreadExecutor();
         tempDir = createTempDirectory("metastore").toFile();
+        setDerbyLogPath();
         setupDB("jdbc:derby:" + getDerbyPath() + ";create=true");
 
         server = thriftServer();
@@ -130,7 +131,7 @@ class MetastoreCore {
         return hiveConf;
     }
 
-    private void createDerbyPaths() throws IOException {
+    private void setDerbyLogPath() throws IOException {
         final String derbyLog = Files.createTempFile(tempDir.toPath(), "derby", ".log").toString();
         System.setProperty("derby.stream.error.file", derbyLog);
     }
@@ -139,9 +140,8 @@ class MetastoreCore {
         return new File(tempDir, "metastore_db").getPath();
     }
 
-    private TServer thriftServer() throws IOException, TTransportException, MetaException, InvocationTargetException,
+    private TServer thriftServer() throws TTransportException, MetaException, InvocationTargetException,
             NoSuchMethodException, IllegalAccessException, NoSuchFieldException {
-        createDerbyPaths();
         final TServerSocketKeepAlive socket = new TServerSocketKeepAlive(new TServerSocket(0));
         hiveConf = hiveConf(socket.getServerSocket().getLocalPort());
         final HiveMetaStore.HMSHandler baseHandler = new HiveMetaStore.HMSHandler("new db based metaserver", hiveConf);
