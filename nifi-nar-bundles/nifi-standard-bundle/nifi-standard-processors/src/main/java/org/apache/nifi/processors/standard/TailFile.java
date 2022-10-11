@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -50,6 +51,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.TailFile.TailFileState.StateKeys;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.stream.io.NullOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 
@@ -112,6 +114,7 @@ import static org.apache.nifi.processor.util.StandardValidators.REGULAR_EXPRESSI
                         explanation = "Provides operator the ability to read from any file that NiFi has access to.")
         }
 )
+@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "30 sec")
 public class TailFile extends AbstractProcessor {
 
     static final String MAP_PREFIX = "file.";
