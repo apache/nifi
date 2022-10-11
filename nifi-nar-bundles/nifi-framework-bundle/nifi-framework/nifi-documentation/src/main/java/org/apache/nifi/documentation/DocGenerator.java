@@ -27,7 +27,6 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -35,16 +34,14 @@ import org.slf4j.LoggerFactory;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Set;
 
 /**
- * Uses the ExtensionManager to get a list of Processor, ControllerService, ParameterProvider, and
- * Reporting Task classes that were loaded and generate documentation for them.
- *
+ * Enumerate available Components from Extension Manager and generate HTML documentation
  *
  */
 public class DocGenerator {
@@ -61,7 +58,7 @@ public class DocGenerator {
     public static void generate(final NiFiProperties properties, final ExtensionManager extensionManager, final ExtensionMapping extensionMapping) {
         final File explodedNiFiDocsDir = properties.getComponentDocumentationWorkingDirectory();
 
-        logger.debug("Generating documentation for: " + extensionMapping.size() + " components in: " + explodedNiFiDocsDir);
+        logger.debug("Generating Documentation: Components [{}] Directory [{}]", extensionMapping.size(), explodedNiFiDocsDir);
 
         documentConfigurableComponent(extensionManager.getExtensions(Processor.class), explodedNiFiDocsDir, extensionManager);
         documentConfigurableComponent(extensionManager.getExtensions(ControllerService.class), explodedNiFiDocsDir, extensionManager);
@@ -79,7 +76,7 @@ public class DocGenerator {
         for (final ExtensionDefinition extensionDefinition : extensionDefinitions) {
             final Bundle bundle = extensionDefinition.getBundle();
             if (bundle == null) {
-                logger.warn("Cannot document extension {} because it has no bundle associated with it", extensionDefinition);
+                logger.warn("Documentation generation failed: Extension bundle not found [{}]", extensionDefinition);
                 continue;
             }
 
@@ -91,21 +88,23 @@ public class DocGenerator {
             final File indexHtml = new File(componentDirectory, "index.html");
             if (indexHtml.exists()) {
                 // index.html already exists, no need to unpack the docs again.
-                logger.debug("Found existing documentation file {}. Will not generate documentation for {}", indexHtml.getAbsolutePath(), extensionClassName);
+                logger.debug("Existing documentation found [{}] skipped component class [{}]", indexHtml.getAbsolutePath(), extensionClassName);
                 continue;
             }
 
             final Class<?> extensionType = extensionDefinition.getExtensionType();
             if (ConfigurableComponent.class.isAssignableFrom(extensionType)) {
-                componentDirectory.mkdirs();
+                if (componentDirectory.mkdirs()) {
+                    logger.debug("Documentation directory created [{}]", componentDirectory);
+                }
 
                 final Class<?> extensionClass = extensionManager.getClass(extensionDefinition);
                 final Class<? extends ConfigurableComponent> componentClass = extensionClass.asSubclass(ConfigurableComponent.class);
                 try {
-                    logger.debug("Documenting: " + componentClass);
+                    logger.debug("Documentation generation started: Component Class [{}]", componentClass);
                     document(extensionManager, componentDirectory, componentClass, coordinate);
                 } catch (Exception e) {
-                    logger.warn("Unable to document: " + componentClass, e);
+                    logger.warn("Documentation generation failed: Component Class [{}]", componentClass, e);
                 }
             }
         }
@@ -118,16 +117,13 @@ public class DocGenerator {
      *
      * @param componentDocsDir the component documentation directory
      * @param componentClass the class to document
-     * @throws InstantiationException ie
-     * @throws IllegalAccessException iae
      * @throws IOException ioe
-     * @throws InitializationException ie
      */
     private static void document(final ExtensionManager extensionManager,
                                  final File componentDocsDir,
                                  final Class<? extends ConfigurableComponent> componentClass,
                                  final BundleCoordinate bundleCoordinate)
-            throws InstantiationException, IllegalAccessException, IOException, InitializationException {
+            throws IOException {
 
         // use temp components from ExtensionManager which should always be populated before doc generation
         final String classType = componentClass.getCanonicalName();
@@ -137,52 +133,27 @@ public class DocGenerator {
 
         final File baseDocumentationFile = new File(componentDocsDir, "index.html");
         if (baseDocumentationFile.exists()) {
-            logger.warn(baseDocumentationFile + " already exists, overwriting!");
+            logger.warn("Overwriting Component Documentation [{}]", baseDocumentationFile);
         }
 
-        try (final OutputStream output = new BufferedOutputStream(new FileOutputStream(baseDocumentationFile))) {
+        try (final OutputStream output = new BufferedOutputStream(Files.newOutputStream(baseDocumentationFile.toPath()))) {
             writer.write(component, output, hasAdditionalInfo(componentDocsDir));
         }
     }
 
-    /**
-     * Returns the DocumentationWriter for the type of component. Currently
-     * Processor, ControllerService, ParameterProvider, and ReportingTask are supported.
-     *
-     * @param componentClass the class that requires a DocumentationWriter
-     * @return a DocumentationWriter capable of generating documentation for
-     * that specific type of class
-     */
-    private static DocumentationWriter getDocumentWriter(final ExtensionManager extensionManager,
-                                                                  final Class<? extends ConfigurableComponent> componentClass) {
+    private static DocumentationWriter getDocumentWriter(
+            final ExtensionManager extensionManager,
+            final Class<? extends ConfigurableComponent> componentClass
+    ) {
         if (Processor.class.isAssignableFrom(componentClass)) {
             return new HtmlProcessorDocumentationWriter(extensionManager);
-        } else if (ControllerService.class.isAssignableFrom(componentClass)) {
-            return new HtmlDocumentationWriter(extensionManager);
-        } else if (ReportingTask.class.isAssignableFrom(componentClass)) {
-            return new HtmlDocumentationWriter(extensionManager);
-        } else if (ParameterProvider.class.isAssignableFrom(componentClass)) {
+        } else {
             return new HtmlDocumentationWriter(extensionManager);
         }
-
-        return null;
     }
 
-    /**
-     * Checks to see if a directory to write to has an additionalDetails.html in
-     * it already.
-     *
-     * @param directory to check
-     * @return true if additionalDetails.html exists, false otherwise.
-     */
     private static boolean hasAdditionalInfo(File directory) {
-        return directory.list(new FilenameFilter() {
-
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.equalsIgnoreCase(HtmlDocumentationWriter.ADDITIONAL_DETAILS_HTML);
-            }
-
-        }).length > 0;
+        final Path additionalDetailsPath = directory.toPath().resolve(HtmlDocumentationWriter.ADDITIONAL_DETAILS_HTML);
+        return Files.exists(additionalDetailsPath);
     }
 }
