@@ -302,6 +302,7 @@ public class ConsumeEWS extends AbstractProcessor {
         return service;
     }
 
+    // TODO remove this at next major release as dynamic properties are not used by this processor
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
