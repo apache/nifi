@@ -107,7 +107,7 @@ public class IcebergRecordConverter {
                         throw new UnsupportedOperationException("Unsupported type: " + type.typeId());
                 }
             }
-            return null;
+            throw new UnsupportedOperationException("Missing type id from PrimitiveType " + type);
         }
 
         @Override

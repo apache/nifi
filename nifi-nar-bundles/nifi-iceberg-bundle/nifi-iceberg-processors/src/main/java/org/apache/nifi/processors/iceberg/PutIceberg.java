@@ -97,17 +97,19 @@ public class PutIceberg extends AbstractIcebergProcessor {
     static final PropertyDescriptor FILE_FORMAT = new PropertyDescriptor.Builder()
             .name("file-format")
             .displayName("File Format")
-            .description("File format to use when writing Iceberg data files. If not set the 'write.format.default' table property will be used, default value is parquet.")
+            .description("File format to use when writing Iceberg data files." +
+                    " If not set, then the 'write.format.default' table property will be used, default value is parquet.")
             .allowableValues(
                     new AllowableValue("AVRO"),
                     new AllowableValue("PARQUET"),
                     new AllowableValue("ORC"))
             .build();
 
-    static final PropertyDescriptor TARGET_FILE_SIZE = new PropertyDescriptor.Builder()
-            .name("target-file-size")
-            .displayName("Target File Size")
-            .description("Controls the size of files generated to target about this many bytes. If not set the 'write.target-file-size-bytes' table property will be used, default value is 512 MB.")
+    static final PropertyDescriptor MAXIMUM_FILE_SIZE = new PropertyDescriptor.Builder()
+            .name("maximum-file-size")
+            .displayName("Maximum File Size")
+            .description("The maximum size that a file can be, if the file size is exceeded a new file will be generated with the remaining data." +
+                    " If not set, then the 'write.target-file-size-bytes' table property will be used, default value is 512 MB.")
             .addValidator(StandardValidators.LONG_VALIDATOR)
             .build();
 
@@ -127,7 +129,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             CATALOG_NAMESPACE,
             TABLE_NAME,
             FILE_FORMAT,
-            TARGET_FILE_SIZE,
+            MAXIMUM_FILE_SIZE,
             KERBEROS_USER_SERVICE
     ));
 
@@ -150,7 +152,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
     public void doOnTrigger(ProcessContext context, ProcessSession session, FlowFile flowFile) throws ProcessException {
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final String fileFormat = context.getProperty(FILE_FORMAT).evaluateAttributeExpressions().getValue();
-        final String targetFileSize = context.getProperty(TARGET_FILE_SIZE).evaluateAttributeExpressions().getValue();
+        final String maximumFileSize = context.getProperty(MAXIMUM_FILE_SIZE).evaluateAttributeExpressions().getValue();
 
         Table table;
 
@@ -167,7 +169,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
 
         try (final InputStream in = session.read(flowFile); final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
             final FileFormat format = getFileFormat(table.properties(), fileFormat);
-            final IcebergTaskWriterFactory taskWriterFactory = new IcebergTaskWriterFactory(table, flowFile.getId(), format, targetFileSize);
+            final IcebergTaskWriterFactory taskWriterFactory = new IcebergTaskWriterFactory(table, flowFile.getId(), format, maximumFileSize);
             taskWriter = taskWriterFactory.create();
 
             final IcebergRecordConverter recordConverter = new IcebergRecordConverter(table.schema(), reader.getSchema(), format);
