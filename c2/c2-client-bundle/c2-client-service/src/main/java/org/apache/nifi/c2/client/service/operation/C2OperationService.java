@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.c2.client.service.operation;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,19 @@ public class C2OperationService {
                 logger.info("Handling {} {} operation", operation.getOperation(), operation.getOperand());
                 return handler.handle(operation);
             });
+    }
+
+    public Map<OperationType, Map<OperandType, C2OperationHandler>> getHandlers() {
+        Map<OperationType, Map<OperandType, C2OperationHandler>> handlers = new HashMap<>();
+        handlerMap.entrySet()
+            .forEach(operationEntry -> {
+                Map<OperandType, C2OperationHandler> operands = new HashMap<>();
+                operationEntry.getValue()
+                    .entrySet()
+                    .forEach(o -> operands.put(o.getKey(), o.getValue()));
+                handlers.put(operationEntry.getKey(), Collections.unmodifiableMap(operands));
+            });
+        return Collections.unmodifiableMap(handlers);
     }
 
     private Optional<C2OperationHandler> getHandlerForOperation(C2Operation operation) {

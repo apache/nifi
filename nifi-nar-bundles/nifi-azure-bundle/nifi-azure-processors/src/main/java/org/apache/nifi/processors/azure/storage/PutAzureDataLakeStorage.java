@@ -215,7 +215,8 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             chunkStart += chunkSize;
         }
 
-        fileClient.flush(length);
+        // use overwrite mode due to https://github.com/Azure/azure-sdk-for-java/issues/31248
+        fileClient.flush(length, true);
     }
 
     //Visible for testing

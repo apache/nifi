@@ -20,6 +20,7 @@
 package org.apache.nifi.processors.solr;
 
 import com.google.gson.stream.JsonWriter;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -94,6 +95,8 @@ import static org.apache.nifi.processors.solr.SolrUtils.RECORD_WRITER;
 @Tags({"Apache", "Solr", "Get", "Query", "Records"})
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @CapabilityDescription("Queries Solr and outputs the results as a FlowFile in the format of XML or using a Record Writer")
+@DynamicProperty(name="A Solr request parameter name", value="A Solr request parameter value",
+        description="These parameters will be passed to Solr on the request")
 @WritesAttributes({
         @WritesAttribute(attribute = "solr.connect", description = "Solr connect string"),
         @WritesAttribute(attribute = "solr.collection", description = "Solr collection"),

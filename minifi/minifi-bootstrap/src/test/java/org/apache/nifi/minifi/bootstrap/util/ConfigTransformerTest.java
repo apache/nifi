@@ -65,6 +65,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
+import static org.apache.nifi.minifi.bootstrap.util.ConfigTransformer.MINIFI_APP_LOG_FILE;
+import static org.apache.nifi.minifi.bootstrap.util.ConfigTransformer.MINIFI_BOOTSTRAP_FILE_PATH;
+import static org.apache.nifi.minifi.bootstrap.util.ConfigTransformer.MINIFI_BOOTSTRAP_LOG_FILE;
+import static org.apache.nifi.minifi.bootstrap.util.ConfigTransformer.MINIFI_CONFIG_FILE_PATH;
+import static org.apache.nifi.minifi.bootstrap.util.ConfigTransformer.MINIFI_LOG_DIRECTORY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -489,6 +494,28 @@ public class ConfigTransformerTest {
 
         flowXml.deleteOnExit();
 
+    }
+
+    @Test
+    public void checkLogAndConfigFilePathOverrides() throws Exception {
+        File inputFile = new File("./src/test/resources/config-minimal.yml");
+        Properties bootstrapProperties = getTestBootstrapProperties("bootstrap.conf");
+        ConfigTransformer.transformConfigFile(new FileInputStream(inputFile), "./target/", bootstrapProperties);
+
+        File nifiPropertiesFile = new File("./target/nifi.properties");
+
+        assertTrue(nifiPropertiesFile.exists());
+        assertTrue(nifiPropertiesFile.canRead());
+
+        Properties nifiProperties = new Properties();
+        nifiProperties.load(new FileInputStream(nifiPropertiesFile));
+
+        // an absolute path is returned for bootstrap which is different per every environment. only testing that path ends with expected relative path
+        assertTrue(nifiProperties.getProperty(MINIFI_BOOTSTRAP_FILE_PATH).endsWith("bootstrap.conf"));
+        assertEquals("./conf/config.yml", nifiProperties.getProperty(MINIFI_CONFIG_FILE_PATH));
+        assertEquals("./logs", nifiProperties.getProperty(MINIFI_LOG_DIRECTORY));
+        assertEquals("minifi-app.log", nifiProperties.getProperty(MINIFI_APP_LOG_FILE));
+        assertEquals("minifi-bootstrap.log", nifiProperties.getProperty(MINIFI_BOOTSTRAP_LOG_FILE));
     }
 
     public void testConfigFileTransform(String configFile) throws Exception {

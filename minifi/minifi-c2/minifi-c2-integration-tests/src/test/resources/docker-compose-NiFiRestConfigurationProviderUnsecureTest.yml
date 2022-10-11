@@ -19,7 +19,7 @@ services:
   c2:
     image: apacheminific2:${minifi.c2.version}
     ports:
-      - "10080"
+      - "10090"
     hostname: c2
     volumes:
       - ./c2-unsecure-rest/conf/minifi-c2-context.xml:/opt/minifi-c2/minifi-c2-${minifi.c2.version}/conf/minifi-c2-context.xml

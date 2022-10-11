@@ -19,9 +19,12 @@ package org.apache.nifi.processors.mqtt.common;
 import org.apache.nifi.security.util.TlsConfiguration;
 
 import java.net.URI;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class MqttClientProperties {
-    private URI brokerUri;
+    private BrokerUriHolder brokerUriHolder;
+
     private String clientId;
 
     private MqttVersion mqttVersion;
@@ -42,20 +45,20 @@ public class MqttClientProperties {
     private String username;
     private String password;
 
-    public String getBroker() {
-        return brokerUri.toString();
+    public List<URI> getBrokerUris() {
+        return brokerUriHolder.getBrokerUris();
     }
 
-    public MqttProtocolScheme getScheme() {
-        return MqttProtocolScheme.valueOf(brokerUri.getScheme().toUpperCase());
+    public String getRawBrokerUris() {
+        return brokerUriHolder.getRawBrokerUris();
     }
 
-    public URI getBrokerUri() {
-        return brokerUri;
+    public String getProvenanceFormattedBrokerUris() {
+        return brokerUriHolder.getProvenanceFormattedUris();
     }
 
-    public void setBrokerUri(URI brokerUri) {
-        this.brokerUri = brokerUri;
+    public void setBrokerUris(List<URI> brokerUris) {
+        this.brokerUriHolder = new BrokerUriHolder(brokerUris);
     }
 
     public String getClientId() {
@@ -160,5 +163,45 @@ public class MqttClientProperties {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    private static class BrokerUriHolder {
+        private final List<URI> brokerUris;
+
+        private final String rawBrokerUris;
+        private final String provenanceFormattedUris;
+
+        public BrokerUriHolder(List<URI> brokerUris) {
+            this.brokerUris = brokerUris;
+
+            rawBrokerUris = createRawUris(brokerUris);
+            provenanceFormattedUris = createProvenanceFormattedUris(brokerUris);
+        }
+
+        public List<URI> getBrokerUris() {
+            return brokerUris;
+        }
+
+        public String getRawBrokerUris() {
+            return rawBrokerUris;
+        }
+
+        public String getProvenanceFormattedUris() {
+            return provenanceFormattedUris;
+        }
+
+        private String createRawUris(List<URI> brokerUris) {
+            return brokerUris.stream().map(URI::toString).collect(Collectors.joining(","));
+        }
+
+        private String createProvenanceFormattedUris(List<URI> brokerUris) {
+            final String base = createRawUris(brokerUris);
+
+            if (brokerUris.size() > 1) {
+                return "[" + base + "]";
+            } else {
+                return base;
+            }
+        }
     }
 }

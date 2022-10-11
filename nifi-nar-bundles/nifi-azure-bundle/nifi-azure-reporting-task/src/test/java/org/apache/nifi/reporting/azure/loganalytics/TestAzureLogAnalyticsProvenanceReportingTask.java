@@ -26,7 +26,7 @@ import javax.json.JsonObjectBuilder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -64,12 +64,12 @@ public class TestAzureLogAnalyticsProvenanceReportingTask {
         final Map<String, Object> config = Collections.emptyMap();
         final JsonBuilderFactory factory = Json.createBuilderFactory(config);
         final JsonObjectBuilder builder = factory.createObjectBuilder();
-        Map<String, String> values = new HashMap<String, String>();
+        Map<String, String> values = new LinkedHashMap<String, String>();
         values.put("TestKeyString1", "StringValue1");
         values.put("TestKeyString2", "StringValue2");
         AzureLogAnalyticsProvenanceReportingTask.addField(builder, factory, "TestKeyString", values, true);
         javax.json.JsonObject actualJson = builder.build();
-        String expectedjsonString = "{\"TestKeyString\":{\"TestKeyString2\":\"StringValue2\",\"TestKeyString1\":\"StringValue1\"}}";
+        String expectedjsonString = "{\"TestKeyString\":{\"TestKeyString1\":\"StringValue1\",\"TestKeyString2\":\"StringValue2\"}}";
         JsonObject expectedJson = new Gson().fromJson(expectedjsonString, JsonObject.class);
         assertEquals(expectedJson.toString(), actualJson.toString());
     }

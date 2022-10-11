@@ -36,7 +36,7 @@ public abstract class AbstractTestUnsecure {
     protected String c2Url;
 
     public static String getUnsecureConfigUrl(Container container) {
-        DockerPort dockerPort = container.port(10080);
+        DockerPort dockerPort = container.port(10090);
         return "http://" + dockerPort.getIp() + ":" + dockerPort.getExternalPort() + "/c2/config";
     }
 

@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.18.0-SNAPSHOT</version>
+        <version>1.19.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-mongodb-bundle</artifactId>
@@ -35,7 +35,7 @@
     </modules>
 
     <properties>
-        <mongo.driver.version>4.5.0</mongo.driver.version>
+        <mongo.driver.version>4.7.1</mongo.driver.version>
     </properties>
 
     <dependencyManagement>
@@ -43,7 +43,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mongodb-processors</artifactId>
-                <version>1.18.0-SNAPSHOT</version>
+                <version>1.19.0-SNAPSHOT</version>
             </dependency>
             <!-- Override commons-compress -->
             <dependency>

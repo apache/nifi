@@ -19,7 +19,7 @@
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi</artifactId>
-    <version>1.18.0-SNAPSHOT</version>
+    <version>1.19.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <modules>
@@ -100,7 +100,7 @@
         <node.version>v16.13.2</node.version>
         <frontend.mvn.plugin.version>1.12.1</frontend.mvn.plugin.version>
         <nifi.nar.maven.plugin.version>1.3.5</nifi.nar.maven.plugin.version>
-        <project.build.outputTimestamp>1658953446</project.build.outputTimestamp>
+        <project.build.outputTimestamp>1664819974</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
@@ -114,10 +114,10 @@
         <org.apache.httpcomponents.httpclient.version>4.5.13</org.apache.httpcomponents.httpclient.version>
         <org.apache.httpcomponents.httpcore.version>4.4.15</org.apache.httpcomponents.httpcore.version>
         <org.bouncycastle.version>1.70</org.bouncycastle.version>
-        <testcontainers.version>1.17.3</testcontainers.version>
+        <testcontainers.version>1.17.5</testcontainers.version>
         <org.slf4j.version>1.7.36</org.slf4j.version>
         <ranger.version>2.3.0</ranger.version>
-        <jetty.version>9.4.48.v20220622</jetty.version>
+        <jetty.version>9.4.49.v20220914</jetty.version>
         <jackson.bom.version>2.13.4</jackson.bom.version>
         <avro.version>1.11.1</avro.version>
         <jaxb.runtime.version>2.3.5</jaxb.runtime.version>
@@ -138,8 +138,8 @@
         <logback.version>1.2.11</logback.version>
         <mockito.version>3.11.2</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
-        <snakeyaml.version>1.32</snakeyaml.version>
-        <netty.4.version>4.1.81.Final</netty.4.version>
+        <snakeyaml.version>1.33</snakeyaml.version>
+        <netty.4.version>4.1.82.Final</netty.4.version>
         <spring.version>5.3.23</spring.version>
         <spring.security.version>5.7.3</spring.security.version>
         <swagger.annotations.version>1.6.6</swagger.annotations.version>
@@ -277,7 +277,7 @@
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
-                <version>5.9.0</version>
+                <version>5.9.1</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -921,78 +921,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <configuration>
-                    <checkstyleRules>
-                        <module name="Checker">
-                            <property name="charset" value="UTF-8" />
-                            <property name="severity" value="warning" />
-                            <!-- Checks for whitespace -->
-                            <!-- See http://checkstyle.sf.net/config_whitespace.html -->
-                            <module name="FileTabCharacter">
-                                <property name="eachLine" value="true" />
-                            </module>
-                            <module name="LineLength">
-                                <!-- needs extra, because Eclipse formatter
-                                    ignores the ending left brace -->
-                                <property name="max" value="200" />
-                                <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
-                            </module>
-                            <module name="TreeWalker">
-                                <module name="RegexpSinglelineJava">
-                                    <property name="format" value="\s+$" />
-                                    <property name="message" value="Line has trailing whitespace." />
-                                </module>
-                                <module name="RegexpSinglelineJava">
-                                    <property name="format" value="[@]see\s+[{][@]link" />
-                                    <property name="message" value="Javadoc @see does not need @link: pick one or the other." />
-                                </module>
-                                <module name="OuterTypeFilename" />
-                                <module name="AvoidStarImport" />
-                                <module name="UnusedImports">
-                                    <property name="processJavadoc" value="true" />
-                                </module>
-                                <module name="NoLineWrap" />
-                                <module name="LeftCurly" />
-                                <module name="RightCurly" />
-                                <module name="RightCurly">
-                                    <property name="option" value="alone_or_singleline" />
-                                    <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, STATIC_INIT" />
-                                </module>
-                                <module name="SeparatorWrap">
-                                    <property name="tokens" value="DOT" />
-                                    <property name="option" value="nl" />
-                                </module>
-                                <module name="SeparatorWrap">
-                                    <property name="tokens" value="COMMA" />
-                                    <property name="option" value="EOL" />
-                                </module>
-                                <module name="PackageName">
-                                    <property name="format" value="^[a-z]+(\.[a-z][a-zA-Z0-9]*)*$" />
-                                </module>
-                                <module name="MethodTypeParameterName">
-                                    <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)" />
-                                </module>
-                                <module name="MethodParamPad" />
-                                <module name="OperatorWrap">
-                                    <property name="option" value="NL" />
-                                    <property name="tokens" value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, QUESTION, SL, SR, STAR " />
-                                </module>
-                                <module name="AnnotationLocation">
-                                    <property name="tokens" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF" />
-                                </module>
-                                <module name="AnnotationLocation">
-                                    <property name="tokens" value="VARIABLE_DEF" />
-                                    <property name="allowSamelineMultipleAnnotations" value="true" />
-                                </module>
-                                <module name="NonEmptyAtclauseDescription" />
-                                <module name="JavadocMethod">
-                                    <property name="allowMissingParamTags" value="true" />
-                                    <property name="allowMissingReturnTag" value="true" />
-                                    <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After" />
-                                </module>
-                                <module name="SingleLineJavadoc" />
-                            </module>
-                        </module>
-                    </checkstyleRules>
+                    <configLocation>checkstyle.xml</configLocation>
                     <violationSeverity>warning</violationSeverity>
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
                 </configuration>

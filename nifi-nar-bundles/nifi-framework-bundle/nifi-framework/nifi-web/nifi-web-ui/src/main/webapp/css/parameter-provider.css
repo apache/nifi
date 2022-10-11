@@ -325,74 +325,12 @@ span.parameter-provider-referencing-component-name {
     width: 332px;
 }
 
-#selectable-parameters-table .slick-cell-checkboxsel {
-    padding: 1px 2px 5px 4px;
-}
-
-#selectable-parameters-table .slick-cell-checkboxsel.selected {
-    padding: 0px 2px 6px 4px;
-}
-
 #selectable-parameters-table .slick-column-name input {
     margin: 5px 3px 3px 4px;
 }
 
 #selectable-parameters-table .slick-pane-left .slick-viewport {
     overflow-x: hidden;
-}
-
-#selectable-parameters-table input[type="checkbox"] {
-    margin-top: 2px;
-    width: 0;
-}
-
-#selectable-parameters-table input[type="checkbox"]:focus {
-    box-shadow: none;
-    border: none;
-}
-
-#selectable-parameters-table .slick-column-name input[type="checkbox"] {
-    margin-top: 5px;
-}
-
-#selectable-parameters-table .slick-column-name input[checked="checked"]:before {
-    margin-top: 2px;
-}
-
-#selectable-parameters-table input[type="checkbox"]:before {
-    content: url(../images/inputCheckbox.png);
-    cursor: pointer;
-    clip-path: polygon(0% -16%, 50% -16%, 50% 104%, 0% 104%);
-    position: absolute;
-    margin-left: 1px;
-    margin-top: 3px;
-}
-
-#selectable-parameters-table input[checked="checked"]:before {
-    content: url(../images/inputCheckbox.png);
-    cursor: pointer;
-    clip-path: polygon(50% -16%, 100% -16%, 100% 116%, 50% 116%);
-    margin-left: -11px;
-    margin-top: 3px;
-}
-
-#selectable-parameters-table input[type="checkbox"].disabled:before {
-    content: url(../images/inputCheckbox.png);
-    opacity: .5;
-    cursor: not-allowed;
-    clip-path: polygon(0% -16%, 50% -16%, 50% 104%, 0% 104%);
-    position: absolute;
-    margin-left: 1px;
-    margin-top: 3px;
-}
-
-#selectable-parameters-table input[checked="checked"].disabled:before {
-    content: url(../images/inputCheckbox.png);
-    opacity: .5;
-    cursor: not-allowed;
-    clip-path: polygon(50% -16%, 100% -16%, 100% 116%, 50% 116%);
-    margin-left: -11px;
-    margin-top: 3px;
 }
 
 #parameter-groups-table .slick-pane-top .slick-viewport-top .grid-canvas-top,
@@ -406,12 +344,6 @@ span.parameter-provider-referencing-component-name {
 
 #selectable-parameters-table .slick-pane-top .slick-viewport-top .slick-cell.l1:not(.selected) .table-cell {
     margin-top: 5px;
-}
-
-#fetched-parameters-listing .slick-cell-checkboxsel {
-    background: #f0f0f0;
-    border-right-color: silver;
-    border-right-style: solid;
 }
 
 .slick-columnpicker {
@@ -493,4 +425,12 @@ button.selectable-parameters-buttons:hover {
     color: #775351;
     max-width: calc(100% - 230px);
     z-index: 999;
+}
+
+#selectable-parameters-table .slick-cell-checkbox.selected {
+    padding-top: 1px;
+}
+
+.slick-cell-checkbox .nf-checkbox {
+    margin-top: 5px;
 }

@@ -650,7 +650,7 @@
                         // close the dialog and shell
                         referenceContainer.closest('.dialog').modal('hide');
 
-                        $('#settings-tabs').find('li:eq(5)').click();
+                        $('#settings-tabs').find('li:nth-child(5)').click();
 
                         // adjust the table size
                         parameterProvidersGrid.resizeCanvas();

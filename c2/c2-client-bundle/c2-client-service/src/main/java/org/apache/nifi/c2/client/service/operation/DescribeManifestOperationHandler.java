@@ -20,6 +20,7 @@ import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.nifi.c2.protocol.api.OperandType.MANIFEST;
 import static org.apache.nifi.c2.protocol.api.OperationType.DESCRIBE;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.nifi.c2.client.service.C2HeartbeatFactory;
@@ -31,19 +32,18 @@ import org.apache.nifi.c2.protocol.api.C2OperationAck;
 import org.apache.nifi.c2.protocol.api.C2OperationState;
 import org.apache.nifi.c2.protocol.api.OperandType;
 import org.apache.nifi.c2.protocol.api.OperationType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DescribeManifestOperationHandler implements C2OperationHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(DescribeManifestOperationHandler.class);
-
     private final C2HeartbeatFactory heartbeatFactory;
     private final Supplier<RuntimeInfoWrapper> runtimeInfoSupplier;
+    private final OperandPropertiesProvider operandPropertiesProvider;
 
-    public DescribeManifestOperationHandler(C2HeartbeatFactory heartbeatFactory, Supplier<RuntimeInfoWrapper> runtimeInfoSupplier) {
+    public DescribeManifestOperationHandler(C2HeartbeatFactory heartbeatFactory, Supplier<RuntimeInfoWrapper> runtimeInfoSupplier,
+        OperandPropertiesProvider operandPropertiesProvider) {
         this.heartbeatFactory = heartbeatFactory;
         this.runtimeInfoSupplier = runtimeInfoSupplier;
+        this.operandPropertiesProvider = operandPropertiesProvider;
     }
 
     @Override
@@ -77,5 +77,10 @@ public class DescribeManifestOperationHandler implements C2OperationHandler {
         state.setState(C2OperationState.OperationState.FULLY_APPLIED);
 
         return operationAck;
+    }
+
+    @Override
+    public Map<String, Object> getProperties() {
+        return operandPropertiesProvider.getProperties();
     }
 }
