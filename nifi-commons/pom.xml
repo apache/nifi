@@ -57,6 +57,7 @@
         <module>nifi-security-kerberos</module>
         <module>nifi-security-kms</module>
         <module>nifi-security-socket-ssl</module>
+        <module>nifi-security-ssl</module>
         <module>nifi-security-utils-api</module>
         <module>nifi-security-utils</module>
         <module>nifi-single-user-utils</module>
