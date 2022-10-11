@@ -244,7 +244,7 @@ public class ControlRate extends AbstractProcessor {
             dataThrottleMap.clear();
             countThrottleMap.clear();
         } else if (descriptor.equals(MAX_RATE) || descriptor.equals(MAX_DATA_RATE)) {
-            // MAX_RATE could affect eitehr throttle map; MAX_DATA_RATE only affects data throttle map
+            // MAX_RATE could affect either throttle map; MAX_DATA_RATE only affects data throttle map
             final long newRate;
             if (newValue != null) {
                 if (DataUnit.DATA_SIZE_PATTERN.matcher(newValue.toUpperCase()).matches()) {
