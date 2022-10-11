@@ -54,14 +54,16 @@ import javax.xml.stream.XMLStreamWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Generates HTML documentation for a ConfigurableComponent. This class is used
  * to generate documentation for ControllerService, ParameterProvider, and ReportingTask because
  * they have no additional information.
- *
  *
  */
 public class HtmlDocumentationWriter implements DocumentationWriter {
@@ -239,7 +241,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             xmlStreamWriter.writeEndElement();
 
             xmlStreamWriter.writeStartElement("tr");
-            writeSimpleElement(xmlStreamWriter, "td", join(stateful.scopes(), ", "));
+            writeSimpleElement(xmlStreamWriter, "td", join(stateful.scopes()));
             writeSimpleElement(xmlStreamWriter, "td", stateful.description());
             xmlStreamWriter.writeEndElement();
 
@@ -387,7 +389,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         xmlStreamWriter.writeEndElement();
         xmlStreamWriter.writeStartElement("p");
         if (tags != null) {
-            final String tagString = join(tags.value(), ", ");
+            final String tagString = join(tags.value());
             xmlStreamWriter.writeCharacters(tagString);
         } else {
             xmlStreamWriter.writeCharacters("No tags provided.");
@@ -395,15 +397,10 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         xmlStreamWriter.writeEndElement();
     }
 
-    static String join(final Object[] objects, final String delimiter) {
-        final StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < objects.length; i++) {
-            sb.append(objects[i].toString());
-            if (i < objects.length - 1) {
-                sb.append(delimiter);
-            }
-        }
-        return sb.toString();
+    static String join(final Object[] objects) {
+        return Arrays.stream(objects)
+                .map(Object::toString)
+                .collect(Collectors.joining(", "));
     }
 
     /**
@@ -467,28 +464,14 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
         if (properties.size() > 0) {
             final boolean containsExpressionLanguage = containsExpressionLanguage(configurableComponent);
-            final boolean containsSensitiveProperties = containsSensitiveProperties(configurableComponent);
             xmlStreamWriter.writeStartElement("p");
             xmlStreamWriter.writeCharacters("In the list below, the names of required properties appear in ");
             writeSimpleElement(xmlStreamWriter, "strong", "bold");
             xmlStreamWriter.writeCharacters(". Any other properties (not in bold) are considered optional. " +
                     "The table also indicates any default values");
             if (containsExpressionLanguage) {
-                if (!containsSensitiveProperties) {
-                    xmlStreamWriter.writeCharacters(", and ");
-                } else {
-                    xmlStreamWriter.writeCharacters(", ");
-                }
-                xmlStreamWriter.writeCharacters("whether a property supports the ");
+                xmlStreamWriter.writeCharacters(", and whether a property supports the ");
                 writeLink(xmlStreamWriter, "NiFi Expression Language", "../../../../../html/expression-language-guide.html");
-            }
-            if (containsSensitiveProperties) {
-                xmlStreamWriter.writeCharacters(", and whether a property is considered " + "\"sensitive\", meaning that its value will be encrypted. Before entering a "
-                        + "value in a sensitive property, ensure that the ");
-
-                writeSimpleElement(xmlStreamWriter, "strong", "nifi.properties");
-                xmlStreamWriter.writeCharacters(" file has " + "an entry for the property ");
-                writeSimpleElement(xmlStreamWriter, "strong", "nifi.sensitive.props.key");
             }
             xmlStreamWriter.writeCharacters(".");
             xmlStreamWriter.writeEndElement();
@@ -516,7 +499,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                 }
 
                 xmlStreamWriter.writeEndElement();
-                writeSimpleElement(xmlStreamWriter, "td", getDefaultValue(property), false, "default-value");
+                writeSimpleElement(xmlStreamWriter, "td", getDefaultValue(property), "default-value");
                 xmlStreamWriter.writeStartElement("td");
                 xmlStreamWriter.writeAttribute("id", "allowable-values");
                 writeValidValues(xmlStreamWriter, property);
@@ -699,21 +682,6 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
     }
 
     /**
-     * Indicates whether or not the component contains at least one sensitive property.
-     *
-     * @param component the component to interogate
-     * @return whether or not the component contains at least one sensitive property.
-     */
-    private boolean containsSensitiveProperties(final ConfigurableComponent component) {
-        for (PropertyDescriptor descriptor : component.getPropertyDescriptors()) {
-            if (descriptor.isSensitive()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
      * Indicates whether or not the component contains at least one property that supports Expression Language.
      *
      * @param component the component to interrogate
@@ -727,13 +695,13 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         }
         return false;
     }
-
+    @SuppressWarnings("deprecation")
     private void writeDynamicProperties(final ConfigurableComponent configurableComponent,
             final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
 
         final List<DynamicProperty> dynamicProperties = getDynamicProperties(configurableComponent);
 
-        if (dynamicProperties != null && dynamicProperties.size() > 0) {
+        if (dynamicProperties.size() > 0) {
             writeSimpleElement(xmlStreamWriter, "h3", "Dynamic Properties: ");
 
             writeSupportsSensitiveDynamicProperties(configurableComponent, xmlStreamWriter);
@@ -750,16 +718,16 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             xmlStreamWriter.writeEndElement();
             for (final DynamicProperty dynamicProperty : dynamicProperties) {
                 xmlStreamWriter.writeStartElement("tr");
-                writeSimpleElement(xmlStreamWriter, "td", dynamicProperty.name(), false, "name");
-                writeSimpleElement(xmlStreamWriter, "td", dynamicProperty.value(), false, "value");
+                writeSimpleElement(xmlStreamWriter, "td", dynamicProperty.name(), "name");
+                writeSimpleElement(xmlStreamWriter, "td", dynamicProperty.value(), "value");
                 xmlStreamWriter.writeStartElement("td");
                 xmlStreamWriter.writeCharacters(dynamicProperty.description());
 
                 xmlStreamWriter.writeEmptyElement("br");
                 String text;
 
-                if(dynamicProperty.expressionLanguageScope().equals(ExpressionLanguageScope.NONE)) {
-                    if(dynamicProperty.supportsExpressionLanguage()) {
+                if (dynamicProperty.expressionLanguageScope().equals(ExpressionLanguageScope.NONE)) {
+                    if (dynamicProperty.supportsExpressionLanguage()) {
                         text = "Supports Expression Language: true (undefined scope)";
                     } else {
                         text = "Supports Expression Language: false";
@@ -772,7 +740,6 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                         case VARIABLE_REGISTRY:
                             text = "Supports Expression Language: true (will be evaluated using variable registry only)";
                             break;
-                        case NONE:
                         default:
                             text = "Supports Expression Language: false";
                             break;
@@ -805,9 +772,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         final List<DynamicProperty> dynamicProperties = new ArrayList<>();
         final DynamicProperties dynProps = configurableComponent.getClass().getAnnotation(DynamicProperties.class);
         if (dynProps != null) {
-            for (final DynamicProperty dynProp : dynProps.value()) {
-                dynamicProperties.add(dynProp);
-            }
+            Collections.addAll(dynamicProperties, dynProps.value());
         }
 
         final DynamicProperty dynProp = configurableComponent.getClass().getAnnotation(DynamicProperty.class);
@@ -860,36 +825,17 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             xmlStreamWriter.writeEmptyElement("br");
             xmlStreamWriter.writeCharacters(controllerServiceClass.getSimpleName());
 
-            final List<Class<? extends ControllerService>> implementationList = lookupControllerServiceImpls(controllerServiceClass);
-
-            // Convert it into an array before proceeding
-            Class<? extends ControllerService>[] implementations = implementationList.stream().toArray(Class[]::new);
+            final Class<? extends ControllerService>[] serviceImplementations = lookupControllerServiceImpls(controllerServiceClass);
 
             xmlStreamWriter.writeEmptyElement("br");
-            if (implementations.length > 0) {
-                final String title = implementations.length > 1 ? "Implementations: " : "Implementation: ";
+            if (serviceImplementations.length > 0) {
+                final String title = serviceImplementations.length > 1 ? "Implementations: " : "Implementation: ";
                 writeSimpleElement(xmlStreamWriter, "strong", title);
-                iterateAndLinkComponents(xmlStreamWriter, implementations, null, "<br>", controllerServiceClass.getSimpleName());
+                iterateAndLinkComponents(xmlStreamWriter, serviceImplementations, null, "<br>", controllerServiceClass.getSimpleName());
             } else {
                 xmlStreamWriter.writeCharacters("No implementations found.");
             }
         }
-    }
-
-    /**
-     * Writes a begin element, then text, then end element for the element of a
-     * users choosing. Example: &lt;p&gt;text&lt;/p&gt;
-     *
-     * @param writer the stream writer to use
-     * @param elementName the name of the element
-     * @param characters the characters to insert into the element
-     * @param strong whether the characters should be strong or not.
-     * @throws XMLStreamException thrown if there was a problem writing to the
-     * stream.
-     */
-    protected final static void writeSimpleElement(final XMLStreamWriter writer, final String elementName,
-            final String characters, boolean strong) throws XMLStreamException {
-        writeSimpleElement(writer, elementName, characters, strong, null);
     }
 
     /**
@@ -900,26 +846,19 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
      * @param writer the stream writer to use
      * @param elementName the name of the element
      * @param characters the text of the element
-     * @param strong whether to bold the text of the element or not
      * @param id the id of the element. specifying null will cause no element to
      * be written.
      * @throws XMLStreamException xse
      */
-    protected final static void writeSimpleElement(final XMLStreamWriter writer, final String elementName,
-            final String characters, boolean strong, String id) throws XMLStreamException {
+    protected static void writeSimpleElement(final XMLStreamWriter writer, final String elementName,
+            final String characters, String id) throws XMLStreamException {
         writer.writeStartElement(elementName);
 
         if (characters != null) {
             if (id != null) {
                 writer.writeAttribute("id", id);
             }
-            if (strong) {
-                writer.writeStartElement("strong");
-            }
             writer.writeCharacters(characters);
-            if (strong) {
-                writer.writeEndElement();
-            }
         }
 
         writer.writeEndElement();
@@ -932,12 +871,10 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
      * @param writer the stream writer to use
      * @param elementName the name of the element
      * @param characters the characters to insert into the element
-     * @throws XMLStreamException thrown if there was a problem writing to the
-     * stream
      */
-    protected final static void writeSimpleElement(final XMLStreamWriter writer, final String elementName,
+    protected static void writeSimpleElement(final XMLStreamWriter writer, final String elementName,
             final String characters) throws XMLStreamException {
-        writeSimpleElement(writer, elementName, characters, false);
+        writeSimpleElement(writer, elementName, characters, null);
     }
 
     /**
@@ -996,9 +933,10 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
      * ControllerService API.
      *
      * @param parent the controller service API
-     * @return a list of controller services that implement the controller service API
+     * @return an array of controller services that implement the controller service API
      */
-    private List<Class<? extends ControllerService>> lookupControllerServiceImpls(
+    @SuppressWarnings("unchecked")
+    private Class<? extends ControllerService>[] lookupControllerServiceImpls(
             final Class<? extends ControllerService> parent) {
 
         final List<Class<? extends ControllerService>> implementations = new ArrayList<>();
@@ -1009,13 +947,13 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         // then iterate over all controller services looking for any that is a child of the parent
         // ControllerService API that was passed in as a parameter
         for (final ExtensionDefinition extensionDefinition : controllerServices) {
-            final Class controllerServiceClass = extensionManager.getClass(extensionDefinition);
+            final Class<? extends ControllerService> controllerServiceClass = (Class<? extends ControllerService>) extensionManager.getClass(extensionDefinition);
             if (parent.isAssignableFrom(controllerServiceClass)) {
                 implementations.add(controllerServiceClass);
             }
         }
 
-        return implementations;
+        return implementations.toArray(new Class[]{});
     }
 
     /**
@@ -1035,15 +973,9 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             throws XMLStreamException {
         String effectiveSeparator = separator;
         // Treat the the possible separators
-        boolean separatorIsElement;
-
-        if (effectiveSeparator.startsWith("<") && effectiveSeparator.endsWith(">")) {
-            separatorIsElement = true;
-        } else {
-            separatorIsElement = false;
-        }
+        final boolean separatorIsElement = effectiveSeparator.startsWith("<") && effectiveSeparator.endsWith(">");
         // Whatever the result, strip the possible < and > characters
-        effectiveSeparator = effectiveSeparator.replaceAll("\\<([^>]*)>","$1");
+        effectiveSeparator = effectiveSeparator.replaceAll("<([^>]*)>","$1");
 
         int index = 0;
         for (final Class<? extends ConfigurableComponent> linkedComponent : linkedComponents ) {
@@ -1070,7 +1002,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
                 ++index;
             } else {
-                LOGGER.warn("Could not link to {} because no bundles were found for {}", new Object[] {linkedComponentName, sourceContextName});
+                LOGGER.warn("Could not link to {} because no bundles were found for {}", linkedComponentName, sourceContextName);
             }
         }
 
@@ -1102,7 +1034,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
                     ++index;
                 } else {
-                    LOGGER.warn("Could not link to {} because no bundles were found for {}", new Object[] {className, sourceContextName});
+                    LOGGER.warn("Could not link to {} because no bundles were found for {}", className, sourceContextName);
                 }
             }
         }

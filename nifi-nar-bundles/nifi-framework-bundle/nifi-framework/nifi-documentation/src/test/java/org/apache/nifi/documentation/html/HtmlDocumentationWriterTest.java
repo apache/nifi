@@ -54,9 +54,9 @@ public class HtmlDocumentationWriterTest {
 
     @Test
     public void testJoin() {
-        assertEquals("a, b, c", HtmlDocumentationWriter.join(new String[] { "a", "b", "c" }, ", "));
-        assertEquals("a, b", HtmlDocumentationWriter.join(new String[] { "a", "b" }, ", "));
-        assertEquals("a", HtmlDocumentationWriter.join(new String[] { "a" }, ", "));
+        assertEquals("a, b, c", HtmlDocumentationWriter.join(new String[] { "a", "b", "c" }));
+        assertEquals("a, b", HtmlDocumentationWriter.join(new String[] { "a", "b" }));
+        assertEquals("a", HtmlDocumentationWriter.join(new String[] { "a" }));
     }
 
     @Test
@@ -73,7 +73,7 @@ public class HtmlDocumentationWriterTest {
         writer.write(controllerService, baos, false);
         initializer.teardown(controllerService);
 
-        String results = new String(baos.toByteArray());
+        String results = baos.toString();
         XmlValidator.assertXmlValid(results);
 
         // description
@@ -126,7 +126,7 @@ public class HtmlDocumentationWriterTest {
         writer.write(parameterProvider, baos, false);
         initializer.teardown(parameterProvider);
 
-        String results = new String(baos.toByteArray());
+        String results = baos.toString();
         XmlValidator.assertXmlValid(results);
 
         // description
@@ -172,7 +172,7 @@ public class HtmlDocumentationWriterTest {
         writer.write(reportingTask, baos, false);
         initializer.teardown(reportingTask);
 
-        String results = new String(baos.toByteArray());
+        String results = baos.toString();
         XmlValidator.assertXmlValid(results);
 
         // description
@@ -218,7 +218,7 @@ public class HtmlDocumentationWriterTest {
 
         writer.write(controllerService, baos, false);
 
-        String results = new String(baos.toByteArray());
+        String results = baos.toString();
         XmlValidator.assertXmlValid(results);
     }
 
@@ -234,7 +234,7 @@ public class HtmlDocumentationWriterTest {
 
         writer.write(controllerService, baos, false);
 
-        String results = new String(baos.toByteArray());
+        String results = baos.toString();
         XmlValidator.assertXmlValid(results);
     }
 }
