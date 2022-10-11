@@ -309,7 +309,7 @@ public class TestHttpFlowFileServerProtocol {
         });
 
         // Commit transaction
-        final int flowFileSent = serverProtocol.commitTransferTransaction(peer, "3229577812");
+        final int flowFileSent = serverProtocol.commitTransferTransaction(peer, "194624838");
         assertEquals(1, flowFileSent);
 
         // Assert provenance
@@ -408,7 +408,7 @@ public class TestHttpFlowFileServerProtocol {
         );
 
         // Commit transaction
-        final int flowFileSent = serverProtocol.commitTransferTransaction(peer, "3058746557");
+        final int flowFileSent = serverProtocol.commitTransferTransaction(peer, "4171232842");
         assertEquals(2, flowFileSent);
 
         // Assert provenance (SEND and DROP)
