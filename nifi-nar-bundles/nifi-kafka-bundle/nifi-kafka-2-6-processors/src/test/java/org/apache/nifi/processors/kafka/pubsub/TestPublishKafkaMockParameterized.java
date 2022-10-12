@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 import org.apache.commons.io.IOUtils;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.Producer;
@@ -134,7 +133,6 @@ public class TestPublishKafkaMockParameterized {
     private static ObjectMapper getObjectMapper() {
         final ObjectMapper objectMapper = new ObjectMapper()
                 .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-        objectMapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(objectMapper.getTypeFactory()));
         final SimpleModule simpleModule = new SimpleModule();
         simpleModule.addSerializer(RecordHeader.class, new HeaderSerializer());
         simpleModule.addSerializer(new ProducerRecordBBSerializer(objectMapper));
