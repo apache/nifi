@@ -91,7 +91,7 @@ public class TestJsonEntitySerializer {
             serializer.serialize(bulletin, baos);
 
             final String serialized = new String(baos.toByteArray(), StandardCharsets.UTF_8);
-            assertEquals("{\"bulletin\":{\"category\":\"test\",\"level\":\"INFO\",\"timestamp\":\"" + formattedTimestamp + "\"}}", serialized);
+            assertEquals(jsonCodec.readTree("{\"bulletin\":{\"category\":\"test\",\"level\":\"INFO\",\"timestamp\":\"" + formattedTimestamp + "\"}}"), jsonCodec.readTree(serialized));
         }
     }
 }
