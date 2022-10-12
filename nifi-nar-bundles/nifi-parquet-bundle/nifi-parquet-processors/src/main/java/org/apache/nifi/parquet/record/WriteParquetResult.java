@@ -31,7 +31,6 @@ import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.io.OutputFile;
 
-import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collections;
@@ -57,8 +56,7 @@ public class WriteParquetResult extends AbstractRecordSetWriter {
         final Configuration conf = new Configuration();
         final OutputFile outputFile = new NifiParquetOutputFile(out);
 
-        final AvroParquetWriter.Builder<GenericRecord> writerBuilder =
-                AvroParquetWriter.<GenericRecord>builder(outputFile).withSchema(avroSchema);
+        final AvroParquetWriter.Builder<GenericRecord> writerBuilder = AvroParquetWriter.<GenericRecord>builder(outputFile).withSchema(avroSchema);
         applyCommonConfig(writerBuilder, conf, parquetConfig);
         parquetWriter = writerBuilder.build();
     }
