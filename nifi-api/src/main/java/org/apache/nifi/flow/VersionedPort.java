@@ -57,6 +57,10 @@ public class VersionedPort extends VersionedComponent {
         return ((allowRemoteAccess != null) && allowRemoteAccess);
     }
 
+    public Boolean getAllowRemoteAccess() {
+        return allowRemoteAccess;
+    }
+
     public void setAllowRemoteAccess(Boolean allowRemoteAccess) {
         this.allowRemoteAccess = allowRemoteAccess;
     }
