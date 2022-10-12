@@ -407,7 +407,7 @@ public class TestHBase_2_ClientService {
         // stage some results in the mock service...
         final long now = System.currentTimeMillis();
 
-        final Map<String, String> cells = new HashMap<>();
+        final Map<String, String> cells = new LinkedHashMap<>();
         cells.put("greeting", "hello");
         cells.put("name", "nifi");
 
