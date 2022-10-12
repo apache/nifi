@@ -209,8 +209,6 @@ public class PublisherLease implements Closeable {
                     headers = toHeadersWrapper(record.getValue("headers"));
                     final Object key = record.getValue("key");
                     final Object value = record.getValue("value");
-                    logger.trace("Key: {}", key);
-                    logger.trace("Value: {}", value);
                     messageContent = toByteArray("value", value, writerFactory, flowFile);
                     messageKey = toByteArray("key", key, recordKeyWriterFactory, flowFile);
                 } else {

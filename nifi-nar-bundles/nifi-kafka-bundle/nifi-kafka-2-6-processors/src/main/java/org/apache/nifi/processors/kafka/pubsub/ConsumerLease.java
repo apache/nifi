@@ -610,7 +610,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                         int recordCount = 0;
                         Record record;
                         while ((record = reader.nextRecord()) != null) {
-                            if ((OutputStrategy.USE_WRAPPER.equals(outputStrategy)) && (consumerRecord.key() != null)) {
+                            if (OutputStrategy.USE_WRAPPER.equals(outputStrategy)) {
                                 record = toWrapperRecord(consumerRecord, record);
                             }
                             writer = writeRecord(session, consumerRecord, topicPartition, record, attributes);
@@ -717,7 +717,8 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             }
         } else if (KafkaProcessorUtils.KEY_AS_STRING.getValue().equals(keyFormat)) {
             final RecordField recordField = new RecordField("key", RecordFieldType.STRING.getDataType());
-            tuple = new Tuple<>(recordField, new String(key, StandardCharsets.UTF_8));
+            final String keyString = ((key == null) ? null : new String(key, StandardCharsets.UTF_8));
+            tuple = new Tuple<>(recordField, keyString);
         } else {
             final RecordField recordField = new RecordField("key",
                     RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()));
