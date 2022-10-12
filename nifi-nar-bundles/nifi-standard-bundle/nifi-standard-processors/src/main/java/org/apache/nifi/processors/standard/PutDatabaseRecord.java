@@ -863,7 +863,19 @@ public class PutDatabaseRecord extends AbstractProcessor {
             }
         } else {
             try {
-                ps.setObject(index, value, sqlType);
+                // If the specified field type is OTHER and the SQL type is VARCHAR, the conversion went ok as a string literal but try the OTHER type when setting the parameter. If an error occurs,
+                // try the normal way of using the sqlType
+                // This helps with PostgreSQL enums and possibly other scenarios
+                if (fieldSqlType == Types.OTHER && sqlType == Types.VARCHAR) {
+                    try {
+                        ps.setObject(index, value, fieldSqlType);
+                    } catch (SQLException e) {
+                        // Fall back to default setObject params
+                        ps.setObject(index, value, sqlType);
+                    }
+                } else {
+                    ps.setObject(index, value, sqlType);
+                }
             } catch (SQLException e) {
                 throw new IOException("Unable to setObject() with value " + value + " at index " + index + " of type " + sqlType , e);
             }
