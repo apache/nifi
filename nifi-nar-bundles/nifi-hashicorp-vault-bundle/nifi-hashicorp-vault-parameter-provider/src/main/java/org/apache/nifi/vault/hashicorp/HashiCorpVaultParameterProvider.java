@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@CapabilityDescription("Provides parameters from HashiCorp Vault Key/Value Secrets.  Each Secret represents a parameter group, " +
+@CapabilityDescription("Provides parameters from HashiCorp Vault Key/Value Version 1 Secrets.  Each Secret represents a parameter group, " +
         "which will map to a Parameter Context.  The keys and values in the Secret map to Parameters.")
 @Tags({"hashicorp", "vault", "secret"})
 public class HashiCorpVaultParameterProvider extends AbstractParameterProvider implements ParameterProvider, VerifiableParameterProvider {
@@ -54,7 +54,7 @@ public class HashiCorpVaultParameterProvider extends AbstractParameterProvider i
     public static final PropertyDescriptor KV_PATH = new PropertyDescriptor.Builder()
             .name("kv-path")
             .displayName("Key/Value Path")
-            .description("The HashiCorp Vault path to the Key/Value Secrets Engine")
+            .description("The HashiCorp Vault path to the Key/Value Version 1 Secrets Engine")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
             .defaultValue("kv")
