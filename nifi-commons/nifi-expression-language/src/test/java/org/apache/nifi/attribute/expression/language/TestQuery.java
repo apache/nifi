@@ -2365,6 +2365,39 @@ public class TestQuery {
         verifyEquals("${myattr0:UUID5(${UUID()}):length()}", attributes, 36L);
     }
 
+    @Test
+    void testIsJson() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("jsonObj", "{\"name\":\"John\", \"age\":30, \"car\":null}");
+        attributes.put("jsonObjMissingStartingBrace", "\"name\":\"John\", \"age\":30, \"car\":null}");
+        attributes.put("jsonObjMissingEndingBrace", "{\"name\":\"John\", \"age\":30, \"car\":null");
+        attributes.put("jsonArray", "[\"Ford\", \"BMW\", \"Fiat\"]");
+        attributes.put("jsonArrayMissingStartingBracket", "\"Ford\", \"BMW\", \"Fiat\"]");
+        attributes.put("jsonArrayMissingEndingBracket", "[\"Ford\", \"BMW\", \"Fiat\"");
+        attributes.put("emptyQuotedString", "\"\"");
+        attributes.put("quotedString", "\"someString\"");
+        attributes.put("integer", "1234");
+        attributes.put("decimal", "18.36");
+        attributes.put("trueAttr", "true");
+        attributes.put("falseAttr", "false");
+        attributes.put("nullAttr", "null");
+
+        verifyEquals("${jsonObj:isJson()}", attributes, true);
+        verifyEquals("${jsonObjMissingStartingBrace:isJson()}", attributes, false);
+        verifyEquals("${jsonObjMissingEndingBrace:isJson()}", attributes, false);
+        verifyEquals("${jsonArray:isJson()}", attributes, true);
+        verifyEquals("${jsonArrayMissingStartingBracket:isJson()}", attributes, false);
+        verifyEquals("${jsonArrayMissingEndingBracket:isJson()}", attributes, false);
+        verifyEquals("${someAttribute:isJson()}", attributes, false);
+        verifyEquals("${emptyQuotedString:isJson()}", attributes, false);
+        verifyEquals("${quotedString:isJson()}", attributes, false);
+        verifyEquals("${integer:isJson()}", attributes, false);
+        verifyEquals("${decimal:isJson()}", attributes, false);
+        verifyEquals("${trueAttr:isJson()}", attributes, false);
+        verifyEquals("${falseAttr:isJson()}", attributes, false);
+        verifyEquals("${nullAttr:isJson()}", attributes, false);
+    }
+
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
         verifyEquals(expression,attributes, null, ParameterLookup.EMPTY, expectedResult);
     }
