@@ -157,6 +157,18 @@ public class TestConsumeMQTT {
     }
 
     @Test
+    public void testRecordAndDemarcatorConfigurationTogetherIsInvalid() throws InitializationException {
+        mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber);
+        testRunner = initializeTestRunner(mqttTestClient);
+
+        testRunner.setProperty(ConsumeMQTT.RECORD_READER, createJsonRecordSetReaderService(testRunner));
+        testRunner.setProperty(ConsumeMQTT.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+        testRunner.setProperty(ConsumeMQTT.MESSAGE_DEMARCATOR, "\n");
+
+        testRunner.assertNotValid();
+    }
+
+    @Test
     public void testQoS2() throws Exception {
         mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber);
         testRunner = initializeTestRunner(mqttTestClient);
