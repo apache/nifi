@@ -46,13 +46,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.PrintStream;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -160,6 +164,25 @@ public class ExecuteGroovyScriptTest {
         runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
         result.get(0).assertAttributeEquals("testAttr", "test content");
+    }
+
+    @Test
+    public void testAdditionalClasspath() throws Exception {
+        Set<URL> expectedClasspathURLs = new HashSet<>();
+        StringBuilder additionalClasspath = new StringBuilder();
+        for (int i = 0; i < 3; i++) {
+            Path p = java.nio.file.Files.createTempFile(getClass().getName(), ".tmp");
+            expectedClasspathURLs.add(p.toUri().toURL());
+            additionalClasspath.append(p);
+            additionalClasspath.append(i == 0 ? ',' : ';'); // create additional classpath string separated by ; and ,
+        }
+
+        runner.setProperty(ExecuteGroovyScript.ADD_CLASSPATH, additionalClasspath.toString());
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY, ";");
+        runner.assertValid();
+
+        URL[] classpathURLs = proc.shell.getClassLoader().getURLs();
+        assertEquals(expectedClasspathURLs, new HashSet<>(Arrays.asList(classpathURLs)));
     }
 
     @Test
