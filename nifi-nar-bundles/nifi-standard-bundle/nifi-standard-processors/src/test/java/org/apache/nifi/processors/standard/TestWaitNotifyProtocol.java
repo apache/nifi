@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static org.apache.nifi.processors.standard.WaitNotifyProtocol.CONSUMED_COUNT_NAME;
 import static org.apache.nifi.processors.standard.WaitNotifyProtocol.DEFAULT_COUNT_NAME;
@@ -104,8 +105,10 @@ public class TestWaitNotifyProtocol {
 
         final AtomicCacheEntry<String, String, Long> cacheEntry = cacheEntries.get("signal-id");
 
+        ObjectMapper mapper = new ObjectMapper();
         assertEquals(1, cacheEntry.getRevision().orElse(-1L).longValue());
-        assertEquals("{\"counts\":{\"a\":1},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
+        assertEquals(mapper.readTree("{\"counts\":{\"a\":1},\"attributes\":{},\"releasableCount\":0}"), 
+        mapper.readTree(cacheEntry.getValue()));
     }
 
     @Test
@@ -120,22 +123,26 @@ public class TestWaitNotifyProtocol {
         protocol.notify(signalId, "a", 1, null);
         protocol.notify(signalId, "a", 1, null);
 
+        ObjectMapper mapper = new ObjectMapper();
         AtomicCacheEntry<String, String, Long> cacheEntry = cacheEntries.get("signal-id");
         assertEquals(2, cacheEntry.getRevision().orElse(-1L).longValue());
-        assertEquals("{\"counts\":{\"a\":2},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
+        assertEquals(mapper.readTree("{\"counts\":{\"a\":2},\"attributes\":{},\"releasableCount\":0}"), 
+        mapper.readTree(cacheEntry.getValue()));
 
         protocol.notify(signalId, "a", 10, null);
 
         cacheEntry = cacheEntries.get("signal-id");
         assertEquals(3, cacheEntry.getRevision().orElse(-1L).longValue());
-        assertEquals("{\"counts\":{\"a\":12},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
+        assertEquals(mapper.readTree("{\"counts\":{\"a\":12},\"attributes\":{},\"releasableCount\":0}"), 
+        mapper.readTree(cacheEntry.getValue()));
 
         protocol.notify(signalId, "b", 2, null);
         protocol.notify(signalId, "c", 3, null);
 
         cacheEntry = cacheEntries.get("signal-id");
         assertEquals(5, cacheEntry.getRevision().orElse(-1L).longValue());
-        assertEquals("{\"counts\":{\"a\":12,\"b\":2,\"c\":3},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
+        assertEquals(mapper.readTree("{\"counts\":{\"a\":12,\"b\":2,\"c\":3},\"attributes\":{},\"releasableCount\":0}"), 
+        mapper.readTree(cacheEntry.getValue()));
 
         final Map<String, Integer> deltas = new HashMap<>();
         deltas.put("a", 10);
@@ -144,13 +151,15 @@ public class TestWaitNotifyProtocol {
 
         cacheEntry = cacheEntries.get("signal-id");
         assertEquals(6, cacheEntry.getRevision().orElse(-1L).longValue());
-        assertEquals("{\"counts\":{\"a\":22,\"b\":27,\"c\":3},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
+        assertEquals(mapper.readTree("{\"counts\":{\"a\":22,\"b\":27,\"c\":3},\"attributes\":{},\"releasableCount\":0}"), 
+        mapper.readTree(cacheEntry.getValue()));
 
         // Zero clear 'b'.
         protocol.notify("signal-id", "b", 0, null);
         cacheEntry = cacheEntries.get("signal-id");
         assertEquals(7, cacheEntry.getRevision().orElse(-1L).longValue());
-        assertEquals("{\"counts\":{\"a\":22,\"b\":0,\"c\":3},\"attributes\":{},\"releasableCount\":0}", cacheEntry.getValue());
+        assertEquals(mapper.readTree("{\"counts\":{\"a\":22,\"b\":0,\"c\":3},\"attributes\":{},\"releasableCount\":0}"), 
+        mapper.readTree(cacheEntry.getValue()));
 
     }
 
@@ -168,9 +177,11 @@ public class TestWaitNotifyProtocol {
 
         protocol.notify(signalId, "a", 1, attributeA1);
 
+        ObjectMapper mapper = new ObjectMapper();
         AtomicCacheEntry<String, String, Long> cacheEntry = cacheEntries.get("signal-id");
         assertEquals(1L, cacheEntry.getRevision().orElse(-1L).longValue());
-        assertEquals("{\"counts\":{\"a\":1},\"attributes\":{\"p1\":\"a1\",\"p2\":\"a1\"},\"releasableCount\":0}", cacheEntry.getValue());
+        assertEquals(mapper.readTree("{\"counts\":{\"a\":1},\"attributes\":{\"p1\":\"a1\",\"p2\":\"a1\"},\"releasableCount\":0}"), 
+        mapper.readTree(cacheEntry.getValue()));
 
         final Map<String, String> attributeA2 = new HashMap<>();
         attributeA2.put("p2", "a2"); // Update p2
@@ -181,8 +192,8 @@ public class TestWaitNotifyProtocol {
 
         cacheEntry = cacheEntries.get("signal-id");
         assertEquals(2L, cacheEntry.getRevision().orElse(-1L).longValue());
-        assertEquals("{\"counts\":{\"a\":2},\"attributes\":{\"p1\":\"a1\",\"p2\":\"a2\",\"p3\":\"a2\"},\"releasableCount\":0}", cacheEntry.getValue(),
-                "Updated attributes should be merged correctly");
+        assertEquals(mapper.readTree("{\"counts\":{\"a\":2},\"attributes\":{\"p1\":\"a1\",\"p2\":\"a2\",\"p3\":\"a2\"},\"releasableCount\":0}"), 
+        mapper.readTree(cacheEntry.getValue()),"Updated attributes should be merged correctly");
 
     }
 
