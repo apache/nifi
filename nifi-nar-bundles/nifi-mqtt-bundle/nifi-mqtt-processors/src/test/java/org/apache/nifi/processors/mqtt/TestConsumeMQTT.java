@@ -516,7 +516,7 @@ public class TestConsumeMQTT {
         assertEquals(flowFiles.size(), 1);
         assertEquals("{\"name\":\"Apache NiFi\"}\\n"
                         + THIS_IS_NOT_JSON + "\\n"
-                        + "{\"name\":\"Apache NiFi\"}\\n",
+                        + "{\"name\":\"Apache NiFi\"}",
                 new String(flowFiles.get(0).toByteArray()));
 
         final List<MockFlowFile> badFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_PARSE_FAILURE);

@@ -431,8 +431,10 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
             int i = 0;
             while (!mqttQueue.isEmpty() && i < MAX_MESSAGES_PER_FLOW_FILE) {
                 final ReceivedMqttMessage mqttMessage = mqttQueue.poll();
+                if (i > 0) {
+                    out.write(demarcator);
+                }
                 out.write(mqttMessage.getPayload() == null ? new byte[0] : mqttMessage.getPayload());
-                out.write(demarcator);
                 session.adjustCounter(COUNTER_RECORDS_RECEIVED, 1L, false);
                 i++;
             }
