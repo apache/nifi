@@ -322,7 +322,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
                         validParameters.add(parameter);
                         parameterNames.add(parameter.getDescriptor().getName());
                     } else {
-                        getLogger().warn("Skipping parameter [{}}], whose name has invalid characters.  Only alpha-numeric characters (a-z, A-Z, 0-9), hyphens (-), underscores (_), " +
+                        getLogger().warn("Skipping parameter [{}], whose name has invalid characters.  Only alpha-numeric characters (a-z, A-Z, 0-9), hyphens (-), underscores (_), " +
                                 "periods (.), and spaces ( ) are accepted.", new Object[] {parameterName});
                     }
                 }
