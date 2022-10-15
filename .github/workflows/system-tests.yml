@@ -62,9 +62,9 @@ jobs:
     name: Ubuntu Java 17
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up Java 17
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           distribution: zulu
           java-version: 17
@@ -87,7 +87,7 @@ jobs:
           ${{ env.MAVEN_PROJECTS }}
       - name: Upload Troubleshooting Logs
         if: failure() || cancelled()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ubuntu-17-troubleshooting-logs
           path: |
@@ -102,9 +102,9 @@ jobs:
     name: Ubuntu Java 11
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up Java 11
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           distribution: zulu
           java-version: 11
@@ -127,7 +127,7 @@ jobs:
           ${{ env.MAVEN_PROJECTS }}
       - name: Upload Troubleshooting Logs
         if: failure() || cancelled()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ubuntu-latest-troubleshooting-logs
           path: |
@@ -142,9 +142,9 @@ jobs:
     name: MacOS Java 8
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up Java 8
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           distribution: zulu
           java-version: 8
@@ -167,7 +167,7 @@ jobs:
           ${{ env.MAVEN_PROJECTS }}
       - name: Upload Troubleshooting Logs
         if: failure() || cancelled()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: macos-latest-troubleshooting-logs
           path: |
