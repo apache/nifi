@@ -17,6 +17,7 @@
 package org.apache.nifi.processors;
 
 import com.maxmind.geoip2.DatabaseReader;
+import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.CityResponse;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -40,6 +41,7 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
@@ -187,62 +189,74 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile input = session.get();
-        if (input == null) {
+        final FlowFile inputFlowFile = session.get();
+        if (inputFlowFile == null) {
             return;
         }
 
-        FlowFile output = session.create(input);
-        FlowFile notFound = splitOutput ? session.create(input) : null;
+        FlowFile outputFlowFile = session.create(inputFlowFile);
+        FlowFile notFoundFlowFile = splitOutput ? session.create(inputFlowFile) : null;
         final DatabaseReader dbReader = databaseReaderRef.get();
-        try (InputStream is = session.read(input);
-             OutputStream os = session.write(output);
-             OutputStream osNotFound = splitOutput ? session.write(notFound) : null) {
-            RecordPathCache cache = new RecordPathCache(GEO_PROPERTIES.size() + 1);
-            Map<PropertyDescriptor, RecordPath> paths = new HashMap<>();
+        try (final InputStream is = session.read(inputFlowFile);
+             final OutputStream os = session.write(outputFlowFile);
+             final OutputStream osNotFound = splitOutput ? session.write(notFoundFlowFile) : null) {
+            final RecordPathCache recordPathCache = new RecordPathCache(GEO_PROPERTIES.size() + 1);
+            final Map<PropertyDescriptor, RecordPath> recordPathMap = new HashMap<>();
             for (PropertyDescriptor descriptor : GEO_PROPERTIES) {
                 if (!context.getProperty(descriptor).isSet()) {
                     continue;
                 }
-                String rawPath = context.getProperty(descriptor).evaluateAttributeExpressions(input).getValue();
-                RecordPath compiled = cache.getCompiled(rawPath);
-                paths.put(descriptor, compiled);
+
+                final String rawPath = context.getProperty(descriptor).evaluateAttributeExpressions(inputFlowFile).getValue();
+                final RecordPath compiled = recordPathCache.getCompiled(rawPath);
+                recordPathMap.put(descriptor, compiled);
             }
 
-            String rawIpPath = context.getProperty(IP_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
-            RecordPath ipPath = cache.getCompiled(rawIpPath);
-
-            RecordReader reader = readerFactory.createRecordReader(input, is, getLogger());
-            RecordSchema schema = writerFactory.getSchema(input.getAttributes(), reader.getSchema());
-            RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, os, input);
-            RecordSetWriter notFoundWriter = splitOutput ? writerFactory.createWriter(getLogger(), schema, osNotFound, input) : null;
+            final String rawIpPath = context.getProperty(IP_RECORD_PATH).evaluateAttributeExpressions(inputFlowFile).getValue();
+            final RecordPath ipPath = recordPathCache.getCompiled(rawIpPath);
+            final RecordReader reader = readerFactory.createRecordReader(inputFlowFile, is, getLogger());
+            final RecordSchema schema = writerFactory.getSchema(inputFlowFile.getAttributes(), reader.getSchema());
+            final RecordSetWriter notFoundWriter = splitOutput ? writerFactory.createWriter(getLogger(), schema, osNotFound, inputFlowFile) : null;
+            RecordSetWriter writer = null;
             Record record;
             Relationship targetRelationship = REL_NOT_FOUND;
-            writer.beginRecordSet();
 
             if (notFoundWriter != null) {
                 notFoundWriter.beginRecordSet();
             }
 
+            // For each flowfile record, enrich the IP address with geoip properties
             int foundCount = 0;
             int notFoundCount = 0;
             while ((record = reader.nextRecord()) != null) {
-                CityResponse response = geocode(ipPath, record, dbReader);
-                boolean wasEnriched = enrichRecord(response, record, paths);
+                // Enrich fields where the geo field descriptor is specified
+                final CityResponse response = geocode(ipPath, record, dbReader);
+                final boolean wasEnriched = enrichRecord(response, record, recordPathMap);
+
+                // Record was enriched with one or more geo fields, so route it to the "found" relationship
                 if (wasEnriched) {
                     targetRelationship = REL_FOUND;
                 }
-                if (!splitOutput || (splitOutput && wasEnriched)) {
+
+                if (!splitOutput || wasEnriched) {
+                    // Initialise the writer, applying the enriched fields to the schema
+                    if (writer == null) {
+                        writer = writerFactory.createWriter(getLogger(), record.getSchema(), os, inputFlowFile);
+                        writer.beginRecordSet();
+                    }
+
                     writer.write(record);
                     foundCount++;
-                } else {
+                } else if (notFoundWriter != null) {
                     notFoundWriter.write(record);
                     notFoundCount++;
                 }
             }
-            writer.finishRecordSet();
-            writer.close();
 
+            if (writer != null) {
+                writer.finishRecordSet();
+                writer.close();
+            }
             if (notFoundWriter != null) {
                 notFoundWriter.finishRecordSet();
                 notFoundWriter.close();
@@ -254,22 +268,32 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
                 osNotFound.close();
             }
 
-            output = session.putAllAttributes(output, buildAttributes(foundCount, writer.getMimeType()));
+            if (writer != null) {
+                outputFlowFile = session.putAllAttributes(outputFlowFile, buildAttributes(foundCount, writer.getMimeType()));
+            }
             if (!splitOutput) {
-                session.transfer(output, targetRelationship);
-                session.remove(input);
+                session.transfer(outputFlowFile, targetRelationship);
+                session.remove(inputFlowFile);
             } else {
                 if (notFoundCount > 0) {
-                    notFound = session.putAllAttributes(notFound, buildAttributes(notFoundCount, writer.getMimeType()));
-                    session.transfer(notFound, REL_NOT_FOUND);
+                    if (writer != null) {
+                        notFoundFlowFile = session.putAllAttributes(notFoundFlowFile, buildAttributes(notFoundCount, writer.getMimeType()));
+                    }
+                    session.transfer(notFoundFlowFile, REL_NOT_FOUND);
                 } else {
-                    session.remove(notFound);
+                    session.remove(notFoundFlowFile);
                 }
-                session.transfer(output, REL_FOUND);
-                session.transfer(input, REL_ORIGINAL);
-                session.getProvenanceReporter().modifyContent(notFound);
+                if (foundCount > 0) {
+                    session.transfer(outputFlowFile, REL_FOUND);
+                } else {
+                    session.remove(outputFlowFile);
+                }
+
+                session.transfer(inputFlowFile, REL_ORIGINAL);
+                session.getProvenanceReporter().modifyContent(notFoundFlowFile);
             }
-            session.getProvenanceReporter().modifyContent(output);
+
+            session.getProvenanceReporter().modifyContent(outputFlowFile);
         } catch (Exception ex) {
             getLogger().error("Error enriching records.", ex);
             session.rollback();
@@ -278,7 +302,7 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
     }
 
     private Map<String, String> buildAttributes(int recordCount, String mimeType) {
-        Map<String, String> retVal = new HashMap<>();
+        final Map<String, String> retVal = new HashMap<>();
         retVal.put(CoreAttributes.MIME_TYPE.key(), mimeType);
         retVal.put("record.count", String.valueOf(recordCount));
 
@@ -286,58 +310,76 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
     }
 
     private CityResponse geocode(RecordPath ipPath, Record record, DatabaseReader reader) throws Exception {
-        RecordPathResult result = ipPath.evaluate(record);
-        Optional<FieldValue> ipField = result.getSelectedFields().findFirst();
+        final RecordPathResult result = ipPath.evaluate(record);
+        final Optional<FieldValue> ipField = result.getSelectedFields().findFirst();
+
         if (ipField.isPresent()) {
-            FieldValue value = ipField.get();
-            Object val = value.getValue();
+            final FieldValue value = ipField.get();
+            final Object val = value.getValue();
             if (val == null) {
                 return null;
             }
-            String realValue = val.toString();
-            InetAddress address = InetAddress.getByName(realValue);
+            final String realValue = val.toString();
+            final InetAddress address = InetAddress.getByName(realValue);
 
-            return reader.city(address);
+            try {
+                return reader.city(address);
+            } catch (GeoIp2Exception ex) {
+                getLogger().warn("Could not resolve the IP for value '{}' contained within the attribute '{}'. " +
+                                "This is usually caused by the IP address not existing in the GeoIP database.",
+                        new Object[]{realValue, IP_ADDRESS_ATTRIBUTE.getDisplayName()}, ex);
+                return null;
+            }
         } else {
             return null;
         }
     }
 
     private boolean enrichRecord(CityResponse response, Record record, Map<PropertyDescriptor, RecordPath> cached) {
-        boolean retVal;
 
-        if (response == null) {
-            return false;
-        } else if (response.getCity() == null) {
-            return false;
-        }
+        final boolean city = updateFieldValue(GEO_CITY, cached, record,
+                response != null ? response.getCity().getName() : null, RecordFieldType.STRING);
 
-        boolean city = update(GEO_CITY, cached, record, response.getCity().getName());
-        boolean country = update(GEO_COUNTRY, cached, record, response.getCountry().getName());
-        boolean iso = update(GEO_COUNTRY_ISO, cached, record, response.getCountry().getIsoCode());
-        boolean lat = update(GEO_LATITUDE, cached, record, response.getLocation().getLatitude());
-        boolean lon = update(GEO_LONGITUDE, cached, record, response.getLocation().getLongitude());
-        boolean postal = update(GEO_POSTAL_CODE, cached, record, response.getPostal().getCode());
+        final boolean country = updateFieldValue(GEO_COUNTRY, cached, record,
+                response != null ? response.getCountry().getName() : null, RecordFieldType.STRING);
 
-        retVal = (city || country || iso || lat || lon || postal);
+        final boolean iso = updateFieldValue(GEO_COUNTRY_ISO, cached, record,
+                response != null ? response.getCountry().getIsoCode() : null, RecordFieldType.STRING);
 
-        return retVal;
+        final boolean lat = updateFieldValue(GEO_LATITUDE, cached, record,
+                response != null ? response.getLocation().getLatitude() : null, RecordFieldType.DOUBLE);
+
+        final boolean lon = updateFieldValue(GEO_LONGITUDE, cached, record,
+                response != null ? response.getLocation().getLongitude() : null, RecordFieldType.DOUBLE);
+
+        final boolean postal = updateFieldValue(GEO_POSTAL_CODE, cached, record,
+                response != null ? response.getPostal().getCode() : null, RecordFieldType.STRING);
+
+        // Ensure enriched fields are part of the record schema
+        record.incorporateInactiveFields();
+
+        return (city || country || iso || lat || lon || postal);
     }
 
-    private boolean update(PropertyDescriptor descriptor, Map<PropertyDescriptor, RecordPath> cached, Record record, Object fieldValue) {
-        if (!cached.containsKey(descriptor) || fieldValue == null) {
+    /**
+     * Update the value of the target record field
+     * @return Whether a non-null value was written to the record field
+     */
+    private boolean updateFieldValue(PropertyDescriptor descriptor, Map<PropertyDescriptor, RecordPath> cached, Record record,
+                                     Object fieldValue, RecordFieldType fieldDataType) {
+
+        // Skip if the target field path is not specified
+        if (!cached.containsKey(descriptor)) {
             return false;
         }
-        RecordPath cityPath = cached.get(descriptor);
-        RecordPathResult result = cityPath.evaluate(record);
-        FieldValue value = result.getSelectedFields().findFirst().get();
 
-        if (value.getParent().get().getValue() == null) {
-            return false;
-        }
+        final RecordPath geoFieldPath = cached.get(descriptor);
+        final RecordPathResult result = geoFieldPath.evaluate(record);
+        final Optional<FieldValue> value = result.getSelectedFields().findFirst();
 
-        value.updateValue(fieldValue.toString());
+        value.ifPresent(val -> val.updateValue(fieldValue != null ? fieldValue.toString() : null,
+                fieldDataType.getDataType()));
 
-        return true;
+        return fieldValue != null;
     }
 }
