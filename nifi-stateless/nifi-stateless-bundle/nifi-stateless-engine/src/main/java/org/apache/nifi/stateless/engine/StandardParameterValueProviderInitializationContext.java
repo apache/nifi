@@ -29,7 +29,7 @@ public class StandardParameterValueProviderInitializationContext extends Standar
     private final String identifier;
 
     public StandardParameterValueProviderInitializationContext(final ParameterValueProvider parameterValueProvider, final Map<String, String> propertyValues, final String identifier) {
-        super(createPropertyMap(parameterValueProvider, propertyValues), parameterValueProvider);
+        super(createPropertyMap(parameterValueProvider, propertyValues), parameterValueProvider, null);
         this.identifier = identifier;
     }
 

@@ -47,7 +47,7 @@ public class GhostControllerService implements ControllerService {
             .input("Any Property")
             .subject("Missing Controller Service")
             .valid(false)
-            .explanation("Controller Service is of type " + canonicalClassName + ", but this is not a valid Reporting Task type")
+            .explanation("Controller Service is of type " + canonicalClassName + ", but this is not a valid Controller Service type")
             .build());
     }
 

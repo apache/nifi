@@ -32,6 +32,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.OutputPortClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamProviderClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.PoliciesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessorClient;
@@ -294,6 +295,16 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         @Override
         public ReportingTasksClient getReportingTasksClient(RequestConfig requestConfig) {
             return wrappedClient.getReportingTasksClient(requestConfig);
+        }
+
+        @Override
+        public ParamProviderClient getParamProviderClient() {
+            return wrappedClient.getParamProviderClient();
+        }
+
+        @Override
+        public ParamProviderClient getParamProviderClient(RequestConfig requestConfig) {
+            return wrappedClient.getParamProviderClient(requestConfig);
         }
 
         @Override

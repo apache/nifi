@@ -18,6 +18,8 @@
 package org.apache.nifi.controller.flow;
 
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedFlowRegistryClient;
+import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.flow.VersionedParameterContext;
@@ -28,8 +30,9 @@ import java.util.Set;
 public class VersionedDataflow {
     private VersionedFlowEncodingVersion encodingVersion;
     private int maxTimerDrivenThreadCount;
-    private List<VersionedRegistry> registries;
+    private List<VersionedFlowRegistryClient> registries;
     private List<VersionedParameterContext> parameterContexts;
+    private List<VersionedParameterProvider> parameterProviders;
     private List<VersionedControllerService> controllerServices;
     private List<VersionedReportingTask> reportingTasks;
     private Set<VersionedTemplate> templates;
@@ -51,11 +54,11 @@ public class VersionedDataflow {
         this.maxTimerDrivenThreadCount = maxTimerDrivenThreadCount;
     }
 
-    public List<VersionedRegistry> getRegistries() {
+    public List<VersionedFlowRegistryClient> getRegistries() {
         return registries;
     }
 
-    public void setRegistries(final List<VersionedRegistry> registries) {
+    public void setRegistries(final List<VersionedFlowRegistryClient> registries) {
         this.registries = registries;
     }
 
@@ -81,6 +84,14 @@ public class VersionedDataflow {
 
     public void setReportingTasks(final List<VersionedReportingTask> reportingTasks) {
         this.reportingTasks = reportingTasks;
+    }
+
+    public List<VersionedParameterProvider> getParameterProviders() {
+        return parameterProviders;
+    }
+
+    public void setParameterProviders(final List<VersionedParameterProvider> parameterProviders) {
+        this.parameterProviders = parameterProviders;
     }
 
     public VersionedProcessGroup getRootGroup() {

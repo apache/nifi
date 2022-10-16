@@ -19,6 +19,7 @@ package org.apache.nifi.web.api.dto;
 import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderConfigurationEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 
 import javax.xml.bind.annotation.XmlType;
@@ -33,6 +34,7 @@ public class ParameterContextDTO {
     private Set<ParameterEntity> parameters;
     private Set<ProcessGroupEntity> boundProcessGroups;
     private List<ParameterContextReferenceEntity> inheritedParameterContexts;
+    private ParameterProviderConfigurationEntity parameterProviderConfiguration;
 
     public void setId(String id) {
         this.identifier = id;
@@ -86,6 +88,15 @@ public class ParameterContextDTO {
     @ApiModelProperty(value = "The Process Groups that are bound to this Parameter Context", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Set<ProcessGroupEntity> getBoundProcessGroups() {
         return boundProcessGroups;
+    }
+
+    @ApiModelProperty(value = "Optional configuration for a Parameter Provider")
+    public ParameterProviderConfigurationEntity getParameterProviderConfiguration() {
+        return parameterProviderConfiguration;
+    }
+
+    public void setParameterProviderConfiguration(final ParameterProviderConfigurationEntity parameterProviderConfiguration) {
+        this.parameterProviderConfiguration = parameterProviderConfiguration;
     }
 
     @Override

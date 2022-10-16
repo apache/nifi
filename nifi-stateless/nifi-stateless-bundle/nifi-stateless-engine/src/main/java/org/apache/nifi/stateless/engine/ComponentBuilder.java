@@ -28,6 +28,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.NodeTypeProvider;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReloadComponent;
@@ -38,7 +39,10 @@ import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.flowrepository.FlowRepositoryClientInstantiationException;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
+import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
+import org.apache.nifi.controller.parameter.StandardParameterProviderNode;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.reporting.StandardReportingInitializationContext;
 import org.apache.nifi.controller.reporting.StatelessReportingTaskNode;
@@ -49,6 +53,9 @@ import org.apache.nifi.controller.service.StandardControllerServiceInvocationHan
 import org.apache.nifi.controller.service.StandardControllerServiceNode;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.ParameterProvider;
+import org.apache.nifi.parameter.ParameterProviderInitializationContext;
+import org.apache.nifi.parameter.StandardParameterProviderInitializationContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.SimpleProcessLogger;
@@ -56,6 +63,10 @@ import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
+import org.apache.nifi.registry.flow.InMemoryFlowRegistry;
+import org.apache.nifi.registry.flow.StandardFlowRegistryClientNode;
 import org.apache.nifi.registry.variable.StandardComponentVariableRegistry;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.ReportingTask;
@@ -136,6 +147,34 @@ public class ComponentBuilder {
         return procNode;
     }
 
+    public FlowRegistryClientNode buildFlowRegistryClient() throws FlowRepositoryClientInstantiationException {
+        final LoggableComponent<FlowRegistryClient> client = createLoggableFlowRegistryClient();
+        final ControllerServiceProvider controllerServiceProvider = statelessEngine.getControllerServiceProvider();
+        final ComponentVariableRegistry componentVariableRegistry = new StandardComponentVariableRegistry(statelessEngine.getRootVariableRegistry());
+        final ReloadComponent reloadComponent = statelessEngine.getReloadComponent();
+        final ExtensionManager extensionManager = statelessEngine.getExtensionManager();
+        final ValidationTrigger validationTrigger = statelessEngine.getValidationTrigger();
+        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider, componentVariableRegistry);
+
+        final FlowRegistryClientNode clientNode = new StandardFlowRegistryClientNode(null, flowManager, client, identifier, validationContextFactory,
+                controllerServiceProvider, type, client.getComponent().getClass().getCanonicalName(), componentVariableRegistry, reloadComponent, extensionManager,
+                validationTrigger, false);
+        logger.info("Flow Registry Client Node of type {} with identifier {}", type, identifier);
+        return clientNode;
+    }
+
+    private LoggableComponent<FlowRegistryClient> createLoggableFlowRegistryClient() throws FlowRepositoryClientInstantiationException {
+        try {
+            final ComponentLog componentLog = new SimpleProcessLogger(identifier, InMemoryFlowRegistry.class.newInstance());
+            final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);
+            final InMemoryFlowRegistry registryClient = new InMemoryFlowRegistry();
+            final LoggableComponent<FlowRegistryClient> nodeComponent = new LoggableComponent<>(registryClient, bundleCoordinate, terminationAwareLogger);
+            return nodeComponent;
+        } catch (final Exception e) {
+            throw new FlowRepositoryClientInstantiationException(type, e);
+        }
+    }
+
     public ReportingTaskNode buildReportingTask() throws ReportingTaskInstantiationException {
         final LoggableComponent<ReportingTask> reportingTaskComponent = createLoggableReportingTask();
         final ProcessScheduler processScheduler = statelessEngine.getProcessScheduler();
@@ -171,6 +210,39 @@ public class ComponentBuilder {
         }
     }
 
+    public ParameterProviderNode buildParameterProvider() throws ParameterProviderInstantiationException {
+        final LoggableComponent<ParameterProvider> parameterProviderComponent = createLoggableParameterProvider();
+        final ProcessScheduler processScheduler = statelessEngine.getProcessScheduler();
+        final ControllerServiceProvider controllerServiceProvider = statelessEngine.getControllerServiceProvider();
+        final ComponentVariableRegistry componentVariableRegistry = new StandardComponentVariableRegistry(statelessEngine.getRootVariableRegistry());
+        final ReloadComponent reloadComponent = statelessEngine.getReloadComponent();
+        final ExtensionManager extensionManager = statelessEngine.getExtensionManager();
+        final ValidationTrigger validationTrigger = statelessEngine.getValidationTrigger();
+        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider, componentVariableRegistry);
+
+        final ParameterProviderNode taskNode = new StandardParameterProviderNode(parameterProviderComponent, identifier, null, null,
+                validationContextFactory, componentVariableRegistry, reloadComponent, extensionManager, validationTrigger);
+
+        logger.info("Created Reporting Task of type {} with identifier {}", type, identifier);
+        return taskNode;
+    }
+
+    private LoggableComponent<ParameterProvider> createLoggableParameterProvider() throws ParameterProviderInstantiationException {
+        try {
+            final LoggableComponent<ParameterProvider> taskComponent = createLoggableComponent(ParameterProvider.class);
+            final String taskName = taskComponent.getComponent().getClass().getSimpleName();
+            final NodeTypeProvider nodeTypeProvider = new StatelessNodeTypeProvider();
+
+            final ParameterProviderInitializationContext config = new StandardParameterProviderInitializationContext(identifier, taskName,
+                    taskComponent.getLogger(), statelessEngine.getKerberosConfig(), nodeTypeProvider);
+
+            taskComponent.getComponent().initialize(config);
+
+            return taskComponent;
+        } catch (final Exception e) {
+            throw new ParameterProviderInstantiationException(type, e);
+        }
+    }
 
     public ControllerServiceNode buildControllerService() {
         final ExtensionManager extensionManager = statelessEngine.getExtensionManager();

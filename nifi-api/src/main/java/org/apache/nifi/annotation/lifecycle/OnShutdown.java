@@ -28,7 +28,8 @@ import org.apache.nifi.processor.ProcessContext;
 /**
  * <p>
  * Marker annotation a {@link org.apache.nifi.processor.Processor Processor},
- * {@link org.apache.nifi.controller.ControllerService ControllerService}, or
+ * {@link org.apache.nifi.controller.ControllerService ControllerService},
+ * {@link org.apache.nifi.parameter.ParameterProvider ParameterProvider}, or
  * {@link org.apache.nifi.reporting.ReportingTask ReportingTask} implementation
  * can use to indicate a method should be called whenever the flow is being
  * shutdown. This will be called at most once for each component in a JVM

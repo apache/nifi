@@ -36,6 +36,7 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
 
 public interface TestRunner {
@@ -319,6 +320,27 @@ public interface TestRunner {
      * @param validator validator to use
      */
     void assertAllFlowFiles(Relationship relationship, FlowFileValidator validator);
+
+    /**
+     * Asserts that flowfiles on a given relationship have a certain set of attributes.
+     *
+     * @param relationship The relationship on which to check the attributes of flowfiles
+     * @param checkedAttributeNames The names of attributes that should be checked
+     * @param expectedAttributes The expected attributes of all flowfiles
+     */
+    void assertAttributes(
+        Relationship relationship,
+        Set<String> checkedAttributeNames,
+        Set<Map<String, String>> expectedAttributes
+    );
+
+    /**
+     * Asserts that flowfiles on a given relationship have certain contents.
+     *
+     * @param relationship The relationship on which to check the contents of flowfiles
+     * @param expectedContent The expected contents of all flowfiles
+     */
+    public void assertContents(Relationship relationship, List<String> expectedContent);
 
     /**
      * Assert that the number of FlowFiles transferred to the given relationship

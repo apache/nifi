@@ -434,7 +434,12 @@ div.slick-cell div.overridden {
     Registry configuration dialog
  */
 
-#registry-description {
+#registry-description,
+#registry-description-config {
+    height: 85px;
+}
+
+#new-registry-description {
     height: 85px;
 }
 
@@ -478,7 +483,9 @@ div.variable-step {
     margin-bottom: 2px;
 }
 
-div.parameter-context-step, div.referencing-components-loading {
+div.parameter-context-step,
+div.referencing-components-loading,
+div.fetch-parameters-step {
     min-width: 16px;
     width: 16px;
     height: 16px;

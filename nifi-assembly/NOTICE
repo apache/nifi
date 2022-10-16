@@ -2257,6 +2257,16 @@ The following binary components are provided under the Apache Software License v
       atinject
       Copyright
 
+  (ASLv2) The Dropbox Project
+   The following NOTICE information applies:
+      The Dropbox Project
+      Copyright 2013-2021 Dropbox Inc.
+
+  (ASLv2) The Box SDK for Java
+    The following NOTICE information applies:
+      The Box SDK for Java
+      Copyright 2019 Box, Inc. All rights reserved.
+
 ************************
 Common Development and Distribution License 1.1
 ************************

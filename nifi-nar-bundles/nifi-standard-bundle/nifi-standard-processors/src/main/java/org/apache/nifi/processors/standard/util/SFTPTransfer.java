@@ -64,6 +64,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -226,6 +227,12 @@ public class SFTPTransfer implements FileTransfer {
 
     private volatile boolean closed = false;
     private String homeDir;
+    private String activeHostname;
+    private String activePort;
+    private String activeUsername;
+    private String activePassword;
+    private String activePrivateKeyPath;
+    private String activePrivateKeyPassphrase;
 
     private final boolean disableDirectoryListing;
 
@@ -580,12 +587,23 @@ public class SFTPTransfer implements FileTransfer {
     }
 
     protected SFTPClient getSFTPClient(final FlowFile flowFile) throws IOException {
+        final String evaledHostname = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String evaledPort = ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).getValue();
+        final String evaledUsername = ctx.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String evaledPassword = ctx.getProperty(PASSWORD).evaluateAttributeExpressions(flowFile).getValue();
+        final String evaledPrivateKeyPath = ctx.getProperty(PRIVATE_KEY_PATH).evaluateAttributeExpressions(flowFile).getValue();
+        final String evaledPrivateKeyPassphrase = ctx.getProperty(PRIVATE_KEY_PASSPHRASE).evaluateAttributeExpressions(flowFile).getValue();
+
         // If the client is already initialized then compare the host that the client is connected to with the current
         // host from the properties/flow-file, and if different then we need to close and reinitialize, if same we can reuse
         if (sftpClient != null) {
-            final String clientHost = sshClient.getRemoteHostname();
-            final String propertiesHost = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
-            if (clientHost.equals(propertiesHost)) {
+            if (Objects.equals(evaledHostname, activeHostname)
+                    && Objects.equals(evaledPort, activePort)
+                    && Objects.equals(evaledUsername, activeUsername)
+                    && Objects.equals(evaledPassword, activePassword)
+                    && Objects.equals(evaledPrivateKeyPath, activePrivateKeyPath)
+                    && Objects.equals(evaledPrivateKeyPassphrase, activePrivateKeyPassphrase)
+            ) {
                 // destination matches so we can keep our current session
                 return sftpClient;
             } else {
@@ -597,6 +615,12 @@ public class SFTPTransfer implements FileTransfer {
         final Map<String, String> attributes = flowFile == null ? Collections.emptyMap() : flowFile.getAttributes();
         this.sshClient = SSH_CLIENT_PROVIDER.getClient(ctx, attributes);
         this.sftpClient = new SFTPClient(new SFTPEngine(sshClient).init());
+        activeHostname = evaledHostname;
+        activePort = evaledPort;
+        activePassword = evaledPassword;
+        activeUsername = evaledUsername;
+        activePrivateKeyPath = evaledPrivateKeyPath;
+        activePrivateKeyPassphrase = evaledPrivateKeyPassphrase;
         this.closed = false;
 
         // Configure timeout for sftp operations

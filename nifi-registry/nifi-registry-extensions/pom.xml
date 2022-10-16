@@ -26,39 +26,6 @@
 
     <modules>
         <module>nifi-registry-aws</module>
+        <module>nifi-registry-ranger</module>
     </modules>
-
-    <profiles>
-        <profile>
-            <id>include-ranger</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <modules>
-                <module>nifi-registry-ranger</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>include-ranger-x86</id>
-            <activation>
-                <os>
-                    <arch>x86_64</arch>
-                </os>
-            </activation>
-            <modules>
-                <module>nifi-registry-ranger</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>include-ranger-amd64</id>
-            <activation>
-                <os>
-                    <arch>amd64</arch>
-                </os>
-            </activation>
-            <modules>
-                <module>nifi-registry-ranger</module>
-            </modules>
-        </profile>
-    </profiles>
 </project>

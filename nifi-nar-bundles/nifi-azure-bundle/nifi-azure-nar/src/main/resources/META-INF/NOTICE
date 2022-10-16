@@ -195,6 +195,11 @@ The following binary components are provided under the Apache Software License v
         Reactive Streams Netty Driver
         Copyright 2020, Project Reactor
 
+  (ASLv2) Caffeine (com.github.ben-manes.caffeine:caffeine:jar:2.9.2 - https://github.com/ben-manes/caffeine)
+      The following NOTICE information applies:
+        Caffeine (caching library)
+        Copyright Ben Manes
+
 ************************
 Common Development and Distribution License 1.0
 ************************

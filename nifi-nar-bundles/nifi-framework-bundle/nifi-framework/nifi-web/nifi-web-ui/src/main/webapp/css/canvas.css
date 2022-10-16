@@ -23,6 +23,7 @@
 @import url(controller-service.css);
 @import url(component-state.css);
 @import url(reporting-task.css);
+@import url(parameter-provider.css);
 @import url(port-configuration.css);
 @import url(port-details.css);
 @import url(label-configuration.css);
@@ -34,6 +35,7 @@
 @import url(new-port-dialog.css);
 @import url(new-controller-service-dialog.css);
 @import url(new-reporting-task-dialog.css);
+@import url(new-parameter-provider-dialog.css);
 @import url(new-parameter-context-dialog.css);
 @import url(graph.css);
 @import url(header.css);

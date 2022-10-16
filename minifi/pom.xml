@@ -41,7 +41,6 @@ limitations under the License.
     </modules>
     <properties>
         <system.rules.version>1.19.0</system.rules.version>
-        <aws.sdk.version>1.12.267</aws.sdk.version>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
     </properties>
 
@@ -202,11 +201,6 @@ limitations under the License.
                 <artifactId>jetty-jsp-jdt</artifactId>
                 <version>2.3.3</version>
                 <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.yaml</groupId>
-                <artifactId>snakeyaml</artifactId>
-                <version>1.29</version>
             </dependency>
 
             <!-- NiFi Modules -->

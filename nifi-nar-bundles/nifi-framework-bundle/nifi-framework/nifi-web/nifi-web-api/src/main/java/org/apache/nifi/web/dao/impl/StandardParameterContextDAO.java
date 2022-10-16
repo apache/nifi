@@ -21,6 +21,7 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -29,12 +30,17 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterProvider;
+import org.apache.nifi.parameter.ParameterProviderConfiguration;
+import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
+import org.apache.nifi.web.api.dto.ParameterProviderConfigurationDTO;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderConfigurationEntity;
 import org.apache.nifi.web.dao.ParameterContextDAO;
 
 import java.util.ArrayList;
@@ -60,6 +66,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
     public void verifyCreate(final ParameterContextDTO parameterContextDto) {
         verifyNoNamingConflict(parameterContextDto.getName());
         verifyInheritedParameterContextRefs(parameterContextDto);
+        verifyParameterSourceConflicts(parameterContextDto);
     }
 
     private void verifyInheritedParameterContextRefs(final ParameterContextDTO parameterContextDto) {
@@ -77,16 +84,22 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
     @Override
     public ParameterContext createParameterContext(final ParameterContextDTO parameterContextDto) {
         final Map<String, Parameter> parameters = getParameters(parameterContextDto, null);
+        final ParameterProviderConfigurationEntity parameterProviderConfigurationEntity = parameterContextDto.getParameterProviderConfiguration();
 
         resolveInheritedParameterContexts(parameterContextDto);
 
+        verifyParameterSourceConflicts(parameterContextDto);
+
         final AtomicReference<ParameterContext> parameterContextReference = new AtomicReference<>();
         flowManager.withParameterContextResolution(() -> {
-            final List<String> referencedIds = parameterContextDto.getInheritedParameterContexts() == null
-                    ? new ArrayList<>(0)
-                    : parameterContextDto.getInheritedParameterContexts().stream().map(ParameterContextReferenceEntity::getId).collect(Collectors.toList());
+            final List<String> referencedIds = parameterContextDto.getInheritedParameterContexts() == null ? Collections.emptyList()
+                    : parameterContextDto.getInheritedParameterContexts().stream()
+                            .map(ParameterContextReferenceEntity::getId)
+                            .collect(Collectors.toList());
 
-            final ParameterContext parameterContext = flowManager.createParameterContext(parameterContextDto.getId(), parameterContextDto.getName(), parameters, referencedIds);
+            final ParameterProviderConfiguration parameterProviderConfiguration = createParameterProviderConfiguration(parameterProviderConfigurationEntity);
+            final ParameterContext parameterContext = flowManager.createParameterContext(parameterContextDto.getId(), parameterContextDto.getName(),
+                    parameters, referencedIds, parameterProviderConfiguration);
             if (parameterContextDto.getDescription() != null) {
                 parameterContext.setDescription(parameterContextDto.getDescription());
             }
@@ -96,6 +109,26 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         return parameterContextReference.get();
     }
 
+    private ParameterProviderConfiguration createParameterProviderConfiguration(final ParameterProviderConfigurationEntity parameterProviderConfigurationEntity) {
+        if (parameterProviderConfigurationEntity == null || parameterProviderConfigurationEntity.getComponent() == null) {
+            return null;
+        }
+
+        final ParameterProviderConfigurationDTO dto = parameterProviderConfigurationEntity.getComponent();
+        return new StandardParameterProviderConfiguration(dto.getParameterProviderId(), dto.getParameterGroupName(), dto.getSynchronized());
+    }
+
+    public static String getParameterProviderId(final ParameterProviderConfigurationEntity parameterProviderConfigurationEntity) {
+        if (parameterProviderConfigurationEntity == null) {
+            return null;
+        }
+        final ParameterProviderConfigurationDTO dto = parameterProviderConfigurationEntity.getComponent();
+        if (dto == null) {
+            return null;
+        }
+        return dto.getParameterProviderId();
+    }
+
     private void authorizeReferences(final ParameterContextDTO parameterContextDto) {
         final NiFiUser nifiUser = NiFiUserUtils.getNiFiUser();
         if (parameterContextDto.getInheritedParameterContexts() != null) {
@@ -103,6 +136,10 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
                 final ParameterContext parameterContext = getParameterContext(ref.getComponent().getId());
                 parameterContext.authorize(authorizer, RequestAction.READ, nifiUser);
             }
+        }
+        final ParameterProviderNode parameterProvider = getParameterProviderNode(parameterContextDto.getParameterProviderConfiguration());
+        if (parameterProvider != null) {
+            parameterProvider.authorize(authorizer, RequestAction.READ, nifiUser);
         }
     }
 
@@ -115,7 +152,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         final Map<String, ParameterContext> paramContextNameMap = flowManager.getParameterContextManager().getParameterContextNameMapping();
         for (final ParameterContextReferenceEntity ref : inheritedParameterContexts) {
             if (ref.getComponent() == null || (ref.getComponent().getId() == null && ref.getComponent().getName() == null)) {
-                throw new IllegalStateException(String.format("Could not resolve inherited parameter context references in Parameter Context [%s]",
+                throw new IllegalArgumentException(String.format("Could not resolve inherited parameter context references in Parameter Context [%s]",
                         parameterContextDto.getName()));
             }
             final ParameterContextReferenceDTO refDto = ref.getComponent();
@@ -126,7 +163,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
             // If resolving by name only, look up the ids
             final ParameterContext resolvedParameterContext = paramContextNameMap.get(refDto.getName());
             if (resolvedParameterContext == null) {
-                throw new IllegalStateException(String.format("Parameter Context [%s] references missing inherited Parameter Context [%s]",
+                throw new IllegalArgumentException(String.format("Parameter Context [%s] references missing inherited Parameter Context [%s]",
                         parameterContextDto.getName(), refDto.getName()));
             }
 
@@ -186,7 +223,9 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
             value = dto.getValue();
         }
 
-        return new Parameter(descriptor, value);
+        final String parameterContextId = dto.getParameterContext() == null ? null : dto.getParameterContext().getId();
+
+        return new Parameter(descriptor, value, parameterContextId, dto.getProvided());
     }
 
     @Override
@@ -249,12 +288,73 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
     public void verifyUpdate(final ParameterContextDTO parameterContextDto, final boolean verifyComponentStates) {
         verifyNoNamingConflict(parameterContextDto.getName(), parameterContextDto.getId());
         verifyInheritedParameterContextRefs(parameterContextDto);
+        verifyParameterSourceConflicts(parameterContextDto);
 
+        final String parameterProviderId = getParameterProviderId(parameterContextDto.getParameterProviderConfiguration());
         final ParameterContext currentContext = getParameterContext(parameterContextDto.getId());
 
+        if (parameterProviderId != null) {
+            if (currentContext.getParameterProvider() == null) {
+                throw new IllegalArgumentException(String.format("A Parameter Provider [%s] cannot be added to Parameter Context [%s]", parameterProviderId,
+                        parameterContextDto.getName()));
+            }
+        }
+
         final List<ParameterContext> inheritedParameterContexts = getInheritedParameterContexts(parameterContextDto);
+
         final Map<String, Parameter> parameters = parameterContextDto.getParameters() == null ? Collections.emptyMap() : getParameters(parameterContextDto, currentContext);
+
         currentContext.verifyCanUpdateParameterContext(parameters, inheritedParameterContexts);
+
+        final Map<String, Parameter> proposedParameters = new HashMap<>();
+        if (parameterContextDto.getParameters() != null) {
+            proposedParameters.putAll(getParameters(parameterContextDto, currentContext));
+        }
+    }
+
+    @Override
+    public ParameterProvider getParameterProvider(final ParameterContextDTO parameterContextDTO) {
+        return getParameterProvider(parameterContextDTO.getParameterProviderConfiguration());
+    }
+
+    private ParameterProvider getParameterProvider(final ParameterProviderConfigurationEntity parameterProviderConfiguration) {
+        final ParameterProviderNode parameterProviderNode = getParameterProviderNode(parameterProviderConfiguration);
+        return parameterProviderNode == null ? null : parameterProviderNode.getParameterProvider();
+    }
+
+    private void verifyParameterSourceConflicts(final ParameterContextDTO parameterContextDTO) {
+        final String parameterProviderId = getParameterProviderId(parameterContextDTO.getParameterProviderConfiguration());
+        final Set<ParameterEntity> parameters = parameterContextDTO.getParameters();
+        if (parameters == null) {
+            return;
+        }
+        if (parameterProviderId != null) {
+            final boolean hasUserEnteredParameters = parameters.stream()
+                    .anyMatch(parameter -> parameter.getParameter().getProvided() == null || !parameter.getParameter().getProvided());
+            if (hasUserEnteredParameters) {
+                throw new IllegalArgumentException(String.format("User-entered Parameters may not be set on Context [%s] because its " +
+                        "parameters are already provided by [%s]", parameterContextDTO.getName(), parameterProviderId));
+            }
+        } else {
+            final boolean hasProvidedParameters = parameters.stream()
+                    .anyMatch(parameter -> parameter.getParameter().getProvided() != null && parameter.getParameter().getProvided());
+            if (hasProvidedParameters) {
+                throw new IllegalArgumentException(String.format("Provided Parameters may not be set on Context [%s] because its " +
+                        "parameters can only be user-entered", parameterContextDTO.getName()));
+            }
+        }
+    }
+
+    private ParameterProviderNode getParameterProviderNode(final ParameterProviderConfigurationEntity parameterProviderConfiguration) {
+        ParameterProviderNode parameterProviderNode = null;
+        final String parameterProviderId = getParameterProviderId(parameterProviderConfiguration);
+        if (parameterProviderId != null) {
+            parameterProviderNode = flowManager.getParameterProvider(parameterProviderId);
+            if (parameterProviderNode == null) {
+                throw new IllegalArgumentException("Unable to locate Parameter Provider with id '" +  parameterProviderId + "'");
+            }
+        }
+        return parameterProviderNode;
     }
 
     /**
@@ -327,6 +427,14 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
 
         // Update all Process Groups that currently are bound to the Parameter Context so that they are no longer bound to any Parameter Context
         getBoundProcessGroups(parameterContextId).forEach(group -> group.setParameterContext(null));
+
+        flowManager.getAllParameterProviders().forEach(provider -> {
+            final List<ParameterContext> referencesToRemove = new ArrayList<>();
+            provider.getReferences().stream()
+                    .filter(reference -> parameterContextId.equals(reference.getIdentifier()))
+                    .forEach(referencesToRemove::add);
+            referencesToRemove.forEach(provider::removeReference);
+        });
     }
 
     public void setFlowController(final FlowController flowController) {

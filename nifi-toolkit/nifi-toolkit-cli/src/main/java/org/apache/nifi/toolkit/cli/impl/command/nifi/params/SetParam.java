@@ -33,6 +33,7 @@ import org.apache.nifi.web.api.entity.ParameterEntity;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 
@@ -88,7 +89,7 @@ public class SetParam extends AbstractUpdateParamContextCommand<VoidResult> {
             throw new IllegalArgumentException("A parameter value is required when creating a new parameter");
         }
 
-        if (existingParam.isPresent() && existingParam.get().getValue().equals(paramValue)) {
+        if (existingParam.isPresent() && Objects.equals(existingParam.get().getValue(), paramValue)) {
             throw new IllegalArgumentException(String.format("Parameter value supplied for parameter [%s] is the same as its current value", paramName));
         }
 
@@ -107,6 +108,7 @@ public class SetParam extends AbstractUpdateParamContextCommand<VoidResult> {
         if (!StringUtils.isBlank(paramSensitive)) {
             parameterDTO.setSensitive(Boolean.valueOf(paramSensitive));
         }
+        parameterDTO.setProvided(false);
 
         final ParameterEntity parameterEntity = new ParameterEntity();
         parameterEntity.setParameter(parameterDTO);
@@ -114,6 +116,8 @@ public class SetParam extends AbstractUpdateParamContextCommand<VoidResult> {
         final ParameterContextDTO parameterContextDTO = new ParameterContextDTO();
         parameterContextDTO.setId(existingParameterContextEntity.getId());
         parameterContextDTO.setParameters(Collections.singleton(parameterEntity));
+
+        parameterContextDTO.setInheritedParameterContexts(existingParameterContextDTO.getInheritedParameterContexts());
 
         final ParameterContextEntity updatedParameterContextEntity = new ParameterContextEntity();
         updatedParameterContextEntity.setId(paramContextId);

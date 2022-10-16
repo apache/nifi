@@ -21,6 +21,7 @@ import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
+import org.apache.nifi.web.api.entity.ParameterProvidersEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
@@ -121,6 +122,13 @@ public interface FlowClient {
      * @return the reporting tasks entity
      */
     ReportingTasksEntity getReportingTasks() throws NiFiClientException, IOException;
+
+    /**
+     * Retrieves the parameter providers.
+     *
+     * @return the parameter providers entity
+     */
+    ParameterProvidersEntity getParamProviders() throws NiFiClientException, IOException;
 
     /**
      * Retrieves the all templates.

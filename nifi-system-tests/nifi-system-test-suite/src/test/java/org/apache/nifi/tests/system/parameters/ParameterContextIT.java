@@ -16,19 +16,23 @@
  */
 package org.apache.nifi.tests.system.parameters;
 
+import org.apache.nifi.parameter.ParameterProviderConfiguration;
+import org.apache.nifi.parameter.ParameterSensitivity;
+import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
-import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
-import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
+import org.apache.nifi.web.api.entity.ParameterGroupConfigurationEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderApplyParametersRequestEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.jupiter.api.Test;
@@ -39,6 +43,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -51,6 +56,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ParameterContextIT extends NiFiSystemIT {
@@ -175,7 +181,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         final ParameterContextEntity createdContextEntity = getNifiClient().getParamContextClient().createParamContext(contextEntity);
 
         final ParameterContextEntity parentContextEntity = createParameterContextEntity(getTestName() + " Parent", null,
-                null, Arrays.asList(createdContextEntity));
+                null, Arrays.asList(createdContextEntity), null, null);
         final ParameterContextEntity createdParentContextEntity = getNifiClient().getParamContextClient().createParamContext(parentContextEntity);
 
         setParameterContext("root", createdParentContextEntity);
@@ -213,6 +219,55 @@ public class ParameterContextIT extends NiFiSystemIT {
         waitForInvalidProcessor(processorId);
     }
 
+    @Test
+    @Timeout(30)
+    public void testSetParameterProviders() throws NiFiClientException, IOException, InterruptedException {
+        final ProcessorEntity countEvents = getClientUtil().createProcessor("CountEvents");
+        final Map<String, String> properties = new HashMap<>();
+        properties.put("Name", "#{non.sensitive}");
+        properties.put("Sensitive", "#{sensitive}");
+        getClientUtil().updateProcessorProperties(countEvents, properties);
+        final String processorId = countEvents.getId();
+
+        // Neither property is required
+        waitForInvalidProcessor(processorId);
+
+        final ParameterProviderEntity parameterProvider = createParameterProvider("PropertiesParameterProvider");
+        final Map<String, String> parameterProperties = new HashMap<>();
+        parameterProperties.put("parameters", "non.sensitive=non-sensitive value\n" +
+                "sensitive=My sensitive value");
+        updateParameterProviderProperties(parameterProvider, parameterProperties);
+
+        // The parameter group name is hard-coded in the PropertiesParameterProvider
+        final String parameterGroupName = "Parameters";
+        final String parameterContextName = getTestName();
+        final ParameterContextEntity contextEntity = createParameterContextEntity(parameterContextName, null, Collections.emptySet(),
+                Collections.emptyList(), parameterProvider, parameterGroupName);
+        final ParameterContextEntity createdContextEntity = getNifiClient().getParamContextClient().createParamContext(contextEntity);
+
+        setParameterContext("root", createdContextEntity);
+
+        // The parameters have not been fetched and applied yet
+        waitForInvalidProcessor(processorId);
+
+        final ParameterGroupConfigurationEntity groupConfiguration = new ParameterGroupConfigurationEntity();
+        groupConfiguration.setSynchronized(true);
+        groupConfiguration.setGroupName(parameterGroupName);
+        groupConfiguration.setParameterContextName(parameterContextName);
+        final Map<String, ParameterSensitivity> sensitivities = new HashMap<>();
+        sensitivities.put("sensitive", ParameterSensitivity.SENSITIVE);
+        sensitivities.put("non.sensitive", ParameterSensitivity.NON_SENSITIVE);
+        groupConfiguration.setParameterSensitivities(sensitivities);
+        final List<ParameterGroupConfigurationEntity> groupConfigurations = Collections.singletonList(groupConfiguration);
+
+        fetchAndWaitForAppliedParameters(parameterProvider, groupConfigurations);
+
+        // Now it's valid because both parameters are provided
+        waitForValidProcessor(processorId);
+
+        // Try to set a user-entered parameter, which should fail because a provider is already set
+        assertThrows(NiFiClientException.class, () -> updateParameterContext(createdContextEntity, "non.sensitive", "value"));
+    }
 
     @Test
     public void testParametersReferencingEL() throws NiFiClientException, IOException, InterruptedException {
@@ -625,6 +680,14 @@ public class ParameterContextIT extends NiFiSystemIT {
         return getClientUtil().createProcessor(type, groupId, artifactId, version);
     }
 
+    private ParameterProviderEntity createParameterProvider(final String type) throws NiFiClientException, IOException {
+        return getClientUtil().createParameterProvider(type);
+    }
+
+    private ParameterProviderEntity updateParameterProviderProperties(final ParameterProviderEntity existingProvider, final Map<String, String> properties) throws NiFiClientException, IOException {
+        return getClientUtil().updateParameterProviderProperties(existingProvider, properties);
+    }
+
     public ControllerServiceEntity createControllerService(final String type, final String processGroupId, final String bundleGroupId, final String artifactId, final String version)
         throws NiFiClientException, IOException {
 
@@ -636,24 +699,20 @@ public class ParameterContextIT extends NiFiSystemIT {
     }
 
     public ParameterContextEntity createParameterContextEntity(final String name, final String description, final Set<ParameterEntity> parameters,
-                                                               final List<ParameterContextEntity> parameterContextRefs) {
-        final List<ParameterContextReferenceEntity> refs = new ArrayList<>();
+                                                               final List<ParameterContextEntity> parameterContextRefs,
+                                                               final ParameterProviderEntity parameterProvider, final String parameterGroupName) {
+        final List<String> inheritedParameterContextIds = new ArrayList<>();
         if (parameterContextRefs != null) {
-            refs.addAll(parameterContextRefs.stream().map(pce -> {
-                ParameterContextReferenceEntity ref = new ParameterContextReferenceEntity();
-                ref.setId(pce.getId());
-                ParameterContextReferenceDTO refDto = new ParameterContextReferenceDTO();
-                refDto.setId(pce.getComponent().getId());
-                refDto.setName(pce.getComponent().getName());
-                ref.setComponent(refDto);
-                return ref;
-            }).collect(Collectors.toList()));
+            inheritedParameterContextIds.addAll(parameterContextRefs.stream().map(ParameterContextEntity::getId).collect(Collectors.toList()));
         }
-        return getClientUtil().createParameterContextEntity(name, description, parameters, refs);
+        final ParameterProviderConfiguration parameterProviderConfiguration = parameterProvider == null ? null
+                : new StandardParameterProviderConfiguration(parameterProvider.getId(), parameterGroupName, true);
+        return getClientUtil().createParameterContextEntity(name, description, parameters, inheritedParameterContextIds,
+                parameterProviderConfiguration);
     }
 
     public ParameterContextEntity createParameterContextEntity(final String name, final String description, final Set<ParameterEntity> parameters) {
-        return createParameterContextEntity(name, description, parameters, Collections.emptyList());
+        return createParameterContextEntity(name, description, parameters, Collections.emptyList(), null, null);
     }
 
     private ProcessGroupEntity setParameterContext(final String groupId, final ParameterContextEntity parameterContext) throws NiFiClientException, IOException {
@@ -670,13 +729,35 @@ public class ParameterContextIT extends NiFiSystemIT {
 
     public ParameterContextUpdateRequestEntity updateParameterContext(final ParameterContextEntity existingEntity, final String paramName, final String paramValue)
                 throws NiFiClientException, IOException {
-        return updateParameterContext(existingEntity, Collections.singletonMap(paramName, paramValue));
+        return getClientUtil().updateParameterContext(existingEntity, paramName, paramValue);
     }
 
-    public ParameterContextUpdateRequestEntity updateParameterContext(final ParameterContextEntity existingEntity, final Map<String, String> parameters) throws NiFiClientException, IOException {
-        return getClientUtil().updateParameterContext(existingEntity, parameters);
+    public ParameterProviderEntity fetchParameters(final ParameterProviderEntity parameterProvider) throws NiFiClientException, IOException {
+        return getClientUtil().fetchParameters(parameterProvider);
     }
 
+    public ParameterProviderApplyParametersRequestEntity applyParameters(final ParameterProviderEntity entity,
+                                                                         final Collection<ParameterGroupConfigurationEntity> parameterNameGroups) throws NiFiClientException, IOException {
+        return getClientUtil().applyParameters(entity, parameterNameGroups);
+    }
+
+    public void waitForAppliedParameters(final ParameterProviderApplyParametersRequestEntity applyParametersRequestEntity) throws NiFiClientException, IOException, InterruptedException {
+        getClientUtil().waitForParameterProviderApplicationRequestToComplete(applyParametersRequestEntity.getRequest().getParameterProvider().getId(),
+                applyParametersRequestEntity.getRequest().getRequestId());
+    }
+
+    public void fetchAndWaitForAppliedParameters(final ParameterProviderEntity entity) throws NiFiClientException, IOException, InterruptedException {
+        this.fetchAndWaitForAppliedParameters(entity, null);
+    }
+
+    public void fetchAndWaitForAppliedParameters(final ParameterProviderEntity entity, Collection<ParameterGroupConfigurationEntity> inputParameterGroupConfigs)
+            throws NiFiClientException, IOException, InterruptedException {
+        final ParameterProviderEntity fetched = fetchParameters(entity);
+        final Collection<ParameterGroupConfigurationEntity> parameterGroupConfigurations = inputParameterGroupConfigs != null
+                ? inputParameterGroupConfigs : fetched.getComponent().getParameterGroupConfigurations();
+        final ParameterProviderApplyParametersRequestEntity request = applyParameters(entity, parameterGroupConfigurations);
+        waitForAppliedParameters(request);
+    }
 
     private void waitForValidProcessor(String id) throws InterruptedException, IOException, NiFiClientException {
         getClientUtil().waitForValidProcessor(id);

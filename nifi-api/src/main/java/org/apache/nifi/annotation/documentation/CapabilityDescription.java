@@ -25,7 +25,8 @@ import java.lang.annotation.Target;
 
 /**
  * Annotation that may be placed on a {@link org.apache.nifi.processor.Processor Processor},
- * {@link org.apache.nifi.controller.ControllerService ControllerService}, or
+ * {@link org.apache.nifi.controller.ControllerService ControllerService},
+ * {@link org.apache.nifi.parameter.ParameterProvider ParameterProvider}, or
  * {@link org.apache.nifi.reporting.ReportingTask ReportingTask} allowing for a
  * description to be provided. This description can be provided to a user in
  * logs, UI, etc.

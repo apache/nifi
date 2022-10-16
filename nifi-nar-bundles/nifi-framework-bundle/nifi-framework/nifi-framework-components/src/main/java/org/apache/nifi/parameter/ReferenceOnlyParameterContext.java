@@ -16,12 +16,38 @@
  */
 package org.apache.nifi.parameter;
 
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+
 /**
  * Represents only an ID reference for a ParameterContext.
  */
 public class ReferenceOnlyParameterContext extends StandardParameterContext {
 
-    public ReferenceOnlyParameterContext(String id) {
-        super(id, String.format("Reference-Only Parameter Context [%s]", id), ParameterReferenceManager.EMPTY, null);
+    public ReferenceOnlyParameterContext(final String id) {
+        super(id, String.format("Reference-Only Parameter Context [%s]", id), ParameterReferenceManager.EMPTY, null, null, null);
+    }
+
+    /**
+     * A ParameterContext's identity is its identifier.
+     * @param obj Another object
+     * @return Whether this is equal to the object
+     */
+    @Override
+    public boolean equals(final Object obj) {
+        if (obj instanceof ReferenceOnlyParameterContext) {
+            final ReferenceOnlyParameterContext other = (ReferenceOnlyParameterContext) obj;
+            return (getIdentifier().equals(other.getIdentifier()));
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * A ParameterContext's identity is its identifier.
+     * @return The hash code
+     */
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder().append(getClass().getName()).append(getIdentifier()).toHashCode();
     }
 }

@@ -76,7 +76,6 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
     private volatile StartingFieldStrategy startingFieldStrategy;
     private volatile SchemaApplicationStrategy schemaApplicationStrategy;
 
-
     public static final PropertyDescriptor STARTING_FIELD_STRATEGY = new PropertyDescriptor.Builder()
             .name("starting-field-strategy")
             .displayName("Starting Field Strategy")
@@ -165,6 +164,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
     public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger)
             throws IOException, MalformedRecordException, SchemaNotFoundException {
         final RecordSchema schema = getSchema(variables, in, null);
-        return new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName, schemaApplicationStrategy);
+        return new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName,
+                schemaApplicationStrategy, null);
     }
 }

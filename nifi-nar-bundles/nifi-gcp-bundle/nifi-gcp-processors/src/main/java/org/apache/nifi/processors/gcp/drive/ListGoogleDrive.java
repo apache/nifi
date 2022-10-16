@@ -71,7 +71,8 @@ import java.util.concurrent.TimeUnit;
         "Each listed file may result in one flowfile, the metadata being written as flowfile attributes. " +
         "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single flowfile. " +
         "This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the " +
-        "previous node left off without duplicating all of the data.")
+        "previous node left off without duplicating all of the data. " +
+        "For how to setup access to Google Drive please see additional details.")
 @SeeAlso({FetchGoogleDrive.class})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @WritesAttributes({@WritesAttribute(attribute = GoogleDriveFileInfo.ID, description = "The id of the file"),
@@ -89,9 +90,10 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
     public static final PropertyDescriptor FOLDER_ID = new PropertyDescriptor.Builder()
             .name("folder-id")
             .displayName("Folder ID")
-            .description("The ID of the folder from which to pull list of files. Needs to be shared with a Service Account." +
+            .description("The ID of the folder from which to pull list of files." +
+                    " For how to setup access to Google Drive and obtain Folder ID please see additional details." +
                     " WARNING: Unauthorized access to the folder is treated as if the folder was empty." +
-                    " This results in the processor not creating result flowfiles. No additional error message is provided.")
+                    " This results in the processor not creating outgoing FlowFiles. No additional error message is provided.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)

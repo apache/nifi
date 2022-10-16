@@ -199,4 +199,9 @@
         <packageUrl regex="true">^pkg:maven/org\.apache\.avro/avro@.*$</packageUrl>
         <cve>CVE-2021-43045</cve>
     </suppress>
+    <suppress>
+        <notes>CVE-2022-31159 applies to AWS S3 library not the SWF libraries</notes>
+        <packageUrl regex="true">^pkg:maven/com\.amazonaws/aws\-java\-sdk\-swf\-libraries@.*$</packageUrl>
+        <cve>CVE-2022-31159</cve>
+    </suppress>
 </suppressions>

@@ -15,26 +15,45 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="registry-configuration-dialog" layout="column" class="hidden medium-dialog">
+<div id="registry-configuration-dialog" layout="column" class="hidden large-dialog">
+    <div>
+        <div class="clear"></div>
+    </div>
     <div class="dialog-content">
-        <div class="setting">
-            <div class="setting-name">Name</div>
-            <div class="setting-field">
-                <span id="registry-id" class="hidden"></span>
-                <input type="text" id="registry-name" class="setting-input"/>
+        <div id="registry-configuration-tabs" class="registration-config-tabs tab-container"></div>
+        <div id="registries-tabs-content">
+            <div id="registry-configuration-settings-tab-content">
+                <div id="registry-fields">
+                    <div class="setting">
+                        <div class="setting-name">Id</div>
+                        <div class="setting-field">
+                            <span id="registry-id-config"></span>
+                        </div>
+                    </div>
+                    <div class="setting">
+                        <div class="setting-name">Name</div>
+                        <div class="setting-field">
+                            <input type="text" id="registry-name-config" class="setting-input"/>
+                        </div>
+                    </div>
+                    <div class="setting">
+                        <div class="setting-name">Type</div>
+                        <div class="setting-field">
+                            <span id="registry-type-config"></span>
+                        </div>
+                    </div>
+                    <div class="setting">
+                        <div class="setting-name">Description</div>
+                        <div class="setting-field">
+                            <textarea id="registry-description-config" class="setting-input"></textarea>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="setting">
-            <div class="setting-name">URL</div>
-            <div class="setting-field">
-                <input type="text" id="registry-location" class="setting-input" placeholder="https://remotehost:8443"/>
-            </div>
-        </div>
-        <div class="setting">
-            <div class="setting-name">Description</div>
-            <div class="setting-field">
-                <textarea id="registry-description" class="setting-input"></textarea>
+            <div id="registry-configuration-properties-tab-content">
+                <div id="registry-properties"></div>
             </div>
         </div>
     </div>
 </div>
+<div id="new-registry-property-container"></div>

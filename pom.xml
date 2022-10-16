@@ -104,8 +104,10 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
-        <gson.version>2.9.0</gson.version>
-        <kotlin.version>1.6.20</kotlin.version>
+        <com.amazonaws.version>1.12.299</com.amazonaws.version>
+        <software.amazon.awssdk.version>2.17.270</software.amazon.awssdk.version>
+        <gson.version>2.9.1</gson.version>
+        <kotlin.version>1.7.10</kotlin.version>
         <okhttp.version>4.10.0</okhttp.version>
         <org.apache.commons.lang3.version>3.12.0</org.apache.commons.lang3.version>
         <org.apache.commons.io.version>2.11.0</org.apache.commons.io.version>
@@ -114,9 +116,9 @@
         <org.bouncycastle.version>1.70</org.bouncycastle.version>
         <testcontainers.version>1.17.3</testcontainers.version>
         <org.slf4j.version>1.7.36</org.slf4j.version>
-        <ranger.version>2.2.0</ranger.version>
+        <ranger.version>2.3.0</ranger.version>
         <jetty.version>9.4.48.v20220622</jetty.version>
-        <jackson.bom.version>2.13.3</jackson.bom.version>
+        <jackson.bom.version>2.13.4</jackson.bom.version>
         <avro.version>1.11.1</avro.version>
         <jaxb.runtime.version>2.3.5</jaxb.runtime.version>
         <javax.annotation-api.version>1.3.2</javax.annotation-api.version>
@@ -127,7 +129,7 @@
         <surefire.version>3.0.0-M7</surefire.version>
         <!-- The Hadoop version used by nifi-hadoop-libraries-nar and any NARs that depend on it, other NARs that need
             a specific version should override this property, or use a more specific property like abc.hadoop.version -->
-        <hadoop.version>3.3.3</hadoop.version>
+        <hadoop.version>3.3.4</hadoop.version>
         <ozone.version>1.2.1</ozone.version>
         <gcs.version>2.1.5</gcs.version>
         <aspectj.version>1.9.6</aspectj.version>
@@ -136,8 +138,9 @@
         <logback.version>1.2.11</logback.version>
         <mockito.version>3.11.2</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
-        <netty.4.version>4.1.79.Final</netty.4.version>
-        <spring.version>5.3.22</spring.version>
+        <snakeyaml.version>1.32</snakeyaml.version>
+        <netty.4.version>4.1.81.Final</netty.4.version>
+        <spring.version>5.3.23</spring.version>
         <spring.security.version>5.7.3</spring.security.version>
         <swagger.annotations.version>1.6.6</swagger.annotations.version>
         <h2.version>2.1.214</h2.version>
@@ -274,7 +277,7 @@
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
-                <version>5.8.2</version>
+                <version>5.9.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -511,6 +514,41 @@
                 <version>${swagger.annotations.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>${snakeyaml.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-java-sdk-bom</artifactId>
+                <version>${com.amazonaws.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-java-sdk-core</artifactId>
+                <version>${com.amazonaws.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>commons-logging</groupId>
+                        <artifactId>commons-logging</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-java-sdk-bundle</artifactId>
+                <version>${com.amazonaws.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
                 <groupId>com.fasterxml.jackson</groupId>
                 <artifactId>jackson-bom</artifactId>
                 <version>${jackson.bom.version}</version>
@@ -671,7 +709,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
-                    <version>3.3.0</version>
+                    <version>3.4.2</version>
                     <configuration>
                         <tarLongFileMode>gnu</tarLongFileMode>
                     </configuration>
@@ -810,7 +848,7 @@
             <plugin>
                 <groupId>org.sonatype.plugins</groupId>
                 <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>1.6.9</version>
+                <version>1.6.13</version>
                 <extensions>true</extensions>
                 <configuration>
                     <stagingProgressTimeoutMinutes>15</stagingProgressTimeoutMinutes>
@@ -1121,7 +1159,7 @@
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
-                        <version>7.1.1</version>
+                        <version>7.1.2</version>
                         <executions>
                             <execution>
                                 <inherited>false</inherited>
@@ -1133,6 +1171,8 @@
                                     <suppressionFiles>nifi-dependency-check-maven/suppressions.xml</suppressionFiles>
                                     <!-- Skip System Scope to avoid dependency resolution errors with jdk.tools on Java 8 -->
                                     <skipSystemScope>true</skipSystemScope>
+                                    <!-- Disable .NET Assembly Analyzer to avoid non-applicable errors -->
+                                    <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
                                 </configuration>
                             </execution>
                         </executions>

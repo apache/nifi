@@ -136,13 +136,14 @@ public class TestOracle12DatabaseAdapter {
     public void testGetUpsertStatement() {
         // GIVEN
         String tableName = "table";
-        List<String> columnNames = Arrays.asList("column1","column2", "column3", "column4");
-        Collection<String> uniqueKeyColumnNames = Arrays.asList("column2","column4");
+        List<String> columnNames = Arrays.asList("column1","column2", "column3", "column_4");
+        // uniqueKeyColumnNames can be normalized, so "column_4" become "column4" here.
+        Collection<String> uniqueKeyColumnNames = Arrays.asList("column1","column4");
 
-        String expected = "MERGE INTO table USING (SELECT ? column1, ? column2, ? column3, ? column4 FROM DUAL) n" +
-        " ON (table.column2 = n.column2 AND table.column4 = n.column4) WHEN NOT MATCHED THEN" +
-        " INSERT (column1, column2, column3, column4) VALUES (n.column1, n.column2, n.column3, n.column4)" +
-        " WHEN MATCHED THEN UPDATE SET table.column1 = n.column1, table.column3 = n.column3";
+        String expected = "MERGE INTO table USING (SELECT ? column1, ? column2, ? column3, ? column_4 FROM DUAL) n" +
+        " ON (table.column1 = n.column1 AND table.column_4 = n.column_4) WHEN NOT MATCHED THEN" +
+        " INSERT (column1, column2, column3, column_4) VALUES (n.column1, n.column2, n.column3, n.column_4)" +
+        " WHEN MATCHED THEN UPDATE SET table.column2 = n.column2, table.column3 = n.column3";
 
         // WHEN
         // THEN

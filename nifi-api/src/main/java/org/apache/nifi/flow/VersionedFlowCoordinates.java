@@ -17,22 +17,44 @@
 
 package org.apache.nifi.flow;
 
-import java.util.Objects;
-
 import io.swagger.annotations.ApiModelProperty;
 
+import java.util.Objects;
+
 public class VersionedFlowCoordinates {
+    private String registryId;
+    private String storageLocation;
     private String registryUrl;
     private String bucketId;
     private String flowId;
     private int version;
     private Boolean latest;
 
+    @ApiModelProperty("The identifier of the Flow Registry that contains the flow")
+    public String getRegistryId() {
+        return registryId;
+    }
+
+    public void setRegistryId(String registryId) {
+        this.registryId = registryId;
+    }
+
+    @ApiModelProperty("The location of the Flow Registry that stores the flow")
+    public String getStorageLocation() {
+        return storageLocation;
+    }
+
+    public void setStorageLocation(String storageLocation) {
+        this.storageLocation = storageLocation;
+    }
+
+    @Deprecated
     @ApiModelProperty("The URL of the Flow Registry that contains the flow")
     public String getRegistryUrl() {
         return registryUrl;
     }
 
+    @Deprecated
     public void setRegistryUrl(String registryUrl) {
         this.registryUrl = registryUrl;
     }
@@ -75,7 +97,7 @@ public class VersionedFlowCoordinates {
 
     @Override
     public int hashCode() {
-        return Objects.hash(registryUrl, bucketId, flowId, version);
+        return Objects.hash(registryId, storageLocation, registryUrl, bucketId, flowId, version);
     }
 
     @Override

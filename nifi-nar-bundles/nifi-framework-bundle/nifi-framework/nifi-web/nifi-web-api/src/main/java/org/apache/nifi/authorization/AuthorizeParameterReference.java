@@ -165,6 +165,9 @@ public class AuthorizeParameterReference {
 
         boolean requiresAddition = false;
         for (final VersionedParameter versionedParameter : versionedParameterContext.getParameters()) {
+            if (versionedParameter == null) {
+                continue;
+            }
             final String versionedParameterName = versionedParameter.getName();
             if (!existingParameterNames.contains(versionedParameterName)) {
                 requiresAddition = true;

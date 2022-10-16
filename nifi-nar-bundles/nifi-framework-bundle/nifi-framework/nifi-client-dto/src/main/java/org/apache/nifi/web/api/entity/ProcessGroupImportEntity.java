@@ -18,7 +18,7 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -27,14 +27,14 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @XmlRootElement(name = "processGroupImportEntity")
 public class ProcessGroupImportEntity extends ProcessGroupDescriptorEntity {
-    private VersionedFlowSnapshot versionedFlowSnapshot;
+    private RegisteredFlowSnapshot versionedFlowSnapshot;
 
     @ApiModelProperty("The Versioned Flow Snapshot to import")
-    public VersionedFlowSnapshot getVersionedFlowSnapshot() {
+    public RegisteredFlowSnapshot getVersionedFlowSnapshot() {
         return versionedFlowSnapshot;
     }
 
-    public void setVersionedFlowSnapshot(VersionedFlowSnapshot versionedFlowSnapshot) {
+    public void setVersionedFlowSnapshot(RegisteredFlowSnapshot versionedFlowSnapshot) {
         this.versionedFlowSnapshot = versionedFlowSnapshot;
     }
 }

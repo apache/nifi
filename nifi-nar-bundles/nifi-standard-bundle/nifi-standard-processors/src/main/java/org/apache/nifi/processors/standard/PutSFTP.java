@@ -34,6 +34,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
+import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
 
 @SupportsBatching
@@ -50,30 +51,30 @@ public class PutSFTP extends PutFileTransfer<SFTPTransfer> {
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(SFTPTransfer.HOSTNAME);
+        properties.add(FileTransfer.HOSTNAME);
         properties.add(SFTPTransfer.PORT);
-        properties.add(SFTPTransfer.USERNAME);
-        properties.add(SFTPTransfer.PASSWORD);
+        properties.add(FileTransfer.USERNAME);
+        properties.add(FileTransfer.PASSWORD);
         properties.add(SFTPTransfer.PRIVATE_KEY_PATH);
         properties.add(SFTPTransfer.PRIVATE_KEY_PASSPHRASE);
-        properties.add(SFTPTransfer.REMOTE_PATH);
-        properties.add(SFTPTransfer.CREATE_DIRECTORY);
+        properties.add(FileTransfer.REMOTE_PATH);
+        properties.add(FileTransfer.CREATE_DIRECTORY);
         properties.add(SFTPTransfer.DISABLE_DIRECTORY_LISTING);
-        properties.add(SFTPTransfer.BATCH_SIZE);
-        properties.add(SFTPTransfer.CONNECTION_TIMEOUT);
-        properties.add(SFTPTransfer.DATA_TIMEOUT);
-        properties.add(SFTPTransfer.CONFLICT_RESOLUTION);
-        properties.add(SFTPTransfer.REJECT_ZERO_BYTE);
-        properties.add(SFTPTransfer.DOT_RENAME);
-        properties.add(SFTPTransfer.TEMP_FILENAME);
+        properties.add(FileTransfer.BATCH_SIZE);
+        properties.add(FileTransfer.CONNECTION_TIMEOUT);
+        properties.add(FileTransfer.DATA_TIMEOUT);
+        properties.add(FileTransfer.CONFLICT_RESOLUTION);
+        properties.add(FileTransfer.REJECT_ZERO_BYTE);
+        properties.add(FileTransfer.DOT_RENAME);
+        properties.add(FileTransfer.TEMP_FILENAME);
         properties.add(SFTPTransfer.HOST_KEY_FILE);
-        properties.add(SFTPTransfer.LAST_MODIFIED_TIME);
-        properties.add(SFTPTransfer.PERMISSIONS);
-        properties.add(SFTPTransfer.REMOTE_OWNER);
-        properties.add(SFTPTransfer.REMOTE_GROUP);
+        properties.add(FileTransfer.LAST_MODIFIED_TIME);
+        properties.add(FileTransfer.PERMISSIONS);
+        properties.add(FileTransfer.REMOTE_OWNER);
+        properties.add(FileTransfer.REMOTE_GROUP);
         properties.add(SFTPTransfer.STRICT_HOST_KEY_CHECKING);
         properties.add(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT);
-        properties.add(SFTPTransfer.USE_COMPRESSION);
+        properties.add(FileTransfer.USE_COMPRESSION);
         properties.add(SFTPTransfer.PROXY_CONFIGURATION_SERVICE);
         properties.add(FTPTransfer.PROXY_TYPE);
         properties.add(FTPTransfer.PROXY_HOST);

@@ -30,10 +30,7 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardControllerServiceNode;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
@@ -48,7 +45,6 @@ import org.apache.nifi.web.api.concurrent.RequestManager;
 import org.apache.nifi.web.api.concurrent.StandardAsynchronousWebRequest;
 import org.apache.nifi.web.api.concurrent.StandardUpdateStep;
 import org.apache.nifi.web.api.concurrent.UpdateStep;
-import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterContextUpdateRequestDTO;
@@ -67,11 +63,8 @@ import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
-import org.apache.nifi.web.util.AffectedComponentUtils;
-import org.apache.nifi.web.util.CancellableTimedPause;
 import org.apache.nifi.web.util.ComponentLifecycle;
-import org.apache.nifi.web.util.InvalidComponentAction;
-import org.apache.nifi.web.util.LifecycleManagementException;
+import org.apache.nifi.web.util.ParameterUpdateManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,13 +82,11 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -109,7 +100,7 @@ import java.util.stream.Collectors;
 
 @Path("/parameter-contexts")
 @Api(value = "/parameter-contexts", description = "Endpoint for managing version control for a flow")
-public class ParameterContextResource extends ApplicationResource {
+public class ParameterContextResource extends AbstractParameterResource {
     private static final Logger logger = LoggerFactory.getLogger(ParameterContextResource.class);
     private static final Pattern VALID_PARAMETER_NAME_PATTERN = Pattern.compile("[A-Za-z0-9 ._\\-]+");
 
@@ -119,11 +110,15 @@ public class ParameterContextResource extends ApplicationResource {
     private ComponentLifecycle clusterComponentLifecycle;
     private ComponentLifecycle localComponentLifecycle;
 
-    private RequestManager<ParameterContextEntity, ParameterContextEntity> updateRequestManager = new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Parameter Context Update Thread");
+    private ParameterUpdateManager parameterUpdateManager;
+    private RequestManager<List<ParameterContextEntity>, List<ParameterContextEntity>> updateRequestManager
+            = new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Parameter Context Update Thread");
     private RequestManager<ParameterContextValidationRequestEntity, ComponentValidationResultsEntity> validationRequestManager = new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L),
         "Parameter Context Validation Thread");
 
-
+    public void init() {
+        parameterUpdateManager = new ParameterUpdateManager(serviceFacade, dtoFactory, authorizer, this);
+    }
 
     private void authorizeReadParameterContext(final String parameterContextId) {
         if (parameterContextId == null) {
@@ -384,7 +379,7 @@ public class ParameterContextResource extends ApplicationResource {
         // 9. Re-Enable all affected Controller Services
         // 10. Re-Start all Processors
 
-        final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByParameterContextUpdate(contextDto);
+        final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByParameterContextUpdate(Collections.singletonList(contextDto));
         logger.debug("Received Update Request for Parameter Context: {}; the following {} components will be affected: {}", requestEntity, affectedComponents.size(), affectedComponents);
 
         final InitiateChangeParameterContextRequestWrapper requestWrapper = new InitiateChangeParameterContextRequestWrapper(requestEntity, componentLifecycle, getAbsolutePath(),
@@ -402,7 +397,7 @@ public class ParameterContextResource extends ApplicationResource {
                 parameterContext.authorize(authorizer, RequestAction.WRITE, user);
 
                 // Verify READ and WRITE permissions for user, for every component that is affected
-                affectedComponents.forEach(component -> authorizeAffectedComponent(component, lookup, user, true, true));
+                affectedComponents.forEach(component -> parameterUpdateManager.authorizeAffectedComponent(component, lookup, user, true, true));
 
                 Set<ParameterEntity> parametersEntities = requestEntity.getComponent().getParameters();
                 for (ParameterEntity parameterEntity : parametersEntities) {
@@ -480,49 +475,6 @@ public class ParameterContextResource extends ApplicationResource {
     private boolean isLegalParameterName(final String parameterName) {
         return VALID_PARAMETER_NAME_PATTERN.matcher(parameterName).matches();
     }
-
-    private void authorizeAffectedComponent(final AffectedComponentEntity entity, final AuthorizableLookup lookup, final NiFiUser user, final boolean requireRead, final boolean requireWrite) {
-        final AffectedComponentDTO dto = entity.getComponent();
-        if (dto == null) {
-            // If the DTO is null, it is an indication that the user does not have permissions.
-            // However, we don't want to just throw an AccessDeniedException because we would rather
-            // ensure that all of the appropriate actions are taken by the pluggable Authorizer. As a result,
-            // we attempt to find the component as a Processor and fall back to finding it as a Controller Service.
-            // We then go ahead and attempt the authorization, expecting it to fail.
-            Authorizable authorizable;
-            try {
-                authorizable = lookup.getProcessor(entity.getId()).getAuthorizable();
-            } catch (final ResourceNotFoundException rnfe) {
-                authorizable = lookup.getControllerService(entity.getId()).getAuthorizable();
-            }
-
-            if (requireRead) {
-                authorizable.authorize(authorizer, RequestAction.READ, user);
-            }
-            if (requireWrite) {
-                authorizable.authorize(authorizer, RequestAction.WRITE, user);
-            }
-        } else if (AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR.equals(dto.getReferenceType())) {
-            final Authorizable processor = lookup.getProcessor(dto.getId()).getAuthorizable();
-
-            if (requireRead) {
-                processor.authorize(authorizer, RequestAction.READ, user);
-            }
-            if (requireWrite) {
-                processor.authorize(authorizer, RequestAction.WRITE, user);
-            }
-        } else if (AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE.equals(dto.getReferenceType())) {
-            final Authorizable service = lookup.getControllerService(dto.getId()).getAuthorizable();
-
-            if (requireRead) {
-                service.authorize(authorizer, RequestAction.READ, user);
-            }
-            if (requireWrite) {
-                service.authorize(authorizer, RequestAction.WRITE, user);
-            }
-        }
-    }
-
 
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -737,7 +689,7 @@ public class ParameterContextResource extends ApplicationResource {
             }
 
             for (final AffectedComponentEntity affectedComponent : dto.getReferencingComponents()) {
-                authorizeAffectedComponent(affectedComponent, lookup, user, true, false);
+                parameterUpdateManager.authorizeAffectedComponent(affectedComponent, lookup, user, true, false);
             }
         }
     }
@@ -865,22 +817,23 @@ public class ParameterContextResource extends ApplicationResource {
         return resultsEntity;
     }
 
-
     private Response submitUpdateRequest(final Revision requestRevision, final InitiateChangeParameterContextRequestWrapper requestWrapper) {
         // Create an asynchronous request that will occur in the background, because this request may
         // result in stopping components, which can take an indeterminate amount of time.
         final String requestId = UUID.randomUUID().toString();
         final String contextId = requestWrapper.getParameterContextEntity().getComponent().getId();
-        final AsynchronousWebRequest<ParameterContextEntity, ParameterContextEntity> request = new StandardAsynchronousWebRequest<>(requestId, requestWrapper.getParameterContextEntity(), contextId,
-            requestWrapper.getUser(), getUpdateSteps());
+        final AsynchronousWebRequest<List<ParameterContextEntity>, List<ParameterContextEntity>> request = new StandardAsynchronousWebRequest<>(
+                requestId, Collections.singletonList(requestWrapper.getParameterContextEntity()), contextId, requestWrapper.getUser(), getUpdateSteps());
 
         // Submit the request to be performed in the background
-        final Consumer<AsynchronousWebRequest<ParameterContextEntity, ParameterContextEntity>> updateTask = asyncRequest -> {
+        final Consumer<AsynchronousWebRequest<List<ParameterContextEntity>, List<ParameterContextEntity>>> updateTask = asyncRequest -> {
             try {
-                final ParameterContextEntity updatedParameterContextEntity = updateParameterContext(asyncRequest, requestWrapper.getComponentLifecycle(), requestWrapper.getExampleUri(),
-                    requestWrapper.getReferencingComponents(), requestWrapper.isReplicateRequest(), requestRevision, requestWrapper.getParameterContextEntity());
+                final List<ParameterContextEntity> updatedParameterContextEntities = parameterUpdateManager
+                        .updateParameterContexts(asyncRequest, requestWrapper.getComponentLifecycle(), requestWrapper.getExampleUri(),
+                        requestWrapper.getReferencingComponents(), requestWrapper.isReplicateRequest(), requestRevision,
+                                Collections.singletonList(requestWrapper.getParameterContextEntity()));
 
-                asyncRequest.markStepComplete(updatedParameterContextEntity);
+                asyncRequest.markStepComplete(updatedParameterContextEntities);
             } catch (final ResumeFlowException rfe) {
                 // Treat ResumeFlowException differently because we don't want to include a message that we couldn't update the flow
                 // since in this case the flow was successfully updated - we just couldn't re-enable the components.
@@ -906,233 +859,6 @@ public class ParameterContextResource extends ApplicationResource {
             new StandardUpdateStep("Re-Enabling Affected Controller Services"),
             new StandardUpdateStep("Restarting Affected Processors"));
     }
-
-
-    private ParameterContextEntity updateParameterContext(final AsynchronousWebRequest<ParameterContextEntity, ParameterContextEntity> asyncRequest, final ComponentLifecycle componentLifecycle,
-                                                          final URI uri, final Set<AffectedComponentEntity> affectedComponents,
-                                                          final boolean replicateRequest, final Revision revision, final ParameterContextEntity updatedContextEntity)
-        throws LifecycleManagementException, ResumeFlowException {
-
-        final Set<AffectedComponentEntity> runningProcessors = affectedComponents.stream()
-            .filter(entity -> entity.getComponent() != null)
-            .filter(entity -> AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR.equals(entity.getComponent().getReferenceType()))
-            .filter(component -> "Running".equalsIgnoreCase(component.getComponent().getState()))
-            .collect(Collectors.toSet());
-
-        final Set<AffectedComponentEntity> servicesRequiringDisabledState = affectedComponents.stream()
-            .filter(entity -> entity.getComponent() != null)
-            .filter(dto -> AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE.equals(dto.getComponent().getReferenceType()))
-            .filter(dto -> {
-                final String state = dto.getComponent().getState();
-                return "Enabling".equalsIgnoreCase(state) || "Enabled".equalsIgnoreCase(state) || "Disabling".equalsIgnoreCase(state);
-            })
-            .collect(Collectors.toSet());
-
-        stopProcessors(runningProcessors, asyncRequest, componentLifecycle, uri);
-        if (asyncRequest.isCancelled()) {
-            return null;
-        }
-
-        // We want to disable only those Controller Services that are currently enabled or enabling, but we need to wait for
-        // services that are currently Disabling to become disabled before we are able to consider this step complete.
-        final Set<AffectedComponentEntity> enabledControllerServices = servicesRequiringDisabledState.stream()
-            .filter(dto -> {
-                final String state = dto.getComponent().getState();
-                return "Enabling".equalsIgnoreCase(state) || "Enabled".equalsIgnoreCase(state);
-            })
-            .collect(Collectors.toSet());
-
-        disableControllerServices(enabledControllerServices, servicesRequiringDisabledState, asyncRequest, componentLifecycle, uri);
-        if (asyncRequest.isCancelled()) {
-            return null;
-        }
-
-        asyncRequest.markStepComplete();
-        logger.info("Updating Parameter Context with ID {}", updatedContextEntity.getId());
-
-        final ParameterContextEntity updatedEntity;
-        try {
-            updatedEntity = performParameterContextUpdate(asyncRequest, uri, replicateRequest, revision, updatedContextEntity);
-            asyncRequest.markStepComplete();
-            logger.info("Successfully updated Parameter Context with ID {}", updatedContextEntity.getId());
-        } finally {
-            // TODO: can almost certainly be refactored so that the same code is shared between VersionsResource and ParameterContextResource.
-            if (!asyncRequest.isCancelled()) {
-                enableControllerServices(enabledControllerServices, enabledControllerServices, asyncRequest, componentLifecycle, uri);
-            }
-
-            if (!asyncRequest.isCancelled()) {
-                restartProcessors(runningProcessors, asyncRequest, componentLifecycle, uri);
-            }
-        }
-
-        asyncRequest.setCancelCallback(null);
-        if (asyncRequest.isCancelled()) {
-            return null;
-        }
-
-        return updatedEntity;
-    }
-
-    private ParameterContextEntity performParameterContextUpdate(final AsynchronousWebRequest<?, ?> asyncRequest, final URI exampleUri, final boolean replicateRequest, final Revision revision,
-                                               final ParameterContextEntity updatedContext) throws LifecycleManagementException {
-
-        if (replicateRequest) {
-            final URI updateUri;
-            try {
-                updateUri = new URI(exampleUri.getScheme(), exampleUri.getUserInfo(), exampleUri.getHost(),
-                    exampleUri.getPort(), "/nifi-api/parameter-contexts/" + updatedContext.getId(), null, exampleUri.getFragment());
-            } catch (URISyntaxException e) {
-                throw new RuntimeException(e);
-            }
-
-            final Map<String, String> headers = new HashMap<>();
-            headers.put("content-type", MediaType.APPLICATION_JSON);
-
-            final NiFiUser user = asyncRequest.getUser();
-            final NodeResponse clusterResponse;
-            try {
-                logger.debug("Replicating PUT request to {} for user {}", updateUri, user);
-
-                if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
-                    clusterResponse = getRequestReplicator().replicate(user, HttpMethod.PUT, updateUri, updatedContext, headers).awaitMergedResponse();
-                } else {
-                    clusterResponse = getRequestReplicator().forwardToCoordinator(
-                        getClusterCoordinatorNode(), user, HttpMethod.PUT, updateUri, updatedContext, headers).awaitMergedResponse();
-                }
-            } catch (final InterruptedException ie) {
-                logger.warn("Interrupted while replicating PUT request to {} for user {}", updateUri, user);
-                Thread.currentThread().interrupt();
-                throw new LifecycleManagementException("Interrupted while updating flows across cluster", ie);
-            }
-
-            final int updateFlowStatus = clusterResponse.getStatus();
-            if (updateFlowStatus != Response.Status.OK.getStatusCode()) {
-                final String explanation = getResponseEntity(clusterResponse, String.class);
-                logger.error("Failed to update flow across cluster when replicating PUT request to {} for user {}. Received {} response with explanation: {}",
-                    updateUri, user, updateFlowStatus, explanation);
-                throw new LifecycleManagementException("Failed to update Flow on all nodes in cluster due to " + explanation);
-            }
-
-            return serviceFacade.getParameterContext(updatedContext.getId(), false, user);
-        } else {
-            serviceFacade.verifyUpdateParameterContext(updatedContext.getComponent(), true);
-            return serviceFacade.updateParameterContext(revision, updatedContext.getComponent());
-        }
-    }
-
-    /**
-     * Extracts the response entity from the specified node response.
-     *
-     * @param nodeResponse node response
-     * @param clazz class
-     * @param <T> type of class
-     * @return the response entity
-     */
-    @SuppressWarnings("unchecked")
-    private <T> T getResponseEntity(final NodeResponse nodeResponse, final Class<T> clazz) {
-        T entity = (T) nodeResponse.getUpdatedEntity();
-        if (entity == null) {
-            if (nodeResponse.getClientResponse() != null) {
-                entity = nodeResponse.getClientResponse().readEntity(clazz);
-            } else {
-                entity = (T) nodeResponse.getThrowable().toString();
-            }
-        }
-        return entity;
-    }
-
-
-    private void stopProcessors(final Set<AffectedComponentEntity> processors, final AsynchronousWebRequest<?, ?> asyncRequest, final ComponentLifecycle componentLifecycle, final URI uri)
-        throws LifecycleManagementException {
-
-        logger.info("Stopping {} Processors in order to update Parameter Context", processors.size());
-        final CancellableTimedPause stopComponentsPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-        asyncRequest.setCancelCallback(stopComponentsPause::cancel);
-        componentLifecycle.scheduleComponents(uri, "root", processors, ScheduledState.STOPPED, stopComponentsPause, InvalidComponentAction.SKIP);
-    }
-
-    private void restartProcessors(final Set<AffectedComponentEntity> processors, final AsynchronousWebRequest<?, ?> asyncRequest, final ComponentLifecycle componentLifecycle, final URI uri)
-        throws ResumeFlowException, LifecycleManagementException {
-
-        if (logger.isDebugEnabled()) {
-            logger.debug("Restarting {} Processors after having updated Parameter Context: {}", processors.size(), processors);
-        } else {
-            logger.info("Restarting {} Processors after having updated Parameter Context", processors.size());
-        }
-
-        // Step 14. Restart all components
-        final Set<AffectedComponentEntity> componentsToStart = getUpdatedEntities(processors);
-
-        final CancellableTimedPause startComponentsPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-        asyncRequest.setCancelCallback(startComponentsPause::cancel);
-
-        try {
-            componentLifecycle.scheduleComponents(uri, "root", componentsToStart, ScheduledState.RUNNING, startComponentsPause, InvalidComponentAction.SKIP);
-            asyncRequest.markStepComplete();
-        } catch (final IllegalStateException ise) {
-            // Component Lifecycle will restart the Processors only if they are valid. If IllegalStateException gets thrown, we need to provide
-            // a more intelligent error message as to exactly what happened, rather than indicate that the flow could not be updated.
-            throw new ResumeFlowException("Failed to restart components because " + ise.getMessage(), ise);
-        }
-    }
-
-    private void disableControllerServices(final Set<AffectedComponentEntity> enabledControllerServices, final Set<AffectedComponentEntity> controllerServicesRequiringDisabledState,
-                                           final AsynchronousWebRequest<?, ?> asyncRequest, final ComponentLifecycle componentLifecycle, final URI uri) throws LifecycleManagementException {
-
-        asyncRequest.markStepComplete();
-        logger.info("Disabling {} Controller Services in order to update Parameter Context", enabledControllerServices.size());
-        final CancellableTimedPause disableServicesPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-        asyncRequest.setCancelCallback(disableServicesPause::cancel);
-        componentLifecycle.activateControllerServices(uri, "root", enabledControllerServices, controllerServicesRequiringDisabledState, ControllerServiceState.DISABLED, disableServicesPause,
-            InvalidComponentAction.WAIT);
-    }
-
-    private void enableControllerServices(final Set<AffectedComponentEntity> controllerServices, final Set<AffectedComponentEntity> controllerServicesRequiringDisabledState,
-                                          final AsynchronousWebRequest<?, ?> asyncRequest, final ComponentLifecycle componentLifecycle,
-                                          final URI uri) throws LifecycleManagementException, ResumeFlowException {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Re-Enabling {} Controller Services: {}", controllerServices.size(), controllerServices);
-        } else {
-            logger.info("Re-Enabling {} Controller Services after having updated Parameter Context", controllerServices.size());
-        }
-
-        // Step 13. Re-enable all disabled controller services
-        final CancellableTimedPause enableServicesPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-        asyncRequest.setCancelCallback(enableServicesPause::cancel);
-        final Set<AffectedComponentEntity> servicesToEnable = getUpdatedEntities(controllerServices);
-
-        try {
-            componentLifecycle.activateControllerServices(uri, "root", servicesToEnable, controllerServicesRequiringDisabledState,
-                ControllerServiceState.ENABLED, enableServicesPause, InvalidComponentAction.SKIP);
-            asyncRequest.markStepComplete();
-        } catch (final IllegalStateException ise) {
-            // Component Lifecycle will re-enable the Controller Services only if they are valid. If IllegalStateException gets thrown, we need to provide
-            // a more intelligent error message as to exactly what happened, rather than indicate that the Parameter Context could not be updated.
-            throw new ResumeFlowException("Failed to re-enable Controller Services because " + ise.getMessage(), ise);
-        }
-    }
-
-    private Set<AffectedComponentEntity> getUpdatedEntities(final Set<AffectedComponentEntity> originalEntities) {
-        final Set<AffectedComponentEntity> entities = new LinkedHashSet<>();
-
-        for (final AffectedComponentEntity original : originalEntities) {
-            try {
-                final AffectedComponentEntity updatedEntity = AffectedComponentUtils.updateEntity(original, serviceFacade, dtoFactory);
-                if (updatedEntity != null) {
-                    entities.add(updatedEntity);
-                }
-            } catch (final ResourceNotFoundException rnfe) {
-                // Component was removed. Just continue on without adding anything to the entities.
-                // We do this because the intent is to get updated versions of the entities with current
-                // Revisions so that we can change the states of the components. If the component was removed,
-                // then we can just drop the entity, since there is no need to change its state.
-            }
-        }
-
-        return entities;
-    }
-
 
     private Response retrieveValidationRequest(final String requestType, final String contextId, final String requestId) {
         if (requestId == null) {
@@ -1197,7 +923,7 @@ public class ParameterContextResource extends ApplicationResource {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         // request manager will ensure that the current is the user that submitted this request
-        final AsynchronousWebRequest<ParameterContextEntity, ParameterContextEntity> asyncRequest = updateRequestManager.getRequest(requestType, requestId, user);
+        final AsynchronousWebRequest<List<ParameterContextEntity>, List<ParameterContextEntity>> asyncRequest = updateRequestManager.getRequest(requestType, requestId, user);
         final ParameterContextUpdateRequestEntity updateRequestEntity = createUpdateRequestEntity(asyncRequest, requestType, contextId, requestId);
         return generateOkResponse(updateRequestEntity).build();
     }
@@ -1214,7 +940,7 @@ public class ParameterContextResource extends ApplicationResource {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         // request manager will ensure that the current is the user that submitted this request
-        final AsynchronousWebRequest<ParameterContextEntity, ParameterContextEntity> asyncRequest = updateRequestManager.removeRequest(requestType, requestId, user);
+        final AsynchronousWebRequest<List<ParameterContextEntity>, List<ParameterContextEntity>> asyncRequest = updateRequestManager.removeRequest(requestType, requestId, user);
         if (asyncRequest == null) {
             throw new ResourceNotFoundException("Could not find request of type " + requestType + " with ID " + requestId);
         }
@@ -1227,8 +953,11 @@ public class ParameterContextResource extends ApplicationResource {
         return generateOkResponse(updateRequestEntity).build();
     }
 
-    private ParameterContextUpdateRequestEntity createUpdateRequestEntity(final AsynchronousWebRequest<ParameterContextEntity, ParameterContextEntity> asyncRequest, final String requestType,
-                                                                          final String contextId, final String requestId) {
+    private ParameterContextUpdateRequestEntity createUpdateRequestEntity(final AsynchronousWebRequest<List<ParameterContextEntity>, List<ParameterContextEntity>> asyncRequest,
+                                                                          final String requestType, final String contextId, final String requestId) {
+        final List<ParameterContextEntity> initialRequestList = asyncRequest.getRequest();
+        // Safe because this is from the request, not the response
+        final ParameterContextEntity initialEntity = initialRequestList.get(0);
         final ParameterContextUpdateRequestDTO updateRequestDto = new ParameterContextUpdateRequestDTO();
         updateRequestDto.setComplete(asyncRequest.isComplete());
         updateRequestDto.setFailureReason(asyncRequest.getFailureReason());
@@ -1248,11 +977,9 @@ public class ParameterContextResource extends ApplicationResource {
         }
         updateRequestDto.setUpdateSteps(updateSteps);
 
-        final ParameterContextEntity initialRequest = asyncRequest.getRequest();
-
         // The AffectedComponentEntity itself does not evaluate equality based on component information. As a result, we want to de-dupe the entities based on their identifiers.
         final Map<String, AffectedComponentEntity> affectedComponents = new HashMap<>();
-        for (final ParameterEntity entity : initialRequest.getComponent().getParameters()) {
+        for (final ParameterEntity entity : initialEntity.getComponent().getParameters()) {
             for (final AffectedComponentEntity affectedComponentEntity : entity.getParameter().getReferencingComponents()) {
                 affectedComponents.put(affectedComponentEntity.getId(), serviceFacade.getUpdatedAffectedComponentEntity(affectedComponentEntity));
             }
@@ -1272,7 +999,6 @@ public class ParameterContextResource extends ApplicationResource {
         updateRequestEntity.setRequest(updateRequestDto);
         return updateRequestEntity;
     }
-
 
     private static class InitiateChangeParameterContextRequestWrapper extends Entity {
         private final ParameterContextEntity parameterContextEntity;

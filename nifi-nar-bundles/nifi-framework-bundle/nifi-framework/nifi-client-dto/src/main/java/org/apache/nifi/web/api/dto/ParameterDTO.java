@@ -30,6 +30,7 @@ public class ParameterDTO {
     private Boolean sensitive;
     private String value;
     private Boolean valueRemoved;
+    private Boolean provided;
     private Set<AffectedComponentEntity> referencingComponents;
     private ParameterContextReferenceEntity parameterContext;
     private Boolean inherited;
@@ -68,6 +69,15 @@ public class ParameterDTO {
 
     public void setSensitive(final Boolean sensitive) {
         this.sensitive = sensitive;
+    }
+
+    @ApiModelProperty("Whether or not the Parameter is provided by a ParameterProvider")
+    public Boolean getProvided() {
+        return provided;
+    }
+
+    public void setProvided(final Boolean provided) {
+        this.provided = provided;
     }
 
     @ApiModelProperty("The value of the Parameter")
@@ -109,6 +119,6 @@ public class ParameterDTO {
 
     @Override
     public String toString() {
-        return "ParameterDTO[name=" + name + ", sensitive=" + sensitive + ", value=" + (sensitive ? "********" : value) + "]";
+        return "ParameterDTO[name=" + name + ", sensitive=" + sensitive + ", value=" + (sensitive ? "********" : value) + (provided ? " (provided)" : "") + "]";
     }
 }

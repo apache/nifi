@@ -19,24 +19,25 @@ package org.apache.nifi.controller.serialization;
 
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.flow.VersionedFlowEncodingVersion;
-import org.apache.nifi.controller.flow.VersionedRegistry;
+import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.controller.flow.VersionedTemplate;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedParameterContext;
+import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
-import org.apache.nifi.registry.flow.FlowRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.flow.VersionedParameterContext;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
@@ -71,6 +72,7 @@ public class VersionedDataflowMapper {
             .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
             .mapInstanceIdentifiers(true)
             .mapControllerServiceReferencesToVersionedId(false)
+            .mapFlowRegistryClientId(true)
             .build();
 
         flowMapper = new NiFiRegistryFlowMapper(extensionManager, mappingOptions);
@@ -84,6 +86,7 @@ public class VersionedDataflowMapper {
         dataflow.setParameterContexts(mapParameterContexts());
         dataflow.setRegistries(mapRegistries());
         dataflow.setReportingTasks(mapReportingTasks());
+        dataflow.setParameterProviders(mapParameterProviders());
         dataflow.setRootGroup(mapRootGroup());
         dataflow.setTemplates(mapTemplates());
 
@@ -113,27 +116,15 @@ public class VersionedDataflowMapper {
         return parameterContexts;
     }
 
-    private List<VersionedRegistry> mapRegistries() {
-        final List<VersionedRegistry> registries = new ArrayList<>();
+    private List<VersionedFlowRegistryClient> mapRegistries() {
+        final List<VersionedFlowRegistryClient> registries = new ArrayList<>();
 
-        final FlowRegistryClient flowRegistryClient = flowController.getFlowRegistryClient();
-        for (final String registryId : flowRegistryClient.getRegistryIdentifiers()) {
-            final FlowRegistry flowRegistry = flowRegistryClient.getFlowRegistry(registryId);
-            final VersionedRegistry versionedRegistry = mapRegistry(flowRegistry);
-            registries.add(versionedRegistry);
+        for (final FlowRegistryClientNode clientNode : flowController.getFlowManager().getAllFlowRegistryClients()) {
+            final VersionedFlowRegistryClient versionedFlowRegistryClient = flowMapper.mapFlowRegistryClient(clientNode, flowController.getControllerServiceProvider());
+            registries.add(versionedFlowRegistryClient);
         }
 
         return registries;
-    }
-
-    private VersionedRegistry mapRegistry(final FlowRegistry flowRegistry) {
-        final VersionedRegistry versionedRegistry = new VersionedRegistry();
-        versionedRegistry.setDescription(flowRegistry.getDescription());
-        versionedRegistry.setId(flowRegistry.getIdentifier());
-        versionedRegistry.setName(flowRegistry.getName());
-        versionedRegistry.setUrl(flowRegistry.getURL());
-
-        return versionedRegistry;
     }
 
     private List<VersionedReportingTask> mapReportingTasks() {
@@ -147,10 +138,20 @@ public class VersionedDataflowMapper {
         return reportingTasks;
     }
 
+    private List<VersionedParameterProvider> mapParameterProviders() {
+        final List<VersionedParameterProvider> parameterProviders = new ArrayList<>();
+
+        for (final ParameterProviderNode taskNode : flowController.getFlowManager().getAllParameterProviders()) {
+            final VersionedParameterProvider versionedParameterProvider = flowMapper.mapParameterProvider(taskNode, flowController.getControllerServiceProvider());
+            parameterProviders.add(versionedParameterProvider);
+        }
+
+        return parameterProviders;
+    }
+
     private VersionedProcessGroup mapRootGroup() {
-        final FlowRegistryClient registryClient = flowController.getFlowRegistryClient();
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
-        final VersionedProcessGroup versionedRootGroup = flowMapper.mapProcessGroup(rootGroup, flowController.getControllerServiceProvider(), registryClient, true);
+        final VersionedProcessGroup versionedRootGroup = flowMapper.mapProcessGroup(rootGroup, flowController.getControllerServiceProvider(), flowController.getFlowManager(), true);
         return versionedRootGroup;
     }
 

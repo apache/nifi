@@ -32,12 +32,7 @@ import org.apache.nifi.authorization.resource.ResourceFactory
 import org.apache.nifi.authorization.user.NiFiUser
 import org.apache.nifi.authorization.user.NiFiUserDetails
 import org.apache.nifi.authorization.user.StandardNiFiUser
-import org.apache.nifi.components.state.StateManagerProvider
 import org.apache.nifi.connectable.Connection
-import org.apache.nifi.controller.NodeTypeProvider
-import org.apache.nifi.controller.ProcessScheduler
-import org.apache.nifi.controller.ReloadComponent
-import org.apache.nifi.controller.flow.FlowManager
 import org.apache.nifi.controller.flow.StandardFlowManager
 import org.apache.nifi.controller.repository.FlowFileEvent
 import org.apache.nifi.controller.repository.FlowFileEventRepository
@@ -48,14 +43,9 @@ import org.apache.nifi.controller.status.RunStatus
 import org.apache.nifi.diagnostics.StorageUsage
 import org.apache.nifi.diagnostics.SystemDiagnostics
 import org.apache.nifi.groups.ProcessGroup
-import org.apache.nifi.groups.StandardProcessGroup
-import org.apache.nifi.nar.ExtensionManager
-import org.apache.nifi.registry.flow.FlowRegistryClient
-import org.apache.nifi.registry.variable.MutableVariableRegistry
 import org.apache.nifi.reporting.Bulletin
 import org.apache.nifi.reporting.BulletinRepository
 import org.apache.nifi.util.MockBulletinRepository
-import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.web.api.dto.AccessPolicyDTO
 import org.apache.nifi.web.api.dto.BulletinDTO
 import org.apache.nifi.web.api.dto.DtoFactory

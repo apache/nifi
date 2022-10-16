@@ -1,0 +1,45 @@
+nifi-box-nar
+Copyright 2015-2020 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) The Box SDK for Java
+    The following NOTICE information applies:
+      The Box SDK for Java
+      Copyright 2019 Box, Inc. All rights reserved.
+
+  (ASLv2) JOSE4j
+    The following NOTICE information applies:
+      JOSE4j
+      Copyright 2012-2015 Brian Campbell
+
+************
+MIT
+************
+
+The following binary components are provided under the MIT license.
+
+  Minimal JSON
+    The following NOTICE information applies:
+      Minimal JSON
+      Copyright (c) 2014, 2015 EclipseSource.
+
+
+************
+Bouncy Castle (MIT style)
+************
+
+The following binary components are provided under the Bouncy Castle (an MIT style) license.
+
+  Bouncy Castle PKIX, CMS, EAC, TSP, PKCS, OCSP, CMP, and CRMF APIs
+  Bouncy Castle Provider
+  Bouncy Castle ASN.1 Extension and Utility APIs
+    The following NOTICE information applies:
+      Copyright (c) 2000 - 2021 The Legion of the Bouncy Castle Inc. (https://www.bouncycastle.org)

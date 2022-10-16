@@ -25,6 +25,7 @@ public class C2ClientConfig {
     private final String c2AckUrl;
     private final String agentClass;
     private final String agentIdentifier;
+    private final boolean fullHeartbeat;
     private final String confDirectory;
     private final String runtimeManifestIdentifier;
     private final String runtimeType;
@@ -39,13 +40,14 @@ public class C2ClientConfig {
     private final long callTimeout;
     private final long readTimeout;
     private final long connectTimeout;
-
+    private final String c2RequestCompression;
 
     private C2ClientConfig(final Builder builder) {
         this.c2Url = builder.c2Url;
         this.c2AckUrl = builder.c2AckUrl;
         this.agentClass = builder.agentClass;
         this.agentIdentifier = builder.agentIdentifier;
+        this.fullHeartbeat = builder.fullHeartbeat;
         this.confDirectory = builder.confDirectory;
         this.runtimeManifestIdentifier = builder.runtimeManifestIdentifier;
         this.runtimeType = builder.runtimeType;
@@ -60,6 +62,7 @@ public class C2ClientConfig {
         this.truststoreType = builder.truststoreType;
         this.readTimeout = builder.readTimeout;
         this.connectTimeout = builder.connectTimeout;
+        this.c2RequestCompression = builder.c2RequestCompression;
     }
 
     public String getC2Url() {
@@ -76,6 +79,10 @@ public class C2ClientConfig {
 
     public String getAgentIdentifier() {
         return agentIdentifier;
+    }
+
+    public boolean isFullHeartbeat() {
+        return fullHeartbeat;
     }
 
     public String getConfDirectory() {
@@ -134,6 +141,10 @@ public class C2ClientConfig {
         return connectTimeout;
     }
 
+    public String getC2RequestCompression() {
+        return c2RequestCompression;
+    }
+
     /**
      * Builder for client configuration.
      */
@@ -143,6 +154,7 @@ public class C2ClientConfig {
         private String c2AckUrl;
         private String agentClass;
         private String agentIdentifier;
+        private boolean fullHeartbeat;
         private String confDirectory;
         private String runtimeManifestIdentifier;
         private String runtimeType;
@@ -157,6 +169,7 @@ public class C2ClientConfig {
         private String truststoreType;
         private long readTimeout;
         private long connectTimeout;
+        private String c2RequestCompression;
 
         public Builder c2Url(final String c2Url) {
             this.c2Url = c2Url;
@@ -175,6 +188,11 @@ public class C2ClientConfig {
 
         public Builder agentIdentifier(final String agentIdentifier) {
             this.agentIdentifier = agentIdentifier;
+            return this;
+        }
+
+        public Builder fullHeartbeat(final boolean fullHeartbeat) {
+            this.fullHeartbeat = fullHeartbeat;
             return this;
         }
 
@@ -245,6 +263,11 @@ public class C2ClientConfig {
 
         public Builder connectTimeout(final long connectTimeout) {
             this.connectTimeout = connectTimeout;
+            return this;
+        }
+
+        public Builder c2RequestCompression(final String c2RequestCompression) {
+            this.c2RequestCompression = c2RequestCompression;
             return this;
         }
 

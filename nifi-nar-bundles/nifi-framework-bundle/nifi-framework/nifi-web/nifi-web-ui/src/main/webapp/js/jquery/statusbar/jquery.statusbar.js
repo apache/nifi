@@ -27,8 +27,7 @@
     // static key path variables
     var PROCESSOR_ID_KEY = 'component.id',
         ACTIVE_THREAD_COUNT_KEY = 'status.aggregateSnapshot.activeThreadCount',
-        RUN_STATUS_KEY = 'status.aggregateSnapshot.runStatus',
-        BULLETINS_KEY = 'bulletins';
+        RUN_STATUS_KEY = 'status.aggregateSnapshot.runStatus'
 
     var isUndefined = function (obj) {
         return typeof obj === 'undefined';
@@ -52,18 +51,28 @@
 
         /**
          * Initializes the status bar.
+         *
+         * @param type - the type of component or service for the status bus
          */
-        init: function () {
+        init: function (type) {
+
             // get the combo
             var bar = $(this).addClass('dialog-status-bar');
 
-            bar.html('<text class="run-status-icon"></text>'+
-                     '<span class="dialog-status-bar-state"></span>'+
-                     '<span class="dialog-status-bar-threads" count="0"></span>'+
-                     '<div class="dialog-status-bar-bulletins fa fa-sticky-note-o" count="0">'+
-                         '<div class="dialog-status-bar-bulletins-content"></div>'+
-                     '</div>'+
-                     '<div class="dialog-status-bar-buttons"></div>');
+            if (type === 'processor') {
+                bar.html('<text class="run-status-icon"></text>'+
+                    '<span class="dialog-status-bar-state"></span>'+
+                    '<span class="dialog-status-bar-threads" count="0"></span>'+
+                    '<div class="dialog-status-bar-bulletins fa fa-sticky-note-o" count="0">'+
+                    '<div class="dialog-status-bar-bulletins-content"></div>'+
+                    '</div>'+
+                    '<div class="dialog-status-bar-buttons"></div>');
+            } else { // parameter provider
+                bar.html('<div class="dialog-status-bar-bulletins fa fa-sticky-note-o" count="0">'+
+                    '<div class="dialog-status-bar-bulletins-content"></div>'+
+                    '</div>');
+            }
+
             return bar;
         },
 
@@ -93,28 +102,36 @@
         /**
          * Initializes the synchronization process to the canvas element
          *
-         * @param id - id value of the processor to observe
+         * @param data - object of type or service to observe
          * @param cb - callback to execute when a mutation is detected
          */
-        observe: function(id,cb) {
+        observe: function(data,cb) {
             var bar = $(this);
-            var g = document.querySelector('g[id="id-'+id+'"]');
 
-            //perform the initial set
-            bar.statusbar('set',id);
+            if (data.processor) {
+                // id value of the processor to observe
+                var id = data.processor;
+                var g = document.querySelector('g[id="id-'+id+'"]');
 
-            //create and store an observer
-            bar.data('observer',new MutationObserver(function(mutations){
-                bar.statusbar('set',id);
-                if(typeof cb == 'function'){
-                    cb();
-                }
-            }));
+                //perform the initial set
+                bar.statusbar('set', data);
 
-            //initialize the observer
-            bar.data('observer').observe(g,{attributes:true,childList:true,subtree:true});
+                //create and store an observer
+                bar.data('observer',new MutationObserver(function(mutations){
+                    bar.statusbar('set',data);
+                    if(typeof cb == 'function'){
+                        cb();
+                    }
+                }));
 
-            return bar.data('observer');
+                //initialize the observer
+                bar.data('observer').observe(g,{attributes:true,childList:true,subtree:true});
+
+                return bar.data('observer');
+            } else { // parameter provider bulletins
+                //perform the initial set
+                return bar.statusbar('set', data);
+            }
         },
 
         /**
@@ -240,38 +257,48 @@
         /**
          * Set the status bar display values
          *
-         * @param id - processor id to evaluate
+         * @param data - object of type or service to set
          */
-        set : function(id) {
+        set : function(data) {
             var bar = $(this),
-                obj = d3.select('#id-' + id).datum(),
-                bulletinList = $("<ul></ul>"),
-                runStatus = getKeyValue(obj,RUN_STATUS_KEY),
-                activeThreadCount = getKeyValue(obj,ACTIVE_THREAD_COUNT_KEY),
-                bulletins = getKeyValue(obj,BULLETINS_KEY);
+                processorId,
+                obj,
+                runStatus,
+                activeThreadCount,
+                bulletins;
 
-            //set the values
-            if(isDefinedAndNotNull(runStatus) &&
-                isDefinedAndNotNull(activeThreadCount) &&
-                isDefinedAndNotNull(bulletins) &&
-                Array.isArray(bulletins)) {
+            if (data.processor) {
+                processorId = data.processor;
+                obj = d3.select('#id-' + processorId).datum();
+                runStatus = getKeyValue(obj,RUN_STATUS_KEY);
+                activeThreadCount = getKeyValue(obj,ACTIVE_THREAD_COUNT_KEY);
+                bulletins = data.bulletins;
+            } else if (data.provider) {
+                bulletins = data.provider;
+            }
 
+            // set the values
+            if (isDefinedAndNotNull(runStatus) && isDefinedAndNotNull(activeThreadCount)) {
                 bar.attr('state',runStatus.toUpperCase());
+                bar.attr('alerts', 'true');
                 bar.find('.dialog-status-bar-state').text(runStatus);
                 bar.find('.dialog-status-bar-threads').attr('count',activeThreadCount);
                 bar.find('.dialog-status-bar-threads').attr('title',activeThreadCount+' active threads');
                 bar.find('.dialog-status-bar-threads').text('('+activeThreadCount+')');
-                $.each(bulletins, function(i,item){
-                    if(item.canRead){
-                       bulletinList.append($('<li>'+item.bulletin.timestamp+' '+item.bulletin.level+'<br/>'+item.bulletin.message+'<br>&nbsp;</li>'));
-                    }
-                });
-                var bulletinCount = bulletinList.find('li').length;
-                bar.find('.dialog-status-bar-bulletins-content').html((bulletinCount > 0)?bulletinList:'');
+            }
+
+            // set the bulletins
+            if (isDefinedAndNotNull(bulletins)) {
+                var bulletinCount = bulletins.find('li').length;
+                bar.find('.dialog-status-bar-bulletins-content').html((bulletinCount > 0)?bulletins:'');
                 bar.find('.dialog-status-bar-bulletins').attr('count',bulletinCount);
 
-                //update the button state
-                bar.statusbar('refreshButtons');
+                if (data.processor) {
+                    // update the button state
+                    bar.statusbar('refreshButtons');
+                } else {
+                    bar.attr('alerts', 'true');
+                }
             }
             return bar;
         }

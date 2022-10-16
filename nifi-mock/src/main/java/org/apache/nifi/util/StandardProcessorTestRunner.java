@@ -69,8 +69,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class StandardProcessorTestRunner implements TestRunner {
 
@@ -347,6 +349,39 @@ public class StandardProcessorTestRunner implements TestRunner {
         for (final MockProcessSession session : sessionFactory.getCreatedSessions()) {
             session.assertAllFlowFiles(relationship, validator);
         }
+    }
+
+    @Override
+    public void assertAttributes(
+        Relationship relationship,
+        Set<String> checkedAttributeNames,
+        Set<Map<String, String>> expectedAttributes
+    ) {
+        assertTransferCount(relationship, expectedAttributes.size());
+        List<MockFlowFile> flowFiles = getFlowFilesForRelationship(relationship);
+
+        Set<Map<String, String>> actualAttributes = flowFiles.stream()
+            .map(flowFile -> flowFile.getAttributes().entrySet().stream()
+                .filter(attributeNameAndValue -> checkedAttributeNames.contains(attributeNameAndValue.getKey()))
+                .filter(entry -> entry.getKey() != null && entry.getValue() != null)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
+
+            )
+            .collect(Collectors.toSet());
+
+        assertEquals(expectedAttributes, actualAttributes);
+    }
+
+    @Override
+    public void assertContents(Relationship relationship, List<String> expectedContent) {
+        assertTransferCount(relationship, expectedContent.size());
+        List<MockFlowFile> flowFiles = getFlowFilesForRelationship(relationship);
+
+        List<String> actualContent = flowFiles.stream()
+            .map(flowFile -> flowFile.getContent())
+            .collect(Collectors.toList());
+
+        assertEquals(expectedContent, actualContent);
     }
 
     @Override

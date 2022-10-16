@@ -659,7 +659,7 @@
 
             //if the status bar is supported, initialize it.
             if(config.supportsStatusBar){
-                $('#processor-configuration-status-bar').statusbar();
+                $('#processor-configuration-status-bar').statusbar('processor');
             }
 
             // initialize the bulletin combo
@@ -784,6 +784,7 @@
                 $.when.apply(window, requests).done(function (processorResult, historyResult) {
                     // get the updated processor'
                     var processorResponse = processorResult[0];
+                    var bulletins = processorResponse.bulletins;
                     processor = processorResponse.component;
 
                     // get the processor history
@@ -1047,10 +1048,20 @@
                     //Synchronize the current component canvas attributes in the status bar
                     if(config.supportsStatusBar){
 
+                        var formattedBulletins = nfCommon.getFormattedBulletins(bulletins);
+                        var unorderedBulletins = nfCommon.formatUnorderedList(formattedBulletins);
+
                         //initialize the canvas synchronization
-                        $("#processor-configuration-status-bar").statusbar('observe',processor.id, function(){
-                            $('#processor-configuration').modal('refreshButtons');
-                        });
+                        $("#processor-configuration-status-bar").statusbar(
+                            'observe',
+                            {
+                                processor: processor.id,
+                                bulletins: unorderedBulletins
+                            },
+                            function () {
+                                $('#processor-configuration').modal('refreshButtons');
+                            }
+                        );
 
                         //if there are active threads, add the terminate button to the status bar
                         if(nfCommon.isDefinedAndNotNull(config.nfActions) &&

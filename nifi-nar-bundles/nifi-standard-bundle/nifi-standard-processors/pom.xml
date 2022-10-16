@@ -36,6 +36,10 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-deprecation-log</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-put-pattern</artifactId>
             <version>1.18.0-SNAPSHOT</version>
         </dependency>
@@ -353,7 +357,7 @@
         <dependency>
             <groupId>net.lingala.zip4j</groupId>
             <artifactId>zip4j</artifactId>
-            <version>2.10.0</version>
+            <version>2.11.2</version>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
@@ -414,7 +418,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-oauth2-provider-api</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.sshd</groupId>

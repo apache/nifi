@@ -31,8 +31,8 @@ import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
-import org.apache.nifi.web.api.entity.RegistryClientEntity;
-import org.apache.nifi.web.api.entity.RegistryClientsEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -93,9 +93,9 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
         // if more than one is available then throw an exception because we don't know which one to use
         String registryId = getArg(properties, CommandOption.REGISTRY_CLIENT_ID);
         if (StringUtils.isBlank(registryId)) {
-            final RegistryClientsEntity registries = client.getControllerClient().getRegistryClients();
+            final FlowRegistryClientsEntity registries = client.getControllerClient().getRegistryClients();
 
-            final Set<RegistryClientEntity> entities = registries.getRegistries();
+            final Set<FlowRegistryClientEntity> entities = registries.getRegistries();
             if (entities == null || entities.isEmpty()) {
                 throw new NiFiClientException("No registry clients available");
             }

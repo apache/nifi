@@ -27,6 +27,7 @@ public class FlowMappingOptions {
     private final boolean mapSensitiveConfiguration;
     private final boolean mapInstanceIds;
     private final boolean mapControllerServiceReferencesToVersionedId;
+    private final boolean mapFlowRegistryClientId;
 
     private FlowMappingOptions(final Builder builder) {
         encryptor = builder.encryptor;
@@ -36,6 +37,7 @@ public class FlowMappingOptions {
         mapSensitiveConfiguration = builder.mapSensitiveConfiguration;
         mapInstanceIds = builder.mapInstanceId;
         mapControllerServiceReferencesToVersionedId = builder.mapControllerServiceReferencesToVersionedId;
+        mapFlowRegistryClientId = builder.mapFlowRegistryClientId;
     }
 
     public SensitiveValueEncryptor getSensitiveValueEncryptor() {
@@ -66,6 +68,10 @@ public class FlowMappingOptions {
         return mapControllerServiceReferencesToVersionedId;
     }
 
+    public boolean isMapFlowRegistryClientId() {
+        return mapFlowRegistryClientId;
+    }
+
     public static class Builder {
         private SensitiveValueEncryptor encryptor;
         private VersionedComponentStateLookup stateLookup;
@@ -74,6 +80,7 @@ public class FlowMappingOptions {
         private boolean mapSensitiveConfiguration;
         private boolean mapInstanceId = false;
         private boolean mapControllerServiceReferencesToVersionedId = true;
+        private boolean mapFlowRegistryClientId = false;
 
         /**
          * Sets the SensitiveValueEncryptor to use for encrypting sensitive values. This value must be set
@@ -161,6 +168,16 @@ public class FlowMappingOptions {
         }
 
         /**
+         * Specifies whether or not the identifier of a Flow Registry Client should be included in the VersionedFlowCoordinates of a Versioned Process Group
+         * @param mapFlowRegistryClientId <code>true</code> if the Registry ID of the Flow Registry Client should be mapped, <code>false</code> otherwise
+         * @return the builder
+         */
+        public Builder mapFlowRegistryClientId(final boolean mapFlowRegistryClientId) {
+            this.mapFlowRegistryClientId = mapFlowRegistryClientId;
+            return this;
+        }
+
+        /**
          * Creates a FlowMappingOptions object, or throws an Exception if not all required configuration has been provided
          *
          * @return the FlowMappingOptions
@@ -192,6 +209,7 @@ public class FlowMappingOptions {
         .mapSensitiveConfiguration(false)
         .mapInstanceIdentifiers(false)
         .mapControllerServiceReferencesToVersionedId(true)
+        .mapFlowRegistryClientId(false)
         .build();
 
 }

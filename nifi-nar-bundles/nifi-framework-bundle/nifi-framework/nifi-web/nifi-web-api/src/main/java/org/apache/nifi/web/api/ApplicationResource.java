@@ -916,6 +916,15 @@ public abstract class ApplicationResource {
         throw new NoClusterCoordinatorException();
     }
 
+    protected Optional<NodeIdentifier> getPrimaryNodeId() {
+        final ClusterCoordinator coordinator = getClusterCoordinator();
+        if (coordinator == null) {
+            throw new NoClusterCoordinatorException();
+        }
+
+        return Optional.ofNullable(coordinator.getPrimaryNode());
+    }
+
     protected ReplicationTarget getReplicationTarget() {
         return clusterCoordinator.isActiveClusterCoordinator() ? ReplicationTarget.CLUSTER_NODES : ReplicationTarget.CLUSTER_COORDINATOR;
     }

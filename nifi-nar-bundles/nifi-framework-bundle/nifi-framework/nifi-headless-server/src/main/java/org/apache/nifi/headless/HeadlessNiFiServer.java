@@ -52,11 +52,10 @@ import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.nar.NarAutoLoader;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.NarLoader;
+import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardNarLoader;
-import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.flow.StandardFlowRegistryClient;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.services.FlowService;
@@ -133,8 +132,6 @@ public class HeadlessNiFiServer implements NiFiServer {
             PropertyEncryptor encryptor = PropertyEncryptorFactory.getPropertyEncryptor(props);
             VariableRegistry variableRegistry = new FileBasedVariableRegistry(props.getVariableRegistryPropertiesPaths());
             BulletinRepository bulletinRepository = new VolatileBulletinRepository();
-            StandardFlowRegistryClient flowRegistryClient = new StandardFlowRegistryClient();
-            flowRegistryClient.setProperties(props);
 
             final StatusHistoryRepositoryFactoryBean statusHistoryRepositoryFactoryBean = new StatusHistoryRepositoryFactoryBean();
             statusHistoryRepositoryFactoryBean.setNifiProperties(props);
@@ -149,7 +146,6 @@ public class HeadlessNiFiServer implements NiFiServer {
                     encryptor,
                     bulletinRepository,
                     variableRegistry,
-                    flowRegistryClient,
                     extensionManager,
                     statusHistoryRepository);
 

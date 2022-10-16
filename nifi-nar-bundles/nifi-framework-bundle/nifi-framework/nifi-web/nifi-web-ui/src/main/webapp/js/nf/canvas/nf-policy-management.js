@@ -1557,6 +1557,60 @@
         },
 
         /**
+         * Shows the paramter provider policy.
+         *
+         * @param d
+         */
+        showParameterProviderPolicy: function (d) {
+            initializingComponentPolicy = true;
+
+            // reset the policy message
+            resetPolicyMessage();
+
+            // update the policy controls visibility
+            $('#component-policy-controls').show();
+            $('#global-policy-controls').hide();
+
+            // update the visibility
+            if (d.permissions.canRead === true) {
+                $('#policy-selected-parameter-provider-container div.policy-selected-component-name').text(d.component.name);
+            } else {
+                $('#policy-selected-parameter-provider-container div.policy-selected-component-name').text(d.id);
+            }
+            $('#policy-selected-parameter-provider-container').show();
+
+            // populate the initial resource
+            $('#selected-policy-component-id').text(d.id);
+            $('#selected-policy-component-type').text('parameter-providers');
+            $('#component-policy-target')
+                .combo('setOptionEnabled', {
+                    value: 'operate-component'
+                }, false)
+                .combo('setOptionEnabled', {
+                    value: 'write-receive-data'
+                }, false)
+                .combo('setOptionEnabled', {
+                    value: 'write-send-data'
+                }, false)
+                .combo('setOptionEnabled', {
+                    value: 'read-data'
+                }, false)
+                .combo('setOptionEnabled', {
+                    value: 'read-provenance'
+                }, false)
+                .combo('setOptionEnabled', {
+                    value: 'write-data'
+                }, false)
+                .combo('setSelectedOption', {
+                    value: 'read-component'
+                });
+
+            initializingComponentPolicy = false;
+
+            return loadPolicy().always(showPolicy);
+        },
+
+        /**
          * Shows the template policy.
          *
          * @param d

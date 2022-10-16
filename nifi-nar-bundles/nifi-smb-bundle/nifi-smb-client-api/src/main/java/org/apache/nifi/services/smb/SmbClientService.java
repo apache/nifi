@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.services.smb;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.stream.Stream;
 
 /**
@@ -27,4 +29,5 @@ public interface SmbClientService extends AutoCloseable {
 
     void createDirectory(String path);
 
+    void readFile(String fileName, OutputStream outputStream) throws IOException;
 }

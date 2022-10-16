@@ -95,6 +95,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -630,6 +632,8 @@ public class InvokeHTTP extends AbstractProcessor {
 
     private static final String MULTIPLE_HEADER_DELIMITER = ", ";
 
+    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(InvokeHTTP.class);
+
     private volatile Set<String> dynamicPropertyNames = new HashSet<>();
 
     private volatile Pattern requestHeaderAttributesPattern = null;
@@ -704,6 +708,15 @@ public class InvokeHTTP extends AbstractProcessor {
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(3);
         final boolean proxyHostSet = validationContext.getProperty(PROXY_HOST).isSet();
+        if (proxyHostSet) {
+            deprecationLogger.warn("{}[id={}] [{}] Property should be replaced with [{}] Property",
+                    getClass().getSimpleName(),
+                    getIdentifier(),
+                    PROXY_HOST.getDisplayName(),
+                    PROXY_CONFIGURATION_SERVICE.getDisplayName()
+            );
+        }
+
         final boolean proxyPortSet = validationContext.getProperty(PROXY_PORT).isSet();
 
         if ((proxyHostSet && !proxyPortSet) || (!proxyHostSet && proxyPortSet)) {

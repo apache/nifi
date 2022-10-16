@@ -25,6 +25,10 @@
     <description>A bundle for reading and writing secrets from HashiCorp Vault</description>
     <modules>
         <module>nifi-hashicorp-vault-parameter-value-provider</module>
+        <module>nifi-hashicorp-vault-client-service-api</module>
+        <module>nifi-hashicorp-vault-client-service-api-nar</module>
+        <module>nifi-hashicorp-vault-client-service</module>
+        <module>nifi-hashicorp-vault-parameter-provider</module>
         <module>nifi-hashicorp-vault-nar</module>
     </modules>
 </project>

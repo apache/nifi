@@ -29,7 +29,12 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-vault-utils</artifactId>
+            <artifactId>nifi-hashicorp-vault-api</artifactId>
+            <version>1.18.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-hashicorp-vault</artifactId>
             <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>

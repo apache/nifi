@@ -17,7 +17,7 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.util.NumberUtil;
@@ -32,7 +32,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
 
     private ProcessGroupDTO component;
     private ProcessGroupStatusDTO status;
-    private VersionedFlowSnapshot versionedFlowSnapshot;
+    private RegisteredFlowSnapshot versionedFlowSnapshot;
 
     private Integer runningCount;
     private Integer stoppedCount;
@@ -256,11 +256,11 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     }
 
     @ApiModelProperty(value = "Returns the Versioned Flow that describes the contents of the Versioned Flow to be imported", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
-    public VersionedFlowSnapshot getVersionedFlowSnapshot() {
+    public RegisteredFlowSnapshot getVersionedFlowSnapshot() {
         return versionedFlowSnapshot;
     }
 
-    public void setVersionedFlowSnapshot(VersionedFlowSnapshot versionedFlowSnapshot) {
+    public void setVersionedFlowSnapshot(RegisteredFlowSnapshot versionedFlowSnapshot) {
         this.versionedFlowSnapshot = versionedFlowSnapshot;
     }
 

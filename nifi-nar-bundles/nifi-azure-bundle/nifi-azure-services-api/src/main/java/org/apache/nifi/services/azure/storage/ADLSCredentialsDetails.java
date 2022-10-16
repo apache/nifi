@@ -18,6 +18,8 @@ package org.apache.nifi.services.azure.storage;
 
 import com.azure.core.credential.AccessToken;
 
+import java.util.Objects;
+
 public class ADLSCredentialsDetails {
     private final String accountName;
 
@@ -96,6 +98,45 @@ public class ADLSCredentialsDetails {
 
     public String getServicePrincipalClientSecret() {
         return servicePrincipalClientSecret;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        ADLSCredentialsDetails that = (ADLSCredentialsDetails) o;
+        return useManagedIdentity == that.useManagedIdentity
+                && Objects.equals(accountName, that.accountName)
+                && Objects.equals(accountKey, that.accountKey)
+                && Objects.equals(sasToken, that.sasToken)
+                && Objects.equals(endpointSuffix, that.endpointSuffix)
+                && Objects.equals(accessToken, that.accessToken)
+                && Objects.equals(managedIdentityClientId, that.managedIdentityClientId)
+                && Objects.equals(servicePrincipalTenantId, that.servicePrincipalTenantId)
+                && Objects.equals(servicePrincipalClientId, that.servicePrincipalClientId)
+                && Objects.equals(servicePrincipalClientSecret, that.servicePrincipalClientSecret);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+                accountName,
+                accountKey,
+                sasToken,
+                endpointSuffix,
+                accessToken,
+                useManagedIdentity,
+                managedIdentityClientId,
+                servicePrincipalTenantId,
+                servicePrincipalClientId,
+                servicePrincipalClientSecret
+        );
     }
 
     public static class Builder {

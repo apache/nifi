@@ -23,6 +23,8 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -50,7 +52,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
  * </p>
  */
 public interface RecordSetWriterFactory extends ControllerService {
-
     /**
      * <p>
      * Returns the Schema that will be used for writing Records. The given variables are
@@ -82,6 +83,15 @@ public interface RecordSetWriterFactory extends ControllerService {
      */
     @Deprecated
     default RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out) throws SchemaNotFoundException, IOException {
+        final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(getClass());
+        final String deprecatedMethod = "createWriter(ComponentLog, RecordSchema, OutputStream)";
+        final String replacementMethod = "createWriter(ComponentLog, RecordSchema, OutputStream, FlowFile)";
+        deprecationLogger.warn("{}[id={}] {} should be replaced with {}",
+                getClass().getSimpleName(),
+                getIdentifier(),
+                deprecatedMethod,
+                replacementMethod
+        );
         return createWriter(logger, schema, out, Collections.emptyMap());
     }
 

@@ -21,9 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
-import com.microsoft.azure.eventhubs.ConnectionStringBuilder;
-import com.microsoft.azure.eventhubs.EventData;
-
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -33,7 +30,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 public final class AzureEventHubUtils {
 
-    public static final String MANAGED_IDENTITY_POLICY = ConnectionStringBuilder.MANAGED_IDENTITY_AUTHENTICATION;
     public static final AllowableValue AZURE_ENDPOINT = new AllowableValue(".servicebus.windows.net","Azure", "Servicebus endpoint for general use");
     public static final AllowableValue AZURE_CHINA_ENDPOINT = new AllowableValue(".servicebus.chinacloudapi.cn", "Azure China", "Servicebus endpoint for China");
     public static final AllowableValue AZURE_GERMANY_ENDPOINT = new AllowableValue(".servicebus.cloudapi.de", "Azure Germany", "Servicebus endpoint for Germany");
@@ -95,35 +91,15 @@ public final class AzureEventHubUtils {
         return retVal;
     }
 
-    public static String getManagedIdentityConnectionString(final String namespace, final String domainName, final String eventHubName){
-        return new ConnectionStringBuilder()
-                    .setEndpoint(namespace, removeStartingDotFrom(domainName))
-                    .setEventHubName(eventHubName)
-                    .setAuthentication(MANAGED_IDENTITY_POLICY).toString();
-    }
-    public static String getSharedAccessSignatureConnectionString(final String namespace, final String domainName, final String eventHubName, final String sasName, final String sasKey) {
-        return new ConnectionStringBuilder()
-                    .setEndpoint(namespace, removeStartingDotFrom(domainName))
-                    .setEventHubName(eventHubName)
-                    .setSasKeyName(sasName)
-                    .setSasKey(sasKey).toString();
-    }
-
-    public static Map<String, String> getApplicationProperties(EventData eventData) {
+    public static Map<String, String> getApplicationProperties(final Map<String,Object> eventProperties) {
         final Map<String, String> properties = new HashMap<>();
 
-        final Map<String,Object> applicationProperties = eventData.getProperties();
-        if (null != applicationProperties) {
-            for (Map.Entry<String, Object> property : applicationProperties.entrySet()) {
+        if (eventProperties != null) {
+            for (Map.Entry<String, Object> property : eventProperties.entrySet()) {
                 properties.put(String.format("eventhub.property.%s", property.getKey()), property.getValue().toString());
             }
         }
 
         return properties;
     }
-
-    private static String removeStartingDotFrom(final String domainName) {
-        return domainName.replaceFirst("^\\.", "");
-    }
-
 }

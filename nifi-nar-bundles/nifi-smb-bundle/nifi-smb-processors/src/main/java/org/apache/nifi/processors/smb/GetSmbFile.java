@@ -85,7 +85,7 @@ import java.util.regex.Pattern;
 @CapabilityDescription("Reads file from a samba network location to FlowFiles. " +
     "Use this processor instead of a cifs mounts if share access control is important. " +
     "Configure the Hostname, Share and Directory accordingly: \\\\[Hostname]\\[Share]\\[path\\to\\Directory]")
-@SeeAlso({PutSmbFile.class})
+@SeeAlso({PutSmbFile.class, ListSmb.class, FetchSmb.class})
 @WritesAttributes({
         @WritesAttribute(attribute = "filename", description = "The filename is set to the name of the file on the network share"),
         @WritesAttribute(attribute = "path", description = "The path is set to the relative path of the file's network share name. For example, "

@@ -19,6 +19,7 @@ package org.apache.nifi.web.search;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.groups.ProcessGroup;
@@ -61,6 +62,10 @@ public class ComponentMatcherFactory {
     }
 
     public ComponentMatcher<ControllerServiceNode> getInstanceForControllerServiceNode(final List<AttributeMatcher<ControllerServiceNode>> attributeMatchers) {
+        return new AttributeBasedComponentMatcher<>(attributeMatchers, component -> component.getIdentifier(), component -> component.getName());
+    }
+
+    public ComponentMatcher<ParameterProviderNode> getInstanceForParameterProviderNode(final List<AttributeMatcher<ParameterProviderNode>> attributeMatchers) {
         return new AttributeBasedComponentMatcher<>(attributeMatchers, component -> component.getIdentifier(), component -> component.getName());
     }
 
