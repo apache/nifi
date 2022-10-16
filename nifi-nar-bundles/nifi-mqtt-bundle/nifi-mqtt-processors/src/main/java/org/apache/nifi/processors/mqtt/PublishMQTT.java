@@ -116,9 +116,9 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
     public static final PropertyDescriptor MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(BASE_MESSAGE_DEMARCATOR)
             .description("With this property, you have an option to publish multiple messages from a single FlowFile. "
-                    + "This property allows you to provide a string (interpreted as UTF-8) to use for splitting "
+                    + "This property allows you to provide a string (interpreted as UTF-8) to use for demarcating apart "
                     + "the FlowFile content. This is an optional property ; if not provided, and if not defining a "
-                    + "Record Reader/Writer, each message received will result in a single FlowFile. To enter special "
+                    + "Record Reader/Writer, each FlowFile will be published as a single message. To enter special "
                     + "character such as 'new line' use CTRL+Enter or Shift+Enter depending on the OS.")
             .build();
 
@@ -382,9 +382,9 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
     class ProcessDemarcatedContentStrategy implements ProcessStrategy {
 
-        static final String PROVENANCE_EVENT_DETAILS_ON_SINGLE_MESSAGE_FAILURE = "Publish failed after %d successfully published messages.";
-        static final String PROVENANCE_EVENT_DETAILS_ON_SINGLE_MESSAGE_RECOVER = "Successfully finished publishing previously failed messages. Total message count: %d";
-        static final String PROVENANCE_EVENT_DETAILS_ON_SINGLE_MESSAGE_SUCCESS = "Successfully published all messages. Total message count: %d";
+        static final String PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_FAILURE = "Publish failed after %d successfully published messages.";
+        static final String PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_RECOVER = "Successfully finished publishing previously failed messages. Total message count: %d";
+        static final String PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_SUCCESS = "Successfully published all messages. Total message count: %d";
 
         @Override
         public void process(ProcessContext context, FlowFile flowfile, InputStream in, String topic, AtomicInteger processedRecords, Long previousProcessFailedAt) {
@@ -408,17 +408,17 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
         @Override
         public String getFailureTemplateMessage() {
-            return PROVENANCE_EVENT_DETAILS_ON_SINGLE_MESSAGE_FAILURE;
+            return PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_FAILURE;
         }
 
         @Override
         public String getRecoverTemplateMessage() {
-            return PROVENANCE_EVENT_DETAILS_ON_SINGLE_MESSAGE_RECOVER;
+            return PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_RECOVER;
         }
 
         @Override
         public String getSuccessTemplateMessage() {
-            return PROVENANCE_EVENT_DETAILS_ON_SINGLE_MESSAGE_SUCCESS;
+            return PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_SUCCESS;
         }
     }
 }

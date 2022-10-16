@@ -40,9 +40,9 @@ import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static org.apache.nifi.processors.mqtt.PublishMQTT.ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
-import static org.apache.nifi.processors.mqtt.PublishMQTT.ProcessDemarcatedContentStrategy.PROVENANCE_EVENT_DETAILS_ON_SINGLE_MESSAGE_FAILURE;
-import static org.apache.nifi.processors.mqtt.PublishMQTT.ProcessDemarcatedContentStrategy.PROVENANCE_EVENT_DETAILS_ON_SINGLE_MESSAGE_RECOVER;
-import static org.apache.nifi.processors.mqtt.PublishMQTT.ProcessDemarcatedContentStrategy.PROVENANCE_EVENT_DETAILS_ON_SINGLE_MESSAGE_SUCCESS;
+import static org.apache.nifi.processors.mqtt.PublishMQTT.ProcessDemarcatedContentStrategy.PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_FAILURE;
+import static org.apache.nifi.processors.mqtt.PublishMQTT.ProcessDemarcatedContentStrategy.PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_RECOVER;
+import static org.apache.nifi.processors.mqtt.PublishMQTT.ProcessDemarcatedContentStrategy.PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_SUCCESS;
 import static org.apache.nifi.processors.mqtt.PublishMQTT.ProcessRecordSetStrategy.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE;
 import static org.apache.nifi.processors.mqtt.PublishMQTT.ProcessRecordSetStrategy.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER;
 import static org.apache.nifi.processors.mqtt.PublishMQTT.ProcessRecordSetStrategy.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS;
@@ -75,7 +75,7 @@ public class TestPublishMQTT {
 
     @Test
     public void testRecordAndDemarcatorConfigurationTogetherIsInvalid() throws InitializationException {
-        mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber);
+        mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Publisher);
         testRunner = initializeTestRunner(mqttTestClient);
 
         testRunner.setProperty(PublishMQTT.RECORD_READER, createJsonRecordSetReaderService(testRunner));
@@ -351,7 +351,7 @@ public class TestPublishMQTT {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
-        assertProvenanceEvent(String.format(PROVENANCE_EVENT_DETAILS_ON_SINGLE_MESSAGE_SUCCESS, 3));
+        assertProvenanceEvent(String.format(PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_SUCCESS, 3));
 
         testRunner.assertTransferCount(REL_SUCCESS, 1);
         verifyPublishedMessage(testInput.get(0).getBytes(), 2, false);
@@ -388,7 +388,7 @@ public class TestPublishMQTT {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(REL_FAILURE);
-        assertProvenanceEvent(String.format(PROVENANCE_EVENT_DETAILS_ON_SINGLE_MESSAGE_FAILURE, 1));
+        assertProvenanceEvent(String.format(PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_FAILURE, 1));
 
         verify(mqttTestClient, Mockito.times(2)).publish(any(), any());
         verifyPublishedMessage(testInput.get(0).getBytes(), 2, false);
@@ -426,7 +426,7 @@ public class TestPublishMQTT {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(REL_FAILURE);
-        assertProvenanceEvent(String.format(PROVENANCE_EVENT_DETAILS_ON_SINGLE_MESSAGE_FAILURE, 2));
+        assertProvenanceEvent(String.format(PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_FAILURE, 2));
 
         verify(mqttTestClient, Mockito.times(2)).publish(any(), any());
         verifyPublishedMessage(testInput.get(1).getBytes(), 2, false);
@@ -461,7 +461,7 @@ public class TestPublishMQTT {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
-        assertProvenanceEvent(String.format(PROVENANCE_EVENT_DETAILS_ON_SINGLE_MESSAGE_RECOVER, 3));
+        assertProvenanceEvent(String.format(PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_RECOVER, 3));
 
         verify(mqttTestClient, Mockito.times(2)).publish(any(), any());
         verifyPublishedMessage(testInput.get(1).getBytes(), 2, false);

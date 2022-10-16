@@ -302,7 +302,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         final boolean demarcatorIsSet = validationContext.getProperty(BASE_MESSAGE_DEMARCATOR).isSet();
         if (readerIsSet && demarcatorIsSet) {
             results.add(new ValidationResult.Builder().subject("Reader and Writer").valid(false)
-                    .explanation("message Demarcator and Record Reader/Writer cannot be used at the same time.").build());
+                    .explanation("Message Demarcator and Record Reader/Writer cannot be used at the same time.").build());
         }
 
         return results;

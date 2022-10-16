@@ -176,7 +176,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
             .description("With this property, you have an option to output FlowFiles which contains multiple messages. "
                     + "This property allows you to provide a string (interpreted as UTF-8) to use for demarcating apart "
                     + "multiple messages. This is an optional property ; if not provided, and if not defining a "
-                    + "Record Reader, each message received will result in a single FlowFile. To enter special "
+                    + "Record Reader/Writer, each message received will result in a single FlowFile. To enter special "
                     + "character such as 'new line' use CTRL+Enter or Shift+Enter depending on the OS.")
             .build();
 
@@ -225,8 +225,8 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
             PROP_QOS,
             RECORD_READER,
             RECORD_WRITER,
-            MESSAGE_DEMARCATOR,
             ADD_ATTRIBUTES_AS_FIELDS,
+            MESSAGE_DEMARCATOR,
             PROP_CONN_TIMEOUT,
             PROP_KEEP_ALIVE_INTERVAL,
             PROP_LAST_WILL_MESSAGE,
