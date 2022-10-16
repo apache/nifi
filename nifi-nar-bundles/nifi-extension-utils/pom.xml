@@ -30,6 +30,7 @@
         <module>nifi-bin-manager</module>
         <module>nifi-database-utils</module>
         <module>nifi-database-test-utils</module>
+        <module>nifi-dbcp-base</module>
         <module>nifi-event-listen</module>
         <module>nifi-event-put</module>
         <module>nifi-event-transport</module>
