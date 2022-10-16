@@ -97,7 +97,7 @@ public class AzureAdxIngestProcessorTest {
     public void testAzureAdxIngestProcessorQueuedStreaming() throws InitializationException {
 
         testRunner.setProperty(AzureAdxIngestProcessor.TABLE_NAME,MOCK_TABLE_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.IM_KIND,AzureAdxIngestProcessor.IM_KIND_CSV);
+        //testRunner.setProperty(AzureAdxIngestProcessor.IM_KIND,AzureAdxIngestProcessor.IM_KIND_CSV);
         testRunner.setProperty(AzureAdxIngestProcessor.DB_NAME,MOCK_DB_NAME);
         testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
         testRunner.setProperty(AzureAdxIngestProcessor.DATA_FORMAT,"CSV");
@@ -129,7 +129,7 @@ public class AzureAdxIngestProcessorTest {
     public void testAzureAdxIngestProcessorManagedStreaming() throws InitializationException {
 
         testRunner.setProperty(AzureAdxIngestProcessor.TABLE_NAME,MOCK_TABLE_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.IM_KIND,AzureAdxIngestProcessor.IM_KIND_CSV);
+        //testRunner.setProperty(AzureAdxIngestProcessor.IM_KIND,AzureAdxIngestProcessor.IM_KIND_CSV);
         testRunner.setProperty(AzureAdxIngestProcessor.DB_NAME,MOCK_DB_NAME);
         testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
         testRunner.setProperty(AzureAdxIngestProcessor.DATA_FORMAT,"CSV");
@@ -163,7 +163,7 @@ public class AzureAdxIngestProcessorTest {
     public void testGetPropertyDescriptors() {
 
         testRunner.setProperty(AzureAdxIngestProcessor.TABLE_NAME,MOCK_TABLE_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.IM_KIND,AzureAdxIngestProcessor.IM_KIND_CSV);
+        //testRunner.setProperty(AzureAdxIngestProcessor.IM_KIND,AzureAdxIngestProcessor.IM_KIND_CSV);
         testRunner.setProperty(AzureAdxIngestProcessor.DB_NAME,MOCK_DB_NAME);
         testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
         testRunner.setProperty(AzureAdxIngestProcessor.DATA_FORMAT,"CSV");
@@ -178,7 +178,7 @@ public class AzureAdxIngestProcessorTest {
         assertTrue(pd.contains(AzureAdxIngestProcessor.ADX_SERVICE));
         assertTrue(pd.contains(AzureAdxIngestProcessor.DATA_FORMAT));
         assertTrue(pd.contains(AzureAdxIngestProcessor.DB_NAME));
-        assertTrue(pd.contains(AzureAdxIngestProcessor.IM_KIND));
+        //assertTrue(pd.contains(AzureAdxIngestProcessor.IM_KIND));
         assertTrue(pd.contains(AzureAdxIngestProcessor.IR_METHOD));
         assertTrue(pd.contains(AzureAdxIngestProcessor.FLUSH_IMMEDIATE));
         assertTrue(pd.contains(AzureAdxIngestProcessor.MAPPING_NAME));
@@ -191,7 +191,7 @@ public class AzureAdxIngestProcessorTest {
     public void testMissingPropertyValuesOfAdxIngestProcessor() throws InitializationException {
 
         //missing property tableName
-        testRunner.setProperty(AzureAdxIngestProcessor.IM_KIND,AzureAdxIngestProcessor.IM_KIND_CSV);
+        //testRunner.setProperty(AzureAdxIngestProcessor.IM_KIND,AzureAdxIngestProcessor.IM_KIND_CSV);
         testRunner.setProperty(AzureAdxIngestProcessor.DB_NAME,MOCK_DB_NAME);
         //testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
         testRunner.setProperty(AzureAdxIngestProcessor.DATA_FORMAT,"CSV");
@@ -225,7 +225,7 @@ public class AzureAdxIngestProcessorTest {
     public void testMissingPropertyValuesOfAdxConnectionService() throws InitializationException {
 
         //missing property tableName
-        testRunner.setProperty(AzureAdxIngestProcessor.IM_KIND,AzureAdxIngestProcessor.IM_KIND_CSV);
+        //testRunner.setProperty(AzureAdxIngestProcessor.IM_KIND,AzureAdxIngestProcessor.IM_KIND_CSV);
         testRunner.setProperty(AzureAdxIngestProcessor.DB_NAME,MOCK_DB_NAME);
         testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
         testRunner.setProperty(AzureAdxIngestProcessor.DATA_FORMAT,"CSV");
@@ -259,7 +259,7 @@ public class AzureAdxIngestProcessorTest {
     public void testIngestionFailure() throws InitializationException, IngestionClientException, IngestionServiceException {
 
         testRunner.setProperty(AzureAdxIngestProcessor.TABLE_NAME,MOCK_TABLE_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.IM_KIND,AzureAdxIngestProcessor.IM_KIND_CSV);
+        //testRunner.setProperty(AzureAdxIngestProcessor.IM_KIND,AzureAdxIngestProcessor.IM_KIND_CSV);
         testRunner.setProperty(AzureAdxIngestProcessor.DB_NAME,MOCK_DB_NAME);
         testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
         testRunner.setProperty(AzureAdxIngestProcessor.DATA_FORMAT,"CSV");

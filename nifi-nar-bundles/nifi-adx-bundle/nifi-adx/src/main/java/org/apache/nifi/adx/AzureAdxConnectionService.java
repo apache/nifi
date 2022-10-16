@@ -46,7 +46,7 @@ import org.apache.nifi.reporting.InitializationException;
 @Tags({ "Azure", "ADX", "Kusto", "ingest", "azure"})
 @CapabilityDescription("Sends batches of flowfile content or stream flowfile content to an Azure ADX cluster.")
 @ReadsAttributes({
-        @ReadsAttribute(attribute = "AUTH_STRATEGY", description = "The strategy/method to authenticate against Azure Active Directory, either 'application' or 'managed_identity'."),
+        @ReadsAttribute(attribute= "AUTH_STRATEGY", description = "The strategy/method to authenticate against Azure Active Directory, either 'application' or 'managed_identity'."),
         @ReadsAttribute(attribute= "INGEST_URL", description="Specifies the URL of ingestion endpoint of the Azure Data Explorer cluster."),
         @ReadsAttribute(attribute= "APP_ID", description="Specifies Azure application id for accessing the ADX-Cluster."),
         @ReadsAttribute(attribute= "APP_KEY", description="Specifies Azure application key for accessing the ADX-Cluster."),
@@ -113,7 +113,6 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
             .description(AzureAdxConnectionServiceParamsEnum.CLUSTER_URL.getDescription())
             .required(false)
             .addValidator(StandardValidators.URL_VALIDATOR)
-            .dependsOn(IS_STREAMING_ENABLED,"true")
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(
@@ -161,7 +160,7 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
         }
 
         this._ingestClient = createAdxClient(ingestUrl, app_id, app_key, app_tenant,isStreamingEnabled,kustoEngineUrl,kustoAuthStrategy);
-        this.executionClient = createKustoExecutionClient(ingestUrl,app_id,app_key,app_tenant,kustoAuthStrategy);
+        this.executionClient = createKustoExecutionClient(kustoEngineUrl,app_id,app_key,app_tenant,kustoAuthStrategy);
 
     }
 
@@ -224,7 +223,6 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
 
     public ConnectionStringBuilder createKustoEngineConnectionString(final String clusterUrl,final String appId,final String appKey,final String appTenant, final String kustoAuthStrategy) {
         final ConnectionStringBuilder kcsb;
-
         switch (kustoAuthStrategy) {
             case "application":
                 if (!Strings.isNullOrEmpty(appId) && !Strings.isNullOrEmpty(appKey)) {
@@ -249,7 +247,6 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
                         "provide valid credentials. Either Kusto managed identity or " +
                         "Kusto appId, appKey, and authority should be configured.");
         }
-
         kcsb.setClientVersionForTracing(Version.CLIENT_NAME + ":" + Version.getVersion());
         return kcsb;
     }

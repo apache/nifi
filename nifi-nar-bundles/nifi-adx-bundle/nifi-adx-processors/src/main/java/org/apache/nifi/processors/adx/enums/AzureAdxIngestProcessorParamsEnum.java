@@ -22,11 +22,20 @@ public enum AzureAdxIngestProcessorParamsEnum {
     MAPPING_NAME("Mapping name","The name of the mapping responsible for storing the data in the appropriate columns."),
     FLUSH_IMMEDIATE("Flush immediate","Flush the content sent immediately to the ingest endpoint."),
     DATA_FORMAT("Data format","The format of the data that is sent to ADX."),
-    IM_KIND("IngestionMappingKind","The type of the ingestion mapping related to the table in ADX."),
-    IR_LEVEL("IngestionReportLevel","ADX can report events on several levels: None, Failure and Failure&Success."),
-    IR_METHOD("IngestionReportMethod","ADX can report events on several methods: Table, Queue and Table&Queue."),
-    ADX_SERVICE("AzureADXConnectionService","Service that provides the ADX-Connections."),
-    WAIT_FOR_STATUS("Wait for status","Define the status to be waited on.");
+    IM_KIND("Ingestion Mapping Kind","The type of the ingestion mapping related to the table in ADX."),
+    IR_LEVEL("Ingestion Report Level","ADX can report events on several levels: None, Failure and Failure&Success."),
+    IR_METHOD("Ingestion Report Method","ADX can report events on several methods: Table, Queue and Table&Queue."),
+    ADX_SERVICE("Azure ADXConnection Service","Service that provides the ADX-Connections."),
+    WAIT_FOR_STATUS("Wait for status","Define the status to be waited on."),
+    IS_TRANSACTIONAL("Ingestion Transactional Mode","Defines whether we want transactionality in the ingested data."),
+
+    IS_IGNORE_FIRST_RECORD("Ingestion Ignore First Record","Defines whether ignore first record while ingestion."),
+
+    MAX_BATCHING_TIME_SPAN("Maximum batching time span", "Maximum batching time span while queued ingestion"),
+
+    MAX_BATCHING_NO_OF_ITEMS("Maximum number of Items","Maximum number of items during batching while queued ingestion"),
+
+    MAX_BATCHING_RAW_DATA_SIZE_IN_MB("Maximum raw data size in MB","Maximum size of raw data in MBs while queued ingestion");
 
     private String paramDisplayName;
     private String paramDescription;
