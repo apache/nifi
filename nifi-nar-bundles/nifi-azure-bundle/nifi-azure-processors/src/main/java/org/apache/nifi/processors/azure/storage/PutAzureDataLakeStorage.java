@@ -161,10 +161,8 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
                 if (dlsException.getStatusCode() == 409) {
                     if (conflictResolution.equals(IGNORE_RESOLUTION)) {
                         session.transfer(flowFile, REL_SUCCESS);
-                        final String logMessage = String.format("File with the same name already exists. " +
-                                "Remote file not modified. " +
-                                "Transferring {} to success due to %s being set to '%s'.", CONFLICT_RESOLUTION.getDisplayName(), conflictResolution);
-                        getLogger().info(logMessage, flowFile);
+                        getLogger().info("File with the same name already exists. Remote file not modified. Transferring {} to success due to {} being set to '{}'.",
+                                flowFile, CONFLICT_RESOLUTION.getDisplayName(), conflictResolution);
                     } else {
                         throw dlsException;
                     }
