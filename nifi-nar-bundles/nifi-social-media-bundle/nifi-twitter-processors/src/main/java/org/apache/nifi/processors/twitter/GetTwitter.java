@@ -34,6 +34,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -71,6 +72,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.regex.Pattern;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 
 @Deprecated
 @DeprecationNotice(alternatives = {ConsumeTwitter.class}, reason = "GetTwitter relies on the Twitter Hosebird client, which is not maintained. This processor will be removed in future releases.")
@@ -81,6 +83,7 @@ import java.util.regex.Pattern;
 @WritesAttribute(attribute = "mime.type", description = "Sets mime type to application/json")
 @DynamicProperty(name="The name of a query parameter to add to the Twitter query", value="The value of a query parameter to add to the Twitter query",
         description="Allows users to specify the name/value of a query parameter to add to the Twitter query")
+@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class GetTwitter extends AbstractProcessor {
 
     static final AllowableValue ENDPOINT_SAMPLE = new AllowableValue("Sample Endpoint", "Sample Endpoint", "The endpoint that provides public data, aka a 'garden hose'");
