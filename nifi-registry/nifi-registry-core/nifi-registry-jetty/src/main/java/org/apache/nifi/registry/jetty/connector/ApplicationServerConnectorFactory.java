@@ -26,6 +26,7 @@ import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.security.util.TlsPlatform;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 import javax.net.ssl.SSLContext;
@@ -52,11 +53,14 @@ public class ApplicationServerConnectorFactory extends StandardServerConnectorFa
 
     private final String excludeCipherSuites;
 
+    private final String host;
+
     private SslContextFactory.Server sslContextFactory;
 
     public ApplicationServerConnectorFactory(final Server server, final NiFiRegistryProperties properties) {
         super(server, getPort(properties));
 
+        host = getHost(properties);
         includeCipherSuites = properties.getHttpsCipherSuitesInclude();
         excludeCipherSuites = properties.getHttpsCipherSuitesExclude();
 
@@ -75,6 +79,18 @@ public class ApplicationServerConnectorFactory extends StandardServerConnectorFa
             // Set Transport Layer Security Protocols based on platform configuration
             setIncludeSecurityProtocols(TlsPlatform.getPreferredProtocols().toArray(new String[0]));
         }
+    }
+
+    /**
+     * Get Server Connector using configured properties
+     *
+     * @return Server Connector
+     */
+    @Override
+    public ServerConnector getServerConnector() {
+        final ServerConnector serverConnector = super.getServerConnector();
+        serverConnector.setHost(host);
+        return serverConnector;
     }
 
     /**
@@ -186,6 +202,18 @@ public class ApplicationServerConnectorFactory extends StandardServerConnectorFa
                 )
                 .collect(Collectors.toSet());
         setApplicationLayerProtocols(applicationLayerProtocols);
+    }
+
+    private static String getHost(final NiFiRegistryProperties properties) {
+        final String host;
+
+        if (properties.isHTTPSConfigured()) {
+            host = properties.getHttpsHost();
+        } else {
+            host = properties.getHttpHost();
+        }
+
+        return host;
     }
 
     private static int getPort(final NiFiRegistryProperties properties) {

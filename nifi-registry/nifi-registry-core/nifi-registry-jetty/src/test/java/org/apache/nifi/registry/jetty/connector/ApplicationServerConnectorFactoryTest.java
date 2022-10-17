@@ -29,7 +29,9 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Properties;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ApplicationServerConnectorFactoryTest {
@@ -41,6 +43,8 @@ class ApplicationServerConnectorFactoryTest {
     private static final String INCLUDE_CIPHERS = ".*GCM.*";
 
     private static final String EXCLUDE_CIPHERS = "*.CBC.*";
+
+    private static final String LOCALHOST = "127.0.0.1";
 
     static TlsConfiguration tlsConfiguration;
 
@@ -68,6 +72,23 @@ class ApplicationServerConnectorFactoryTest {
         final ServerConnector serverConnector = factory.getServerConnector();
 
         assertNotNull(serverConnector);
+        assertNull(serverConnector.getHost());
+    }
+
+    @Test
+    void testGetServerConnectorHostProperty() {
+        final int port = NetworkUtils.getAvailableTcpPort();
+        final Properties configuredProperties = new Properties();
+        configuredProperties.put(NiFiRegistryProperties.WEB_HTTP_PORT, Integer.toString(port));
+        configuredProperties.put(NiFiRegistryProperties.WEB_HTTP_HOST, LOCALHOST);
+
+        final NiFiRegistryProperties properties = getProperties(configuredProperties);
+        final ApplicationServerConnectorFactory factory = new ApplicationServerConnectorFactory(server, properties);
+
+        final ServerConnector serverConnector = factory.getServerConnector();
+
+        assertNotNull(serverConnector);
+        assertEquals(LOCALHOST, serverConnector.getHost());
     }
 
     @Test
@@ -82,6 +103,7 @@ class ApplicationServerConnectorFactoryTest {
         final ServerConnector serverConnector = factory.getServerConnector();
 
         assertNotNull(serverConnector);
+        assertNull(serverConnector.getHost());
         assertTrue(serverConnector.getProtocols().contains(SSL_PROTOCOL));
     }
 
@@ -100,6 +122,7 @@ class ApplicationServerConnectorFactoryTest {
         final ServerConnector serverConnector = factory.getServerConnector();
 
         assertNotNull(serverConnector);
+        assertNull(serverConnector.getHost());
 
         final List<String> protocols = serverConnector.getProtocols();
         assertTrue(protocols.contains(SSL_PROTOCOL));
