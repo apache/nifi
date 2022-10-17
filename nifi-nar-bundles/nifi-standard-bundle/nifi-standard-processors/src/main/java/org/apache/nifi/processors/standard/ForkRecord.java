@@ -18,6 +18,7 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -86,6 +87,9 @@ import java.util.concurrent.atomic.AtomicInteger;
         + "all the fields of the parent records from the root level to the extracted record. This assumes that the fields to add in "
         + "the record are defined in the schema of the Record Writer controller service. See examples in the additional details "
         + "documentation of this processor.")
+@DynamicProperty(name = "Record Path property", value = "The Record Path value",
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+        description = "A Record Path value, pointing to a field of type ARRAY containing RECORD objects")
 @WritesAttributes({
     @WritesAttribute(attribute = "record.count", description = "The generated FlowFile will have a 'record.count' attribute indicating "
             + "the number of records that were written to the FlowFile."),
