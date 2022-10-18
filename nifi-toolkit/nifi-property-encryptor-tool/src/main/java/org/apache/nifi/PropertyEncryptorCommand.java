@@ -173,13 +173,6 @@ public class PropertyEncryptorCommand {
     }
 
     public void outputSensitiveProperties(final PropertyEncryptionMethod algorithm, final String sensitivePropertyKey) {
-        /* TODO
-         * Output will look like:
-         * nifi.sensitive.props.key=UXcrW8T1UKAPJeun||ezUJSp30AvKGsRxJOOXoPUtZonv56Lx1
-         * nifi.sensitive.props.key.protected=aes/gcm/128
-         * nifi.sensitive.props.algorithm=PBEWITHMD5AND256BITAES-CBC-OPENSSL
-         */
-
         final File outputPropertiesFile = ConfigurationFileUtils.getOutputFile(outputDirectory, applicationPropertiesFile);
         final MutableApplicationProperties updatedProperties = new MutableApplicationProperties(new Properties());
         updatedProperties.setProperty(NiFiProperties.SENSITIVE_PROPS_KEY, sensitivePropertyKey);
