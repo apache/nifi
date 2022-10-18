@@ -16,27 +16,31 @@
  */
 package org.apache.nifi.processors.jslt;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestJSLTTransformJSON {
 
     private TestRunner runner = TestRunners.newTestRunner(new JSLTTransformJSON());
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     public void setup() {
@@ -109,7 +113,7 @@ public class TestJSLTTransformJSON {
 
         final MockFlowFile flowFile = assertRunSuccess();
         final String expectedOutput = getResource("simpleOutput.json");
-        flowFile.assertContentEquals(expectedOutput);
+        assertContentEquals(flowFile, expectedOutput);
     }
 
     @Test
@@ -135,7 +139,17 @@ public class TestJSLTTransformJSON {
         final MockFlowFile flowFile = assertRunSuccess();
 
         final String expectedOutput = getResource(outputFileName);
-        flowFile.assertContentEquals(expectedOutput);
+        assertContentEquals(flowFile, expectedOutput);
+    }
+
+    private void assertContentEquals(final MockFlowFile flowFile, final String expectedJson) {
+        try {
+            final JsonNode flowFileNode = objectMapper.readTree(flowFile.getContent());
+            final JsonNode expectedNode = objectMapper.readTree(expectedJson);
+            assertEquals(expectedNode, flowFileNode);
+        } catch (final IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private void setTransformEnqueueJson(final String transformFileName, final String jsonFileName) {
@@ -157,20 +171,12 @@ public class TestJSLTTransformJSON {
         final String path = String.format("/%s", fileName);
         try (
                 final InputStream inputStream = Objects.requireNonNull(getClass().getResourceAsStream(path), "Resource not found");
-                final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))
-        ) {
-            final String resource = reader.lines().collect(Collectors.joining(System.lineSeparator()));
-            return translateNewLines(resource);
+                final ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
+                ) {
+            StreamUtils.copy(inputStream, outputStream);
+            return outputStream.toString();
         } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
-    }
-
-    /*
-     * Translate newlines (expected to be in *nix format to be in the codebase) to the system's line separator (to support Windows, e.g.)
-     */
-    private String translateNewLines(final String text) {
-        final Pattern pattern = Pattern.compile("\n", Pattern.MULTILINE);
-        return pattern.matcher(text).replaceAll(System.lineSeparator());
     }
 }
