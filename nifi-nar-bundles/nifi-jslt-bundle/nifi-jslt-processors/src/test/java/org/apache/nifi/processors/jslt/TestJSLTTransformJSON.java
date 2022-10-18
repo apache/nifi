@@ -22,17 +22,20 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class TestJSLTTransformJSON {
 
-    private final static Path JSON_INPUT = Paths.get("src/test/resources/input.json");
     private TestRunner runner = TestRunners.newTestRunner(new JSLTTransformJSON());
 
     @BeforeEach
@@ -41,13 +44,15 @@ public class TestJSLTTransformJSON {
     }
 
     @Test
-    public void testBadInput() throws IOException {
+    public void testBadInput() {
         final String inputFlowFile = "I am not JSON";
-        final String transform = new String(Files.readAllBytes(Paths.get("src/test/resources/simpleTransform.json")));
+        final String transform = getResource("simpleTransform.json");
         runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transform);
-        runner.setProperty(JSLTTransformJSON.PRETTY_PRINT, "true");
+        runner.setProperty(JSLTTransformJSON.PRETTY_PRINT, Boolean.TRUE.toString());
         runner.enqueue(inputFlowFile);
+
         runner.run();
+
         runner.assertTransferCount(JSLTTransformJSON.REL_SUCCESS, 0);
         runner.assertTransferCount(JSLTTransformJSON.REL_FAILURE, 1);
     }
@@ -61,83 +66,55 @@ public class TestJSLTTransformJSON {
     }
 
     @Test
-    public void testSimpleJSLT() throws IOException {
-        final String inputFlowFile = new String(Files.readAllBytes(JSON_INPUT));
-        final String transform = new String(Files.readAllBytes(Paths.get("src/test/resources/simpleTransform.json")));
-        runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transform);
-        runner.setProperty(JSLTTransformJSON.PRETTY_PRINT, "true");
-        runner.enqueue(inputFlowFile);
-        runner.run();
-        runner.assertTransferCount(JSLTTransformJSON.REL_SUCCESS, 1);
-        runner.assertTransferCount(JSLTTransformJSON.REL_FAILURE, 0);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(JSLTTransformJSON.REL_SUCCESS).get(0);
-        final String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/simpleOutput.json")));
-        flowFile.assertContentEquals(translateNewLines(expectedOutput));
+    public void testTransformFilePath() {
+        final URL transformUrl = Objects.requireNonNull(getClass().getResource("/simpleTransform.json"));
+        final String transformPath = transformUrl.getPath();
+
+        runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transformPath);
+        runner.setProperty(JSLTTransformJSON.PRETTY_PRINT, Boolean.TRUE.toString());
+
+        final String json = getResource("input.json");
+        runner.enqueue(json);
+
+        assertRunSuccess();
     }
 
     @Test
-    public void testTransform() throws IOException {
-        final String inputFlowFile = new String(Files.readAllBytes(JSON_INPUT));
-        final String transform = new String(Files.readAllBytes(Paths.get("src/test/resources/dynamicKeyTransform.json")));
-        runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transform);
-        runner.setProperty(JSLTTransformJSON.PRETTY_PRINT, "true");
-        runner.enqueue(inputFlowFile);
-        runner.run();
-        runner.assertTransferCount(JSLTTransformJSON.REL_SUCCESS, 1);
-        runner.assertTransferCount(JSLTTransformJSON.REL_FAILURE, 0);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(JSLTTransformJSON.REL_SUCCESS).get(0);
-        final String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/dynamicKeyTransformOutput.json")));
-        flowFile.assertContentEquals(translateNewLines(expectedOutput));
+    public void testSimpleJSLT() {
+        runTransform("input.json", "simpleTransform.json", "simpleOutput.json");
+    }
+
+    @Test
+    public void testTransform() {
+        runTransform("input.json", "dynamicKeyTransform.json", "dynamicKeyTransformOutput.json");
     }
 
     // This test verifies the capability of JSLT to perform a "cardinality ONE" operation (i.e. get first element if array) like JOLT has
     @Test
-    public void testCardinality() throws IOException {
-        final String inputFlowFile = new String(Files.readAllBytes(JSON_INPUT));
-        final String transform = new String(Files.readAllBytes(Paths.get("src/test/resources/cardinalityTransform.json")));
-        runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transform);
-        runner.setProperty(JSLTTransformJSON.PRETTY_PRINT, "true");
-        runner.enqueue(inputFlowFile);
-        runner.run();
-        runner.assertTransferCount(JSLTTransformJSON.REL_SUCCESS, 1);
-        runner.assertTransferCount(JSLTTransformJSON.REL_FAILURE, 0);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(JSLTTransformJSON.REL_SUCCESS).get(0);
-        final String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/cardinalityOutput.json")));
-        flowFile.assertContentEquals(translateNewLines(expectedOutput));
+    public void testCardinality() {
+        runTransform("input.json", "cardinalityTransform.json", "cardinalityOutput.json");
     }
 
     @Test
-    public void testExpressionLanguageTransform() throws IOException {
-        final String inputFlowFile = new String(Files.readAllBytes(JSON_INPUT));
-        final String transform = new String(Files.readAllBytes(Paths.get("src/test/resources/expressionLanguageTransform.json")));
+    public void testExpressionLanguageTransform() {
+        final String inputFlowFile = getResource("input.json");
+        final String transform = getResource("expressionLanguageTransform.json");
         runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transform);
         runner.assertValid();
-        runner.setProperty(JSLTTransformJSON.PRETTY_PRINT, "true");
+        runner.setProperty(JSLTTransformJSON.PRETTY_PRINT, Boolean.TRUE.toString());
         Map<String, String> attrs = new HashMap<>();
         attrs.put("rating.range", "RatingRange");
         attrs.put("rating.quality", ".rating.quality.value");
         runner.enqueue(inputFlowFile, attrs);
-        runner.run();
-        runner.assertTransferCount(JSLTTransformJSON.REL_SUCCESS, 1);
-        runner.assertTransferCount(JSLTTransformJSON.REL_FAILURE, 0);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(JSLTTransformJSON.REL_SUCCESS).get(0);
-        final String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/simpleOutput.json")));
-        flowFile.assertContentEquals(translateNewLines(expectedOutput));
+
+        final MockFlowFile flowFile = assertRunSuccess();
+        final String expectedOutput = getResource("simpleOutput.json");
+        flowFile.assertContentEquals(expectedOutput);
     }
 
     @Test
-    public void testArrayJSLT() throws IOException {
-        final String inputFlowFile = new String(Files.readAllBytes(Paths.get("src/test/resources/inputArray.json")));
-        final String transform = new String(Files.readAllBytes(Paths.get("src/test/resources/arrayTransform.json")));
-        runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transform);
-        runner.setProperty(JSLTTransformJSON.PRETTY_PRINT, "true");
-        runner.enqueue(inputFlowFile);
-        runner.run();
-        runner.assertTransferCount(JSLTTransformJSON.REL_SUCCESS, 1);
-        runner.assertTransferCount(JSLTTransformJSON.REL_FAILURE, 0);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(JSLTTransformJSON.REL_SUCCESS).get(0);
-        final String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/arrayOutput.json")));
-        flowFile.assertContentEquals(translateNewLines(expectedOutput));
+    public void testArrayJSLT() {
+        runTransform("inputArray.json", "arrayTransform.json", "arrayOutput.json");
     }
 
     @Test
@@ -145,22 +122,55 @@ public class TestJSLTTransformJSON {
         final String input = "{\"a\":1}";
         final String transform = ".b";
         runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transform);
-        runner.setProperty(JSLTTransformJSON.PRETTY_PRINT, "true");
+        runner.setProperty(JSLTTransformJSON.PRETTY_PRINT, Boolean.TRUE.toString());
         runner.enqueue(input);
+
+        final MockFlowFile flowFile = assertRunSuccess();
+        flowFile.assertContentEquals(new byte[0]);
+    }
+
+    private void runTransform(final String inputFileName, final String transformFileName, final String outputFileName) {
+        setTransformEnqueueJson(transformFileName, inputFileName);
+
+        final MockFlowFile flowFile = assertRunSuccess();
+
+        final String expectedOutput = getResource(outputFileName);
+        flowFile.assertContentEquals(expectedOutput);
+    }
+
+    private void setTransformEnqueueJson(final String transformFileName, final String jsonFileName) {
+        final String transform = getResource(transformFileName);
+        final String json = getResource(jsonFileName);
+        runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transform);
+        runner.setProperty(JSLTTransformJSON.PRETTY_PRINT, Boolean.TRUE.toString());
+        runner.enqueue(json);
+    }
+
+    private MockFlowFile assertRunSuccess() {
         runner.run();
         runner.assertTransferCount(JSLTTransformJSON.REL_SUCCESS, 1);
         runner.assertTransferCount(JSLTTransformJSON.REL_FAILURE, 0);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(JSLTTransformJSON.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals(new byte[0]);
+        return runner.getFlowFilesForRelationship(JSLTTransformJSON.REL_SUCCESS).iterator().next();
+    }
+
+    private String getResource(final String fileName) {
+        final String path = String.format("/%s", fileName);
+        try (
+                final InputStream inputStream = Objects.requireNonNull(getClass().getResourceAsStream(path), "Resource not found");
+                final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))
+        ) {
+            final String resource = reader.lines().collect(Collectors.joining(System.lineSeparator()));
+            return translateNewLines(resource);
+        } catch (final IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     /*
      * Translate newlines (expected to be in *nix format to be in the codebase) to the system's line separator (to support Windows, e.g.)
      */
     private String translateNewLines(final String text) {
-        final String lineSeparator = System.getProperty("line.separator");
         final Pattern pattern = Pattern.compile("\n", Pattern.MULTILINE);
-        final String translated = pattern.matcher(text).replaceAll(lineSeparator);
-        return translated;
+        return pattern.matcher(text).replaceAll(System.lineSeparator());
     }
 }
