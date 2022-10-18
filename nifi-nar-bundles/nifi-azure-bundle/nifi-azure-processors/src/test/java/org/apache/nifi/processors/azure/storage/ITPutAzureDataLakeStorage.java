@@ -42,6 +42,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.processors.azure.storage.PutAzureDataLakeStorage.FAIL_RESOLUTION;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILENAME;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILESYSTEM;
@@ -284,6 +285,7 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         final String componentId = "componentId";
         final DataLakeFileClient fileClient = mock(DataLakeFileClient.class);
         final Response<DataLakeFileClient> response = mock(Response.class);
+        final DataLakeStorageException exception = mock(DataLakeStorageException.class);
         //Mock logger
         when(initContext.getIdentifier()).thenReturn(componentId);
         MockComponentLog componentLog = new MockComponentLog(componentId, processor);
@@ -291,10 +293,10 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         processor.initialize(initContext);
         //Mock renameWithResponse Azure method
         when(fileClient.renameWithResponse(isNull(), anyString(), isNull(), any(DataLakeRequestConditions.class), isNull(), isNull())).thenReturn(response);
-        when(response.getValue()).thenThrow(DataLakeStorageException.class);
         when(fileClient.getFileName()).thenReturn(FILE_NAME);
-
-        assertThrows(DataLakeStorageException.class, () -> processor.renameFile(FILE_NAME, "", fileClient, false));
+        when(exception.getStatusCode()).thenReturn(405);
+        when(response.getValue()).thenThrow(exception);
+        assertThrows(DataLakeStorageException.class, () -> processor.renameFile(fileClient, "", FILE_NAME, FAIL_RESOLUTION));
         verify(fileClient).delete();
     }
 
