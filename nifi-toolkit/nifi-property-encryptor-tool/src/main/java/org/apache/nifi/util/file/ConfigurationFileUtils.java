@@ -93,7 +93,7 @@ public class ConfigurationFileUtils {
      * Return a configuration file absolute path based on the confDirectory rather than Java's working path
      */
     public static File getAbsoluteFile(final File confDirectory, final File relativeFile) {
-        if (relativeFile.isAbsolute() ) {
+        if (relativeFile.isAbsolute()) {
             return relativeFile;
         } else {
             return new File(confDirectory.getParent().toString(), relativeFile.toString());

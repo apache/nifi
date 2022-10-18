@@ -21,14 +21,18 @@ import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
 import org.apache.nifi.flow.encryptor.StandardFlowEncryptor;
 import org.apache.nifi.properties.AbstractBootstrapPropertiesLoader;
+import org.apache.nifi.properties.ApplicationProperties;
 import org.apache.nifi.properties.BootstrapProperties;
 import org.apache.nifi.properties.MutableApplicationProperties;
 import org.apache.nifi.properties.MutableBootstrapProperties;
+import org.apache.nifi.properties.NiFiPropertiesLoader;
+import org.apache.nifi.properties.PropertiesLoader;
 import org.apache.nifi.properties.ProtectedPropertyContext;
 import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory;
 import org.apache.nifi.properties.scheme.ProtectionScheme;
+import org.apache.nifi.registry.properties.NiFiRegistryPropertiesLoader;
 import org.apache.nifi.registry.properties.util.NiFiRegistryBootstrapPropertiesLoader;
 import org.apache.nifi.security.util.KeyDerivationFunction;
 import org.apache.nifi.security.util.crypto.SecureHasherFactory;
@@ -36,6 +40,7 @@ import org.apache.nifi.serde.StandardPropertiesWriter;
 import org.apache.nifi.util.NiFiBootstrapPropertiesLoader;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.ConfigurationFileResolver;
+import org.apache.nifi.util.file.ConfigurationFileUtils;
 import org.apache.nifi.util.file.NiFiConfigurationFileResolver;
 import org.apache.nifi.util.file.NiFiFlowDefinitionFileResolver;
 import org.apache.nifi.util.file.NiFiRegistryConfigurationFileResolver;
@@ -44,11 +49,6 @@ import org.apache.nifi.util.properties.NiFiSensitivePropertyResolver;
 import org.apache.nifi.util.properties.SensitivePropertyResolver;
 import org.apache.nifi.xml.XmlDecryptor;
 import org.apache.nifi.xml.XmlEncryptor;
-import org.apache.nifi.util.file.ConfigurationFileUtils;
-import org.apache.nifi.properties.ApplicationProperties;
-import org.apache.nifi.properties.NiFiPropertiesLoader;
-import org.apache.nifi.properties.PropertiesLoader;
-import org.apache.nifi.registry.properties.NiFiRegistryPropertiesLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -164,7 +164,6 @@ public class PropertyEncryptorCommand {
                     try (InputStream inputStream = new GZIPInputStream(new FileInputStream(absoluteFlowDefinition));
                          FileOutputStream outputStream = new FileOutputStream(output)) {
                         flowEncryptor.processFlow(inputStream, outputStream, inputEncryptor, outputEncryptor);
-                        outputSensitiveProperties(passphrase, algorithm);
                     }
                 } catch (IOException e) {
                     logger.error("Failed to encrypt flow definition file: [{}]", flow.getAbsolutePath(), e);
@@ -173,13 +172,28 @@ public class PropertyEncryptorCommand {
         }
     }
 
-    public void outputSensitiveProperties(final String outputSensitivePropertyKey, final PropertyEncryptionMethod algorithm) {
+    public void outputSensitiveProperties(final PropertyEncryptionMethod algorithm, final String sensitivePropertyKey) {
         /* TODO
          * Output will look like:
          * nifi.sensitive.props.key=UXcrW8T1UKAPJeun||ezUJSp30AvKGsRxJOOXoPUtZonv56Lx1
          * nifi.sensitive.props.key.protected=aes/gcm/128
          * nifi.sensitive.props.algorithm=PBEWITHMD5AND256BITAES-CBC-OPENSSL
          */
+
+        final File outputPropertiesFile = ConfigurationFileUtils.getOutputFile(outputDirectory, applicationPropertiesFile);
+        final MutableApplicationProperties updatedProperties = new MutableApplicationProperties(new Properties());
+        updatedProperties.setProperty(NiFiProperties.SENSITIVE_PROPS_KEY, sensitivePropertyKey);
+        updatedProperties.setProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM, algorithm.name());
+
+        try {
+            try (InputStream inputStream = new FileInputStream(applicationPropertiesFile);
+                 FileOutputStream outputStream = new FileOutputStream(outputPropertiesFile)) {
+                new StandardPropertiesWriter().writePropertiesFile(inputStream, outputStream, updatedProperties);
+            }
+            logger.info("Output sensitive properties key to {}", applicationPropertiesFile.getAbsolutePath());
+        } catch (IOException e) {
+            logger.error("Failed to output sensitive property keys after encrypting flow", e);
+        }
     }
 
     public void outputKeyToBootstrap() throws IOException {

@@ -59,5 +59,6 @@ class FlowSubcommand extends BaseCommandParameters implements Runnable {
 
     private void encryptFlowDefinition(final PropertyEncryptorCommand propertyEncryptorCommand) {
         propertyEncryptorCommand.encryptFlowDefinition(encryptionMethod, rootPassphrase);
+        propertyEncryptorCommand.outputSensitiveProperties(encryptionMethod, rootPassphrase);
     }
 }
