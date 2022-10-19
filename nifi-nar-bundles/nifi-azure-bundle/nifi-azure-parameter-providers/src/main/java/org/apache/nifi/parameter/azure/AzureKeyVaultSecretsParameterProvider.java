@@ -133,10 +133,7 @@ public class AzureKeyVaultSecretsParameterProvider extends AbstractParameterProv
 
         for (final SecretProperties secretProperties : secretClient.listPropertiesOfSecrets()) {
             KeyVaultSecret secretWithValue = secretClient.getSecret(secretProperties.getName(), secretProperties.getVersion());
-            final String name = secretWithValue.getName();
-            final String value = secretWithValue.getValue();
             secrets.add(secretWithValue);
-            getLogger().debug("Retrieved Secret [{}] with value [{}]", name, value);
         }
 
         return secrets;
