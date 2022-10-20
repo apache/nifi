@@ -2640,7 +2640,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private boolean stopProcessor(final ProcessorNode processor, final long timeout) throws FlowSynchronizationException, TimeoutException {
-        if (!processor.isRunning()) {
+        if (!processor.isRunning() && processor.getPhysicalScheduledState() != ScheduledState.STARTING) {
             return false;
         }
 
