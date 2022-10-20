@@ -141,7 +141,6 @@ public class StandardPrivateKeyService extends AbstractControllerService impleme
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final Collection<ValidationResult> results = new ArrayList<>();
 
-
         final PropertyValue keyFileProperty = context.getProperty(KEY_FILE);
         final PropertyValue keyProperty = context.getProperty(KEY);
         if (keyFileProperty.isSet() && keyProperty.isSet()) {
@@ -152,9 +151,10 @@ public class StandardPrivateKeyService extends AbstractControllerService impleme
                     .explanation(explanation)
                     .build();
             results.add(result);
-        } else {
+        } else if (keyReference.get() == null) {
             try {
-                readKey(context);
+                final PrivateKey readKey = readKey(context);
+                keyReference.set(readKey);
             } catch (final RuntimeException e) {
                 final ValidationResult result = new ValidationResult.Builder()
                         .valid(false)

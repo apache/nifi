@@ -40,6 +40,8 @@ import java.security.PrivateKey;
  * Bouncy Castle implementation of Private Key Reader supporting PEM files
  */
 public class BouncyCastlePrivateKeyReader implements PrivateKeyReader {
+    private static final String INVALID_PEM = "Invalid PEM";
+
     /**
      * Read Private Key using Bouncy Castle PEM Parser
      *
@@ -51,7 +53,6 @@ public class BouncyCastlePrivateKeyReader implements PrivateKeyReader {
     public PrivateKey readPrivateKey(final InputStream inputStream, final char[] keyPassword) {
         try (final PEMParser parser = new PEMParser(new InputStreamReader(inputStream))) {
             final Object object = parser.readObject();
-            final Class<?> objectClass = object.getClass();
 
             final PrivateKeyInfo privateKeyInfo;
 
@@ -67,7 +68,8 @@ public class BouncyCastlePrivateKeyReader implements PrivateKeyReader {
                 final PEMEncryptedKeyPair encryptedKeyPair = (PEMEncryptedKeyPair) object;
                 privateKeyInfo = readEncryptedPrivateKey(encryptedKeyPair, keyPassword);
             } else {
-                final String message = String.format("Private Key Class [%s] not supported", objectClass);
+                final String objectType = object == null ? INVALID_PEM : object.getClass().getName();
+                final String message = String.format("Private Key [%s] not supported", objectType);
                 throw new IllegalArgumentException(message);
             }
 
