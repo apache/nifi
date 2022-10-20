@@ -98,6 +98,20 @@ public class StandardPrivateKeyService extends AbstractControllerService impleme
     }
 
     /**
+     * On Property Modified clears the current Private Key reference to require a new read for validation
+     *
+     * @param propertyDescriptor the descriptor for the property being modified
+     * @param oldValue the value that was previously set, or null if no value
+     *            was previously set for this property
+     * @param newValue the new property value or if null indicates the property
+     *            was removed
+     */
+    @Override
+    public void onPropertyModified(final PropertyDescriptor propertyDescriptor, final String oldValue, final String newValue) {
+        keyReference.set(null);
+    }
+
+    /**
      * On Enabled reads Private Keys using configured properties
      *
      * @param context Configuration Context with properties
