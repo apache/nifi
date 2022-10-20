@@ -35,7 +35,7 @@ public class ExpirationMatcher implements AttributeMatcher<Connection> {
     @Override
     public void match(final Connection component, final SearchQuery query, final List<String> matches) {
         if (containsKeyword(query)) {
-            final int expirationMillis = component.getFlowFileQueue().getFlowFileExpiration(TimeUnit.MILLISECONDS);
+            final long expirationMillis = component.getFlowFileQueue().getFlowFileExpiration(TimeUnit.MILLISECONDS);
 
             if (expirationMillis > 0) {
                 matches.add(MATCH_PREFIX + component.getFlowFileQueue().getFlowFileExpiration());

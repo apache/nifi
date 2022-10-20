@@ -283,8 +283,8 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     }
 
     @Override
-    public int getFlowFileExpiration(final TimeUnit timeUnit) {
-        return (int) timeUnit.convert(expirationMillis, TimeUnit.MILLISECONDS);
+    public long getFlowFileExpiration(final TimeUnit timeUnit) {
+        return timeUnit.convert(expirationMillis, TimeUnit.MILLISECONDS);
     }
 
     @Override
