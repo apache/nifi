@@ -46,6 +46,32 @@ import static org.neo4j.driver.Config.TrustStrategy.trustCustomCertificateSigned
 
 /**
  * Neo4J Cypher integration tests.
+ *
+ * This test can be set up with Docker using the following command, adjusting the path to the certs on the host:
+ *
+ * docker run --name=neo4j-4.3.2 \
+ * --publish=7474:7474 --publish=7687:7687 --publish=7473:7473 \
+ * --volume=$HOME/neo4j/ssl:/var/lib/neo4j/certificates \
+ * --env NEO4J_dbms_default__advertised__address=localhost \
+ * --env NEO4J_dbms_ssl_policy_bolt_enabled=true \
+ * --env NEO4J_dbms_ssl_policy_bolt_base__directory=certificates/bolt \
+ * --env NEO4J_dbms_ssl_policy_bolt_private__key=private.key \
+ * --env NEO4J_dbms_ssl_policy_bolt_public__certificate=public.crt \
+ * --env NEO4J_dbms_ssl_policy_bolt_client__auth=NONE \
+ * --env NEO4J_dbms_connector_bolt_tls__level=REQUIRED \
+ * --env NEO4J_dbms_connector_https_enabled=true \
+ * --env NEO4J_dbms_ssl_policy_https_enabled=true \
+ * --env NEO4J_dbms_ssl_policy_https_base__directory=certificates/https \
+ * --env NEO4J_dbms_ssl_policy_https_private__key=private.key \
+ * --env NEO4J_dbms_ssl_policy_https_public__certificate=public.crt \
+ * --env NEO4J_dbms_ssl_policy_https_client__auth=NONE \
+ * --env NEO4J_dbms_memory_pagecache_size=512m \
+ * --env=NEO4J_ACCEPT_LICENSE_AGREEMENT=yes \
+ * neo4j:4.3.2-enterprise
+ *
+ * Command derived from Neo4J Knowledge Base documentation shown here:
+ *
+ * https://neo4j.com/developer/kb/setting-up-ssl-with-docker/
  */
 @EnabledIfSystemProperty(named = "neo4j.ssl.test", matches = "true")
 public class ITNeo4JCypherExecutorWithSSL {
