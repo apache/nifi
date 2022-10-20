@@ -23,7 +23,6 @@ import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.ingest.ManagedStreamingIngestClient;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.adx.AdxConnectionService;
 import com.microsoft.azure.kusto.ingest.IngestClient;
@@ -36,7 +35,6 @@ import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.StorageException;
-import org.apache.nifi.adx.AzureAdxConnectionService;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -100,7 +98,8 @@ import java.util.regex.Pattern;
         @ReadsAttribute(attribute = "IS_TRANSACTIONAL", description = "Incase of any failure, whether we want all our data ingested or none."),
 
 })
-@Stateful(scopes = Scope.CLUSTER,description = "Incase the user wants transactionality during data ingestion, AzureIngestProcessor uses temporary tables to attempt ingestion initially and to store the ingestion status into temp tables of various nodes, it uses nifi statemanager")
+@Stateful(scopes = Scope.CLUSTER,description = "Incase the user wants transactionality during data ingestion, " +
+        "AzureIngestProcessor uses temporary tables to attempt ingestion initially and to store the ingestion status into temp tables of various nodes, it uses nifi statemanager")
 public class AzureAdxIngestProcessor extends AbstractProcessor {
 
     public static final String FETCH_TABLE_COMMAND = "%s | count";
@@ -593,7 +592,9 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                 Runnable task = () -> {
                     try {
                         List<IngestionStatus> statuses1 = resultFromTempTable.getIngestionStatusCollection();
-                        if (statuses1.get(0).status == OperationStatus.Succeeded || statuses1.get(0).status == OperationStatus.Failed || statuses1.get(0).status == OperationStatus.PartiallySucceeded) {
+                        if (statuses1.get(0).status == OperationStatus.Succeeded
+                                || statuses1.get(0).status == OperationStatus.Failed
+                                || statuses1.get(0).status == OperationStatus.PartiallySucceeded) {
                             future.complete(statuses1);
                         }
                     } catch (Exception e) {
@@ -699,9 +700,9 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                         dropTempTableIfExists(ingestionPropertiesCreateTempTable);
                     }
                 }
-            } catch (IngestionClientException | IngestionServiceException |
-                     InterruptedException | ExecutionException | TimeoutException | IOException | DataServiceException |
-                     DataClientException e) {
+            } catch (IngestionClientException | IngestionServiceException
+                     | InterruptedException | ExecutionException | TimeoutException | IOException | DataServiceException
+                     | DataClientException e) {
                 getLogger().error("Exception occurred while ingesting data into ADX with exception {} ", e);
                 session.transfer(flowFile, RL_FAILED);
                 return;
@@ -718,7 +719,10 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             }
         }
 
-        if (service.isStreamingEnabled() || isSingleNodeTempTableIngestionSucceeded || isClusteredTempTableIngestionSucceeded || StringUtils.equalsIgnoreCase(context.getProperty(IS_TRANSACTIONAL).getValue(), TRANSACTIONAL_NO.getValue())) {
+        if (service.isStreamingEnabled()
+                || isSingleNodeTempTableIngestionSucceeded
+                || isClusteredTempTableIngestionSucceeded
+                || StringUtils.equalsIgnoreCase(context.getProperty(IS_TRANSACTIONAL).getValue(), TRANSACTIONAL_NO.getValue())) {
             List<IngestionStatus> statuses;
             try (final InputStream inputStream = session.read(flowFile)) {
                 StreamSourceInfo actualTableStreamSourceInfo = new StreamSourceInfo(inputStream);
@@ -740,7 +744,9 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                     Runnable task = () -> {
                         try {
                             List<IngestionStatus> statuses1 = result.getIngestionStatusCollection();
-                            if (statuses1.get(0).status == OperationStatus.Succeeded || statuses1.get(0).status == OperationStatus.Failed || statuses1.get(0).status == OperationStatus.PartiallySucceeded) {
+                            if (statuses1.get(0).status == OperationStatus.Succeeded
+                                    || statuses1.get(0).status == OperationStatus.Failed
+                                    || statuses1.get(0).status == OperationStatus.PartiallySucceeded) {
                                 future.complete(statuses1);
                             }
                         } catch (Exception e) {
@@ -755,9 +761,8 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                     status.status = OperationStatus.Succeeded;
                     statuses.set(0, status);
                 }
-
-            } catch (IngestionClientException | IngestionServiceException | StorageException | URISyntaxException |
-                     InterruptedException | ExecutionException | TimeoutException | IOException e) {
+            } catch (IngestionClientException | IngestionServiceException | StorageException | URISyntaxException
+                     | InterruptedException | ExecutionException | TimeoutException | IOException e) {
                 getLogger().error("Exception occurred while ingesting data into ADX with exception {} ", e);
                 session.transfer(flowFile, RL_FAILED);
                 return;
@@ -872,18 +877,23 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
         executionClient.execute(ingestionPropertiesCreateTempTable.getDatabaseName(), dropTempTableIfExistsQuery);
     }
 
-    protected void createTempTable(IngestionProperties ingestionPropertiesCreateTempTable, IngestionProperties ingestionProperties, String columnsAsSchema) throws DataServiceException, DataClientException {
-        String createTempTableQuery = ".create table " + ingestionPropertiesCreateTempTable.getTableName() + " based-on "+ ingestionProperties.getTableName()  +" with (docstring='sample-table', folder='TempTables') ";
+    protected void createTempTable(IngestionProperties ingestionPropertiesCreateTempTable, IngestionProperties ingestionProperties, String columnsAsSchema)
+            throws DataServiceException, DataClientException {
+        String createTempTableQuery = ".create table " + ingestionPropertiesCreateTempTable.getTableName()
+                + " based-on "+ ingestionProperties.getTableName()  +" with (docstring='sample-table', folder='TempTables') ";
         executionClient.execute(ingestionPropertiesCreateTempTable.getDatabaseName(), createTempTableQuery);
     }
 
     protected void alterTempTableRetentionPolicy(IngestionProperties ingestionPropertiesCreateTempTable,ProcessContext context) throws DataServiceException, DataClientException {
-        String alterRetentionPolicyTempTableQuery = ".alter-merge table " + ingestionPropertiesCreateTempTable.getTableName() + " policy retention softdelete =" + context.getProperty(TEMP_TABLE_SOFT_DELETE_RETENTION).getValue() + " recoverability = disabled";
+        String alterRetentionPolicyTempTableQuery =
+                ".alter-merge table " + ingestionPropertiesCreateTempTable.getTableName() + " policy retention softdelete ="
+                        + context.getProperty(TEMP_TABLE_SOFT_DELETE_RETENTION).getValue() + " recoverability = disabled";
         executionClient.execute(ingestionPropertiesCreateTempTable.getDatabaseName(), alterRetentionPolicyTempTableQuery);
     }
 
     protected void alterTempTableAutoDeletePolicy(IngestionProperties ingestionPropertiesCreateTempTable, String expiryDate) throws DataServiceException, DataClientException {
-        String setAutoDeleteForTempTableQuery = ".alter table " + ingestionPropertiesCreateTempTable.getTableName() + " policy auto_delete @'{ \"ExpiryDate\" : \"" + expiryDate + "\", \"DeleteIfNotEmpty\": true }'";
+        String setAutoDeleteForTempTableQuery =
+                ".alter table " + ingestionPropertiesCreateTempTable.getTableName() + " policy auto_delete @'{ \"ExpiryDate\" : \"" + expiryDate + "\", \"DeleteIfNotEmpty\": true }'";
         executionClient.execute(ingestionPropertiesCreateTempTable.getDatabaseName(), setAutoDeleteForTempTableQuery);
     }
 

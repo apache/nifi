@@ -17,8 +17,6 @@
 package org.apache.nifi.processors.adx;
 
 
-import com.microsoft.azure.kusto.data.Client;
-import com.microsoft.azure.kusto.data.ClientImpl;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -32,7 +30,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
 import org.apache.nifi.util.TestRunner;
@@ -40,30 +37,15 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.runner.RunWith;
-import org.mockito.ArgumentMatchers;
-import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.plugins.MockMaker;
 import org.opentest4j.AssertionFailedError;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyFloat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -366,8 +348,6 @@ public class AzureAdxIngestProcessorTest {
             Assertions.assertNotNull(e.getCause());
             Assertions.assertNotNull(e.getMessage());
             Assertions.assertTrue(e.getCause() instanceof  ProcessException);
-            //Assertions.assertTrue(e.getMessage().contains("Ingestion failed likely because of wrong endpoint"));
-            //Assertions.assertTrue(e.getCause().getCause() instanceof IngestionClientException);
         }
         testRunner.assertAllFlowFilesTransferred(AzureAdxIngestProcessor.RL_FAILED);
 
