@@ -86,7 +86,12 @@ import java.util.regex.Pattern;
 
 @Tags({"azure", "adx", "microsoft", "data", "explorer"})
 @CapabilityDescription("The Azure ADX Processor sends flowFiles using the ADX-Service to the provided Azure Data" +
-        "Explorer Ingest Endpoint. The data can be sent through queued ingestion or streaming ingestion to the Azure Data Explorer cluster.")
+        "Explorer Ingest Endpoint. The data can be sent through queued ingestion or streaming ingestion to the Azure Data Explorer cluster." +
+        "The data ingested to ADX can be in non-transactional mode or transactional mode. " +
+        "This processor supports transactionality of the ingested data ie. no duplicates while retries during ingestion failures. " +
+        "This transactional behaviour is enabled by selecting the IS_TRANSACTIONAL mode as YES." +
+        "But a word of caution while selecting transactional mode is, it significantly reduces the ingestion time " +
+        "since the processor first tries to ingest the data into temporary table before ingesting to the main table. ")
 @ReadsAttributes({
         @ReadsAttribute(attribute = "DB_NAME", description = "Specifies the name of the database where the data needs to be stored."),
         @ReadsAttribute(attribute = "TABLE_NAME", description = "Specifies the name of the table where the data needs to be stored."),
@@ -95,8 +100,15 @@ import java.util.regex.Pattern;
         @ReadsAttribute(attribute = "DATA_FORMAT", description = "Specifies the format of data that is send to Azure Data Explorer."),
         @ReadsAttribute(attribute = "IR_LEVEL", description = "ADX can report events on several levels. Ex- None, Failure and Failure & Success."),
         @ReadsAttribute(attribute = "IR_METHOD", description = "ADX can report events on several methods. Ex- Table, Queue, Table&Queue."),
-        @ReadsAttribute(attribute = "IS_TRANSACTIONAL", description = "Incase of any failure, whether we want all our data ingested or none."),
-
+        @ReadsAttribute(attribute = "IS_TRANSACTIONAL", description = "Default : No ,Incase of any failure, whether we want all our data ingested or none. " +
+                "If set to Yes, it increases the data ingestion time significantly because inorder to maintain transactional behaviour, " +
+                "the processor first tries to ingest into temporary tables before ingesting into actual table."),
+        @ReadsAttribute(attribute = "IGNORE_FIRST_RECORD", description = "Specifies whether we want to ignore ingestion of first record. This is primarily applicable for csv files."),
+        @ReadsAttribute(attribute = "MAX_BATCHING_TIME_SPAN", description = "Applicable only for queued ingestion, specifies the maximum batching timespan. Default = 5 min"),
+        @ReadsAttribute(attribute = "MAX_BATCHING_NO_OF_ITEMS", description = "Applicable only for queued ingestion, specifies the maximum number of items/records. Default = 1000"),
+        @ReadsAttribute(attribute = "MAX_BATCHING_RAW_DATA_SIZE_IN_MB", description = "Applicable only for queued ingestion, specifies the maximum size of uncompressed data. Default = 1000MB"),
+        @ReadsAttribute(attribute = "TEMP_TABLE_NAME", description = "Applicable only when the IS_TRANSACTIONAL attribute is set to YES. " +
+                "This attribute specifies if the user wants to assign custom name to temp table. If not specified, the processor appends _tmp to the actual table name."),
 })
 @Stateful(scopes = Scope.CLUSTER,description = "Incase the user wants transactionality during data ingestion, " +
         "AzureIngestProcessor uses temporary tables to attempt ingestion initially and to store the ingestion status into temp tables of various nodes, it uses nifi statemanager")
