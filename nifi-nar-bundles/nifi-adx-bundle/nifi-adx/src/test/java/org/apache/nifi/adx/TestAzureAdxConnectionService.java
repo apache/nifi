@@ -59,7 +59,6 @@ public class TestAzureAdxConnectionService {
     @AfterEach
     public void after() {
         runner.clearProperties();
-
     }
 
     @Test
@@ -68,6 +67,7 @@ public class TestAzureAdxConnectionService {
         configureAppId();
         configureAppKey();
         configureAppTenant();
+        configureClusterURL();
 
 
         runner.assertValid(service);
@@ -117,6 +117,7 @@ public class TestAzureAdxConnectionService {
         configureAppId();
         configureAppKey();
         configureAppTenant();
+        configureClusterURL();
 
         runner.assertValid(service);
         runner.setValidateExpressionUsage(false);
@@ -163,7 +164,6 @@ public class TestAzureAdxConnectionService {
         runner.enableControllerService(service);
 
         IngestClient ingestClient = service.getAdxClient();
-        //System.out.println("client details managed"+ingestClient);
         Assertions.assertNotNull(ingestClient);
         Assertions.assertTrue(ingestClient instanceof ManagedStreamingIngestClient);
 

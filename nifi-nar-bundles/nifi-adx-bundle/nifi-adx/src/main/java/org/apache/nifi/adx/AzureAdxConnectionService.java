@@ -131,6 +131,8 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
 
     private Client executionClient;
 
+    private boolean isStreamingEnabled;
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
@@ -152,8 +154,8 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
         final String app_id = context.getProperty(APP_ID).evaluateAttributeExpressions().getValue();
         final String app_key = context.getProperty(APP_KEY).evaluateAttributeExpressions().getValue();
         final String app_tenant = context.getProperty(APP_TENANT).evaluateAttributeExpressions().getValue();
-        final Boolean isStreamingEnabled = context.getProperty(IS_STREAMING_ENABLED).evaluateAttributeExpressions().asBoolean();
         final String kustoEngineUrl = context.getProperty(CLUSTER_URL).evaluateAttributeExpressions().getValue();
+        isStreamingEnabled = context.getProperty(IS_STREAMING_ENABLED).evaluateAttributeExpressions().asBoolean();
 
         if(this._ingestClient != null) {
             onStopped();
@@ -196,6 +198,11 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
     @Override
     public Client getKustoExecutionClient(){
         return this.executionClient;
+    }
+
+    @Override
+    public boolean isStreamingEnabled() {
+        return isStreamingEnabled;
     }
 
     public IngestClient createKustoIngestClient(final String ingestUrl,
@@ -258,5 +265,4 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
             throw new ProcessException("Failed to initialize KustoEngineClient", e);
         }
     }
-
 }

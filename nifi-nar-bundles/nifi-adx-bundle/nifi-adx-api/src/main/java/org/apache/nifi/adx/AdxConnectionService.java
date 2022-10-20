@@ -29,4 +29,6 @@ public interface AdxConnectionService extends ControllerService {
 
     Client getKustoExecutionClient();
 
+    boolean isStreamingEnabled();
+
 }
