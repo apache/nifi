@@ -24,15 +24,18 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestStandardPreparedQuery {
 
@@ -274,19 +277,31 @@ public class TestStandardPreparedQuery {
     }
 
     @Test
+    public void testEvaluateExpressionLanguageVariableValueSensitiveParameterReference() {
+        final String parameterName = "protected";
+        final String parameterValue = "secret";
+
+        final ParameterLookup parameterLookup = mock(ParameterLookup.class);
+        final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(parameterName).sensitive(true).build();
+        final Parameter parameter = new Parameter(parameterDescriptor, parameterValue);
+        when(parameterLookup.getParameter(eq(parameterName))).thenReturn(Optional.of(parameter));
+        when(parameterLookup.isEmpty()).thenReturn(false);
+
+        final Map<String, String> variables = new LinkedHashMap<>();
+        final String variableName = "variable";
+        final String variableValue = String.format("#{%s}", parameterName);
+        variables.put(variableName, variableValue);
+
+        final StandardEvaluationContext context = new StandardEvaluationContext(variables, Collections.emptyMap(), parameterLookup);
+
+        final String queryExpression = String.format("${%s:evaluateELString()}", variableName);
+        final String value = Query.prepare(queryExpression).evaluateExpressions(context, null);
+
+        assertNotEquals(parameterValue, value);
+    }
+
+    @Test
     public void testVariableImpacted() {
-        final Set<String> attr = new HashSet<>();
-        attr.add("attr");
-
-        final Set<String> attr2 = new HashSet<>();
-        attr2.add("attr");
-        attr2.add("attr2");
-
-        final Set<String> abc = new HashSet<>();
-        abc.add("a");
-        abc.add("b");
-        abc.add("c");
-
         assertTrue(Query.prepare("${attr}").getVariableImpact().isImpacted("attr"));
         assertFalse(Query.prepare("${attr}").getVariableImpact().isImpacted("attr2"));
         assertTrue(Query.prepare("${attr:trim():toUpper():equals('abc')}").getVariableImpact().isImpacted("attr"));
@@ -328,8 +343,7 @@ public class TestStandardPreparedQuery {
     }
 
     private String evaluate(final String query, final Map<String, String> attrs) {
-        final String evaluated = ((StandardPreparedQuery) Query.prepare(query)).evaluateExpressions(new StandardEvaluationContext(attrs), null);
-        return evaluated;
+        return Query.prepare(query).evaluateExpressions(new StandardEvaluationContext(attrs), null);
     }
 
 }
