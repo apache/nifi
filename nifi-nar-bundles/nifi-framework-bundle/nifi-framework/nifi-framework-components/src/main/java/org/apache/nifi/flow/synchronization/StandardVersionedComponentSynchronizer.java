@@ -2918,6 +2918,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         rpg.setProxyHost(proposed.getProxyHost());
         rpg.setProxyPort(proposed.getProxyPort());
         rpg.setProxyUser(proposed.getProxyUser());
+        rpg.setProxyPassword(decrypt(proposed.getProxyPassword(), syncOptions.getPropertyDecryptor()));
         rpg.setTransportProtocol(SiteToSiteTransportProtocol.valueOf(proposed.getTransportProtocol()));
         rpg.setYieldDuration(proposed.getYieldDuration());
 
