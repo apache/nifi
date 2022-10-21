@@ -34,6 +34,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -156,12 +157,13 @@ public class DebugOperationHandler implements C2OperationHandler {
         List<Path> contentFilteredFilePaths = new ArrayList<>();
         for (Path path : bundleFilePaths) {
             String fileName = path.getFileName().toString();
-            try (Stream<String> fileStream = lines(path)) {
+            try (Stream<String> fileStream = lines(path, Charset.defaultCharset())) {
                 Path tempDirectory = createTempDirectory(operationId);
                 Path tempFile = Paths.get(tempDirectory.toAbsolutePath().toString(), fileName);
                 Files.write(tempFile, (Iterable<String>) fileStream.filter(contentFilter)::iterator);
                 contentFilteredFilePaths.add(tempFile);
             } catch (IOException e) {
+                LOG.error("Error during filtering file content: " + path.toAbsolutePath(), e);
                 throw new UncheckedIOException(e);
             }
         }
