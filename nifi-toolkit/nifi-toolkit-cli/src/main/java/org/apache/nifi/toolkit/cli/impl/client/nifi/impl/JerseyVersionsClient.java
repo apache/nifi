@@ -142,7 +142,8 @@ public class JerseyVersionsClient extends AbstractJerseyClient implements Versio
     // POST /versions/revert-requests/process-groups/id
 
     @Override
-    public VersionedFlowUpdateRequestEntity initiateRevertFlowVersion(final String processGroupId, final VersionControlInformationEntity versionControlInformation) throws IOException, NiFiClientException {
+    public VersionedFlowUpdateRequestEntity initiateRevertFlowVersion(final String processGroupId, final VersionControlInformationEntity versionControlInformation)
+        throws IOException, NiFiClientException {
         if (StringUtils.isBlank(processGroupId)) {
             throw new IllegalArgumentException("Process group id cannot be null or blank");
         }
