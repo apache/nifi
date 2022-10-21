@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.encryptor;
 
-import org.apache.nifi.util.file.ConfigurationFileUtils;
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory;
 import org.apache.nifi.properties.scheme.ProtectionScheme;
 import org.apache.nifi.properties.scheme.StandardProtectionScheme;

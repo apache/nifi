@@ -18,8 +18,6 @@ package org.apache.nifi.util.console.utils;
 
 import org.apache.nifi.encrypt.PropertyEncryptionMethod;
 import org.apache.nifi.encrypt.StandardPropertyEncryptionMethodResolver;
-import org.apache.nifi.properties.scheme.ProtectionScheme;
-import org.apache.nifi.properties.scheme.StandardProtectionSchemeResolver;
 import picocli.CommandLine;
 
 public class PropertyEncryptionMethodConverter implements CommandLine.ITypeConverter<PropertyEncryptionMethod> {
