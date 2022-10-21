@@ -19,7 +19,9 @@ package org.apache.nifi.processors.iceberg.converter;
 
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
 import javax.annotation.Nullable;
 import java.io.Serializable;
@@ -92,8 +94,21 @@ public class ArrayElementGetter {
             case RECORD:
                 elementGetter = (array, pos) -> DataTypeUtils.toRecord(array[pos], ARRAY_FIELD_NAME);
                 break;
+            case CHOICE:
+                elementGetter = (array, pos) -> {
+                    final ChoiceDataType choiceDataType = (ChoiceDataType) dataType;
+                    final DataType chosenDataType = DataTypeUtils.chooseDataType(array[pos], choiceDataType);
+                    if (chosenDataType == null) {
+                        throw new IllegalTypeConversionException(String.format(
+                                "Cannot convert value [%s] of type %s for array element to any of the following available Sub-Types for a Choice: %s",
+                                array[pos], array[pos].getClass(), choiceDataType.getPossibleSubTypes()));
+                    }
+
+                    return DataTypeUtils.convertType(array[pos], chosenDataType, ARRAY_FIELD_NAME);
+                };
+                break;
             default:
-                throw new IllegalArgumentException();
+                throw new IllegalArgumentException("Unsupported field type: " + dataType.getFieldType());
         }
 
         return (array, pos) -> {
