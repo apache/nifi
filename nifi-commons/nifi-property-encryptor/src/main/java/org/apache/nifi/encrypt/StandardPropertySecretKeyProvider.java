@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.encrypt;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.KeyDerivationFunction;
 import org.apache.nifi.security.util.crypto.Argon2SecureHasher;
 import org.apache.nifi.security.util.crypto.KeyDerivationBcryptSecureHasher;
