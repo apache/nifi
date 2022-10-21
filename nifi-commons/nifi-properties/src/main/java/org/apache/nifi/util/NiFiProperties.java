@@ -261,6 +261,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String CLUSTER_NODE_READ_TIMEOUT = "nifi.cluster.node.read.timeout";
     public static final String CLUSTER_NODE_MAX_CONCURRENT_REQUESTS = "nifi.cluster.node.max.concurrent.requests";
     public static final String CLUSTER_FIREWALL_FILE = "nifi.cluster.firewall.file";
+    public static final String CLUSTER_FLOW_BUNDLE_UPDATE_STRATEGY = "nifi.cluster.flow.bundle.update.strategy";
     public static final String FLOW_ELECTION_MAX_WAIT_TIME = "nifi.cluster.flow.election.max.wait.time";
     public static final String FLOW_ELECTION_MAX_CANDIDATES = "nifi.cluster.flow.election.max.candidates";
 
@@ -413,7 +414,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final int DEFAULT_LOAD_BALANCE_CONNECTIONS_PER_NODE = 4;
     public static final int DEFAULT_LOAD_BALANCE_MAX_THREAD_COUNT = 8;
     public static final String DEFAULT_LOAD_BALANCE_COMMS_TIMEOUT = "30 sec";
-
 
     // state management defaults
     public static final String DEFAULT_STATE_MANAGEMENT_CONFIG_FILE = "conf/state-management.xml";
@@ -1605,6 +1605,10 @@ public class NiFiProperties extends ApplicationProperties {
 
     public String getFlowConfigurationArchiveDir() {
         return getProperty(FLOW_CONFIGURATION_ARCHIVE_DIR);
+    }
+
+    public String getClusterFlowBundleUpdateStrategy() {
+        return getProperty(CLUSTER_FLOW_BUNDLE_UPDATE_STRATEGY, null);
     }
 
     public String getFlowElectionMaxWaitTime() {

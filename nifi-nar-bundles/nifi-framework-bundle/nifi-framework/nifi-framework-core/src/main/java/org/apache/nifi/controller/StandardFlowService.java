@@ -16,6 +16,32 @@
  */
 package org.apache.nifi.controller;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.AuthorizerCapabilityDetection;
@@ -78,33 +104,6 @@ import org.apache.nifi.web.revision.RevisionManager;
 import org.apache.nifi.web.revision.RevisionSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 
 public class StandardFlowService implements FlowService, ProtocolHandler {
 
@@ -1026,6 +1025,20 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         }
     }
 
+    
+    private BundleUpdateStrategy getBundleUpdateStrategy() {
+        final String configuredStrategy = nifiProperties.getClusterFlowBundleUpdateStrategy();
+        BundleUpdateStrategy strategy = BundleUpdateStrategy.USE_SPECIFIED_OR_FAIL;
+        if (!StringUtils.isBlank(configuredStrategy)) {
+            try {
+                strategy = BundleUpdateStrategy.valueOf(configuredStrategy);
+            } catch (final IllegalArgumentException e) {
+                logger.warn("Detected invalid setting for property " + NiFiProperties.CLUSTER_FLOW_BUNDLE_UPDATE_STRATEGY + " of '" + configuredStrategy + "'. Defaulting to " + BundleUpdateStrategy.USE_SPECIFIED_OR_FAIL.name());
+            }
+        }
+        return strategy;
+    }
+
     private void loadFromConnectionResponse(final ConnectionResponse response) throws ConnectionException {
         writeLock.lock();
         try {
@@ -1045,7 +1058,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             controller.setNodeId(nodeId);
 
             // load new controller state
-            loadFromBytes(dataFlow, true, BundleUpdateStrategy.USE_SPECIFIED_OR_FAIL);
+            loadFromBytes(dataFlow, true, getBundleUpdateStrategy());
+            
 
             // set node ID on controller before we start heartbeating because heartbeat needs node ID
             clusterCoordinator.setLocalNodeIdentifier(nodeId);
