@@ -1278,6 +1278,13 @@ public class RunNiFi {
             // running on Java 9 or 10, internal module java.xml.bind module must be made available
             cmd.add("--add-modules=java.xml.bind");
         }
+
+        if (javaMajorVersion > 8) {
+            // Due to the new Module System introduced in Java 9, not every class is accessible by default, so we need to give access to them.
+            // See https://openjdk.org/jeps/261
+            cmd.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
+        }
+
         cmd.add("org.apache.nifi.NiFi");
         if (isSensitiveKeyPresent(props)) {
             Path sensitiveKeyFile = createSensitiveKeyFile(confDir);
