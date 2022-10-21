@@ -28,7 +28,6 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -53,7 +52,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import org.apache.nifi.scheduling.SchedulingStrategy;
 
 @SupportsBatching
 @SeeAlso({ PutSQS.class, DeleteSQS.class })
@@ -66,7 +64,6 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
     @WritesAttribute(attribute = "sqs.message.id", description = "The unique identifier of the SQS message"),
     @WritesAttribute(attribute = "sqs.receipt.handle", description = "The SQS Receipt Handle that is to be used to delete the message from the queue")
 })
-@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class GetSQS extends AbstractSQSProcessor {
 
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
