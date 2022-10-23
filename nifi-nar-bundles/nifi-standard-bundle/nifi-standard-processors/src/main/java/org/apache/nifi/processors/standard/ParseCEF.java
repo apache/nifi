@@ -393,7 +393,7 @@ public class ParseCEF extends AbstractProcessor {
             }
 
             final Locale testLocale = Locale.forLanguageTag(input);
-            final Locale[] availableLocales = Locale.getAvailableLocales();
+            
 
             // Check if the provided Locale is valid by checking against the first value of the array (i.e. "null" locale)
             if ("".equals(testLocale.toString())) {
