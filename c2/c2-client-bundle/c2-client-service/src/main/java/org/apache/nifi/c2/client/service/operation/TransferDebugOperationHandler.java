@@ -21,6 +21,7 @@ import static java.nio.file.Files.copy;
 import static java.nio.file.Files.createTempDirectory;
 import static java.nio.file.Files.lines;
 import static java.nio.file.Files.walk;
+import static java.util.Collections.emptyMap;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.compress.utils.IOUtils.closeQuietly;
@@ -57,9 +58,9 @@ import org.apache.nifi.c2.protocol.api.OperationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DebugOperationHandler implements C2OperationHandler {
+public class TransferDebugOperationHandler implements C2OperationHandler {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DebugOperationHandler.class);
+    private static final Logger LOG = LoggerFactory.getLogger(TransferDebugOperationHandler.class);
 
     private static final String C2_CALLBACK_URL_NOT_FOUND = "C2 Server callback URL was not found in request";
     private static final String SUCCESSFUL_UPLOAD = "Debug bundle was uploaded successfully";
@@ -69,22 +70,25 @@ public class DebugOperationHandler implements C2OperationHandler {
     static final String NEW_LINE = "\n";
 
     private final C2Client c2Client;
+    private final OperandPropertiesProvider operandPropertiesProvider;
     private final List<Path> bundleFilePaths;
     private final Predicate<String> contentFilter;
-    private final OperandPropertiesProvider operandPropertiesProvider;
 
-    private DebugOperationHandler(C2Client c2Client, List<Path> bundleFilePaths, Predicate<String> contentFilter,
-                                  OperandPropertiesProvider operandPropertiesProvider) {
+    private TransferDebugOperationHandler(C2Client c2Client, OperandPropertiesProvider operandPropertiesProvider,
+                                          List<Path> bundleFilePaths, Predicate<String> contentFilter) {
         this.c2Client = c2Client;
+        this.operandPropertiesProvider = operandPropertiesProvider;
         this.bundleFilePaths = bundleFilePaths;
         this.contentFilter = contentFilter;
-        this.operandPropertiesProvider = operandPropertiesProvider;
     }
 
-    public static DebugOperationHandler create(C2Client c2Client, List<Path> bundleFilePaths, Predicate<String> contentFilter,
-                                               OperandPropertiesProvider operandPropertiesProvider) {
+    public static TransferDebugOperationHandler create(C2Client c2Client, OperandPropertiesProvider operandPropertiesProvider,
+                                                       List<Path> bundleFilePaths, Predicate<String> contentFilter) {
         if (c2Client == null) {
             throw new IllegalArgumentException("C2Client should not be null");
+        }
+        if (operandPropertiesProvider == null) {
+            throw new IllegalArgumentException("OperandPropertiesProvider should not be not null");
         }
         if (bundleFilePaths == null || bundleFilePaths.isEmpty()) {
             throw new IllegalArgumentException("bundleFilePaths should not be not null or empty");
@@ -92,8 +96,7 @@ public class DebugOperationHandler implements C2OperationHandler {
         if (contentFilter == null) {
             throw new IllegalArgumentException("Content filter should not be null");
         }
-
-        return new DebugOperationHandler(c2Client, bundleFilePaths, contentFilter, operandPropertiesProvider);
+        return new TransferDebugOperationHandler(c2Client, operandPropertiesProvider, bundleFilePaths, contentFilter);
     }
 
     @Override
@@ -113,7 +116,7 @@ public class DebugOperationHandler implements C2OperationHandler {
 
     @Override
     public C2OperationAck handle(C2Operation operation) {
-        String debugCallbackUrl = operation.getArgs().get(TARGET_ARG);
+        String debugCallbackUrl = ofNullable(operation.getArgs()).orElse(emptyMap()).get(TARGET_ARG);
         if (debugCallbackUrl == null) {
             LOG.error("Callback URL was not found in C2 request.");
             return operationAck(operation, operationState(NOT_APPLIED, C2_CALLBACK_URL_NOT_FOUND));
