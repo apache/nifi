@@ -14,17 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.c2;
 
-import static org.apache.nifi.c2.C2NifiClientService.EXCLUDE_SENSITIVE_TEXT;
+package org.apache.nifi.c2.command;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.stream.Stream;
+import org.apache.nifi.util.NiFiProperties;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-public class C2NifiClientServiceTest {
+public class TransferDebugCommandHelperTest {
+
+    private TransferDebugCommandHelper transferDebugCommandHelper;
+
+    @BeforeEach
+    public void setUp() {
+        NiFiProperties niFiProperties = new NiFiProperties();
+        transferDebugCommandHelper = new TransferDebugCommandHelper(niFiProperties);
+    }
 
     private static Stream<Arguments> textAndExpectedResult() {
         return Stream.of(
@@ -51,6 +61,6 @@ public class C2NifiClientServiceTest {
     @ParameterizedTest
     @MethodSource("textAndExpectedResult")
     public void testSensitiveTextIsExcluded(String propertyName, boolean expectedResult) {
-        assertEquals(expectedResult, EXCLUDE_SENSITIVE_TEXT.test(propertyName));
+        assertEquals(expectedResult, transferDebugCommandHelper.excludeSensitiveText(propertyName));
     }
 }
