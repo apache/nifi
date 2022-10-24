@@ -333,10 +333,10 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         final String atTimestampPath = context.getProperty(AT_TIMESTAMP_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
 
         final RecordPath ioPath = indexOpPath != null ? recordPathCache.getCompiled(indexOpPath) : null;
-        final RecordPath path = idPath != null ? recordPathCache.getCompiled(idPath) : null;
+        final RecordPath path = StringUtils.isNotBlank(idPath) ? recordPathCache.getCompiled(idPath) : null;
         final RecordPath iPath = indexPath != null ? recordPathCache.getCompiled(indexPath) : null;
         final RecordPath tPath = typePath != null ? recordPathCache.getCompiled(typePath) : null;
-        final RecordPath atPath = atTimestampPath != null ? recordPathCache.getCompiled(atTimestampPath) : null;
+        final RecordPath atPath = StringUtils.isNotBlank(atTimestampPath) ? recordPathCache.getCompiled(atTimestampPath) : null;
 
         final boolean retainId = context.getProperty(RETAIN_ID_FIELD).evaluateAttributeExpressions(input).asBoolean();
         final boolean retainTimestamp = context.getProperty(RETAIN_AT_TIMESTAMP_FIELD).evaluateAttributeExpressions(input).asBoolean();
@@ -562,7 +562,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                 fieldValue.updateValue(null);
             }
 
-            return fieldValue.getValue().toString();
+            return fieldValue.toString();
         } else {
             return fallback;
         }
