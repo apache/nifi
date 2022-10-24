@@ -24,6 +24,7 @@ import org.apache.nifi.jasn1.RecordSchemaProvider;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockComponentLog;
 
@@ -32,6 +33,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.LinkedList;
+import java.util.Collections;
+import java.util.Comparator;
 
 import static org.apache.nifi.jasn1.util.RecordTestUtil.assertRecordsEqual;
 import static org.junit.Assert.assertEquals;
@@ -69,7 +73,13 @@ public interface JASN1ReadRecordTester {
             RecordSchema expectedSchema = expectedSchemaProvider.apply(actual);
 
             assertRecordsEqual(expected, actual);
-            assertEquals(expectedSchema, actualSchema);
+            LinkedList<RecordField>  expectedSchemaList = new LinkedList<>(expectedSchema.getFields());
+            LinkedList<RecordField>  actualSchemaList = new LinkedList<>(actualSchema.getFields());
+            Comparator<RecordField> compareById = (RecordField o1, RecordField o2) -> o1.getFieldName().compareTo( o2.getFieldName() );   
+            Collections.sort(actualSchemaList,compareById);
+            Collections.sort(expectedSchemaList, compareById);
+            assertEquals(expectedSchemaList.toString(), actualSchemaList.toString());
+            
         }
     }
 
