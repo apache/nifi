@@ -75,11 +75,10 @@ public interface JASN1ReadRecordTester {
             assertRecordsEqual(expected, actual);
             LinkedList<RecordField>  expectedSchemaList = new LinkedList<>(expectedSchema.getFields());
             LinkedList<RecordField>  actualSchemaList = new LinkedList<>(actualSchema.getFields());
-            Comparator<RecordField> compareById = (RecordField o1, RecordField o2) -> o1.getFieldName().compareTo( o2.getFieldName() );   
+            Comparator<RecordField> compareById = (RecordField o1, RecordField o2) -> o1.getFieldName().compareTo( o2.getFieldName() );
             Collections.sort(actualSchemaList,compareById);
             Collections.sort(expectedSchemaList, compareById);
             assertEquals(expectedSchemaList.toString(), actualSchemaList.toString());
-            
         }
     }
 
