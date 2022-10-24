@@ -289,7 +289,7 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
 
     @Override
     public void setFlowFileExpiration(final String flowExpirationPeriod) {
-        expirationMillis = (int) FormatUtils.getPreciseTimeDuration(flowExpirationPeriod, TimeUnit.MILLISECONDS);
+        expirationMillis = Math.round(FormatUtils.getPreciseTimeDuration(flowExpirationPeriod, TimeUnit.MILLISECONDS));
     }
 
     @Override
