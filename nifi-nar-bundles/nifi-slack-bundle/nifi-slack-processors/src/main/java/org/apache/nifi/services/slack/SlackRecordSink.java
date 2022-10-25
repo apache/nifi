@@ -42,11 +42,9 @@ import java.util.List;
 import java.util.Map;
 
 @Tags({"slack", "record", "sink"})
-@CapabilityDescription("Format and send Records using Slack. This controller service uses Slack Web API methods to post " +
-        "messages to a specific channel. Before using SlackRecordSink, you need to create a Slack App, to add a Bot User " +
-        "to the app, and to install the app in your Slack workspace. After the app installed, you can get " +
-        "the Bot User's OAuth Bearer Token that will be needed to authenticate and authorize " +
-        "your SlackRecordSink controller service to Slack.")
+@CapabilityDescription("Format and send Records to a configured Channel using the Slack Post Message API. " +
+        "The service requires a Slack App with a Bot User configured for access to a Slack workspace. " +
+        "The Bot User OAuth Bearer Token is required for posting messages to Slack.")
 public class SlackRecordSink extends AbstractControllerService implements RecordSinkService {
 
     private static final String SLACK_API_URL = "https://slack.com/api";
@@ -79,22 +77,21 @@ public class SlackRecordSink extends AbstractControllerService implements Record
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor INPUT_CHARACTER_SET = new PropertyDescriptor.Builder()
+            .name("input-character-set")
+            .displayName("Input Character Set")
+            .description("Specifies the character set of the records used to generate the Slack message.")
+            .required(true)
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .defaultValue(StandardCharsets.UTF_8.name())
+            .build();
+
     public static final PropertyDescriptor WEB_SERVICE_CLIENT_PROVIDER = new PropertyDescriptor.Builder()
             .name("web-service-client-provider")
             .displayName("Web Service Client Provider")
             .description("Controller service to provide HTTP client for communicating with Slack API")
             .required(true)
             .identifiesControllerService(WebClientServiceProvider.class)
-            .build();
-
-    public static final PropertyDescriptor INPUT_CHARACTER_SET = new PropertyDescriptor.Builder()
-            .name("input-character-set")
-            .displayName("Input Character Set")
-            .description("Specifies the character set of the records used to generate the Slack message."
-                    + " If not set, UTF-8 will be the default value.")
-            .required(true)
-            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
-            .defaultValue(StandardCharsets.UTF_8.name())
             .build();
 
     private volatile RecordSetWriterFactory writerFactory;
@@ -106,9 +103,9 @@ public class SlackRecordSink extends AbstractControllerService implements Record
                 API_URL,
                 ACCESS_TOKEN,
                 CHANNEL_ID,
+                INPUT_CHARACTER_SET,
                 RECORD_WRITER_FACTORY,
-                WEB_SERVICE_CLIENT_PROVIDER,
-                INPUT_CHARACTER_SET
+                WEB_SERVICE_CLIENT_PROVIDER
         ));
     }
 

@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.services.slack;
 
-public class SlackRestServiceException extends Exception{
-    SlackRestServiceException(String message) {
+class SlackRestServiceException extends Exception {
+    SlackRestServiceException(final String message) {
         super(message);
     }
 
-    SlackRestServiceException(String message, Throwable cause) {
+    SlackRestServiceException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

@@ -42,7 +42,6 @@ public class SlackRestService {
     private final ComponentLog logger;
     private final String charset;
 
-
     public SlackRestService(final WebClientServiceProvider webClientServiceProvider,
                             final String accessToken,
                             final String apiUrl,
@@ -76,14 +75,14 @@ public class SlackRestService {
         try {
             requestBodyInputStream = new ByteArrayInputStream(objectMapper.writeValueAsBytes(requestBodyJson));
         } catch (final JsonProcessingException e) {
-            throw new SlackRestServiceException("JSON processing exception occurred", e);
+            throw new SlackRestServiceException("JSON message serialization failed", e);
         }
 
         try (final HttpResponseEntity response = webClientServiceProvider.getWebClientService()
                 .post()
                 .uri(uri)
                 .header("Authorization", String.format("Bearer %s", accessToken))
-                .header("Content-Type", "application/json" + String.format("; charset=\"%s\"", charset))
+                .header("Content-Type", String.format("application/json; charset=\"%s\"", charset))
                 .body(requestBodyInputStream, OptionalLong.of(requestBodyInputStream.available()))
                 .retrieve()) {
             final int statusCode = response.statusCode();
@@ -92,7 +91,7 @@ public class SlackRestService {
             }
 
             try {
-                final SlackPostMessageResponse slackResponse = objectMapper.readValue(response.body(), SlackPostMessageResponse.class);
+                final PostMessageResponse slackResponse = objectMapper.readValue(response.body(), PostMessageResponse.class);
                 checkResponse(slackResponse, channel);
             } catch (final IOException e) {
                 throw new SlackRestServiceException("JSON response parsing failed", e);
@@ -110,7 +109,7 @@ public class SlackRestService {
         return requestBodyJson;
     }
 
-    private void checkResponse(final SlackPostMessageResponse response, final String channel) throws SlackRestServiceException {
+    private void checkResponse(final PostMessageResponse response, final String channel) throws SlackRestServiceException {
         if (!response.isOk()) {
             throw new SlackRestServiceException("Slack error response: " + response.getError());
         }

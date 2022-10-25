@@ -16,32 +16,52 @@
  */
 package org.apache.nifi.services.slack;
 
-public class Attachment {
-    private String text;
-    private int id;
-    private String fallback;
+import java.time.Instant;
 
-    public String getText() {
-        return text;
+public class PostMessageResponse {
+    private boolean ok;
+    private String channel;
+    private Instant ts;
+    private String error;
+    private String warning;
+
+    public boolean isOk() {
+        return ok;
     }
 
-    public void setText(String text) {
-        this.text = text;
+    public void setOk(boolean ok) {
+        this.ok = ok;
     }
 
-    public int getId() {
-        return id;
+    public String getChannel() {
+        return channel;
     }
 
-    public void setId(int id) {
-        this.id = id;
+    public void setChannel(String channel) {
+        this.channel = channel;
     }
 
-    public String getFallback() {
-        return fallback;
+    public Instant getTs() {
+        return ts;
     }
 
-    public void setFallback(String fallback) {
-        this.fallback = fallback;
+    public void setTs(Instant ts) {
+        this.ts = ts;
+    }
+
+    public String getError() {
+        return error;
+    }
+
+    public void setError(String error) {
+        this.error = error;
+    }
+
+    public String getWarning() {
+        return warning;
+    }
+
+    public void setWarning(String warning) {
+        this.warning = warning;
     }
 }

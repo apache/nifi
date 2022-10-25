@@ -65,7 +65,6 @@ public class TestSlackRecordSink {
 
     private TestRunner testRunner;
     private MockWebServer mockWebServer;
-    private String url;
     private SlackRecordSink slackRecordSink;
     private MockRecordWriter writerFactory;
     private RecordSet recordSet;
@@ -78,7 +77,7 @@ public class TestSlackRecordSink {
 
         mockWebServer = new MockWebServer();
         mockWebServer.start();
-        url = mockWebServer.url("/api/").toString();
+        String url = mockWebServer.url("/api/").toString();
 
         testRunner = TestRunners.newTestRunner(NoOpProcessor.class);
 
@@ -165,9 +164,7 @@ public class TestSlackRecordSink {
 
         mockWebServer.enqueue(new MockResponse().setResponseCode(500));
 
-        final IOException e = assertThrows(IOException.class, () -> {
-            slackRecordSink.sendData(recordSet, Collections.emptyMap(), false);
-        });
+        final IOException e = assertThrows(IOException.class, () -> slackRecordSink.sendData(recordSet, Collections.emptyMap(), false));
         assertTrue(e.getCause().getMessage().contains("500"));
     }
 
@@ -179,9 +176,7 @@ public class TestSlackRecordSink {
 
         mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_ERROR));
 
-        final IOException e = assertThrows(IOException.class, () -> {
-            slackRecordSink.sendData(recordSet, Collections.emptyMap(), false);
-        });
+        final IOException e = assertThrows(IOException.class, () -> slackRecordSink.sendData(recordSet, Collections.emptyMap(), false));
         assertTrue(e.getCause().getMessage().contains("slack-error"));
     }
 
@@ -206,9 +201,7 @@ public class TestSlackRecordSink {
 
         mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_EMPTY_JSON));
 
-        final IOException e = assertThrows(IOException.class, () -> {
-            slackRecordSink.sendData(recordSet, Collections.emptyMap(), false);
-        });
+        final IOException e = assertThrows(IOException.class, () -> slackRecordSink.sendData(recordSet, Collections.emptyMap(), false));
         assertTrue(e.getCause().getMessage().contains("null"));
     }
 
@@ -220,18 +213,14 @@ public class TestSlackRecordSink {
 
         mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_INVALID_JSON));
 
-        final IOException e = assertThrows(IOException.class, () -> {
-            slackRecordSink.sendData(recordSet, Collections.emptyMap(), false);
-        });
+        final IOException e = assertThrows(IOException.class, () -> slackRecordSink.sendData(recordSet, Collections.emptyMap(), false));
         assertTrue(e.getCause().getMessage().contains("parsing"));
     }
-
 
     private JsonNode getRequestBodyJson() {
         try {
             final RecordedRequest recordedRequest = mockWebServer.takeRequest();
-            final JsonNode jsonNode = mapper.readTree(recordedRequest.getBody().inputStream());
-            return jsonNode;
+            return mapper.readTree(recordedRequest.getBody().inputStream());
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
