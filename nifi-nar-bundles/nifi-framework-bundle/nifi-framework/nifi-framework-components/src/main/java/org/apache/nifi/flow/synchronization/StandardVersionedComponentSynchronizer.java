@@ -2252,7 +2252,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             final Set<Connectable> toRestart = new HashSet<>();
             if (port != null) {
                 final boolean stopped = stopOrTerminate(port, timeout, synchronizationOptions);
-                if (stopped && proposed != null) {
+                if (stopped && proposed != null && proposed.getScheduledState() == org.apache.nifi.flow.ScheduledState.RUNNING) {
                     toRestart.add(port);
                 }
             }
