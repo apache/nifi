@@ -41,16 +41,18 @@ import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.reporting.sql.util.TrackedQueryTime.BULLETIN_END_TIME;
 import static org.apache.nifi.reporting.sql.util.TrackedQueryTime.BULLETIN_START_TIME;
+import static org.apache.nifi.reporting.sql.util.TrackedQueryTime.FLOW_CONFIG_HISTORY_END_TIME;
+import static org.apache.nifi.reporting.sql.util.TrackedQueryTime.FLOW_CONFIG_HISTORY_START_TIME;
 import static org.apache.nifi.reporting.sql.util.TrackedQueryTime.PROVENANCE_END_TIME;
 import static org.apache.nifi.reporting.sql.util.TrackedQueryTime.PROVENANCE_START_TIME;
 import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION;
 import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE;
 
-@Tags({"status", "connection", "processor", "jvm", "metrics", "history", "bulletin", "prediction", "process", "group", "provenance", "record", "sql"})
+@Tags({"status", "connection", "processor", "jvm", "metrics", "history", "bulletin", "prediction", "process", "group", "provenance", "record", "sql", "flow", "config"})
 @CapabilityDescription("Publishes NiFi status information based on the results of a user-specified SQL query. The query may make use of the CONNECTION_STATUS, PROCESSOR_STATUS, "
-        + "BULLETINS, PROCESS_GROUP_STATUS, JVM_METRICS, CONNECTION_STATUS_PREDICTIONS, or PROVENANCE tables, and can use any functions or capabilities provided by Apache Calcite. Note that the "
-        + "CONNECTION_STATUS_PREDICTIONS table is not available for querying if analytics are not enabled (see the nifi.analytics.predict.enabled property in nifi.properties). Attempting a "
-        + "query on the table when the capability is disabled will cause an error.")
+        + "BULLETINS, PROCESS_GROUP_STATUS, JVM_METRICS, CONNECTION_STATUS_PREDICTIONS, FLOW_CONFIG_HISTORY, or PROVENANCE tables, and can use any functions or capabilities provided by "
+        + "Apache Calcite. Note that the CONNECTION_STATUS_PREDICTIONS table is not available for querying if analytics are not enabled (see the nifi.analytics.predict.enabled property "
+        + "in nifi.properties). Attempting a query on the table when the capability is disabled will cause an error.")
 @Stateful(scopes = Scope.LOCAL, description = "Stores the Reporting Task's last execution time so that on restart the task knows where it left off.")
 public class QueryNiFiReportingTask extends AbstractReportingTask implements QueryTimeAware {
 
@@ -92,6 +94,7 @@ public class QueryNiFiReportingTask extends AbstractReportingTask implements Que
         try {
             sql = processStartAndEndTimes(context, sql, BULLETIN_START_TIME, BULLETIN_END_TIME);
             sql = processStartAndEndTimes(context, sql, PROVENANCE_START_TIME, PROVENANCE_END_TIME);
+            sql = processStartAndEndTimes(context, sql, FLOW_CONFIG_HISTORY_START_TIME, FLOW_CONFIG_HISTORY_END_TIME);
 
             getLogger().debug("Executing query: {}", sql);
             final QueryResult queryResult = metricsQueryService.query(context, sql);
