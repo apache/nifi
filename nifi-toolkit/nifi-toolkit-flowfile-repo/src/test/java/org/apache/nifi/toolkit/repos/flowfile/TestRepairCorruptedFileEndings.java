@@ -17,35 +17,29 @@
 
 package org.apache.nifi.toolkit.repos.flowfile;
 
-import org.apache.commons.lang3.SystemUtils;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
+@DisabledOnOs(OS.WINDOWS)
 public class TestRepairCorruptedFileEndings {
     private final File targetFile = new File("target/1.bin");
 
-    @BeforeClass
-    public static void setupInstance() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
-    }
-
-    @Before
-    @After
+    @BeforeEach
+    @AfterEach
     public void cleanup() {
         if (targetFile.exists()) {
-            Assert.assertTrue(targetFile.delete());
+            assertTrue(targetFile.delete());
         }
     }
 

@@ -18,9 +18,9 @@
 package org.apache.nifi.toolkit.tls.properties;
 
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -31,18 +31,18 @@ import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class NifiPropertiesWriterTest {
     private static NiFiPropertiesWriterFactory nifiPropertiesWriterFactory;
     private NiFiPropertiesWriter niFiPropertiesWriter;
 
-    @BeforeClass
-    public static void beforeClass() throws IOException {
+    @BeforeAll
+    public static void setFactory() throws IOException {
         nifiPropertiesWriterFactory = new NiFiPropertiesWriterFactory();
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         niFiPropertiesWriter = nifiPropertiesWriterFactory.create();
     }

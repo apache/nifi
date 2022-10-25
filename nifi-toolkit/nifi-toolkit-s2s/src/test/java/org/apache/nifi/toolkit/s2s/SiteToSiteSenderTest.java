@@ -23,11 +23,11 @@ import org.apache.nifi.remote.TransactionCompletion;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.protocol.DataPacket;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -38,7 +38,8 @@ import java.util.Collections;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -46,7 +47,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class SiteToSiteSenderTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
     @Mock
@@ -58,19 +59,16 @@ public class SiteToSiteSenderTest {
     ByteArrayOutputStream data;
     private final Supplier<SiteToSiteSender> senderSupplier = () -> new SiteToSiteSender(siteToSiteClient, new ByteArrayInputStream(data.toByteArray()));
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         data = new ByteArrayOutputStream();
         when(siteToSiteClient.createTransaction(TransferDirection.SEND)).thenReturn(transaction);
-        when(transaction.complete()).thenAnswer(invocation -> {
-            verify(siteToSiteClient).createTransaction(TransferDirection.SEND);
-            verify(transaction).confirm();
-            return transactionCompletion;
-        });
     }
 
     @Test
     public void testEmptyList() throws IOException {
+        setTransactionCompletion();
+
         objectMapper.writeValue(data, Collections.emptyList());
         assertEquals(transactionCompletion, senderSupplier.get().sendFiles());
         verify(transaction, never()).send(any(DataPacket.class));
@@ -80,6 +78,8 @@ public class SiteToSiteSenderTest {
 
     @Test
     public void testSingleElement() throws IOException {
+        setTransactionCompletion();
+
         DataPacketDto dataPacketDto = new DataPacketDto("test-data".getBytes(StandardCharsets.UTF_8)).putAttribute("key", "value");
         objectMapper.writeValue(data, Arrays.stream(new DataPacketDto[]{dataPacketDto}).collect(Collectors.toList()));
         assertEquals(transactionCompletion, senderSupplier.get().sendFiles());
@@ -90,6 +90,8 @@ public class SiteToSiteSenderTest {
 
     @Test
     public void testMultipleElements() throws IOException {
+        setTransactionCompletion();
+
         DataPacketDto dataPacketDto = new DataPacketDto("test-data".getBytes(StandardCharsets.UTF_8)).putAttribute("key", "value");
         DataPacketDto dataPacketDto2 = new DataPacketDto("test-data2".getBytes(StandardCharsets.UTF_8)).putAttribute("key2", "value2");
         objectMapper.writeValue(data, Arrays.stream(new DataPacketDto[]{dataPacketDto, dataPacketDto2}).collect(Collectors.toList()));
@@ -100,31 +102,31 @@ public class SiteToSiteSenderTest {
         verifyNoMoreInteractions(siteToSiteClient, transaction, transactionCompletion);
     }
 
-    @Test(expected = IOException.class)
+    @Test
     public void testIOException() throws IOException {
         IOException test = new IOException("test");
         DataPacketDto dataPacketDto = new DataPacketDto("test-data".getBytes(StandardCharsets.UTF_8)).putAttribute("key", "value");
         objectMapper.writeValue(data, Arrays.stream(new DataPacketDto[]{dataPacketDto}).collect(Collectors.toList()));
         doThrow(test).when(transaction).send(any(DataPacket.class));
-        try {
-            senderSupplier.get().sendFiles();
-        } catch (IOException e) {
-            assertEquals(test, e);
-            throw e;
-        }
+
+        assertThrows(IOException.class, () -> senderSupplier.get().sendFiles());
     }
 
-    @Test(expected = IOException.class)
+    @Test
     public void testRuntimeException() throws IOException {
         RuntimeException test = new RuntimeException("test");
         DataPacketDto dataPacketDto = new DataPacketDto("test-data".getBytes(StandardCharsets.UTF_8)).putAttribute("key", "value");
         objectMapper.writeValue(data, Arrays.stream(new DataPacketDto[]{dataPacketDto}).collect(Collectors.toList()));
         doThrow(test).when(transaction).send(any(DataPacket.class));
-        try {
-            senderSupplier.get().sendFiles();
-        } catch (IOException e) {
-            assertEquals(test, e.getCause());
-            throw e;
-        }
+
+        assertThrows(IOException.class, () -> senderSupplier.get().sendFiles());
+    }
+
+    private void setTransactionCompletion() throws IOException {
+        when(transaction.complete()).thenAnswer(invocation -> {
+            verify(siteToSiteClient).createTransaction(TransferDirection.SEND);
+            verify(transaction).confirm();
+            return transactionCompletion;
+        });
     }
 }
