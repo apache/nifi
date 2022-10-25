@@ -346,6 +346,22 @@ public class StandardVersionedComponentSynchronizerTest {
     }
 
     @Test
+    public void testStartingProcessorRestarted() throws FlowSynchronizationException, TimeoutException, InterruptedException {
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setScheduledState(ScheduledState.RUNNING);
+
+        when(processorA.isRunning()).thenReturn(false);
+        when(processorA.getPhysicalScheduledState()).thenReturn(org.apache.nifi.controller.ScheduledState.STARTING);
+        when(group.stopProcessor(processorA)).thenReturn(CompletableFuture.completedFuture(null));
+
+        synchronizer.synchronize(processorA, versionedProcessor, group, synchronizationOptions);
+
+        verify(group, times(1)).stopProcessor(processorA);
+        verify(processorA).setProperties(versionedProcessor.getProperties(), true, Collections.emptySet());
+        verify(componentScheduler, atLeast(1)).startComponent(any(Connectable.class));
+    }
+
+    @Test
     public void testTimeoutWhenProcessorDoesNotStop() {
         final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
         versionedProcessor.setScheduledState(ScheduledState.RUNNING);
@@ -589,6 +605,16 @@ public class StandardVersionedComponentSynchronizerTest {
         synchronizer.synchronize(inputPort, versionedInputPort, group, synchronizationOptions);
 
         verify(componentScheduler, atLeast(1)).transitionComponentState(inputPort, ScheduledState.RUNNING);
+        verify(inputPort).setName("Input");
+    }
+
+    @Test
+    public void testStoppedPortNotRestarted() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        final VersionedPort versionedInputPort = createMinimalVersionedPort(ComponentType.INPUT_PORT);
+        versionedInputPort.setScheduledState(ScheduledState.ENABLED);
+        synchronizer.synchronize(inputPort, versionedInputPort, group, synchronizationOptions);
+
+        verify(componentScheduler, times(0)).transitionComponentState(inputPort, ScheduledState.RUNNING);
         verify(inputPort).setName("Input");
     }
 
