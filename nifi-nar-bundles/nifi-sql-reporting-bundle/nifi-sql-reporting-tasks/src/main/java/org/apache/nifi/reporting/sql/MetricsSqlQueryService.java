@@ -30,6 +30,7 @@ import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.sql.bulletins.BulletinTable;
 import org.apache.nifi.reporting.sql.connectionstatus.ConnectionStatusTable;
 import org.apache.nifi.reporting.sql.connectionstatuspredictions.ConnectionStatusPredictionsTable;
+import org.apache.nifi.reporting.sql.flowconfighistory.FlowConfigHistoryTable;
 import org.apache.nifi.reporting.sql.metrics.JvmMetricsTable;
 import org.apache.nifi.reporting.sql.processgroupstatus.ProcessGroupStatusTable;
 import org.apache.nifi.reporting.sql.processorstatus.ProcessorStatusTable;
@@ -169,6 +170,8 @@ public class MetricsSqlQueryService implements MetricsQueryService {
         rootSchema.add("BULLETINS", bulletinTable);
         final ProvenanceTable provenanceTable = new ProvenanceTable(context, getLogger());
         rootSchema.add("PROVENANCE", provenanceTable);
+        final FlowConfigHistoryTable flowConfigHistoryTable = new FlowConfigHistoryTable(context, getLogger());
+        rootSchema.add("FLOW_CONFIG_HISTORY", flowConfigHistoryTable);
 
         rootSchema.setCacheEnabled(false);
 
