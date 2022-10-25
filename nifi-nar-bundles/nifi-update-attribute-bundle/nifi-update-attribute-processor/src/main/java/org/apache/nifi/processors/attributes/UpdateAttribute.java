@@ -246,7 +246,6 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                     .build();
         } else {
             return propertyBuilder
-                    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                     .build();
         }
     }
