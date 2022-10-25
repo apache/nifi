@@ -34,11 +34,11 @@ import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.eclipse.jetty.server.Response;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -51,15 +51,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class TlsCertificateSigningRequestPerformerTest {
     @Mock
     Supplier<HttpClientBuilder> httpClientBuilderSupplier;
@@ -90,7 +90,7 @@ public class TlsCertificateSigningRequestPerformerTest {
     private byte[] testHmac;
     private String testSignedCsr;
 
-    @Before
+    @BeforeEach
     public void setup() throws GeneralSecurityException, OperatorCreationException, IOException {
         objectMapper = new ObjectMapper();
         keyPair = TlsHelper.generateKeyPair(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM, TlsConfig.DEFAULT_KEY_SIZE);
@@ -151,79 +151,61 @@ public class TlsCertificateSigningRequestPerformerTest {
     }
 
     @Test
-    public void testBadStatusCode() throws Exception {
+    public void testBadStatusCode() {
         statusCode = Response.SC_FORBIDDEN;
         tlsCertificateAuthorityResponse = new TlsCertificateAuthorityResponse();
-        try {
-            tlsCertificateSigningRequestPerformer.perform(keyPair);
-            fail("Expected IOE");
-        } catch (IOException e) {
-            assertTrue(e.getMessage().startsWith(TlsCertificateSigningRequestPerformer.RECEIVED_RESPONSE_CODE + statusCode));
-        }
+
+        final IOException e = assertThrows(IOException.class, () -> tlsCertificateSigningRequestPerformer.perform(keyPair));
+        assertTrue(e.getMessage().startsWith(TlsCertificateSigningRequestPerformer.RECEIVED_RESPONSE_CODE + statusCode));
     }
 
     @Test
-    public void test0CertSize() throws Exception {
+    public void test0CertSize() {
         statusCode = Response.SC_OK;
         tlsCertificateAuthorityResponse = new TlsCertificateAuthorityResponse();
-        try {
-            tlsCertificateSigningRequestPerformer.perform(keyPair);
-            fail("Expected IOE");
-        } catch (IOException e) {
-            assertEquals(TlsCertificateSigningRequestPerformer.EXPECTED_ONE_CERTIFICATE, e.getMessage());
-        }
+
+        final IOException e = assertThrows(IOException.class, () -> tlsCertificateSigningRequestPerformer.perform(keyPair));
+        assertEquals(TlsCertificateSigningRequestPerformer.EXPECTED_ONE_CERTIFICATE, e.getMessage());
     }
 
     @Test
-    public void test2CertSize() throws Exception {
+    public void test2CertSize() {
         certificates.add(caCertificate);
         certificates.add(caCertificate);
         statusCode = Response.SC_OK;
         tlsCertificateAuthorityResponse = new TlsCertificateAuthorityResponse();
-        try {
-            tlsCertificateSigningRequestPerformer.perform(keyPair);
-            fail("Expected IOE");
-        } catch (IOException e) {
-            assertEquals(TlsCertificateSigningRequestPerformer.EXPECTED_ONE_CERTIFICATE, e.getMessage());
-        }
+
+        final IOException e = assertThrows(IOException.class, () -> tlsCertificateSigningRequestPerformer.perform(keyPair));
+        assertEquals(TlsCertificateSigningRequestPerformer.EXPECTED_ONE_CERTIFICATE, e.getMessage());
     }
 
     @Test
-    public void testNoHmac() throws Exception {
+    public void testNoHmac() {
         certificates.add(caCertificate);
         statusCode = Response.SC_OK;
         tlsCertificateAuthorityResponse = new TlsCertificateAuthorityResponse(null, testSignedCsr);
-        try {
-            tlsCertificateSigningRequestPerformer.perform(keyPair);
-            fail("Expected IOE");
-        } catch (IOException e) {
-            assertEquals(TlsCertificateSigningRequestPerformer.EXPECTED_RESPONSE_TO_CONTAIN_HMAC, e.getMessage());
-        }
+
+        final IOException e = assertThrows(IOException.class, () -> tlsCertificateSigningRequestPerformer.perform(keyPair));
+        assertEquals(TlsCertificateSigningRequestPerformer.EXPECTED_RESPONSE_TO_CONTAIN_HMAC, e.getMessage());
     }
 
     @Test
-    public void testBadHmac() throws Exception {
+    public void testBadHmac() {
         certificates.add(caCertificate);
         statusCode = Response.SC_OK;
         tlsCertificateAuthorityResponse = new TlsCertificateAuthorityResponse("badHmac".getBytes(StandardCharsets.UTF_8), testSignedCsr);
-        try {
-            tlsCertificateSigningRequestPerformer.perform(keyPair);
-            fail("Expected IOE");
-        } catch (IOException e) {
-            assertEquals(TlsCertificateSigningRequestPerformer.UNEXPECTED_HMAC_RECEIVED_POSSIBLE_MAN_IN_THE_MIDDLE, e.getMessage());
-        }
+
+        final IOException e = assertThrows(IOException.class, () -> tlsCertificateSigningRequestPerformer.perform(keyPair));
+        assertEquals(TlsCertificateSigningRequestPerformer.UNEXPECTED_HMAC_RECEIVED_POSSIBLE_MAN_IN_THE_MIDDLE, e.getMessage());
     }
 
     @Test
-    public void testNoCertificate() throws Exception {
+    public void testNoCertificate() {
         certificates.add(caCertificate);
         statusCode = Response.SC_OK;
         tlsCertificateAuthorityResponse = new TlsCertificateAuthorityResponse(testHmac, null);
-        try {
-            tlsCertificateSigningRequestPerformer.perform(keyPair);
-            fail("Expected IOE");
-        } catch (IOException e) {
-            assertEquals(TlsCertificateSigningRequestPerformer.EXPECTED_RESPONSE_TO_CONTAIN_CERTIFICATE, e.getMessage());
-        }
+
+        final IOException e = assertThrows(IOException.class, () -> tlsCertificateSigningRequestPerformer.perform(keyPair));
+        assertEquals(TlsCertificateSigningRequestPerformer.EXPECTED_RESPONSE_TO_CONTAIN_CERTIFICATE, e.getMessage());
     }
 }

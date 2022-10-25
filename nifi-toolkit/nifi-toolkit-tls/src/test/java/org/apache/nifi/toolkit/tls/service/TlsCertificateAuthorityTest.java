@@ -18,6 +18,7 @@
 package org.apache.nifi.toolkit.tls.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
@@ -28,8 +29,8 @@ import org.apache.nifi.toolkit.tls.service.server.TlsCertificateAuthorityService
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -37,7 +38,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.KeyStore;
@@ -53,13 +53,13 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.AdditionalMatchers.or;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -80,7 +80,7 @@ public class TlsCertificateAuthorityTest {
     private ByteArrayOutputStream clientConfigFileOutputStream;
     private String subjectAlternativeName;
 
-    @Before
+    @BeforeEach
     public void setup() throws FileNotFoundException {
         objectMapper = new ObjectMapper();
         serverConfigFile = new File("fake.server.config");
@@ -96,7 +96,7 @@ public class TlsCertificateAuthorityTest {
         subjectAlternativeName = "nifi.apache.org";
 
         String myTestTokenUseSomethingStronger = "myTestTokenUseSomethingStronger";
-        int port = availablePort();
+        int port = NetworkUtils.getAvailableTcpPort();
 
         serverConfig = new TlsConfig();
         serverConfig.setCaHostname("localhost");
@@ -113,7 +113,7 @@ public class TlsCertificateAuthorityTest {
         clientConfig.setKeyStore(clientKeyStore);
         clientConfig.setTrustStore(clientTrustStore);
         clientConfig.setToken(myTestTokenUseSomethingStronger);
-        clientConfig.setDomainAlternativeNames(Arrays.asList(subjectAlternativeName));
+        clientConfig.setDomainAlternativeNames(Collections.singletonList(subjectAlternativeName));
         clientConfig.setPort(port);
         clientConfig.setKeySize(2048);
         clientConfig.initDefaults();
@@ -194,14 +194,10 @@ public class TlsCertificateAuthorityTest {
     }
 
     @Test
-    public void testTokenMismatch() throws Exception {
+    public void testTokenMismatch() {
         serverConfig.setToken("a different token...");
-        try {
-            testClientGetCertSamePasswordsForKeyAndKeyStore();
-            fail("Expected error with mismatching token");
-        } catch (IOException e) {
-            assertTrue(e.getMessage().contains("forbidden"));
-        }
+
+        assertThrows(IOException.class, () -> testClientGetCertSamePasswordsForKeyAndKeyStore());
     }
 
     private void validate() throws CertificateException, InvalidKeyException, NoSuchAlgorithmException, KeyStoreException, SignatureException,
@@ -282,25 +278,5 @@ public class TlsCertificateAuthorityTest {
             }
         }
         return containsSAN;
-    }
-
-    /**
-     * Will determine the available port used by ca server
-     */
-    private int availablePort() {
-        ServerSocket s = null;
-        try {
-            s = new ServerSocket(0);
-            s.setReuseAddress(true);
-            return s.getLocalPort();
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to discover available port.", e);
-        } finally {
-            try {
-                s.close();
-            } catch (IOException e) {
-                // ignore
-            }
-        }
     }
 }
