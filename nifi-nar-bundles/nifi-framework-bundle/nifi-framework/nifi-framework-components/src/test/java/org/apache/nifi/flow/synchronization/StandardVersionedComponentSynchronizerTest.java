@@ -111,6 +111,7 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -602,9 +603,13 @@ public class StandardVersionedComponentSynchronizerTest {
     public void testPortRestarted() throws FlowSynchronizationException, InterruptedException, TimeoutException {
         final VersionedPort versionedInputPort = createMinimalVersionedPort(ComponentType.INPUT_PORT);
         versionedInputPort.setScheduledState(ScheduledState.RUNNING);
+
+        when(inputPort.isRunning()).thenReturn(true);
+
         synchronizer.synchronize(inputPort, versionedInputPort, group, synchronizationOptions);
 
         verify(componentScheduler, atLeast(1)).transitionComponentState(inputPort, ScheduledState.RUNNING);
+        verify(componentScheduler, times(1)).startComponent(inputPort);
         verify(inputPort).setName("Input");
     }
 
@@ -612,9 +617,13 @@ public class StandardVersionedComponentSynchronizerTest {
     public void testStoppedPortNotRestarted() throws FlowSynchronizationException, InterruptedException, TimeoutException {
         final VersionedPort versionedInputPort = createMinimalVersionedPort(ComponentType.INPUT_PORT);
         versionedInputPort.setScheduledState(ScheduledState.ENABLED);
+
+        when(inputPort.isRunning()).thenReturn(true);
+
         synchronizer.synchronize(inputPort, versionedInputPort, group, synchronizationOptions);
 
-        verify(componentScheduler, times(0)).transitionComponentState(inputPort, ScheduledState.RUNNING);
+        verify(componentScheduler, times(1)).transitionComponentState(inputPort, ScheduledState.ENABLED);
+        verify(componentScheduler, never()).startComponent(inputPort);
         verify(inputPort).setName("Input");
     }
 
