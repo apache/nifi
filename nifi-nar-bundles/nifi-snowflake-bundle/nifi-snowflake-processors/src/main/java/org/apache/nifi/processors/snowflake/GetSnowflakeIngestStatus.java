@@ -139,7 +139,7 @@ public class GetSnowflakeIngestStatus extends AbstractProcessor {
                         .filter(entry -> entry.getPath().equals(stagedFilePath) && entry.isComplete())
                         .findFirst());
 
-        if (fileEntry.isEmpty()) {
+        if (!fileEntry.isPresent()) {
             stateManager.saveBeginMarkToState(historyResponse.getNextBeginMark());
             session.transfer(session.penalize(flowFile), REL_RETRY);
             return;
