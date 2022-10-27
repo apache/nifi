@@ -582,6 +582,9 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                 // run the processor
                 instance.onTrigger(context, sessionFactory);
             } catch (final ProcessException e) {
+                if (getLogger().isDebugEnabled()) {
+                    getLogger().debug("Script as executed by NiFi with preloads {}", scriptRunner.getScript());
+                }
                 final String message = String.format("An error occurred executing the configured Processor [%s]: %s",
                         context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).getValue(), e);
                 log.error(message);

@@ -34,12 +34,15 @@ public class JythonScriptRunner extends BaseScriptRunner {
     private final CompiledScript compiledScript;
 
     public JythonScriptRunner(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException {
-        super(engine, scriptBody, modulePaths);
+        super(engine, scriptBody, buildPreloads(modulePaths), modulePaths);
         // Add prefix for import sys and all jython modules
-        String prefix = "import sys\n"
+        compiledScript = ((Compilable) engine).compile(this.scriptBody);
+    }
+
+    private static String buildPreloads(String[] modulePaths) {
+        return "import sys\n"
                 + Arrays.stream(modulePaths).map((modulePath) -> "sys.path.append(" + PyString.encode_UnicodeEscape(modulePath, true) + ")")
                 .collect(Collectors.joining("\n")) + "\n";
-        compiledScript = ((Compilable) engine).compile(prefix + scriptBody);
     }
 
     @Override

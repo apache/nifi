@@ -247,6 +247,9 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
                 throw new ProcessException(t);
             }
         } catch (final Throwable t) {
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug("Script as executed by NiFi with preloads {}", scriptRunner.getScript());
+            }
             // Mimic AbstractProcessor behavior here
             getLogger().error("{} failed to process due to {}; rolling back session", this, t);
 
