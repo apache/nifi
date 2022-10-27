@@ -83,6 +83,11 @@ class AbstractMockElasticsearchClient extends AbstractControllerService implemen
     }
 
     @Override
+    boolean documentExists(String index, String type, String id, Map<String, String> requestParameters) {
+        return true
+    }
+
+    @Override
     Map<String, Object> get(String index, String type, String id, Map<String, String> requestParameters) {
         return null
     }

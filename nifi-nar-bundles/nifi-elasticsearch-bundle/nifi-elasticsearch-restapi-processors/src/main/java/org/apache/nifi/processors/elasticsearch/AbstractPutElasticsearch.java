@@ -35,6 +35,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.record.path.validation.RecordPathValidator;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -49,6 +50,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public abstract class AbstractPutElasticsearch extends AbstractProcessor implements ElasticsearchRestProcessor {
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -104,6 +106,10 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
 
     private final AtomicReference<Set<Relationship>> relationships = new AtomicReference<>(getBaseRelationships());
 
+    static final String BULK_HEADER_PREFIX = "BULK:";
+
+    static final ObjectMapper MAPPER = new ObjectMapper();
+
     boolean logErrors;
     boolean outputErrorResponses;
     boolean notFoundIsSuccessful;
@@ -120,13 +126,19 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new PropertyDescriptor.Builder()
+        final PropertyDescriptor.Builder builder = new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .required(false)
-                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-                .dynamic(true)
-                .build();
+                .dynamic(true);
+
+        if (propertyDescriptorName.startsWith(BULK_HEADER_PREFIX)) {
+            builder.addValidator(new RecordPathValidator());
+        } else {
+            builder.addValidator(StandardValidators.NON_EMPTY_VALIDATOR);
+        }
+
+        return builder.build();
     }
 
     @Override
@@ -187,6 +199,16 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
         validationResults.add(indexOpValidationResult.build());
 
         return validationResults;
+    }
+
+    Map<String, String> getRequestURLParameters(final Map<String, String> dynamicProperties) {
+        return dynamicProperties.entrySet().stream().filter(e -> !e.getKey().startsWith(BULK_HEADER_PREFIX))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    Map<String, String> getBulkHeaderParameters(final Map<String, String> dynamicProperties) {
+        return dynamicProperties.entrySet().stream().filter(e -> e.getKey().startsWith(BULK_HEADER_PREFIX))
+                .collect(Collectors.toMap(e -> e.getKey().replace(BULK_HEADER_PREFIX, "").trim(), Map.Entry::getValue));
     }
 
     void transferFlowFilesOnException(final Exception ex, final Relationship rel, final ProcessSession session,

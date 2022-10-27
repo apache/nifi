@@ -15,12 +15,13 @@
 
 #create mapping
 PUT:user_details/:{ "mappings":{ "properties":{ "email":{"type":"keyword"},"phone":{"type": "keyword"},"accessKey":{"type": "keyword"}}}}
-PUT:messages/:{ "mappings":{ "properties":{ "msg":{"type":"keyword"}}}}
+PUT:messages/:{ "mappings":{ "properties":{ "msg":{"type":"keyword"}, "counter":{"type":"short"}}}}
 PUT:complex/:{"mappings":{ "properties":{"msg":{"type":"keyword"},"subField":{"type":"nested","properties":{"longField":{"type":"long"},"dateField":{"type":"date"}}}}}}
 PUT:nested/:{"mappings":{ "properties":{"msg":{"type":"keyword"},"subField":{"type":"nested","properties":{"longField":{"type":"long"},"dateField":{"type":"date"},"deeper":{"type":"nested","properties":{"secretz":{"type":"keyword"},"deepest":{"type":"nested","properties":{"super_secret":{"type":"keyword"}}}}}}}}}}
 PUT:bulk_a/:{ "mappings":{ "properties":{ "msg":{"type":"keyword"}}}}
 PUT:bulk_b/:{ "mappings":{ "properties":{ "msg":{"type":"keyword"}}}}
 PUT:bulk_c/:{ "mappings":{ "properties":{ "msg":{"type":"keyword"}}}}
+PUT:dynamo/:{ "mappings":{ "dynamic_templates": [{ "test_text": { "mapping": { "type": "text" } } }], "properties":{ "msg":{"type":"keyword"}}}}
 PUT:error_handler:{ "mappings": { "properties": { "msg": { "type": "keyword" }, "intField": { "type": "integer" }}}}
 PUT:no_source/:{ "mappings":{ "_source": { "enabled": false }, "properties":{ "msg":{"type":"keyword"}}}}
 
