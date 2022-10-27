@@ -37,7 +37,7 @@ public class GroovyScriptRunner extends BaseScriptRunner {
                     + "import org.apache.nifi.lookup.*\n";
 
     public GroovyScriptRunner(ScriptEngine engine, String scriptBody, String[] modulePaths) {
-        super(engine, scriptBody, modulePaths);
+        super(engine, scriptBody, PRELOADS, modulePaths);
     }
 
     @Override
@@ -48,6 +48,6 @@ public class GroovyScriptRunner extends BaseScriptRunner {
     @Override
     public void run(Bindings bindings) throws ScriptException {
         scriptEngine.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
-        scriptEngine.eval(PRELOADS + scriptBody);
+        scriptEngine.eval(scriptBody);
     }
 }
