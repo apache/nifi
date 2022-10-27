@@ -15,7 +15,7 @@
 
 #create mapping
 PUT:user_details/:{ "mappings":{"_doc":{ "properties":{ "email":{"type":"keyword"},"phone":{"type": "keyword"},"accessKey":{"type": "keyword"}}}}}
-PUT:messages/:{ "mappings":{"_doc":{ "properties":{ "msg":{"type":"keyword"}}}}}
+PUT:messages/:{ "mappings":{"_doc":{ "properties":{ "msg":{"type":"keyword"}, "counter":{"type":"short"}}}}}
 PUT:complex/:{"mappings":{"_doc":{"properties":{"msg":{"type":"keyword"},"subField":{"type":"nested","properties":{"longField":{"type":"long"},"dateField":{"type":"date"}}}}}}}
 PUT:nested/:{"mappings":{"_doc":{"properties":{"msg":{"type":"keyword"},"subField":{"type":"nested","properties":{"longField":{"type":"long"},"dateField":{"type":"date"},"deeper":{"type":"nested","properties":{"secretz":{"type":"keyword"},"deepest":{"type":"nested","properties":{"super_secret":{"type":"keyword"}}}}}}}}}}}
 PUT:bulk_a/:{ "mappings":{"_doc":{ "properties":{ "msg":{"type":"keyword"}}}}}

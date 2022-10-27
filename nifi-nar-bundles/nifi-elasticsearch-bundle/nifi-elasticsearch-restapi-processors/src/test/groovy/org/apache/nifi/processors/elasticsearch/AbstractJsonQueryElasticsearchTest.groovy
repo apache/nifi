@@ -217,8 +217,7 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
         testCounts(runner, isInput() ? 1 : 0, 0, 0, 0)
         assertThat(
                 runner.getProvenanceEvents().stream().filter({ pe ->
-                    pe.getEventType() == ProvenanceEventType.RECEIVE &&
-                            pe.getAttribute("uuid") == hits.getAttribute("uuid")
+                    pe.getEventType() == ProvenanceEventType.RECEIVE
                 }).count(),
                 is(0L)
         )

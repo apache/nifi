@@ -36,7 +36,8 @@ import java.util.Map;
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @Tags({ "elastic", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "update", "query"})
 @CapabilityDescription("Update documents in an Elasticsearch index using a query. The query can be loaded from a flowfile body " +
-        "or from the Query parameter.")
+        "or from the Query parameter. The loaded Query can contain any JSON accepted by Elasticsearch's _update_by_query API, " +
+        "for example a \"query\" object to identify what documents are to be updated, plus a \"script\" to define the updates to perform.")
 @DynamicProperty(
         name = "The name of a URL query parameter to add",
         value = "The value of the URL query parameter",
