@@ -84,14 +84,7 @@ public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
             out = registerStream(claim);
         }
 
-        if (!(claim instanceof StandardContentClaim)) {
-            // we know that we will only create Content Claims that are of type StandardContentClaim, so if we get anything
-            // else, just throw an Exception because it is not valid for this Repository
-            throw new IllegalArgumentException("Cannot write to " + claim + " because that Content Claim does belong to this Claim Cache");
-        }
-
-        final StandardContentClaim scc = (StandardContentClaim) claim;
-        final long initialLength = Math.max(0L, scc.getLength());
+        final long initialLength = Math.max(0L, claim.getLength());
 
         final OutputStream bcos = out;
         return new OutputStream() {
@@ -101,14 +94,14 @@ public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
             public void write(final int b) throws IOException {
                 bcos.write(b);
                 bytesWritten++;
-                scc.setLength(initialLength + bytesWritten);
+                claim.setLength(initialLength + bytesWritten);
             }
 
             @Override
             public void write(byte[] b, int off, int len) throws IOException {
                 bcos.write(b, off, len);
                 bytesWritten += len;
-                scc.setLength(initialLength + bytesWritten);
+                claim.setLength(initialLength + bytesWritten);
             }
 
             @Override
