@@ -30,8 +30,8 @@ limitations under the License.
 
     <properties>
         <minifi.version>${project.version}</minifi.version>
-        <docker.image.name>openjdk</docker.image.name>
-        <docker.image.tag>8-jre-alpine</docker.image.tag>
+        <docker.image.name>eclipse-temurin</docker.image.name>
+        <docker.image.tag>8-jre</docker.image.tag>
     </properties>
 
     <profiles>

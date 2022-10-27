@@ -56,7 +56,7 @@ services:
     entrypoint:
       - sh
       - -c
-      - /opt/minifi/minifi-${minifi.version}/bin/minifi.sh start && python /home/minifi/tailFileServer.py --file /opt/minifi/minifi-${minifi.version}/logs/minifi-app.log --file /opt/minifi/minifi-${minifi.version}/logs/minifi-bootstrap.log
+      - /opt/minifi/minifi-${minifi.version}/bin/minifi.sh start && python3 /home/minifi/tailFileServer.py --file /opt/minifi/minifi-${minifi.version}/logs/minifi-app.log --file /opt/minifi/minifi-${minifi.version}/logs/minifi-bootstrap.log
     networks:
       - edge1
 
@@ -93,7 +93,7 @@ services:
     entrypoint:
       - sh
       - -c
-      - /opt/minifi/minifi-${minifi.version}/bin/minifi.sh start && python /home/minifi/tailFileServer.py --file /opt/minifi/minifi-${minifi.version}/logs/minifi-app.log --file /opt/minifi/minifi-${minifi.version}/logs/minifi-bootstrap.log
+      - /opt/minifi/minifi-${minifi.version}/bin/minifi.sh start && python3 /home/minifi/tailFileServer.py --file /opt/minifi/minifi-${minifi.version}/logs/minifi-app.log --file /opt/minifi/minifi-${minifi.version}/logs/minifi-bootstrap.log
     networks:
       - edge2
 
@@ -126,7 +126,7 @@ services:
     entrypoint:
       - sh
       - -c
-      - /opt/minifi/minifi-${minifi.version}/bin/minifi.sh start && python /home/minifi/tailFileServer.py --file /opt/minifi/minifi-${minifi.version}/logs/minifi-app.log --file /opt/minifi/minifi-${minifi.version}/logs/minifi-bootstrap.log
+      - /opt/minifi/minifi-${minifi.version}/bin/minifi.sh start && python3 /home/minifi/tailFileServer.py --file /opt/minifi/minifi-${minifi.version}/logs/minifi-app.log --file /opt/minifi/minifi-${minifi.version}/logs/minifi-bootstrap.log
     networks:
       - edge3
 
