@@ -72,7 +72,7 @@ public class JsonQueryElasticsearch extends AbstractJsonQueryElasticsearch<JsonQ
                 queryJsonParameters.getQuery(),
                 queryJsonParameters.getIndex(),
                 queryJsonParameters.getType(),
-                getUrlQueryParameters(context, input)
+                getDynamicProperties(context, input)
         );
         if (input != null) {
             session.getProvenanceReporter().send(

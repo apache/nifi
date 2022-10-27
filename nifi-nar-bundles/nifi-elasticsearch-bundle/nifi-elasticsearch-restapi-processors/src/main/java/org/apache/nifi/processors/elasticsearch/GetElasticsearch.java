@@ -180,7 +180,7 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
             final String type = context.getProperty(TYPE).evaluateAttributeExpressions(attributes).getValue();
             final String id = context.getProperty(ID).evaluateAttributeExpressions(attributes).getValue();
             try {
-                final Map<String, String> requestParameters = new HashMap<>(getUrlQueryParameters(context, attributes));
+                final Map<String, String> requestParameters = new HashMap<>(getDynamicProperties(context, attributes));
                 requestParameters.putIfAbsent("_source", "false");
                 verifyClientService.get(index, type, id, requestParameters);
                 documentExistsResult.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
@@ -233,7 +233,7 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
             }
 
             final StopWatch stopWatch = new StopWatch(true);
-            final Map<String, Object> doc = clientService.get().get(index, type, id, getUrlQueryParameters(context, input));
+            final Map<String, Object> doc = clientService.get().get(index, type, id, getDynamicProperties(context, input));
 
             final Map<String, String> attributes = new HashMap<>(4, 1);
             attributes.put("filename", id);

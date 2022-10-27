@@ -137,7 +137,7 @@ public abstract class AbstractByQueryElasticsearch extends AbstractProcessor imp
                     ? context.getProperty(QUERY_ATTRIBUTE).evaluateAttributeExpressions(input).getValue()
                     : null;
 
-            final OperationResponse or = performOperation(clientService.get(), query, index, type, getUrlQueryParameters(context, input));
+            final OperationResponse or = performOperation(clientService.get(), query, index, type, getDynamicProperties(context, input));
 
             if (input == null) {
                 input = session.create();
