@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 public class UpdateAssetCommandHelper {
 
-    static final String MINIFI_ASSET_DIRECTORY_PROPERTY_NAME = "nifi.asset.directory";
+    static final String MINIFI_ASSET_DIRECTORY_PROPERTY_NAME = "c2.asset.directory";
 
     private static final Logger LOG = LoggerFactory.getLogger(UpdateAssetCommandHelper.class);
 
