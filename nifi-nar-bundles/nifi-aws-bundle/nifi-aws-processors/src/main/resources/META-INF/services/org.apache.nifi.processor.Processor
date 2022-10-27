@@ -31,4 +31,12 @@ org.apache.nifi.processors.aws.kinesis.stream.PutKinesisStream
 org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream
 org.apache.nifi.processors.aws.cloudwatch.PutCloudWatchMetric
 org.apache.nifi.processors.aws.wag.InvokeAWSGatewayApi
+org.apache.nifi.processors.aws.ml.translate.StartAwsTranslateJob
+org.apache.nifi.processors.aws.ml.translate.GetAwsTranslateJobStatus
+org.apache.nifi.processors.aws.ml.polly.StartAwsPollyJob
+org.apache.nifi.processors.aws.ml.polly.GetAwsPollyJobStatus
+org.apache.nifi.processors.aws.ml.textract.StartAwsTextractJob
+org.apache.nifi.processors.aws.ml.textract.GetAwsTextractJobStatus
+org.apache.nifi.processors.aws.ml.transcribe.StartAwsTranscribeJob
+org.apache.nifi.processors.aws.ml.transcribe.GetAwsTranscribeJobStatus
 
