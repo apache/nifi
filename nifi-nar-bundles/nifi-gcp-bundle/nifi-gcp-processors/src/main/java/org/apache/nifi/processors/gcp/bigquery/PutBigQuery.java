@@ -64,9 +64,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
 import org.apache.nifi.processors.gcp.bigquery.proto.ProtoUtils;
-import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -109,8 +107,6 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
 
     private static final String APPEND_RECORD_COUNT_NAME = "bq.append.record.count";
     private static final String APPEND_RECORD_COUNT_DESC = "The number of records to be appended to the write stream at once. Applicable for both batch and stream types";
-    private static final String PROJECT_ID_NAME = "gcp-project-id";
-    private static final String PROJECT_ID_DESC = "Google Cloud Project ID";
     private static final String TRANSFER_TYPE_NAME = "bq.transfer.type";
     private static final String TRANSFER_TYPE_DESC = "Defines the preferred transfer type streaming or batching";
 
@@ -128,12 +124,8 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
     private boolean skipInvalidRows;
 
     public static final PropertyDescriptor PROJECT_ID = new PropertyDescriptor.Builder()
-        .name(PROJECT_ID_NAME)
-        .displayName("Project ID")
-        .description(PROJECT_ID_DESC)
+        .fromPropertyDescriptor(AbstractBigQueryProcessor.PROJECT_ID)
         .required(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
     static final PropertyDescriptor TRANSFER_TYPE = new PropertyDescriptor.Builder()
@@ -181,8 +173,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         TRANSFER_TYPE,
         APPEND_RECORD_COUNT,
         RETRY_COUNT,
-        SKIP_INVALID_ROWS,
-        ProxyConfiguration.createProxyConfigPropertyDescriptor(true, ProxyAwareTransportFactory.PROXY_SPECS)
+        SKIP_INVALID_ROWS
     ).collect(collectingAndThen(toList(), Collections::unmodifiableList));
 
     @Override
