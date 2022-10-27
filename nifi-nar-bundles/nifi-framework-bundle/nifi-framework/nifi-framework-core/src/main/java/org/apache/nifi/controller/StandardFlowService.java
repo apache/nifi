@@ -1025,7 +1025,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         }
     }
 
-    
     private BundleUpdateStrategy getBundleUpdateStrategy() {
         final String configuredStrategy = nifiProperties.getClusterFlowBundleUpdateStrategy();
         BundleUpdateStrategy strategy = BundleUpdateStrategy.USE_SPECIFIED_OR_FAIL;
@@ -1033,7 +1032,10 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             try {
                 strategy = BundleUpdateStrategy.valueOf(configuredStrategy);
             } catch (final IllegalArgumentException e) {
-                logger.warn("Detected invalid setting for property " + NiFiProperties.CLUSTER_FLOW_BUNDLE_UPDATE_STRATEGY + " of '" + configuredStrategy + "'. Defaulting to " + BundleUpdateStrategy.USE_SPECIFIED_OR_FAIL.name());
+                logger.warn("Detected invalid setting for property "
+                + NiFiProperties.CLUSTER_FLOW_BUNDLE_UPDATE_STRATEGY
+                + " of '" + configuredStrategy + "'. Defaulting to "
+                + BundleUpdateStrategy.USE_SPECIFIED_OR_FAIL.name());
             }
         }
         return strategy;
@@ -1059,7 +1061,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             // load new controller state
             loadFromBytes(dataFlow, true, getBundleUpdateStrategy());
-            
+
             // set node ID on controller before we start heartbeating because heartbeat needs node ID
             clusterCoordinator.setLocalNodeIdentifier(nodeId);
             clusterCoordinator.setConnected(true);
