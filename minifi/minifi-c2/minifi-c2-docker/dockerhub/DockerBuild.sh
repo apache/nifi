@@ -1,3 +1,4 @@
+#!/bin/sh
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -13,19 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/sh
+DOCKER_UID="${1:-1000}"
+DOCKER_GID="${2:-1000}"
 
-DOCKER_UID=1000
-if [ -n "$1" ]; then
-  DOCKER_UID="$1"
-fi
-
-DOCKER_GID=50
-if [ -n "$2" ]; then
-  DOCKER_GID="$2"
-fi
-
-DOCKER_IMAGE="$(egrep -v '(^#|^\s*$|^\s*\t*#)' DockerImage.txt)"
-MINIFI_C2_IMAGE_VERSION="$(echo $DOCKER_IMAGE | cut -d : -f 2)"
+DOCKER_IMAGE="$(grep -Ev '(^#|^\s*$|^\s*\t*#)' DockerImage.txt)"
+MINIFI_C2_IMAGE_VERSION="$(echo "$DOCKER_IMAGE" | cut -d : -f 2)"
 echo "Building MiNiFi C2 Server Image: '$DOCKER_IMAGE' Version: $MINIFI_C2_IMAGE_VERSION"
-docker build --build-arg UID="$DOCKER_UID" --build-arg GID="$DOCKER_GID" --build-arg MINIFI_C2_VERSION="$MINIFI_C2_IMAGE_VERSION" -t $DOCKER_IMAGE .
+docker build --build-arg UID="$DOCKER_UID" --build-arg GID="$DOCKER_GID" --build-arg MINIFI_C2_VERSION="$MINIFI_C2_IMAGE_VERSION" -t "$DOCKER_IMAGE" .

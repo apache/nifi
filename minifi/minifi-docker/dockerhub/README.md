@@ -24,13 +24,12 @@ The Docker image can be built using the following command:
 
 This build will result in an image tagged apache/nifi:latest
 
-    # user @ puter in ~/Development/code/apache/nifi-minifi/minifi-docker/dockerhub
     $ docker images
     REPOSITORY               TAG                 IMAGE ID            CREATED                 SIZE
     apache/nifi-minifi              latest              f0f564eed149        A long, long time ago   226MB
 
 **Note**: The default version of NiFi specified by the Dockerfile is typically that of one that is unreleased if working from source.
-To build an image for a prior released version, one can override the `NIFI_VERSION` build-arg with the following command:
+To build an image for a prior released version, one can override the `MINIFI_VERSION` build-arg with the following command:
     
     docker build --build-arg=MINIFI_VERSION={Desired MiNiFi Version} -t apache/nifi-minifi:latest .
 
@@ -47,17 +46,17 @@ This can be accomplished through:
 The following example shows the usage of two volumes to provide both a `config.yml` and a `bootstrap.conf` to the container instance.  This makes use of configuration files on the host and maps them to be used by the MiNiFi instance.  This is helpful in scenarios where a single image is used for a variety of configurations.
 
     docker run -d \
-        -v ~/minifi-conf/config.yml:/opt/minifi/minifi-0.5.0/conf/config.yml \
-        -v ~/minifi-conf/bootstrap.conf:/opt/minifi/minifi-0.5.0/conf/bootstrap.conf \
-        apache/nifi-minifi:0.5.0
+        -v ~/minifi-conf/config.yml:/opt/minifi/minifi-current/conf/config.yml \
+        -v ~/minifi-conf/bootstrap.conf:/opt/minifi/minifi-current/conf/bootstrap.conf \
+        apache/nifi-minifi:latest
         
 #### Using volumes to provide configuration
 Alternatively, it is possible to create a custom image inheriting from the published image.  Creating a `Dockerfile` extending from the Apache NiFi MiNiFi base image allows users to overlay the configuration permanently into a newly built and custom image.  A simple example follows:
 
     FROM apache/nifi-minifi
     
-    ADD config.yml /opt/minifi/minifi-0.5.0/conf/config.yml
-    ADD bootstrap.conf /opt/minifi/minifi-0.5.0/conf/bootstrap.conf
+    ADD config.yml /opt/minifi/minifi-current/conf/config.yml
+    ADD bootstrap.conf /opt/minifi/minifi-current/conf/bootstrap.conf
     
 Building this `Dockerfile` will result in a custom image with the specified configuration files incorporated into the new image.  This is best for applications where configuration is well defined and relatively static.
 
