@@ -74,13 +74,15 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
         type: "record",
         fields: [
             [ name: "msg", type: "string" ],
-            [ name: "from", type: "string" ]
+            [ name: "from", type: "string" ],
+            [ name: "routing", type: "string" ],
+            [ name: "version", type: "string" ]
         ]
     ]))
 
     static final List<Map<String, String>> flowFileContentMaps = [
-            [ msg: "Hello, world", from: "john.smith" ],
-            [ msg: "Hi, back at ya!", from: "jane.doe" ]
+            [ msg: "Hello, world", from: "john.smith", routing: "1", version: " " ],
+            [ msg: "Hi, back at ya!", from: "jane.doe", version: "external" ]
     ]
 
     static final String flowFileContents = prettyPrint(toJson(flowFileContentMaps))
@@ -126,10 +128,18 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
             int indexCount = items.findAll { it.index == "test_index" }.size()
             int typeCount = items.findAll { it.type == "test_type" }.size()
             int opCount = items.findAll { it.operation == IndexOperationRequest.Operation.Index }.size()
+            int emptyScriptCount = items.findAll { it.script.isEmpty() }.size()
+            int falseScriptedUpsertCount = items.findAll { !it.scriptedUpsert }.size()
+            int emptyDynamicTemplatesCount = items.findAll { it.dynamicTemplates.isEmpty() }.size()
+            int emptyHeaderFields = items.findAll { it.headerFields.isEmpty() }.size()
             assertEquals(2, timestampDefaultCount)
             assertEquals(2, indexCount)
             assertEquals(2, typeCount)
             assertEquals(2, opCount)
+            assertEquals(2, emptyScriptCount)
+            assertEquals(2, falseScriptedUpsertCount)
+            assertEquals(2, emptyDynamicTemplatesCount)
+            assertEquals(2, emptyHeaderFields)
         }
 
         basicTest(failure, retry, success, evalClosure)
@@ -188,10 +198,16 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
     }
 
     @Test
-    void simpleTestWithRequestParameters() {
+    void simpleTestWithRequestParametersAndBulkHeaders() {
         runner.setProperty("refresh", "true")
+        runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "routing", "/routing")
+        runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "version", '${version}')
+        runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "empty", '${empty}')
         runner.setProperty("slices", '${slices}')
+        runner.setProperty("another", '${blank}')
         runner.setVariable("slices", "auto")
+        runner.setVariable("blank", " ")
+        runner.setVariable("version", "/version")
         runner.assertValid()
 
         def evalParametersClosure = { Map<String, String> params ->
@@ -202,13 +218,26 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
 
         clientService.evalParametersClosure = evalParametersClosure
 
-        basicTest(0, 0, 1)
+        def evalClosure = { List<IndexOperationRequest> items ->
+            int headerFieldsCount = items.findAll { !it.headerFields.isEmpty() }.size()
+            int routingCount = items.findAll { it.headerFields.get("routing") == "1" }.size()
+            int versionCount = items.findAll { it.headerFields.get("version") == "external" }.size()
+            assertEquals(2, headerFieldsCount)
+            assertEquals(1, routingCount)
+            assertEquals(1, versionCount)
+        }
+
+        basicTest(0, 0, 1, evalClosure)
     }
 
     @Test
-    void simpleTestWithRequestParametersFlowFileEL() {
+    void simpleTestWithRequestParametersAndBulkHeadersFlowFileEL() {
         runner.setProperty("refresh", "true")
         runner.setProperty("slices", '${slices}')
+        runner.setVariable("blank", " ")
+        runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "routing", "/routing")
+        runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "version", '${version}')
+        runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "empty", '${empty}')
         runner.assertValid()
 
         def evalParametersClosure = { Map<String, String> params ->
@@ -219,7 +248,18 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
 
         clientService.evalParametersClosure = evalParametersClosure
 
-        basicTest(0, 0, 1, ["schema.name": "simple", slices: "auto"])
+        def evalClosure = { List<IndexOperationRequest> items ->
+            int headerFieldsCount = items.findAll { !it.headerFields.isEmpty() }.size()
+            int routingCount = items.findAll { it.headerFields.get("routing") == "1" }.size()
+            int versionCount = items.findAll { it.headerFields.get("version") == "external" }.size()
+            assertEquals(2, headerFieldsCount)
+            assertEquals(1, routingCount)
+            assertEquals(1, versionCount)
+        }
+
+        clientService.evalClosure = evalClosure
+
+        basicTest(0, 0, 1, ["schema.name": "simple", version: "/version", slices: "auto", blank: " "])
     }
 
     @Test
@@ -263,17 +303,25 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
                 [ name: "ts", type: [ type: "long", logicalType: "timestamp-millis" ] ],
                 [ name: "date", type: [ type: "int", logicalType: "date" ] ],
                 [ name: "time", type: [ type: "int", logicalType: "time-millis" ] ],
-                [ name: "code", type: "long" ]
+                [ name: "code", type: "long" ],
+                [ name: "script", type: [ type: "map", values: "string" ] ],
+                [ name: "scripted_upsert", type: ["null", "boolean", "string"] ],
+                [ name: "script_record", type: [ type: "record", name: "nested", fields: [
+                        [ name: "source", type: "string" ], [ name: "language", type: "string" ]
+                ] ] ],
+                [ name: "dynamic_templates", type: "string" ]
             ]
         ]))
 
+        def script = [ source: "some script", language: "painless" ]
+        def dynamicTemplates = [ my_field: "keyword", your_field: [type: "text", keyword: [type: "text"]]]
         def flowFileContents = prettyPrint(toJson([
             [ id: "rec-1", op: "index", index: "bulk_a", type: "message", msg: "Hello", ts: Timestamp.valueOf(LOCAL_DATE_TIME).toInstant().toEpochMilli() ],
             [ id: "rec-2", op: "index", index: "bulk_b", type: "message", msg: "Hello" ],
             [ id: "rec-3", op: "index", index: "bulk_a", type: "message", msg: "Hello" ],
-            [ id: "rec-4", op: "index", index: "bulk_b", type: "message", msg: "Hello" ],
-            [ id: "rec-5", op: "index", index: "bulk_a", type: "message", msg: "" ],
-            [ id: "rec-6", op: "create", index: "bulk_b", type: "message", msg: null ]
+            [ id: "rec-4", op: "index", index: "bulk_b", type: "message", msg: "Hello", scripted_upsert: null ],
+            [ id: "rec-5", op: "index", index: "bulk_a", type: "message", msg: "", script: script, scripted_upsert: false, dynamic_templates: null],
+            [ id: "rec-6", op: "create", index: "bulk_b", type: "message", msg: null, script: null, scripted_upsert: true, dynamic_templates: prettyPrint(toJson(dynamicTemplates)) ]
         ]))
 
         def evalClosure = { List<IndexOperationRequest> items ->
@@ -290,6 +338,12 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
             int timestampDefault = items.findAll { it.fields.get("@timestamp") == "test_timestamp" }.size()
             int ts = items.findAll { it.fields.get("ts") != null }.size()
             int id = items.findAll { it.fields.get("id") != null }.size()
+            int emptyScript = items.findAll { it.script.isEmpty() }.size()
+            int falseScriptedUpsertCount = items.findAll { !it.scriptedUpsert }.size()
+            int trueScriptedUpsertCount = items.findAll { it.scriptedUpsert }.size()
+            int s = items.findAll { it.script == script }.size()
+            int emptyDynamicTemplates = items.findAll { it.dynamicTemplates.isEmpty() }.size()
+            int dt = items.findAll { it.dynamicTemplates == dynamicTemplates }.size()
             items.each {
                 assertNotNull(it.id)
                 assertTrue(it.id.startsWith("rec-"))
@@ -307,6 +361,12 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
             assertEquals(5, timestampDefault)
             assertEquals(0, ts)
             assertEquals(0, id)
+            assertEquals(5, emptyScript)
+            assertEquals(5, falseScriptedUpsertCount)
+            assertEquals(1, trueScriptedUpsertCount)
+            assertEquals(1, s)
+            assertEquals(5, emptyDynamicTemplates)
+            assertEquals(1, dt)
         }
 
         clientService.evalClosure = evalClosure
@@ -319,6 +379,9 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
         runner.setProperty(PutElasticsearchRecord.INDEX_RECORD_PATH, "/index")
         runner.setProperty(PutElasticsearchRecord.TYPE_RECORD_PATH, "/type")
         runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "/ts")
+        runner.setProperty(PutElasticsearchRecord.SCRIPT_RECORD_PATH, "/script")
+        runner.setProperty(PutElasticsearchRecord.SCRIPTED_UPSERT_RECORD_PATH, "/scripted_upsert")
+        runner.setProperty(PutElasticsearchRecord.DYNAMIC_TEMPLATES_RECORD_PATH, "/dynamic_templates")
         runner.enqueue(flowFileContents, [
             "schema.name": "recordPathTest"
         ])
@@ -339,7 +402,7 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
                 [ id: "rec-3", op: null, index: null, type: null, msg: "Hello" ],
                 [ id: "rec-4", op: null, index: null, type: null, msg: "Hello" ],
                 [ id: "rec-5", op: "update", index: null, type: null, msg: "Hello" ],
-                [ id: "rec-6", op: null, index: "bulk_b", type: "message", msg: "Hello" ]
+                [ id: "rec-6", op: null, index: "bulk_b", type: "message", msg: "Hello", script_record: script ]
         ]))
 
         evalClosure = { List<IndexOperationRequest> items ->
@@ -355,6 +418,8 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
             int dateCount = items.findAll { it.fields.get("date") != null }.size()
             def idCount = items.findAll { it.fields.get("id") != null }.size()
             def defaultCoercedTimestampCount = items.findAll { it.fields.get("@timestamp") == 100L }.size()
+            int emptyScriptCount = items.findAll { it.script.isEmpty() }.size()
+            int scriptCount = items.findAll { it.script == script }.size()
             assertEquals(5, testTypeCount)
             assertEquals(1, messageTypeCount)
             assertEquals(5, testIndexCount)
@@ -365,6 +430,8 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
             assertEquals(5, defaultCoercedTimestampCount)
             assertEquals(1, dateCount)
             assertEquals(6, idCount)
+            assertEquals(5, emptyScriptCount)
+            assertEquals(1, scriptCount)
         }
 
         clientService.evalClosure = evalClosure
@@ -375,6 +442,7 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
         runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "/date")
         runner.setProperty(PutElasticsearchRecord.DATE_FORMAT, "dd/MM/yyyy")
         runner.setProperty(PutElasticsearchRecord.RETAIN_AT_TIMESTAMP_FIELD, "true")
+        runner.setProperty(PutElasticsearchRecord.SCRIPT_RECORD_PATH, "/script_record")
         runner.enqueue(flowFileContents, [
             "schema.name": "recordPathTest",
             "operation": "index"
@@ -537,6 +605,73 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
         runner.enqueue(flowFileContents, [
                 "schema.name": "recordPathTest",
                 "will_be_empty": "/empty"
+        ])
+        runner.run()
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
+
+        runner.clearTransferState()
+
+        flowFileContents = prettyPrint(toJson([
+                [ id: "rec-1", op: "index", index: "bulk_a", type: "message", msg: "Hello", dynamic_templates: "" ]
+        ]))
+
+        runner.enqueue(flowFileContents, [
+                "schema.name": "recordPathTest"
+        ])
+        runner.run()
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 1)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
+        def failure = runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILURE)[0]
+        failure.assertAttributeEquals("elasticsearch.put.error", String.format("Field referenced by %s must be Map-type compatible or a String parsable into a JSON Object","/dynamic_templates"))
+
+        runner.clearTransferState()
+
+        flowFileContents = prettyPrint(toJson([
+                [ id: "rec-1", op: "index", index: "bulk_a", type: "message" ],
+                [ id: null, op: "create", index: "bulk_a", msg: "Hello" ],
+                [ id: "rec-3", op: null, type: "message", msg: "Hello" ],
+                [ id: "rec-4", index: null, type: "message", msg: "Hello" ],
+                [ op: "create", index: "bulk_a", type: null, msg: "Hello" ],
+                [ id: "rec-6", op: "create", index: "bulk_a", type: "message", msg: null ]
+        ]))
+
+        clientService.evalClosure = { List<IndexOperationRequest> items ->
+            int idNotNull = items.findAll { it.id != null }.size()
+            int opIndex = items.findAll { it.operation == IndexOperationRequest.Operation.Index }.size()
+            int opCreate = items.findAll { it.operation == IndexOperationRequest.Operation.Create }.size()
+            int indexA = items.findAll { it.index == "bulk_a" }.size()
+            int indexC = items.findAll { it.index == "bulk_c" }.size()
+            int typeMessage = items.findAll { it.type == "message" }.size()
+            int typeBlah = items.findAll { it.type == "blah" }.size()
+            assertEquals(4, idNotNull)
+            assertEquals(3, opIndex)
+            assertEquals(3, opCreate)
+            assertEquals(4, indexA)
+            assertEquals(2, indexC)
+            assertEquals(4, typeMessage)
+            assertEquals(2, typeBlah)
+        }
+
+        runner.setProperty(PutElasticsearchRecord.INDEX_OP, "index")
+        runner.setProperty(PutElasticsearchRecord.INDEX_OP_RECORD_PATH, "/op")
+        runner.setProperty(PutElasticsearchRecord.TYPE, "blah")
+        runner.setProperty(PutElasticsearchRecord.TYPE_RECORD_PATH, "/type")
+        runner.setProperty(PutElasticsearchRecord.INDEX, "bulk_c")
+        runner.setProperty(PutElasticsearchRecord.INDEX_RECORD_PATH, "/index")
+        runner.setProperty(PutElasticsearchRecord.ID_RECORD_PATH, "/id")
+        runner.setProperty(PutElasticsearchRecord.RETAIN_ID_FIELD, "false")
+        runner.removeProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH)
+        runner.enqueue(flowFileContents, [
+                "schema.name": "recordPathTest"
         ])
         runner.run()
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
@@ -822,5 +957,12 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
                     e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == "1 Elasticsearch _bulk operation batch(es) [2 error(s), 3 success(es)]"
                 }).count()
         )
+    }
+
+    @Test
+    void testInvalidBulkHeaderProperty() {
+        runner.assertValid()
+        runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "routing", "not-record-path")
+        runner.assertNotValid()
     }
 }

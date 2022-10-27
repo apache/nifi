@@ -30,6 +30,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -123,15 +124,18 @@ public interface ElasticsearchRestProcessor extends VerifiableProcessor {
         return retVal;
     }
 
-    default Map<String, String> getUrlQueryParameters(final ProcessContext context, final FlowFile flowFile) {
-        return getUrlQueryParameters(context, flowFile != null ? flowFile.getAttributes() : null);
+    default Map<String, String> getDynamicProperties(final ProcessContext context, final FlowFile flowFile) {
+        return getDynamicProperties(context, flowFile != null ? flowFile.getAttributes() : null);
     }
 
-    default Map<String, String> getUrlQueryParameters(final ProcessContext context, final Map<String, String> attributes) {
+    default Map<String, String> getDynamicProperties(final ProcessContext context, final Map<String, String> attributes) {
         return context.getProperties().entrySet().stream()
-                // filter non-null dynamic properties
-                .filter(e -> e.getKey().isDynamic() && e.getValue() != null)
-                // convert to Map of URL parameter keys and values
+                // filter non-blank dynamic properties
+                .filter(e -> e.getKey().isDynamic()
+                        && StringUtils.isNotBlank(e.getValue())
+                        && StringUtils.isNotBlank(context.getProperty(e.getKey()).evaluateAttributeExpressions(attributes).getValue())
+                )
+                // convert to Map keys and evaluated property values
                 .collect(Collectors.toMap(
                         e -> e.getKey().getName(),
                         e -> context.getProperty(e.getKey()).evaluateAttributeExpressions(attributes).getValue()
@@ -152,7 +156,7 @@ public interface ElasticsearchRestProcessor extends VerifiableProcessor {
             if (context.getProperty(INDEX).isSet()) {
                 index = context.getProperty(INDEX).evaluateAttributeExpressions(attributes).getValue();
                 try {
-                    if (verifyClientService.exists(index, getUrlQueryParameters(context, attributes))) {
+                    if (verifyClientService.exists(index, getDynamicProperties(context, attributes))) {
                         indexExistsResult.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
                                 .explanation(String.format("Index [%s] exists", index));
                         indexExists = true;

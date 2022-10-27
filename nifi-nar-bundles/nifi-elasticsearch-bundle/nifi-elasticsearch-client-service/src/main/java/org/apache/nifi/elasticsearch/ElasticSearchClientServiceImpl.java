@@ -114,31 +114,10 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     private ObjectWriter prettyPrintWriter;
 
     static {
-        final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(HTTP_HOSTS);
-        props.add(PATH_PREFIX);
-        props.add(AUTHORIZATION_SCHEME);
-        props.add(USERNAME);
-        props.add(PASSWORD);
-        props.add(API_KEY_ID);
-        props.add(API_KEY);
-        props.add(PROP_SSL_CONTEXT_SERVICE);
-        props.add(PROXY_CONFIGURATION_SERVICE);
-        props.add(CONNECT_TIMEOUT);
-        props.add(SOCKET_TIMEOUT);
-        props.add(CHARSET);
-        props.add(SUPPRESS_NULLS);
-        props.add(COMPRESSION);
-        props.add(SEND_META_HEADER);
-        props.add(STRICT_DEPRECATION);
-        props.add(NODE_SELECTOR);
-        props.add(SNIFF_CLUSTER_NODES);
-        props.add(SNIFFER_INTERVAL);
-        props.add(SNIFFER_REQUEST_TIMEOUT);
-        props.add(SNIFF_ON_FAILURE);
-        props.add(SNIFFER_FAILURE_DELAY);
-
-        properties = Collections.unmodifiableList(props);
+        properties = List.of(HTTP_HOSTS, PATH_PREFIX, AUTHORIZATION_SCHEME, USERNAME, PASSWORD, API_KEY_ID, API_KEY,
+                PROP_SSL_CONTEXT_SERVICE, PROXY_CONFIGURATION_SERVICE, CONNECT_TIMEOUT, SOCKET_TIMEOUT, CHARSET,
+                SUPPRESS_NULLS, COMPRESSION, SEND_META_HEADER, STRICT_DEPRECATION, NODE_SELECTOR, SNIFF_CLUSTER_NODES,
+                SNIFFER_INTERVAL, SNIFFER_REQUEST_TIMEOUT, SNIFF_ON_FAILURE, SNIFFER_FAILURE_DELAY);
     }
 
     @Override
@@ -611,23 +590,28 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         final String operation = request.getOperation().equals(IndexOperationRequest.Operation.Upsert)
                 ? "update"
                 : request.getOperation().getValue();
-        return buildBulkHeader(operation, request.getIndex(), request.getType(), request.getId());
+        return buildBulkHeader(operation, request.getIndex(), request.getType(), request.getId(), request.getDynamicTemplates(), request.getHeaderFields());
     }
 
-    private String buildBulkHeader(final String operation, final String index, final String type, final String id) throws JsonProcessingException {
-        final Map<String, Object> header = new HashMap<String, Object>() {{
-            put(operation, new HashMap<String, Object>() {{
-                put("_index", index);
-                if (StringUtils.isNotBlank(id)) {
-                    put("_id", id);
-                }
-                if (StringUtils.isNotBlank(type)) {
-                    put("_type", type);
-                }
-            }});
-        }};
+    private String buildBulkHeader(final String operation, final String index, final String type, final String id,
+                                   final Map<String, Object> dynamicTemplates, final Map<String, String> headerFields) throws JsonProcessingException {
+        final Map<String, Object> operationBody = new HashMap<>();
+        operationBody.put("_index", index);
+        if (StringUtils.isNotBlank(id)) {
+            operationBody.put("_id", id);
+        }
+        if (StringUtils.isNotBlank(type)) {
+            operationBody.put("_type", type);
+        }
+        if (dynamicTemplates != null && !dynamicTemplates.isEmpty()) {
+            operationBody.put("dynamic_templates", dynamicTemplates);
+        }
+        if (headerFields != null && !headerFields.isEmpty()) {
+            headerFields.entrySet().stream().filter(e -> StringUtils.isNotBlank(e.getValue()))
+                    .forEach(e -> operationBody.putIfAbsent(e.getKey(), e.getValue()));
+        }
 
-        return flatten(mapper.writeValueAsString(header));
+        return flatten(mapper.writeValueAsString(Collections.singletonMap(operation, operationBody)));
     }
 
     protected void buildRequest(final IndexOperationRequest request, final StringBuilder builder) throws JsonProcessingException {
@@ -641,13 +625,21 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                 break;
             case Update:
             case Upsert:
-                final Map<String, Object> doc = new HashMap<String, Object>() {{
-                    put("doc", request.getFields());
+                final Map<String, Object> updateBody = new HashMap<>(2, 1);
+                if (request.getScript() != null && !request.getScript().isEmpty()) {
+                    updateBody.put("script", request.getScript());
                     if (request.getOperation().equals(IndexOperationRequest.Operation.Upsert)) {
-                        put("doc_as_upsert", true);
+                        updateBody.put("scripted_upsert", request.isScriptedUpsert());
+                        updateBody.put("upsert", request.getFields());
                     }
-                }};
-                final String update = flatten(mapper.writeValueAsString(doc)).trim();
+                } else {
+                    updateBody.put("doc", request.getFields());
+                    if (request.getOperation().equals(IndexOperationRequest.Operation.Upsert)) {
+                        updateBody.put("doc_as_upsert", true);
+                    }
+                }
+
+                final String update = flatten(mapper.writeValueAsString(updateBody)).trim();
                 builder.append(update).append("\n");
                 break;
             case Delete:
@@ -706,7 +698,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         try {
             final StringBuilder sb = new StringBuilder();
             for (final String id : ids) {
-                final String header = buildBulkHeader("delete", index, type, id);
+                final String header = buildBulkHeader("delete", index, type, id, null, null);
                 sb.append(header).append("\n");
             }
             final HttpEntity entity = new NStringEntity(sb.toString(), ContentType.APPLICATION_JSON);
@@ -788,6 +780,23 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         }
     }
 
+    @Override
+    public boolean documentExists(final String index, final String type, final String id, final Map<String, String> requestParameters) {
+        boolean exists = true;
+        try {
+            final Map<String, String> existsParameters = requestParameters != null ? new HashMap<>(requestParameters) : new HashMap<>();
+            existsParameters.putIfAbsent("_source", "false");
+            get(index, type, id, existsParameters);
+        } catch (final ElasticsearchException ee) {
+            if (ee.isNotFound()) {
+                exists = false;
+            } else {
+                throw ee;
+            }
+        }
+        return exists;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public Map<String, Object> get(final String index, final String type, final String id, final Map<String, String> requestParameters) {
@@ -849,7 +858,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     @Override
     public String initialisePointInTime(final String index, final String keepAlive) {
         try {
-            final Map<String, String> params = new HashMap<String, String>() {{
+            final Map<String, String> params = new HashMap<>() {{
                 if (StringUtils.isNotBlank(keepAlive)) {
                     put("keep_alive", keepAlive);
                 }

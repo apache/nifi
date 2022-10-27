@@ -19,6 +19,7 @@ package org.apache.nifi.processors.elasticsearch
 
 import org.apache.nifi.elasticsearch.IndexOperationRequest
 import org.apache.nifi.elasticsearch.IndexOperationResponse
+import org.apache.nifi.processor.exception.ProcessException
 import org.apache.nifi.processors.elasticsearch.mock.MockBulkLoadClientService
 import org.apache.nifi.provenance.ProvenanceEventType
 import org.apache.nifi.util.TestRunner
@@ -30,6 +31,7 @@ import static groovy.json.JsonOutput.toJson
 import static org.hamcrest.CoreMatchers.containsString
 import static org.hamcrest.MatcherAssert.assertThat
 import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertInstanceOf
 import static org.junit.jupiter.api.Assertions.assertThrows
 import static org.junit.jupiter.api.Assertions.assertTrue
 
@@ -75,10 +77,18 @@ class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutElasticse
             int indexCount = items.findAll { it.index == "test_index" }.size()
             int typeCount = items.findAll { it.type == "test_type" }.size()
             int opCount = items.findAll { it.operation == IndexOperationRequest.Operation.Index }.size()
+            int emptyScriptCount = items.findAll { it.script.isEmpty() }.size()
+            int falseScriptedUpsertCount = items.findAll { !it.scriptedUpsert }.size()
+            int emptyDynamicTemplatesCount = items.findAll { it.dynamicTemplates.isEmpty() }.size()
+            int emptyHeaderFields = items.findAll { it.headerFields.isEmpty() }.size()
             assertEquals(1, nullIdCount)
             assertEquals(1, indexCount)
             assertEquals(1, typeCount)
             assertEquals(1, opCount)
+            assertEquals(1, emptyScriptCount)
+            assertEquals(1, falseScriptedUpsertCount)
+            assertEquals(1, emptyDynamicTemplatesCount)
+            assertEquals(1, emptyHeaderFields)
         }
 
         basicTest(failure, retry, success, evalClosure)
@@ -122,10 +132,16 @@ class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutElasticse
     }
 
     @Test
-    void simpleTestWithDocIdAndRequestParameters() {
+    void simpleTestWithDocIdAndRequestParametersAndBulkHeaders() {
         runner.setProperty("refresh", "true")
+        runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "routing", "1")
+        runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "version", '${version}')
+        runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "empty", '${empty}')
         runner.setProperty("slices", '${slices}')
+        runner.setProperty("another", '${blank}')
         runner.setVariable("slices", "auto")
+        runner.setVariable("blank", " ")
+        runner.setVariable("version", "external")
         runner.assertValid()
 
         def evalParametersClosure = { Map<String, String> params ->
@@ -141,10 +157,17 @@ class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutElasticse
             int indexCount = items.findAll { it.index == "test_index" }.size()
             int typeCount = items.findAll { it.type == "test_type" }.size()
             int opCount = items.findAll { it.operation == IndexOperationRequest.Operation.Index }.size()
+            int headerFieldsCount = items.findAll { !it.headerFields.isEmpty() }.size()
             assertEquals(1, idCount)
             assertEquals(1, indexCount)
             assertEquals(1, typeCount)
             assertEquals(1, opCount)
+            assertEquals(1, headerFieldsCount)
+
+            def headerFields = items.get(0).headerFields
+            assertEquals(2, headerFields.size())
+            assertEquals("1", headerFields.get("routing"))
+            assertEquals("external", headerFields.get("version"))
         }
 
         clientService.evalClosure = evalClosure
@@ -153,9 +176,13 @@ class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutElasticse
     }
 
     @Test
-    void simpleTestWithRequestParametersFlowFileEL() {
+    void simpleTestWithRequestParametersAndBulkHeadersFlowFileEL() {
         runner.setProperty("refresh", "true")
         runner.setProperty("slices", '${slices}')
+        runner.setVariable("blank", " ")
+        runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "routing", "1")
+        runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "version", '${version}')
+        runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "empty", '${empty}')
         runner.assertValid()
 
         def evalParametersClosure = { Map<String, String> params ->
@@ -168,12 +195,67 @@ class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutElasticse
 
         def evalClosure = { List<IndexOperationRequest> items ->
             int nullIdCount = items.findAll { it.id == null }.size()
+            int headerFieldsCount = items.findAll { !it.headerFields.isEmpty() }.size()
             assertEquals(1, nullIdCount)
+            assertEquals(1, headerFieldsCount)
+
+            def headerFields = items.get(0).headerFields
+            assertEquals(2, headerFields.size())
+            assertEquals("1", headerFields.get("routing"))
+            assertEquals("external", headerFields.get("version"))
         }
 
         clientService.evalClosure = evalClosure
 
-        basicTest(0, 0, 1, [slices: "auto", "doc_id": ""])
+        basicTest(0, 0, 1, [slices: "auto", version: "external", blank: " ", "doc_id": ""])
+    }
+
+    @Test
+    void simpleTestWithScriptAndDynamicTemplates() {
+        runner.setProperty(PutElasticsearchJson.SCRIPT, prettyPrint(toJson(
+                [ _source: "some script", language: "painless" ]
+        )))
+        runner.setProperty(PutElasticsearchJson.DYNAMIC_TEMPLATES, prettyPrint(toJson(
+                [ my_field: "keyword", your_field: [type: "text", keyword: [type: "text"]]]
+        )))
+
+        def evalClosure = { List<IndexOperationRequest> items ->
+            int scriptCount = items.findAll { it.script == [ _source: "some script", language: "painless" ] }.size()
+            int falseScriptedUpsertCount = items.findAll { !it.scriptedUpsert }.size()
+            int dynamicTemplatesCount = items.findAll { it.dynamicTemplates == [ my_field: "keyword", your_field: [type: "text", keyword: [type: "text"]]] }.size()
+            assertEquals(1, scriptCount)
+            assertEquals(1, falseScriptedUpsertCount)
+            assertEquals(1, dynamicTemplatesCount)
+        }
+
+        basicTest(0, 0, 1, evalClosure)
+
+        runner.clearTransferState()
+        runner.clearProvenanceEvents()
+
+        runner.setProperty(PutElasticsearchJson.INDEX_OP, IndexOperationRequest.Operation.Upsert.getValue().toLowerCase())
+        runner.setProperty(PutElasticsearchJson.SCRIPTED_UPSERT, "true")
+        evalClosure = { List<IndexOperationRequest> items ->
+            int scriptCount = items.findAll { it.script == [ _source: "some script", language: "painless" ] }.size()
+            int trueScriptedUpsertCount = items.findAll { it.scriptedUpsert }.size()
+            int dynamicTemplatesCount = items.findAll { it.dynamicTemplates == [ my_field: "keyword", your_field: [type: "text", keyword: [type: "text"]]] }.size()
+            assertEquals(1, scriptCount)
+            assertEquals(1, trueScriptedUpsertCount)
+            assertEquals(1, dynamicTemplatesCount)
+        }
+
+        basicTest(0, 0, 1, evalClosure)
+
+        runner.clearTransferState()
+        runner.clearProvenanceEvents()
+
+        runner.setProperty(PutElasticsearchJson.SCRIPT, "not-json")
+        runner.removeProperty(PutElasticsearchJson.DYNAMIC_TEMPLATES)
+
+        runner.enqueue(flowFileContents)
+        final AssertionError ae = assertThrows(AssertionError.class, runner.&run)
+        assertInstanceOf(ProcessException.class, ae.getCause())
+        assertEquals(PutElasticsearchJson.SCRIPT.getDisplayName() + " must be a String parsable into a JSON Object", ae.getCause().getMessage())
     }
 
     @Test

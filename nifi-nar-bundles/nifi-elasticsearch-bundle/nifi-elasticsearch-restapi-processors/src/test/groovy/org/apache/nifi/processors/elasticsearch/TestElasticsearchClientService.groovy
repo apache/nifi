@@ -23,15 +23,12 @@ import org.apache.nifi.controller.AbstractControllerService
 import org.apache.nifi.controller.ConfigurationContext
 import org.apache.nifi.elasticsearch.DeleteOperationResponse
 import org.apache.nifi.elasticsearch.ElasticSearchClientService
-import org.apache.nifi.elasticsearch.ElasticsearchException
 import org.apache.nifi.elasticsearch.IndexOperationRequest
 import org.apache.nifi.elasticsearch.IndexOperationResponse
 import org.apache.nifi.elasticsearch.SearchResponse
 import org.apache.nifi.elasticsearch.UpdateOperationResponse
 import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.processors.elasticsearch.mock.MockElasticsearchException
-import org.elasticsearch.client.Response
-import org.elasticsearch.client.ResponseException
 
 class TestElasticsearchClientService extends AbstractControllerService implements ElasticSearchClientService {
     private boolean returnAggs
@@ -111,6 +108,11 @@ class TestElasticsearchClientService extends AbstractControllerService implement
 
     @Override
     boolean exists(final String index, final Map<String, String> requestParameters) {
+        return true
+    }
+
+    @Override
+    boolean documentExists(String index, String type, String id, Map<String, String> requestParameters) {
         return true
     }
 

@@ -38,7 +38,92 @@
 <p>
     The index, operation and (optional) type fields are configured with default values.
     The ID (optional unless the operation is "index") can be set as an attribute on the FlowFile(s).
-    The following is an example of a document exercising all of these features:
 </p>
+
+<h3>Dynamic Templates</h3>
+<p>
+    Index and Create operations can use Dynamic Templates. The Dynamic Templates property must be parsable as a JSON object.
+</p>
+<h4>Example - Index with Dynamic Templates</h4>
+<pre>
+    {
+        "message": "Hello, world"
+    }
+</pre>
+<p>The Dynamic Templates property below would be parsable:</p>
+<pre>{"message": "keyword_lower"}</pre>
+<p>Would create Elasticsearch action:</p>
+<pre>
+    { "index" : {"_id" : "1", "_index" : "test", "dynamic_templates" : {"message" : "keyword_lower"}} }
+    { "doc" : {"message" : "Hello, world"} }
+</pre>
+
+<h3>Update/Upsert Scripts</h3>
+<p>
+    Update and Upsert operations can use a script. Scripts must contain all the elements required by Elasticsearch, e.g. source and lang.
+    The Script property must be parsable as a JSON object.
+</p>
+<p>
+    If a script is defined for an upset, the Flowfile content will be used as the upsert fields in the Elasticsearch action.
+    If no script is defined, the FlowFile content will be used as the update doc (or doc_as_upsert for upsert operations).
+</p>
+<h4>Example - Update without Script</h4>
+<pre>
+    {
+        "message": "Hello, world",
+        "from": "john.smith"
+    }
+</pre>
+<p>Would create Elasticsearch action:</p>
+<pre>
+    { "update" : {"_id" : "1", "_index" : "test"} }
+    { "doc" : {"message" : "Hello, world", "from" : "john.smith"} }
+</pre>
+<h4>Example - Upsert with Script</h4>
+<pre>
+    {
+        "counter": 1
+    }
+</pre>
+<p>The script property below would be parsable:</p>
+<pre>{"source": "ctx._source.counter += params.param1", "lang": "painless", "params": {"param1": 1}}</pre>
+<p>Would create Elasticsearch action:</p>
+<pre>
+    { "update" : {"_id" : "1", "_index" : "test"} }
+    { "script" : { "source": "ctx._source.counter += params.param1", "lang" : "painless", "params" : {"param1" : 1}}, "upsert" : {"counter" : 1}}
+</pre>
+
+<h3>Bulk Action Header Fields</h3>
+<p>
+    Dynamic Properties can be defined on the processor with <i>BULK:</i> prefixes.
+    Users must ensure that only known Bulk action fields are sent to Elasticsearch for the relevant index operation defined for the FlowFile,
+    Elasticsearch will reject invalid combinations of index operation and Bulk action fields.
+</p>
+<h4>Example - Update with Retry on Conflict</h4>
+<pre>
+    {
+        "message": "Hello, world",
+        "from": "john.smith"
+    }
+</pre>
+<p>With the Dynamic Property below:</p>
+<ul>
+    <li>BULK:retry_on_conflict = 3</li>
+</ul>
+<p>Would create Elasticsearch action:</p>
+<pre>
+    { "update" : {"_id" : "1", "_index" : "test", "retry_on_conflict" : "3"} }
+    { "doc" : {"message" : "Hello, world", "from" : "john.smith"} }
+</pre>
+
+<h3>Index Operations</h3>
+<p>Valid values for "operation" are:</p>
+<ul>
+    <li>create</li>
+    <li>delete</li>
+    <li>index</li>
+    <li>update</li>
+    <li>upsert</li>
+</ul>
 </body>
 </html>

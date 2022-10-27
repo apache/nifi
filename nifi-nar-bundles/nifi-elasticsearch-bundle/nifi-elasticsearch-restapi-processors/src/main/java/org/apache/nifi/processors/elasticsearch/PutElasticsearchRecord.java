@@ -17,6 +17,8 @@
 
 package org.apache.nifi.processors.elasticsearch;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
@@ -28,6 +30,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.ElasticsearchException;
 import org.apache.nifi.elasticsearch.IndexOperationRequest;
 import org.apache.nifi.elasticsearch.IndexOperationResponse;
@@ -86,12 +89,21 @@ import java.util.concurrent.atomic.AtomicLong;
         @WritesAttribute(attribute = "elasticsearch.put.error.count", description = "The number of records that generated errors in the Elasticsearch _bulk API."),
         @WritesAttribute(attribute = "elasticsearch.put.success.count", description = "The number of records that were successfully processed by the Elasticsearch _bulk API.")
 })
-@DynamicProperty(
-        name = "The name of a URL query parameter to add",
-        value = "The value of the URL query parameter",
-        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
-        description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing. " +
-                "These parameters will override any matching parameters in the _bulk request body")
+@DynamicProperties({
+        @DynamicProperty(
+                name = "The name of the Bulk request header",
+                value = "The value of the Bulk request header",
+                expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+                description = "Prefix: " + AbstractPutElasticsearch.BULK_HEADER_PREFIX +
+                        " - adds the specified property name/value as a Bulk request header in the Elasticsearch Bulk API body used for processing. " +
+                        "These parameters will override any matching parameters in the _bulk request body."),
+        @DynamicProperty(
+                name = "The name of a URL query parameter to add",
+                value = "The value of the URL query parameter",
+                expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+                description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing. " +
+                        "These parameters will override any matching parameters in the _bulk request body")
+})
 @SystemResourceConsideration(
         resource = SystemResource.MEMORY,
         description = "The Batch of Records will be stored in memory until the bulk operation is performed.")
@@ -190,6 +202,41 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
 
+    static final PropertyDescriptor SCRIPT_RECORD_PATH = new PropertyDescriptor.Builder()
+            .name("put-es-record-script-path")
+            .displayName("Script Record Path")
+            .description("A RecordPath pointing to a field in the record(s) that contains the script for the document update/upsert. " +
+                    "Only applies to Update/Upsert operations. Field must be Map-type compatible (e.g. a Map or a Record) " +
+                    "or a String parsable into a JSON Object")
+            .addValidator(new RecordPathValidator())
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    static final PropertyDescriptor SCRIPTED_UPSERT_RECORD_PATH = new PropertyDescriptor.Builder()
+            .name("put-es-record-scripted-upsert-path")
+            .displayName("Scripted Upsert Record Path")
+            .description("A RecordPath pointing to a field in the record(s) that contains the scripted_upsert boolean flag. " +
+                    "Whether to add the scripted_upsert flag to the Upsert Operation. " +
+                    "Forces Elasticsearch to execute the Script whether or not the document exists, defaults to false. " +
+                    "If the Upsert Document provided (from FlowFile content) will be empty, but sure to set the " +
+                    CLIENT_SERVICE.getDisplayName() + " controller service's " + ElasticSearchClientService.SUPPRESS_NULLS.getDisplayName() +
+                    " to " + ElasticSearchClientService.NEVER_SUPPRESS.getDisplayName() + " or no \"upsert\" doc will be, " +
+                    "included in the request to Elasticsearch and the operation will not create a new document for the script " +
+                    "to execute against, resulting in a \"not_found\" error")
+            .addValidator(new RecordPathValidator())
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    static final PropertyDescriptor DYNAMIC_TEMPLATES_RECORD_PATH = new PropertyDescriptor.Builder()
+            .name("put-es-record-dynamic-templates-path")
+            .displayName("Dynamic Templates Record Path")
+            .description("A RecordPath pointing to a field in the record(s) that contains the dynamic_templates for the document. " +
+                    "Field must be Map-type compatible (e.g. a Map or Record) or a String parsable into a JSON Object. " +
+                    "Requires Elasticsearch 7+")
+            .addValidator(new RecordPathValidator())
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
     static final PropertyDescriptor RETAIN_AT_TIMESTAMP_FIELD = new PropertyDescriptor.Builder()
         .name("put-es-record-retain-at-timestamp-field")
         .displayName("Retain @timestamp (Record Path)")
@@ -268,11 +315,11 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
         INDEX_OP, INDEX, TYPE, AT_TIMESTAMP, CLIENT_SERVICE, RECORD_READER, BATCH_SIZE, ID_RECORD_PATH, RETAIN_ID_FIELD,
         INDEX_OP_RECORD_PATH, INDEX_RECORD_PATH, TYPE_RECORD_PATH, AT_TIMESTAMP_RECORD_PATH, RETAIN_AT_TIMESTAMP_FIELD,
-        DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT, LOG_ERROR_RESPONSES, OUTPUT_ERROR_RESPONSES, RESULT_RECORD_WRITER,
-        NOT_FOUND_IS_SUCCESSFUL
+        SCRIPT_RECORD_PATH, SCRIPTED_UPSERT_RECORD_PATH, DYNAMIC_TEMPLATES_RECORD_PATH, DATE_FORMAT, TIME_FORMAT,
+        TIMESTAMP_FORMAT, LOG_ERROR_RESPONSES, OUTPUT_ERROR_RESPONSES, RESULT_RECORD_WRITER, NOT_FOUND_IS_SUCCESSFUL
     ));
     static final Set<Relationship> BASE_RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_RECORDS, REL_SUCCESSFUL_RECORDS
+        REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_RECORDS, REL_SUCCESSFUL_RECORDS
     )));
 
     private RecordPathCache recordPathCache;
@@ -325,27 +372,8 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
             return;
         }
 
-        final String indexOp = context.getProperty(INDEX_OP).evaluateAttributeExpressions(input).getValue();
-        final String index = context.getProperty(INDEX).evaluateAttributeExpressions(input).getValue();
-        final String type  = context.getProperty(TYPE).evaluateAttributeExpressions(input).getValue();
-        final String atTimestamp  = context.getProperty(AT_TIMESTAMP).evaluateAttributeExpressions(input).getValue();
+        final IndexOperationParameters indexOperationParameters = new IndexOperationParameters(context, input);
 
-        final String indexOpPath = context.getProperty(INDEX_OP_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
-        final String idPath = context.getProperty(ID_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
-        final String indexPath = context.getProperty(INDEX_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
-        final String typePath = context.getProperty(TYPE_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
-        final String atTimestampPath = context.getProperty(AT_TIMESTAMP_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
-
-        final RecordPath ioPath = indexOpPath != null ? recordPathCache.getCompiled(indexOpPath) : null;
-        final RecordPath path = StringUtils.isNotBlank(idPath) ? recordPathCache.getCompiled(idPath) : null;
-        final RecordPath iPath = indexPath != null ? recordPathCache.getCompiled(indexPath) : null;
-        final RecordPath tPath = typePath != null ? recordPathCache.getCompiled(typePath) : null;
-        final RecordPath atPath = StringUtils.isNotBlank(atTimestampPath) ? recordPathCache.getCompiled(atTimestampPath) : null;
-
-        final boolean retainId = context.getProperty(RETAIN_ID_FIELD).evaluateAttributeExpressions(input).asBoolean();
-        final boolean retainTimestamp = context.getProperty(RETAIN_AT_TIMESTAMP_FIELD).evaluateAttributeExpressions(input).asBoolean();
-
-        final int batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions(input).asInteger();
         final List<FlowFile> resultRecords = new ArrayList<>();
 
         final AtomicLong erroredRecords = new AtomicLong(0);
@@ -363,35 +391,17 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
 
             Record record;
             while ((record = recordSet.next()) != null) {
-                final String idx = getFromRecordPath(record, iPath, index, false);
-                indices.add(idx);
-                final String t = getFromRecordPath(record, tPath, type, false);
-                if (StringUtils.isNotBlank(t)) {
-                    types.add(t);
-                }
-                final IndexOperationRequest.Operation o = IndexOperationRequest.Operation.forValue(getFromRecordPath(record, ioPath, indexOp, false));
-                final String id = getFromRecordPath(record, path, null, retainId);
-                final Object timestamp = getTimestampFromRecordPath(record, atPath, atTimestamp, retainTimestamp);
-
-                @SuppressWarnings("unchecked")
-                final Map<String, Object> contentMap = (Map<String, Object>) DataTypeUtils
-                        .convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
-                formatDateTimeFields(contentMap, record);
-                if (timestamp != null) {
-                    contentMap.putIfAbsent("@timestamp", timestamp);
-                }
-
-                operationList.add(new IndexOperationRequest(idx, t, id, contentMap, o));
+                addOperation(operationList, record, indexOperationParameters, indices, types);
                 originals.add(record);
 
-                if (operationList.size() == batchSize || !recordSet.isAnotherRecord()) {
-                    operate(operationList, originals, reader, context, session, input, resultRecords, erroredRecords, successfulRecords);
+                if (operationList.size() == indexOperationParameters.getBatchSize() || !recordSet.isAnotherRecord()) {
+                    operate(operationList, originals, reader, session, input, indexOperationParameters.getRequestParameters(), resultRecords, erroredRecords, successfulRecords);
                     batches++;
                 }
             }
 
             if (!operationList.isEmpty()) {
-                operate(operationList, originals, reader, context, session, input, resultRecords, erroredRecords, successfulRecords);
+                operate(operationList, originals, reader, session, input, indexOperationParameters.getRequestParameters(), resultRecords, erroredRecords, successfulRecords);
                 batches++;
             }
         } catch (final ElasticsearchException ese) {
@@ -423,7 +433,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                 stopWatch.getDuration(TimeUnit.MILLISECONDS)
         );
 
-        input = session.putAllAttributes(input, new HashMap<String, String>() {{
+        input = session.putAllAttributes(input, new HashMap<>() {{
             put("elasticsearch.put.error.count", String.valueOf(erroredRecords.get()));
             put("elasticsearch.put.success.count", String.valueOf(successfulRecords.get()));
         }});
@@ -431,13 +441,46 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         session.transfer(input, REL_SUCCESS);
     }
 
+    private void addOperation(final List<IndexOperationRequest> operationList, final Record record, final IndexOperationParameters indexOperationParameters,
+                              final Set<String> indices, final Set<String> types) {
+        final String index = getFromRecordPath(record, indexOperationParameters.getIndexPath(), true, indexOperationParameters.getDefaultIndex(), false);
+        indices.add(index);
+        final String type = getFromRecordPath(record, indexOperationParameters.getTypePath(), true, indexOperationParameters.getDefaultType(), false);
+        if (StringUtils.isNotBlank(type)) {
+            types.add(type);
+        }
+        final String op = getFromRecordPath(record, indexOperationParameters.getIndexOpPath(), true, indexOperationParameters.getDefaultIndexOp(), false);
+        final IndexOperationRequest.Operation indexOp = IndexOperationRequest.Operation.forValue(op);
+        final String id = getFromRecordPath(record, indexOperationParameters.getIdPath(), true, null, indexOperationParameters.isRetainId());
+        final Object atTimestamp = getTimestampFromRecordPath(record, indexOperationParameters.getAtTimestampPath(),
+                indexOperationParameters.getDefaultAtTimestamp(), indexOperationParameters.isRetainTimestamp());
+        final Map<String, Object> script = getMapFromRecordPath(record, indexOperationParameters.getScriptPath());
+        final boolean scriptedUpsert = Boolean.parseBoolean(getFromRecordPath(record, indexOperationParameters.getScriptedUpsertPath(), false, "false", false));
+        final Map<String, Object> dynamicTemplates = getMapFromRecordPath(record, indexOperationParameters.getDynamicTypesPath());
+
+        final Map<String, String> bulkHeaderFields = new HashMap<>(indexOperationParameters.getBulkHeaderRecordPaths().size(), 1);
+        for (final Map.Entry<String, RecordPath> entry : indexOperationParameters.getBulkHeaderRecordPaths().entrySet()) {
+            bulkHeaderFields.put(entry.getKey(), getFromRecordPath(record, entry.getValue(), false, null, false));
+        }
+
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> contentMap = (Map<String, Object>) DataTypeUtils
+                .convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
+        formatDateTimeFields(contentMap, record);
+        if (atTimestamp != null) {
+            contentMap.putIfAbsent("@timestamp", atTimestamp);
+        }
+
+        operationList.add(new IndexOperationRequest(index, type, id, contentMap, indexOp, script, scriptedUpsert, dynamicTemplates, bulkHeaderFields));
+    }
+
     private void operate(final List<IndexOperationRequest> operationList, final List<Record> originals, final RecordReader reader,
-                         final ProcessContext context, final ProcessSession session, final FlowFile input,
+                         final ProcessSession session, final FlowFile input, final Map<String, String> requestParameters,
                          final List<FlowFile> resultRecords, final AtomicLong erroredRecords, final AtomicLong successfulRecords)
             throws IOException, SchemaNotFoundException, MalformedRecordException {
 
         final BulkOperation bundle = new BulkOperation(operationList, originals, reader.getSchema());
-        final ResponseDetails responseDetails = indexDocuments(bundle, context, session, input);
+        final ResponseDetails responseDetails = indexDocuments(bundle, session, input, requestParameters);
 
         if (responseDetails.getErrored() != null) {
             resultRecords.add(responseDetails.getErrored());
@@ -461,8 +504,9 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         results.clear();
     }
 
-    private ResponseDetails indexDocuments(final BulkOperation bundle, final ProcessContext context, final ProcessSession session, final FlowFile input) throws IOException, SchemaNotFoundException {
-        final IndexOperationResponse response = clientService.get().bulk(bundle.getOperationList(), getUrlQueryParameters(context, input));
+    private ResponseDetails indexDocuments(final BulkOperation bundle, final ProcessSession session, final FlowFile input,
+                                           final Map<String, String> requestParameters) throws IOException, SchemaNotFoundException {
+        final IndexOperationResponse response = clientService.get().bulk(bundle.getOperationList(), requestParameters);
 
         final Map<Integer, Map<String, Object>> errors = findElasticsearchResponseErrors(response);
         if (!errors.isEmpty()) {
@@ -541,19 +585,19 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         }
     }
 
-    private String getFromRecordPath(final Record record, final RecordPath path, final String fallback,
-                                     final boolean retain) {
+    private String getFromRecordPath(final Record record, final RecordPath path, final boolean strictString,
+                                     final String fallback, final boolean retain) {
         if (path == null) {
             return fallback;
         }
 
         final RecordPathResult result = path.evaluate(record);
         final Optional<FieldValue> value = result.getSelectedFields().findFirst();
-        if (value.isPresent() && value.get().getValue() != null) {
+        if (value.isPresent() && value.get().getValue() != null && DataTypeUtils.isStringTypeCompatible(value.get().getValue())) {
             final FieldValue fieldValue = value.get();
-            if (!fieldValue.getField().getDataType().getFieldType().equals(RecordFieldType.STRING) ) {
+            if (strictString && !fieldValue.getField().getDataType().getFieldType().equals(RecordFieldType.STRING)) {
                 throw new ProcessException(
-                    String.format("Field referenced by %s must be a string.", path.getPath())
+                    String.format("Field referenced by %s must be a string", path.getPath())
                 );
             }
 
@@ -564,6 +608,38 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
             return fieldValue.toString();
         } else {
             return fallback;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> getMapFromRecordPath(final Record record, final RecordPath path) {
+        if (path == null) {
+            return Collections.emptyMap();
+        }
+
+        final RecordPathResult result = path.evaluate(record);
+        final Optional<FieldValue> value = result.getSelectedFields().findFirst();
+        if (value.isPresent() && value.get().getValue() != null) {
+            final FieldValue fieldValue = value.get();
+            final Map<String, Object> map;
+            if (DataTypeUtils.isMapTypeCompatible(fieldValue.getValue())) {
+                map = DataTypeUtils.toMap(fieldValue.getValue(), path.getPath());
+            } else {
+                try {
+                    map = MAPPER.readValue(fieldValue.getValue().toString(), Map.class);
+                } catch (final JsonProcessingException jpe) {
+                    getLogger().error("Unable to parse field {} as Map", path.getPath(), jpe);
+                    throw new ProcessException(
+                            String.format("Field referenced by %s must be Map-type compatible or a String parsable into a JSON Object", path.getPath())
+                    );
+                }
+            }
+
+            fieldValue.updateValue(null);
+
+            return map;
+        } else {
+            return Collections.emptyMap();
         }
     }
 
@@ -681,6 +757,137 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
 
         public int getSuccessCount() {
             return successCount;
+        }
+    }
+
+    private class IndexOperationParameters {
+        private final String defaultIndexOp;
+        private final String defaultIndex;
+        private final String defaultType;
+        private final String defaultAtTimestamp;
+
+        private final RecordPath indexOpPath;
+        private final RecordPath idPath;
+        private final RecordPath indexPath;
+        private final RecordPath typePath;
+        private final RecordPath atTimestampPath;
+        private final RecordPath scriptPath;
+
+        private final RecordPath scriptedUpsertPath;
+        private final RecordPath dynamicTypesPath;
+
+        private final Map<String, String> requestParameters;
+        private final Map<String, RecordPath> bulkHeaderRecordPaths;
+
+        private final boolean retainId;
+        private final boolean retainTimestamp;
+        private final int batchSize;
+
+        IndexOperationParameters(final ProcessContext context, final FlowFile input) {
+            defaultIndexOp = context.getProperty(INDEX_OP).evaluateAttributeExpressions(input).getValue();
+            defaultIndex = context.getProperty(INDEX).evaluateAttributeExpressions(input).getValue();
+            defaultType = context.getProperty(TYPE).evaluateAttributeExpressions(input).getValue();
+            defaultAtTimestamp = context.getProperty(AT_TIMESTAMP).evaluateAttributeExpressions(input).getValue();
+
+            indexOpPath = compileRecordPathFromProperty(context, INDEX_OP_RECORD_PATH, input);
+            idPath = compileRecordPathFromProperty(context, ID_RECORD_PATH, input);
+            indexPath = compileRecordPathFromProperty(context, INDEX_RECORD_PATH, input);
+            typePath = compileRecordPathFromProperty(context, TYPE_RECORD_PATH, input);
+            atTimestampPath = compileRecordPathFromProperty(context, AT_TIMESTAMP_RECORD_PATH, input);
+            scriptPath = compileRecordPathFromProperty(context, SCRIPT_RECORD_PATH, input);
+            scriptedUpsertPath = compileRecordPathFromProperty(context, SCRIPTED_UPSERT_RECORD_PATH, input);
+            dynamicTypesPath = compileRecordPathFromProperty(context, DYNAMIC_TEMPLATES_RECORD_PATH, input);
+
+            final Map<String, String> dynamicProperties = getDynamicProperties(context, input);
+            requestParameters = getRequestURLParameters(dynamicProperties);
+
+            final Map<String, String> bulkHeaderParameterPaths = getBulkHeaderParameters(dynamicProperties);
+            bulkHeaderRecordPaths = new HashMap<>(bulkHeaderParameterPaths.size(), 1);
+            for (final Map.Entry<String, String> entry : bulkHeaderParameterPaths.entrySet()) {
+                if (StringUtils.isNotBlank(entry.getValue())) {
+                    final RecordPath rp = recordPathCache.getCompiled(entry.getValue());
+                    if (rp != null) {
+                        bulkHeaderRecordPaths.put(entry.getKey(), rp);
+                    }
+                }
+            }
+
+            retainId = context.getProperty(RETAIN_ID_FIELD).evaluateAttributeExpressions(input).asBoolean();
+            retainTimestamp = context.getProperty(RETAIN_AT_TIMESTAMP_FIELD).evaluateAttributeExpressions(input).asBoolean();
+            batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions(input).asInteger();
+        }
+
+        private RecordPath compileRecordPathFromProperty(final ProcessContext context, final PropertyDescriptor property, final FlowFile input) {
+            final String recordPathProperty = context.getProperty(property).evaluateAttributeExpressions(input).getValue();
+            return StringUtils.isNotBlank(recordPathProperty) ? recordPathCache.getCompiled(recordPathProperty) : null;
+        }
+
+        public String getDefaultIndexOp() {
+            return defaultIndexOp;
+        }
+
+        public String getDefaultIndex() {
+            return defaultIndex;
+        }
+
+        public String getDefaultType() {
+            return defaultType;
+        }
+
+        public String getDefaultAtTimestamp() {
+            return defaultAtTimestamp;
+        }
+
+        public RecordPath getIndexOpPath() {
+            return indexOpPath;
+        }
+
+        public RecordPath getIdPath() {
+            return idPath;
+        }
+
+        public RecordPath getIndexPath() {
+            return indexPath;
+        }
+
+        public RecordPath getTypePath() {
+            return typePath;
+        }
+
+        public RecordPath getAtTimestampPath() {
+            return atTimestampPath;
+        }
+
+        public RecordPath getScriptPath() {
+            return scriptPath;
+        }
+
+        public RecordPath getScriptedUpsertPath() {
+            return scriptedUpsertPath;
+        }
+
+        public RecordPath getDynamicTypesPath() {
+            return dynamicTypesPath;
+        }
+
+        public Map<String, String> getRequestParameters() {
+            return requestParameters;
+        }
+
+        public Map<String, RecordPath> getBulkHeaderRecordPaths() {
+            return bulkHeaderRecordPaths;
+        }
+
+        public boolean isRetainId() {
+            return retainId;
+        }
+
+        public boolean isRetainTimestamp() {
+            return retainTimestamp;
+        }
+
+        public int getBatchSize() {
+            return batchSize;
         }
     }
 }
