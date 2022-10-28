@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.annotation.behavior.DefaultRunDuration;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -45,7 +46,7 @@ import java.util.Set;
 
 @EventDriven
 @SideEffectFree
-@SupportsBatching
+@SupportsBatching(defaultDuration = DefaultRunDuration.TWENTY_FIVE_MILLIS)
 @Tags({"attributes", "logging"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Emits a log message at the specified log level")

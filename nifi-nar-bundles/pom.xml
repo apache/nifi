@@ -120,6 +120,7 @@
         <module>nifi-flow-registry-client-bundle</module>
         <module>nifi-shopify-bundle</module>
         <module>nifi-iceberg-bundle</module>
+        <module>nifi-jslt-bundle</module>
     </modules>
 
     <build>
@@ -273,6 +274,12 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-oauth2-provider-api</artifactId>
+                <version>1.19.0-SNAPSHOT</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-dbcp-service-api</artifactId>
                 <version>1.19.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>

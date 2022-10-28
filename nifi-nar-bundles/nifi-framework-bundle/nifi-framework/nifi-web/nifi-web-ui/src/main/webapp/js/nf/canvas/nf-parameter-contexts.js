@@ -2987,8 +2987,8 @@
                     $('#parameter-context-provider-setting').show();
 
                     var parameterContextProviderSetting = $('#parameter-context-provider-setting').empty();
-                    var providerContent = nfCommon.escapeHtml(parameterContextEntity.component.parameterProviderConfiguration.component.parameterGroupName +
-                        ' from ' + parameterContextEntity.component.parameterProviderConfiguration.component.parameterProviderName);
+                    var providerContent = parameterContextEntity.component.parameterProviderConfiguration.component.parameterGroupName +
+                        ' from ' + parameterContextEntity.component.parameterProviderConfiguration.component.parameterProviderName;
 
                     $('<div class="setting-name">Provider</div>').appendTo(parameterContextProviderSetting);
                     var settingEl = $('<div class="setting-field"></div>');

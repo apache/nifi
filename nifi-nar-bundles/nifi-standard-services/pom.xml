@@ -48,6 +48,8 @@
         <module>nifi-kerberos-credentials-service-bundle</module>
         <module>nifi-proxy-configuration-api</module>
         <module>nifi-proxy-configuration-bundle</module>
+        <module>nifi-key-service-api</module>
+        <module>nifi-key-service-bundle</module>
         <module>nifi-rules-engine-service-api</module>
         <module>nifi-record-sink-api</module>
         <module>nifi-record-sink-service-bundle</module>

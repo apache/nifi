@@ -2252,7 +2252,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             final Set<Connectable> toRestart = new HashSet<>();
             if (port != null) {
                 final boolean stopped = stopOrTerminate(port, timeout, synchronizationOptions);
-                if (stopped && proposed != null) {
+                if (stopped && proposed != null && proposed.getScheduledState() == org.apache.nifi.flow.ScheduledState.RUNNING) {
                     toRestart.add(port);
                 }
             }
@@ -2640,7 +2640,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private boolean stopProcessor(final ProcessorNode processor, final long timeout) throws FlowSynchronizationException, TimeoutException {
-        if (!processor.isRunning()) {
+        if (!processor.isRunning() && processor.getPhysicalScheduledState() != ScheduledState.STARTING) {
             return false;
         }
 
@@ -2918,6 +2918,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         rpg.setProxyHost(proposed.getProxyHost());
         rpg.setProxyPort(proposed.getProxyPort());
         rpg.setProxyUser(proposed.getProxyUser());
+        rpg.setProxyPassword(decrypt(proposed.getProxyPassword(), syncOptions.getPropertyDecryptor()));
         rpg.setTransportProtocol(SiteToSiteTransportProtocol.valueOf(proposed.getTransportProtocol()));
         rpg.setYieldDuration(proposed.getYieldDuration());
 

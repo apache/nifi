@@ -44,5 +44,9 @@
             <artifactId>nifi-bin-manager</artifactId>
             <version>1.19.0-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
     </dependencies>
 </project>

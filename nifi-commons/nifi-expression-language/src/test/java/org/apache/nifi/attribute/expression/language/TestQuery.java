@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
-import org.antlr.runtime.tree.Tree;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
@@ -31,7 +30,6 @@ import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.registry.VariableRegistry;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -64,6 +62,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestQuery {
 
@@ -110,8 +111,6 @@ public class TestQuery {
         assertValid("${attr:padRight(10, '#')}");
         assertValid("${attr:padLeft(10)}");
         assertValid("${attr:padRight(10)}");
-        // left here because it's convenient for looking at the output
-        //System.out.println(Query.compile("").evaluate(null));
     }
 
 
@@ -185,11 +184,46 @@ public class TestQuery {
     }
 
     @Test
+    public void testEvaluateELStringNonSensitiveParameters() {
+        final String value = "value";
+        final String query = "${variable:evaluateELString()}";
+
+        final Map<String, String> variables = Collections.singletonMap("variable", "#{parameter}");
+        final Map<String, String> parameters = Collections.singletonMap("parameter", value);
+
+        final MapParameterLookup parameterLookup = new MapParameterLookup(parameters);
+        final EvaluationContext evaluationContext = new StandardEvaluationContext(variables, Collections.emptyMap(), parameterLookup);
+
+        final String evaluated = Query.prepare(query).evaluateExpressions(evaluationContext, null);
+
+        assertEquals(StringUtils.EMPTY, evaluated);
+    }
+
+    @Test
+    public void testEvaluateELStringSensitiveParameters() {
+        final String parameterName = "parameter";
+        final String parameterRef = String.format("#{%s}", parameterName);
+        final String value = "value";
+        final String query = "${variable:evaluateELString()}";
+
+        final Map<String, String> variables = Collections.singletonMap("variable", parameterRef);
+
+        final ParameterLookup parameterLookup = mock(ParameterLookup.class);
+        final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(parameterName).sensitive(true).build();
+        final Parameter parameter = new Parameter(parameterDescriptor, value);
+        when(parameterLookup.getParameter(eq(parameterName))).thenReturn(Optional.of(parameter));
+        when(parameterLookup.isEmpty()).thenReturn(false);
+
+        final EvaluationContext evaluationContext = new StandardEvaluationContext(variables, Collections.emptyMap(), parameterLookup);
+
+        final String evaluated = Query.prepare(query).evaluateExpressions(evaluationContext, null);
+
+        assertEquals(StringUtils.EMPTY, evaluated);
+    }
+
+    @Test
     public void testCompileEmbedded() {
         final String expression = "${x:equals( ${y} )}";
-        final Query query = Query.compile(expression);
-        final Tree tree = query.getTree();
-        System.out.println(printTree(tree));
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("x", "x");
@@ -198,29 +232,6 @@ public class TestQuery {
         assertEquals("true", result);
 
         Query.validateExpression(expression, false);
-    }
-
-    private String printTree(final Tree tree) {
-        final StringBuilder sb = new StringBuilder();
-        printTree(tree, 0, sb);
-
-        return sb.toString();
-    }
-
-    private void printTree(final Tree tree, final int spaces, final StringBuilder sb) {
-        for (int i = 0; i < spaces; i++) {
-            sb.append(" ");
-        }
-
-        if (tree.getText().trim().isEmpty()) {
-            sb.append(tree.toString()).append("\n");
-        } else {
-            sb.append(tree.getText()).append("\n");
-        }
-
-        for (int i = 0; i < tree.getChildCount(); i++) {
-            printTree(tree.getChild(i), spaces + 2, sb);
-        }
     }
 
     @Test
@@ -433,7 +444,6 @@ public class TestQuery {
         final Map<String, String> parameters = new HashMap<>();
         parameters.put("test param", "unit");
 
-        final Query query = Query.compile("${'#{test param}'}");
         verifyEquals("${#{'test param'}}", attributes, stateValues, parameters,"unit");
         verifyEquals("${#{'test param'}:append(' - '):append(#{'test param'})}", attributes, stateValues, parameters,"unit - unit");
 
@@ -589,7 +599,8 @@ public class TestQuery {
        verifyEquals("${json:jsonPath('$.missing-path')}", attributes, "");
     }
 
-    public void testJsonPathAddNicknameJimmyAtNonArray() throws IOException {
+    @Test
+    public void testJsonPathAddNicknameJimmyAtNonArray() {
         assertThrows(IllegalArgumentException.class, () -> verifyJsonPathExpressions(
                 ADDRESS_BOOK_JSON_PATH_EMPTY,
                 "",
@@ -629,7 +640,7 @@ public class TestQuery {
 
     @Test
     public void testJsonPathPutOverwriteFirstNameToJimmy() throws IOException {
-        Map<String,String> attributes = verifyJsonPathExpressions(
+        verifyJsonPathExpressions(
                 ADDRESS_BOOK_JSON_PATH_FIRST_NAME,
                 "John",
                 "${json:jsonPathPut('$','firstName','Jimmy')}",
@@ -720,12 +731,12 @@ public class TestQuery {
 
     @SuppressWarnings("unchecked")
     private String evaluateQueryForEscape(final String queryString, final Map<String, String> attributes) {
-        final FlowFile mockFlowFile = Mockito.mock(FlowFile.class);
-        Mockito.when(mockFlowFile.getAttributes()).thenReturn(attributes);
-        Mockito.when(mockFlowFile.getId()).thenReturn(1L);
-        Mockito.when(mockFlowFile.getEntryDate()).thenReturn(System.currentTimeMillis());
-        Mockito.when(mockFlowFile.getSize()).thenReturn(1L);
-        Mockito.when(mockFlowFile.getLineageStartDate()).thenReturn(System.currentTimeMillis());
+        final FlowFile mockFlowFile = mock(FlowFile.class);
+        when(mockFlowFile.getAttributes()).thenReturn(attributes);
+        when(mockFlowFile.getId()).thenReturn(1L);
+        when(mockFlowFile.getEntryDate()).thenReturn(System.currentTimeMillis());
+        when(mockFlowFile.getSize()).thenReturn(1L);
+        when(mockFlowFile.getLineageStartDate()).thenReturn(System.currentTimeMillis());
 
         final ValueLookup lookup = new ValueLookup(VariableRegistry.EMPTY_REGISTRY, mockFlowFile);
         return Query.evaluateExpressions(queryString, lookup, ParameterLookup.EMPTY);
@@ -909,7 +920,6 @@ public class TestQuery {
         verifyEquals(query, attributes, "say \"hi\"");
 
         query = "${xx:replace( '\\'', '\"')}";
-        System.out.println(query);
         verifyEquals(query, attributes, "say \"hi\"");
     }
 
@@ -919,7 +929,6 @@ public class TestQuery {
         attributes.put("xx", "say 'hi'");
 
         final String query = "${xx:replace( \"'hi'\", '\\\"hello\\\"' )}";
-        System.out.println(query);
         verifyEquals(query, attributes, "say \"hello\"");
     }
 
@@ -1667,9 +1676,9 @@ public class TestQuery {
         verifyEmpty("${literal('0x1.1'):toDecimal()}", attributes);
 
         // Special cases
-        verifyEquals("${literal('" + Double.toString(POSITIVE_INFINITY) + "'):toDecimal():plus(1):plus(2)}", attributes, POSITIVE_INFINITY);
-        verifyEquals("${literal('" + Double.toString(NEGATIVE_INFINITY) + "'):toDecimal():plus(1):plus(2)}", attributes, NEGATIVE_INFINITY);
-        verifyEquals("${literal('" + Double.toString(NaN) + "'):toDecimal():plus(1):plus(2)}", attributes, NaN);
+        verifyEquals("${literal('" + POSITIVE_INFINITY + "'):toDecimal():plus(1):plus(2)}", attributes, POSITIVE_INFINITY);
+        verifyEquals("${literal('" + NEGATIVE_INFINITY + "'):toDecimal():plus(1):plus(2)}", attributes, NEGATIVE_INFINITY);
+        verifyEquals("${literal('" + NaN + "'):toDecimal():plus(1):plus(2)}", attributes, NaN);
     }
 
     @Test
@@ -1679,8 +1688,6 @@ public class TestQuery {
         attributes.put("xyz", "4132");
         attributes.put("hello", "world!");
         attributes.put("123.cba", "hell.o");
-
-        System.out.println(printTree(Query.compile("${allMatchingAttributes('(abc|xyz)'):matches('\\\\d+')}").getTree()));
 
         verifyEquals("${'123.cba':matches('hell\\.o')}", attributes, true);
         verifyEquals("${allMatchingAttributes('123\\.cba'):equals('hell.o')}", attributes, true);
@@ -1853,7 +1860,7 @@ public class TestQuery {
 
     @Test
     public void testNot() {
-        verifyEquals("${ab:notNull():not()}", new HashMap<String, String>(), true);
+        verifyEquals("${ab:notNull():not()}", new HashMap<>(), true);
     }
 
     @Test
@@ -1924,7 +1931,6 @@ public class TestQuery {
                 + "     )"
                 + "}";
 
-        System.out.println(query);
         verifyEquals(query, attributes, true);
     }
 
@@ -2037,27 +2043,26 @@ public class TestQuery {
 
     @Test
     public void testLiteralFunction() {
-        final Map<String, String> attrs = Collections.<String, String>emptyMap();
+        final Map<String, String> attrs = Collections.emptyMap();
         verifyEquals("${literal(2):gt(1)}", attrs, true);
         verifyEquals("${literal('hello'):substring(0, 1):equals('h')}", attrs, true);
     }
 
     @Test
     public void testRandomFunction() {
-        final Map<String, String> attrs = Collections.<String, String>emptyMap();
-        final Long negOne = Long.valueOf(-1L);
+        final Map<String, String> attrs = Collections.emptyMap();
+        final Long negOne = -1L;
         final HashSet<Long> results = new HashSet<>(100);
         for (int i = 0; i < results.size(); i++) {
             long result = (Long) getResult("${random()}", attrs).getValue();
             assertThat("random", result, greaterThan(negOne));
-            assertEquals(true, results.add(result), "duplicate random");
+            assertTrue(results.add(result), "duplicate random");
         }
     }
 
     QueryResult<?> getResult(String expr, Map<String, String> attrs) {
         final Query query = Query.compile(expr);
-        final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attrs));
-        return result;
+        return query.evaluate(new StandardEvaluationContext(attrs));
     }
 
     @Test
@@ -2407,7 +2412,7 @@ public class TestQuery {
 
     private void verifyEmpty(final String expression, final Map<String, String> attributes) {
         Query.validateExpression(expression, false);
-        assertEquals(String.valueOf(""), Query.evaluateExpressions(expression, attributes, null));
+        assertEquals("", Query.evaluateExpressions(expression, attributes, null));
     }
 
     private String getResourceAsString(String resourceName) throws IOException {

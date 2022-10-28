@@ -111,6 +111,7 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -336,6 +337,22 @@ public class StandardVersionedComponentSynchronizerTest {
         versionedProcessor.setScheduledState(ScheduledState.RUNNING);
 
         when(processorA.isRunning()).thenReturn(true);
+        when(group.stopProcessor(processorA)).thenReturn(CompletableFuture.completedFuture(null));
+
+        synchronizer.synchronize(processorA, versionedProcessor, group, synchronizationOptions);
+
+        verify(group, times(1)).stopProcessor(processorA);
+        verify(processorA).setProperties(versionedProcessor.getProperties(), true, Collections.emptySet());
+        verify(componentScheduler, atLeast(1)).startComponent(any(Connectable.class));
+    }
+
+    @Test
+    public void testStartingProcessorRestarted() throws FlowSynchronizationException, TimeoutException, InterruptedException {
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setScheduledState(ScheduledState.RUNNING);
+
+        when(processorA.isRunning()).thenReturn(false);
+        when(processorA.getPhysicalScheduledState()).thenReturn(org.apache.nifi.controller.ScheduledState.STARTING);
         when(group.stopProcessor(processorA)).thenReturn(CompletableFuture.completedFuture(null));
 
         synchronizer.synchronize(processorA, versionedProcessor, group, synchronizationOptions);
@@ -586,9 +603,27 @@ public class StandardVersionedComponentSynchronizerTest {
     public void testPortRestarted() throws FlowSynchronizationException, InterruptedException, TimeoutException {
         final VersionedPort versionedInputPort = createMinimalVersionedPort(ComponentType.INPUT_PORT);
         versionedInputPort.setScheduledState(ScheduledState.RUNNING);
+
+        when(inputPort.isRunning()).thenReturn(true);
+
         synchronizer.synchronize(inputPort, versionedInputPort, group, synchronizationOptions);
 
         verify(componentScheduler, atLeast(1)).transitionComponentState(inputPort, ScheduledState.RUNNING);
+        verify(componentScheduler, times(1)).startComponent(inputPort);
+        verify(inputPort).setName("Input");
+    }
+
+    @Test
+    public void testStoppedPortNotRestarted() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        final VersionedPort versionedInputPort = createMinimalVersionedPort(ComponentType.INPUT_PORT);
+        versionedInputPort.setScheduledState(ScheduledState.ENABLED);
+
+        when(inputPort.isRunning()).thenReturn(true);
+
+        synchronizer.synchronize(inputPort, versionedInputPort, group, synchronizationOptions);
+
+        verify(componentScheduler, times(1)).transitionComponentState(inputPort, ScheduledState.ENABLED);
+        verify(componentScheduler, never()).startComponent(inputPort);
         verify(inputPort).setName("Input");
     }
 

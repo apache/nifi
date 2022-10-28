@@ -157,6 +157,18 @@ public class TestConsumeMQTT {
     }
 
     @Test
+    public void testRecordAndDemarcatorConfigurationTogetherIsInvalid() throws InitializationException {
+        mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber);
+        testRunner = initializeTestRunner(mqttTestClient);
+
+        testRunner.setProperty(ConsumeMQTT.RECORD_READER, createJsonRecordSetReaderService(testRunner));
+        testRunner.setProperty(ConsumeMQTT.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+        testRunner.setProperty(ConsumeMQTT.MESSAGE_DEMARCATOR, "\n");
+
+        testRunner.assertNotValid();
+    }
+
+    @Test
     public void testQoS2() throws Exception {
         mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber);
         testRunner = initializeTestRunner(mqttTestClient);
@@ -516,7 +528,7 @@ public class TestConsumeMQTT {
         assertEquals(flowFiles.size(), 1);
         assertEquals("{\"name\":\"Apache NiFi\"}\\n"
                         + THIS_IS_NOT_JSON + "\\n"
-                        + "{\"name\":\"Apache NiFi\"}\\n",
+                        + "{\"name\":\"Apache NiFi\"}",
                 new String(flowFiles.get(0).toByteArray()));
 
         final List<MockFlowFile> badFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_PARSE_FAILURE);

@@ -167,7 +167,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             final String indexOp = context.getProperty(INDEX_OP).evaluateAttributeExpressions(input).getValue();
             final String index = context.getProperty(INDEX).evaluateAttributeExpressions(input).getValue();
             final String type = context.getProperty(TYPE).evaluateAttributeExpressions(input).getValue();
-            final String id = StringUtils.isNotBlank(idAttribute) ? input.getAttribute(idAttribute) : null;
+            final String id = StringUtils.isNotBlank(idAttribute) && StringUtils.isNotBlank(input.getAttribute(idAttribute)) ? input.getAttribute(idAttribute) : null;
 
             final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions(input).getValue();
 

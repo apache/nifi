@@ -1,0 +1,26 @@
+[{
+  "rating": {
+    "primary": {
+      "value": 3
+    },
+    "series": {
+      "value": [5,4]
+    },
+    "quality": {
+      "value": 3
+    }
+  }
+ },
+ {
+    "rating": {
+      "primary": {
+        "value": 13
+      },
+      "series": {
+        "value": [15,14]
+      },
+      "quality": {
+        "value": 13
+      }
+    }
+  }]

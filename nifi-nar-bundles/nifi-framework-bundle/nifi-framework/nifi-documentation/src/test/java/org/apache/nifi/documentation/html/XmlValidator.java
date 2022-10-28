@@ -24,11 +24,6 @@ import org.apache.nifi.xml.processing.parsers.DocumentProvider;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.junit.Assert;
 
-/**
- * A helper class to validate xml documents.
- *
- *
- */
 public class XmlValidator {
     private static final String DOCTYPE = "<!DOCTYPE html>";
 

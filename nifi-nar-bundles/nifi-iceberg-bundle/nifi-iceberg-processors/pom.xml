@@ -50,6 +50,7 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-iceberg-services-api</artifactId>
             <version>1.19.0-SNAPSHOT</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -75,6 +76,7 @@
             <groupId>org.apache.iceberg</groupId>
             <artifactId>iceberg-core</artifactId>
             <version>${iceberg.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.iceberg</groupId>
@@ -143,7 +145,15 @@
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-yarn-common</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcprov-jdk15on</artifactId>
+                </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
         </dependency>
 
         <!-- Test dependencies -->

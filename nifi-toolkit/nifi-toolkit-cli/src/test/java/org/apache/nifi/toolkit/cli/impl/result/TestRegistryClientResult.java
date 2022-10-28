@@ -16,17 +16,15 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.nifi.RegistryClientsResult;
 import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -36,22 +34,21 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+@DisabledOnOs(OS.WINDOWS)
 public class TestRegistryClientResult {
 
     private ByteArrayOutputStream outputStream;
     private PrintStream printStream;
 
-    @BeforeClass
-    public static void setupCompleter() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
-    }
-
-    @Before
+    @BeforeEach
     public void setup() {
         this.outputStream = new ByteArrayOutputStream();
         this.printStream = new PrintStream(outputStream, true);
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void testWriteSimpleRegistryClientsResult() throws IOException {
         final FlowRegistryClientDTO r1 = new FlowRegistryClientDTO();
@@ -83,7 +80,6 @@ public class TestRegistryClientResult {
         result.write(printStream);
 
         final String resultOut = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
-        //System.out.println(resultOut);
 
         final String expected = "\n" +
                 "#   Name                                   Id                                     Uri                                                               \n" +
@@ -92,7 +88,7 @@ public class TestRegistryClientResult {
                 "2   Registry 2 with a longer than usu...   ddf5f289-7502-46df-9798-4b0457c1816b   http://localhost:18080                                            \n" +
                 "\n";
 
-        Assert.assertEquals(expected, resultOut);
+        assertEquals(expected, resultOut);
     }
 
 }

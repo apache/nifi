@@ -17,16 +17,17 @@
 
 package org.apache.nifi.toolkit.tls.configuration;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -44,26 +45,26 @@ public class InstanceDefinitionTest {
 
     @Test
     public void testCreateDefinitionsSingleHostSingleName() {
-        testCreateDefinitions(Arrays.asList("hostname"), Arrays.asList("hostname"), Arrays.asList(1), false);
+        testCreateDefinitions(Collections.singletonList("hostname"), Collections.singletonList("hostname"), Collections.singletonList(1), false);
     }
 
     @Test
     public void testCreateDefinitionsSingleHostnameOneNumberInParens() {
-        testCreateDefinitions(Arrays.asList("hostname(20)"),
+        testCreateDefinitions(Collections.singletonList("hostname(20)"),
                 IntStream.range(1, 21).mapToObj(operand -> "hostname").collect(Collectors.toList()),
                 integerRange(1, 20).collect(Collectors.toList()), false);
     }
 
     @Test
     public void testCreateDefinitionsSingleHostnameTwoNumbersInParens() {
-        testCreateDefinitions(Arrays.asList("hostname(5-20)"),
+        testCreateDefinitions(Collections.singletonList("hostname(5-20)"),
                 IntStream.range(5, 21).mapToObj(operand -> "hostname").collect(Collectors.toList()),
                 integerRange(5, 20).collect(Collectors.toList()), false);
     }
 
     @Test
     public void testCreateDefinitionsMultipleHostnamesWithMultipleNumbers() {
-        testCreateDefinitions(Arrays.asList("host[10]name[02-5](20)"),
+        testCreateDefinitions(Collections.singletonList("host[10]name[02-5](20)"),
                 integerRange(1, 10).flatMap(v -> integerRange(2, 5).flatMap(v2 -> integerRange(1, 20).map(v3 -> "host" + v + "name" + String.format("%02d", v2)))).collect(Collectors.toList()),
                 integerRange(1, 10).flatMap(val -> integerRange(2, 5).flatMap(val2 -> integerRange(1, 20))).collect(Collectors.toList()), false);
     }
@@ -92,8 +93,8 @@ public class InstanceDefinitionTest {
         }
         List<String> trustStorePasswords = IntStream.range(0, expectedHostnames.size()).mapToObj(value -> "testTrustStorePassword" + value).collect(Collectors.toList());
         List<InstanceDefinition> instanceDefinitions = InstanceDefinition.createDefinitions(null, hostnameExpressions.stream(),
-                mockSupplier(keyStorePasswords.toArray(new String[keyStorePasswords.size()])), keyPasswords == null ? null : mockSupplier(keyPasswords.toArray(new String[keyPasswords.size()])),
-                mockSupplier(trustStorePasswords.toArray(new String[trustStorePasswords.size()])));
+                mockSupplier(keyStorePasswords.toArray(new String[0])), keyPasswords == null ? null : mockSupplier(keyPasswords.toArray(new String[0])),
+                mockSupplier(trustStorePasswords.toArray(new String[0])));
         testCreateDefinitionsOutput(instanceDefinitions, expectedHostnames, expectedNumbers, keyStorePasswords, keyPasswords, trustStorePasswords);
     }
 

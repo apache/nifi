@@ -17,6 +17,8 @@
 package org.apache.nifi.registry.jetty;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.jetty.configuration.connector.ServerConnectorFactory;
+import org.apache.nifi.registry.jetty.connector.ApplicationServerConnectorFactory;
 import org.apache.nifi.registry.jetty.headers.ContentSecurityPolicyFilter;
 import org.apache.nifi.registry.jetty.headers.StrictTransportSecurityFilter;
 import org.apache.nifi.registry.jetty.headers.XFrameOptionsFilter;
@@ -26,17 +28,12 @@ import org.apache.nifi.registry.security.crypto.CryptoKeyProvider;
 import org.eclipse.jetty.annotations.AnnotationConfiguration;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.HttpConfiguration;
-import org.eclipse.jetty.server.HttpConnectionFactory;
-import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletHolder;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.Configuration;
 import org.eclipse.jetty.webapp.JettyWebXmlConfiguration;
@@ -72,16 +69,12 @@ public class JettyServer {
 
     private static final Logger logger = LoggerFactory.getLogger(JettyServer.class);
     private static final String WEB_DEFAULTS_XML = "org/apache/nifi-registry/web/webdefault.xml";
-    private static final int HEADER_BUFFER_SIZE = 16 * 1024; // 16kb
-    private static final String CIPHER_SUITE_SEPARATOR_PATTERN = ",\\s*";
 
+    private static final String ALL_PATHS = "/*";
 
-    private static final FileFilter WAR_FILTER = new FileFilter() {
-        @Override
-        public boolean accept(File pathname) {
-            final String nameToTest = pathname.getName().toLowerCase();
-            return nameToTest.endsWith(".war") && pathname.isFile();
-        }
+    private static final FileFilter WAR_FILTER = pathname -> {
+        final String nameToTest = pathname.getName().toLowerCase();
+        return nameToTest.endsWith(".war") && pathname.isFile();
     };
 
     private final NiFiRegistryProperties properties;
@@ -89,9 +82,7 @@ public class JettyServer {
     private final String docsLocation;
     private final Server server;
 
-    private WebAppContext webUiContext;
     private WebAppContext webApiContext;
-    private WebAppContext webDocsContext;
 
     public JettyServer(final NiFiRegistryProperties properties, final CryptoKeyProvider cryptoKeyProvider, final String docsLocation) {
         final QueuedThreadPool threadPool = new QueuedThreadPool(properties.getWebThreads());
@@ -156,128 +147,9 @@ public class JettyServer {
     }
 
     private void configureConnectors() {
-        // create the http configuration
-        final HttpConfiguration httpConfiguration = new HttpConfiguration();
-        httpConfiguration.setRequestHeaderSize(HEADER_BUFFER_SIZE);
-        httpConfiguration.setResponseHeaderSize(HEADER_BUFFER_SIZE);
-        httpConfiguration.setSendServerVersion(properties.shouldSendServerVersion());
-
-        if (properties.getPort() != null) {
-            final Integer port = properties.getPort();
-            if (port < 0 || (int) Math.pow(2, 16) <= port) {
-                throw new IllegalStateException("Invalid HTTP port: " + port);
-            }
-
-            logger.info("Configuring Jetty for HTTP on port: " + port);
-
-            // create the connector
-            final ServerConnector http = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
-
-            // set host and port
-            if (StringUtils.isNotBlank(properties.getHttpHost())) {
-                http.setHost(properties.getHttpHost());
-            }
-            http.setPort(port);
-
-            // add this connector
-            server.addConnector(http);
-        } else if (properties.getSslPort() != null) {
-            final Integer port = properties.getSslPort();
-            if (port < 0 || (int) Math.pow(2, 16) <= port) {
-                throw new IllegalStateException("Invalid HTTPs port: " + port);
-            }
-
-            if (StringUtils.isBlank(properties.getKeyStorePath())) {
-                throw new IllegalStateException(NiFiRegistryProperties.SECURITY_KEYSTORE
-                        + " must be provided to configure Jetty for HTTPs");
-            }
-
-            logger.info("Configuring Jetty for HTTPs on port: " + port);
-
-            // add some secure config
-            final HttpConfiguration httpsConfiguration = new HttpConfiguration(httpConfiguration);
-            httpsConfiguration.setSecureScheme("https");
-            httpsConfiguration.setSecurePort(properties.getSslPort());
-            httpsConfiguration.addCustomizer(new SecureRequestCustomizer());
-
-            // build the connector
-            final ServerConnector https = new ServerConnector(server,
-                    new SslConnectionFactory(createSslContextFactory(), "http/1.1"),
-                    new HttpConnectionFactory(httpsConfiguration));
-
-            // set host and port
-            if (StringUtils.isNotBlank(properties.getHttpsHost())) {
-                https.setHost(properties.getHttpsHost());
-            }
-            https.setPort(port);
-
-            // add this connector
-            server.addConnector(https);
-        }
-    }
-
-    private static String[] getCipherSuites(final String cipherSuitesProperty) {
-        return cipherSuitesProperty.split(CIPHER_SUITE_SEPARATOR_PATTERN);
-    }
-
-    private SslContextFactory createSslContextFactory() {
-        final SslContextFactory.Server contextFactory = new SslContextFactory.Server();
-
-        // if needClientAuth is false then set want to true so we can optionally use certs
-        if (properties.getNeedClientAuth()) {
-            logger.info("Setting Jetty's SSLContextFactory needClientAuth to true");
-            contextFactory.setNeedClientAuth(true);
-        } else {
-            logger.info("Setting Jetty's SSLContextFactory wantClientAuth to true");
-            contextFactory.setWantClientAuth(true);
-        }
-
-        /* below code sets JSSE system properties when values are provided */
-        // keystore properties
-        if (StringUtils.isNotBlank(properties.getKeyStorePath())) {
-            contextFactory.setKeyStorePath(properties.getKeyStorePath());
-        }
-        if (StringUtils.isNotBlank(properties.getKeyStoreType())) {
-            contextFactory.setKeyStoreType(properties.getKeyStoreType());
-        }
-
-
-        final String keystorePassword = properties.getKeyStorePassword();
-        final String keyPassword = properties.getKeyPassword();
-
-        if (StringUtils.isEmpty(keystorePassword)) {
-            throw new IllegalArgumentException("The keystore password cannot be null or empty");
-        } else {
-            // if no key password was provided, then assume the key password is the same as the keystore password.
-            final String defaultKeyPassword = (StringUtils.isBlank(keyPassword)) ? keystorePassword : keyPassword;
-            contextFactory.setKeyStorePassword(keystorePassword);
-            contextFactory.setKeyManagerPassword(defaultKeyPassword);
-        }
-
-        // truststore properties
-        if (StringUtils.isNotBlank(properties.getTrustStorePath())) {
-            contextFactory.setTrustStorePath(properties.getTrustStorePath());
-        }
-        if (StringUtils.isNotBlank(properties.getTrustStoreType())) {
-            contextFactory.setTrustStoreType(properties.getTrustStoreType());
-        }
-        if (StringUtils.isNotBlank(properties.getTrustStorePassword())) {
-            contextFactory.setTrustStorePassword(properties.getTrustStorePassword());
-        }
-
-        final String includeCipherSuites = properties.getHttpsCipherSuitesInclude();
-        if (StringUtils.isNotBlank(includeCipherSuites)) {
-            final String[] cipherSuites = getCipherSuites(includeCipherSuites);
-            contextFactory.setIncludeCipherSuites(cipherSuites);
-        }
-
-        final String excludeCipherSuites = properties.getHttpsCipherSuitesExclude();
-        if (StringUtils.isNotBlank(excludeCipherSuites)) {
-            final String[] cipherSuites = getCipherSuites(excludeCipherSuites);
-            contextFactory.setExcludeCipherSuites(cipherSuites);
-        }
-
-        return contextFactory;
+        final ServerConnectorFactory serverConnectorFactory = new ApplicationServerConnectorFactory(server, properties);
+        final ServerConnector serverConnector = serverConnectorFactory.getServerConnector();
+        server.addConnector(serverConnector);
     }
 
     private void loadWars() throws IOException {
@@ -309,7 +181,7 @@ public class JettyServer {
             throw new IllegalStateException("Unable to locate NiFi Registry Web Docs");
         }
 
-        webUiContext = loadWar(webUiWar, "/nifi-registry");
+        WebAppContext webUiContext = loadWar(webUiWar, "/nifi-registry");
         webUiContext.getInitParams().put("oidc-supported", String.valueOf(properties.isOidcEnabled()));
 
         webApiContext = loadWar(webApiWar, "/nifi-registry-api", getWebApiAdditionalClasspath());
@@ -322,7 +194,7 @@ public class JettyServer {
         webApiContext.setAttribute("org.eclipse.jetty.server.webapp.WebInfIncludeJarPattern", ".*/spring-[^/]*\\.jar$");
 
         final String docsContextPath = "/nifi-registry-docs";
-        webDocsContext = loadWar(webDocsWar, docsContextPath);
+        WebAppContext webDocsContext = loadWar(webDocsWar, docsContextPath);
         addDocsServlets(webDocsContext);
 
         final HandlerCollection handlers = new HandlerCollection();
@@ -371,20 +243,18 @@ public class JettyServer {
         webappContext.setMaxFormContentSize(600000);
 
         // add HTTP security headers to all responses
-        final String ALL_PATHS = "/*";
         ArrayList<Class<? extends Filter>> filters = new ArrayList<>(Arrays.asList(XFrameOptionsFilter.class, ContentSecurityPolicyFilter.class, XSSProtectionFilter.class));
-        if(properties.isHTTPSConfigured()) {
+        if (properties.isHTTPSConfigured()) {
             filters.add(StrictTransportSecurityFilter.class);
         }
 
-        filters.forEach( (filter) -> addFilters(filter, ALL_PATHS, webappContext));
+        filters.forEach( (filter) -> addFilters(filter, webappContext));
 
         // start out assuming the system ClassLoader will be the parent, but if additional resources were specified then
         // inject a new ClassLoader in between the system and webapp ClassLoaders that contains the additional resources
         ClassLoader parentClassLoader = ClassLoader.getSystemClassLoader();
         if (additionalResources != null && additionalResources.length > 0) {
-            URLClassLoader additionalClassLoader = new URLClassLoader(additionalResources, ClassLoader.getSystemClassLoader());
-            parentClassLoader = additionalClassLoader;
+            parentClassLoader = new URLClassLoader(additionalResources, ClassLoader.getSystemClassLoader());
         }
 
         webappContext.setClassLoader(new WebAppClassLoader(parentClassLoader, webappContext));
@@ -393,10 +263,10 @@ public class JettyServer {
         return webappContext;
     }
 
-    private void addFilters(Class<? extends Filter> clazz, String path, WebAppContext webappContext) {
+    private void addFilters(Class<? extends Filter> clazz, final WebAppContext webappContext) {
         FilterHolder holder = new FilterHolder(clazz);
         holder.setName(clazz.getSimpleName());
-        webappContext.addFilter(holder, path, EnumSet.allOf(DispatcherType.class));
+        webappContext.addFilter(holder, ALL_PATHS, EnumSet.allOf(DispatcherType.class));
     }
 
     private URL[] getWebApiAdditionalClasspath() {
@@ -451,7 +321,7 @@ public class JettyServer {
             logger.info("]");
         }
 
-        return resources.toArray(new URL[resources.size()]);
+        return resources.toArray(new URL[0]);
     }
 
     private void addDocsServlets(WebAppContext docsContext) {

@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -46,6 +47,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.HttpResponseStatus;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
@@ -79,6 +81,7 @@ import java.util.stream.Collectors;
         " executing a request. Only the objects after the paging cursor will be retrieved. The maximum number of retrieved" +
         " objects can be set in the 'Result Limit' property.")
 @DefaultSettings(yieldDuration = "10 sec")
+@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class GetHubSpot extends AbstractProcessor {
 
     static final PropertyDescriptor OBJECT_TYPE = new PropertyDescriptor.Builder()

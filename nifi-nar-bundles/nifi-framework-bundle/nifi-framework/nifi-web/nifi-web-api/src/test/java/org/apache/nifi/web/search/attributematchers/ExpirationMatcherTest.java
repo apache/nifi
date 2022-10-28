@@ -96,11 +96,11 @@ public class ExpirationMatcherTest extends AbstractAttributeMatcherTest{
     }
 
     private void givenExpired() {
-        Mockito.when(flowFileQueue.getFlowFileExpiration(TimeUnit.MILLISECONDS)).thenReturn(5);
+        Mockito.when(flowFileQueue.getFlowFileExpiration(TimeUnit.MILLISECONDS)).thenReturn(5L);
         Mockito.when(flowFileQueue.getFlowFileExpiration()).thenReturn("5");
     }
 
     private void givenNotExpired() {
-        Mockito.when(flowFileQueue.getFlowFileExpiration(TimeUnit.MILLISECONDS)).thenReturn(0);
+        Mockito.when(flowFileQueue.getFlowFileExpiration(TimeUnit.MILLISECONDS)).thenReturn(0L);
     }
 }

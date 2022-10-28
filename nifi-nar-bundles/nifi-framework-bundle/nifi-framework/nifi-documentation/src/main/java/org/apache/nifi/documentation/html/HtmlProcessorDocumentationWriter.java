@@ -37,7 +37,6 @@ import org.apache.nifi.processor.Relationship;
  * Writes documentation specific for a Processor. This includes everything for a
  * ConfigurableComponent as well as Relationship information.
  *
- *
  */
 public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
 

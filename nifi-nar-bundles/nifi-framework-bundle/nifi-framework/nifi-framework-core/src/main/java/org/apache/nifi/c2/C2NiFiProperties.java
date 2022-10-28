@@ -40,6 +40,7 @@ public class C2NiFiProperties {
     public static final String C2_AGENT_IDENTIFIER_KEY = C2_PREFIX + "agent.identifier";
     public static final String C2_FULL_HEARTBEAT_KEY = C2_PREFIX + "full.heartbeat";
     public static final String C2_REQUEST_COMPRESSION_KEY = C2_PREFIX + "request.compression";
+    public static final String C2_ASSET_DIRECTORY_KEY = C2_PREFIX + "asset.directory";
 
     public static final String C2_ROOT_CLASS_DEFINITIONS_KEY = C2_PREFIX + "root.class.definitions";
     public static final String C2_METRICS_NAME_KEY = C2_ROOT_CLASS_DEFINITIONS_KEY + ".metrics.name";
@@ -73,4 +74,6 @@ public class C2NiFiProperties {
 
     // C2 request compression is turned off by default
     public static final String C2_REQUEST_COMPRESSION= "none";
+
+    public static final String C2_ASSET_DIRECTORY = "./asset";
 }

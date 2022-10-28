@@ -1013,6 +1013,13 @@ These properties pertain to the web-based User Interface.
 |`nifi.registry.web.http.port`|The HTTP port. The default value is `18080`.
 |`nifi.registry.web.https.host`|The HTTPS host. It is blank by default.
 |`nifi.registry.web.https.port`|The HTTPS port. It is blank by default. When configuring NiFi Registry to run securely, this port should be configured.
+|`nifi.registry.web.https.application.protocols`|The space-separated list of application protocols supported when running with HTTPS enabled.
+
+The default value is `http/1.1`.
+
+The value can be set to `h2 http/1.1` to support Application Layer Protocol Negotiation (ALPN) for HTTP/2 or HTTP/1.1 based on client capabilities.
+
+The value can be set to `h2` to require HTTP/2 and disable HTTP/1.1.
 |`nifi.registry.web.jetty.working.directory`|The location of the Jetty working directory. The default value is `./work/jetty`.
 |`nifi.registry.web.jetty.threads`|The number of Jetty threads. The default value is `200`.
 |====

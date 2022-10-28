@@ -20,6 +20,7 @@ import com.amazonaws.services.secretsmanager.AWSSecretsManager;
 import com.amazonaws.services.secretsmanager.model.AWSSecretsManagerException;
 import com.amazonaws.services.secretsmanager.model.GetSecretValueRequest;
 import com.amazonaws.services.secretsmanager.model.GetSecretValueResult;
+import com.amazonaws.services.secretsmanager.model.ListSecretsRequest;
 import com.amazonaws.services.secretsmanager.model.ListSecretsResult;
 import com.amazonaws.services.secretsmanager.model.SecretListEntry;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -46,6 +47,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -64,7 +66,7 @@ public class TestAwsSecretsManagerParameterProvider {
     private AWSSecretsManager defaultSecretsManager;
 
     @Mock
-    private ListSecretsResult listSecretsResult;
+    private ListSecretsResult emptyListSecretsResult;
 
     final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -105,8 +107,9 @@ public class TestAwsSecretsManagerParameterProvider {
     @Test
     public void testFetchParametersGetSecretFailure() throws InitializationException {
         final List<SecretListEntry> secretList = Collections.singletonList(new SecretListEntry().withName("MySecret"));
+        final ListSecretsResult listSecretsResult = mock(ListSecretsResult.class);
         when(listSecretsResult.getSecretList()).thenReturn(secretList);
-        when(defaultSecretsManager.listSecrets(any())).thenReturn(listSecretsResult);
+        when(defaultSecretsManager.listSecrets(argThat(ListSecretsRequestMatcher.hasToken(null)))).thenReturn(listSecretsResult);
         when(defaultSecretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("MySecret")))).thenThrow(new AWSSecretsManagerException("Fake exception"));
         runProviderTest(defaultSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED);
     }
@@ -115,16 +118,24 @@ public class TestAwsSecretsManagerParameterProvider {
         return spy(new AwsSecretsManagerParameterProvider());
     }
 
-    private AWSSecretsManager mockSecretsManager(final List<ParameterGroup> mockGroup) {
+    private AWSSecretsManager mockSecretsManager(final List<ParameterGroup> mockParameterGroups) {
         final AWSSecretsManager secretsManager = mock(AWSSecretsManager.class);
+        when(emptyListSecretsResult.getSecretList()).thenReturn(Collections.emptyList());
 
-        final List<SecretListEntry> secretList = mockGroup.stream()
-                .map(group -> new SecretListEntry().withName(group.getGroupName()))
-                .collect(Collectors.toList());
-        when(listSecretsResult.getSecretList()).thenReturn(secretList);
-        when(secretsManager.listSecrets(any())).thenReturn(listSecretsResult);
+        String currentToken = null;
+        for (int i = 0; i < mockParameterGroups.size(); i++) {
+            final ParameterGroup group = mockParameterGroups.get(i);
+            final List<SecretListEntry> secretList = Collections.singletonList(new SecretListEntry().withName(group.getGroupName()));
+            final ListSecretsResult listSecretsResult = mock(ListSecretsResult.class);
+            when(listSecretsResult.getSecretList()).thenReturn(secretList);
+            when(secretsManager.listSecrets(argThat(ListSecretsRequestMatcher.hasToken(currentToken)))).thenReturn(listSecretsResult);
 
-        mockGroup.forEach(group -> {
+            currentToken = "token-" + i;
+            when(listSecretsResult.getNextToken()).thenReturn(currentToken);
+        }
+        when(secretsManager.listSecrets(argThat(ListSecretsRequestMatcher.hasToken(currentToken)))).thenReturn(emptyListSecretsResult);
+
+        mockParameterGroups.forEach(group -> {
             final String groupName = group.getGroupName();
             final Map<String, String> keyValues = group.getParameters().stream().collect(Collectors.toMap(
                     param -> param.getDescriptor().getName(),
@@ -194,6 +205,24 @@ public class TestAwsSecretsManagerParameterProvider {
         @Override
         public boolean matches(final GetSecretValueRequest argument) {
             return argument != null && argument.getSecretId().equals(secretId);
+        }
+    }
+
+    private static class ListSecretsRequestMatcher implements ArgumentMatcher<ListSecretsRequest> {
+
+        private static ListSecretsRequestMatcher hasToken(final String token) {
+            return new ListSecretsRequestMatcher(token);
+        }
+
+        private final String token;
+
+        private ListSecretsRequestMatcher(final String token) {
+            this.token = token;
+        }
+
+        @Override
+        public boolean matches(final ListSecretsRequest argument) {
+            return argument != null && Objects.equals(argument.getNextToken(), token);
         }
     }
 }

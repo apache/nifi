@@ -782,6 +782,9 @@ public class NiFiRegistryFlowMapper {
         rpg.setProxyHost(remoteGroup.getProxyHost());
         rpg.setProxyPort(remoteGroup.getProxyPort());
         rpg.setProxyUser(remoteGroup.getProxyUser());
+        if (flowMappingOptions.isMapSensitiveConfiguration()) {
+            rpg.setProxyPassword(encrypt(remoteGroup.getProxyPassword()));
+        }
         rpg.setTargetUri(remoteGroup.getTargetUri());
         rpg.setTargetUris(remoteGroup.getTargetUris());
         rpg.setTransportProtocol(remoteGroup.getTransportProtocol().name());

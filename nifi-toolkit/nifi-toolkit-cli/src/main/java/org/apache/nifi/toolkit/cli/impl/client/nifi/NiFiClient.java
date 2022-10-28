@@ -135,6 +135,12 @@ public interface NiFiClient extends Closeable {
 
     AccessClient getAccessClient();
 
+    // ----- SnippetClient -----
+
+    SnippetClient getSnippetClient();
+
+    SnippetClient getSnippetClient(RequestConfig requestConfig);
+
     /**
      * The builder interface that implementations should provide for obtaining the client.
      */

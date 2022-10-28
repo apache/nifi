@@ -161,7 +161,14 @@ class PutElasticsearchJsonTest {
 
         clientService.evalParametersClosure = evalParametersClosure
 
-        basicTest(0, 0, 1, [slices: "auto"])
+        def evalClosure = { List<IndexOperationRequest> items ->
+            int nullIdCount = items.findAll { it.id == null }.size()
+            assertEquals(1, nullIdCount)
+        }
+
+        clientService.evalClosure = evalClosure
+
+        basicTest(0, 0, 1, [slices: "auto", "doc_id": ""])
     }
 
     @Test
