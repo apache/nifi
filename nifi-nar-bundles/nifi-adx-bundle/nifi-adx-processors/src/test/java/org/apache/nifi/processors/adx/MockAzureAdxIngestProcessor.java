@@ -23,6 +23,9 @@ import com.microsoft.azure.kusto.ingest.IngestionProperties;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.processor.ProcessContext;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+
 public class MockAzureAdxIngestProcessor extends AzureAdxIngestProcessor{
 
     @Override
@@ -69,6 +72,18 @@ public class MockAzureAdxIngestProcessor extends AzureAdxIngestProcessor{
 
     protected boolean isNifiClusteredSetup(NodeTypeProvider nodeTypeProvider){
         return nodeTypeProvider.isClustered();
+    }
+
+    protected boolean shouldUseMaterializedViewFlag(String databaseName, String tableName) {
+        return false;
+    }
+
+    protected String executeMoveExtentsAsyncOperation(String databaseName, String moveExtentsQuery) {
+        return "1234";
+    }
+
+    protected String pollAndFindExtentMergeAsyncOperation(final String databaseName, final String showOperationsQuery, final String stateCol) {
+        return "Completed";
     }
 
 }

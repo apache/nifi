@@ -85,16 +85,15 @@ import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
 
 @Tags({"azure", "adx", "microsoft", "data", "explorer"})
-@CapabilityDescription("The Azure ADX Processor sends flowFiles using the ADX-Service to the provided Azure Data" +
+@CapabilityDescription("The Azure ADX Processor acts as a ADX sink connector which sends flowFiles using the ADX-Service to the provided Azure Data" +
         "Explorer Ingest Endpoint. The data can be sent through queued ingestion or streaming ingestion to the Azure Data Explorer cluster." +
         "The data ingested to ADX can be in non-transactional mode or transactional mode. " +
-        "This processor supports transactionality of the ingested data ie. no duplicates while retries during ingestion failures. " +
-        "This transactional behaviour is enabled by selecting the IS_TRANSACTIONAL mode as YES." +
+        "This processor supports transactionality of the ingested data ie. it ensures no duplicates are inserted while retries during ingestion failures. " +
         "But a word of caution while selecting transactional mode is, it significantly reduces the ingestion time " +
         "since the processor first tries to ingest the data into temporary table before ingesting to the main table. ")
 @ReadsAttributes({
-        @ReadsAttribute(attribute = "DB_NAME", description = "Specifies the name of the database where the data needs to be stored."),
-        @ReadsAttribute(attribute = "TABLE_NAME", description = "Specifies the name of the table where the data needs to be stored."),
+        @ReadsAttribute(attribute = "DB_NAME", description = "Specifies the name of the ADX database where the data needs to be stored."),
+        @ReadsAttribute(attribute = "TABLE_NAME", description = "Specifies the name of the ADX table where the data needs to be stored."),
         @ReadsAttribute(attribute = "MAPPING_NAME", description = "Specifies the name of the mapping responsible for storing the data in appropriate columns."),
         @ReadsAttribute(attribute = "FLUSH_IMMEDIATE", description = "In case of queued ingestion, this property determines whether the data should be flushed immediately to the ingest endpoint."),
         @ReadsAttribute(attribute = "DATA_FORMAT", description = "Specifies the format of data that is send to Azure Data Explorer."),
@@ -103,12 +102,13 @@ import java.util.regex.Pattern;
         @ReadsAttribute(attribute = "IS_TRANSACTIONAL", description = "Default : No ,Incase of any failure, whether we want all our data ingested or none. " +
                 "If set to Yes, it increases the data ingestion time significantly because inorder to maintain transactional behaviour, " +
                 "the processor first tries to ingest into temporary tables before ingesting into actual table."),
-        @ReadsAttribute(attribute = "IGNORE_FIRST_RECORD", description = "Specifies whether we want to ignore ingestion of first record. This is primarily applicable for csv files."),
+        @ReadsAttribute(attribute = "IGNORE_FIRST_RECORD", description = "Specifies whether we want to ignore ingestion of first record. This is primarily applicable for csv files. Default is set to NO"),
         @ReadsAttribute(attribute = "MAX_BATCHING_TIME_SPAN", description = "Applicable only for queued ingestion, specifies the maximum batching timespan. Default = 5 min"),
         @ReadsAttribute(attribute = "MAX_BATCHING_NO_OF_ITEMS", description = "Applicable only for queued ingestion, specifies the maximum number of items/records. Default = 1000"),
         @ReadsAttribute(attribute = "MAX_BATCHING_RAW_DATA_SIZE_IN_MB", description = "Applicable only for queued ingestion, specifies the maximum size of uncompressed data. Default = 1000MB"),
         @ReadsAttribute(attribute = "TEMP_TABLE_NAME", description = "Applicable only when the IS_TRANSACTIONAL attribute is set to YES. " +
                 "This attribute specifies if the user wants to assign custom name to temp table. If not specified, the processor appends _tmp to the actual table name."),
+        @ReadsAttribute(attribute = "WAIT_FOR_STATUS", description = "When ingesting data to ADX, this property specifies whether the user wants to wait till we receive the status of ingestion.")
 })
 @Stateful(scopes = Scope.CLUSTER,description = "Incase the user wants transactionality during data ingestion, " +
         "AzureIngestProcessor uses temporary tables to attempt ingestion initially and to store the ingestion status into temp tables of various nodes, it uses nifi statemanager")
@@ -531,6 +531,9 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
 
         boolean isSingleNodeTempTableIngestionSucceeded = false;
         boolean isClusteredTempTableIngestionSucceeded = false;
+        boolean isError = false;
+
+        IngestionProperties ingestionPropertiesCreateTempTable;
 
         if (StringUtils.equalsIgnoreCase(context.getProperty(IS_TRANSACTIONAL).getValue(), TRANSACTIONAL_YES.getValue()) && !service.isStreamingEnabled()) {
             String tempTableName;
@@ -540,7 +543,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                 tempTableName = context.getProperty(TABLE_NAME).getValue() + "_tmp";
             }
 
-            IngestionProperties ingestionPropertiesCreateTempTable = new IngestionProperties(context.getProperty(DB_NAME).getValue(), tempTableName);
+            ingestionPropertiesCreateTempTable = new IngestionProperties(context.getProperty(DB_NAME).getValue(), tempTableName);
             ingestionPropertiesCreateTempTable.setDataFormat(ingestionProperties.getDataFormat());
             ingestionPropertiesCreateTempTable.setIngestionMapping(ingestionProperties.getIngestionMapping());
             ingestionPropertiesCreateTempTable.setReportLevel(ingestionProperties.getReportLevel());
@@ -692,50 +695,61 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                         //clustered temp table ingestion succeeds
                         getLogger().error("Clustered Ingestion : succededCount same as state size " + succeededCount);
                         isClusteredTempTableIngestionSucceeded = true;
-                        dropTempTableIfExists(ingestionPropertiesCreateTempTable);
                     } else {
                         //clustered temp table ingestion fails
                         getLogger().error("Clustered Ingestion : Exception occurred while ingesting data into the ADX temp tables, hence aborting ingestion to main table.");
-                        dropTempTableIfExists(ingestionPropertiesCreateTempTable);
-                        session.transfer(flowFile, RL_FAILED);
-                        return;
-                    }
-                } else {
-                    if (!isSingleNodeTempTableIngestionSucceeded) {
-                        getLogger().error("Single Node Ingestion : Exception occurred while ingesting data into the ADX temp tables, hence aborting ingestion to main table.");
-                        //drop temp tables
-                        dropTempTableIfExists(ingestionPropertiesCreateTempTable);
-                        session.transfer(flowFile, RL_FAILED);
-                        return;
-                    } else {
-                        getLogger().error("Single Node Ingestion : deleting temp table");
-                        dropTempTableIfExists(ingestionPropertiesCreateTempTable);
+                        //dropTempTableIfExists(ingestionPropertiesCreateTempTable);
+                        isError = true;
                     }
                 }
+
+                if(isClusteredTempTableIngestionSucceeded || isSingleNodeTempTableIngestionSucceeded){
+                    try{
+                        StringBuilder moveExtentsQuery  = new StringBuilder().append(".move async extents all from table "+ ingestionPropertiesCreateTempTable.getTableName()  +" to table "+ ingestionProperties.getTableName());
+                        if(shouldUseMaterializedViewFlag(ingestionPropertiesCreateTempTable.getDatabaseName(),ingestionPropertiesCreateTempTable.getTableName())){
+                            moveExtentsQuery.append(" with(SetNewIngestionTime=true)");
+                        }
+                        String operationId = executeMoveExtentsAsyncOperation(ingestionPropertiesCreateTempTable.getDatabaseName(),moveExtentsQuery.toString());
+                        String showOperationsQuery = ".show operations "+ operationId;
+                        //KustoResultSetTable operationDetailsRes = executionClient.execute(ingestionPropertiesCreateTempTable.getDatabaseName(),showOperationsQuery).getPrimaryResults();
+                        String stateCol = "State";
+                        //String statusCol = "Status";
+                        final String databaseName = ingestionPropertiesCreateTempTable.getDatabaseName();
+                        String completionStatus = pollAndFindExtentMergeAsyncOperation(ingestionPropertiesCreateTempTable.getDatabaseName(),showOperationsQuery,stateCol);
+                        if(completionStatus.equalsIgnoreCase("Failed")){
+                            getLogger().error("Error occurred while moving extents from temp tables to actual table");
+                            isError = true;
+                        }
+                    }catch (DataServiceException | DataClientException | ExecutionException | TimeoutException | InterruptedException e) {
+                        getLogger().error("Exception occurred while moving extents from temp tables to actual table");
+                        isError = true;
+                    }
+                }else{
+                    isError = true;
+                }
+
             } catch (IngestionClientException | IngestionServiceException
                      | InterruptedException | ExecutionException | TimeoutException | IOException | DataServiceException
                      | DataClientException e) {
-                getLogger().error("Exception occurred while ingesting data into ADX with exception {} ", e);
-                session.transfer(flowFile, RL_FAILED);
-                return;
+                getLogger().error("Transactional Mode : Exception occurred while ingesting data into ADX with exception {} ", e);
+                isError =true;
             } finally {
+                try {
+                    dropTempTableIfExists(ingestionPropertiesCreateTempTable);
+                } catch (DataServiceException | DataClientException e) {
+                    getLogger().error("Exception occurred while dropping the temp tables used for transactional ingestion {} ", e);
+                }
                 if (isNifiClusteredSetup(getNodeTypeProvider())) {
                     try {
                         context.getStateManager().clear(Scope.CLUSTER);
                     } catch (IOException e) {
                         getLogger().error("Exception occurred while clearing the cluster state {} ", e);
-                        session.transfer(flowFile, RL_FAILED);
-                        return;
+                        isError = true;
                     }
                 }
             }
-        }
-
-        if (service.isStreamingEnabled()
-                || isSingleNodeTempTableIngestionSucceeded
-                || isClusteredTempTableIngestionSucceeded
-                || StringUtils.equalsIgnoreCase(context.getProperty(IS_TRANSACTIONAL).getValue(), TRANSACTIONAL_NO.getValue())) {
-            List<IngestionStatus> statuses;
+        }else{
+            // when the transactional flag is false or streaming ingestion
             try (final InputStream inputStream = session.read(flowFile)) {
                 StreamSourceInfo actualTableStreamSourceInfo = new StreamSourceInfo(inputStream);
                 StringBuilder ingestLogString = new StringBuilder().append("Ingesting with: ")
@@ -749,7 +763,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                 getLogger().info(ingestLogString.toString());
 
                 IngestionResult result = ingestClient.ingestFromStream(actualTableStreamSourceInfo, ingestionProperties);
-                statuses = result.getIngestionStatusCollection();
+                List<IngestionStatus> statuses = result.getIngestionStatusCollection();
                 if (StringUtils.equalsIgnoreCase(context.getProperty(WAIT_FOR_STATUS).getValue(), IngestionStatusEnum.ST_SUCCESS.name())) {
                     CompletableFuture<List<IngestionStatus>> future = new CompletableFuture<>();
                     ScheduledExecutorService statusScheduler = Executors.newScheduledThreadPool(1);
@@ -773,35 +787,34 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                     status.status = OperationStatus.Succeeded;
                     statuses.set(0, status);
                 }
+
+                getLogger().info("Operation status: {} ", statuses.get(0).details);
+                if (statuses.get(0).status == OperationStatus.Succeeded) {
+                    getLogger().info("Operation status Succeeded - {}", statuses.get(0).status.toString());
+                }
+
+                if (statuses.get(0).status == OperationStatus.Failed) {
+                    getLogger().error("Operation status Error - {}", statuses.get(0).status.toString());
+                    isError = true;
+                }
+
+                if (statuses.get(0).status == OperationStatus.PartiallySucceeded) {
+                    getLogger().error("Operation status Partially succeeded - {}", statuses.get(0).status.toString());
+                    isError = true;
+                }
             } catch (IngestionClientException | IngestionServiceException | StorageException | URISyntaxException
                      | InterruptedException | ExecutionException | TimeoutException | IOException e) {
-                getLogger().error("Exception occurred while ingesting data into ADX with exception {} ", e);
-                session.transfer(flowFile, RL_FAILED);
-                return;
+                getLogger().error("Non Transactional/Streaming Ingestion mode : Exception occurred while ingesting data into ADX with exception {} ", e);
+                isError =true;
             }
+        }
 
-            getLogger().info("Operation status: {} ", statuses.get(0).details);
-
-            if (statuses.get(0).status == OperationStatus.Succeeded) {
-                getLogger().info("Operation status Succedded - {}", statuses.get(0).status.toString());
-                session.transfer(flowFile, RL_SUCCEEDED);
-                return;
-            }
-
-            if (statuses.get(0).status == OperationStatus.Failed) {
-                getLogger().error("Operation status Error - {}", statuses.get(0).status.toString());
-                session.transfer(flowFile, RL_FAILED);
-                return;
-            }
-
-            if (statuses.get(0).status == OperationStatus.PartiallySucceeded) {
-                getLogger().error("Operation status Partially succeeded - {}", statuses.get(0).status.toString());
-                session.transfer(flowFile, RL_FAILED);
-            }
-
-        } else {
+        if (isError) {
             getLogger().error("Process failed - {}");
             session.transfer(flowFile, RL_FAILED);
+        }else{
+            getLogger().error("Process succeeded - {}");
+            session.transfer(flowFile, RL_SUCCEEDED);
         }
     }
 
@@ -918,6 +931,75 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
 
     protected boolean isNifiClusteredSetup(NodeTypeProvider nodeTypeProvider){
         return nodeTypeProvider.isClustered() && nodeTypeProvider.isConnected();
+    }
+
+    protected int countNoOfExtents(String databaseName,String tableName) throws DataServiceException, DataClientException {
+        String countNoOfExtentsQuery = ".show table "+ tableName +" extents | count";
+        KustoResultSetTable res =executionClient.execute(databaseName, countNoOfExtentsQuery).getPrimaryResults();
+        res.next();
+        return res.getInt(0);
+    }
+
+    protected int showNodesCount() throws DataServiceException, DataClientException {
+        String countNoOfExtentsQuery = ".show cluster | count";
+        KustoResultSetTable res =executionClient.execute(countNoOfExtentsQuery).getPrimaryResults();
+        res.next();
+        return res.getInt(0);
+    }
+
+    protected boolean shouldUseMaterializedViewFlag(String databaseName, String tableName) throws DataServiceException, DataClientException {
+        String materializedViewQuery = ".show materialized-views | where SourceTable == '"+ tableName +"' | count";
+        KustoResultSetTable res =executionClient.execute(databaseName,materializedViewQuery).getPrimaryResults();
+        res.next();
+        boolean isDestinationTableMaterializedViewSource  = res.getLong(0) > 0;
+        if(isDestinationTableMaterializedViewSource){
+            String tableEngineV3Query = ".show table "+ tableName+ " details | project todynamic(ShardingPolicy).UseShardEngine";
+            KustoResultSetTable resV3 = executionClient.execute(databaseName,tableEngineV3Query).getPrimaryResults();
+            resV3.next();
+            return resV3.getBoolean(0);
+        }else{
+            return false;
+        }
+    }
+
+    protected String executeMoveExtentsAsyncOperation(String databaseName, String moveExtentsQuery) throws DataServiceException, DataClientException {
+        KustoResultSetTable res = executionClient.execute(databaseName,moveExtentsQuery.toString()).getPrimaryResults();
+        res.next();
+        return res.getString(0);
+    }
+
+    protected String pollAndFindExtentMergeAsyncOperation(final String databaseName, final String showOperationsQuery, final String stateCol) throws ExecutionException, InterruptedException, TimeoutException {
+        CompletableFuture<String> moveExtentfuture = new CompletableFuture<>();
+        ScheduledExecutorService statusScheduler = Executors.newScheduledThreadPool(1);
+        Runnable moveExtentTask = () -> {
+            try {
+                KustoResultSetTable operationDetailsResTemp = executionClient.execute(databaseName,showOperationsQuery).getPrimaryResults();;
+                operationDetailsResTemp.next();
+                String operationStatus = operationDetailsResTemp.getString(stateCol);
+                getLogger().info("Status of operation {} ",operationStatus);
+                switch (operationStatus) {
+                    case "Completed":
+                        moveExtentfuture.complete("Completed");
+                        break;
+                    case "Failed":
+                    case "PartiallySucceeded":
+                    case "Canceled":
+                    case "Throttled":
+                    case "BadInput":
+                    case "Abandoned":
+                        moveExtentfuture.complete("Failed");
+                        break;
+                    default:
+                        break;
+                }
+            } catch (Exception e) {
+                moveExtentfuture.completeExceptionally(new ProcessException("Error occurred while checking ingestion status", e));
+            }
+        };
+        statusScheduler.scheduleWithFixedDelay(moveExtentTask, 1, 2, TimeUnit.SECONDS);
+        String completionStatus = moveExtentfuture.get(1800, TimeUnit.SECONDS);
+        shutDownScheduler(statusScheduler);
+        return completionStatus;
     }
 
 }

@@ -194,7 +194,7 @@ public class AzureAdxIngestProcessorE2ETest {
 
         testRunner.enableControllerService(azureAdxConnectionService);
         testRunner.assertValid(azureAdxConnectionService);
-        InputStream inputStream = this.getClass().getResourceAsStream("/file0.csv");
+        InputStream inputStream = this.getClass().getResourceAsStream("/fileStreaming.csv");
         testRunner.enqueue(inputStream);
         assert inputStream != null;
         inputStream.close();
