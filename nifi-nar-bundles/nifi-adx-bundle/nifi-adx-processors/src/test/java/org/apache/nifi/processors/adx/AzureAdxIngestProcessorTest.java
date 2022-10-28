@@ -121,7 +121,7 @@ public class AzureAdxIngestProcessorTest {
 
         testRunner.enableControllerService(azureAdxConnectionService);
         testRunner.assertValid(azureAdxConnectionService);
-        InputStream inputStream = this.getClass().getResourceAsStream("/file0.csv");
+        InputStream inputStream = this.getClass().getResourceAsStream("/fileQueuedSuccess.csv");
         testRunner.enqueue(inputStream);
         assert inputStream != null;
         inputStream.close();
@@ -160,7 +160,7 @@ public class AzureAdxIngestProcessorTest {
         testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.CLUSTER_URL, "http://sample.com/");
         testRunner.enableControllerService(azureAdxConnectionService);
         testRunner.assertValid(azureAdxConnectionService);
-        InputStream inputStream = this.getClass().getResourceAsStream("/file0.csv");
+        InputStream inputStream = this.getClass().getResourceAsStream("/fileQueuedSuccess.csv");
         testRunner.enqueue(inputStream);
         assert inputStream != null;
         inputStream.close();

@@ -71,7 +71,7 @@ public class AzureAdxIngestProcessorE2ETest {
 
         testRunner.enableControllerService(azureAdxConnectionService);
         testRunner.assertValid(azureAdxConnectionService);
-        InputStream inputStream = this.getClass().getResourceAsStream("/file0.csv");
+        InputStream inputStream = this.getClass().getResourceAsStream("/fileQueuedSuccess.csv");
         testRunner.enqueue(inputStream);
         assert inputStream != null;
         inputStream.close();
@@ -112,7 +112,7 @@ public class AzureAdxIngestProcessorE2ETest {
 
         testRunner.enableControllerService(azureAdxConnectionService);
         testRunner.assertValid(azureAdxConnectionService);
-        InputStream inputStream = this.getClass().getResourceAsStream("/file0.csv");
+        InputStream inputStream = this.getClass().getResourceAsStream("/fileQueuedSuccess.csv");
         testRunner.enqueue(inputStream);
         assert inputStream != null;
         inputStream.close();
@@ -153,7 +153,7 @@ public class AzureAdxIngestProcessorE2ETest {
 
         testRunner.enableControllerService(azureAdxConnectionService);
         testRunner.assertValid(azureAdxConnectionService);
-        InputStream inputStream = this.getClass().getResourceAsStream("/file1.csv");
+        InputStream inputStream = this.getClass().getResourceAsStream("/fileFailure.csv");
         testRunner.enqueue(inputStream);
         assert inputStream != null;
         inputStream.close();
@@ -195,6 +195,47 @@ public class AzureAdxIngestProcessorE2ETest {
         testRunner.enableControllerService(azureAdxConnectionService);
         testRunner.assertValid(azureAdxConnectionService);
         InputStream inputStream = this.getClass().getResourceAsStream("/fileStreaming.csv");
+        testRunner.enqueue(inputStream);
+        assert inputStream != null;
+        inputStream.close();
+        testRunner.run(1);
+        testRunner.assertQueueEmpty();
+        testRunner.assertAllFlowFilesTransferred(AzureAdxIngestProcessor.RL_SUCCEEDED);
+
+    }
+
+    @Test
+    public void testAzureAdxIngestProcessorStreamingIngestionFailureE2E() throws InitializationException, IOException {
+
+        Assumptions.assumeTrue("true".equalsIgnoreCase(System.getProperty("executeE2ETests")));
+
+        testRunner = TestRunners.newTestRunner(azureAdxIngestProcessor);
+
+        testRunner.setProperty(AzureAdxIngestProcessor.TABLE_NAME,System.getProperty("tableName"));
+        testRunner.setProperty(AzureAdxIngestProcessor.DB_NAME,System.getProperty("databaseName"));
+        testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,System.getProperty("mappingName"));
+        testRunner.setProperty(AzureAdxIngestProcessor.DATA_FORMAT,"CSV");
+        testRunner.setProperty(AzureAdxIngestProcessor.IR_LEVEL,"IRL_FAS");
+        testRunner.setProperty(AzureAdxIngestProcessor.WAIT_FOR_STATUS,"ST_SUCCESS");
+        testRunner.setProperty(AzureAdxIngestProcessor.IR_METHOD,"IRM_TABLE");
+        testRunner.setProperty(AzureAdxIngestProcessor.ADX_SERVICE,"adx-connection-service");
+
+        testRunner.setValidateExpressionUsage(false);
+
+        azureAdxConnectionService = new AzureAdxConnectionService();
+
+        testRunner.addControllerService("adx-connection-service", azureAdxConnectionService, new HashMap<>());
+
+        testRunner.setProperty(azureAdxConnectionService, AzureAdxConnectionService.INGEST_URL,System.getProperty("ingestUrl"));
+        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_ID,System.getProperty("appId"));
+        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_KEY,System.getProperty("appKey"));
+        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_TENANT,System.getProperty("appTenant"));
+        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.CLUSTER_URL, System.getProperty("clusterUrl"));
+        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.IS_STREAMING_ENABLED, "true");
+
+        testRunner.enableControllerService(azureAdxConnectionService);
+        testRunner.assertValid(azureAdxConnectionService);
+        InputStream inputStream = this.getClass().getResourceAsStream("/fileFailure.csv");
         testRunner.enqueue(inputStream);
         assert inputStream != null;
         inputStream.close();
