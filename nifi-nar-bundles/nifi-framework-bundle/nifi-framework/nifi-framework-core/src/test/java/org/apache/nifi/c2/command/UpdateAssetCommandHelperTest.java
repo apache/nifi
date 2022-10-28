@@ -26,9 +26,7 @@ import static java.nio.file.Files.isDirectory;
 import static java.nio.file.Files.readAllLines;
 import static java.nio.file.Files.write;
 import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
-import static org.apache.nifi.c2.command.UpdateAssetCommandHelper.MINIFI_ASSET_DIRECTORY_PROPERTY_NAME;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -38,7 +36,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -57,8 +54,7 @@ public class UpdateAssetCommandHelperTest {
     @BeforeEach
     public void setUp() {
         assetDirectory = Paths.get(tempDir.getAbsolutePath(), ASSET_DIRECTORY);
-        updateAssetCommandHelper = new UpdateAssetCommandHelper(
-            new NiFiProperties(singletonMap(MINIFI_ASSET_DIRECTORY_PROPERTY_NAME, assetDirectory.toString())));
+        updateAssetCommandHelper = new UpdateAssetCommandHelper(assetDirectory.toString());
     }
 
     @Test

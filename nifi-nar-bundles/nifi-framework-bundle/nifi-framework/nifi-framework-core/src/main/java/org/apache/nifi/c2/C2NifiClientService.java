@@ -107,7 +107,7 @@ public class C2NifiClientService {
         C2HeartbeatFactory heartbeatFactory = new C2HeartbeatFactory(clientConfig, flowIdHolder, new ManifestHashProvider());
         OperandPropertiesProvider emptyOperandPropertiesProvider = new EmptyOperandPropertiesProvider();
         TransferDebugCommandHelper transferDebugCommandHelper = new TransferDebugCommandHelper(niFiProperties);
-        UpdateAssetCommandHelper updateAssetCommandHelper = new UpdateAssetCommandHelper(niFiProperties);
+        UpdateAssetCommandHelper updateAssetCommandHelper = new UpdateAssetCommandHelper(clientConfig.getC2AssetDirectory());
         updateAssetCommandHelper.createAssetDirectory();
         C2OperationService c2OperationService = new C2OperationService(Arrays.asList(
             new UpdateConfigurationOperationHandler(client, flowIdHolder, this::updateFlowContent, emptyOperandPropertiesProvider),
@@ -136,6 +136,7 @@ public class C2NifiClientService {
                 C2NiFiProperties.C2_DEFAULT_CALL_TIMEOUT), TimeUnit.MILLISECONDS))
             .c2Url(properties.getProperty(C2NiFiProperties.C2_REST_URL_KEY, ""))
             .c2RequestCompression(properties.getProperty(C2NiFiProperties.C2_REQUEST_COMPRESSION_KEY, C2NiFiProperties.C2_REQUEST_COMPRESSION))
+            .c2AssetDirectory(properties.getProperty(C2NiFiProperties.C2_ASSET_DIRECTORY_KEY, C2NiFiProperties.C2_ASSET_DIRECTORY))
             .confDirectory(properties.getProperty(C2NiFiProperties.C2_CONFIG_DIRECTORY_KEY, DEFAULT_CONF_DIR))
             .runtimeManifestIdentifier(properties.getProperty(C2NiFiProperties.C2_RUNTIME_MANIFEST_IDENTIFIER_KEY, ""))
             .runtimeType(properties.getProperty(C2NiFiProperties.C2_RUNTIME_TYPE_KEY, ""))

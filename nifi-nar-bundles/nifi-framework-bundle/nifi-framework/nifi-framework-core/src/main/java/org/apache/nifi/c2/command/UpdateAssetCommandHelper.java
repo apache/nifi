@@ -22,22 +22,17 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class UpdateAssetCommandHelper {
 
-    static final String MINIFI_ASSET_DIRECTORY_PROPERTY_NAME = "c2.asset.directory";
-
     private static final Logger LOG = LoggerFactory.getLogger(UpdateAssetCommandHelper.class);
-
-    private static final String MINIFI_ASSET_DIRECTORY_DEFAULT_VALUE = "./asset";
 
     private final String assetDirectory;
 
-    public UpdateAssetCommandHelper(NiFiProperties niFiProperties) {
-        this.assetDirectory = niFiProperties.getProperty(MINIFI_ASSET_DIRECTORY_PROPERTY_NAME, MINIFI_ASSET_DIRECTORY_DEFAULT_VALUE);;
+    public UpdateAssetCommandHelper(String assetDirectory) {
+        this.assetDirectory = assetDirectory;
     }
 
     public void createAssetDirectory() {
