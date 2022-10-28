@@ -73,8 +73,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 
@@ -93,8 +91,6 @@ public class OIDCAccessResource extends ApplicationResource {
     private static final String REVOKE_ACCESS_TOKEN_LOGOUT = "oidc_access_token_logout";
     private static final String ID_TOKEN_LOGOUT = "oidc_id_token_logout";
     private static final String STANDARD_LOGOUT = "oidc_standard_logout";
-    private static final Pattern REVOKE_ACCESS_TOKEN_LOGOUT_FORMAT = Pattern.compile("(\\.google\\.com)");
-    private static final Pattern ID_TOKEN_LOGOUT_FORMAT = Pattern.compile("(\\.okta)");
     private static final int msTimeout = 30_000;
     private static final boolean LOGGING_IN = true;
 
@@ -251,11 +247,8 @@ public class OIDCAccessResource extends ApplicationResource {
         idpUserGroupService.deleteUserGroups(mappedUserIdentity);
         logger.debug("Deleted user groups for user [{}]", mappedUserIdentity);
 
-        // Get the oidc discovery url
-        String oidcDiscoveryUrl = properties.getOidcDiscoveryUrl();
-
         // Determine the logout method
-        String logoutMethod = determineLogoutMethod(oidcDiscoveryUrl);
+        String logoutMethod = determineLogoutMethod();
 
         switch (logoutMethod) {
             case REVOKE_ACCESS_TOKEN_LOGOUT:
@@ -301,11 +294,8 @@ public class OIDCAccessResource extends ApplicationResource {
             final String oidcRequestIdentifier = requestIdentifier.get();
             checkOidcState(httpServletResponse, oidcRequestIdentifier, successfulOidcResponse, false);
 
-            // Get the oidc discovery url
-            String oidcDiscoveryUrl = properties.getOidcDiscoveryUrl();
-
             // Determine which logout method to use
-            String logoutMethod = determineLogoutMethod(oidcDiscoveryUrl);
+            String logoutMethod = determineLogoutMethod();
 
             // Get the authorization code and grant
             final AuthorizationCode authorizationCode = successfulOidcResponse.getAuthorizationCode();
@@ -415,14 +405,11 @@ public class OIDCAccessResource extends ApplicationResource {
                 .build();
     }
 
-    private String determineLogoutMethod(String oidcDiscoveryUrl) {
-        Matcher accessTokenMatcher = REVOKE_ACCESS_TOKEN_LOGOUT_FORMAT.matcher(oidcDiscoveryUrl);
-        Matcher idTokenMatcher = ID_TOKEN_LOGOUT_FORMAT.matcher(oidcDiscoveryUrl);
-
-        if (accessTokenMatcher.find()) {
-            return REVOKE_ACCESS_TOKEN_LOGOUT;
-        } else if (idTokenMatcher.find()) {
+    private String determineLogoutMethod() {
+        if (oidcService.getEndSessionEndpoint() != null) {
             return ID_TOKEN_LOGOUT;
+        } else if (oidcService.getRevocationEndpoint() != null) {
+            return REVOKE_ACCESS_TOKEN_LOGOUT;
         } else {
             return STANDARD_LOGOUT;
         }
