@@ -98,9 +98,6 @@
     // load the controller services
     var controllerServicesUri = config.urls.api + '/flow/controller/controller-services';
 
-    var groupCount = 0;
-    var parameterCount = 0;
-
     var SENSITIVE = 'SENSITIVE';
     var NON_SENSITIVE = 'NON_SENSITIVE';
 
@@ -629,9 +626,6 @@
             var updatedParameterProviderEntity = _.cloneDeep(response);
             currentParameterProviderEntity = response;
 
-            groupCount = 0;
-            parameterCount = 0;
-
             // populate the fetch parameters dialog
             $('#fetch-parameters-id').text(updatedParameterProviderEntity.id);
             $('#fetch-parameters-name').text(nfCommon.getComponentName(updatedParameterProviderEntity));
@@ -860,6 +854,7 @@
     var loadParameterGroups = function (parameterProviderGroupEntity) {
         // providedGroups will be an array of groups
         if (nfCommon.isDefinedAndNotNull(parameterProviderGroupEntity)) {
+            var groupCount = 0;
             var groupsGrid = $('#parameter-groups-table').data('gridInstance');
             var groupsData = groupsGrid.getData();
 
@@ -2501,6 +2496,10 @@
 
         selectableParametersGrid.setSortColumn('name', true);
         selectableParametersGrid.onSort.subscribe(function (e, args) {
+            // clean up tooltips
+            nfCommon.cleanUpTooltips($('#selectable-parameters-table'), 'div.fa-asterisk');
+            nfCommon.cleanUpTooltips($('#selectable-parameters-table'), 'div.fa-hashtag');
+
             sortParameters({
                 columnId: args.sortCol.id,
                 sortAsc: args.sortAsc
@@ -2601,33 +2600,38 @@
         selectableParametersTable.data('gridInstance', selectableParametersGrid).on('mouseenter', 'div.slick-cell', function (e) {
             var asteriskIconElement =  $(this).find('div.fa-asterisk');
 
-            var asteriskTooltipContent = '';
-            if (asteriskIconElement.hasClass('new')) {
-                asteriskTooltipContent = nfCommon.escapeHtml('Newly discovered parameter.');
-            } else if (asteriskIconElement.hasClass('changed')) {
-                asteriskTooltipContent = nfCommon.escapeHtml('Value has changed.');
-            } else if (asteriskIconElement.hasClass('removed')) {
-                asteriskTooltipContent = nfCommon.escapeHtml('Parameter has been removed from its source. Apply to remove from the synced parameter context.');
-            } else if (asteriskIconElement.hasClass('missing_but_referenced')) {
-                asteriskTooltipContent = nfCommon.escapeHtml('Parameter has been removed from its source and is still being referenced in a component. To remove the parameter from the parameter context, first un-reference the parameter, then re-fetch and apply.');
+            if (asteriskIconElement.length && !asteriskIconElement.data('qtip')) {
+                var asteriskTooltipContent = '';
+
+                if (asteriskIconElement.hasClass('new')) {
+                    asteriskTooltipContent = nfCommon.escapeHtml('Newly discovered parameter.');
+                } else if (asteriskIconElement.hasClass('changed')) {
+                    asteriskTooltipContent = nfCommon.escapeHtml('Value has changed.');
+                } else if (asteriskIconElement.hasClass('removed')) {
+                    asteriskTooltipContent = nfCommon.escapeHtml('Parameter has been removed from its source. Apply to remove from the synced parameter context.');
+                } else if (asteriskIconElement.hasClass('missing_but_referenced')) {
+                    asteriskTooltipContent = nfCommon.escapeHtml('Parameter has been removed from its source and is still being referenced in a component. To remove the parameter from the parameter context, first un-reference the parameter, then re-fetch and apply.');
+                }
+
+                // initialize tooltip
+                asteriskIconElement.qtip($.extend({},
+                    nfCommon.config.tooltipConfig,
+                    {
+                        content: asteriskTooltipContent
+                    }));
             }
 
-            // initialize tooltip
-            asteriskIconElement.qtip($.extend({},
-                nfCommon.config.tooltipConfig,
-                {
-                    content: asteriskTooltipContent
-                }));
-
             var hashtagIconElement =  $(this).find('div.fa-hashtag');
-            var hashtagTooltipContent = nfCommon.escapeHtml('This parameter is currently referenced by a property. The sensitivity cannot be changed.');
+            if (hashtagIconElement.length && !hashtagIconElement.data('qtip')) {
+                var hashtagTooltipContent = nfCommon.escapeHtml('This parameter is currently referenced by a property. The sensitivity cannot be changed.');
 
-            // initialize tooltip
-            hashtagIconElement.qtip($.extend({},
-                nfCommon.config.tooltipConfig,
-                {
-                    content: hashtagTooltipContent
-                }));
+                // initialize tooltip
+                hashtagIconElement.qtip($.extend({},
+                    nfCommon.config.tooltipConfig,
+                    {
+                        content: hashtagTooltipContent
+                    }));
+            }
         });
 
         /**
@@ -2748,6 +2752,9 @@
         groupsGrid.registerPlugin(new Slick.AutoTooltips());
         groupsGrid.setSortColumn('name', true);
         groupsGrid.onSort.subscribe(function (e, args) {
+            // clean up tooltips
+            nfCommon.cleanUpTooltips($('#parameter-groups-table'), 'div.fa-star');
+
             sortParameters({
                 columnId: args.sortCol.id,
                 sortAsc: args.sortAsc
@@ -2809,14 +2816,16 @@
         // hold onto an instance of the grid and create parameter context tooltip
         parameterGroupsTable.data('gridInstance', groupsGrid).on('mouseenter', 'div.slick-cell', function (e) {
             var starIconElement =  $(this).find('div.fa-star');
-            var tooltipContent = nfCommon.escapeHtml('Synced to a parameter context.');
+            if (starIconElement.length && !starIconElement.data('qtip')) {
+                var tooltipContent = nfCommon.escapeHtml('Synced to a parameter context.');
 
-            // initialize tooltip
-            starIconElement.qtip($.extend({},
-                nfCommon.config.tooltipConfig,
-                {
-                    content: tooltipContent
-                }));
+                // initialize tooltip
+                starIconElement.qtip($.extend({},
+                    nfCommon.config.tooltipConfig,
+                    {
+                        content: tooltipContent
+                    }));
+            }
         });
     };
     // end initParameterGroupTable
@@ -2967,6 +2976,8 @@
 
                         // clean up tooltips
                         nfCommon.cleanUpTooltips($('#parameter-groups-table'), 'div.fa-star');
+                        nfCommon.cleanUpTooltips($('#selectable-parameters-table'), 'div.fa-asterisk');
+                        nfCommon.cleanUpTooltips($('#selectable-parameters-table'), 'div.fa-hashtag');
 
                         // reset progress
                         $('div.parameter-contexts-to-update').removeClass('ajax-loading ajax-complete ajax-error');
