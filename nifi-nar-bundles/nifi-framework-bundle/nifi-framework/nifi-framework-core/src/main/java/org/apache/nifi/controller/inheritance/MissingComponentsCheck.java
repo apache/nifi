@@ -22,6 +22,7 @@ import org.apache.nifi.controller.FlowController;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class MissingComponentsCheck implements FlowInheritabilityCheck {
     @Override
@@ -34,7 +35,7 @@ public class MissingComponentsCheck implements FlowInheritabilityCheck {
         existingMissingComponents.removeAll(proposedFlow.getMissingComponents());
 
         if (existingMissingComponents.size() > 0) {
-            final String missingIds = StringUtils.join(existingMissingComponents, ",");
+            final String missingIds = StringUtils.join(existingMissingComponents.stream().sorted().collect(Collectors.toList()), ",");
             return FlowInheritability.notInheritable("Current flow has missing components that are not considered missing in the proposed flow (" + missingIds + ")");
         }
 
@@ -42,7 +43,7 @@ public class MissingComponentsCheck implements FlowInheritabilityCheck {
         proposedMissingComponents.removeAll(existingFlow.getMissingComponents());
 
         if (proposedMissingComponents.size() > 0) {
-            final String missingIds = StringUtils.join(proposedMissingComponents, ",");
+            final String missingIds = StringUtils.join(proposedMissingComponents.stream().sorted().collect(Collectors.toList()), ",");
             return FlowInheritability.notInheritable("Proposed flow has missing components that are not considered missing in the current flow (" + missingIds + ")");
         }
 
