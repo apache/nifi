@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>DeltaLakeMetadataWriter</title>
+
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+</head>
+<body>
+	<h2>High level overview</h2>
+    <p>This processor creates or keeps up to date a Delta table within a directory full of parquet files.
+        This directory with full of parquet files can be on the local filesystem or in an Amazon S3, Azure or GCP cloud storage.
+        Under the hood this processor uses the <a href="https://commons.apache.org/proper/commons-csv/apidocs/org/apache/commons/csv/CSVFormat.html">
+        Delta Standalone</a> library.</p>
+	<h2>Concept</h2>
+    <p>The processor reads up the parquet file names and the existing file names in the delta log.
+        It compares them and creates a list of files which needs to be added or removed from the Delta table.
+        At the end it commits the update in a single transaction. By this the Delta table will always be up-to-date.
+        The Delta table is located in a separate directory, _delta_log, within the directory containing te parquet files.</p>
+	<h2>Configuration</h2>
+    <h3>Parquet structure</h3>
+    <p>The structure of the parquet files needs to be configured in a json format.</p>
+    <p>Example of a valid json structure:</p>
+    <pre>
+{
+    "type": "struct",
+    "fields": [
+        {
+            "name": "year",
+            "type": "integer",
+            "nullable": true,
+            "metadata": {}
+        },
+        {
+            "name": "month",
+            "type": "integer",
+            "nullable": true,
+            "metadata": {}
+        },
+        {
+            "name": "day",
+            "type": "integer",
+            "nullable": true,
+            "metadata": {}
+        },
+        {
+            "name": "sale_id",
+            "type": "string",
+            "nullable": true,
+            "metadata": {}
+        },
+        {
+            "name": "customer",
+            "type": "string",
+            "nullable": true,
+            "metadata": {}
+        },
+        {
+            "name": "total_cost",
+            "type": "float",
+            "nullable": true,
+            "metadata": {}
+        }
+    ]
+}
+    </pre>
+    <h2>Output</h2>
+    <table>
+        <tr>
+            <th>Attribute</th>
+            <th>Relationship</th>
+            <th>Explanation</th>
+        </tr>
+        <tr>
+            <td>number of new files in the Delta table</td>
+            <td>success</td>
+            <td>Returns how many new files has been successfully added to the Delta table</td>
+        </tr>
+        <tr>
+            <td>number of files removed from Delta table</td>
+            <td>success</td>
+            <td>Returns how many files has been successfully removed from the Delta table</td>
+        </tr>
+        <tr>
+            <td>number of files in the new DeltaTable</td>
+            <td>success</td>
+            <td>If there were no Delta table, a new table is created and this attribute will contain the number of files the new table has</td>
+        </tr>
+        <tr>
+            <td>delta table update failed with error</td>
+            <td>failure</td>
+            <td>The error message</td>
+        </tr>
+    </table>
+    <h2>Known limitations</h2>
+    <p>Currently this processor does not support partition values.</p>
+</body>
+</html>
