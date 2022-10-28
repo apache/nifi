@@ -23,9 +23,6 @@ import com.microsoft.azure.kusto.ingest.IngestionProperties;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.processor.ProcessContext;
 
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
-
 public class MockAzureAdxIngestProcessor extends AzureAdxIngestProcessor{
 
     @Override

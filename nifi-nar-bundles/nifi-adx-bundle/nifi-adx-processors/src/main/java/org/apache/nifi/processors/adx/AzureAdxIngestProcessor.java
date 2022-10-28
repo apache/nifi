@@ -102,7 +102,8 @@ import java.util.regex.Pattern;
         @ReadsAttribute(attribute = "IS_TRANSACTIONAL", description = "Default : No ,Incase of any failure, whether we want all our data ingested or none. " +
                 "If set to Yes, it increases the data ingestion time significantly because inorder to maintain transactional behaviour, " +
                 "the processor first tries to ingest into temporary tables before ingesting into actual table."),
-        @ReadsAttribute(attribute = "IGNORE_FIRST_RECORD", description = "Specifies whether we want to ignore ingestion of first record. This is primarily applicable for csv files. Default is set to NO"),
+        @ReadsAttribute(attribute = "IGNORE_FIRST_RECORD", description = "Specifies whether we want to ignore ingestion of first record. " +
+                "This is primarily applicable for csv files. Default is set to NO"),
         @ReadsAttribute(attribute = "MAX_BATCHING_TIME_SPAN", description = "Applicable only for queued ingestion, specifies the maximum batching timespan. Default = 5 min"),
         @ReadsAttribute(attribute = "MAX_BATCHING_NO_OF_ITEMS", description = "Applicable only for queued ingestion, specifies the maximum number of items/records. Default = 1000"),
         @ReadsAttribute(attribute = "MAX_BATCHING_RAW_DATA_SIZE_IN_MB", description = "Applicable only for queued ingestion, specifies the maximum size of uncompressed data. Default = 1000MB"),
@@ -559,21 +560,21 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                 if (isNifiClusteredSetup(getNodeTypeProvider())) {
                     StateManager stateManager = context.getStateManager();
                     if (stateManager.getState(Scope.CLUSTER).toMap().isEmpty()) {
-                        getLogger().error(getNodeTypeProvider().getCurrentNode().toString() + "  cluster map is empty");
+                        //getLogger().error(getNodeTypeProvider().getCurrentNode().toString() + "  cluster map is empty");
                         stateMap = new ConcurrentHashMap<>();
                         stateMap.put(getNodeTypeProvider().getCurrentNode().toString(), "IN_PROGRESS");
                         stateManager.setState(stateMap, Scope.CLUSTER);
-                        getLogger().error(getNodeTypeProvider().getCurrentNode().toString() + "  updated cluster map status " + context.getStateManager().getState(Scope.CLUSTER).toMap());
+                        //getLogger().error(getNodeTypeProvider().getCurrentNode().toString() + "  updated cluster map status " + context.getStateManager().getState(Scope.CLUSTER).toMap());
                     } else {
-                        getLogger().error(getNodeTypeProvider().getCurrentNode().toString() + "  some key exist in statemap " + context.getStateManager().getState(Scope.CLUSTER).toMap());
+                        //getLogger().error(getNodeTypeProvider().getCurrentNode().toString() + "  some key exist in statemap " + context.getStateManager().getState(Scope.CLUSTER).toMap());
                         Map<String, String> existingMap = stateManager.getState(Scope.CLUSTER).toMap();
                         Map<String, String> updatedMap = new ConcurrentHashMap<>(existingMap);
                         updatedMap.put(getNodeTypeProvider().getCurrentNode().toString(), "IN_PROGRESS");
                         stateManager.setState(updatedMap, Scope.CLUSTER);
-                        getLogger().error(getNodeTypeProvider().getCurrentNode().toString() + "  updated cluster map status " + context.getStateManager().getState(Scope.CLUSTER).toMap());
+                        //getLogger().error(getNodeTypeProvider().getCurrentNode().toString() + "  updated cluster map status " + context.getStateManager().getState(Scope.CLUSTER).toMap());
                     }
-                    getLogger().error("StateMap  - {}", stateManager.getState(Scope.CLUSTER).toMap());
-                    getLogger().error("node provider values  - {}", getNodeTypeProvider().getClusterMembers());
+                    getLogger().info("StateMap  - {}", stateManager.getState(Scope.CLUSTER).toMap());
+                    //getLogger().error("node provider values  - {}", getNodeTypeProvider().getClusterMembers());
                 }
 
                 //then start creating temp tables
@@ -623,14 +624,14 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                 shutDownScheduler(scheduler);
 
                 if (statuses.get(0).status == OperationStatus.Succeeded) {
-                    getLogger().error("Operation status Succeeded in temp table - {}", statuses.get(0).status.toString());
+                    getLogger().info("Operation status Succeeded in temp table - {}", statuses.get(0).status.toString());
                     //if clustered and if ingestion succeeded then update status to success and if non clustered set flag to tempTableIngestion succeeded
                     if (isNifiClusteredSetup(getNodeTypeProvider())) {
                         Map<String, String> existingMap = context.getStateManager().getState(Scope.CLUSTER).toMap();
                         Map<String, String> updatedMap = new ConcurrentHashMap<>(existingMap);
                         updatedMap.put(getNodeTypeProvider().getCurrentNode().toString(), "SUCCEEDED");
                         context.getStateManager().setState(updatedMap, Scope.CLUSTER);
-                        getLogger().error("StateMap after updating success  - {}", context.getStateManager().getState(Scope.CLUSTER).toMap());
+                        //getLogger().error("StateMap after updating success  - {}", context.getStateManager().getState(Scope.CLUSTER).toMap());
                     } else {
                         isSingleNodeTempTableIngestionSucceeded = true;
                     }
@@ -643,7 +644,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                         Map<String, String> updatedMap = new ConcurrentHashMap<>(existingMap);
                         updatedMap.put(getNodeTypeProvider().getCurrentNode().toString(), "FAILED");
                         context.getStateManager().setState(updatedMap, Scope.CLUSTER);
-                        getLogger().error("StateMap after updating failure  - {}", context.getStateManager().getState(Scope.CLUSTER).toMap());
+                        //getLogger().error("StateMap after updating failure  - {}", context.getStateManager().getState(Scope.CLUSTER).toMap());
                     }
                 }
 
@@ -654,15 +655,15 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                 //if all failed/partially succeeded then rel-failure
 
                 if (isNifiClusteredSetup(getNodeTypeProvider())) {
-                    getLogger().error("cluster member size  - {}", getNodeTypeProvider().getClusterMembers().size());
-                    getLogger().error("statemap size  - {}", context.getStateManager().getState(Scope.CLUSTER).toMap());
+                    //getLogger().error("cluster member size  - {}", getNodeTypeProvider().getClusterMembers().size());
+                    //getLogger().error("statemap size  - {}", context.getStateManager().getState(Scope.CLUSTER).toMap());
                     CompletableFuture<Integer> countFuture = new CompletableFuture<>();
                     ScheduledExecutorService countScheduler = Executors.newScheduledThreadPool(1);
 
                     Runnable countTask = () -> {
                         try {
                             Map<String, String> nodeMap = context.getStateManager().getState(Scope.CLUSTER).toMap();
-                            getLogger().error("Getting the status of nodeMap  - {}", context.getStateManager().getState(Scope.CLUSTER).toMap());
+                            //getLogger().error("Getting the status of nodeMap  - {}", context.getStateManager().getState(Scope.CLUSTER).toMap());
                             int pendingCount = nodeMap.size();
                             int succeededCount = 0;
                             for (Map.Entry<String, String> entry : nodeMap.entrySet()) {
@@ -689,7 +690,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
 
                     shutDownScheduler(countScheduler);
 
-                    getLogger().error("Statemap final execution - {} and {}", succeededCount);
+                    //getLogger().error("Statemap final execution - {} and {}", succeededCount);
 
                     if (succeededCount == context.getStateManager().getState(Scope.CLUSTER).toMap().size()) {
                         //clustered temp table ingestion succeeds
@@ -698,14 +699,14 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                     } else {
                         //clustered temp table ingestion fails
                         getLogger().error("Clustered Ingestion : Exception occurred while ingesting data into the ADX temp tables, hence aborting ingestion to main table.");
-                        //dropTempTableIfExists(ingestionPropertiesCreateTempTable);
                         isError = true;
                     }
                 }
 
                 if(isClusteredTempTableIngestionSucceeded || isSingleNodeTempTableIngestionSucceeded){
                     try{
-                        StringBuilder moveExtentsQuery  = new StringBuilder().append(".move async extents all from table "+ ingestionPropertiesCreateTempTable.getTableName()  +" to table "+ ingestionProperties.getTableName());
+                        StringBuilder moveExtentsQuery  = new StringBuilder().append(".move async extents all from table "+
+                                ingestionPropertiesCreateTempTable.getTableName()  +" to table "+ ingestionProperties.getTableName());
                         if(shouldUseMaterializedViewFlag(ingestionPropertiesCreateTempTable.getDatabaseName(),ingestionPropertiesCreateTempTable.getTableName())){
                             moveExtentsQuery.append(" with(SetNewIngestionTime=true)");
                         }
@@ -714,7 +715,6 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                         //KustoResultSetTable operationDetailsRes = executionClient.execute(ingestionPropertiesCreateTempTable.getDatabaseName(),showOperationsQuery).getPrimaryResults();
                         String stateCol = "State";
                         //String statusCol = "Status";
-                        final String databaseName = ingestionPropertiesCreateTempTable.getDatabaseName();
                         String completionStatus = pollAndFindExtentMergeAsyncOperation(ingestionPropertiesCreateTempTable.getDatabaseName(),showOperationsQuery,stateCol);
                         if(completionStatus.equalsIgnoreCase("Failed")){
                             getLogger().error("Error occurred while moving extents from temp tables to actual table");
@@ -813,7 +813,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             getLogger().error("Process failed - {}");
             session.transfer(flowFile, RL_FAILED);
         }else{
-            getLogger().error("Process succeeded - {}");
+            getLogger().info("Process succeeded - {}");
             session.transfer(flowFile, RL_SUCCEEDED);
         }
     }
@@ -968,7 +968,8 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
         return res.getString(0);
     }
 
-    protected String pollAndFindExtentMergeAsyncOperation(final String databaseName, final String showOperationsQuery, final String stateCol) throws ExecutionException, InterruptedException, TimeoutException {
+    protected String pollAndFindExtentMergeAsyncOperation(final String databaseName, final String showOperationsQuery, final String stateCol)
+            throws ExecutionException, InterruptedException, TimeoutException {
         CompletableFuture<String> moveExtentfuture = new CompletableFuture<>();
         ScheduledExecutorService statusScheduler = Executors.newScheduledThreadPool(1);
         Runnable moveExtentTask = () -> {
