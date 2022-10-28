@@ -59,6 +59,7 @@ import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.NoHttpResponseException;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpRequestRetryHandler;
 import org.apache.http.client.config.RequestConfig;
@@ -546,7 +547,7 @@ public class PostHTTP extends AbstractProcessor {
                 firstFlowFile = session.penalize(firstFlowFile);
                 session.transfer(firstFlowFile, REL_FAILURE);
                 logger.error("Unable to communicate with destination {} to determine whether or not it can accept "
-                        + "flowfiles/gzip; routing {} to failure due to {}", new Object[]{url, firstFlowFile, e});
+                        + "flowfiles/gzip; routing {} to failure due to {}", url, firstFlowFile, e);
                 return;
             }
         }
@@ -877,7 +878,12 @@ public class PostHTTP extends AbstractProcessor {
             head.addHeader(TRANSACTION_ID_HEADER, transactionId);
         }
 
-        final HttpResponse response = client.execute(head, httpContext);
+        final HttpResponse response;
+        try {
+            response = client.execute(head, httpContext);
+        } catch (ClientProtocolException e) {
+            throw new ClientProtocolException("Remote may be expecting HTTPS connection", e);
+        }
 
         // we assume that the destination can support FlowFile v1 always when the processor is also configured to send as a FlowFile
         // otherwise, we do not bother to make any determinations concerning this compatibility
