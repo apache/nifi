@@ -98,9 +98,6 @@
     // load the controller services
     var controllerServicesUri = config.urls.api + '/flow/controller/controller-services';
 
-    var groupCount = 0;
-    var parameterCount = 0;
-
     var SENSITIVE = 'SENSITIVE';
     var NON_SENSITIVE = 'NON_SENSITIVE';
 
@@ -629,9 +626,6 @@
             var updatedParameterProviderEntity = _.cloneDeep(response);
             currentParameterProviderEntity = response;
 
-            groupCount = 0;
-            parameterCount = 0;
-
             // populate the fetch parameters dialog
             $('#fetch-parameters-id').text(updatedParameterProviderEntity.id);
             $('#fetch-parameters-name').text(nfCommon.getComponentName(updatedParameterProviderEntity));
@@ -860,6 +854,7 @@
     var loadParameterGroups = function (parameterProviderGroupEntity) {
         // providedGroups will be an array of groups
         if (nfCommon.isDefinedAndNotNull(parameterProviderGroupEntity)) {
+            var groupCount = 0;
             var groupsGrid = $('#parameter-groups-table').data('gridInstance');
             var groupsData = groupsGrid.getData();
 
