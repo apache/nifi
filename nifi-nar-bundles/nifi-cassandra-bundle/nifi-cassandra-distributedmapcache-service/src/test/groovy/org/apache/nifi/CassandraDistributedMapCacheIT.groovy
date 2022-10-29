@@ -16,6 +16,7 @@
  */
 package org.apache.nifi
 
+import com.datastax.driver.core.Cluster
 import com.datastax.driver.core.Session
 import org.apache.nifi.controller.cassandra.CassandraDistributedMapCache
 import org.apache.nifi.distributed.cache.client.Deserializer
@@ -30,6 +31,10 @@ import org.apache.nifi.util.TestRunners
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.testcontainers.containers.CassandraContainer
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
+import org.testcontainers.utility.DockerImageName
 
 /**
  * Setup instructions:
@@ -42,10 +47,15 @@ import org.junit.jupiter.api.Test
  *
  * Table SQL: create table dmc (id blob, value blob, primary key(id));
  */
+@Testcontainers
 class CassandraDistributedMapCacheIT {
+    @Container
+    static final CassandraContainer CASSANDRA_CONTAINER = new CassandraContainer(DockerImageName.parse("cassandra:4.1"))
     static TestRunner runner
     static CassandraDistributedMapCache distributedMapCache
     static Session session
+
+    static final String KEYSPACE = "sample_keyspace"
 
     @BeforeAll
     static void setup() {
@@ -57,10 +67,20 @@ class CassandraDistributedMapCacheIT {
         })
         distributedMapCache = new CassandraDistributedMapCache()
 
+        InetSocketAddress contactPoint = CASSANDRA_CONTAINER.getContactPoint()
+        String connectionString = String.format("%s:%d", contactPoint.getHostName(), contactPoint.getPort())
+
+        Cluster cluster = Cluster.builder().addContactPoint(contactPoint.getHostName())
+                .withPort(contactPoint.getPort()).build();
+        session = cluster.connect();
+
+        session.execute("create keyspace nifi_test with replication = { 'replication_factor': 1, 'class': 'SimpleStrategy' }");
+        session.execute("create table nifi_test.dmc (id blob, value blob, primary key(id))");
+
         def cassandraService = new CassandraSessionProvider()
         runner.addControllerService("provider", cassandraService)
         runner.addControllerService("dmc", distributedMapCache)
-        runner.setProperty(cassandraService, CassandraSessionProvider.CONTACT_POINTS, "localhost:9042")
+        runner.setProperty(cassandraService, CassandraSessionProvider.CONTACT_POINTS, connectionString)
         runner.setProperty(cassandraService, CassandraSessionProvider.KEYSPACE, "nifi_test")
         runner.setProperty(distributedMapCache, CassandraDistributedMapCache.SESSION_PROVIDER, "provider")
         runner.setProperty(distributedMapCache, CassandraDistributedMapCache.TABLE_NAME, "dmc")
@@ -85,7 +105,7 @@ class CassandraDistributedMapCacheIT {
 
     @AfterAll
     static void cleanup() {
-        session.execute("TRUNCATE dmc")
+        session.execute("TRUNCATE nifi_test.dmc")
     }
 
     Serializer<String> serializer = { str, os ->
