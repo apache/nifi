@@ -16,19 +16,8 @@
  */
 package org.apache.nifi.services.slack;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHeaders;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
-import org.apache.http.util.EntityUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
@@ -42,16 +31,10 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSet;
-import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonString;
-import javax.json.stream.JsonParsingException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -65,15 +48,15 @@ import java.util.Map;
         "your SlackRecordSink controller service to Slack.")
 public class SlackRecordSink extends AbstractControllerService implements RecordSinkService {
 
-    private static final String SLACK_POST_MESSAGE_URL = "https://slack.com/api/chat.postMessage";
+    private static final String SLACK_API_URL = "https://slack.com/api";
 
-    public static final PropertyDescriptor POST_MESSAGE_URL = new PropertyDescriptor.Builder()
-            .name("post-message-url")
-            .displayName("Post Message URL")
+    public static final PropertyDescriptor API_URL = new PropertyDescriptor.Builder()
+            .name("api-url")
+            .displayName("API URL")
             .description("Slack Web API URL for posting text messages to channels." +
                     " It only needs to be changed if Slack changes its API URL.")
             .required(true)
-            .defaultValue(SLACK_POST_MESSAGE_URL)
+            .defaultValue(SLACK_API_URL)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
@@ -94,51 +77,41 @@ public class SlackRecordSink extends AbstractControllerService implements Record
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-    private volatile PoolingHttpClientConnectionManager connManager;
-    private volatile CloseableHttpClient client;
 
+    public static final PropertyDescriptor WEB_SERVICE_CLIENT_PROVIDER = new PropertyDescriptor.Builder()
+            .name("web-service-client-provider")
+            .displayName("Web Service Client Provider")
+            .description("Controller service to provide HTTP client for communicating with Slack API")
+            .required(true)
+            .identifiesControllerService(WebClientServiceProvider.class)
+            .build();
     private volatile RecordSetWriterFactory writerFactory;
+    private SlackRestService service;
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return Collections.unmodifiableList(Arrays.asList(
-                POST_MESSAGE_URL,
+                API_URL,
                 ACCESS_TOKEN,
                 CHANNEL_ID,
-                RECORD_WRITER_FACTORY
+                RECORD_WRITER_FACTORY,
+                WEB_SERVICE_CLIENT_PROVIDER
         ));
     }
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        connManager = new PoolingHttpClientConnectionManager();
-
-        client = HttpClientBuilder.create()
-                .setConnectionManager(connManager)
-                .build();
-
-        this.writerFactory = context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
-    }
-
-    @OnDisabled
-    public void onDisabled() {
-        try {
-            if (client != null) {
-                client.close();
-                client = null;
-            }
-            if (connManager != null) {
-                connManager.close();
-                connManager = null;
-            }
-        } catch (IOException e) {
-            getLogger().error("Could not properly close HTTP connections.", e);
-        }
+        writerFactory = context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
+        final WebClientServiceProvider webClientServiceProvider = context
+                .getProperty(WEB_SERVICE_CLIENT_PROVIDER)
+                .asControllerService(WebClientServiceProvider.class);
+        final String accessToken = context.getProperty(ACCESS_TOKEN).getValue();
+        final String apiUrl = context.getProperty(API_URL).getValue();
+        service = new SlackRestService(webClientServiceProvider, accessToken, apiUrl);
     }
 
     @Override
     public WriteResult sendData(final RecordSet recordSet, final Map<String, String> attributes, final boolean sendZeroResults) throws IOException {
-        CloseableHttpResponse response = null;
         WriteResult writeResult;
         try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), recordSet.getSchema(), out, attributes)) {
@@ -158,91 +131,14 @@ public class SlackRecordSink extends AbstractControllerService implements Record
             }
 
             try {
-                sendMessage(getConfigurationContext(), out.toString());
-            } catch (final SlackRecordSinkException e) {
+                final String message = out.toString();
+                final String channel = getConfigurationContext().getProperty(CHANNEL_ID).getValue();
+                service.sendMessageToChannel(message, channel);
+            } catch (final SlackRestService.SlackRestServiceException e) {
                 getLogger().error("Failed to send message to Slack.", e);
-                closeHttpResponse(response);
                 throw new ProcessException(e);
             }
         }
         return writeResult;
-    }
-
-    private void sendMessage(final ConfigurationContext context, final String message) throws SlackRecordSinkException {
-        final JsonObjectBuilder jsonBuilder = Json.createObjectBuilder();
-        final String channel = context.getProperty(CHANNEL_ID).getValue();
-
-        if (StringUtils.isEmpty(channel)) {
-            throw new SlackRecordSinkException("The channel must be specified.");
-        }
-        jsonBuilder.add("channel", channel);
-
-        if (StringUtils.isEmpty(message)) {
-            throw new SlackRecordSinkException("No message to be sent with this record.");
-        }
-        jsonBuilder.add("text", message);
-
-        final HttpEntity requestBody = new StringEntity(jsonBuilder.build().toString(), Charset.forName("UTF-8"));
-
-        final String url = context.getProperty(POST_MESSAGE_URL).getValue();
-
-        final HttpPost request = new HttpPost(url);
-        request.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + context.getProperty(ACCESS_TOKEN).getValue());
-        request.setHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString());
-
-        request.setEntity(requestBody);
-        CloseableHttpResponse response = null;
-        try {
-            response = client.execute(request);
-            int statusCode = response.getStatusLine().getStatusCode();
-            if (!(statusCode >= 200 && statusCode < 300)) {
-                throw new SlackRecordSinkException("HTTP error code: " + statusCode);
-            }
-
-            final JsonObject responseJson;
-            try {
-                responseJson = Json.createReader(response.getEntity().getContent()).readObject();
-            } catch (JsonParsingException e) {
-                throw new SlackRecordSinkException("Slack response JSON cannot be parsed.", e);
-            }
-
-            try {
-                if (!responseJson.getBoolean("ok")) {
-                    throw new SlackRecordSinkException("Slack error response: " + responseJson.getString("error"));
-                }
-            } catch (NullPointerException | ClassCastException e) {
-                throw new SlackRecordSinkException("Slack response JSON does not contain 'ok' key or it has invalid value.", e);
-            }
-
-            final JsonString warning = responseJson.getJsonString("warning");
-            if (warning != null) {
-                getLogger().warn("Slack warning message: " + warning.getString());
-            }
-        } catch (final IOException e) {
-            closeHttpResponse(response);
-        }
-    }
-
-    private void closeHttpResponse(final CloseableHttpResponse response) {
-        if (response != null) {
-            try {
-                // consume the entire content of the response (entity)
-                // so that the manager can release the connection back to the pool
-                EntityUtils.consume(response.getEntity());
-                response.close();
-            } catch (final IOException e) {
-                getLogger().error("Could not properly close HTTP response.", e);
-            }
-        }
-    }
-
-    private static class SlackRecordSinkException extends Exception {
-        SlackRecordSinkException(String message) {
-            super(message);
-        }
-
-        SlackRecordSinkException(String message, Throwable cause) {
-            super(message, cause);
-        }
     }
 }

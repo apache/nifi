@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.services.slack;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
@@ -33,15 +35,13 @@ import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
+import org.apache.nifi.web.client.provider.service.StandardWebClientServiceProvider;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -70,19 +70,29 @@ public class TestSlackRecordSink {
     private MockRecordWriter writerFactory;
     private RecordSet recordSet;
     private String recordContentsAsString;
+    private ObjectMapper mapper;
 
     @BeforeEach
-    public void setup() throws InitializationException {
+    public void setup() throws InitializationException, IOException {
+        mapper = new ObjectMapper();
+
         mockWebServer = new MockWebServer();
-        url = mockWebServer.url("/").toString();
+        mockWebServer.start();
+        url = mockWebServer.url("/api/").toString();
 
         testRunner = TestRunners.newTestRunner(NoOpProcessor.class);
+
+        final WebClientServiceProvider webClientServiceProvider = new StandardWebClientServiceProvider();
+        testRunner.addControllerService("webClientServiceProvider", webClientServiceProvider);
+        testRunner.enableControllerService(webClientServiceProvider);
+
         slackRecordSink = new SlackRecordSink();
 
         testRunner.addControllerService("slackRecordSink", slackRecordSink);
-        testRunner.setProperty(slackRecordSink, SlackRecordSink.POST_MESSAGE_URL, url);
+        testRunner.setProperty(slackRecordSink, SlackRecordSink.API_URL, url);
         testRunner.setProperty(slackRecordSink, SlackRecordSink.ACCESS_TOKEN, BEARER_TOKEN);
         testRunner.setProperty(slackRecordSink, SlackRecordSink.CHANNEL_ID, CHANNEL_NAME);
+        testRunner.setProperty(slackRecordSink, SlackRecordSink.WEB_SERVICE_CLIENT_PROVIDER, "webClientServiceProvider");
 
         writerFactory = new MockRecordWriter();
         testRunner.addControllerService("writer", writerFactory);
@@ -108,6 +118,11 @@ public class TestSlackRecordSink {
         recordSet = RecordSet.of(schema, record1, record2);
     }
 
+    @AfterEach
+    public void cleanUp() throws IOException {
+        mockWebServer.shutdown();
+    }
+
     @Test
     public void testSendMessage() throws IOException {
         testRunner.enableControllerService(writerFactory);
@@ -121,9 +136,9 @@ public class TestSlackRecordSink {
         assertNotNull(writeResult);
         assertEquals(2, writeResult.getRecordCount());
         assertEquals(Collections.EMPTY_MAP, writeResult.getAttributes());
-        final JsonObject requestBodyJson = getRequestBodyJson();
-        assertEquals(CHANNEL_NAME, requestBodyJson.getString("channel"));
-        assertEquals(recordContentsAsString, requestBodyJson.getString("text"));
+        final JsonNode requestBodyJson = getRequestBodyJson();
+        assertEquals(CHANNEL_NAME, requestBodyJson.get("channel").asText());
+        assertEquals(recordContentsAsString, requestBodyJson.get("text").asText());
     }
 
     @Test
@@ -212,14 +227,12 @@ public class TestSlackRecordSink {
     }
 
 
-    private JsonObject getRequestBodyJson() {
+    private JsonNode getRequestBodyJson() {
         try {
             final RecordedRequest recordedRequest = mockWebServer.takeRequest();
-            try (final JsonReader reader = Json.createReader(new InputStreamReader(
-                    recordedRequest.getBody().inputStream(), StandardCharsets.UTF_8))) {
-                return reader.readObject();
-            }
-        } catch (final InterruptedException e) {
+            final JsonNode jsonNode = mapper.readTree(recordedRequest.getBody().inputStream());
+            return jsonNode;
+        } catch (final Exception e) {
             throw new RuntimeException(e);
         }
     }
