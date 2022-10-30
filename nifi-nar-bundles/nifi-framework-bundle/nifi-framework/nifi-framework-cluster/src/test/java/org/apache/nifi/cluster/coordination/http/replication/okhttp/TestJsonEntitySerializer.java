@@ -65,8 +65,7 @@ public class TestJsonEntitySerializer {
             assertEquals("{\"id\":\"123\",\"component\":{\"config\":{\"properties\":{\"key\":\"value\"}}}}", serialized);
         }
     }
-
-
+    
     @Test
     public void testBulletinEntity() throws Exception {
         final ObjectMapper jsonCodec = new ObjectMapper();
