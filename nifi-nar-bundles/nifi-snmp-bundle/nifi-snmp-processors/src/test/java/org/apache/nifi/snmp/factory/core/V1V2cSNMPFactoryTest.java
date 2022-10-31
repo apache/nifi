@@ -27,14 +27,12 @@ import org.snmp4j.Target;
 import org.snmp4j.security.SecurityLevel;
 
 import java.net.BindException;
-import java.util.regex.Pattern;
 
 import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.LOCALHOST;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 

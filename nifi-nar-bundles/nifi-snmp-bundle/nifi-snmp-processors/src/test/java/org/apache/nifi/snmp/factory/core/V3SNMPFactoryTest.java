@@ -22,20 +22,12 @@ import org.junit.jupiter.api.Test;
 import org.snmp4j.Snmp;
 import org.snmp4j.Target;
 import org.snmp4j.UserTarget;
-import org.snmp4j.security.SecurityLevel;
 import org.snmp4j.security.SecurityModels;
 import org.snmp4j.security.USM;
 import org.snmp4j.smi.Integer32;
 import org.snmp4j.smi.OctetString;
 
 import java.net.BindException;
-import java.util.function.Function;
-
-import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.LOCALHOST;
-import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.AUTH_PASSPHRASE;
-import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.AUTH_PROTOCOL;
-import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.PRIV_PASSPHRASE;
-import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.PRIV_PROTOCOL;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.SECURITY_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
