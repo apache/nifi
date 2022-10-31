@@ -37,16 +37,24 @@ public class IsJsonEvaluator extends BooleanEvaluator {
     @Override
     public QueryResult<Boolean> evaluate(EvaluationContext evaluationContext) {
         final String subjectValue = subject.evaluate(evaluationContext).getValue();
-        if (StringUtils.isBlank(subjectValue)) {
-            return new BooleanQueryResult(false);
+        if (StringUtils.isNotBlank(subjectValue)
+                && (isPossibleJsonArray(subjectValue) || isPossibleJsonObject(subjectValue))) {
+            try {
+                MAPPER.readTree(subjectValue);
+                return new BooleanQueryResult(true);
+            } catch (IOException ignored) {
+                //IOException ignored
+            }
         }
+        return new BooleanQueryResult(false);
+    }
 
-        try {
-            MAPPER.readTree(subjectValue);
-        } catch (IOException e) {
-            return new BooleanQueryResult(false);
-        }
-        return new BooleanQueryResult(true);
+    private boolean isPossibleJsonArray(String subject) {
+        return subject.startsWith("[") && subject.endsWith("]");
+    }
+
+    private boolean isPossibleJsonObject(String subject) {
+        return subject.startsWith("{") && subject.endsWith("}");
     }
 
     @Override
