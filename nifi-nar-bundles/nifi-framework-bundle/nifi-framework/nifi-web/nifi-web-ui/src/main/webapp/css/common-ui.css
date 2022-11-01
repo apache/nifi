@@ -426,10 +426,6 @@ input.filter {
     margin-bottom: 5px;
 }
 
-.filter-status-dropdown {
-    margin-left: 5px;
-}
-
 .setting-field.summary-filter-primary-node-container {
     display: inline-block;
     margin-left: 10px;
