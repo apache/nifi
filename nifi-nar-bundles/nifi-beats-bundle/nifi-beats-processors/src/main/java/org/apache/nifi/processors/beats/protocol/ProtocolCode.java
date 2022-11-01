@@ -14,15 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.beats.frame;
+package org.apache.nifi.processors.beats.protocol;
 
 /**
- * The stages of parsing of a Beats conversation.
+ * Beats Protocol Code interface abstraction
  */
-public enum BeatsState {
-
-    VERSION, // First stage is parsing the version
-    FRAMETYPE, // Second stage is to be able to read the frame type
-    PAYLOAD, // payload being populated
-    COMPLETE // complete packet handling
+public interface ProtocolCode {
+    /**
+     * Get Protocol Code as transmitted over a socket connection
+     *
+     * @return Protocol Code
+     */
+    int getCode();
 }

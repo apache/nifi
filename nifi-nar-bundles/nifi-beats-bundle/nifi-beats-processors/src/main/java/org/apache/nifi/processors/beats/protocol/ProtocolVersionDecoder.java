@@ -14,22 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.beats.netty;
+package org.apache.nifi.processors.beats.protocol;
 
-import org.apache.nifi.processor.util.listen.event.NetworkEventFactory;
-import org.apache.nifi.processors.beats.frame.BeatsMetadata;
-
-import java.util.Map;
+import java.util.Arrays;
+import java.util.Optional;
 
 /**
- * An EventFactory implementation to create BeatsMessages.
+ * Beats Protocol Version Decoder
  */
-public class BeatsMessageFactory implements NetworkEventFactory<BeatsMessage> {
+public class ProtocolVersionDecoder implements ProtocolCodeDecoder<ProtocolVersion> {
 
     @Override
-    public BeatsMessage create(final byte[] data, final Map<String, String> metadata) {
-        final int sequenceNumber = Integer.valueOf(metadata.get(BeatsMetadata.SEQNUMBER_KEY));
-        final String sender = metadata.get(BeatsMetadata.SENDER_KEY);
-        return new BeatsMessage(sender, data, sequenceNumber);
+    public ProtocolVersion readProtocolCode(final byte code) {
+        final Optional<ProtocolVersion> protocolVersionFound = Arrays.stream(ProtocolVersion.values()).filter(
+                protocolVersion -> protocolVersion.getCode() == code
+        ).findFirst();
+
+        return protocolVersionFound.orElseThrow(() -> {
+            final String message = String.format("Version Code [%d] not supported", code);
+            return new ProtocolException(message);
+        });
     }
 }

@@ -14,13 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.beats.frame;
+package org.apache.nifi.processors.beats.protocol;
 
 /**
- * Metadata keys for Beats message.
+ * Beats Message Acknowledgement
  */
-public interface BeatsMetadata {
+public class MessageAck {
+    private final int sequenceNumber;
 
-    String SEQNUMBER_KEY = "beats.sequencenumber";
-    String SENDER_KEY = "sender";
+    public MessageAck(final int sequenceNumber) {
+        this.sequenceNumber = sequenceNumber;
+    }
+
+    public int getSequenceNumber() {
+        return sequenceNumber;
+    }
 }

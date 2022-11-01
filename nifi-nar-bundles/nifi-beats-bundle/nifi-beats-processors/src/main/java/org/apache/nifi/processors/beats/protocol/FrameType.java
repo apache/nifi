@@ -14,34 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.beats.frame;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+package org.apache.nifi.processors.beats.protocol;
 
 /**
- * Encodes a BeatsFrame into raw bytes using the given charset.
+ * Beats Protocol Frame Type
  */
-public class BeatsEncoder {
+public enum FrameType implements ProtocolCode {
+    ACK('A'),
 
+    COMPRESSED('C'),
 
-    public byte[] encode(final BeatsFrame frame) {
-        final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+    DATA('D'),
 
-        // Writes the version
-        buffer.write(frame.getVersion());
+    JSON('J'),
 
-        // Writes the frameType
-        buffer.write(frame.getFrameType());
+    WINDOW_SIZE('W');
 
-        // Writes the sequence number
-        try {
-            buffer.write(frame.getPayload());
-        } catch (IOException e) {
-            throw new BeatsFrameException("Error decoding Beats frame: " + e.getMessage(), e);
-        }
+    private final int code;
 
-        return buffer.toByteArray();
+    FrameType(final char code) {
+        this.code = code;
     }
 
+    @Override
+    public int getCode() {
+        return code;
+    }
 }

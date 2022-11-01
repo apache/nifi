@@ -14,23 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.beats.netty;
+package org.apache.nifi.processors.beats.protocol;
 
-import org.apache.nifi.event.transport.message.ByteArrayMessage;
+import java.util.Arrays;
+import java.util.Optional;
 
 /**
- * A Beats message which adds a sequence number to the ByteArrayMessage.
+ * Beats Frame Type Decoder
  */
-public class BeatsMessage extends ByteArrayMessage {
+public class FrameTypeDecoder implements ProtocolCodeDecoder<FrameType> {
 
-    private final int seqNumber;
+    @Override
+    public FrameType readProtocolCode(final byte code) {
+        final Optional<FrameType> frameTypeFound = Arrays.stream(FrameType.values()).filter(
+                frameType -> frameType.getCode() == code
+        ).findFirst();
 
-    public BeatsMessage(final String sender, final byte[] data, final int seqNumber) {
-        super(data, sender);
-        this.seqNumber = seqNumber;
-    }
-
-    public int getSeqNumber() {
-        return seqNumber;
+        return frameTypeFound.orElseThrow(() -> {
+            final String message = String.format("Frame Type Code [%d] not supported", code);
+            return new ProtocolException(message);
+        });
     }
 }
