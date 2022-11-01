@@ -61,10 +61,12 @@ public class SNMPSocketSupport {
                     if (attempts == retries) {
                         throw e;
                     }
+                } else {
+                    throw e;
                 }
             }
         }
-        return null;
+        throw new IllegalStateException("Failed to bind ports for SNMP manager");
     }
 
     protected Target createTargetInstance(final Function<SNMPConfiguration, Target> runnable, final int retries) {
@@ -78,9 +80,11 @@ public class SNMPSocketSupport {
                     if (attempts == retries) {
                         throw e;
                     }
+                } else {
+                    throw e;
                 }
             }
         }
-        return null;
+        throw new IllegalStateException("Failed to bind ports for SNMP target");
     }
 }
