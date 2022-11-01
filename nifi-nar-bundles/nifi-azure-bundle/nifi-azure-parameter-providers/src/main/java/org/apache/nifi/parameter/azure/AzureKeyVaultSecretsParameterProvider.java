@@ -49,48 +49,48 @@ import java.util.regex.Pattern;
  * @see <a href="https://learn.microsoft.com/en-us/azure/key-vault/secrets/quick-create-cli">Azure Key Vault Secrets</a>
  */
 @Tags({"azure", "keyvault", "key", "vault", "secrets"})
-@CapabilityDescription("Fetches parameters from Azure Key Vault Secrets.  Each secret becomes a Parameter, which can map to a Parameter Context, with " +
-        "key/value pairs in the secret mapping to Parameters in the group.")
+@CapabilityDescription("Fetches parameters from Azure Key Vault Secrets.  Each secret becomes a Parameter, which map to a Parameter Group by" +
+        "adding a secret tag named 'group-name'.")
 public class AzureKeyVaultSecretsParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
     public static final PropertyDescriptor AZURE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
             .name("azure-credentials-service")
             .displayName("Azure Credentials Service")
-            .description("Controller service used to obtain Azure credentials to be used with Key Vault client")
+            .description("Controller service used to obtain Azure credentials to be used with Key Vault client.")
             .required(true)
             .identifiesControllerService(AzureCredentialsService.class)
             .build();
-    public static final PropertyDescriptor KEY_VAULT_URL = new PropertyDescriptor.Builder()
-            .name("key-vault-url")
-            .displayName("Key Vault URL")
-            .description("Key Vault URL to fetch secrets from")
+    public static final PropertyDescriptor KEY_VAULT_URI = new PropertyDescriptor.Builder()
+            .name("key-vault-uri")
+            .displayName("Key Vault URI")
+            .description("Vault URI of the Key Vault that contains the secrets")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor GROUP_NAME_PATTERN = new PropertyDescriptor.Builder()
             .name("group-name-pattern")
             .displayName("Group Name Pattern")
-            .description("A Regular Expression matching on the 'group-name' label value that identifies Secrets whose parameters should be fetched. " +
-                    "Any secrets without a 'group-name' label value that matches this Regex will not be fetched.")
+            .description("A Regular Expression matching on the 'group-name' tag value that identifies Secrets whose parameters should be fetched. " +
+                    "Any secrets without a 'group-name' tag value that matches this Regex will not be fetched.")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .required(true)
             .defaultValue(".*")
             .build();
 
-    public static final String PARAMETER_GROUP_NAME = "group-name";
+    static final String GROUP_NAME_TAG = "group-name";
 
-    private static final List<PropertyDescriptor> properties;
+    private static final List<PropertyDescriptor> PROPERTIES;
 
     static {
         final List<PropertyDescriptor> props = new ArrayList<>();
         props.add(AZURE_CREDENTIALS_SERVICE);
-        props.add(KEY_VAULT_URL);
+        props.add(KEY_VAULT_URI);
         props.add(GROUP_NAME_PATTERN);
-        properties = Collections.unmodifiableList(props);
+        PROPERTIES = Collections.unmodifiableList(props);
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
@@ -145,10 +145,10 @@ public class AzureKeyVaultSecretsParameterProvider extends AbstractParameterProv
             final String parameterName = secret.getName();
             final String parameterValue = secret.getValue();
 
-            final String parameterGroupName = secret.getProperties().getTags().get(PARAMETER_GROUP_NAME);
+            final String parameterGroupName = secret.getProperties().getTags().get(GROUP_NAME_TAG);
             if (parameterGroupName == null) {
-                getLogger().warn("Secret with parameter name [{}] not recognized as a valid parameter as it is " +
-                                "missing the [{}] tag", parameterName, PARAMETER_GROUP_NAME);
+                getLogger().debug("Secret with parameter name [{}] not recognized as a valid parameter since it " +
+                                "does not have the [{}] tag", parameterName, GROUP_NAME_TAG);
                 continue;
             }
 
@@ -160,11 +160,10 @@ public class AzureKeyVaultSecretsParameterProvider extends AbstractParameterProv
                 continue;
             }
 
-            final List<Parameter> parameters = nameToParametersMap.getOrDefault(parameterGroupName, new ArrayList<>());
+            nameToParametersMap
+                    .computeIfAbsent(parameterGroupName, groupName -> new ArrayList<>())
+                    .add(createParameter(parameterName, parameterValue));
 
-            parameters.add(createParameter(parameterName, parameterValue));
-
-            nameToParametersMap.put(parameterGroupName, parameters);
         }
 
         return createParameterGroupFromMap(nameToParametersMap);
@@ -189,7 +188,7 @@ public class AzureKeyVaultSecretsParameterProvider extends AbstractParameterProv
     SecretClient configureSecretClient(final ConfigurationContext context) {
         final AzureCredentialsService credentialsService =
                 context.getProperty(AZURE_CREDENTIALS_SERVICE).asControllerService(AzureCredentialsService.class);
-        final String vaultUrl = context.getProperty(KEY_VAULT_URL).getValue();
+        final String vaultUrl = context.getProperty(KEY_VAULT_URI).getValue();
         return new SecretClientBuilder()
                 .credential(credentialsService.getCredentials())
                 .vaultUrl(vaultUrl)

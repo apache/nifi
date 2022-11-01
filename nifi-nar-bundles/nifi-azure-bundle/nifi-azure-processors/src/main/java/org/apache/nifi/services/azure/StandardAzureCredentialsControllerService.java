@@ -70,20 +70,20 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
             .dependsOn(CREDENTIAL_CONFIGURATION_STRATEGY, MANAGED_IDENTITY)
             .build();
 
-    private static final List<PropertyDescriptor> properties;
+    private static final List<PropertyDescriptor> PROPERTIES;
 
     static {
         final List<PropertyDescriptor> props = new ArrayList<>();
         props.add(CREDENTIAL_CONFIGURATION_STRATEGY);
         props.add(MANAGED_IDENTITY_CLIENT_ID);
-        properties = Collections.unmodifiableList(props);
+        PROPERTIES = Collections.unmodifiableList(props);
     }
 
     private TokenCredential credentials;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

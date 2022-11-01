@@ -124,7 +124,7 @@ public class TestAzureKeyVaultSecretsParameterProvider {
                 when(secret.getProperties()).thenReturn(secretProperties);
 
                 final Map<String, String> tags = new HashMap<>();
-                tags.put(AzureKeyVaultSecretsParameterProvider.PARAMETER_GROUP_NAME, group.getGroupName());
+                tags.put(AzureKeyVaultSecretsParameterProvider.GROUP_NAME_TAG, group.getGroupName());
                 when(secretProperties.getTags()).thenReturn(tags);
 
                 when(secretProperties.getName()).thenReturn(parameterName);
