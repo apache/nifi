@@ -430,7 +430,7 @@ input.filter {
     margin-left: 5px;
 }
 
-.summary-filter-primary-node-container {
+.setting-field.summary-filter-primary-node-container {
     display: inline-block;
     margin-left: 10px;
     margin-top: 8px;
