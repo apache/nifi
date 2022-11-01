@@ -27,7 +27,6 @@ import org.snmp4j.security.USM;
 import org.snmp4j.smi.Integer32;
 import org.snmp4j.smi.OctetString;
 
-import java.net.BindException;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.SECURITY_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
@@ -42,7 +41,7 @@ class V3SNMPFactoryTest extends SNMPSocketSupport {
     private static final int EXPECTED_SECURITY_LEVEL = 3;
 
     @Test
-    void testFactoryCreatesTarget() throws BindException {
+    void testFactoryCreatesTarget() {
         final V3SNMPFactory snmpFactory = new V3SNMPFactory();
         final Target target = createTargetInstance(snmpFactory::createTargetInstance, 5);
         assertThat(target, instanceOf(UserTarget.class));
@@ -53,7 +52,7 @@ class V3SNMPFactoryTest extends SNMPSocketSupport {
     }
 
     @Test
-    void testFactoryCreatesSnmpManager() throws BindException {
+    void testFactoryCreatesSnmpManager() {
         final V3SNMPFactory snmpFactory = new V3SNMPFactory();
         final Snmp snmpManager = createSnmpManagerInstance(snmpFactory::createSnmpManagerInstance, 5);
         final String address = snmpManager.getMessageDispatcher().getTransportMappings().iterator().next().getListenAddress().toString();

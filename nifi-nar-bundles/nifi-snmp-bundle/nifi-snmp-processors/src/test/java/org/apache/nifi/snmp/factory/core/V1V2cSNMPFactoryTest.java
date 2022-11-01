@@ -19,14 +19,11 @@ package org.apache.nifi.snmp.factory.core;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
 import org.apache.nifi.util.StringUtils;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.snmp4j.CommunityTarget;
 import org.snmp4j.Snmp;
 import org.snmp4j.Target;
 import org.snmp4j.security.SecurityLevel;
-
-import java.net.BindException;
 
 import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.LOCALHOST;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -41,7 +38,7 @@ class V1V2cSNMPFactoryTest extends SNMPSocketSupport {
     private static final int RETRIES = 3;
 
     @Test
-    void testFactoryCreatesV1V2Configuration() throws BindException {
+    void testFactoryCreatesV1V2Configuration() {
         final V1V2cSNMPFactory snmpFactory = new V1V2cSNMPFactory();
         final Target target = createTargetInstance(snmpFactory::createTargetInstance, 5);
 
@@ -53,11 +50,11 @@ class V1V2cSNMPFactoryTest extends SNMPSocketSupport {
     }
 
     @Test
-    void testFactoryCreatesSnmpManager() throws BindException {
+    void testFactoryCreatesSnmpManager() {
         final V1V2cSNMPFactory snmpFactory = new V1V2cSNMPFactory();
         final Snmp snmpManager = createSnmpManagerInstance(snmpFactory::createSnmpManagerInstance, 5);
         final String address = snmpManager.getMessageDispatcher().getTransportMappings().iterator().next().getListenAddress().toString();
-        Assertions.assertNotNull(address);
+        assertNotNull(address);
     }
 
     @Test

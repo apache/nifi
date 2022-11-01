@@ -21,7 +21,6 @@ import org.apache.nifi.snmp.configuration.SNMPConfiguration;
 import org.snmp4j.Snmp;
 import org.snmp4j.Target;
 import org.snmp4j.security.SecurityLevel;
-
 import java.net.BindException;
 import java.util.function.Function;
 
