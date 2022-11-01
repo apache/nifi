@@ -14,26 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.beats.frame;
+package org.apache.nifi.processors.beats.protocol;
 
-import org.junit.jupiter.api.Test;
+import java.util.Collection;
+import java.util.Objects;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+/**
+ * Batch of Beats Messages
+ */
+public class Batch {
+    private final Collection<BatchMessage> messages;
 
-public class TestBeatsFrame {
-
-    @Test
-    public void testInvalidVersion() {
-        assertThrows(BeatsFrameException.class, () -> new BeatsFrame.Builder().seqNumber(1234).dataSize(3).build());
+    public Batch(final Collection<BatchMessage> messages) {
+        this.messages = Objects.requireNonNull(messages, "Message required");
     }
 
-    @Test
-    public void testInvalidFrameType() {
-        assertThrows(BeatsFrameException.class, () -> new BeatsFrame.Builder().frameType((byte) 0x70).dataSize(5).build());
-    }
-
-    @Test
-    public void testBlankFrameType() {
-        assertThrows(BeatsFrameException.class, () -> new BeatsFrame.Builder().frameType(((byte) 0x00)).dataSize(5).build());
+    public Collection<BatchMessage> getMessages() {
+        return messages;
     }
 }

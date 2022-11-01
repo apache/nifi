@@ -14,12 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.beats.frame;
+package org.apache.nifi.processors.beats.protocol;
 
-public final class BeatsFrameType {
-    public static final byte WINDOWSIZE = 0x57;
-    public static final byte DATA = 0x44;
-    public static final byte COMPRESSED = 0x43;
-    public static final byte ACK = 0x41;
-    public static final byte JSON = 0x4a;
+/**
+ * Beats Protocol Exception
+ */
+public class ProtocolException extends RuntimeException {
+    /**
+     * Protocol Exception constructor with message containing protocol failure details
+     *
+     * @param message Protocol failure details
+     */
+    public ProtocolException(final String message) {
+        super(message);
+    }
+
+    /**
+     * Protocol Exception constructor with message and cause of failure details
+     *
+     * @param message Protocol failure details
+     * @param cause Cause of failure
+     */
+    public ProtocolException(final String message, final Throwable cause) {
+        super(message, cause);
+    }
 }

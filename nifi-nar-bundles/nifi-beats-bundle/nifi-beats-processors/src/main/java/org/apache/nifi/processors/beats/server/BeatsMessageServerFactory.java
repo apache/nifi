@@ -14,43 +14,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.beats.netty;
+package org.apache.nifi.processors.beats.server;
 
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
 import org.apache.nifi.event.transport.netty.channel.LogExceptionChannelHandler;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processors.beats.handler.BatchChannelInboundHandler;
+import org.apache.nifi.processors.beats.handler.BatchDecoder;
+import org.apache.nifi.processors.beats.handler.MessageAckEncoder;
+import org.apache.nifi.processors.beats.protocol.BatchMessage;
 
 import java.net.InetAddress;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
 
 /**
- * Netty Event Server Factory implementation for RELP Messages
+ * Beats Message Protocol extends of Netty Event Server Factory
  */
 public class BeatsMessageServerFactory extends NettyEventServerFactory {
-
     /**
-     * RELP Message Server Factory to receive RELP messages
+     * Beats Message Server Factory constructor with standard configuration arguments
+     *
      * @param log Component Log
      * @param address Server Address
      * @param port Server Port Number
-     * @param charset Charset to use when decoding RELP messages
      * @param events Blocking Queue for events received
      */
     public BeatsMessageServerFactory(final ComponentLog log,
                                      final InetAddress address,
                                      final int port,
-                                     final Charset charset,
-                                     final BlockingQueue<BeatsMessage> events) {
+                                     final BlockingQueue<BatchMessage> events) {
         super(address, port, TransportProtocol.TCP);
-        final BeatsMessageChannelHandler beatsChannelHandler = new BeatsMessageChannelHandler(events, log);
+        final MessageAckEncoder messageAckEncoder = new MessageAckEncoder(log);
+        final BatchChannelInboundHandler batchChannelInboundHandler = new BatchChannelInboundHandler(log, events);
         final LogExceptionChannelHandler logExceptionChannelHandler = new LogExceptionChannelHandler(log);
 
         setHandlerSupplier(() -> Arrays.asList(
-                new BeatsFrameDecoder(log, charset),
-                beatsChannelHandler,
+                messageAckEncoder,
+                new BatchDecoder(log),
+                batchChannelInboundHandler,
                 logExceptionChannelHandler
         ));
     }

@@ -14,29 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.beats.response;
+package org.apache.nifi.processors.beats.protocol;
 
-import org.apache.nifi.processor.util.listen.response.ChannelResponse;
-import org.apache.nifi.processors.beats.frame.BeatsFrame;
-import org.apache.nifi.processors.beats.frame.BeatsEncoder;
+import org.apache.nifi.event.transport.message.ByteArrayMessage;
 
 /**
- * Creates a BeatsFrame for the provided response and returns the encoded frame.
+ * Beats Batch Message containing JSON payload and sequence number
  */
-public class BeatsChannelResponse implements ChannelResponse {
+public class BatchMessage extends ByteArrayMessage {
 
-    private final BeatsEncoder encoder;
-    private final BeatsResponse response;
+    private final int sequenceNumber;
 
-    public BeatsChannelResponse(final BeatsEncoder encoder, final BeatsResponse response) {
-        this.encoder = encoder;
-        this.response = response;
+    public BatchMessage(final String sender, final byte[] payload, final int sequenceNumber) {
+        super(payload, sender);
+        this.sequenceNumber = sequenceNumber;
     }
 
-    @Override
-    public byte[] toByteArray() {
-        final BeatsFrame frame = response.toFrame();
-        return encoder.encode(frame);
+    public int getSequenceNumber() {
+        return sequenceNumber;
     }
-
 }

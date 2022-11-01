@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.beats.frame;
+package org.apache.nifi.processors.beats.protocol;
 
 /**
- * Represents an error encountered when decoding frames.
+ * Decoder for Protocol Code byte values
+ *
+ * @param <T> Protocol Code Type
  */
-public class BeatsFrameException extends RuntimeException {
-
-    public BeatsFrameException(String message) {
-        super(message);
-    }
-
-    public BeatsFrameException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
+public interface ProtocolCodeDecoder<T extends ProtocolCode> {
+    /**
+     * Read Protocol Code
+     *
+     * @param code Code byte value
+     * @return Protocol Code
+     */
+    T readProtocolCode(byte code);
 }

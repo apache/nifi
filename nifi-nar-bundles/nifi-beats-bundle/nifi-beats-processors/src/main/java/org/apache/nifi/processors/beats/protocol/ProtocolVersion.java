@@ -14,36 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.beats.frame;
+package org.apache.nifi.processors.beats.protocol;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+/**
+ * Beats Protocol Version
+ */
+public enum ProtocolVersion implements ProtocolCode {
+    VERSION_1('1'),
 
-import javax.xml.bind.DatatypeConverter;
-import java.nio.ByteBuffer;
+    VERSION_2('2');
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+    private final int code;
 
-
-public class TestBeatsEncoder {
-    private BeatsEncoder encoder;
-
-
-    @BeforeEach
-    public void setup() {
-        this.encoder = new BeatsEncoder();
+    ProtocolVersion(final char code) {
+        this.code = code;
     }
 
-    @Test
-    public void testEncode() {
-        BeatsFrame frame = new BeatsFrame.Builder()
-            .version((byte) 0x31)
-            .frameType((byte) 0x41)
-            .payload(ByteBuffer.allocate(4).putInt(123).array())
-            .build();
-
-        byte[] encoded = encoder.encode(frame);
-
-        assertArrayEquals(DatatypeConverter.parseHexBinary("31410000007B"), encoded);
+    @Override
+    public int getCode() {
+        return code;
     }
 }
