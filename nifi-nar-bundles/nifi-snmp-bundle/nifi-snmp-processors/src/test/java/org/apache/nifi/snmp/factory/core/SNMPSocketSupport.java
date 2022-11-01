@@ -32,7 +32,7 @@ import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFact
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.PRIV_PASSPHRASE;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.PRIV_PROTOCOL;
 
-public class SNMPTtest {
+public class SNMPSocketSupport {
 
     protected static final int RETRIES = 3;
 
@@ -51,31 +51,37 @@ public class SNMPTtest {
                 .build();
     }
 
-    protected Snmp createSnmpManagerInstance(final Function<SNMPConfiguration, Snmp> runnable, final int retries) throws BindException {
+    protected Snmp createSnmpManagerInstance(final Function<SNMPConfiguration, Snmp> runnable, final int retries) {
         int attempts = 0;
-        while(attempts < retries) {
+        while (attempts < retries) {
             try {
                 return runnable.apply(getSnmpConfiguration(NetworkUtils.getAvailableUdpPort(), String.valueOf(NetworkUtils.getAvailableUdpPort())));
             } catch (Exception e) {
                 if (e instanceof BindException) {
                     attempts++;
+                    if (attempts == retries) {
+                        throw e;
+                    }
                 }
             }
         }
-        throw new BindException();
+        return null;
     }
 
-    protected Target createTargetInstance(final Function<SNMPConfiguration, Target> runnable, final int retries) throws BindException {
+    protected Target createTargetInstance(final Function<SNMPConfiguration, Target> runnable, final int retries) {
         int attempts = 0;
-        while(attempts < retries) {
+        while (attempts < retries) {
             try {
                 return runnable.apply(getSnmpConfiguration(NetworkUtils.getAvailableUdpPort(), String.valueOf(NetworkUtils.getAvailableUdpPort())));
             } catch (Exception e) {
                 if (e instanceof BindException) {
                     attempts++;
+                    if (attempts == retries) {
+                        throw e;
+                    }
                 }
             }
         }
-        throw new BindException();
+        return null;
     }
 }

@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
-class V1V2cSNMPFactoryTest extends SNMPTtest {
+class V1V2cSNMPFactoryTest extends SNMPSocketSupport {
 
     private static final int RETRIES = 3;
 

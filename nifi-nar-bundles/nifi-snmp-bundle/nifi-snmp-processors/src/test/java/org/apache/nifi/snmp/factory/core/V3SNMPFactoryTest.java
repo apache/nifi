@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
-class V3SNMPFactoryTest extends SNMPTtest {
+class V3SNMPFactoryTest extends SNMPSocketSupport {
 
     private static final int EXPECTED_SECURITY_LEVEL = 3;
 
