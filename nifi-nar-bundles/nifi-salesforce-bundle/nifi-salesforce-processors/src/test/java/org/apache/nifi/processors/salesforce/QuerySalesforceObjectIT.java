@@ -18,6 +18,7 @@ package org.apache.nifi.processors.salesforce;
 
 import org.apache.nifi.oauth2.StandardOauth2AccessTokenProvider;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties;
 import org.apache.nifi.processors.salesforce.util.SalesforceConfigAware;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordWriter;
@@ -45,7 +46,7 @@ class QuerySalesforceObjectIT implements SalesforceConfigAware {
         runner = TestRunners.newTestRunner(querySObject);
 
         StandardOauth2AccessTokenProvider oauth2AccessTokenProvider = initOAuth2AccessTokenProvider(runner);
-        runner.setProperty(QuerySalesforceObject.TOKEN_PROVIDER, oauth2AccessTokenProvider.getIdentifier());
+        runner.setProperty(CommonSalesforceProperties.TOKEN_PROVIDER, oauth2AccessTokenProvider.getIdentifier());
     }
 
     @AfterEach
@@ -64,8 +65,8 @@ class QuerySalesforceObjectIT implements SalesforceConfigAware {
 
         runner.setProperty(QuerySalesforceObject.SOBJECT_NAME, sObjectName);
         runner.setProperty(QuerySalesforceObject.FIELD_NAMES, fieldNames);
-        runner.setProperty(QuerySalesforceObject.API_VERSION, VERSION);
-        runner.setProperty(QuerySalesforceObject.API_URL, BASE_URL);
+        runner.setProperty(CommonSalesforceProperties.API_VERSION, VERSION);
+        runner.setProperty(CommonSalesforceProperties.API_URL, BASE_URL);
         runner.setProperty(QuerySalesforceObject.RECORD_WRITER, writer.getIdentifier());
         runner.setProperty(QuerySalesforceObject.AGE_FIELD, "CreatedDate");
         runner.setProperty(QuerySalesforceObject.INITIAL_AGE_FILTER, "2022-01-06T08:43:24.000+0000");

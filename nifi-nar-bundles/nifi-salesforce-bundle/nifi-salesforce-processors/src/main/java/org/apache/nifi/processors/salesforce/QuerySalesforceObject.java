@@ -80,6 +80,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiPredicate;
 
+import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.API_URL;
+import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.API_VERSION;
+import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.READ_TIMEOUT;
+import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.TOKEN_PROVIDER;
+
 @PrimaryNodeOnly
 @TriggerSerially
 @TriggerWhenEmpty
@@ -101,25 +106,6 @@ import java.util.function.BiPredicate;
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class QuerySalesforceObject extends AbstractProcessor {
 
-    static final PropertyDescriptor API_URL = new PropertyDescriptor.Builder()
-            .name("salesforce-url")
-            .displayName("URL")
-            .description("The URL for the Salesforce REST API including the domain without additional path information, such as https://MyDomainName.my.salesforce.com")
-            .required(true)
-            .addValidator(StandardValidators.URL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    static final PropertyDescriptor API_VERSION = new PropertyDescriptor.Builder()
-            .name("salesforce-api-version")
-            .displayName("API Version")
-            .description("The version number of the Salesforce REST API appended to the URL after the services/data path. See Salesforce documentation for supported versions")
-            .required(true)
-            .addValidator(StandardValidators.NUMBER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .defaultValue("54.0")
-            .build();
-
     static final PropertyDescriptor SOBJECT_NAME = new PropertyDescriptor.Builder()
             .name("sobject-name")
             .displayName("sObject Name")
@@ -136,24 +122,6 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .build();
-
-    static final PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("read-timeout")
-            .displayName("Read Timeout")
-            .description("Maximum time allowed for reading a response from the Salesforce REST API")
-            .required(true)
-            .defaultValue("15 s")
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    static final PropertyDescriptor TOKEN_PROVIDER = new PropertyDescriptor.Builder()
-            .name("oauth2-access-token-provider")
-            .displayName("OAuth2 Access Token Provider")
-            .description("Service providing OAuth2 Access Tokens for authenticating using the HTTP Authorization Header")
-            .identifiesControllerService(OAuth2AccessTokenProvider.class)
-            .required(true)
             .build();
 
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
