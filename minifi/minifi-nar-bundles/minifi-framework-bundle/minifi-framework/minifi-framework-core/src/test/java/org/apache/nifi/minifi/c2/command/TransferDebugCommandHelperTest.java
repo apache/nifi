@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.c2.command;
+package org.apache.nifi.minifi.c2.command;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

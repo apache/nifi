@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.c2;
+package org.apache.nifi.minifi.c2;
 
 import java.util.concurrent.TimeUnit;
 

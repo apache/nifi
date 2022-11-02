@@ -14,17 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.minifi;
 
+package org.apache.nifi.bootstrap;
 
-import org.apache.nifi.NiFiServer;
-import org.apache.nifi.minifi.commons.status.FlowStatusReport;
-import org.apache.nifi.minifi.status.StatusRequestException;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.function.BiConsumer;
 
-/**
- */
-public interface MiNiFiServer extends NiFiServer {
-    FlowStatusReport getStatusReport(String requestString) throws StatusRequestException;
+public interface BootstrapCommunicator {
 
-    void stop(boolean reload);
+    /**
+     * Sends a command with specific arguments to the bootstrap process
+     * @param command the command to send
+     * @param args the args to send
+     * @throws IOException exception in case of communication issue
+     */
+    void sendCommand(String command, String... args) throws IOException;
+
+    /**
+     * Register a handler for messages coming from bootstrap process
+     * @param command the command
+     * @param handler handler for the specific command
+     */
+    void registerMessageHandler(String command, BiConsumer<String[], OutputStream> handler);
 }
