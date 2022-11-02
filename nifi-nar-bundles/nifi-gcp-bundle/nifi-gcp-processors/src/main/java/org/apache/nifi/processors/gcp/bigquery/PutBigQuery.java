@@ -17,6 +17,9 @@
 
 package org.apache.nifi.processors.gcp.bigquery;
 
+import static java.util.stream.Collectors.collectingAndThen;
+import static java.util.stream.Collectors.toList;
+
 import com.google.api.core.ApiFuture;
 import com.google.api.core.ApiFutureCallback;
 import com.google.api.core.ApiFutures;
@@ -42,6 +45,7 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import io.grpc.Status;
 import java.time.LocalTime;
+import java.util.stream.Stream;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
@@ -119,6 +123,11 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
     private int recordBatchCount;
     private boolean skipInvalidRows;
 
+    public static final PropertyDescriptor PROJECT_ID = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(AbstractBigQueryProcessor.PROJECT_ID)
+        .required(true)
+        .build();
+
     static final PropertyDescriptor TRANSFER_TYPE = new PropertyDescriptor.Builder()
         .name(TRANSFER_TYPE_NAME)
         .displayName("Transfer Type")
@@ -155,16 +164,21 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         .defaultValue("false")
         .build();
 
+    private static final List<PropertyDescriptor> DESCRIPTORS = Stream.of(
+        GCP_CREDENTIALS_PROVIDER_SERVICE,
+        PROJECT_ID,
+        DATASET,
+        TABLE_NAME,
+        RECORD_READER,
+        TRANSFER_TYPE,
+        APPEND_RECORD_COUNT,
+        RETRY_COUNT,
+        SKIP_INVALID_ROWS
+    ).collect(collectingAndThen(toList(), Collections::unmodifiableList));
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        List<PropertyDescriptor> descriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        descriptors.add(TRANSFER_TYPE);
-        descriptors.add(RECORD_READER);
-        descriptors.add(APPEND_RECORD_COUNT);
-        descriptors.add(SKIP_INVALID_ROWS);
-        descriptors.remove(IGNORE_UNKNOWN);
-
-        return Collections.unmodifiableList(descriptors);
+        return DESCRIPTORS;
     }
 
     @Override

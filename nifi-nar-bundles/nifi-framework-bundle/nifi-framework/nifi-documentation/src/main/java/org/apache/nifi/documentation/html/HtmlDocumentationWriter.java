@@ -481,7 +481,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
             // write the header row
             xmlStreamWriter.writeStartElement("tr");
-            writeSimpleElement(xmlStreamWriter, "th", "Name");
+            writeSimpleElement(xmlStreamWriter, "th", "Display Name");
+            writeSimpleElement(xmlStreamWriter, "th", "API Name");
             writeSimpleElement(xmlStreamWriter, "th", "Default Value");
             writeSimpleElement(xmlStreamWriter, "th", "Allowable Values");
             writeSimpleElement(xmlStreamWriter, "th", "Description");
@@ -499,6 +500,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                 }
 
                 xmlStreamWriter.writeEndElement();
+                writeSimpleElement(xmlStreamWriter, "td", property.getName());
                 writeSimpleElement(xmlStreamWriter, "td", getDefaultValue(property), "default-value");
                 xmlStreamWriter.writeStartElement("td");
                 xmlStreamWriter.writeAttribute("id", "allowable-values");

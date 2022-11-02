@@ -26,8 +26,8 @@ import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
-import static org.apache.nifi.c2.client.service.operation.DebugOperationHandler.NEW_LINE;
-import static org.apache.nifi.c2.client.service.operation.DebugOperationHandler.TARGET_ARG;
+import static org.apache.nifi.c2.client.service.operation.TransferDebugOperationHandler.NEW_LINE;
+import static org.apache.nifi.c2.client.service.operation.TransferDebugOperationHandler.TARGET_ARG;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
 import static org.apache.nifi.c2.protocol.api.OperandType.DEBUG;
@@ -68,7 +68,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class DebugOperationHandlerTest {
+public class TransferDebugOperationHandlerTest {
 
     private static final String OPERATION_ID = "operationId";
     private static final String C2_DEBUG_UPLOAD_ENDPOINT = "https://host/c2/api/upload";
@@ -99,13 +99,13 @@ public class DebugOperationHandlerTest {
     @ParameterizedTest(name = "c2Client={0} bundleFileList={1} contentFilter={2}")
     @MethodSource("invalidConstructorArguments")
     public void testAttemptingCreateWithInvalidParametersWillThrowException(C2Client c2Client, List<Path> bundleFilePaths, Predicate<String> contentFilter) {
-        assertThrows(IllegalArgumentException.class, () -> DebugOperationHandler.create(c2Client, bundleFilePaths, contentFilter, operandPropertiesProvider));
+        assertThrows(IllegalArgumentException.class, () -> TransferDebugOperationHandler.create(c2Client, operandPropertiesProvider, bundleFilePaths, contentFilter));
     }
 
     @Test
     public void testOperationAndOperandTypesAreMatching() {
         // given
-        DebugOperationHandler testHandler = DebugOperationHandler.create(c2Client, VALID_BUNDLE_FILE_LIST, DEFAULT_CONTENT_FILTER, operandPropertiesProvider);
+        TransferDebugOperationHandler testHandler = TransferDebugOperationHandler.create(c2Client, operandPropertiesProvider, VALID_BUNDLE_FILE_LIST, DEFAULT_CONTENT_FILTER);
 
         // when + then
         assertEquals(TRANSFER, testHandler.getOperationType());
@@ -115,7 +115,7 @@ public class DebugOperationHandlerTest {
     @Test
     public void testC2CallbackUrlIsNullInArgs() {
         // given
-        DebugOperationHandler testHandler = DebugOperationHandler.create(c2Client, VALID_BUNDLE_FILE_LIST, DEFAULT_CONTENT_FILTER, operandPropertiesProvider);
+        TransferDebugOperationHandler testHandler = TransferDebugOperationHandler.create(c2Client, operandPropertiesProvider, VALID_BUNDLE_FILE_LIST, DEFAULT_CONTENT_FILTER);
         C2Operation c2Operation = operation(null);
 
         // when
@@ -134,7 +134,7 @@ public class DebugOperationHandlerTest {
         List<Path> createBundleFiles = bundleFileNamesWithContents.entrySet().stream()
             .map(entry -> placeFileWithContent(entry.getKey(), entry.getValue()))
             .collect(toList());
-        DebugOperationHandler testHandler = DebugOperationHandler.create(c2Client, createBundleFiles, DEFAULT_CONTENT_FILTER, operandPropertiesProvider);
+        TransferDebugOperationHandler testHandler = TransferDebugOperationHandler.create(c2Client, operandPropertiesProvider, createBundleFiles, DEFAULT_CONTENT_FILTER);
         C2Operation c2Operation = operation(C2_DEBUG_UPLOAD_ENDPOINT);
 
         // when
@@ -154,8 +154,8 @@ public class DebugOperationHandlerTest {
     @Test
     public void testFileToCollectDoesNotExist() {
         // given
-        DebugOperationHandler testHandler = DebugOperationHandler.create(c2Client, singletonList(Paths.get(tempDir.getAbsolutePath(), "missing_file")),
-            DEFAULT_CONTENT_FILTER, operandPropertiesProvider);
+        TransferDebugOperationHandler testHandler = TransferDebugOperationHandler.create(c2Client, operandPropertiesProvider,
+            singletonList(Paths.get(tempDir.getAbsolutePath(), "missing_file")), DEFAULT_CONTENT_FILTER);
         C2Operation c2Operation = operation(C2_DEBUG_UPLOAD_ENDPOINT);
 
         // when
@@ -194,7 +194,7 @@ public class DebugOperationHandlerTest {
         // given
         Path bundleFile = placeFileWithContent(fileName, inputContent);
         Predicate<String> testContentFilter = content -> !content.contains(filterKeyword);
-        DebugOperationHandler testHandler = DebugOperationHandler.create(c2Client, singletonList(bundleFile), testContentFilter, operandPropertiesProvider);
+        TransferDebugOperationHandler testHandler = TransferDebugOperationHandler.create(c2Client, operandPropertiesProvider, singletonList(bundleFile), testContentFilter);
         C2Operation c2Operation = operation(C2_DEBUG_UPLOAD_ENDPOINT);
 
         // when

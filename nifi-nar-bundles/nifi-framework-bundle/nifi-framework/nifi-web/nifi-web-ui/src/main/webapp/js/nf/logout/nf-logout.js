@@ -33,12 +33,25 @@
     'use strict';
 
     $(document).ready(function () {
-        $('#user-home').on('mouseenter', function () {
-            $(this).addClass('link-over');
-        }).on('mouseleave', function () {
-            $(this).removeClass('link-over');
-        }).on('click', function () {
+        // handle login
+        $('#user-login').on('click', function () {
+            window.location = '../nifi/login';
+        });
+
+        // handle home
+        $('#user-home').on('click', function () {
             window.location = '../nifi/';
+        });
+
+        // load whether log in should be supported
+        $.ajax({
+            type: 'GET',
+            url: '../nifi-api/access/config',
+            dataType: 'json'
+        }).done(function (response) {
+            if (response.config.supportsLogin) {
+                $('#user-login-container').show();
+            }
         });
     });
 }));

@@ -233,7 +233,7 @@
             <dependency>
                 <groupId>com.ibm.icu</groupId>
                 <artifactId>icu4j</artifactId>
-                <version>68.2</version>
+                <version>72.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.tika</groupId>

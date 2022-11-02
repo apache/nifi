@@ -262,7 +262,7 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
-            public int getFlowFileExpiration(TimeUnit timeUnit) {
+            public long getFlowFileExpiration(TimeUnit timeUnit) {
                 return 0;
             }
 

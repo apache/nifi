@@ -268,7 +268,7 @@
                         .attr('x', '0.4em')
                         .attr('dy', '1.2em')
                         .text(function () {
-                            return line;
+                            return line == "" ? " " : line;
                         })
                         .style('fill', function (d) {
                             return nfCommon.determineContrastColor(

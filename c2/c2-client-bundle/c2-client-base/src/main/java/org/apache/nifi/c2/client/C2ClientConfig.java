@@ -41,6 +41,7 @@ public class C2ClientConfig {
     private final long readTimeout;
     private final long connectTimeout;
     private final String c2RequestCompression;
+    private final String c2AssetDirectory;
 
     private C2ClientConfig(final Builder builder) {
         this.c2Url = builder.c2Url;
@@ -63,6 +64,7 @@ public class C2ClientConfig {
         this.readTimeout = builder.readTimeout;
         this.connectTimeout = builder.connectTimeout;
         this.c2RequestCompression = builder.c2RequestCompression;
+        this.c2AssetDirectory = builder.c2AssetDirectory;
     }
 
     public String getC2Url() {
@@ -145,6 +147,10 @@ public class C2ClientConfig {
         return c2RequestCompression;
     }
 
+    public String getC2AssetDirectory() {
+        return c2AssetDirectory;
+    }
+
     /**
      * Builder for client configuration.
      */
@@ -170,6 +176,7 @@ public class C2ClientConfig {
         private long readTimeout;
         private long connectTimeout;
         private String c2RequestCompression;
+        private String c2AssetDirectory;
 
         public Builder c2Url(final String c2Url) {
             this.c2Url = c2Url;
@@ -268,6 +275,11 @@ public class C2ClientConfig {
 
         public Builder c2RequestCompression(final String c2RequestCompression) {
             this.c2RequestCompression = c2RequestCompression;
+            return this;
+        }
+
+        public Builder c2AssetDirectory(final String c2AssetDirectory) {
+            this.c2AssetDirectory = c2AssetDirectory;
             return this;
         }
 

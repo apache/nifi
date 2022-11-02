@@ -30,13 +30,21 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.CassandraContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@Testcontainers
 public class PutCassandraRecordIT {
+    @Container
+    private static final CassandraContainer CASSANDRA_CONTAINER = new CassandraContainer(DockerImageName.parse("cassandra:4.1"));
 
     private static TestRunner testRunner;
     private static MockRecordParser recordReader;
@@ -46,16 +54,15 @@ public class PutCassandraRecordIT {
 
     private static final String KEYSPACE = "sample_keyspace";
     private static final String TABLE = "sample_table";
-    private static final String HOST = "localhost";
-    private static final int PORT = 9042;
 
     @BeforeAll
     public static void setup() throws InitializationException {
         recordReader = new MockRecordParser();
         testRunner = TestRunners.newTestRunner(PutCassandraRecord.class);
 
+        InetSocketAddress contactPoint = CASSANDRA_CONTAINER.getContactPoint();
         testRunner.setProperty(PutCassandraRecord.RECORD_READER_FACTORY, "reader");
-        testRunner.setProperty(PutCassandraRecord.CONTACT_POINTS, HOST + ":" + PORT);
+        testRunner.setProperty(PutCassandraRecord.CONTACT_POINTS, contactPoint.getHostString() + ":" + contactPoint.getPort());
         testRunner.setProperty(PutCassandraRecord.KEYSPACE, KEYSPACE);
         testRunner.setProperty(PutCassandraRecord.TABLE, TABLE);
         testRunner.setProperty(PutCassandraRecord.CONSISTENCY_LEVEL, "SERIAL");
@@ -63,7 +70,8 @@ public class PutCassandraRecordIT {
         testRunner.addControllerService("reader", recordReader);
         testRunner.enableControllerService(recordReader);
 
-        cluster = Cluster.builder().addContactPoint(HOST).withPort(PORT).build();
+        cluster = Cluster.builder().addContactPoint(contactPoint.getHostName())
+                .withPort(contactPoint.getPort()).build();
         session = cluster.connect();
 
         String createKeyspace = "CREATE KEYSPACE IF NOT EXISTS " + KEYSPACE + " WITH replication = {'class':'SimpleStrategy','replication_factor':1};";
