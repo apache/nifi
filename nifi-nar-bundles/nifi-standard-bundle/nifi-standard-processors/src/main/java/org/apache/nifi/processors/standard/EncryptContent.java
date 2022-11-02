@@ -48,6 +48,8 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -214,6 +216,9 @@ public class EncryptContent extends AbstractProcessor {
 
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
             .description("Any FlowFile that cannot be encrypted or decrypted will be routed to failure").build();
+
+    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(EncryptContent.class);
+
     private List<PropertyDescriptor> properties;
 
     private Set<Relationship> relationships;
@@ -324,6 +329,11 @@ public class EncryptContent extends AbstractProcessor {
         final String keyHex = context.getProperty(RAW_KEY_HEX).getValue();
         final boolean encrypt = context.getProperty(MODE).getValue().equalsIgnoreCase(ENCRYPT_MODE);
         if (isPGPAlgorithm(algorithm)) {
+            deprecationLogger.warn("{}[id={}] OpenPGP support is deprecated: see EncryptContentPGP and DecryptContentPGP",
+                    getClass().getSimpleName(),
+                    getIdentifier()
+            );
+
             final String publicKeyring = context.getProperty(PUBLIC_KEYRING).getValue();
             final String publicUserId = context.getProperty(PUBLIC_KEY_USERID).getValue();
             final String privateKeyring = context.getProperty(PRIVATE_KEYRING).getValue();
