@@ -25,6 +25,8 @@ import com.beanit.asn1bean.ber.types.string.BerUTF8String;
 import org.apache.nifi.jasn1.example.BasicTypeSet;
 import org.apache.nifi.jasn1.example.BasicTypes;
 import org.apache.nifi.jasn1.example.Composite;
+import org.apache.nifi.jasn1.tbcd.TBCDSTRING;
+import org.apache.nifi.jasn1.tbcd.TbcdStringWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +54,8 @@ public class ExampleDataGenerator {
         generateComposite(dir);
 
         generateMultiRecord(dir);
+
+        generateTbcdString(dir);
     }
 
     private static void generateBasicTypes(File dir) throws IOException {
@@ -142,5 +146,18 @@ public class ExampleDataGenerator {
         out.write(rev.getArray(), 0, encoded);
 
         return encoded;
+    }
+
+    private static void generateTbcdString(File dir) throws IOException {
+        final File file = new File(dir, "tbcd-string.dat");
+        try (final ReverseByteArrayOutputStream rev = new ReverseByteArrayOutputStream(1024);
+                final OutputStream out = new FileOutputStream(file)) {
+            final TbcdStringWrapper tbcdStringWrapper = new TbcdStringWrapper();
+            tbcdStringWrapper.setTbcdString(new TBCDSTRING(new byte[]{1, 2, 3, 4, 5, 6, 7, 8}));
+            tbcdStringWrapper.setOctetString(new BerOctetString(new byte[]{1, 2, 3, 4, 5, 6, 7, 8}));
+            final int encoded = tbcdStringWrapper.encode(rev);
+            out.write(rev.getArray(), 0, encoded);
+            LOG.info("Generated {} bytes to {}", encoded, file);
+        }
     }
 }

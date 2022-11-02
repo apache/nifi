@@ -29,6 +29,7 @@ import org.apache.nifi.jasn1.convert.converters.BerOctetStringConverter;
 import org.apache.nifi.jasn1.convert.converters.BerRealConverter;
 import org.apache.nifi.jasn1.convert.converters.BerRecordConverter;
 import org.apache.nifi.jasn1.convert.converters.BerStringConverter;
+import org.apache.nifi.jasn1.convert.converters.TbcdStringConverter;
 import org.apache.nifi.jasn1.convert.converters.BerTimeOfDayConverter;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -50,6 +51,7 @@ public class JASN1ConverterImpl implements JASN1Converter {
                 new BerDateTimeConverter(),
                 new BerRealConverter(),
                 new BerStringConverter(),
+                new TbcdStringConverter(),
                 new BerOctetStringConverter(),
                 new BerArrayConverter(),
                 new BerRecordConverter(schemaProvider)

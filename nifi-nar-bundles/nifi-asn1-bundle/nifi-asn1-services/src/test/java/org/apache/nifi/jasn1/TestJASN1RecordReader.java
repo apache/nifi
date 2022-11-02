@@ -153,4 +153,23 @@ public class TestJASN1RecordReader implements JASN1ReadRecordTester {
             assertNull(record3);
         }
     }
+
+    @Test
+    public void testTbcdString() throws Exception {
+        try (final InputStream input = TestJASN1RecordReader.class.getResourceAsStream("/examples/tbcd-string.dat")) {
+
+            final JASN1RecordReader reader = new JASN1RecordReader("org.apache.nifi.jasn1.tbcd.TbcdStringWrapper", null,
+                    new RecordSchemaProvider(), Thread.currentThread().getContextClassLoader(), null,
+                    input, new MockComponentLog("id", new JASN1Reader()));
+
+            final RecordSchema schema = reader.getSchema();
+            assertEquals("TbcdStringWrapper", schema.getSchemaName().orElse(null));
+
+            Record record = reader.nextRecord(true, false);
+            assertNotNull(record);
+
+            record = reader.nextRecord(true, false);
+            assertNull(record);
+        }
+    }
 }
