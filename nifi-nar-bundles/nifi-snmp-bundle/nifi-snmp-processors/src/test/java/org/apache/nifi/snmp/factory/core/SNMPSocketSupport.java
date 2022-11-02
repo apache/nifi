@@ -18,8 +18,6 @@ package org.apache.nifi.snmp.factory.core;
 
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
-import org.snmp4j.Snmp;
-import org.snmp4j.Target;
 import org.snmp4j.security.SecurityLevel;
 import java.net.BindException;
 import java.util.function.Function;
@@ -50,7 +48,7 @@ public class SNMPSocketSupport {
                 .build();
     }
 
-    protected Snmp createSnmpManagerInstanceWithRetries(final Function<SNMPConfiguration, Snmp> runnable, final int retries) {
+    protected <T> T createInstanceWithRetries(final Function<SNMPConfiguration, T> runnable, final int retries) {
         int attempts = 0;
         while (attempts < retries) {
             try {
@@ -67,25 +65,6 @@ public class SNMPSocketSupport {
             }
         }
         throw new IllegalStateException("Failed to bind ports for SNMP manager");
-    }
-
-    protected Target createTargetInstanceWithRetries(final Function<SNMPConfiguration, Target> runnable, final int retries) {
-        int attempts = 0;
-        while (attempts < retries) {
-            try {
-                return runnable.apply(getSnmpConfiguration(NetworkUtils.getAvailableUdpPort(), String.valueOf(NetworkUtils.getAvailableUdpPort())));
-            } catch (Exception e) {
-                if (isBindException(e)) {
-                    attempts++;
-                    if (attempts == retries) {
-                        throw e;
-                    }
-                } else {
-                    throw e;
-                }
-            }
-        }
-        throw new IllegalStateException("Failed to bind ports for SNMP target");
     }
 
     private boolean isBindException(final Throwable throwable) {

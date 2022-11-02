@@ -28,7 +28,7 @@ import org.snmp4j.security.SecurityLevel;
 import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.LOCALHOST;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -40,7 +40,7 @@ class V1V2cSNMPFactoryTest extends SNMPSocketSupport {
     @Test
     void testFactoryCreatesV1V2Configuration() {
         final V1V2cSNMPFactory snmpFactory = new V1V2cSNMPFactory();
-        final Target target = createTargetInstanceWithRetries(snmpFactory::createTargetInstance, 5);
+        final Target target = createInstanceWithRetries(snmpFactory::createTargetInstance, 5);
 
         assertThat(target, instanceOf(CommunityTarget.class));
         assertNotNull(target.getAddress().toString());
@@ -52,7 +52,7 @@ class V1V2cSNMPFactoryTest extends SNMPSocketSupport {
     @Test
     void testFactoryCreatesSnmpManager() {
         final V1V2cSNMPFactory snmpFactory = new V1V2cSNMPFactory();
-        final Snmp snmpManager = createSnmpManagerInstanceWithRetries(snmpFactory::createSnmpManagerInstance, 5);
+        final Snmp snmpManager = createInstanceWithRetries(snmpFactory::createSnmpManagerInstance, 5);
         final String address = snmpManager.getMessageDispatcher().getTransportMappings().iterator().next().getListenAddress().toString();
         assertNotNull(address);
     }
