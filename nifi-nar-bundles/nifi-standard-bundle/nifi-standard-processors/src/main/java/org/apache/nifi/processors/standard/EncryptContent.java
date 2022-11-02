@@ -77,7 +77,7 @@ import org.bouncycastle.openpgp.PGPEncryptedData;
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"encryption", "decryption", "password", "JCE", "OpenPGP", "PGP", "GPG", "KDF", "Argon2", "Bcrypt", "Scrypt", "PBKDF2", "salt", "iv"})
+@Tags({"encryption", "decryption", "password", "JCE", "KDF", "Argon2", "Bcrypt", "Scrypt", "PBKDF2", "salt", "iv"})
 @CapabilityDescription("Encrypts or Decrypts a FlowFile using either symmetric encryption with a raw key or password " +
         "and randomly generated salt, or asymmetric encryption using a public and secret key.")
 @SystemResourceConsideration(resource = SystemResource.CPU)
