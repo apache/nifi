@@ -46,9 +46,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.record.NullSuppression.ALWAYS_SUPPRESS;
-import static org.apache.nifi.record.NullSuppression.NEVER_SUPPRESS;
-import static org.apache.nifi.record.NullSuppression.SUPPRESS_MISSING;
+import static org.apache.nifi.NullSuppression.ALWAYS_SUPPRESS;
+import static org.apache.nifi.NullSuppression.NEVER_SUPPRESS;
+import static org.apache.nifi.NullSuppression.SUPPRESS_MISSING;
 import static org.apache.nifi.xml.ArrayWrapping.NO_WRAPPING;
 import static org.apache.nifi.xml.ArrayWrapping.USE_PROPERTY_AS_WRAPPER;
 import static org.apache.nifi.xml.ArrayWrapping.USE_PROPERTY_FOR_ELEMENTS;
