@@ -50,13 +50,13 @@ public class SNMPSocketSupport {
                 .build();
     }
 
-    protected Snmp createSnmpManagerInstance(final Function<SNMPConfiguration, Snmp> runnable, final int retries) {
+    protected Snmp createSnmpManagerInstanceWithRetries(final Function<SNMPConfiguration, Snmp> runnable, final int retries) {
         int attempts = 0;
         while (attempts < retries) {
             try {
                 return runnable.apply(getSnmpConfiguration(NetworkUtils.getAvailableUdpPort(), String.valueOf(NetworkUtils.getAvailableUdpPort())));
             } catch (Exception e) {
-                if (e instanceof BindException) {
+                if (isBindException(e)) {
                     attempts++;
                     if (attempts == retries) {
                         throw e;
@@ -69,13 +69,13 @@ public class SNMPSocketSupport {
         throw new IllegalStateException("Failed to bind ports for SNMP manager");
     }
 
-    protected Target createTargetInstance(final Function<SNMPConfiguration, Target> runnable, final int retries) {
+    protected Target createTargetInstanceWithRetries(final Function<SNMPConfiguration, Target> runnable, final int retries) {
         int attempts = 0;
         while (attempts < retries) {
             try {
                 return runnable.apply(getSnmpConfiguration(NetworkUtils.getAvailableUdpPort(), String.valueOf(NetworkUtils.getAvailableUdpPort())));
             } catch (Exception e) {
-                if (e instanceof BindException) {
+                if (isBindException(e)) {
                     attempts++;
                     if (attempts == retries) {
                         throw e;
@@ -86,5 +86,13 @@ public class SNMPSocketSupport {
             }
         }
         throw new IllegalStateException("Failed to bind ports for SNMP target");
+    }
+
+    private boolean isBindException(final Throwable throwable) {
+        Throwable rootCause = throwable;
+        while (rootCause.getCause() != null && rootCause.getCause() != rootCause) {
+            rootCause = rootCause.getCause();
+        }
+        return rootCause instanceof BindException;
     }
 }

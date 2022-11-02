@@ -43,7 +43,7 @@ class V3SNMPFactoryTest extends SNMPSocketSupport {
     @Test
     void testFactoryCreatesTarget() {
         final V3SNMPFactory snmpFactory = new V3SNMPFactory();
-        final Target target = createTargetInstance(snmpFactory::createTargetInstance, 5);
+        final Target target = createTargetInstanceWithRetries(snmpFactory::createTargetInstance, 5);
         assertThat(target, instanceOf(UserTarget.class));
         assertNotNull(target.getAddress().toString());
         assertEquals(RETRIES, target.getRetries());
@@ -54,7 +54,7 @@ class V3SNMPFactoryTest extends SNMPSocketSupport {
     @Test
     void testFactoryCreatesSnmpManager() {
         final V3SNMPFactory snmpFactory = new V3SNMPFactory();
-        final Snmp snmpManager = createSnmpManagerInstance(snmpFactory::createSnmpManagerInstance, 5);
+        final Snmp snmpManager = createSnmpManagerInstanceWithRetries(snmpFactory::createSnmpManagerInstance, 5);
         final String address = snmpManager.getMessageDispatcher().getTransportMappings().iterator().next().getListenAddress().toString();
         USM usm = (USM) SecurityModels.getInstance().getSecurityModel(new Integer32(3));
         assertNotNull(address);

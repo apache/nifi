@@ -40,7 +40,7 @@ class V1V2cSNMPFactoryTest extends SNMPSocketSupport {
     @Test
     void testFactoryCreatesV1V2Configuration() {
         final V1V2cSNMPFactory snmpFactory = new V1V2cSNMPFactory();
-        final Target target = createTargetInstance(snmpFactory::createTargetInstance, 5);
+        final Target target = createTargetInstanceWithRetries(snmpFactory::createTargetInstance, 5);
 
         assertThat(target, instanceOf(CommunityTarget.class));
         assertNotNull(target.getAddress().toString());
@@ -52,7 +52,7 @@ class V1V2cSNMPFactoryTest extends SNMPSocketSupport {
     @Test
     void testFactoryCreatesSnmpManager() {
         final V1V2cSNMPFactory snmpFactory = new V1V2cSNMPFactory();
-        final Snmp snmpManager = createSnmpManagerInstance(snmpFactory::createSnmpManagerInstance, 5);
+        final Snmp snmpManager = createSnmpManagerInstanceWithRetries(snmpFactory::createSnmpManagerInstance, 5);
         final String address = snmpManager.getMessageDispatcher().getTransportMappings().iterator().next().getListenAddress().toString();
         assertNotNull(address);
     }
