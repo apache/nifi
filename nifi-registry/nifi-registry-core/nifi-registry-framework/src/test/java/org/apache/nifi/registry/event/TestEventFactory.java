@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.registry.event;
 
+import org.apache.nifi.registry.authorization.User;
+import org.apache.nifi.registry.authorization.UserGroup;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.extension.bundle.Bundle;
 import org.apache.nifi.registry.extension.bundle.BundleType;
@@ -42,6 +44,8 @@ public class TestEventFactory {
     private VersionedFlowSnapshot versionedFlowSnapshot;
     private Bundle bundle;
     private BundleVersion bundleVersion;
+    private User user;
+    private UserGroup userGroup;
 
     @Before
     public void setup() {
@@ -84,6 +88,15 @@ public class TestEventFactory {
         bundleVersion.setVersionMetadata(bundleVersionMetadata);
         bundleVersion.setBundle(bundle);
         bundleVersion.setBucket(bucket);
+
+        user = new User();
+        user.setIdentifier(UUID.randomUUID().toString());
+        user.setIdentity("test-user");
+
+        userGroup = new UserGroup();
+        userGroup.setIdentifier(UUID.randomUUID().toString());
+        userGroup.setIdentity("test-group");
+        userGroup.addUser(user);
     }
 
     @Test
@@ -241,6 +254,83 @@ public class TestEventFactory {
         assertEquals(bucket.getIdentifier(), event.getField(EventFieldName.BUCKET_ID).getValue());
         assertEquals(bundle.getIdentifier(), event.getField(EventFieldName.EXTENSION_BUNDLE_ID).getValue());
         assertEquals(bundleVersion.getVersionMetadata().getVersion(), event.getField(EventFieldName.VERSION).getValue());
+        assertEquals("unknown", event.getField(EventFieldName.USER).getValue());
+    }
+
+    @Test
+    public void testUserCreated() {
+        final Event event = EventFactory.userCreated(user);
+        event.validate();
+
+        assertEquals(EventType.CREATE_USER, event.getEventType());
+        assertEquals(3, event.getFields().size());
+
+        assertEquals(user.getIdentifier(), event.getField(EventFieldName.USER_ID).getValue());
+        assertEquals(user.getIdentity(), event.getField(EventFieldName.USER_IDENTITY).getValue());
+        assertEquals("unknown", event.getField(EventFieldName.USER).getValue());
+    }
+
+    @Test
+    public void testUserUpdated() {
+        final Event event = EventFactory.userUpdated(user);
+        event.validate();
+
+        assertEquals(EventType.UPDATE_USER, event.getEventType());
+        assertEquals(3, event.getFields().size());
+
+        assertEquals(user.getIdentifier(), event.getField(EventFieldName.USER_ID).getValue());
+        assertEquals(user.getIdentity(), event.getField(EventFieldName.USER_IDENTITY).getValue());
+        assertEquals("unknown", event.getField(EventFieldName.USER).getValue());
+    }
+
+    @Test
+    public void testUserDeleted() {
+        final Event event = EventFactory.userDeleted(user);
+        event.validate();
+
+        assertEquals(EventType.DELETE_USER, event.getEventType());
+        assertEquals(3, event.getFields().size());
+
+        assertEquals(user.getIdentifier(), event.getField(EventFieldName.USER_ID).getValue());
+        assertEquals(user.getIdentity(), event.getField(EventFieldName.USER_IDENTITY).getValue());
+        assertEquals("unknown", event.getField(EventFieldName.USER).getValue());
+    }
+
+    @Test
+    public void testUserGroupCreated() {
+        final Event event = EventFactory.userGroupCreated(userGroup);
+        event.validate();
+
+        assertEquals(EventType.CREATE_USER_GROUP, event.getEventType());
+        assertEquals(3, event.getFields().size());
+
+        assertEquals(userGroup.getIdentifier(), event.getField(EventFieldName.USER_GROUP_ID).getValue());
+        assertEquals(userGroup.getIdentity(), event.getField(EventFieldName.USER_GROUP_IDENTITY).getValue());
+        assertEquals("unknown", event.getField(EventFieldName.USER).getValue());
+    }
+
+    @Test
+    public void testUserGroupUpdated() {
+        final Event event = EventFactory.userGroupUpdated(userGroup);
+        event.validate();
+
+        assertEquals(EventType.UPDATE_USER_GROUP, event.getEventType());
+        assertEquals(3, event.getFields().size());
+
+        assertEquals(userGroup.getIdentifier(), event.getField(EventFieldName.USER_GROUP_ID).getValue());
+        assertEquals(userGroup.getIdentity(), event.getField(EventFieldName.USER_GROUP_IDENTITY).getValue());
+        assertEquals("unknown", event.getField(EventFieldName.USER).getValue());
+    }
+    @Test
+    public void testUserGroupDeleted() {
+        final Event event = EventFactory.userGroupDeleted(userGroup);
+        event.validate();
+
+        assertEquals(EventType.DELETE_USER_GROUP, event.getEventType());
+        assertEquals(3, event.getFields().size());
+
+        assertEquals(userGroup.getIdentifier(), event.getField(EventFieldName.USER_GROUP_ID).getValue());
+        assertEquals(userGroup.getIdentity(), event.getField(EventFieldName.USER_GROUP_IDENTITY).getValue());
         assertEquals("unknown", event.getField(EventFieldName.USER).getValue());
     }
 }
