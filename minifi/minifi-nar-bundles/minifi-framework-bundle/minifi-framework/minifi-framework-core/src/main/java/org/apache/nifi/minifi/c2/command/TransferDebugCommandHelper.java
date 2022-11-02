@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.c2.command;
+package org.apache.nifi.minifi.c2.command;
 
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.collectingAndThen;

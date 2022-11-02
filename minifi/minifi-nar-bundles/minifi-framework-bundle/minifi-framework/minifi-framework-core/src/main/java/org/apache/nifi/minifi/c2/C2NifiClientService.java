@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.c2;
+package org.apache.nifi.minifi.c2;
 
 import static java.util.Optional.ofNullable;
 
@@ -46,8 +46,8 @@ import org.apache.nifi.c2.client.service.operation.SupportedOperationsProvider;
 import org.apache.nifi.c2.client.service.operation.TransferDebugOperationHandler;
 import org.apache.nifi.c2.client.service.operation.UpdateAssetOperationHandler;
 import org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler;
-import org.apache.nifi.c2.command.TransferDebugCommandHelper;
-import org.apache.nifi.c2.command.UpdateAssetCommandHelper;
+import org.apache.nifi.minifi.c2.command.TransferDebugCommandHelper;
+import org.apache.nifi.minifi.c2.command.UpdateAssetCommandHelper;
 import org.apache.nifi.c2.protocol.api.AgentManifest;
 import org.apache.nifi.c2.protocol.api.AgentRepositories;
 import org.apache.nifi.c2.protocol.api.AgentRepositoryStatus;
@@ -88,6 +88,7 @@ public class C2NifiClientService {
     private final RuntimeManifestService runtimeManifestService;
 
     private final SupportedOperationsProvider supportedOperationsProvider;
+
     private final long heartbeatPeriod;
 
     public C2NifiClientService(final NiFiProperties niFiProperties, final FlowController flowController) {

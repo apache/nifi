@@ -14,17 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.minifi;
 
+package org.apache.nifi.minifi.bootstrap;
 
-import org.apache.nifi.NiFiServer;
-import org.apache.nifi.minifi.commons.status.FlowStatusReport;
-import org.apache.nifi.minifi.status.StatusRequestException;
+public class BootstrapRequest {
+    private final String requestType;
+    private final String[] args;
 
-/**
- */
-public interface MiNiFiServer extends NiFiServer {
-    FlowStatusReport getStatusReport(String requestString) throws StatusRequestException;
+    public BootstrapRequest(String request, String[] args) {
+        this.requestType = request;
+        this.args = args;
+    }
 
-    void stop(boolean reload);
+    public String getRequestType() {
+        return requestType;
+    }
+
+    public String[] getArgs() {
+        return args;
+    }
 }
