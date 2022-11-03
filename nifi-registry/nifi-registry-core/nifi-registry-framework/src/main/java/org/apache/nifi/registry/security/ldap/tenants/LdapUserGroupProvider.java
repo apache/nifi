@@ -31,10 +31,10 @@ import org.apache.nifi.registry.security.identity.IdentityMapper;
 import org.apache.nifi.registry.security.ldap.LdapAuthenticationStrategy;
 import org.apache.nifi.registry.security.ldap.LdapsSocketFactory;
 import org.apache.nifi.registry.security.ldap.ReferralStrategy;
-import org.apache.nifi.registry.security.util.SslContextFactory;
-import org.apache.nifi.registry.security.util.SslContextFactory.ClientAuth;
 import org.apache.nifi.registry.util.FormatUtils;
 import org.apache.nifi.registry.util.PropertyValue;
+import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
+import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ldap.control.PagedResultsDirContextProcessor;
@@ -60,12 +60,9 @@ import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.SearchControls;
 import javax.net.ssl.SSLContext;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
+import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -116,7 +113,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     private IdentityMapper identityMapper;
 
     private ScheduledExecutorService ldapSync;
-    private AtomicReference<TenantHolder> tenants = new AtomicReference<>(null);
+    private final AtomicReference<TenantHolder> tenants = new AtomicReference<>(null);
 
     private String userSearchBase;
     private SearchScope userSearchScope;
@@ -366,7 +363,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
         final long syncInterval;
         if (rawSyncInterval.isSet()) {
             try {
-                syncInterval = FormatUtils.getTimeDuration(rawSyncInterval.getValue(), TimeUnit.MILLISECONDS);
+                syncInterval = Math.round(FormatUtils.getPreciseTimeDuration(rawSyncInterval.getValue(), TimeUnit.MILLISECONDS));
             } catch (final IllegalArgumentException iae) {
                 throw new SecurityProviderCreationException(String.format("The %s '%s' is not a valid time duration", PROP_SYNC_INTERVAL, rawSyncInterval.getValue()));
             }
@@ -389,7 +386,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                 try {
                     load(context);
                 } catch (final Throwable t) {
-                    logger.error("Failed to sync User/Groups from LDAP due to {}. Will try again in {} millis.", new Object[] {t.toString(), syncInterval});
+                    logger.error("Failed to sync User/Groups from LDAP due to {}. Will try again in {} millis.", t, syncInterval);
                     if (logger.isDebugEnabled()) {
                         logger.error("", t);
                     }
@@ -560,8 +557,6 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                     groupList.addAll(ldapTemplate.search(groupSearchBase, groupFilter.encode(), groupControls, new AbstractContextMapper<Group>() {
                         @Override
                         protected Group doMapFromContext(DirContextOperations ctx) {
-                            final String dn = ctx.getDn().toString();
-
                             // get the group identity
                             final String name = getGroupName(ctx);
 
@@ -630,7 +625,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
 
                             // add all users that were associated with this referenced group attribute
                             if (groupToUserIdentifierMappings.containsKey(referencedGroupValue)) {
-                                groupToUserIdentifierMappings.remove(referencedGroupValue).forEach(userIdentifier -> groupBuilder.addUser(userIdentifier));
+                                groupToUserIdentifierMappings.remove(referencedGroupValue).forEach(groupBuilder::addUser);
                             }
 
                             return groupBuilder.build();
@@ -639,11 +634,10 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                 } while (hasMorePages(groupProcessor));
 
                 // any remaining groupDn's were referenced by a user but not found while searching groups
-                groupToUserIdentifierMappings.forEach((referencedGroupValue, userIdentifiers) -> {
-                    logger.debug(String.format("[%s] are members of %s but that group was not found while searching groups. " +
-                                    "This may be due to misconfiguration or because that group is not a NiFi Registry group as defined by the Group Search Base and Filter. " +
-                                    "Ignoring group membership.", StringUtils.join(userIdentifiers, ", "), referencedGroupValue));
-                });
+                groupToUserIdentifierMappings.forEach((referencedGroupValue, userIdentifiers) -> logger.debug(String.format(
+                                "[%s] are members of %s but that group was not found while searching groups. " +
+                                "This may be due to misconfiguration or because that group is not a NiFi Registry group as defined by the Group Search Base and Filter. " +
+                                "Ignoring group membership.", StringUtils.join(userIdentifiers, ", "), referencedGroupValue)));
             } else {
                 // since performGroupSearch is false, then the referenced user attribute must be blank... the group value must be the dn
 
@@ -661,7 +655,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                     final Group.Builder groupBuilder = new Group.Builder().identifierGenerateFromSeed(groupName).name(groupName);
 
                     // add each user
-                    userIdentifiers.forEach(userIdentifier -> groupBuilder.addUser(userIdentifier));
+                    userIdentifiers.forEach(groupBuilder::addUser);
 
                     // build the group
                     groupList.add(groupBuilder.build());
@@ -799,8 +793,8 @@ public class LdapUserGroupProvider implements UserGroupProvider {
         final PropertyValue rawTimeout = configurationContext.getProperty(configurationProperty);
         if (rawTimeout.isSet()) {
             try {
-                final Long timeout = FormatUtils.getTimeDuration(rawTimeout.getValue(), TimeUnit.MILLISECONDS);
-                baseEnvironment.put(environmentKey, timeout.toString());
+                final long timeout = Math.round(FormatUtils.getPreciseTimeDuration(rawTimeout.getValue(), TimeUnit.MILLISECONDS));
+                baseEnvironment.put(environmentKey, Long.toString(timeout));
             } catch (final IllegalArgumentException iae) {
                 throw new SecurityProviderCreationException(String.format("The %s '%s' is not a valid time duration", configurationProperty, rawTimeout));
             }
@@ -814,7 +808,6 @@ public class LdapUserGroupProvider implements UserGroupProvider {
         final String rawTruststore = configurationContext.getProperty("TLS - Truststore").getValue();
         final String rawTruststorePassword = configurationContext.getProperty("TLS - Truststore Password").getValue();
         final String rawTruststoreType = configurationContext.getProperty("TLS - Truststore Type").getValue();
-        final String rawClientAuth = configurationContext.getProperty("TLS - Client Auth").getValue();
         final String rawProtocol = configurationContext.getProperty("TLS - Protocol").getValue();
 
         // create the ssl context
@@ -828,29 +821,32 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                     throw new SecurityProviderCreationException("TLS - Protocol must be specified.");
                 }
 
-                if (StringUtils.isBlank(rawKeystore)) {
-                    sslContext = SslContextFactory.createTrustSslContext(rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, rawProtocol);
-                } else if (StringUtils.isBlank(rawTruststore)) {
-                    sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType, rawProtocol);
-                } else {
-                    // determine the client auth if specified
-                    final ClientAuth clientAuth;
-                    if (StringUtils.isBlank(rawClientAuth)) {
-                        clientAuth = ClientAuth.NONE;
-                    } else {
-                        try {
-                            clientAuth = ClientAuth.valueOf(rawClientAuth);
-                        } catch (final IllegalArgumentException iae) {
-                            throw new SecurityProviderCreationException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
-                                    rawClientAuth, StringUtils.join(ClientAuth.values(), ", ")));
-                        }
-                    }
+                final StandardSslContextBuilder sslContextBuilder = new StandardSslContextBuilder().protocol(rawProtocol);
 
-                    sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType,
-                            rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, clientAuth, rawProtocol);
+                if (StringUtils.isNotBlank(rawTruststore)) {
+                    try (final FileInputStream trustStoreStream = new FileInputStream(rawTruststore)) {
+                        final KeyStore trustStore = new StandardKeyStoreBuilder()
+                                .type(rawTruststoreType)
+                                .password(rawTruststorePassword.toCharArray())
+                                .inputStream(trustStoreStream).build();
+                        sslContextBuilder.trustStore(trustStore);
+                    }
                 }
+
+                if (StringUtils.isNotBlank(rawKeystore)) {
+                    try (final FileInputStream keyStoreStream = new FileInputStream(rawKeystore)) {
+                        final KeyStore keyStore = new StandardKeyStoreBuilder()
+                                .type(rawKeystoreType)
+                                .password(rawKeystorePassword.toCharArray())
+                                .inputStream(keyStoreStream).build();
+                        sslContextBuilder.keyStore(keyStore);
+                        sslContextBuilder.keyPassword(rawKeystorePassword.toCharArray());
+                    }
+                }
+
+                sslContext = sslContextBuilder.build();
             }
-        } catch (final KeyStoreException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException | KeyManagementException | IOException e) {
+        } catch (final RuntimeException | IOException e) {
             throw new SecurityProviderCreationException(e.getMessage(), e);
         }
 
