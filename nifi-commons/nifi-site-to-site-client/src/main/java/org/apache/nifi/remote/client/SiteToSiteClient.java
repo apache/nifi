@@ -18,19 +18,17 @@ package org.apache.nifi.remote.client;
 
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.net.InetAddress;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.KeyStore;
-import java.security.SecureRandom;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Transaction;
@@ -44,8 +42,8 @@ import org.apache.nifi.remote.exception.UnknownPortException;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
-import org.apache.nifi.security.util.KeyStoreUtils;
-import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
+import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 
 /**
  * <p>
@@ -329,7 +327,7 @@ public interface SiteToSiteClient extends Closeable {
          * Site-to-Site communications are secure (i.e., the client will always
          * use secure or non-secure communications, depending on what the server
          * dictates). <b>Note:</b> The SSLContext provided by this method will be
-         * ignored if using a Serializable Configuration (see {@link #buildSerializableConfig()}).
+         * ignored if using a Serializable Configuration
          * If a Serializable Configuration is required and communications are to be
          * secure, the {@link #keystoreFilename(String)}, {@link #keystorePass(String)},
          * {@link #keystoreType}, {@link #truststoreFilename}, {@link #truststorePass(String)},
@@ -755,8 +753,6 @@ public interface SiteToSiteClient extends Closeable {
 
     }
 
-
-    @SuppressWarnings("deprecation")
     class StandardSiteToSiteClientConfig implements SiteToSiteClientConfig, Serializable {
 
         private static final long serialVersionUID = 1L;
@@ -882,45 +878,48 @@ public interface SiteToSiteClient extends Closeable {
                 return sslContext;
             }
 
-            final KeyManagerFactory keyManagerFactory;
+            final KeyStore keyStore;
             if (keystoreFilename != null && keystorePass != null && keystoreType != null) {
-                try {
-                    // prepare the keystore
-                    final KeyStore keyStore = KeyStoreUtils.getKeyStore(getKeystoreType().name());
-                    try (final InputStream keyStoreStream = new FileInputStream(new File(getKeystoreFilename()))) {
-                        keyStore.load(keyStoreStream, keystorePass.toCharArray());
-                    }
-                    keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-                    keyManagerFactory.init(keyStore, keystorePass.toCharArray());
-                } catch (final Exception e) {
-                    throw new IllegalStateException("Failed to load Keystore", e);
+                try (final InputStream keyStoreStream = Files.newInputStream(Paths.get(keystoreFilename))) {
+                    keyStore = new StandardKeyStoreBuilder()
+                            .inputStream(keyStoreStream)
+                            .password(keystorePass.toCharArray())
+                            .type(keystoreType.name())
+                            .build();
+                } catch (final IOException e) {
+                    throw new IllegalStateException(String.format("Read Key Store [%s] failed", keystoreFilename), e);
                 }
             } else {
-                keyManagerFactory = null;
+                keyStore = null;
             }
 
-            final TrustManagerFactory trustManagerFactory;
+            final KeyStore trustStore;
             if (truststoreFilename != null && truststorePass != null && truststoreType != null) {
-                try {
-                    trustManagerFactory = KeyStoreUtils.loadTrustManagerFactory(truststoreFilename, truststorePass, getTruststoreType().name());
-                } catch (final Exception e) {
-                    throw new IllegalStateException("Failed to load Truststore", e);
+                try (final InputStream keyStoreStream = Files.newInputStream(Paths.get(truststoreFilename))) {
+                    trustStore = new StandardKeyStoreBuilder()
+                            .inputStream(keyStoreStream)
+                            .password(truststorePass.toCharArray())
+                            .type(truststoreType.name())
+                            .build();
+                } catch (final IOException e) {
+                    throw new IllegalStateException(String.format("Read Trust Store [%s] failed", truststoreFilename), e);
                 }
             } else {
-                trustManagerFactory = null;
+                trustStore = null;
             }
 
-            if (keyManagerFactory != null && trustManagerFactory != null) {
-                try {
-                    // initialize the ssl context
-                    final SSLContext sslContext = SSLContext.getInstance(TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
-                    sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), new SecureRandom());
-                    sslContext.getDefaultSSLParameters().setNeedClientAuth(true);
+            if (keyStore != null || trustStore != null) {
+                final StandardSslContextBuilder builder = new StandardSslContextBuilder();
 
-                    return sslContext;
-                } catch (final Exception e) {
-                    throw new IllegalStateException("Created keystore and truststore but failed to initialize SSLContext", e);
+                if (keyStore != null) {
+                    final char[] keyPassword = keystorePass.toCharArray();
+                    builder.keyPassword(keyPassword);
+                    builder.keyStore(keyStore);
                 }
+                if (trustStore != null) {
+                    builder.trustStore(trustStore);
+                }
+                return builder.build();
             } else {
                 return null;
             }
