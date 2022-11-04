@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
 package org.apache.nifi.processors.aws.ml;
 
 import com.amazonaws.AmazonWebServiceClient;
@@ -25,7 +42,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 
-abstract public class AwsMLFetcherProcessor<SERVICE extends AmazonWebServiceClient>
+abstract public class AwsMLJobStatusGetter<SERVICE extends AmazonWebServiceClient>
         extends AbstractAWSCredentialsProviderProcessor<SERVICE>  {
     public static final String AWS_TASK_ID_PROPERTY = "awsTaskId";
     public static final String AWS_TASK_OUTPUT_LOCATION = "outputLocation";
@@ -46,7 +63,7 @@ abstract public class AwsMLFetcherProcessor<SERVICE extends AmazonWebServiceClie
             .name("success")
             .description("Job successfully finished. FlowFile will be routed to this relation.")
             .build();
-    public final Relationship REL_PARTIAL_SUCCESS = new Relationship.Builder()
+    public static final Relationship REL_THROTTLED = new Relationship.Builder()
             .name("partial success")
             .description("Retrieving results failed for some reason, but the issue is likely to resolve on its own, such as Provisioned Throughput Exceeded or a Throttling failure. " +
                     "It is generally expected to retry this relationship.")
@@ -59,7 +76,7 @@ abstract public class AwsMLFetcherProcessor<SERVICE extends AmazonWebServiceClie
     protected final ObjectMapper mapper = JsonMapper.builder()
             .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
             .build();
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    protected static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             MANDATORY_AWS_CREDENTIALS_PROVIDER_SERVICE,
             TIMEOUT,
             SSL_CONTEXT_SERVICE,
@@ -81,6 +98,7 @@ abstract public class AwsMLFetcherProcessor<SERVICE extends AmazonWebServiceClie
             REL_ORIGINAL,
             REL_SUCCESS,
             REL_IN_PROGRESS,
+            REL_THROTTLED,
             REL_FAILURE
     )));
 
@@ -96,12 +114,12 @@ abstract public class AwsMLFetcherProcessor<SERVICE extends AmazonWebServiceClie
 
     @Override
     protected void init(ProcessorInitializationContext context) {
-        SimpleModule module = new SimpleModule();
-        module.addDeserializer(ResponseMetadata.class, new AwsResponseMetadataDeserializer());
-        SimpleModule module2 = new SimpleModule();
-        module.addDeserializer(SdkHttpMetadata.class, new SdkHttpMetadataDeserializer());
-        mapper.registerModule(module);
-        mapper.registerModule(module2);
+        SimpleModule awsResponseModule = new SimpleModule();
+        awsResponseModule.addDeserializer(ResponseMetadata.class, new AwsResponseMetadataDeserializer());
+        SimpleModule sdkHttpModule = new SimpleModule();
+        awsResponseModule.addDeserializer(SdkHttpMetadata.class, new SdkHttpMetadataDeserializer());
+        mapper.registerModule(awsResponseModule);
+        mapper.registerModule(sdkHttpModule);
     }
 
 
@@ -109,7 +127,6 @@ abstract public class AwsMLFetcherProcessor<SERVICE extends AmazonWebServiceClie
         session.write(flowFile, out -> {
             try (BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8))) {
                 bufferedWriter.write(mapper.writeValueAsString(response));
-                bufferedWriter.newLine();
                 bufferedWriter.flush();
             }
         });

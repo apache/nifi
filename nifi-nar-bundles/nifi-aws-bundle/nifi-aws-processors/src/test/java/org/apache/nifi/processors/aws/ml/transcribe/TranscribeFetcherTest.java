@@ -3,10 +3,10 @@ package org.apache.nifi.processors.aws.ml.transcribe;
 import static org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
 import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_FAILURE;
 import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_SUCCESS;
-import static org.apache.nifi.processors.aws.ml.AwsMLFetcherProcessor.AWS_TASK_ID_PROPERTY;
-import static org.apache.nifi.processors.aws.ml.AwsMLFetcherProcessor.FAILURE_REASON_ATTRIBUTE;
-import static org.apache.nifi.processors.aws.ml.AwsMLFetcherProcessor.REL_IN_PROGRESS;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter.AWS_TASK_ID_PROPERTY;
+import static org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter.FAILURE_REASON_ATTRIBUTE;
+import static org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter.REL_IN_PROGRESS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import com.amazonaws.ClientConfiguration;
@@ -43,7 +43,7 @@ public class TranscribeFetcherTest {
         mockTranscribeClient = Mockito.mock(AmazonTranscribeClient.class);
         mockAwsCredentialsProvider = new MockAwsCredentialsProvider();
         mockAwsCredentialsProvider.setIdentifier(AWS_CREDENTIAL_PROVIDER_NAME);
-        final TranscribeFetcher mockPollyFetcher = new TranscribeFetcher() {
+        final GetAwsTranscribeJobStatus mockPollyFetcher = new GetAwsTranscribeJobStatus() {
             protected AmazonTranscribeClient getClient() {
                 return mockTranscribeClient;
             }

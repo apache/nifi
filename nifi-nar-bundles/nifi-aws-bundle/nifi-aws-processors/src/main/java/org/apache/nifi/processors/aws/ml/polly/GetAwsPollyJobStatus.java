@@ -7,17 +7,27 @@ import com.amazonaws.services.polly.AmazonPollyClientBuilder;
 import com.amazonaws.services.polly.model.GetSpeechSynthesisTaskRequest;
 import com.amazonaws.services.polly.model.GetSpeechSynthesisTaskResult;
 import com.amazonaws.services.polly.model.TaskStatus;
+import com.amazonaws.services.textract.model.ThrottlingException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.aws.ml.AwsMLFetcherProcessor;
+import org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Polly"})
-@CapabilityDescription("Turn text into lifelike speech using deep learning. Checking Polly synthesis job's status.")
-public class PollyFetcher extends AwsMLFetcherProcessor<AmazonPollyClient> {
+@CapabilityDescription("Retrieves the current status of an AWS Polly job.")
+@SeeAlso({StartAwsPollyJob.class})
+public class GetAwsPollyJobStatus extends AwsMLJobStatusGetter<AmazonPollyClient> {
+    private static final String BUCKET = "bucket";
+    private static final String KEY = "key";
+    private static final Pattern S3_PATH = Pattern.compile("https://s3.*amazonaws.com/(?<" + BUCKET + ">[^/]+)/(?<" + KEY + ">.*)");
+    private static final String AWS_S3_BUCKET = "PollyS3OutputBucket";
+    private static final String AWS_S3_KEY = "PollyS3OutputKey";
 
     @Override
     protected AmazonPollyClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
@@ -30,7 +40,18 @@ public class PollyFetcher extends AwsMLFetcherProcessor<AmazonPollyClient> {
         if (flowFile == null) {
             return;
         }
-        GetSpeechSynthesisTaskResult speechSynthesisTask = getSynthesisTask(flowFile);
+        GetSpeechSynthesisTaskResult speechSynthesisTask;
+        try {
+            speechSynthesisTask = getSynthesisTask(flowFile);
+        } catch (ThrottlingException e) {
+            getLogger().info("Aws Client reached rate limit", e);
+            session.transfer(flowFile, REL_THROTTLED);
+            return;
+        } catch (Exception e) {
+            getLogger().info("Failed to get Polly Job status", e);
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        }
 
         TaskStatus taskStatus = TaskStatus.fromValue(speechSynthesisTask.getSynthesisTask().getTaskStatus());
 
@@ -40,8 +61,18 @@ public class PollyFetcher extends AwsMLFetcherProcessor<AmazonPollyClient> {
         }
 
         if (taskStatus == TaskStatus.Completed) {
-            session.putAttribute(flowFile, AWS_TASK_OUTPUT_LOCATION,  speechSynthesisTask.getSynthesisTask().getOutputUri());
-            session.transfer(flowFile, REL_SUCCESS);
+            String outputUri = speechSynthesisTask.getSynthesisTask().getOutputUri();
+
+            Matcher matcher = S3_PATH.matcher(outputUri);
+            if (matcher.find()) {
+                session.putAttribute(flowFile, AWS_S3_BUCKET, matcher.group(BUCKET));
+                session.putAttribute(flowFile, AWS_S3_KEY, matcher.group(KEY));
+            }
+            FlowFile childFlowFile = session.create(flowFile);
+            writeToFlowFile(session, childFlowFile, speechSynthesisTask);
+            session.putAttribute(childFlowFile, AWS_TASK_OUTPUT_LOCATION, outputUri);
+            session.transfer(flowFile, REL_ORIGINAL);
+            session.transfer(childFlowFile, REL_SUCCESS);
             getLogger().info("Amazon Polly reported that the task completed for {}", flowFile);
             return;
         }

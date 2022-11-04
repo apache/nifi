@@ -10,15 +10,15 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.aws.ml.AwsMlProcessor;
+import org.apache.nifi.processors.aws.ml.AwsMlJobStarter;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Polly"})
-@CapabilityDescription("Turn text into lifelike speech using deep learning.")
-@SeeAlso({PollyFetcher.class})
-public class PollyProcessor extends AwsMlProcessor<AmazonPollyClient, StartSpeechSynthesisTaskRequest, StartSpeechSynthesisTaskResult> {
+@CapabilityDescription("Trigger a AWS Polly job. It should be followed by GetAwsPollyJobStatus processor in order to monitor job status.")
+@SeeAlso({GetAwsPollyJobStatus.class})
+public class StartAwsPollyJob extends AwsMlJobStarter<AmazonPollyClient, StartSpeechSynthesisTaskRequest, StartSpeechSynthesisTaskResult> {
     @Override
     protected AmazonPollyClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
-        return (AmazonPollyClient) AmazonPollyClientBuilder.standard().withCredentials(credentialsProvider).build();
+        return (AmazonPollyClient) AmazonPollyClientBuilder.standard().build();
     }
 
     @Override

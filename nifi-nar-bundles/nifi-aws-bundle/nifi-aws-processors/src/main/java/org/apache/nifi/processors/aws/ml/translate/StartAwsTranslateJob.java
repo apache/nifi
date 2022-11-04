@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
 package org.apache.nifi.processors.aws.ml.translate;
 
 import com.amazonaws.ClientConfiguration;
@@ -9,12 +26,12 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.aws.ml.AwsMlProcessor;
+import org.apache.nifi.processors.aws.ml.AwsMlJobStarter;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Translate"})
-@CapabilityDescription("Translate text from one language to another.")
-@SeeAlso({TranslateFetcher.class})
-public class TranslateProcessor extends AwsMlProcessor<AmazonTranslateClient, StartTextTranslationJobRequest, StartTextTranslationJobResult> {
+@CapabilityDescription("Trigger a AWS Translate job. It should be followed by GetAwsTranslateJobStatus processor in order to monitor job status.")
+@SeeAlso({GetAwsTranslateJobStatus.class})
+public class StartAwsTranslateJob extends AwsMlJobStarter<AmazonTranslateClient, StartTextTranslationJobRequest, StartTextTranslationJobResult> {
     @Override
     protected AmazonTranslateClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
         return (AmazonTranslateClient) AmazonTranslateClient.builder().build();

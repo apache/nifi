@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
 package org.apache.nifi.processors.aws.ml.textract;
 
 import com.amazonaws.AmazonWebServiceRequest;
@@ -21,12 +38,12 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.ml.AwsMlProcessor;
+import org.apache.nifi.processors.aws.ml.AwsMlJobStarter;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Textract"})
-@CapabilityDescription("Automatically extract printed text, handwriting, and data from any document")
-@SeeAlso({TextractFetcher.class})
-public class TextractProcessor extends AwsMlProcessor<AmazonTextractClient, AmazonWebServiceRequest, AmazonWebServiceResult> {
+@CapabilityDescription("Trigger a AWS Textract job. It should be followed by GetAwsTextractJobStatus processor in order to monitor job status.")
+@SeeAlso({GetAwsTextractJobStatus.class})
+public class StartAwsTextractJob extends AwsMlJobStarter<AmazonTextractClient, AmazonWebServiceRequest, AmazonWebServiceResult> {
     private static final String DOCUMENT_ANALYSIS = "Document Analysis";
     private static final String DOCUMENT_TEXT_DETECTION = "Document Text Detection";
     private static final String EXPENSE_ANALYSIS = "Expense Analysis";

@@ -3,11 +3,11 @@ package org.apache.nifi.processors.aws.ml.textract;
 import static org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
 import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_FAILURE;
 import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_SUCCESS;
-import static org.apache.nifi.processors.aws.ml.AwsMLFetcherProcessor.AWS_TASK_ID_PROPERTY;
-import static org.apache.nifi.processors.aws.ml.AwsMLFetcherProcessor.REL_IN_PROGRESS;
-import static org.apache.nifi.processors.aws.ml.textract.TextractFetcher.DOCUMENT_ANALYSIS;
-import static org.apache.nifi.processors.aws.ml.textract.TextractProcessor.TYPE;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter.AWS_TASK_ID_PROPERTY;
+import static org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter.REL_IN_PROGRESS;
+import static org.apache.nifi.processors.aws.ml.textract.GetAwsTextractJobStatus.DOCUMENT_ANALYSIS;
+import static org.apache.nifi.processors.aws.ml.textract.StartAwsTextractJob.TYPE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import com.amazonaws.ClientConfiguration;
@@ -38,7 +38,7 @@ public class TextractFetcherTest {
         mockTextractClient = Mockito.mock(AmazonTextractClient.class);
         mockAwsCredentialsProvider = new MockAwsCredentialsProvider();
         mockAwsCredentialsProvider.setIdentifier("awsCredetialProvider");
-        final TextractFetcher mockPollyFetcher = new TextractFetcher() {
+        final GetAwsTextractJobStatus mockPollyFetcher = new GetAwsTextractJobStatus() {
             protected AmazonTextractClient getClient() {
                 return mockTextractClient;
             }

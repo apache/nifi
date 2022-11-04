@@ -3,9 +3,9 @@ package org.apache.nifi.processors.aws.ml.translate;
 import static org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
 import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_FAILURE;
 import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_SUCCESS;
-import static org.apache.nifi.processors.aws.ml.AwsMLFetcherProcessor.AWS_TASK_ID_PROPERTY;
-import static org.apache.nifi.processors.aws.ml.AwsMLFetcherProcessor.AWS_TASK_OUTPUT_LOCATION;
-import static org.apache.nifi.processors.aws.ml.AwsMLFetcherProcessor.REL_IN_PROGRESS;
+import static org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter.AWS_TASK_ID_PROPERTY;
+import static org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter.AWS_TASK_OUTPUT_LOCATION;
+import static org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter.REL_IN_PROGRESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
@@ -42,7 +42,7 @@ public class TranslateFetcherTest {
         mockTranslateClient = Mockito.mock(AmazonTranslateClient.class);
         mockAwsCredentialsProvider = new MockAwsCredentialsProvider();
         mockAwsCredentialsProvider.setIdentifier(AWS_CREDENTIALS_PROVIDER_NAME);
-        final TranslateFetcher mockPollyFetcher = new TranslateFetcher() {
+        final GetAwsTranslateJobStatus mockPollyFetcher = new GetAwsTranslateJobStatus() {
             protected AmazonTranslateClient getClient() {
                 return mockTranslateClient;
             }

@@ -13,12 +13,12 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.aws.ml.AwsMLFetcherProcessor;
+import org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Translate"})
-@CapabilityDescription("Translate text from one language to another.")
-@SeeAlso({TranslateProcessor.class})
-public class TranslateFetcher extends AwsMLFetcherProcessor<AmazonTranslateClient> {
+@CapabilityDescription("Retrieves the current status of an AWS Translate job.")
+@SeeAlso({StartAwsTranslateJob.class})
+public class GetAwsTranslateJobStatus extends AwsMLJobStatusGetter<AmazonTranslateClient> {
     @Override
     protected AmazonTranslateClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
         return (AmazonTranslateClient) AmazonTranslateClient.builder().build();
@@ -34,7 +34,7 @@ public class TranslateFetcher extends AwsMLFetcherProcessor<AmazonTranslateClien
         DescribeTextTranslationJobResult describeTextTranslationJobResult = getStatusString(awsTaskId);
         JobStatus status = JobStatus.fromValue(describeTextTranslationJobResult.getTextTranslationJobProperties().getJobStatus());
 
-        if (status == JobStatus.IN_PROGRESS) {
+        if (status == JobStatus.IN_PROGRESS || status == JobStatus.SUBMITTED) {
             writeToFlowFile(session, flowFile, describeTextTranslationJobResult);
             session.penalize(flowFile);
             session.transfer(flowFile, REL_IN_PROGRESS);

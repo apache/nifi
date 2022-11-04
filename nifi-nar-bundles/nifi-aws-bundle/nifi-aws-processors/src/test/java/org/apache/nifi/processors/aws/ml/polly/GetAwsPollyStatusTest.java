@@ -1,11 +1,12 @@
 package org.apache.nifi.processors.aws.ml.polly;
 
 import static org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
-import static org.apache.nifi.processors.aws.ml.AwsMLFetcherProcessor.AWS_TASK_ID_PROPERTY;
-import static org.apache.nifi.processors.aws.ml.AwsMLFetcherProcessor.AWS_TASK_OUTPUT_LOCATION;
-import static org.apache.nifi.processors.aws.ml.AwsMLFetcherProcessor.REL_FAILURE;
-import static org.apache.nifi.processors.aws.ml.AwsMLFetcherProcessor.REL_IN_PROGRESS;
-import static org.apache.nifi.processors.aws.ml.AwsMLFetcherProcessor.REL_SUCCESS;
+import static org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter.AWS_TASK_ID_PROPERTY;
+import static org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter.AWS_TASK_OUTPUT_LOCATION;
+import static org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter.REL_FAILURE;
+import static org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter.REL_IN_PROGRESS;
+import static org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter.REL_ORIGINAL;
+import static org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter.REL_SUCCESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
@@ -26,7 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-public class PollyFetcherTest {
+public class GetAwsPollyStatusTest {
     private static final String TEST_TASK_ID = "testTaskId";
     private TestRunner runner = null;
     private AmazonPollyClient mockPollyClient = null;
@@ -37,7 +38,7 @@ public class PollyFetcherTest {
         mockPollyClient = Mockito.mock(AmazonPollyClient.class);
         mockAwsCredentialsProvider = new MockAwsCredentialsProvider();
         mockAwsCredentialsProvider.setIdentifier("awsCredetialProvider");
-        final PollyFetcher mockPollyFetcher = new PollyFetcher() {
+        final GetAwsPollyJobStatus mockGetAwsPollyStatus = new GetAwsPollyJobStatus() {
             protected AmazonPollyClient getClient() {
                 return mockPollyClient;
             }
@@ -47,7 +48,7 @@ public class PollyFetcherTest {
                 return mockPollyClient;
             }
         };
-        runner = TestRunners.newTestRunner(mockPollyFetcher);
+        runner = TestRunners.newTestRunner(mockGetAwsPollyStatus);
         runner.addControllerService("awsCredetialProvider", mockAwsCredentialsProvider);
         runner.enableControllerService(mockAwsCredentialsProvider);
         runner.setProperty(AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredetialProvider");
@@ -80,8 +81,9 @@ public class PollyFetcherTest {
         runner.enqueue("content", Collections.singletonMap(AWS_TASK_ID_PROPERTY, TEST_TASK_ID));
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(REL_SUCCESS);
-        runner.assertAllFlowFilesContainAttribute(AWS_TASK_OUTPUT_LOCATION);
+        runner.assertTransferCount(REL_SUCCESS, 1);
+        runner.assertTransferCount(REL_ORIGINAL, 1);
+        runner.assertAllFlowFilesContainAttribute(REL_SUCCESS, AWS_TASK_OUTPUT_LOCATION);
         assertEquals(requestCaptor.getValue().getTaskId(), TEST_TASK_ID);
     }
 
