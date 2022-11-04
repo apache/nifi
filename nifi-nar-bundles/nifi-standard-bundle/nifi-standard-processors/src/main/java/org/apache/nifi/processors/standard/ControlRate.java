@@ -129,6 +129,7 @@ public class ControlRate extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .dependsOn(RATE_CONTROL_CRITERIA, ATTRIBUTE_RATE)
             .build();
     public static final PropertyDescriptor TIME_PERIOD = new PropertyDescriptor.Builder()
             .name("Time Duration")
@@ -175,11 +176,11 @@ public class ControlRate extends AbstractProcessor {
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(RATE_CONTROL_CRITERIA);
+        properties.add(TIME_PERIOD);
         properties.add(MAX_RATE);
         properties.add(MAX_DATA_RATE);
         properties.add(MAX_COUNT_RATE);
         properties.add(RATE_CONTROL_ATTRIBUTE_NAME);
-        properties.add(TIME_PERIOD);
         properties.add(GROUPING_ATTRIBUTE_NAME);
         this.properties = Collections.unmodifiableList(properties);
 
