@@ -48,10 +48,6 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>org.bouncycastle</groupId>
-                <artifactId>bcprov-jdk18on</artifactId>
-            </dependency>
-            <dependency>
                 <groupId>net.engio</groupId>
                 <artifactId>mbassador</artifactId>
                 <version>1.3.2</version>
