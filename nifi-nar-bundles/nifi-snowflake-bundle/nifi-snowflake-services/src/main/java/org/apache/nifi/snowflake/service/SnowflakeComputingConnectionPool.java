@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.snowflake.client.core.SFSessionProperty;
 import net.snowflake.client.jdbc.SnowflakeDriver;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -41,6 +42,8 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.snowflake.SnowflakeConnectionProviderService;
 import org.apache.nifi.processors.snowflake.SnowflakeConnectionWrapper;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.snowflake.service.util.CommonProperties;
 import org.apache.nifi.snowflake.service.util.ConnectionUrlFormat;
 
@@ -66,7 +69,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
     public static final PropertyDescriptor CONNECTION_URL_FORMAT = new PropertyDescriptor.Builder()
             .name("connection-url-format")
             .displayName("Connection URL Format")
-            .description("The way the connection URL is provided")
+            .description("The format of the connection URL.")
             .allowableValues(ConnectionUrlFormat.class)
             .required(true)
             .defaultValue(ConnectionUrlFormat.FULL_URL.getValue())
@@ -109,21 +112,21 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
     public static final PropertyDescriptor SNOWFLAKE_USER = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AbstractDBCPConnectionPool.DB_USER)
             .displayName("Snowflake User")
-            .description("The Snowflake user name")
+            .description("The Snowflake user name.")
             .required(true)
             .build();
 
     public static final PropertyDescriptor SNOWFLAKE_PASSWORD = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AbstractDBCPConnectionPool.DB_PASSWORD)
             .displayName("Snowflake Password")
-            .description("The password for the Snowflake user")
+            .description("The password for the Snowflake user.")
             .required(true)
             .build();
 
     public static final PropertyDescriptor SNOWFLAKE_DATABASE = new PropertyDescriptor.Builder()
             .name("database")
             .displayName("Database")
-            .description("The database to use by default. The same as passing 'db=DATABASE_NAME' to the connection string")
+            .description("The database to use by default. The same as passing 'db=DATABASE_NAME' to the connection string.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
@@ -131,7 +134,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
     public static final PropertyDescriptor SNOWFLAKE_SCHEMA = new PropertyDescriptor.Builder()
             .name("schema")
             .displayName("Schema")
-            .description("The schema to use by default. The same as passing 'schema=SCHEMA' to the connection string")
+            .description("The schema to use by default. The same as passing 'schema=SCHEMA' to the connection string.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("PUBLIC")
@@ -140,7 +143,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
     public static final PropertyDescriptor SNOWFLAKE_WAREHOUSE = new PropertyDescriptor.Builder()
             .name("warehouse")
             .displayName("Warehouse")
-            .description("The warehouse to use by default. The same as passing 'warehouse=WAREHOUSE' to the connection string")
+            .description("The warehouse to use by default. The same as passing 'warehouse=WAREHOUSE' to the connection string.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
@@ -161,6 +164,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
         props.add(SNOWFLAKE_DATABASE);
         props.add(SNOWFLAKE_SCHEMA);
         props.add(SNOWFLAKE_WAREHOUSE);
+        props.add(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE);
         props.add(VALIDATION_QUERY);
         props.add(MAX_WAIT_TIME);
         props.add(MAX_TOTAL_CONNECTIONS);
@@ -212,6 +216,19 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
         connectionProperties.put("schema", schema);
         if (warehouse != null) {
             connectionProperties.put("warehouse", warehouse);
+        }
+
+        final ProxyConfigurationService proxyConfigurationService = context
+                .getProperty(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE)
+                .asControllerService(ProxyConfigurationService.class);
+        if (proxyConfigurationService != null) {
+            final ProxyConfiguration proxyConfiguration = proxyConfigurationService.getConfiguration();
+            connectionProperties.put(SFSessionProperty.USE_PROXY.getPropertyKey(), "true");
+            connectionProperties.put(SFSessionProperty.PROXY_HOST.getPropertyKey(), proxyConfiguration.getProxyServerHost());
+            connectionProperties.put(SFSessionProperty.PROXY_PORT.getPropertyKey(), proxyConfiguration.getProxyServerPort().toString());
+            connectionProperties.put(SFSessionProperty.PROXY_USER.getPropertyKey(), proxyConfiguration.getProxyUserName());
+            connectionProperties.put(SFSessionProperty.PROXY_PASSWORD.getPropertyKey(), proxyConfiguration.getProxyUserPassword());
+            connectionProperties.put(SFSessionProperty.PROXY_PROTOCOL.getPropertyKey(), proxyConfiguration.getProxyType().name().toLowerCase());
         }
         return connectionProperties;
     }

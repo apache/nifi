@@ -38,9 +38,9 @@
     The processor requires an upstream connection that provides the path of the staged file to be checked through the "snowflake.staged.file.path" attribute.
     See StartSnowflakeIngest processor for details about how to properly set up a flow to ingest staged files.
     <b>
-        NOTE: Snowflake pipes caches the ingested files' path's and never ingests the same file multiple times.
+        NOTE: Snowflake pipes caches the ingested files' path and never ingests the same file multiple times.
         This can lead to the processor being stuck in an "infinite loop" with a FlowFile that has the same "snowflake.staged.file.path" as a stage file that has been
-        already ingested by the pipe. It's recommended to set up the retry mechanism in way that avoids these situations.
+        already ingested by the pipe. It's recommended to set up the retry mechanism in a way that avoids these situations.
     </b>
 </p>
 

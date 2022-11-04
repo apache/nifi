@@ -65,7 +65,7 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
     static final PropertyDescriptor SNOWFLAKE_CONNECTION_PROVIDER = new PropertyDescriptor.Builder()
             .name("snowflake-connection-provider")
             .displayName("Snowflake Connection Provider")
-            .description("Specifies the Controller Service to use for creating SQL connections to Snowflake")
+            .description("Specifies the Controller Service to use for creating SQL connections to Snowflake.")
             .identifiesControllerService(SnowflakeConnectionProviderService.class)
             .required(true)
             .build();
@@ -73,7 +73,7 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
     static final PropertyDescriptor INTERNAL_STAGE_NAME = new PropertyDescriptor.Builder()
             .name("internal-stage-name")
             .displayName("Internal Stage Name")
-            .description("The name of the internal stage in the Snowflake account")
+            .description("The name of the internal stage in the Snowflake account to put files into.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
@@ -121,6 +121,7 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
         final SnowflakeConnectionProviderService connectionProviderService =
                 context.getProperty(SNOWFLAKE_CONNECTION_PROVIDER)
                         .asControllerService(SnowflakeConnectionProviderService.class);
+
         FlowFile flowFile = session.get();
         final String fileName = flowFile.getAttribute(CoreAttributes.FILENAME.key());
         final String relativePath = flowFile.getAttribute(CoreAttributes.PATH.key());

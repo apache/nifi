@@ -57,7 +57,7 @@ public class StartSnowflakeIngest extends AbstractProcessor {
     static final PropertyDescriptor INGEST_MANAGER_PROVIDER = new PropertyDescriptor.Builder()
             .name("ingest-manager-provider")
             .displayName("Ingest Manager Provider")
-            .description("Ingest manager provider")
+            .description("Specifies the Controller Service to use for ingesting Snowflake staged files.")
             .identifiesControllerService(SnowflakeIngestManagerProviderService.class)
             .required(true)
             .build();
@@ -97,19 +97,25 @@ public class StartSnowflakeIngest extends AbstractProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        final FlowFile flowFile = session.get();
+        final String stagedFilePath = flowFile.getAttribute(ATTRIBUTE_STAGED_FILE_PATH);
+        if (stagedFilePath == null) {
+            getLogger().error("Missing required attribute [\"" + ATTRIBUTE_STAGED_FILE_PATH + "\"] for FlowFile");
+            session.transfer(session.penalize(flowFile), REL_FAILURE);
+            return;
+        }
+
         final SnowflakeIngestManagerProviderService ingestManagerProviderService =
                 context.getProperty(INGEST_MANAGER_PROVIDER)
                         .asControllerService(SnowflakeIngestManagerProviderService.class);
-        final FlowFile flowFile = session.get();
         final SimpleIngestManager snowflakeIngestManager = ingestManagerProviderService.getIngestManager();
-        final String stagedFileName = flowFile.getAttribute(ATTRIBUTE_STAGED_FILE_PATH);
-        final StagedFileWrapper stagedFile = new StagedFileWrapper(stagedFileName);
+        final StagedFileWrapper stagedFile = new StagedFileWrapper(stagedFilePath);
         try {
             snowflakeIngestManager.ingestFile(stagedFile, null);
         } catch (URISyntaxException | IOException  e) {
-            throw new ProcessException(String.format("Failed to ingest Snowflake file [%s]", stagedFileName), e);
+            throw new ProcessException(String.format("Failed to ingest Snowflake file [%s]", stagedFilePath), e);
         } catch (IngestResponseException e) {
-            getLogger().error("Failed to ingest Snowflake file [" + stagedFileName + "]", e);
+            getLogger().error("Failed to ingest Snowflake file [" + stagedFilePath + "]", e);
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
         }

@@ -67,7 +67,7 @@ public class GetSnowflakeIngestStatus extends AbstractProcessor {
     static final PropertyDescriptor INGEST_MANAGER_PROVIDER = new PropertyDescriptor.Builder()
             .name("ingest-manager-provider")
             .displayName("Ingest Manager Provider")
-            .description("Ingest manager provider")
+            .description("Specifies the Controller Service to use for ingesting Snowflake staged files.")
             .identifiesControllerService(SnowflakeIngestManagerProviderService.class)
             .required(true)
             .build();
@@ -113,12 +113,17 @@ public class GetSnowflakeIngestStatus extends AbstractProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        final FlowFile flowFile = session.get();
+        final String stagedFilePath = flowFile.getAttribute(ATTRIBUTE_STAGED_FILE_PATH);
+        if (stagedFilePath == null) {
+            getLogger().error("Missing required attribute [\"" + ATTRIBUTE_STAGED_FILE_PATH + "\"] for FlowFile");
+            session.transfer(session.penalize(flowFile), REL_FAILURE);
+            return;
+        }
+
         final SnowflakeIngestManagerProviderService ingestManagerProviderService =
                 context.getProperty(INGEST_MANAGER_PROVIDER)
                         .asControllerService(SnowflakeIngestManagerProviderService.class);
-
-        final FlowFile flowFile = session.get();
-        final String stagedFilePath = flowFile.getAttribute(ATTRIBUTE_STAGED_FILE_PATH);
         final String beginMarkKey = stagedFilePath + ".begin.mark";
         final StateManager stateManager = StateManager.create(beginMarkKey, session);
         final String beginMark = stateManager.getBeginMark();
@@ -150,6 +155,7 @@ public class GetSnowflakeIngestStatus extends AbstractProcessor {
             getLogger().error("Failed to ingest file [" + stagedFilePath + "] in Snowflake stage via pipe [" + ingestManagerProviderService.getPipeName() + "]."
                     + " Error: " + fileEntry.get().getFirstError());
             session.transfer(session.penalize(flowFile), REL_FAILURE);
+            return;
         }
         session.transfer(flowFile, REL_SUCCESS);
 
