@@ -20,6 +20,7 @@ import com.nimbusds.oauth2.sdk.AuthorizationCode;
 import com.nimbusds.oauth2.sdk.AuthorizationCodeGrant;
 import com.nimbusds.oauth2.sdk.AuthorizationGrant;
 import com.nimbusds.oauth2.sdk.ParseException;
+import com.nimbusds.oauth2.sdk.http.HTTPResponse;
 import com.nimbusds.oauth2.sdk.id.State;
 import com.nimbusds.openid.connect.sdk.AuthenticationErrorResponse;
 import com.nimbusds.openid.connect.sdk.AuthenticationResponseParser;
@@ -31,6 +32,14 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.nifi.registry.authorization.CurrentUser;
 import org.apache.nifi.registry.event.EventService;
 import org.apache.nifi.registry.exception.AdministrationException;
@@ -54,8 +63,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.Nullable;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.stereotype.Component;
 
+import javax.net.ssl.SSLContext;
 import javax.servlet.ServletContext;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -72,7 +84,9 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
+import java.io.IOException;
 import java.net.URI;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -91,6 +105,9 @@ public class AccessResource extends ApplicationResource {
 
     private static final String OIDC_REQUEST_IDENTIFIER = "oidc-request-identifier";
     private static final String OIDC_ERROR_TITLE = "Unable to continue login sequence";
+    private static final String REVOKE_ACCESS_TOKEN_LOGOUT = "oidc_access_token_logout";
+    private static final String ID_TOKEN_LOGOUT = "oidc_id_token_logout";
+    private static final String STANDARD_LOGOUT = "oidc_standard_logout";
 
     private NiFiRegistryProperties properties;
     private JwtService jwtService;
@@ -98,6 +115,7 @@ public class AccessResource extends ApplicationResource {
     private X509IdentityProvider x509IdentityProvider;
     private KerberosSpnegoIdentityProvider kerberosSpnegoIdentityProvider;
     private IdentityProvider identityProvider;
+    private BearerTokenResolver bearerTokenResolver;
 
     @Context
     protected UriInfo uriInfo;
@@ -119,6 +137,7 @@ public class AccessResource extends ApplicationResource {
         this.oidcService = oidcService;
         this.kerberosSpnegoIdentityProvider = kerberosSpnegoIdentityProvider;
         this.identityProvider = identityProvider;
+        this.bearerTokenResolver = new DefaultBearerTokenResolver();
     }
 
     /**
@@ -298,25 +317,48 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(code = 500, message = "Client failed to log out."),
             }
     )
-    public Response logOut(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) {
+    public Response logout(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) {
         if (!httpServletRequest.isSecure()) {
             throw new IllegalStateException("User authentication/authorization is only supported when running over HTTPS.");
         }
 
-        String userIdentity = NiFiUserUtils.getNiFiUserIdentity();
-
-        if(userIdentity != null && !userIdentity.isEmpty()) {
+        final String bearerToken = bearerTokenResolver.resolve(httpServletRequest);
+        if (StringUtils.isEmpty(bearerToken)) {
+            return Response.status(401, "Authentication token provided was empty or not in the correct JWT format.").build();
+        } else {
+            final String userIdentity = jwtService.getUserIdentityFromToken(bearerToken);
             try {
-                logger.info("Logging out user " + userIdentity);
-                jwtService.logOut(userIdentity);
+                jwtService.deleteKey(userIdentity);
                 return generateOkResponse().build();
             } catch (final JwtException e) {
                 logger.error("Logout of user " + userIdentity + " failed due to: " + e.getMessage());
                 return Response.serverError().build();
             }
-        } else {
-            return Response.status(401, "Authentication token provided was empty or not in the correct JWT format.").build();
         }
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.WILDCARD)
+    @Path("/logout/complete")
+    @ApiOperation(
+            value = "Completes the logout sequence.",
+            notes = NON_GUARANTEED_ENDPOINT
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 200, message = "User was logged out successfully."),
+                    @ApiResponse(code = 401, message = "Authentication token provided was empty or not in the correct JWT format."),
+                    @ApiResponse(code = 500, message = "Client failed to log out."),
+            }
+    )
+    public void logoutComplete(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws IOException {
+        if (!httpServletRequest.isSecure()) {
+            throw new IllegalStateException("User logout is only supported when running over HTTPS.");
+        }
+
+        // redirect to NiFi Registry page after logout completes
+        httpServletResponse.sendRedirect(getNiFiRegistryUri());
     }
 
     @POST
@@ -542,30 +584,10 @@ public class AccessResource extends ApplicationResource {
             throw new IllegalStateException("OpenId Connect is not configured.");
         }
 
-        final String oidcRequestIdentifier = UUID.randomUUID().toString();
-
-        // generate a cookie to associate this login sequence
-        final Cookie cookie = new Cookie(OIDC_REQUEST_IDENTIFIER, oidcRequestIdentifier);
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setMaxAge(60);
-        cookie.setSecure(true);
-        httpServletResponse.addCookie(cookie);
-
-        // get the state for this request
-        final State state = oidcService.createState(oidcRequestIdentifier);
-
-        // build the authorization uri
-        final URI authorizationUri = UriBuilder.fromUri(oidcService.getAuthorizationEndpoint())
-                .queryParam("client_id", oidcService.getClientId())
-                .queryParam("response_type", "code")
-                .queryParam("scope", oidcService.getScope().toString())
-                .queryParam("state", state.getValue())
-                .queryParam("redirect_uri", getOidcCallback())
-                .build();
+        final URI authorizationURI = oidcRequestAuthorizationCode(httpServletResponse, getOidcCallback());
 
         // generate the response
-        httpServletResponse.sendRedirect(authorizationUri.toString());
+        httpServletResponse.sendRedirect(authorizationURI.toString());
     }
 
     @GET
@@ -589,44 +611,25 @@ public class AccessResource extends ApplicationResource {
             throw new IllegalStateException("OpenId Connect is not configured.");
         }
 
-        final String oidcRequestIdentifier = getCookieValue(httpServletRequest.getCookies(), OIDC_REQUEST_IDENTIFIER);
+        final String oidcRequestIdentifier = getOidcRequestIdentifier(httpServletRequest);
         if (oidcRequestIdentifier == null) {
             throw new IllegalStateException("The login request identifier was not found in the request. Unable to continue.");
         }
 
-        final com.nimbusds.openid.connect.sdk.AuthenticationResponse oidcResponse;
-        try {
-            oidcResponse = AuthenticationResponseParser.parse(getRequestUri());
-        } catch (final ParseException e) {
-            logger.error("Unable to parse the redirect URI from the OpenId Connect Provider. Unable to continue login process.");
 
-            // remove the oidc request cookie
-            removeOidcRequestCookie(httpServletResponse);
-
-            // forward to the error page
-            throw new IllegalStateException("Unable to parse the redirect URI from the OpenId Connect Provider. Unable to continue login process.");
-        }
+        final com.nimbusds.openid.connect.sdk.AuthenticationResponse oidcResponse =
+                parseAuthenticationResponse(getRequestUri(), httpServletResponse, true);
 
         if (oidcResponse.indicatesSuccess()) {
             final AuthenticationSuccessResponse successfulOidcResponse = (AuthenticationSuccessResponse) oidcResponse;
 
-            // confirm state
-            final State state = successfulOidcResponse.getState();
-            if (state == null || !oidcService.isStateValid(oidcRequestIdentifier, state)) {
-                logger.error("The state value returned by the OpenId Connect Provider does not match the stored state. Unable to continue login process.");
-
-                // remove the oidc request cookie
-                removeOidcRequestCookie(httpServletResponse);
-
-                // forward to the error page
-                throw new IllegalStateException("Purposed state does not match the stored state. Unable to continue login process.");
-            }
+            validateOIDCState(oidcRequestIdentifier, successfulOidcResponse, httpServletResponse, true);
 
             try {
                 // exchange authorization code for id token
                 final AuthorizationCode authorizationCode = successfulOidcResponse.getAuthorizationCode();
                 final AuthorizationGrant authorizationGrant = new AuthorizationCodeGrant(authorizationCode, URI.create(getOidcCallback()));
-                oidcService.exchangeAuthorizationCode(oidcRequestIdentifier, authorizationGrant);
+                oidcService.exchangeAuthorizationCodeForLoginAuthenticationToken(oidcRequestIdentifier, authorizationGrant);
             } catch (final Exception e) {
                 logger.error("Unable to exchange authorization for ID token: " + e.getMessage(), e);
 
@@ -669,7 +672,7 @@ public class AccessResource extends ApplicationResource {
             throw new IllegalStateException("OpenId Connect is not configured.");
         }
 
-        final String oidcRequestIdentifier = getCookieValue(httpServletRequest.getCookies(), OIDC_REQUEST_IDENTIFIER);
+        final String oidcRequestIdentifier = getOidcRequestIdentifier(httpServletRequest);
         if (oidcRequestIdentifier == null) {
             throw new IllegalArgumentException("The login request identifier was not found in the request. Unable to continue.");
         }
@@ -687,7 +690,7 @@ public class AccessResource extends ApplicationResource {
         return generateOkResponse(jwt).build();
     }
 
-    @DELETE
+    @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
     @Path("/oidc/logout")
@@ -704,20 +707,131 @@ public class AccessResource extends ApplicationResource {
             throw new IllegalStateException("OpenId Connect is not configured.");
         }
 
-        final String tokenHeader = httpServletRequest.getHeader(JwtService.AUTHORIZATION);
-        jwtService.logOutUsingAuthHeader(tokenHeader);
+        // Checks if OIDC service supports logout using either by
+        // 1. revoke access token method, or
+        // 2. ID token logout method.
+        // If either of the above methods are supported,
+        // redirects request to OP to request authorization that can be exchanged for a token used for logout
+        final String logoutMethod = determineLogoutMethod();
+        switch (logoutMethod) {
+            case REVOKE_ACCESS_TOKEN_LOGOUT:
+            case ID_TOKEN_LOGOUT:
+                final URI authorizationURI = oidcRequestAuthorizationCode(httpServletResponse, getOidcLogoutCallback());
+                httpServletResponse.sendRedirect(authorizationURI.toString());
+                break;
+            default:
+                // if the above logout methods are not supported, last ditch effort to logout by providing the client_id,
+                // to the end session endpoint if it exists, this option is not available when using the POST request
+                // to the revocation endpoint
+                final URI endSessionEndpoint = oidcService.getEndSessionEndpoint();
+                if (endSessionEndpoint != null) {
+                    final String postLogoutRedirectUri = getNiFiRegistryUri();
+                    final URI logoutUri = UriBuilder.fromUri(endSessionEndpoint)
+                            .queryParam("post_logout_redirect_uri", postLogoutRedirectUri)
+                            .queryParam("client_id", oidcService.getClientId())
+                            .build();
+                    httpServletResponse.sendRedirect(logoutUri.toString());
+                } else {
+                    throw new IllegalStateException("Unable to initiate logout: Logout method unrecognized");
+                }
+                break;
+        }
+    }
 
-        URI endSessionEndpoint = oidcService.getEndSessionEndpoint();
-        String postLogoutRedirectUri = generateResourceUri("..", "nifi-registry");
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.WILDCARD)
+    @Path("/oidc/logout/callback")
+    @ApiOperation(
+            value = "Redirect/callback URI for processing the result of the OpenId Connect logout sequence.",
+            notes = NON_GUARANTEED_ENDPOINT
+    )
+    public void oidcLogoutCallback(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+        if (!httpServletRequest.isSecure()) {
+            throw new IllegalStateException("User logout is only supported when running over HTTPS.");
+        }
 
-        if (endSessionEndpoint == null) {
-            // handle the case, where the OpenID Provider does not have an end session endpoint
-            //httpServletResponse.sendRedirect(postLogoutRedirectUri);
+        if (!oidcService.isOidcEnabled()) {
+            throw new IllegalStateException("OpenId Connect is not configured.");
+        }
+
+        final String oidcRequestIdentifier = getOidcRequestIdentifier(httpServletRequest);
+        if (oidcRequestIdentifier == null) {
+            throw new IllegalStateException("The OIDC request identifier was not found in the request. Unable to continue.");
+        }
+
+        final com.nimbusds.openid.connect.sdk.AuthenticationResponse oidcResponse =
+                parseAuthenticationResponse(getRequestUri(), httpServletResponse, false);
+
+        if (oidcResponse.indicatesSuccess()) {
+            final AuthenticationSuccessResponse successfulOidcResponse = (AuthenticationSuccessResponse) oidcResponse;
+
+            validateOIDCState(oidcRequestIdentifier, successfulOidcResponse, httpServletResponse, false);
+
+            try {
+                // exchange authorization code for id token
+                final AuthorizationCode authorizationCode = successfulOidcResponse.getAuthorizationCode();
+                final AuthorizationGrant authorizationGrant = new AuthorizationCodeGrant(authorizationCode, URI.create(getOidcLogoutCallback()));
+
+                final String logoutMethod = determineLogoutMethod();
+                switch(logoutMethod) {
+                    case REVOKE_ACCESS_TOKEN_LOGOUT:
+                        final String accessToken;
+                        try {
+                            accessToken = oidcService.exchangeAuthorizationCodeForAccessToken(authorizationGrant);
+                        } catch (final Exception e) {
+                            final String errorMsg = "Unable to exchange authorization for the access token: " + e.getMessage();
+                            logger.error(errorMsg, e);
+
+                            throw new IllegalStateException(errorMsg);
+                        }
+
+                        final URI revokeEndpoint = oidcService.getRevocationEndpoint();
+                        try {
+                            revokeEndpointRequest(httpServletResponse, accessToken, revokeEndpoint);
+                        } catch (final IOException e) {
+                            final String errorMsg = "There was an error logging out of the OpenID Connect Provider: " + e.getMessage();
+                            logger.error(errorMsg, e);
+
+                            throw new IllegalStateException(errorMsg);
+                        }
+                        break;
+                    case ID_TOKEN_LOGOUT:
+                        final String idToken;
+                        try {
+                            idToken = oidcService.exchangeAuthorizationCodeForIdToken(authorizationGrant);
+                        } catch (final Exception e) {
+                            final String errorMsg = "Unable to exchange authorization for the ID token: " + e.getMessage();
+                            logger.error(errorMsg, e);
+
+                            throw new IllegalStateException(errorMsg);
+                        }
+
+                        final URI endSessionEndpoint = oidcService.getEndSessionEndpoint();
+                        final String postLogoutRedirectUri = getNiFiRegistryUri();
+                        final URI logoutUri = UriBuilder.fromUri(endSessionEndpoint)
+                                .queryParam("id_token_hint", idToken)
+                                .queryParam("post_logout_redirect_uri", postLogoutRedirectUri)
+                                .build();
+                        httpServletResponse.sendRedirect(logoutUri.toString());
+                        break;
+                    default:
+                        // there should be no other way to logout at this point, return error
+                        throw new IllegalStateException("Unable to complete logout: Logout method unrecognized");
+                }
+            } catch (final Exception e) {
+                logger.error(e.getMessage(), e);
+
+                removeOidcRequestCookie(httpServletResponse);
+
+                throw e;
+            }
         } else {
-            URI logoutUri = UriBuilder.fromUri(endSessionEndpoint)
-                    .queryParam("post_logout_redirect_uri", postLogoutRedirectUri)
-                    .build();
-            httpServletResponse.sendRedirect(logoutUri.toString());
+            removeOidcRequestCookie(httpServletResponse);
+
+            // report the unsuccessful logout
+            final AuthenticationErrorResponse errorOidcResponse = (AuthenticationErrorResponse) oidcResponse;
+            throw new IllegalStateException("Unsuccessful logout attempt: " + errorOidcResponse.getErrorObject().getDescription());
         }
     }
 
@@ -746,6 +860,10 @@ public class AccessResource extends ApplicationResource {
 
     private String getOidcCallback() {
         return generateResourceUri("access", "oidc", "callback");
+    }
+
+    private String getOidcLogoutCallback() {
+        return generateResourceUri("access", "oidc", "logout", "callback");
     }
 
     private void removeOidcRequestCookie(final HttpServletResponse httpServletResponse) {
@@ -831,5 +949,134 @@ public class AccessResource extends ApplicationResource {
 
     private boolean isOIDCLoginSupported(HttpServletRequest request) {
         return request.isSecure() && oidcService != null && oidcService.isOidcEnabled();
+    }
+
+    private String determineLogoutMethod() {
+        if (oidcService.getEndSessionEndpoint() != null) {
+            return ID_TOKEN_LOGOUT;
+        } else if (oidcService.getRevocationEndpoint() != null) {
+            return REVOKE_ACCESS_TOKEN_LOGOUT;
+        } else {
+            return STANDARD_LOGOUT;
+        }
+    }
+
+    /**
+     * Generates the request Authorization URI for the OpenID Connect Provider. Returns an authorization
+     * URI using the provided callback URI.
+     *
+     * @param httpServletResponse the servlet response
+     * @param callback the OIDC callback URI
+     * @return the authorization URI
+     */
+    private URI oidcRequestAuthorizationCode(@Context final HttpServletResponse httpServletResponse, final String callback) {
+        final String oidcRequestIdentifier = UUID.randomUUID().toString();
+        // generate a cookie to associate this login sequence
+        final Cookie cookie = new Cookie(OIDC_REQUEST_IDENTIFIER, oidcRequestIdentifier);
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        cookie.setMaxAge(60);
+        cookie.setSecure(true);
+        httpServletResponse.addCookie(cookie);
+
+        // get the state for this request
+        final State state = oidcService.createState(oidcRequestIdentifier);
+
+        // build the authorization uri
+        final URI authorizationUri = UriBuilder.fromUri(oidcService.getAuthorizationEndpoint())
+                .queryParam("client_id", oidcService.getClientId())
+                .queryParam("response_type", "code")
+                .queryParam("scope", oidcService.getScope().toString())
+                .queryParam("state", state.getValue())
+                .queryParam("redirect_uri", callback)
+                .build();
+        return authorizationUri;
+    }
+
+    private String getOidcRequestIdentifier(final HttpServletRequest httpServletRequest) {
+        return getCookieValue(httpServletRequest.getCookies(), OIDC_REQUEST_IDENTIFIER);
+    }
+
+    private com.nimbusds.openid.connect.sdk.AuthenticationResponse parseAuthenticationResponse(final URI requestUri,
+                                                                                               final HttpServletResponse httpServletResponse,
+                                                                                               final boolean isLogin) {
+        final com.nimbusds.openid.connect.sdk.AuthenticationResponse oidcResponse;
+        try {
+            oidcResponse = AuthenticationResponseParser.parse(requestUri);
+        } catch (final ParseException e) {
+            final String loginOrLogoutString = isLogin ? "login" : "logout";
+            logger.error(String.format("Unable to parse the redirect URI from the OpenId Connect Provider. Unable to continue %s process.", loginOrLogoutString));
+
+            // remove the oidc request cookie
+            removeOidcRequestCookie(httpServletResponse);
+
+            throw new IllegalStateException(String.format("Unable to parse the redirect URI from the OpenId Connect Provider. Unable to continue %s process.", loginOrLogoutString));
+        }
+        return oidcResponse;
+    }
+
+    private void validateOIDCState(final String oidcRequestIdentifier,
+                                   final AuthenticationSuccessResponse successfulOidcResponse,
+                                   final HttpServletResponse httpServletResponse,
+                                   final boolean isLogin) {
+        // confirm state
+        final State state = successfulOidcResponse.getState();
+        if (state == null || !oidcService.isStateValid(oidcRequestIdentifier, state)) {
+            final String loginOrLogoutMessage = isLogin ? "login" : "logout";
+            logger.error(String.format("The state value returned by the OpenId Connect Provider does not match the stored state. Unable to continue %s process.", loginOrLogoutMessage));
+
+            // remove the oidc request cookie
+            removeOidcRequestCookie(httpServletResponse);
+
+            throw new IllegalStateException(String.format("Purposed state does not match the stored state. Unable to continue %s process.", loginOrLogoutMessage));
+        }
+    }
+
+    /**
+     * Sends a POST request to the revoke endpoint to log out of the ID Provider.
+     *
+     * @param httpServletResponse the servlet response
+     * @param accessToken the OpenID Connect Provider access token
+     * @param revokeEndpoint the name of the cookie
+     * @throws IOException exceptional case for communication error with the OpenId Connect Provider
+     */
+    private void revokeEndpointRequest(@Context HttpServletResponse httpServletResponse, String accessToken, URI revokeEndpoint) throws IOException, NoSuchAlgorithmException {
+        final CloseableHttpClient httpClient = getHttpClient();
+        HttpPost httpPost = new HttpPost(revokeEndpoint);
+
+        List<NameValuePair> params = new ArrayList<>();
+        // Append a query param with the access token
+        params.add(new BasicNameValuePair("token", accessToken));
+        httpPost.setEntity(new UrlEncodedFormEntity(params));
+
+        try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
+            if (response.getStatusLine().getStatusCode() == HTTPResponse.SC_OK) {
+                // redirect to NiFi Registry page after logout completes
+                logger.debug("You are logged out of the OpenId Connect Provider.");
+                final String postLogoutRedirectUri = getNiFiRegistryUri();
+                httpServletResponse.sendRedirect(postLogoutRedirectUri);
+            } else {
+                logger.error("There was an error logging out of the OpenId Connect Provider. " +
+                        "Response status: " + response.getStatusLine().getStatusCode());
+            }
+        } finally {
+            httpClient.close();
+        }
+    }
+
+    private CloseableHttpClient getHttpClient() throws NoSuchAlgorithmException {
+        final int msTimeout = 30_000;
+        RequestConfig config = RequestConfig.custom()
+                .setConnectTimeout(msTimeout)
+                .setConnectionRequestTimeout(msTimeout)
+                .setSocketTimeout(msTimeout)
+                .build();
+
+        HttpClientBuilder builder = HttpClientBuilder
+                .create()
+                .setDefaultRequestConfig(config)
+                .setSSLContext(SSLContext.getDefault());
+
+        return builder.build();
     }
 }

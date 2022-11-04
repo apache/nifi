@@ -72,7 +72,7 @@ NfRegistry.prototype = {
      */
     logout: function () {
         var self = this;
-        self.nfRegistryApi.deleteToLogout('../nifi-registry/logout').subscribe(
+        self.nfRegistryApi.deleteToLogout().subscribe(
             function () {
                 // next call
             },
@@ -84,7 +84,7 @@ NfRegistry.prototype = {
                 self.nfStorage.removeItem('jwt');
                 delete self.nfRegistryService.currentUser.identity;
                 delete self.nfRegistryService.currentUser.anonymous;
-                self.router.navigateByUrl('login');
+                window.location.href = location.origin + '/nifi-registry/logout';
             }
         );
     },

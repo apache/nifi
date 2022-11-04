@@ -102,6 +102,15 @@ public class OidcService {
     }
 
     /**
+     * Returns the URI for the revocation endpoint.
+     *
+     * @return uri for the revocation endpoint
+     */
+    public URI getRevocationEndpoint() {
+        return identityProvider.getRevocationEndpoint();
+    }
+
+    /**
      * Returns the OpenId Connect scope.
      *
      * @return scope
@@ -195,13 +204,13 @@ public class OidcService {
      * @param authorizationGrant authorization grant
      * @throws IOException exceptional case for communication error with the OpenId Connect provider
      */
-    public void exchangeAuthorizationCode(final String oidcRequestIdentifier, final AuthorizationGrant authorizationGrant) throws IOException {
+    public void exchangeAuthorizationCodeForLoginAuthenticationToken(final String oidcRequestIdentifier, final AuthorizationGrant authorizationGrant) throws IOException {
         if (!isOidcEnabled()) {
             throw new IllegalStateException(OidcIdentityProvider.OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
         }
 
         final CacheKey oidcRequestIdentifierKey = new CacheKey(oidcRequestIdentifier);
-        final String nifiJwt = identityProvider.exchangeAuthorizationCode(authorizationGrant);
+        final String nifiJwt = identityProvider.exchangeAuthorizationCodeForLoginAuthenticationToken(authorizationGrant);
 
         try {
             // cache the jwt for later retrieval
@@ -214,6 +223,38 @@ public class OidcService {
         } catch (final ExecutionException e) {
             throw new IllegalStateException("Unable to store the login authentication token.");
         }
+    }
+
+    /**
+     * Exchanges the specified authorization grant for an access token.
+     *
+     * @param authorizationGrant authorization grant
+     * @return an Access Token string
+     * @throws IOException exceptional case for communication error with the OpenId Connect provider
+     */
+    public String exchangeAuthorizationCodeForAccessToken(final AuthorizationGrant authorizationGrant) throws Exception {
+        if (!isOidcEnabled()) {
+            throw new IllegalStateException(OidcIdentityProvider.OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
+        }
+
+        // Retrieve access token
+        return identityProvider.exchangeAuthorizationCodeForAccessToken(authorizationGrant);
+    }
+
+    /**
+     * Exchanges the specified authorization grant for an ID Token.
+     *
+     * @param authorizationGrant authorization grant
+     * @return an ID Token string
+     * @throws IOException exceptional case for communication error with the OpenId Connect provider
+     */
+    public String exchangeAuthorizationCodeForIdToken(final AuthorizationGrant authorizationGrant) throws IOException {
+        if (!isOidcEnabled()) {
+            throw new IllegalStateException(OidcIdentityProvider.OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
+        }
+
+        // Retrieve ID token
+        return identityProvider.exchangeAuthorizationCodeForIdToken(authorizationGrant);
     }
 
     /**

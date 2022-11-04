@@ -62,7 +62,7 @@ public class JwtService {
         this.keyService = keyService;
     }
 
-    public String getAuthenticationFromToken(final String base64EncodedToken) throws JwtException {
+    public String getUserIdentityFromToken(final String base64EncodedToken) throws JwtException {
         // The library representations of the JWT should be kept internal to this service.
         try {
             final Jws<Claims> jws = parseTokenFromBase64EncodedString(base64EncodedToken);
@@ -175,6 +175,20 @@ public class JwtService {
 
     }
 
+    public void deleteKey(final String userIdentity) {
+        if (userIdentity == null || userIdentity.isEmpty()) {
+            throw new JwtException("Log out failed: The user identity was not present in the request token to log out user.");
+        }
+
+        try {
+            keyService.deleteKey(userIdentity);
+            logger.info("Deleted token from database.");
+        } catch (Exception e) {
+            logger.error("Unable to delete token for user: [" + userIdentity + "].");
+            throw e;
+        }
+    }
+
     public void logOut(String userIdentity) {
         if (userIdentity == null || userIdentity.isEmpty()) {
             throw new JwtException("Log out failed: The user identity was not present in the request token to log out user.");
@@ -231,7 +245,7 @@ public class JwtService {
 
     public void logOutUsingAuthHeader(String authorizationHeader) {
         String base64EncodedToken = getTokenFromHeader(authorizationHeader);
-        logOut(getAuthenticationFromToken(base64EncodedToken));
+        logOut(getUserIdentityFromToken(base64EncodedToken));
     }
 
     public static String getTokenFromHeader(String authenticationHeader) {
