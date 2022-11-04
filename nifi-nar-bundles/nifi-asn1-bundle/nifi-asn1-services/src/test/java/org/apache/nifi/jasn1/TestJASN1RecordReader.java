@@ -59,6 +59,7 @@ public class TestJASN1RecordReader implements JASN1ReadRecordTester {
             assertEquals(789, record.getAsInt("i").intValue());
             assertEquals("0102030405", record.getValue("octStr"));
             assertEquals("Some UTF-8 String. こんにちは世界。", record.getValue("utf8Str"));
+            assertEquals("01101000", record.getValue("bitStr"));
 
             record = reader.nextRecord(true, false);
             assertNull(record);

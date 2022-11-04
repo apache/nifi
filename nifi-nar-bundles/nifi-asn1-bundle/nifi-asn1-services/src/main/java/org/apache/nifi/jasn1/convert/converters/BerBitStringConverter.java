@@ -31,7 +31,7 @@ public class BerBitStringConverter implements JASN1TypeAndValueConverter {
 
     @Override
     public DataType convertType(Class<?> berType, JASN1Converter converter) {
-        return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BOOLEAN.getDataType());
+        return RecordFieldType.STRING.getDataType();
     }
 
     @Override
@@ -43,6 +43,6 @@ public class BerBitStringConverter implements JASN1TypeAndValueConverter {
     public Object convertValue(BerType value, DataType dataType, JASN1Converter converter) {
         final BerBitString berValue = (BerBitString) value;
 
-        return berValue.getValueAsBooleans();
+        return berValue.toString();
     }
 }

@@ -17,6 +17,7 @@
 package org.apache.nifi.jasn1;
 
 import com.beanit.asn1bean.ber.ReverseByteArrayOutputStream;
+import com.beanit.asn1bean.ber.types.BerBitString;
 import com.beanit.asn1bean.ber.types.BerBoolean;
 import com.beanit.asn1bean.ber.types.BerInteger;
 import com.beanit.asn1bean.ber.types.BerOctetString;
@@ -62,6 +63,7 @@ public class ExampleDataGenerator {
             basicTypes.setI(new BerInteger(789));
             basicTypes.setOctStr(new BerOctetString(new byte[]{1, 2, 3, 4, 5}));
             basicTypes.setUtf8Str(new BerUTF8String("Some UTF-8 String. こんにちは世界。"));
+            basicTypes.setBitStr(new BerBitString(new boolean[]{false, true, true, false, true, false, false, false}));
             final int encoded = basicTypes.encode(rev);
             out.write(rev.getArray(), 0, encoded);
             LOG.info("Generated {} bytes to {}", encoded, file);
