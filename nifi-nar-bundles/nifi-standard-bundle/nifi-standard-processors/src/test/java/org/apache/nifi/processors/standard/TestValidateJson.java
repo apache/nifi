@@ -16,121 +16,161 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.opentest4j.AssertionFailedError;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Map;
 
 
-public class TestValidateJson {
+class TestValidateJson {
+    private static final Path JSON = Paths.get("src/test/resources/TestValidateJson/simple-example.json");
+    private static final String NON_JSON = "This isn't JSON!";
+    private TestRunner runner;
 
-    private TestRunner testRunner;
-    String testingJson;
-
-    @Before
-    public void init() throws IOException {
-        testRunner = TestRunners.newTestRunner(ValidateJson.class);
-        testingJson = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateJson/simple-example.json")), "UTF-8");
+    @BeforeEach
+    public void setUp() {
+        runner = TestRunners.newTestRunner(ValidateJson.class);
     }
 
     @Test
-    public void passSchema() throws IOException {
+    void testPassSchema() throws IOException {
+        Path schema = Paths.get("src/test/resources/TestValidateJson/schema-simple-example.json");
+        runner.setProperty(ValidateJson.SCHEMA_CONTENT, schema.toString());
+        runner.setProperty(ValidateJson.SCHEMA_VERSION, ValidateJson.JsonSchemaVersion.V7.name());
+        runner.enqueue(JSON);
 
-        String schema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateJson/schema-simple-example.json")), "UTF-8");
+        runner.run();
 
-        testRunner.setProperty(ValidateJson.SCHEMA_TEXT, schema);
-        testRunner.setProperty(ValidateJson.SCHEMA_VERSION, ValidateJson.SCHEMA_VERSION_7);
+        runner.assertTransferCount(ValidateJson.REL_FAILURE, 0);
+        runner.assertTransferCount(ValidateJson.REL_INVALID, 0);
+        runner.assertTransferCount(ValidateJson.REL_VALID, 1);
 
-        testRunner.enqueue(testingJson);
-        testRunner.run(1);
+        assertValidationErrors(ValidateJson.REL_VALID, false);
+    }
 
-        List<MockFlowFile> failure = testRunner.getFlowFilesForRelationship(ValidateJson.REL_FAILURE);
-        List<MockFlowFile> valid = testRunner.getFlowFilesForRelationship(ValidateJson.REL_VALID);
-        List<MockFlowFile> invalid = testRunner.getFlowFilesForRelationship(ValidateJson.REL_INVALID);
+    private void assertValidationErrors(Relationship relationship, boolean expected) {
+        Map<String, String> attributes =
+                runner.getFlowFilesForRelationship(relationship).get(0).getAttributes();
 
-        Assert.assertEquals(0, failure.size());
-        Assert.assertEquals(0, invalid.size());
-        Assert.assertEquals(1, valid.size());
-
-        Map<String, String> attributes = valid.get(0).getAttributes();
-        Assert.assertNull(attributes.get(ValidateJson.ERROR_ATTRIBUTE_KEY));
+        if(expected) {
+            // JSON library supports English and French validation output. Validate existence of message rather than value.
+            Assertions.assertFalse(attributes.get(ValidateJson.ERROR_ATTRIBUTE_KEY).isEmpty());
+        } else {
+            Assertions.assertNull(attributes.get(ValidateJson.ERROR_ATTRIBUTE_KEY));
+        }
     }
 
     @Test
-    public void failOnPatternSchemaCheck() throws IOException {
+    void testEmptySchema() throws IOException {
+        runner.setProperty(ValidateJson.SCHEMA_CONTENT, "{}");
+        runner.setProperty(ValidateJson.SCHEMA_VERSION, ValidateJson.JsonSchemaVersion.V7.name());
 
-        String schema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateJson/schema-simple-example-unmatched-pattern.json")), "UTF-8");
+        runner.enqueue(JSON);
+        runner.run();
 
-        testRunner.setProperty(ValidateJson.SCHEMA_TEXT, schema);
-        testRunner.setProperty(ValidateJson.SCHEMA_VERSION, ValidateJson.SCHEMA_VERSION_7);
+        runner.assertTransferCount(ValidateJson.REL_FAILURE, 0);
+        runner.assertTransferCount(ValidateJson.REL_INVALID, 0);
+        runner.assertTransferCount(ValidateJson.REL_VALID, 1);
 
-        testRunner.enqueue(testingJson);
-        testRunner.run(1);
-
-        List<MockFlowFile> failure = testRunner.getFlowFilesForRelationship(ValidateJson.REL_FAILURE);
-        List<MockFlowFile> valid = testRunner.getFlowFilesForRelationship(ValidateJson.REL_VALID);
-        List<MockFlowFile> invalid = testRunner.getFlowFilesForRelationship(ValidateJson.REL_INVALID);
-
-        Assert.assertEquals(0, failure.size());
-        Assert.assertEquals(0, valid.size());
-        Assert.assertEquals(1, invalid.size());
-
-        Map<String, String> attributes = invalid.get(0).getAttributes();
-        // JSON library supports English and French validation output. Validate error length, rather than value.
-        Assert.assertTrue(attributes.get(ValidateJson.ERROR_ATTRIBUTE_KEY).length() > 10);
+        assertValidationErrors(ValidateJson.REL_VALID, false);
     }
 
     @Test
-    public void failOnMissingRequiredValue() throws IOException {
+    void testAllUnknownKeywordsSchema() throws IOException {
+        runner.setProperty(ValidateJson.SCHEMA_CONTENT,
+                "{\"fruit\": \"Apple\", \"size\": \"Large\", \"color\": \"Red\"}");
+        runner.setProperty(ValidateJson.SCHEMA_VERSION, ValidateJson.JsonSchemaVersion.V7.name());
 
-        String schema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateJson/schema-simple-example-missing-required.json")), "UTF-8");
+        runner.enqueue(JSON);
+        runner.run();
 
-        testRunner.setProperty(ValidateJson.SCHEMA_TEXT, schema);
-        testRunner.setProperty(ValidateJson.SCHEMA_VERSION, ValidateJson.SCHEMA_VERSION_7);
+        runner.assertTransferCount(ValidateJson.REL_FAILURE, 0);
+        runner.assertTransferCount(ValidateJson.REL_INVALID, 0);
+        runner.assertTransferCount(ValidateJson.REL_VALID, 1);
 
-        testRunner.enqueue(testingJson);
-        testRunner.run(1);
-
-        List<MockFlowFile> failure = testRunner.getFlowFilesForRelationship(ValidateJson.REL_FAILURE);
-        List<MockFlowFile> valid = testRunner.getFlowFilesForRelationship(ValidateJson.REL_VALID);
-        List<MockFlowFile> invalid = testRunner.getFlowFilesForRelationship(ValidateJson.REL_INVALID);
-
-        Assert.assertEquals(0, failure.size());
-        Assert.assertEquals(0, valid.size());
-        Assert.assertEquals(1, invalid.size());
-
-        Map<String, String> attributes = invalid.get(0).getAttributes();
-        // JSON library supports English and French validation output. Validate error length, rather than value.
-        Assert.assertTrue(attributes.get(ValidateJson.ERROR_ATTRIBUTE_KEY).length() > 10);
+        assertValidationErrors(ValidateJson.REL_VALID, false);
     }
 
     @Test
-    public void failOnInvalidJSON() throws IOException {
+    void testPatternSchemaCheck() throws IOException {
+        Path schema =
+                Paths.get("src/test/resources/TestValidateJson/schema-simple-example-unmatched-pattern.json");
+        runner.setProperty(ValidateJson.SCHEMA_CONTENT, schema.toUri().toURL().toString());
+        runner.setProperty(ValidateJson.SCHEMA_VERSION, ValidateJson.JsonSchemaVersion.V7.name());
 
-        String schema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateJson/schema-simple-example.json")), "UTF-8");
+        runner.enqueue(JSON);
+        runner.run();
 
-        testRunner.setProperty(ValidateJson.SCHEMA_TEXT, schema);
-        testRunner.setProperty(ValidateJson.SCHEMA_VERSION, ValidateJson.SCHEMA_VERSION_7);
+        runner.assertTransferCount(ValidateJson.REL_FAILURE, 0);
+        runner.assertTransferCount(ValidateJson.REL_INVALID, 1);
+        runner.assertTransferCount(ValidateJson.REL_VALID, 0);
 
-        testRunner.enqueue("This isn't JSON!");
-        testRunner.run(1);
+        assertValidationErrors(ValidateJson.REL_INVALID, true);
+    }
 
-        List<MockFlowFile> failure = testRunner.getFlowFilesForRelationship(ValidateJson.REL_FAILURE);
-        List<MockFlowFile> valid = testRunner.getFlowFilesForRelationship(ValidateJson.REL_VALID);
-        List<MockFlowFile> invalid = testRunner.getFlowFilesForRelationship(ValidateJson.REL_INVALID);
+    @Test
+    void testMissingRequiredValue() throws IOException {
+        String schema =
+                getContent(Paths.get("src/test/resources/TestValidateJson/schema-simple-example-missing-required.json"));
+        runner.setProperty(ValidateJson.SCHEMA_CONTENT, schema);
+        runner.setProperty(ValidateJson.SCHEMA_VERSION, ValidateJson.JsonSchemaVersion.V7.name());
 
-        Assert.assertEquals(0, valid.size());
-        Assert.assertEquals(0, invalid.size());
-        Assert.assertEquals(1, failure.size());
+        runner.enqueue(JSON);
+        runner.run();
 
+        runner.assertTransferCount(ValidateJson.REL_FAILURE, 0);
+        runner.assertTransferCount(ValidateJson.REL_INVALID, 1);
+        runner.assertTransferCount(ValidateJson.REL_VALID, 0);
+
+        assertValidationErrors(ValidateJson.REL_INVALID, true);
+    }
+
+    private String getContent(Path path) throws IOException {
+        return new String(Files.readAllBytes(path));
+    }
+
+    @Test
+    void testInvalidJSON() throws IOException {
+        String schema =
+                getContent(Paths.get("src/test/resources/TestValidateJson/schema-simple-example.json"));
+        runner.setProperty(ValidateJson.SCHEMA_CONTENT, schema);
+        runner.setProperty(ValidateJson.SCHEMA_VERSION, ValidateJson.JsonSchemaVersion.V7.name());
+
+        runner.enqueue(NON_JSON);
+        runner.run();
+
+        runner.assertTransferCount(ValidateJson.REL_FAILURE, 1);
+        runner.assertTransferCount(ValidateJson.REL_INVALID, 0);
+        runner.assertTransferCount(ValidateJson.REL_VALID, 0);
+
+        assertValidationErrors(ValidateJson.REL_FAILURE, false);
+    }
+
+    @Test
+    void testNonExistingSchema() throws IOException {
+        Path schema = Paths.get("src/test/resources/TestValidateJson/does-not-exist.json");
+        runner.setProperty(ValidateJson.SCHEMA_CONTENT, schema.toString());
+        runner.setProperty(ValidateJson.SCHEMA_VERSION, ValidateJson.JsonSchemaVersion.V7.name());
+
+        runner.enqueue(JSON);
+        Assertions.assertThrows(AssertionFailedError.class, () -> runner.run());
+    }
+
+    @Test
+    void testBadSchema() throws IOException {
+        runner.setProperty(ValidateJson.SCHEMA_CONTENT, NON_JSON);
+        runner.setProperty(ValidateJson.SCHEMA_VERSION, ValidateJson.JsonSchemaVersion.V7.name());
+
+        runner.enqueue(JSON);
+        Assertions.assertThrows(AssertionFailedError.class, () -> runner.run());
     }
 }

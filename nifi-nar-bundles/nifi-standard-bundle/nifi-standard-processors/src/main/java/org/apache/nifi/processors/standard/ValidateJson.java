@@ -16,42 +16,41 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.annotation.behavior.EventDriven;
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.SideEffectFree;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.util.JsonValidator;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.ValidationMessage;
 import com.networknt.schema.SpecVersion.VersionFlag;
+import com.networknt.schema.ValidationMessage;
+import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.DescribedValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @EventDriven
 @SideEffectFree
@@ -59,36 +58,70 @@ import com.networknt.schema.SpecVersion.VersionFlag;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"JSON", "schema", "validation"})
 @WritesAttributes({
-    @WritesAttribute(attribute = "validatejson.invalid.error", description = "If the flow file is routed to the invalid relationship "
-            + "the attribute will contain the error message resulting from the validation failure.")
+    @WritesAttribute(attribute = ValidateJson.ERROR_ATTRIBUTE_KEY, description = "If the flow file is routed to the invalid relationship "
+            + ", this attribute will contain the error message resulting from the validation failure.")
 })
-@CapabilityDescription("Validates the contents of FlowFiles against a user-specified JSON Schema file")
+@CapabilityDescription("Validates the contents of FlowFiles against a user-specified JSON Schema")
 public class ValidateJson extends AbstractProcessor {
+    public enum JsonSchemaVersion implements DescribedValue {
+        V4("Version 4", "V4", VersionFlag.V4),
+        V6("Version 6", "V6", VersionFlag.V6),
+        V7("Version 7", "V7", VersionFlag.V7),
+        V201909("Version 201909", "V201909", VersionFlag.V201909),
+        V202012("Version V202012", "V202012", VersionFlag.V202012);
 
-    public static final String ERROR_ATTRIBUTE_KEY = "validatejson.invalid.error";
+        private final String description;
+        private final String displayName;
+        private final VersionFlag versionFlag;
 
-    public static final AllowableValue SCHEMA_VERSION_4 = new AllowableValue("V4");
-    public static final AllowableValue SCHEMA_VERSION_6 = new AllowableValue("V6");
-    public static final AllowableValue SCHEMA_VERSION_7 = new AllowableValue("V7");
-    public static final AllowableValue SCHEMA_VERSION_V201909 = new AllowableValue("V201909");
+        JsonSchemaVersion(String description, String displayName, VersionFlag versionFlag) {
+            this.description = description;
+            this.displayName = displayName;
+            this.versionFlag = versionFlag;
+        }
+
+        @Override
+        public String getValue() {
+            return name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
+        }
+
+        public VersionFlag getVersionFlag() {
+            return versionFlag;
+        }
+    }
+
+    public static final String ERROR_ATTRIBUTE_KEY = "json.validation.errors";
 
     public static final PropertyDescriptor SCHEMA_VERSION = new PropertyDescriptor
-        .Builder().name("SCHEMA_VERSION")
+        .Builder().name("Schema Version")
         .displayName("Schema Version")
         .description("The JSON schema specification")
         .required(true)
-        .allowableValues(SCHEMA_VERSION_4, SCHEMA_VERSION_6, SCHEMA_VERSION_7, SCHEMA_VERSION_V201909)
-        .defaultValue(SCHEMA_VERSION_V201909.getValue())
+        .allowableValues(JsonSchemaVersion.class)
+        .defaultValue(JsonSchemaVersion.V202012.getValue())
         .build();
 
-    public static final PropertyDescriptor SCHEMA_TEXT = new PropertyDescriptor
-        .Builder().name("SCHEMA_TEXT")
-        .displayName("Schema Text")
-        .description("The text of a JSON schema")
+    public static final PropertyDescriptor SCHEMA_CONTENT = new PropertyDescriptor
+        .Builder().name("JSON Schema")
+        .displayName("JSON Schema")
+        .description("The content of a JSON Schema")
         .required(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .addValidator(JsonValidator.INSTANCE)
+        .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.URL, ResourceType.TEXT)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .build();
+
+    public static final List<PropertyDescriptor> PROPERTIES =
+            Collections.unmodifiableList(Arrays.asList(SCHEMA_CONTENT, SCHEMA_VERSION));
 
     public static final Relationship REL_VALID = new Relationship.Builder()
         .name("valid")
@@ -105,97 +138,53 @@ public class ValidateJson extends AbstractProcessor {
         .description("FlowFiles that cannot be read as JSON are routed to this relationship")
         .build();
 
-    private List<PropertyDescriptor> descriptors;
+    public static final Set<Relationship> RELATIONSHIPS =
+            Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_FAILURE, REL_VALID, REL_INVALID)));
 
-    private Set<Relationship> relationships;
-
-    private List<AllowableValue> allowableValues;
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
-        descriptors.add(SCHEMA_TEXT);
-        descriptors.add(SCHEMA_VERSION);
-        this.descriptors = Collections.unmodifiableList(descriptors);
-
-        final Set<Relationship> relationships = new HashSet<Relationship>();
-        relationships.add(REL_VALID);
-        relationships.add(REL_INVALID);
-        relationships.add(REL_FAILURE);
-        this.relationships = Collections.unmodifiableSet(relationships);
-
-        final List<AllowableValue> allowableValues = new ArrayList<AllowableValue>();
-        allowableValues.add(SCHEMA_VERSION_4);
-        allowableValues.add(SCHEMA_VERSION_6);
-        allowableValues.add(SCHEMA_VERSION_7);
-        allowableValues.add(SCHEMA_VERSION_V201909);
-        this.allowableValues = Collections.unmodifiableList(allowableValues);
-
-    }
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private JsonSchema schema;
 
     @Override
     public Set<Relationship> getRelationships() {
-        return this.relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        return PROPERTIES;
     }
-
-    private ObjectMapper mapper = new ObjectMapper();
-    private VersionFlag schemaVersion;
 
     @OnScheduled
-    public void onScheduled(final ProcessContext context) {
-        // Set JSON schema version to use from processor property
-        this.schemaVersion = VersionFlag.V201909;
-        if (context.getProperty(SCHEMA_VERSION).getValue() == SCHEMA_VERSION_4.getValue()) {
-            this.schemaVersion = VersionFlag.V4;
-        }
-        if (context.getProperty(SCHEMA_VERSION).getValue() == SCHEMA_VERSION_6.getValue()) {
-            this.schemaVersion = VersionFlag.V6;
-        }
-        if (context.getProperty(SCHEMA_VERSION).getValue() == SCHEMA_VERSION_7.getValue()) {
-            this.schemaVersion = VersionFlag.V7;
-        }
-        if (context.getProperty(SCHEMA_VERSION).getValue() == SCHEMA_VERSION_V201909.getValue()) {
-            this.schemaVersion = VersionFlag.V201909;
+    public void onScheduled(final ProcessContext context) throws IOException {
+        try (final InputStream inputStream = context.getProperty(SCHEMA_CONTENT).asResource().read()) {
+            JsonSchemaVersion jsonSchemaVersion =
+                    JsonSchemaVersion.valueOf(context.getProperty(SCHEMA_VERSION).getValue());
+            JsonSchemaFactory factory = JsonSchemaFactory.getInstance(jsonSchemaVersion.getVersionFlag());
+            schema = factory.getSchema(inputStream);
         }
     }
-
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
-        if ( flowFile == null ) {
+        if (flowFile == null) {
             return;
         }
 
         try (InputStream in = session.read(flowFile)) {
-            // Read in flowFile inputstream, and validate against schema
-            JsonNode node = mapper.readTree(in);
-            String schemaText = context.getProperty(SCHEMA_TEXT).evaluateAttributeExpressions().getValue();
-            JsonSchemaFactory factory = JsonSchemaFactory.getInstance(schemaVersion);
-            JsonSchema schema = factory.getSchema(schemaText);
+            JsonNode node = MAPPER.readTree(in);
             Set<ValidationMessage> errors = schema.validate(node);
 
-            if (errors.size() > 0) {
-                // Schema checks failed
-                flowFile = session.putAttribute(flowFile, ERROR_ATTRIBUTE_KEY, errors.toString());
-                this.getLogger().info("Found {} to be invalid when validated against schema; routing to 'invalid'", flowFile);
-                session.getProvenanceReporter().route(flowFile, REL_INVALID);
-                session.transfer(flowFile, REL_INVALID);
-            } else {
-                // Schema check passed
-                this.getLogger().debug("Successfully validated {} against schema; routing to 'valid'", flowFile);
-                session.getProvenanceReporter().route(flowFile, REL_VALID);
+            if(errors.isEmpty()) {
+                getLogger().debug("JSON {} valid", flowFile);
                 session.transfer(flowFile, REL_VALID);
+            } else {
+                flowFile = session.putAttribute(flowFile, ERROR_ATTRIBUTE_KEY, errors.toString());
+                getLogger().warn("JSON {} invalid: Validation Errors [{}]", flowFile, errors.size());
+                session.transfer(flowFile, REL_INVALID);
             }
-
         } catch (IOException ioe) {
-            // Failed to read flowFile
-            this.getLogger().error("Failed to process {}, routing to 'failure' details:", flowFile, ioe);
+            getLogger().error("JSON processing failed {}", flowFile, ioe);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
