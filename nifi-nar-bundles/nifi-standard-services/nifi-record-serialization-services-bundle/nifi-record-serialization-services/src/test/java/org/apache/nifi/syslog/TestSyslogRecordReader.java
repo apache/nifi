@@ -157,18 +157,12 @@ public class TestSyslogRecordReader {
 
             Record record = deserializer.nextRecord();
             int count = 0;
-            int exceptionCount = 0;
             while (record != null){
                 assertNotNull(record.getValues());
-                try {
-                    record = deserializer.nextRecord();
-                    count++;
-                } catch (Exception e) {
-                    exceptionCount++;
-                }
+                record = deserializer.nextRecord();
+                count++;
             }
-            assertEquals(count, 3);
-            assertEquals(exceptionCount,1);
+            assertEquals(3, count);
             deserializer.close();
         }
     }
