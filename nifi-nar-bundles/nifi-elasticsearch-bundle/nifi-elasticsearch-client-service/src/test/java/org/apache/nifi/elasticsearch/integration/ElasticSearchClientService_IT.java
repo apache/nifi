@@ -18,9 +18,11 @@
 package org.apache.nifi.elasticsearch.integration;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.VerifiableControllerService;
+import org.apache.nifi.elasticsearch.AuthorizationScheme;
 import org.apache.nifi.elasticsearch.DeleteOperationResponse;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl;
@@ -41,6 +43,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -66,10 +69,6 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         service.onDisabled();
     }
 
-    private String prettyJson(final Object o) throws JsonProcessingException {
-        return MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(o);
-    }
-
     private Map<PropertyDescriptor, String> getClientServiceProperties() {
         return ((MockControllerServiceLookup) runner.getProcessContext().getControllerServiceLookup())
                 .getControllerServices().get(CLIENT_SERVICE_NAME).getProperties();
@@ -77,6 +76,27 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
 
     @Test
     void testVerifySuccess() {
+        final List<ConfigVerificationResult> results = ((VerifiableControllerService) service).verify(
+                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
+                runner.getLogger(),
+                Collections.emptyMap()
+        );
+        assertEquals(3, results.size());
+        assertEquals(3, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SUCCESSFUL).count(), results.toString());
+    }
+
+    @Test
+    void testVerifySuccessWithApiKeyAuth() throws IOException {
+        final Pair<String, String> apiKey = createApiKeyForIndex("*");
+
+        runner.disableControllerService(service);
+        runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY.getValue());
+        runner.removeProperty(service, ElasticSearchClientService.USERNAME);
+        runner.removeProperty(service, ElasticSearchClientService.PASSWORD);
+        runner.setProperty(service, ElasticSearchClientService.API_KEY_ID, apiKey.getKey());
+        runner.setProperty(service, ElasticSearchClientService.API_KEY, apiKey.getValue());
+        runner.enableControllerService(service);
+
         final List<ConfigVerificationResult> results = ((VerifiableControllerService) service).verify(
                 new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
                 runner.getLogger(),
@@ -140,6 +160,32 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         runner.disableControllerService(service);
         runner.setProperty(service, ElasticSearchClientService.USERNAME, "invalid");
         runner.setProperty(service, ElasticSearchClientService.PASSWORD, "not-real");
+
+        final List<ConfigVerificationResult> results = ((VerifiableControllerService) service).verify(
+                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
+                runner.getLogger(),
+                Collections.emptyMap()
+        );
+        assertEquals(3, results.size());
+        assertEquals(1, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SUCCESSFUL).count(), results.toString());
+        assertEquals(1, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
+        assertEquals(1, results.stream().filter(
+                result -> Objects.equals(result.getVerificationStepName(), ElasticSearchClientServiceImpl.VERIFICATION_STEP_CONNECTION)
+                        && Objects.equals(result.getExplanation(), "Unable to retrieve system summary from Elasticsearch root endpoint")
+                        && result.getOutcome() == ConfigVerificationResult.Outcome.FAILED).count(),
+                results.toString()
+        );
+    }
+
+    @Test
+    void testVerifyFailedApiKeyAuth() {
+        runner.disableControllerService(service);
+        runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY.getValue());
+        runner.removeProperty(service, ElasticSearchClientService.USERNAME);
+        runner.removeProperty(service, ElasticSearchClientService.PASSWORD);
+        runner.setProperty(service, ElasticSearchClientService.API_KEY_ID, "invalid");
+        runner.setProperty(service, ElasticSearchClientService.API_KEY, "not-real");
+        runner.enableControllerService(service);
 
         final List<ConfigVerificationResult> results = ((VerifiableControllerService) service).verify(
                 new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
@@ -755,4 +801,5 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     private static void waitForIndexRefresh() throws InterruptedException {
         Thread.sleep(1000);
     }
+
 }

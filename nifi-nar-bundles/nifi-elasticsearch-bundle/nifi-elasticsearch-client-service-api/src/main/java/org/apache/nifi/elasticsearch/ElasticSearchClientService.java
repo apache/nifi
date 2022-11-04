@@ -43,6 +43,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+
     PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("el-cs-ssl-context-service")
             .displayName("SSL Context Service")
@@ -53,23 +54,58 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .addValidator(Validator.VALID)
             .build();
     PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxySpec.HTTP);
+
+    PropertyDescriptor AUTHORIZATION_SCHEME = new PropertyDescriptor.Builder()
+            .name("authorization-scheme")
+            .displayName("Authorization Scheme")
+            .description("Authorization Scheme used for authenticating to Elasticsearch using the HTTP Authorization header.")
+            .allowableValues(AuthorizationScheme.class)
+            .defaultValue(AuthorizationScheme.BASIC.getValue())
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .name("el-cs-username")
             .displayName("Username")
             .description("The username to use with XPack security.")
+            .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.BASIC.getValue())
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+
     PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("el-cs-password")
             .displayName("Password")
             .description("The password to use with XPack security.")
+            .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.BASIC.getValue())
             .required(false)
             .sensitive(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+
+    PropertyDescriptor API_KEY_ID = new PropertyDescriptor.Builder()
+            .name("api-key-id")
+            .displayName("API Key ID")
+            .description("Unique identifier of the API key.")
+            .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY.getValue())
+            .required(false)
+            .sensitive(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    PropertyDescriptor API_KEY = new PropertyDescriptor.Builder()
+            .name("api-key")
+            .displayName("API Key")
+            .description("Encoded API key.")
+            .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY.getValue())
+            .required(false)
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
             .name("el-cs-connect-timeout")
             .displayName("Connect timeout")
@@ -78,6 +114,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .defaultValue("5000")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
+
     PropertyDescriptor SOCKET_TIMEOUT = new PropertyDescriptor.Builder()
             .name("el-cs-socket-timeout")
             .displayName("Read timeout")
@@ -99,6 +136,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .defaultValue("60000")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
+
     PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("el-cs-charset")
             .displayName("Charset")

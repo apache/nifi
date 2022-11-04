@@ -16,15 +16,20 @@
  */
 package org.apache.nifi.elasticsearch.integration;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.compress.utils.IOUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.nio.entity.NStringEntity;
+import org.apache.nifi.elasticsearch.MapBuilder;
 import org.apache.nifi.util.TestRunner;
 import org.elasticsearch.client.Request;
+import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.RestClient;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,12 +39,16 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static org.apache.http.auth.AuthScope.ANY;
 
@@ -148,6 +157,36 @@ public abstract class AbstractElasticsearchITBase {
         } catch (final IOException ioe) {
             throw new IllegalStateException("Error deleting index " + index, ioe);
         }
+    }
+
+    protected String prettyJson(final Object o) throws JsonProcessingException {
+        return MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(o);
+    }
+
+    protected Pair<String, String> createApiKeyForIndex(String index) throws IOException {
+        final String body = prettyJson(new MapBuilder()
+                .of("name", "test-api-key")
+                .of("role_descriptors", new MapBuilder()
+                        .of("test-role", new MapBuilder()
+                                .of("cluster", Collections.singletonList("all"))
+                                .of("index", Collections.singletonList(new MapBuilder()
+                                        .of("names", Collections.singletonList(index))
+                                        .of("privileges", Collections.singletonList("all"))
+                                        .build()))
+                                .build())
+                        .build())
+                .build());
+        final String endpoint = String.format("%s/%s", elasticsearchHost, "_security/api_key");
+        final Request request = new Request("POST", endpoint);
+        final HttpEntity jsonBody = new NStringEntity(body, ContentType.APPLICATION_JSON);
+        request.setEntity(jsonBody);
+
+        final Response response = testDataManagementClient.performRequest(request);
+        final InputStream inputStream = response.getEntity().getContent();
+        final byte[] result = IOUtils.toByteArray(inputStream);
+        inputStream.close();
+        final Map<String, String> ret = MAPPER.readValue(new String(result, StandardCharsets.UTF_8), Map.class);
+        return Pair.of(ret.get("id"), ret.get("api_key"));
     }
 
     private static List<SetupAction> readSetupActions(final String scriptPath) throws IOException {
