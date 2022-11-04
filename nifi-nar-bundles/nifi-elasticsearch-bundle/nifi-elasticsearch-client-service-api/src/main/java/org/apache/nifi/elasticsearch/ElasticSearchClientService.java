@@ -43,6 +43,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+
     PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("el-cs-ssl-context-service")
             .displayName("SSL Context Service")
@@ -53,23 +54,63 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .addValidator(Validator.VALID)
             .build();
     PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxySpec.HTTP);
+
+    AllowableValue ALLOWABLE_VALUE_BASIC_AUTH = new AllowableValue(AuthorizationScheme.BASIC.name(), AuthorizationScheme.BASIC.getDisplayName());
+    AllowableValue ALLOWABLE_VALUE_API_KEY = new AllowableValue(AuthorizationScheme.API_KEY.name(), AuthorizationScheme.API_KEY.getDisplayName());
+
+    PropertyDescriptor AUTHORIZATION_SCHEME = new PropertyDescriptor.Builder()
+            .name("authorization-scheme")
+            .displayName("Authorization Scheme")
+            .description("Authorization Scheme used for the authorization.")
+            .allowableValues(ALLOWABLE_VALUE_BASIC_AUTH, ALLOWABLE_VALUE_API_KEY)
+            .defaultValue(ALLOWABLE_VALUE_BASIC_AUTH.getValue())
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .name("el-cs-username")
             .displayName("Username")
             .description("The username to use with XPack security.")
+            .dependsOn(AUTHORIZATION_SCHEME, ALLOWABLE_VALUE_BASIC_AUTH)
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+
     PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("el-cs-password")
             .displayName("Password")
             .description("The password to use with XPack security.")
+            .dependsOn(AUTHORIZATION_SCHEME, ALLOWABLE_VALUE_BASIC_AUTH)
             .required(false)
             .sensitive(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+
+    PropertyDescriptor API_KEY_ID = new PropertyDescriptor.Builder()
+            .name("api-key-id")
+            .displayName("API key id")
+            .description("Unique id of the API key")
+            .dependsOn(AUTHORIZATION_SCHEME, ALLOWABLE_VALUE_API_KEY)
+            .required(false)
+            .sensitive(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    PropertyDescriptor API_KEY = new PropertyDescriptor.Builder()
+            .name("api-key")
+            .displayName("API key")
+            .description("API key")
+            .dependsOn(AUTHORIZATION_SCHEME, ALLOWABLE_VALUE_API_KEY)
+            .required(false)
+            .sensitive(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
             .name("el-cs-connect-timeout")
             .displayName("Connect timeout")
@@ -78,6 +119,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .defaultValue("5000")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
+
     PropertyDescriptor SOCKET_TIMEOUT = new PropertyDescriptor.Builder()
             .name("el-cs-socket-timeout")
             .displayName("Read timeout")
@@ -99,6 +141,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .defaultValue("60000")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
+
     PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("el-cs-charset")
             .displayName("Charset")

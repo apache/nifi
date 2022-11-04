@@ -29,11 +29,14 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.message.BasicHeader;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
@@ -60,6 +63,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -85,8 +90,11 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     static {
         final List<PropertyDescriptor> props = new ArrayList<>();
         props.add(ElasticSearchClientService.HTTP_HOSTS);
+        props.add(ElasticSearchClientService.AUTHORIZATION_SCHEME);
         props.add(ElasticSearchClientService.USERNAME);
         props.add(ElasticSearchClientService.PASSWORD);
+        props.add(ElasticSearchClientService.API_KEY_ID);
+        props.add(ElasticSearchClientService.API_KEY);
         props.add(ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE);
         props.add(ElasticSearchClientService.PROXY_CONFIGURATION_SERVICE);
         props.add(ElasticSearchClientService.CONNECT_TIMEOUT);
@@ -101,6 +109,31 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>(1);
+
+        final boolean usernameSet = validationContext.getProperty(USERNAME).isSet();
+        final boolean passwordSet = validationContext.getProperty(PASSWORD).isSet();
+
+        if ((usernameSet && !passwordSet) || (!usernameSet && passwordSet)) {
+            results.add(new ValidationResult.Builder().subject("Username and Password").valid(false).explanation("if Username or Password is set, both must be set.").build());
+        }
+
+        final boolean apiKeyIdSet = validationContext.getProperty(API_KEY_ID).isSet();
+        final boolean apiKeySet = validationContext.getProperty(API_KEY).isSet();
+
+        if ((apiKeyIdSet && !apiKeySet) || (!apiKeyIdSet && apiKeySet)) {
+            results.add(new ValidationResult.Builder().subject("API key and API key id").valid(false).explanation("if 'API key id' or 'API key' is set, both must be set.").build());
+        }
+
+        if (usernameSet && apiKeyIdSet) {
+            results.add(new ValidationResult.Builder().subject("Username and Api key id").valid(false).explanation("Username and 'API key id' cannot be used together.").build());
+        }
+
+        return results;
     }
 
     @OnEnabled
@@ -206,6 +239,9 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
         final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
 
+        final String apiKeyId = context.getProperty(API_KEY_ID).evaluateAttributeExpressions().getValue();
+        final String apiKey = context.getProperty(API_KEY).evaluateAttributeExpressions().getValue();
+
         final Integer connectTimeout = context.getProperty(CONNECT_TIMEOUT).asInteger();
         final Integer readTimeout    = context.getProperty(SOCKET_TIMEOUT).asInteger();
 
@@ -235,6 +271,11 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                     CredentialsProvider credentialsProvider = null;
                     if (username != null && password != null) {
                         credentialsProvider = addCredentials(null, AuthScope.ANY, username, password);
+                    }
+
+                    if (apiKeyId != null && apiKey != null) {
+                        final String apiKeyAuth = Base64.getEncoder().encodeToString((apiKeyId + ":" + apiKey).getBytes(StandardCharsets.UTF_8));
+                        httpClientBuilder.setDefaultHeaders(Collections.singletonList(new BasicHeader("Authorization", "ApiKey " + apiKeyAuth)));
                     }
 
                     if (proxyConfigurationService != null) {
