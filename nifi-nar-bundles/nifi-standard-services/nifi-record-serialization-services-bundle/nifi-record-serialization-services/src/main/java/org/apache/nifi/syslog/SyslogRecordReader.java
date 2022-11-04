@@ -26,6 +26,8 @@ import org.apache.nifi.syslog.attributes.SyslogAttributes;
 import org.apache.nifi.syslog.events.SyslogEvent;
 import org.apache.nifi.syslog.parsers.SyslogParser;
 import org.apache.nifi.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -36,6 +38,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class SyslogRecordReader implements RecordReader {
+    private static final Logger logger = LoggerFactory.getLogger(SyslogRecordReader.class);
+
     private final BufferedReader reader;
     private RecordSchema schema;
     private final SyslogParser parser;
@@ -50,24 +54,27 @@ public class SyslogRecordReader implements RecordReader {
 
     @Override
     public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) throws IOException, MalformedRecordException {
-        String line = reader.readLine();
+        String line;
+        while (true) {
+            line = reader.readLine();
 
-        if (line == null) {
-            // a null return from readLine() signals the end of the stream
-            return null;
+            if (line == null) {
+                // a null return from readLine() signals the end of the stream
+                return null;
+            }
+
+            if (StringUtils.isBlank(line)) {
+                logger.debug("Encountered empty line, will skip");
+                continue;
+            }
+
+            break;
         }
 
-        if (StringUtils.isBlank(line)) {
-            // while an empty string is an error
-            throw new MalformedRecordException("Encountered a blank message!");
-        }
-
-
-        final MalformedRecordException malformedRecordException;
-        SyslogEvent event = parser.parseEvent(ByteBuffer.wrap(line.getBytes(parser.getCharsetName())));
+        final SyslogEvent event = parser.parseEvent(ByteBuffer.wrap(line.getBytes(parser.getCharsetName())));
 
         if (!event.isValid()) {
-            malformedRecordException = new MalformedRecordException(
+            final MalformedRecordException malformedRecordException = new MalformedRecordException(
                     String.format("Failed to parse %s as a Syslog message: it does not conform to any of the RFC" +
                             " formats supported", line));
             throw malformedRecordException;
