@@ -230,4 +230,7 @@ public class ApplicationResource {
         return revisionInfo;
     }
 
+    protected String getNiFiRegistryUri() {
+        return generateResourceUri("..", "nifi-registry");
+    }
 }

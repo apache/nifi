@@ -61,6 +61,13 @@ public interface OidcIdentityProvider {
     URI getEndSessionEndpoint();
 
     /**
+     * Returns the URI for the revocation endpoint.
+     *
+     * @return uri for the revocation endpoint
+     */
+    URI getRevocationEndpoint();
+
+    /**
      * Returns the scopes supported by the OIDC provider.
      *
      * @return support scopes
@@ -75,5 +82,23 @@ public interface OidcIdentityProvider {
      * @return a NiFi JWT
      * @throws IOException if there was an exceptional error while communicating with the OIDC provider
      */
-    String exchangeAuthorizationCode(AuthorizationGrant authorizationGrant) throws IOException;
+    String exchangeAuthorizationCodeForLoginAuthenticationToken(AuthorizationGrant authorizationGrant) throws IOException;
+
+    /**
+     * Exchanges the supplied authorization grant for an Access Token.
+     *
+     * @param authorizationGrant authorization grant for invoking the Token Endpoint
+     * @return an Access Token String
+     * @throws Exception if there was an exceptional error while communicating with the OIDC provider
+     */
+    String exchangeAuthorizationCodeForAccessToken(AuthorizationGrant authorizationGrant) throws Exception;
+
+    /**
+     * Exchanges the supplied authorization grant for an ID Token.
+     *
+     * @param authorizationGrant authorization grant for invoking the Token Endpoint
+     * @return an ID Token String
+     * @throws IOException if there was an exceptional error while communicating with the OIDC provider
+     */
+    String exchangeAuthorizationCodeForIdToken(final AuthorizationGrant authorizationGrant) throws IOException;
 }
