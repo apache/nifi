@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
 
 public interface ElasticsearchRestProcessor extends VerifiableProcessor {
     String ATTR_RECORD_COUNT = "record.count";
+    String VERIFICATION_STEP_INDEX_EXISTS = "Elasticsearch Index Exists";
 
     PropertyDescriptor INDEX = new PropertyDescriptor.Builder()
             .name("el-rest-fetch-index")
@@ -137,8 +138,6 @@ public interface ElasticsearchRestProcessor extends VerifiableProcessor {
                 ));
     }
 
-    String VERIFICATION_STEP_INDEX_EXISTS = "Elasticsearch Index Exists";
-
     @Override
     default List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
         final List<ConfigVerificationResult> results = new ArrayList<>();
@@ -158,8 +157,12 @@ public interface ElasticsearchRestProcessor extends VerifiableProcessor {
                                 .explanation(String.format("Index [%s] exists", index));
                         indexExists = true;
                     } else {
-                        indexExistsResult.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
-                                .explanation(String.format("Index [%s] does not exist", index));
+                        if (isIndexNotExistSuccessful()) {
+                            indexExistsResult.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL);
+                        } else {
+                            indexExistsResult.outcome(ConfigVerificationResult.Outcome.FAILED);
+                        }
+                        indexExistsResult.explanation(String.format("Index [%s] does not exist", index));
                     }
                 } catch (final Exception ex) {
                     verificationLogger.error("Error checking whether index [{}] exists", index, ex);
@@ -179,6 +182,8 @@ public interface ElasticsearchRestProcessor extends VerifiableProcessor {
 
         return results;
     }
+
+    boolean isIndexNotExistSuccessful();
 
     @SuppressWarnings("unused")
     default List<ConfigVerificationResult> verifyAfterIndex(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes,

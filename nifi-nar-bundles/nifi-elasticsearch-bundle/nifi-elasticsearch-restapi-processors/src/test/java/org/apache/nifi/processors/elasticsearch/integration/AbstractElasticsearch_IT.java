@@ -29,6 +29,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -79,16 +80,16 @@ abstract class AbstractElasticsearch_IT extends AbstractElasticsearchITBase {
     }
 
     @Test
-    void testVerifyIndexExists() {
+    void testVerifyIndexExists() throws Exception {
         final List<ConfigVerificationResult> results = ((VerifiableProcessor) runner.getProcessor()).verify(
                 runner.getProcessContext(), runner.getLogger(), Collections.emptyMap()
         );
 
-        assertIndexVerificationResults(results, String.format("Index [%s] exists", INDEX));
+        assertIndexVerificationResults(results, true, String.format("Index [%s] exists", INDEX));
     }
 
     @Test
-    void testVerifyIndexDoesNotExist() {
+    void testVerifyIndexDoesNotExist() throws Exception {
         final String notExists = "not-exists";
         runner.setProperty(ElasticsearchRestProcessor.INDEX, notExists);
 
@@ -96,10 +97,11 @@ abstract class AbstractElasticsearch_IT extends AbstractElasticsearchITBase {
                 runner.getProcessContext(), runner.getLogger(), Collections.emptyMap()
         );
 
-        assertIndexVerificationResults(results, String.format("Index [%s] does not exist", notExists));
+        assertIndexVerificationResults(results, false, String.format("Index [%s] does not exist", notExists));
     }
 
-    private void assertIndexVerificationResults(final List<ConfigVerificationResult> results, final String expectedExplanation) {
+    private void assertIndexVerificationResults(final List<ConfigVerificationResult> results, final boolean expectedExists, final String expectedExplanation)
+            throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
         // allow for extra verification test results beyond Index Exist
         assertTrue(results.size() >= 1);
         final List<ConfigVerificationResult> indexResults = results.stream()
@@ -107,7 +109,19 @@ abstract class AbstractElasticsearch_IT extends AbstractElasticsearchITBase {
                 .collect(Collectors.toList());
         assertEquals(1, indexResults.size(), results.toString());
         final ConfigVerificationResult result = indexResults.get(0);
-        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, result.getOutcome(), results.toString());
+
+        final ElasticsearchRestProcessor processor = (ElasticsearchRestProcessor) getTestProcessorClass().getConstructor().newInstance();
+        final ConfigVerificationResult.Outcome expectedOutcome;
+        if (processor.isIndexNotExistSuccessful()) {
+            expectedOutcome = ConfigVerificationResult.Outcome.SUCCESSFUL;
+        } else {
+            if (expectedExists) {
+                expectedOutcome = ConfigVerificationResult.Outcome.SUCCESSFUL;
+            } else {
+                expectedOutcome = ConfigVerificationResult.Outcome.FAILED;
+            }
+        }
+        assertEquals(expectedOutcome, result.getOutcome(), results.toString());
         assertEquals(expectedExplanation, result.getExplanation(), results.toString());
     }
 }

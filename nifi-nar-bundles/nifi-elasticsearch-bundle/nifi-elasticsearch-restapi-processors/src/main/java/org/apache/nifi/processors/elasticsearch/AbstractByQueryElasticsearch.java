@@ -101,6 +101,11 @@ public abstract class AbstractByQueryElasticsearch extends AbstractProcessor imp
                 .build();
     }
 
+    @Override
+    public boolean isIndexNotExistSuccessful() {
+        return false;
+    }
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         clientService.set(context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class));

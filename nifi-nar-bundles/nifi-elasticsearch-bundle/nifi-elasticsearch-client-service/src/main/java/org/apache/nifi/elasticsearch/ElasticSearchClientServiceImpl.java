@@ -275,16 +275,22 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         return cp;
     }
 
+    private void appendIndex(final StringBuilder sb, final String index) {
+        if (StringUtils.isNotBlank(index) && !"/".equals(index)) {
+            if (!index.startsWith("/")) {
+                sb.append("/");
+            }
+            sb.append(index);
+        }
+    }
+
     private Response runQuery(final String endpoint, final String query, final String index, final String type, final Map<String, String> requestParameters) {
         final StringBuilder sb = new StringBuilder();
-        if (StringUtils.isNotBlank(index)) {
-            sb.append("/").append(index);
-        }
+        appendIndex(sb, index);
         if (StringUtils.isNotBlank(type)) {
             sb.append("/").append(type);
         }
-
-        sb.append(String.format("/%s", endpoint));
+        sb.append("/").append(endpoint);
 
         final HttpEntity queryEntity = new NStringEntity(query, ContentType.APPLICATION_JSON);
         try {
@@ -484,9 +490,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     public void refresh(final String index, final Map<String, String> requestParameters) {
         try {
             final StringBuilder endpoint = new StringBuilder();
-            if (StringUtils.isNotBlank(index) && !"/".equals(index)) {
-                endpoint.append("/").append(index);
-            }
+            appendIndex(endpoint, index);
             endpoint.append("/_refresh");
             final Response response = performRequest("POST", endpoint.toString(), requestParameters, null);
             parseResponseWarningHeaders(response);
@@ -498,7 +502,9 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     @Override
     public boolean exists(final String index, final Map<String, String> requestParameters) {
         try {
-            final Response response = performRequest("HEAD", "/" + index, requestParameters, null);
+            final StringBuilder endpoint = new StringBuilder();
+            appendIndex(endpoint, index);
+            final Response response = performRequest("HEAD", endpoint.toString(), requestParameters, null);
             parseResponseWarningHeaders(response);
 
             if (response.getStatusLine().getStatusCode() == 200) {
@@ -520,7 +526,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     public Map<String, Object> get(final String index, final String type, final String id, final Map<String, String> requestParameters) {
         try {
             final StringBuilder endpoint = new StringBuilder();
-            endpoint.append("/").append(index);
+            appendIndex(endpoint, index);
             if (StringUtils.isNotBlank(type)) {
                 endpoint.append("/").append(type);
             } else {
@@ -581,7 +587,10 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                     put("keep_alive", keepAlive);
                 }
             }};
-            final Response response = performRequest("POST", "/" + index + "/_pit", params, null);
+            final StringBuilder endpoint = new StringBuilder();
+            appendIndex(endpoint, index);
+            endpoint.append("/_pit");
+            final Response response = performRequest("POST", endpoint.toString(), params, null);
             final String body = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
             parseResponseWarningHeaders(response);
 
@@ -700,11 +709,13 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
     @Override
     public String getTransitUrl(final String index, final String type) {
-        return this.url +
-                (StringUtils.isNotBlank(index) ? "/" : "") +
-                (StringUtils.isNotBlank(index) ? index : "") +
-                (StringUtils.isNotBlank(type) ? "/" : "") +
-                (StringUtils.isNotBlank(type) ? type : "");
+        final StringBuilder transitUrl = new StringBuilder();
+        transitUrl.append(this.url);
+        appendIndex(transitUrl, index);
+        if (StringUtils.isNotBlank(type)) {
+            transitUrl.append("/").append(type);
+        }
+        return transitUrl.toString();
     }
 
     private Response performRequest(final String method, final String endpoint, final Map<String, String> parameters, final HttpEntity entity) throws IOException {

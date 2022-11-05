@@ -151,6 +151,11 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
                 .build();
     }
 
+    @Override
+    public boolean isIndexNotExistSuccessful() {
+        return false;
+    }
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         clientService.set(context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class));

@@ -70,7 +70,7 @@ class GetElasticsearch_IT extends AbstractElasticsearch_IT {
         assertEquals(1, results.stream().filter(
                         result -> Objects.equals(result.getVerificationStepName(), ElasticsearchRestProcessor.VERIFICATION_STEP_INDEX_EXISTS)
                                 && Objects.equals(result.getExplanation(), String.format("Index [%s] does not exist", notExists))
-                                && result.getOutcome() == ConfigVerificationResult.Outcome.SUCCESSFUL).count(),
+                                && result.getOutcome() == ConfigVerificationResult.Outcome.FAILED).count(),
                 results.toString()
         );
         assertEquals(1, results.stream().filter(

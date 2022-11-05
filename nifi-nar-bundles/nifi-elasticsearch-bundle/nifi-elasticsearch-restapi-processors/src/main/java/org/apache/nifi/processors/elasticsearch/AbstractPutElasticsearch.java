@@ -99,6 +99,12 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
                 .build();
     }
 
+    @Override
+    public boolean isIndexNotExistSuccessful() {
+        // index can be created during _bulk index/create operation
+        return true;
+    }
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         clientService.set(context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class));

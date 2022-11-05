@@ -154,6 +154,11 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
                 .build();
     }
 
+    @Override
+    public boolean isIndexNotExistSuccessful() {
+        return false;
+    }
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         clientService.set(context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class));
@@ -273,7 +278,7 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
             getLogger().error(msg, ese);
             if (input != null) {
                 session.penalize(input);
-                session.putAttribute(input, "elasticsearch.get.error", ese.getMessage());
+                input = session.putAttribute(input, "elasticsearch.get.error", ese.getMessage());
                 session.transfer(input, ese.isElastic() ? REL_RETRY : REL_FAILURE);
             }
         }

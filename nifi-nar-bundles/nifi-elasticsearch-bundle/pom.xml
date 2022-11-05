@@ -86,7 +86,7 @@ language governing permissions and limitations under the License. -->
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <elasticsearch_docker_image>8.4.3</elasticsearch_docker_image>
+                <elasticsearch_docker_image>8.5.0</elasticsearch_docker_image>
                 <elasticsearch.elastic.password>s3cret</elasticsearch.elastic.password>
             </properties>
             <build>
@@ -117,7 +117,7 @@ language governing permissions and limitations under the License. -->
         <profile>
             <id>elasticsearch7</id>
             <properties>
-                <elasticsearch_docker_image>7.17.6</elasticsearch_docker_image>
+                <elasticsearch_docker_image>7.17.7</elasticsearch_docker_image>
             </properties>
         </profile>
     </profiles>

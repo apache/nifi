@@ -49,14 +49,17 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>elasticsearch</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <!-- testcontainers requires elements JUnit 4 (even when running in JUnit 5 mode), expected to be removed in 2.x
