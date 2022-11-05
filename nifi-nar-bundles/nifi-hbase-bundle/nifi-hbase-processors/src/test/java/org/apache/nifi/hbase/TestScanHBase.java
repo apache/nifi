@@ -293,7 +293,7 @@ public class TestScanHBase {
 
     @Test
     public void testScanToContentWithQualifierAndValueJSON() {
-        final Map<String, String> cells = new HashMap<>();
+        final Map<String, String> cells = new LinkedHashMap<>();
         cells.put("cq1", "val1");
         cells.put("cq2", "val2");
 
