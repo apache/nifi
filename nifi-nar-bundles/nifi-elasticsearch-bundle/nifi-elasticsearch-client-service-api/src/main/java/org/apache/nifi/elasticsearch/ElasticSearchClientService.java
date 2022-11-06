@@ -55,15 +55,12 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
     PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxySpec.HTTP);
 
-    AllowableValue ALLOWABLE_VALUE_BASIC_AUTH = new AllowableValue(AuthorizationScheme.BASIC.name(), AuthorizationScheme.BASIC.getDisplayName());
-    AllowableValue ALLOWABLE_VALUE_API_KEY = new AllowableValue(AuthorizationScheme.API_KEY.name(), AuthorizationScheme.API_KEY.getDisplayName());
-
     PropertyDescriptor AUTHORIZATION_SCHEME = new PropertyDescriptor.Builder()
             .name("authorization-scheme")
             .displayName("Authorization Scheme")
-            .description("Authorization Scheme used for the authorization.")
-            .allowableValues(ALLOWABLE_VALUE_BASIC_AUTH, ALLOWABLE_VALUE_API_KEY)
-            .defaultValue(ALLOWABLE_VALUE_BASIC_AUTH.getValue())
+            .description("Authorization Scheme used for authenticating to Elasticsearch using the HTTP Authorization header.")
+            .allowableValues(AuthorizationScheme.class)
+            .defaultValue(AuthorizationScheme.BASIC.getValue())
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -72,7 +69,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .name("el-cs-username")
             .displayName("Username")
             .description("The username to use with XPack security.")
-            .dependsOn(AUTHORIZATION_SCHEME, ALLOWABLE_VALUE_BASIC_AUTH)
+            .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.BASIC.getValue())
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -82,7 +79,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .name("el-cs-password")
             .displayName("Password")
             .description("The password to use with XPack security.")
-            .dependsOn(AUTHORIZATION_SCHEME, ALLOWABLE_VALUE_BASIC_AUTH)
+            .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.BASIC.getValue())
             .required(false)
             .sensitive(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -91,23 +88,21 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
 
     PropertyDescriptor API_KEY_ID = new PropertyDescriptor.Builder()
             .name("api-key-id")
-            .displayName("API key id")
-            .description("Unique id of the API key")
-            .dependsOn(AUTHORIZATION_SCHEME, ALLOWABLE_VALUE_API_KEY)
+            .displayName("API Key ID")
+            .description("Unique identifier of the API key.")
+            .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY.getValue())
             .required(false)
             .sensitive(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     PropertyDescriptor API_KEY = new PropertyDescriptor.Builder()
             .name("api-key")
-            .displayName("API key")
-            .description("API key")
-            .dependsOn(AUTHORIZATION_SCHEME, ALLOWABLE_VALUE_API_KEY)
+            .displayName("API Key")
+            .description("Encoded API key.")
+            .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY.getValue())
             .required(false)
             .sensitive(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 

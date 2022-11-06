@@ -16,17 +16,32 @@
  */
 package org.apache.nifi.elasticsearch;
 
-public enum AuthorizationScheme {
-    BASIC("Basic"),
-    API_KEY("API key");
+import org.apache.nifi.components.DescribedValue;
+
+public enum AuthorizationScheme implements DescribedValue {
+    BASIC("Basic", "Basic authorization scheme."),
+    API_KEY("API Key", "API key authorization scheme.");
 
     private final String displayName;
+    private final String description;
 
-    AuthorizationScheme(String displayName) {
+    AuthorizationScheme(String displayName, String description) {
         this.displayName = displayName;
+        this.description = description;
     }
 
+    @Override
+    public String getValue() {
+        return name();
+    }
+
+    @Override
     public String getDisplayName() {
         return displayName;
+    }
+
+    @Override
+    public String getDescription() {
+        return description;
     }
 }
