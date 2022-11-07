@@ -411,7 +411,8 @@ input.filter {
     width: 173px;
 }
 
-.filter-type {
+.filter-type,
+.filter-status-dropdown {
     float: left;
     width: 148px;
 }
@@ -423,6 +424,13 @@ input.filter {
     font-size: 13px;
     font-weight: 500;
     margin-bottom: 5px;
+}
+
+.setting-field.summary-filter-primary-node-container {
+    display: inline-block;
+    margin-left: 10px;
+    margin-top: 8px;
+    width: auto;
 }
 
 /* overlay icon styles */
