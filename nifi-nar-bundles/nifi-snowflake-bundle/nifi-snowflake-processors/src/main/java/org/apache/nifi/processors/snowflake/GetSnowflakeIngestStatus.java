@@ -21,6 +21,7 @@ import static org.apache.nifi.processors.snowflake.common.Attributes.ATTRIBUTE_S
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -56,7 +57,7 @@ import org.apache.nifi.processor.exception.ProcessException;
         description = "The 'begin mark' from the response of a history request is stored to keep track of already requested history time range.")
 @DefaultSettings(penaltyDuration = "5 sec")
 @ReadsAttributes({
-        @ReadsAttribute(attribute = ATTRIBUTE_STAGED_FILE_PATH, description = "The path to the file in the stage")
+        @ReadsAttribute(attribute = ATTRIBUTE_STAGED_FILE_PATH, description = "Staged file path")
 })
 @Tags({"snowflake", "snowpipe", "ingest", "history"})
 @CapabilityDescription("Waits until a file in a Snowflake stage is ingested. The stage must be created in the Snowflake account beforehand."
@@ -91,15 +92,11 @@ public class GetSnowflakeIngestStatus extends AbstractProcessor {
             INGEST_MANAGER_PROVIDER
     );
 
-    static final Set<Relationship> RELATIONSHIPS;
-
-    static {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_RETRY);
-        relationships.add(REL_FAILURE);
-        RELATIONSHIPS = Collections.unmodifiableSet(relationships);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            REL_SUCCESS,
+            REL_RETRY,
+            REL_FAILURE
+    )));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -114,6 +111,10 @@ public class GetSnowflakeIngestStatus extends AbstractProcessor {
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         final FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
+
         final String stagedFilePath = flowFile.getAttribute(ATTRIBUTE_STAGED_FILE_PATH);
         if (stagedFilePath == null) {
             getLogger().error("Missing required attribute [\"" + ATTRIBUTE_STAGED_FILE_PATH + "\"] for FlowFile");

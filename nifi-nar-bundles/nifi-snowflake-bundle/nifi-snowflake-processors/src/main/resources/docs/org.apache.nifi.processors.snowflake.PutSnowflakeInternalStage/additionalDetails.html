@@ -34,8 +34,9 @@
 <h3>Description</h3>
 <p>
     The PutSnowflakeInternalStage processor can upload a file to a Snowflake internal stage. This stage needs to be set up in your Snowflake account.
+    See the documentation on how to set up an internal stage <a href="https://docs.snowflake.com/en/user-guide/data-load-local-file-system-create-stage.html">here</a>.
     The processor requires an upstream connection and the incoming FlowFiles' content will be uploaded to the stage. The attributes "filename" and "path" are used to provide a prefix and file name for your file in the stage.
-    While the processor can be used by itself, it's usually recommended to connect it to a StartSnowflakeIngest processor to put the uploaded file into your Snowflake table via a pipe.
+    While the processor may be used separately, it's recommended to connect it to a StartSnowflakeIngest processor so that the uploaded file can be piped into your Snowflake table.
 </p>
 
 </body>

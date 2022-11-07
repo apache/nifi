@@ -33,8 +33,8 @@ public enum ConnectionUrlFormat implements DescribedValue {
         @Override
         public String buildConnectionUrl(final ConfigurationContext context) {
             String snowflakeUrl = context.getProperty(SNOWFLAKE_URL).evaluateAttributeExpressions().getValue();
-            if (!snowflakeUrl.startsWith("jdbc:snowflake")) {
-                snowflakeUrl = "jdbc:snowflake://" + snowflakeUrl;
+            if (!snowflakeUrl.startsWith(SNOWFLAKE_SCHEME)) {
+                snowflakeUrl = SNOWFLAKE_URI_PREFIX + snowflakeUrl;
             }
 
             return snowflakeUrl;
@@ -50,7 +50,7 @@ public enum ConnectionUrlFormat implements DescribedValue {
                     .evaluateAttributeExpressions()
                     .getValue();
 
-            return "jdbc:snowflake://" + organizationName + "-" + accountName + ".snowflakecomputing.com";
+            return SNOWFLAKE_URI_PREFIX + organizationName + "-" + accountName + ".snowflakecomputing.com";
         }
     },
     ACCOUNT_LOCATOR("account-locator", "Account Locator", "Provide a Snowflake Account Locator") {
@@ -66,7 +66,7 @@ public enum ConnectionUrlFormat implements DescribedValue {
                     .evaluateAttributeExpressions()
                     .getValue();
             final StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append("jdbc:snowflake://").append(accountLocator)
+            stringBuilder.append(SNOWFLAKE_URI_PREFIX).append(accountLocator)
                     .append(".").append(cloudRegion);
             if (cloudType != null) {
                 stringBuilder.append(".").append(cloudType);
@@ -75,6 +75,9 @@ public enum ConnectionUrlFormat implements DescribedValue {
             return stringBuilder.toString();
         }
     };
+
+    public static final String SNOWFLAKE_SCHEME = "jdbc:snowflake";
+    public static final String SNOWFLAKE_URI_PREFIX = SNOWFLAKE_SCHEME + "://";
 
     private final String value;
     private final String displayName;

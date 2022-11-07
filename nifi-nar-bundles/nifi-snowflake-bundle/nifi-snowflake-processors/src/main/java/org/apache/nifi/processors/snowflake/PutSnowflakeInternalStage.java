@@ -54,10 +54,10 @@ import org.apache.nifi.processor.util.StandardValidators;
 })
 @WritesAttributes({
         @WritesAttribute(attribute = ATTRIBUTE_STAGED_FILE_PATH,
-                description = "The path to the file in the internal stage")
+                description = "Staged file path")
 })
 @Tags({"snowflake", "jdbc", "database", "connection"})
-@CapabilityDescription("Put files into a Snowflake internal stage. The internal stage must be created in the Snowflake account beforehand."
+@CapabilityDescription("Puts files into a Snowflake internal stage. The internal stage must be created in the Snowflake account beforehand."
         + " This processor can be connected to an StartSnowflakeIngest processor to ingest the file in the internal stage")
 @SeeAlso({StartSnowflakeIngest.class, GetSnowflakeIngestStatus.class})
 public class PutSnowflakeInternalStage extends AbstractProcessor {
@@ -75,7 +75,7 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
             .displayName("Internal Stage Name")
             .description("The name of the internal stage in the Snowflake account to put files into.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .build();
 
@@ -94,14 +94,10 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
             INTERNAL_STAGE_NAME
     ));
 
-    static final Set<Relationship> RELATIONSHIPS;
-
-    static {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        RELATIONSHIPS = Collections.unmodifiableSet(relationships);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            REL_SUCCESS,
+            REL_FAILURE
+    )));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -115,6 +111,11 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
+
         final String internalStageName = context.getProperty(INTERNAL_STAGE_NAME)
                 .evaluateAttributeExpressions()
                 .getValue();
@@ -122,7 +123,6 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
                 context.getProperty(SNOWFLAKE_CONNECTION_PROVIDER)
                         .asControllerService(SnowflakeConnectionProviderService.class);
 
-        FlowFile flowFile = session.get();
         final String fileName = flowFile.getAttribute(CoreAttributes.FILENAME.key());
         final String relativePath = flowFile.getAttribute(CoreAttributes.PATH.key());
         final String stageRelativePath = "./".equals(relativePath)
@@ -133,7 +133,8 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
             snowflakeConnection.unwrap()
                     .uploadStream(internalStageName, stageRelativePath, inputStream, fileName, false);
         } catch (SQLException e) {
-            getLogger().error("Failed to upload flow content to internal Snowflake stage", e);
+            final String stagedFilePath = stageRelativePath + fileName;
+            getLogger().error("Failed to upload FlowFile content to internal Snowflake stage [" + internalStageName + "]. Staged file path [" + stagedFilePath + "]", e);
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
         } catch (IOException e) {

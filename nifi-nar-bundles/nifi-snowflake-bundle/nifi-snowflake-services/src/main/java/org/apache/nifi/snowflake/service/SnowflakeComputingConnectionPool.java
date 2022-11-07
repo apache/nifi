@@ -36,7 +36,6 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.dbcp.AbstractDBCPConnectionPool;
-import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -64,7 +63,7 @@ import org.apache.nifi.snowflake.service.util.ConnectionUrlFormat;
         description = "Snowflake JDBC driver property name prefixed with 'SENSITIVE.' handled as a sensitive property.")
 })
 @RequiresInstanceClassLoading
-public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool implements SnowflakeConnectionProviderService, DBCPService {
+public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool implements SnowflakeConnectionProviderService {
 
     public static final PropertyDescriptor CONNECTION_URL_FORMAT = new PropertyDescriptor.Builder()
             .name("connection-url-format")

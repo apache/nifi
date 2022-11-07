@@ -17,7 +17,10 @@
 
 package org.apache.nifi.processors.snowflake.common;
 
-public class Attributes {
+public final class Attributes {
+
+    private Attributes() {
+    }
 
     public static final String ATTRIBUTE_STAGED_FILE_PATH = "snowflake.staged.file.path";
 }

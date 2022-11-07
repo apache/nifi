@@ -21,6 +21,7 @@ import static org.apache.nifi.processors.snowflake.common.Attributes.ATTRIBUTE_S
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -45,7 +46,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @ReadsAttributes({
-        @ReadsAttribute(attribute = ATTRIBUTE_STAGED_FILE_PATH, description = "The path to the file in the stage")
+        @ReadsAttribute(attribute = ATTRIBUTE_STAGED_FILE_PATH, description = "Staged file path")
 })
 @Tags({"snowflake", "snowpipe", "ingest"})
 @CapabilityDescription("Ingest files in a Snowflake stage. The stage must be created in the Snowflake account beforehand."
@@ -76,14 +77,10 @@ public class StartSnowflakeIngest extends AbstractProcessor {
             INGEST_MANAGER_PROVIDER
     );
 
-    static final Set<Relationship> RELATIONSHIPS;
-
-    static {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        RELATIONSHIPS = Collections.unmodifiableSet(relationships);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            REL_SUCCESS,
+            REL_FAILURE
+    )));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -98,6 +95,10 @@ public class StartSnowflakeIngest extends AbstractProcessor {
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         final FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
+
         final String stagedFilePath = flowFile.getAttribute(ATTRIBUTE_STAGED_FILE_PATH);
         if (stagedFilePath == null) {
             getLogger().error("Missing required attribute [\"" + ATTRIBUTE_STAGED_FILE_PATH + "\"] for FlowFile");

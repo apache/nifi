@@ -21,7 +21,10 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 
-public class CommonProperties {
+public final class CommonProperties {
+    private CommonProperties() {
+    }
+
     public static final PropertyDescriptor ACCOUNT_LOCATOR = new PropertyDescriptor.Builder()
             .name("account-locator")
             .displayName("Account Locator")
