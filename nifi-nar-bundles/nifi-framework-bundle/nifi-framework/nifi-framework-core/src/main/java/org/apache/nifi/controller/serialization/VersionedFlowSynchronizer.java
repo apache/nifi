@@ -203,14 +203,6 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             verifyNoConnectionsWithDataRemoved(existingDataFlow, proposedFlow, controller, flowComparison);
 
             synchronizeFlow(controller, existingDataFlow, proposedFlow, affectedComponents);
-
-            for (final ParameterProviderNode parameterProviderNode : flowManager.getAllParameterProviders()) {
-                try {
-                    parameterProviderNode.fetchParameters();
-                } catch (final Exception e) {
-                    logger.warn("Failed to fetch parameters for provider {}: {}", new Object[] { parameterProviderNode.getName(), e.getMessage() }, e);
-                }
-            }
         } finally {
             // We have to call toExistingSet() here because some of the components that existed in the active set may no longer exist,
             // so attempting to start them will fail.
