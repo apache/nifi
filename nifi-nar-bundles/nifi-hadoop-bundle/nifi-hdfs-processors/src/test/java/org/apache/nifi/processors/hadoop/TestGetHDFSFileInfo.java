@@ -35,6 +35,8 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
+import org.skyscreamer.jsonassert.JSONCompareMode;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -379,7 +381,7 @@ public class TestGetHDFSFileInfo {
         mff.assertAttributeNotExists("hdfs.status");
 
         final String expected = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupAllToAttributes.json")));
-        mff.assertAttributeEquals("hdfs.full.tree", expected);
+        JSONAssert.assertEquals(mff.getAttribute("hdfs.full.tree"), expected, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
@@ -564,7 +566,7 @@ public class TestGetHDFSFileInfo {
                 mff.assertAttributeEquals("hdfs.permissions", "rwxr-xr-x");
                 mff.assertAttributeNotExists("hdfs.status");
                 final String expected = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-mydir.json")));
-                mff.assertAttributeEquals("hdfs.full.tree", expected);
+                JSONAssert.assertEquals(mff.getAttribute("hdfs.full.tree"), expected, JSONCompareMode.NON_EXTENSIBLE);
             }else if (mff.getAttribute("hdfs.objectName").equals("dir1")) {
                 matchCount++;
                 mff.assertAttributeEquals("hdfs.path", "/some/home/mydir");
@@ -579,7 +581,7 @@ public class TestGetHDFSFileInfo {
                 mff.assertAttributeEquals("hdfs.permissions", "rwxr-xr-x");
                 mff.assertAttributeNotExists("hdfs.status");
                 final String expected = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-dir1.json")));
-                mff.assertAttributeEquals("hdfs.full.tree", expected);
+                JSONAssert.assertEquals(mff.getAttribute("hdfs.full.tree"), expected, JSONCompareMode.NON_EXTENSIBLE);
             }else if (mff.getAttribute("hdfs.objectName").equals("dir2")) {
                 matchCount++;
                 mff.assertAttributeEquals("hdfs.path", "/some/home/mydir");
@@ -594,7 +596,7 @@ public class TestGetHDFSFileInfo {
                 mff.assertAttributeEquals("hdfs.permissions", "rwxr-xr-x");
                 mff.assertAttributeNotExists("hdfs.status");
                 final String expected = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-dir2.json")));
-                mff.assertAttributeEquals("hdfs.full.tree", expected);
+                JSONAssert.assertEquals(mff.getAttribute("hdfs.full.tree"), expected, JSONCompareMode.NON_EXTENSIBLE);
             }else if (mff.getAttribute("hdfs.objectName").equals("regDir")) {
                 matchCount++;
                 mff.assertAttributeEquals("hdfs.path", "/some/home/mydir/dir1");
@@ -609,7 +611,7 @@ public class TestGetHDFSFileInfo {
                 mff.assertAttributeEquals("hdfs.permissions", "rwxr-xr-x");
                 mff.assertAttributeNotExists("hdfs.status");
                 final String expected = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-regDir.json")));
-                mff.assertAttributeEquals("hdfs.full.tree", expected);
+                JSONAssert.assertEquals(mff.getAttribute("hdfs.full.tree"), expected, JSONCompareMode.NON_EXTENSIBLE);
             }else if (mff.getAttribute("hdfs.objectName").equals("regDir2")) {
                 matchCount++;
                 mff.assertAttributeEquals("hdfs.path", "/some/home/mydir/dir2");
@@ -624,7 +626,7 @@ public class TestGetHDFSFileInfo {
                 mff.assertAttributeEquals("hdfs.permissions", "rwxr-xr-x");
                 mff.assertAttributeNotExists("hdfs.status");
                 final String expected = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-regDir2.json")));
-                mff.assertAttributeEquals("hdfs.full.tree", expected);
+                JSONAssert.assertEquals(mff.getAttribute("hdfs.full.tree"), expected, JSONCompareMode.NON_EXTENSIBLE);
             }else {
                runner.assertNotValid();
             }
