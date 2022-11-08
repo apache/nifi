@@ -17,17 +17,27 @@
 
 package org.apache.nifi.mongodb;
 
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.VerifiableControllerService;
+import org.apache.nifi.util.MockConfigurationContext;
+import org.apache.nifi.util.MockControllerServiceLookup;
+import org.apache.nifi.util.MockVariableRegistry;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class MongoDBControllerServiceIT {
-    private static final String DB_NAME = String.format("nifi_test-%d", Calendar.getInstance().getTimeInMillis());
-    private static final String COL_NAME = String.format("nifi_test-%d", Calendar.getInstance().getTimeInMillis());
+
+    private static final String IDENTIFIER = "Client Service";
 
     private TestRunner runner;
     private MongoDBControllerService service;
@@ -36,7 +46,7 @@ public class MongoDBControllerServiceIT {
     public void before() throws Exception {
         runner = TestRunners.newTestRunner(TestControllerServiceProcessor.class);
         service = new MongoDBControllerService();
-        runner.addControllerService("Client Service", service);
+        runner.addControllerService(IDENTIFIER, service);
         runner.setProperty(service, MongoDBControllerService.URI, "mongodb://localhost:27017");
         runner.enableControllerService(service);
     }
@@ -49,5 +59,36 @@ public class MongoDBControllerServiceIT {
     @Test
     public void testInit() throws Exception {
         runner.assertValid(service);
+    }
+
+    private Map<PropertyDescriptor, String> getClientServiceProperties() {
+        return ((MockControllerServiceLookup) runner.getProcessContext().getControllerServiceLookup())
+                .getControllerServices().get(IDENTIFIER).getProperties();
+    }
+
+    @Test
+    public void testVerifyWithCorrectConnectionString() {
+        final List<ConfigVerificationResult> results = ((VerifiableControllerService) service).verify(
+                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
+                runner.getLogger(),
+                Collections.emptyMap()
+        );
+
+        assertEquals(1, results.size());
+        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, results.get(0).getOutcome());
+    }
+
+    @Test
+    public void testVerifyWithIncorrectConnectionString() {
+        runner.disableControllerService(service);
+        runner.setProperty(service, MongoDBControllerService.URI, "mongodb://localhost:2701");
+        final List<ConfigVerificationResult> results = ((VerifiableControllerService) service).verify(
+                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
+                runner.getLogger(),
+                Collections.emptyMap()
+        );
+
+        assertEquals(1, results.size());
+        assertEquals(ConfigVerificationResult.Outcome.FAILED, results.get(0).getOutcome());
     }
 }
