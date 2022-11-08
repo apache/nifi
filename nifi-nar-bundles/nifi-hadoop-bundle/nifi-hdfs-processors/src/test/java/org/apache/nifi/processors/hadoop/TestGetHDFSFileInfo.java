@@ -303,7 +303,9 @@ public class TestGetHDFSFileInfo {
         runner.assertTransferCount(GetHDFSFileInfo.REL_NOT_FOUND, 0);
 
         final MockFlowFile mff = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_SUCCESS).get(0);
-        mff.assertContentEquals(Paths.get("src/test/resources/TestGetHDFSFileInfo/testRunWithPermissionsExceptionContent.json"));
+        final String expected = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGetHDFSFileInfo/testRunWithPermissionsExceptionContent.json")));
+        String content = new String(mff.getData());
+        JSONAssert.assertEquals(content, expected, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
