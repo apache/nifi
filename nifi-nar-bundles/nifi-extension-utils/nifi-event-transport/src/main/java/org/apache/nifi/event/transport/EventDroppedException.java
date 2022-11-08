@@ -17,15 +17,15 @@
 package org.apache.nifi.event.transport;
 
 /**
- * Event Exception indicating issues when transporting events
+ * Event Dropped Exception indicating when a handler drops one or more events
  */
-public class EventException extends RuntimeException {
+public class EventDroppedException extends EventException {
     /**
      * Event Exception
      *
      * @param message Message
      */
-    public EventException(final String message) {
+    public EventDroppedException(final String message) {
         super(message);
     }
 
@@ -35,7 +35,7 @@ public class EventException extends RuntimeException {
      * @param message Message
      * @param cause Throwable cause
      */
-    public EventException(final String message, final Throwable cause) {
+    public EventDroppedException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

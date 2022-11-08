@@ -17,7 +17,9 @@
 package org.apache.nifi.event.transport.netty;
 
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.EventLoopGroup;
+import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventServer;
 import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
@@ -69,8 +71,13 @@ class NettyEventServer implements EventServer {
     public void shutdown() {
         try {
             if (channel.isOpen()) {
-                channel.close().syncUninterruptibly();
+                final ChannelFuture closeFuture = channel.close();
+                closeFuture.await(shutdownQuietPeriod.toMillis(), TimeUnit.MILLISECONDS);
             }
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            final String message = String.format("Close channel interrupted: Remote Address [%s]", channel.remoteAddress());
+            throw new EventException(message, e);
         } finally {
             group.shutdownGracefully(shutdownQuietPeriod.toMillis(), shutdownTimeout.toMillis(), TimeUnit.MILLISECONDS).syncUninterruptibly();
         }
