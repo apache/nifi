@@ -134,12 +134,28 @@
                             <groupId>org.apache.logging.log4j</groupId>
                             <artifactId>log4j-core</artifactId>
                         </exclusion>
+                        <exclusion>
+                            <groupId>org.bouncycastle</groupId>
+                            <artifactId>bcprov-jdk15on</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.bouncycastle</groupId>
+                            <artifactId>bcpkix-jdk15on</artifactId>
+                        </exclusion>
                     </exclusions>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.ozone</groupId>
                     <artifactId>ozone-filesystem</artifactId>
                     <version>${ozone.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcprov-jdk18on</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcpkix-jdk18on</artifactId>
                 </dependency>
             </dependencies>
         </profile>
