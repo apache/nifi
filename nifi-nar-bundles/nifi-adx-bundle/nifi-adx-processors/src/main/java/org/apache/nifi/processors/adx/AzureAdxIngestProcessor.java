@@ -105,7 +105,7 @@ import java.util.regex.Pattern;
         @ReadsAttribute(attribute = "IGNORE_FIRST_RECORD", description = "Specifies whether we want to ignore ingestion of first record. " +
                 "This is primarily applicable for csv files. Default is set to NO"),
         @ReadsAttribute(attribute = "MAX_BATCHING_TIME_SPAN", description = "Applicable only for queued ingestion, specifies the maximum batching timespan. Default = 5 min"),
-        @ReadsAttribute(attribute = "MAX_BATCHING_NO_OF_ITEMS", description = "Applicable only for queued ingestion, specifies the maximum number of items/records. Default = 1000"),
+        @ReadsAttribute(attribute = "MAX_BATCHING_NO_OF_ITEMS", description = "Applicable only for queued ingestion, specifies the maximum number of items/records. Default = 1000 items/records"),
         @ReadsAttribute(attribute = "MAX_BATCHING_RAW_DATA_SIZE_IN_MB", description = "Applicable only for queued ingestion, specifies the maximum size of uncompressed data. Default = 1000MB"),
         @ReadsAttribute(attribute = "TEMP_TABLE_NAME", description = "Applicable only when the IS_TRANSACTIONAL attribute is set to YES. " +
                 "This attribute specifies if the user wants to assign custom name to temp table. If not specified, the processor appends _tmp to the actual table name."),
@@ -273,7 +273,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             .Builder().name("TEMP_TABLE_NAME")
             .displayName("Temporary Table Name")
             .description("This property specifies the temporary table name when data ingestion is selected in transactional mode")
-            .dependsOn(IS_TRANSACTIONAL)
+            .dependsOn(IS_TRANSACTIONAL,TRANSACTIONAL_YES)
             .required(false)
             .build();
 
@@ -281,7 +281,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             .Builder().name("TEMP_TABLE_SOFT_DELETE_RETENTION")
             .displayName("Temporary table soft delete retention period")
             .description("This property specifies the soft delete retention period of temporary table when data ingestion is selected in transactional mode")
-            .dependsOn(IS_TRANSACTIONAL)
+            .dependsOn(IS_TRANSACTIONAL,TRANSACTIONAL_YES)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("1d")
