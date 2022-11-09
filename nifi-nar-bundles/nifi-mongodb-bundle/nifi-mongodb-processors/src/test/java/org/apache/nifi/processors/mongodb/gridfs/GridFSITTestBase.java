@@ -27,6 +27,7 @@ import com.mongodb.client.gridfs.model.GridFSFile;
 import com.mongodb.client.gridfs.model.GridFSUploadOptions;
 import org.apache.nifi.mongodb.MongoDBClientService;
 import org.apache.nifi.mongodb.MongoDBControllerService;
+import org.apache.nifi.processors.mongodb.AbstractMongoIT;
 import org.apache.nifi.util.TestRunner;
 import org.bson.Document;
 import org.bson.types.ObjectId;
@@ -34,8 +35,7 @@ import org.bson.types.ObjectId;
 import java.io.ByteArrayInputStream;
 import java.util.Map;
 
-public class GridFSITTestBase {
-    static final String URI = "mongodb://localhost:27017";
+public class GridFSITTestBase extends AbstractMongoIT {
     static final String DB  = "gridfs_test_database";
     MongoClient client;
 
@@ -47,7 +47,7 @@ public class GridFSITTestBase {
         MongoDBClientService clientService = new MongoDBControllerService();
         runner.addControllerService("clientService", clientService);
         runner.setProperty(AbstractGridFSProcessor.CLIENT_SERVICE, "clientService");
-        runner.setProperty(clientService, MongoDBControllerService.URI, URI);
+        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
         runner.setProperty(AbstractGridFSProcessor.BUCKET_NAME, bucketName);
         runner.setProperty(AbstractGridFSProcessor.DATABASE_NAME, DB);
         runner.enableControllerService(clientService);
@@ -56,7 +56,7 @@ public class GridFSITTestBase {
             runner.assertValid();
         }
 
-        client = new MongoClient("localhost", 27017);
+        client = new MongoClient(MONGO_CONTAINER.getConnectionString());
     }
     public void tearDown() {
         client.dropDatabase(DB);

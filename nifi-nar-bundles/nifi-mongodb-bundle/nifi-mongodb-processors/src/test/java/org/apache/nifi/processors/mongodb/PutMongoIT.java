@@ -78,7 +78,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         assertTrue(it.next().toString().contains("is invalid because Mongo Collection Name is required"));
 
         // invalid write concern
-        runner.setProperty(AbstractMongoProcessor.URI, MONGO_URI);
+        runner.setProperty(AbstractMongoProcessor.URI, MONGO_CONTAINER.getConnectionString());
         runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, DATABASE_NAME);
         runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, COLLECTION_NAME);
         runner.setProperty(PutMongo.WRITE_CONCERN, "xyz");
@@ -532,7 +532,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         TestRunner runner = init(PutMongo.class);
         runner.addControllerService("clientService", clientService);
         runner.removeProperty(PutMongo.URI);
-        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_URI);
+        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
         runner.setProperty(PutMongo.CLIENT_SERVICE, "clientService");
         runner.enableControllerService(clientService);
         runner.assertValid();

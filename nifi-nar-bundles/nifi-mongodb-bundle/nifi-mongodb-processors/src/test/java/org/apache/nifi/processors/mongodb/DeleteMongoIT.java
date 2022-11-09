@@ -128,7 +128,7 @@ public class DeleteMongoIT extends MongoWriteTestBase {
         runner.addControllerService("clientService", clientService);
         runner.removeProperty(DeleteMongo.URI);
         runner.setProperty(DeleteMongo.DELETE_MODE, DeleteMongo.DELETE_MANY);
-        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_URI);
+        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
         runner.setProperty(DeleteMongo.CLIENT_SERVICE, "clientService");
         runner.enableControllerService(clientService);
         runner.assertValid();
