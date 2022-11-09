@@ -370,6 +370,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
             if (versionedFlow != null) {
                 controller.setMaxTimerDrivenThreadCount(versionedFlow.getMaxTimerDrivenThreadCount());
+                controller.setMaxEventDrivenThreadCount(versionedFlow.getMaxEventDrivenThreadCount());
                 ProcessGroup rootGroup = controller.getFlowManager().getRootGroup();
 
                 final Map<String, VersionedParameterContext> versionedParameterContextMap = new HashMap<>();
