@@ -45,9 +45,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class RunMongoAggregationIT {
+public class RunMongoAggregationIT extends AbstractMongoIT {
 
-    private static final String MONGO_URI = "mongodb://localhost";
     private static final String DB_NAME   = String.format("agg_test-%s", Calendar.getInstance().getTimeInMillis());
     private static final String COLLECTION_NAME = "agg_test_data";
     private static final String AGG_ATTR = "mongo.aggregation.query";
@@ -60,7 +59,7 @@ public class RunMongoAggregationIT {
     @BeforeEach
     public void setup() {
         runner = TestRunners.newTestRunner(RunMongoAggregation.class);
-        runner.setVariable("uri", MONGO_URI);
+        runner.setVariable("uri", MONGO_CONTAINER.getConnectionString());
         runner.setVariable("db", DB_NAME);
         runner.setVariable("collection", COLLECTION_NAME);
         runner.setProperty(AbstractMongoProcessor.URI, "${uri}");
@@ -68,7 +67,7 @@ public class RunMongoAggregationIT {
         runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, "${collection}");
         runner.setProperty(RunMongoAggregation.QUERY_ATTRIBUTE, AGG_ATTR);
 
-        mongoClient = new MongoClient(new MongoClientURI(MONGO_URI));
+        mongoClient = new MongoClient(new MongoClientURI(MONGO_CONTAINER.getConnectionString()));
 
         MongoCollection<Document> collection = mongoClient.getDatabase(DB_NAME).getCollection(COLLECTION_NAME);
         String[] values = new String[] { "a", "b", "c" };
@@ -224,7 +223,7 @@ public class RunMongoAggregationIT {
         MongoDBClientService clientService = new MongoDBControllerService();
         runner.addControllerService("clientService", clientService);
         runner.removeProperty(RunMongoAggregation.URI);
-        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_URI);
+        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
         runner.setProperty(RunMongoAggregation.CLIENT_SERVICE, "clientService");
         runner.setProperty(RunMongoAggregation.QUERY, "[\n" +
                         "    {\n" +

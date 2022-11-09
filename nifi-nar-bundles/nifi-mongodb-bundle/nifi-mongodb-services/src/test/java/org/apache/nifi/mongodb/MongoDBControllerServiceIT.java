@@ -35,7 +35,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class MongoDBControllerServiceIT {
+public class MongoDBControllerServiceIT extends AbstractMongoIT {
 
     private static final String IDENTIFIER = "Client Service";
 
@@ -47,7 +47,7 @@ public class MongoDBControllerServiceIT {
         runner = TestRunners.newTestRunner(TestControllerServiceProcessor.class);
         service = new MongoDBControllerService();
         runner.addControllerService(IDENTIFIER, service);
-        runner.setProperty(service, MongoDBControllerService.URI, "mongodb://localhost:27017");
+        runner.setProperty(service, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
         runner.enableControllerService(service);
     }
 
