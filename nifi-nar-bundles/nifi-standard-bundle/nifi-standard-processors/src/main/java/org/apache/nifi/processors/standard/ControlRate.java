@@ -83,6 +83,7 @@ public class ControlRate extends AbstractProcessor {
 
     // based on testing to balance commits and 10,000 FF swap limit
     public static final int MAX_FLOW_FILES_PER_BATCH = 1000;
+    private static final long DEFAULT_ACCRUAL_COUNT = -1L;
 
     public static final PropertyDescriptor RATE_CONTROL_CRITERIA = new PropertyDescriptor.Builder()
             .name("Rate Control Criteria")
@@ -371,18 +372,18 @@ public class ControlRate extends AbstractProcessor {
      * This is applicable to counting accruals, flowfiles or attributes
      */
     private long getCountAccrual(FlowFile flowFile) {
-        long rateValue = -1L;
+        long rateValue = DEFAULT_ACCRUAL_COUNT;
         if (rateControlCriteria.equals(FLOWFILE_RATE) || rateControlCriteria.equals(DATA_OR_FLOWFILE_RATE)) {
             rateValue = 1;
         }
         if (rateControlCriteria.equals(ATTRIBUTE_RATE)) {
             final String attributeValue = flowFile.getAttribute(rateControlAttribute);
             if (attributeValue == null) {
-                return -1L;
+                return DEFAULT_ACCRUAL_COUNT;
             }
 
             if (!POSITIVE_LONG_PATTERN.matcher(attributeValue).matches()) {
-                return -1L;
+                return DEFAULT_ACCRUAL_COUNT;
             }
             rateValue = Long.parseLong(attributeValue);
         }
@@ -512,7 +513,7 @@ public class ControlRate extends AbstractProcessor {
                 dataThrottle.lock();
                 try {
                     if (dataThrottle.tryAdd(getDataSizeAccrual(flowFile))) {
-                        flowFilesInBatch += 1;
+                        flowFilesInBatch++;
                         if (flowFilesInBatch>= flowFilesPerBatch) {
                             flowFilesInBatch = 0;
                             return FlowFileFilterResult.ACCEPT_AND_TERMINATE;
@@ -540,7 +541,7 @@ public class ControlRate extends AbstractProcessor {
                 countThrottle.lock();
                 try {
                     if (countThrottle.tryAdd(getCountAccrual(flowFile))) {
-                        flowFilesInBatch += 1;
+                        flowFilesInBatch++;
                         if (flowFilesInBatch>= flowFilesPerBatch) {
                             flowFilesInBatch = 0;
                             return FlowFileFilterResult.ACCEPT_AND_TERMINATE;
