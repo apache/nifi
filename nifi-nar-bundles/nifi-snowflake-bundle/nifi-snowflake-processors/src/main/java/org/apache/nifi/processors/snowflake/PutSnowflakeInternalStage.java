@@ -117,7 +117,7 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
         }
 
         final String internalStageName = context.getProperty(INTERNAL_STAGE_NAME)
-                .evaluateAttributeExpressions()
+                .evaluateAttributeExpressions(flowFile)
                 .getValue();
         final SnowflakeConnectionProviderService connectionProviderService =
                 context.getProperty(SNOWFLAKE_CONNECTION_PROVIDER)
@@ -125,7 +125,7 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
 
         final String fileName = flowFile.getAttribute(CoreAttributes.FILENAME.key());
         final String relativePath = flowFile.getAttribute(CoreAttributes.PATH.key());
-        final String stageRelativePath = "./".equals(relativePath)
+        final String stageRelativePath = "./".equals(relativePath) || "/".equals(relativePath)
                 ? ""
                 : relativePath;
         try (final InputStream inputStream = session.read(flowFile);

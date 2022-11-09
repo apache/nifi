@@ -17,9 +17,9 @@
 
 package org.apache.nifi.processors.snowflake;
 
-import java.util.Arrays;
+import java.security.Security;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -29,9 +29,16 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processors.snowflake.common.Attributes;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class SnowflakePipeIT implements SnowflakeConfigAware {
+class SnowflakePipeIT implements SnowflakeConfigAware {
+
+    @BeforeAll
+    static void setUpOnce() {
+        Security.addProvider(new BouncyCastleProvider());
+    }
 
     @Test
     void shouldPutIntoInternalStage() throws Exception {
@@ -53,10 +60,9 @@ public class SnowflakePipeIT implements SnowflakeConfigAware {
 
         runner.run();
 
-        final Set<String> checkedAttributes = new HashSet<>(Arrays.asList(Attributes.ATTRIBUTE_STAGED_FILE_PATH));
-        final Map<String, String> expectedAttributesMap = new HashMap<>();
-        expectedAttributesMap.put(Attributes.ATTRIBUTE_STAGED_FILE_PATH, uuid + "/" + fileName);
-        final Set<Map<String, String>> expectedAttributes = new HashSet<>(Arrays.asList(expectedAttributesMap));
+        final Set<String> checkedAttributes = Collections.singleton(Attributes.ATTRIBUTE_STAGED_FILE_PATH);
+        final Map<String, String> expectedAttributesMap = Collections.singletonMap(Attributes.ATTRIBUTE_STAGED_FILE_PATH, uuid + "/" + fileName);
+        final Set<Map<String, String>> expectedAttributes = Collections.singleton(expectedAttributesMap);
 
         runner.assertAllFlowFilesTransferred(StartSnowflakeIngest.REL_SUCCESS);
         runner.assertAttributes(StartSnowflakeIngest.REL_SUCCESS, checkedAttributes, expectedAttributes);
@@ -83,8 +89,7 @@ public class SnowflakePipeIT implements SnowflakeConfigAware {
                     false);
         }
 
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put(Attributes.ATTRIBUTE_STAGED_FILE_PATH, uuid + "/" + stagedFilePath);
+        final Map<String, String> attributes = Collections.singletonMap(Attributes.ATTRIBUTE_STAGED_FILE_PATH, uuid + "/" + stagedFilePath);
         runner.enqueue("", attributes);
 
         runner.run();
@@ -118,8 +123,7 @@ public class SnowflakePipeIT implements SnowflakeConfigAware {
         final StagedFileWrapper stagedFile = new StagedFileWrapper(stagedFilePathAttribute);
         ingestManagerProviderService.getIngestManager().ingestFile(stagedFile, null);
 
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put(Attributes.ATTRIBUTE_STAGED_FILE_PATH, stagedFilePathAttribute);
+        final Map<String, String> attributes = Collections.singletonMap(Attributes.ATTRIBUTE_STAGED_FILE_PATH, stagedFilePathAttribute);
         runner.enqueue("", attributes);
 
         runner.run();
