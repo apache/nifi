@@ -1132,6 +1132,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             destination.addControllerService(newService);
         }
 
+        updateControllerService(newService, proposed);
+
         return newService;
     }
 
