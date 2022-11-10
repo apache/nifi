@@ -25,14 +25,36 @@ env:
     -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
     -Dhttp.keepAlive=false
     -Dmaven.wagon.http.pool=false
-  MAVEN_BUILD_COMMAND: >-
-    mvn package verify
-    -V
+  COMPILE_MAVEN_OPTS: >-
+    -Xmx3g
+    -Dhttp.keepAlive=false
+    -Dmaven.wagon.http.pool=false
+  MAVEN_COMPILE_COMMAND: >-
+    mvn compile
+    --threads 2C
+    --show-version
+    --no-snapshot-updates
+    --no-transfer-progress
+    --fail-fast
+    -pl -:nifi-assembly
+    -pl -:nifi-kafka-connector-assembly
+    -pl -:nifi-kafka-connector-tests
+    -pl -:nifi-toolkit-encrypt-config
+    -pl -:nifi-toolkit-admin
+    -pl -:nifi-toolkit-tls
+    -pl -:nifi-toolkit-assembly
+    -pl -:nifi-registry-assembly
+    -pl -:nifi-registry-toolkit-assembly
+    -pl -:nifi-runtime-manifest
+    -pl -:nifi-runtime-manifest-test
+  MAVEN_VERIFY_COMMAND: >-
+    mvn verify
+    --show-version
+    --no-snapshot-updates
+    --no-transfer-progress
+    --fail-fast
     -D dir-only
     -D disableXmlReport
-    -nsu
-    -ntp
-    -ff
   MAVEN_BUILD_PROFILES: >-
     -P include-grpc
     -P skip-nifi-bin-assembly
@@ -107,7 +129,13 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
           cache: 'maven'
-      - name: Maven Build
+      - name: Maven Compile
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.COMPILE_MAVEN_OPTS }}
+        run: >
+          ${{ env.MAVEN_COMPILE_COMMAND }}
+      - name: Maven Verify
         env:
           NIFI_CI_LOCALE: >-
             -Duser.language=en
@@ -121,7 +149,7 @@ jobs:
             ${{ env.DEFAULT_MAVEN_OPTS }}
             -DargLine=${env.SUREFIRE_OPTS}
         run: >
-          ${{ env.MAVEN_BUILD_COMMAND }}
+          ${{ env.MAVEN_VERIFY_COMMAND }}
           ${{ env.MAVEN_BUILD_PROFILES }}
           ${{ env.MAVEN_PROJECTS }}
       - name: Upload Test Reports
@@ -162,7 +190,13 @@ jobs:
           distribution: 'zulu'
           java-version: '11'
           cache: 'maven'
-      - name: Maven Build
+      - name: Maven Compile
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.COMPILE_MAVEN_OPTS }}
+        run: >
+          ${{ env.MAVEN_COMPILE_COMMAND }}
+      - name: Maven Verify
         env:
           NIFI_CI_LOCALE: >-
             -Duser.language=hi
@@ -176,7 +210,7 @@ jobs:
             ${{ env.DEFAULT_MAVEN_OPTS }}
             -DargLine=${env.SUREFIRE_OPTS}
         run: >
-          ${{ env.MAVEN_BUILD_COMMAND }}
+          ${{ env.MAVEN_VERIFY_COMMAND }}
           ${{ env.MAVEN_BUILD_PROFILES }}
           ${{ env.MAVEN_PROJECTS }}
       - name: Upload Test Reports
@@ -217,7 +251,13 @@ jobs:
           distribution: 'temurin'
           java-version: '8'
           cache: 'maven'
-      - name: Maven Build
+      - name: Maven Compile
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.COMPILE_MAVEN_OPTS }}
+        run: >
+          ${{ env.MAVEN_COMPILE_COMMAND }}
+      - name: Maven Verify
         env:
           NIFI_CI_LOCALE: >-
             -Duser.language=ja
@@ -231,7 +271,7 @@ jobs:
             ${{ env.DEFAULT_MAVEN_OPTS }}
             -DargLine=${env.SUREFIRE_OPTS}
         run: >-
-          ${{ env.MAVEN_BUILD_COMMAND }}
+          ${{ env.MAVEN_VERIFY_COMMAND }}
           ${{ env.MAVEN_BUILD_PROFILES }}
           ${{ env.MAVEN_PROJECTS }}
       - name: Upload Test Reports
@@ -274,7 +314,13 @@ jobs:
           distribution: 'zulu'
           java-version: '8'
           cache: 'maven'
-      - name: Maven Build
+      - name: Maven Compile
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.COMPILE_MAVEN_OPTS }}
+        run: >
+          ${{ env.MAVEN_COMPILE_COMMAND }}
+      - name: Maven Verify
         env:
           NIFI_CI_LOCALE: >-
             -Duser.language=fr
@@ -288,7 +334,7 @@ jobs:
             ${{ env.DEFAULT_MAVEN_OPTS }}
             -DargLine=${env.SUREFIRE_OPTS}
         run: >-
-          ${{ env.MAVEN_BUILD_COMMAND }}
+          ${{ env.MAVEN_VERIFY_COMMAND }}
           ${{ env.MAVEN_BUILD_PROFILES }}
           ${{ env.MAVEN_PROJECTS }}
       - name: Upload Test Reports

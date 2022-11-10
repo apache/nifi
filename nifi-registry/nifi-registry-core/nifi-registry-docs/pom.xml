@@ -93,7 +93,7 @@
                 <executions>
                     <execution>
                         <id>unpack-rest-api-doc</id>
-                        <phase>compile</phase>
+                        <phase>prepare-package</phase>
                         <goals>
                             <goal>unpack-dependencies</goal>
                         </goals>
@@ -118,7 +118,7 @@
                 <executions>
                     <execution>
                         <id>copy-rest-api-doc</id>
-                        <phase>compile</phase>
+                        <phase>prepare-package</phase>
                         <goals>
                             <goal>run</goal>
                         </goals>
