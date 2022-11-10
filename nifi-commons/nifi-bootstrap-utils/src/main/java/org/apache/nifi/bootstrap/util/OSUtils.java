@@ -75,7 +75,7 @@ public final class OSUtils {
      * @param version the Java version string
      * @return the major version as an int
      */
-    public static int parseJavaVersion(final String version) {
+    static int parseJavaVersion(final String version) {
         String majorVersion;
         if (version.startsWith("1.")) {
             majorVersion = version.substring(2, 3);
