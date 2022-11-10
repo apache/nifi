@@ -54,9 +54,7 @@ import java.util.concurrent.TimeUnit;
 @WritesAttributes({
         @WritesAttribute(attribute = "azure.datalake.storage.statusCode", description = "The HTTP error code (if available) from the failed operation"),
         @WritesAttribute(attribute = "azure.datalake.storage.errorCode", description = "The Azure Data Lake Storage moniker of the failed operation"),
-        @WritesAttribute(attribute = "azure.datalake.storage.serviceMessage", description = "The Azure Data Lake Storage service message from the failed operation"),
-        @WritesAttribute(attribute = "azure.datalake.storage.errorMessage", description = "The Azure Data Lake Storage error message from the failed operation"),
-        @WritesAttribute(attribute = "azure.datalake.storage.failure.reason", description = "An error message to indicate the cause of the failed operation")
+        @WritesAttribute(attribute = "azure.datalake.storage.errorMessage", description = "The Azure Data Lake Storage error message from the failed operation")
 })
 public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcessor {
 
@@ -145,14 +143,13 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             getLogger().error("Failure to fetch file from Azure Data Lake Storage", e);
             flowFile = session.putAttribute(flowFile, "azure.datalake.storage.statusCode", String.valueOf(e.getStatusCode()));
             flowFile = session.putAttribute(flowFile, "azure.datalake.storage.errorCode", e.getErrorCode());
-            flowFile = session.putAttribute(flowFile, "azure.datalake.storage.serviceMessage", e.getServiceMessage());
             flowFile = session.putAttribute(flowFile, "azure.datalake.storage.errorMessage", e.getMessage());
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         } catch (Exception e) {
             getLogger().error("Failure to fetch file from Azure Data Lake Storage", e);
-            // other exception, set a generic failure reason flowfile attribute
-            flowFile = session.putAttribute(flowFile, "azure.datalake.storage.failure.reason", e.getMessage());
+            // other exception, no available statusCode or errorCode
+            flowFile = session.putAttribute(flowFile, "azure.datalake.storage.errorMessage", e.getMessage());
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
