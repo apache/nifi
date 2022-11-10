@@ -51,6 +51,10 @@ limitations under the License.
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-deprecation-log</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-expression-language</artifactId>
         </dependency>
         <dependency>

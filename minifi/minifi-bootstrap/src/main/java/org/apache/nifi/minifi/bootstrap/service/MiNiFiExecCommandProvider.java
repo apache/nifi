@@ -18,7 +18,6 @@
 package org.apache.nifi.minifi.bootstrap.service;
 
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CONF_DIR_KEY;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.DEFAULT_LOGGER;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,7 +26,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Properties;
-import org.apache.nifi.bootstrap.util.OSUtils;
+import org.apache.nifi.bootstrap.util.RuntimeVersionProvider;
 
 public class MiNiFiExecCommandProvider {
 
@@ -146,9 +145,8 @@ public class MiNiFiExecCommandProvider {
 
     private List<String> getJava11Files(File libDir) {
         List<String> java11Files = new ArrayList();
-        String runtimeJavaVersion = System.getProperty("java.version");
-        DEFAULT_LOGGER.info("Runtime Java version: {}", runtimeJavaVersion);
-        if (OSUtils.parseJavaVersion(runtimeJavaVersion) >= 11) {
+        final int javaMajorVersion = RuntimeVersionProvider.getMajorVersion();
+        if (javaMajorVersion >= 11) {
             /* If running on Java 11 or greater, add the JAXB/activation/annotation libs to the classpath.
              *
              * TODO: Once the minimum Java version requirement of NiFi is 11, this processing should be removed.
