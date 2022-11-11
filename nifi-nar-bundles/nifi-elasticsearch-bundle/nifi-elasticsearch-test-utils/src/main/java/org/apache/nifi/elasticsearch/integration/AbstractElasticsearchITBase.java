@@ -18,18 +18,18 @@ package org.apache.nifi.elasticsearch.integration;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.compress.utils.IOUtils;
-import org.apache.commons.lang3.tuple.Pair;
+import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.HostConfig;
+import com.github.dockerjava.api.model.PortBinding;
+import com.github.dockerjava.api.model.Ports;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.nio.entity.NStringEntity;
-import org.apache.nifi.elasticsearch.MapBuilder;
 import org.apache.nifi.util.TestRunner;
 import org.elasticsearch.client.Request;
-import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.RestClient;
 import org.junit.jupiter.api.BeforeAll;
@@ -39,30 +39,38 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import static org.apache.http.auth.AuthScope.ANY;
 
 public abstract class AbstractElasticsearchITBase {
     // default Elasticsearch version should (ideally) match that in the nifi-elasticsearch-bundle#pom.xml for the integration-tests profile
     protected static final DockerImageName IMAGE = DockerImageName
-            .parse(System.getProperty("elasticsearch.docker.image", "docker.elastic.co/elasticsearch/elasticsearch:8.5.0"));
+            .parse(System.getProperty("elasticsearch.docker.image", "docker.elastic.co/elasticsearch/elasticsearch:8.6.1"));
     protected static final String ELASTIC_USER_PASSWORD = System.getProperty("elasticsearch.elastic_user.password", RandomStringUtils.randomAlphanumeric(10, 20));
+    private static final int PORT = 9200;
     protected static final ElasticsearchContainer ELASTICSEARCH_CONTAINER = new ElasticsearchContainer(IMAGE)
             .withPassword(ELASTIC_USER_PASSWORD)
             .withEnv("xpack.security.enabled", "true")
             // enable API Keys for integration-tests (6.x & 7.x don't enable SSL and therefore API Keys by default, so use a trial license and explicitly enable API Keys)
             .withEnv("xpack.license.self_generated.type", "trial")
-            .withEnv("xpack.security.authc.api_key.enabled", "true");
+            .withEnv("xpack.security.authc.api_key.enabled", "true")
+            // use a "special address" to ensure the publish_host is in the bind_host list, otherwise the Sniffer won't work
+            // https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-network.html#network-interface-values
+            // TestContainers makes Elasticsearch available via localhost/127.0.0.1; Elasticsearch uses the IP Address in publish_host
+            .withEnv("network.bind_host", "_local_,_site_")
+            .withEnv("network.publish_host", "127.0.0.1")
+            // pin the Elasticsearch port (typically 9200 but not guaranteed), also bind that to 9200 on the host so the network.publish_host is accessible
+            .withEnv("http.port", String.valueOf(PORT))
+            .withExposedPorts(PORT)
+            .withCreateContainerCmdModifier(cmd -> cmd.withHostConfig(
+                    new HostConfig().withPortBindings(new PortBinding(Ports.Binding.bindPort(PORT), new ExposedPort(PORT)))
+            ));
     protected static final String CLIENT_SERVICE_NAME = "Client Service";
     protected static final String INDEX = "messages";
 
@@ -88,7 +96,7 @@ public abstract class AbstractElasticsearchITBase {
 
     protected static String type;
 
-    private static RestClient testDataManagementClient;
+    static RestClient testDataManagementClient;
 
     protected static void stopTestcontainer() {
         if (ENABLE_TEST_CONTAINERS) {
@@ -98,7 +106,6 @@ public abstract class AbstractElasticsearchITBase {
 
     @BeforeAll
     static void beforeAll() throws IOException {
-
         startTestcontainer();
         type = getElasticMajorVersion() == 6 ? "_doc" : "";
         System.out.printf("%n%n%n%n%n%n%n%n%n%n%n%n%n%n%nTYPE: %s%nIMAGE: %s:%s%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n",
@@ -171,32 +178,6 @@ public abstract class AbstractElasticsearchITBase {
 
     protected String prettyJson(final Object o) throws JsonProcessingException {
         return MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(o);
-    }
-
-    protected Pair<String, String> createApiKeyForIndex(String index) throws IOException {
-        final String body = prettyJson(new MapBuilder()
-                .of("name", "test-api-key")
-                .of("role_descriptors", new MapBuilder()
-                        .of("test-role", new MapBuilder()
-                                .of("cluster", Collections.singletonList("all"))
-                                .of("index", Collections.singletonList(new MapBuilder()
-                                        .of("names", Collections.singletonList(index))
-                                        .of("privileges", Collections.singletonList("all"))
-                                        .build()))
-                                .build())
-                        .build())
-                .build());
-        final String endpoint = String.format("%s/%s", elasticsearchHost, "_security/api_key");
-        final Request request = new Request("POST", endpoint);
-        final HttpEntity jsonBody = new NStringEntity(body, ContentType.APPLICATION_JSON);
-        request.setEntity(jsonBody);
-
-        final Response response = testDataManagementClient.performRequest(request);
-        final InputStream inputStream = response.getEntity().getContent();
-        final byte[] result = IOUtils.toByteArray(inputStream);
-        inputStream.close();
-        final Map<String, String> ret = MAPPER.readValue(new String(result, StandardCharsets.UTF_8), Map.class);
-        return Pair.of(ret.get("id"), ret.get("api_key"));
     }
 
     private static List<SetupAction> readSetupActions(final String scriptPath) throws IOException {

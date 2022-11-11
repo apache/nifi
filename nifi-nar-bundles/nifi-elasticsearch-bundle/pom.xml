@@ -31,6 +31,17 @@ language governing permissions and limitations under the License. -->
         <module>nifi-elasticsearch-restapi-processors</module>
     </modules>
 
+    <properties>
+        <!-- pinned at 7.13.4 as it is the last version prior to Elastic forcing the client to check it is connecting
+         to an Elastic-provided Elasticsearch instead of an instance provided by someone else (e.g. AWS OpenSearch)
+         see: https://opensearch.org/blog/community/2021/08/community-clients/ for more info.
+
+         Note: the low-level elasticsearch-rest-client remains licensed with Apache 2.0
+         (https://www.elastic.co/guide/en/elasticsearch/client/java-rest/current/_license.html) even after the move
+         of the main Elasticsearch product and elasticsearch-rest-high-level-client to Elastic 2.0/SSPL 1.0 in v7.11.0+ -->
+        <elasticsearch.client.version>7.13.4</elasticsearch.client.version>
+    </properties>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -53,14 +64,7 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.elasticsearch.client</groupId>
                 <artifactId>elasticsearch-rest-client</artifactId>
-                <!-- pinned at 7.13.4 as it is the last version prior to Elastic forcing the client to check it is connecting
-                 to an Elastic-provided Elasticsearch instead of an instance provided by someone else (e.g. AWS OpenSearch)
-                 see: https://opensearch.org/blog/community/2021/08/community-clients/ for more info.
-
-                 Note: the low-level elasticsearch-rest-client remains licensed with Apache 2.0
-                 (https://www.elastic.co/guide/en/elasticsearch/client/java-rest/current/_license.html) even after the move
-                 of the main Elasticsearch product and elasticsearch-rest-high-level-client to Elastic 2.0/SSPL 1.0 in v7.11.0+ -->
-                <version>7.13.4</version>
+                <version>${elasticsearch.client.version}</version>
                 <scope>compile</scope>
                 <exclusions>
                     <exclusion>
@@ -73,6 +77,18 @@ language governing permissions and limitations under the License. -->
                     </exclusion>
                 </exclusions>
             </dependency>
+            <dependency>
+                <groupId>org.elasticsearch.client</groupId>
+                <artifactId>elasticsearch-rest-client-sniffer</artifactId>
+                <version>${elasticsearch.client.version}</version>
+                <scope>compile</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>commons-logging</groupId>
+                        <artifactId>commons-logging</artifactId>
+                    </exclusion>
+                </exclusions>
+        </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -85,7 +101,7 @@ language governing permissions and limitations under the License. -->
             </activation>
             <properties>
                 <!-- also update the default Elasticsearch version in nifi-elasticsearch-test-utils#src/main/java/org/apache/nifi/elasticsearch/integration/AbstractElasticsearchITBase.java-->
-                <elasticsearch_docker_image>8.5.3</elasticsearch_docker_image>
+                <elasticsearch_docker_image>8.6.1</elasticsearch_docker_image>
                 <elasticsearch.elastic.password>s3cret</elasticsearch.elastic.password>
             </properties>
             <build>
@@ -116,7 +132,7 @@ language governing permissions and limitations under the License. -->
         <profile>
             <id>elasticsearch7</id>
             <properties>
-                <elasticsearch_docker_image>7.17.8</elasticsearch_docker_image>
+                <elasticsearch_docker_image>7.17.9</elasticsearch_docker_image>
             </properties>
         </profile>
     </profiles>

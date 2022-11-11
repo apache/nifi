@@ -18,7 +18,12 @@
 package org.apache.nifi.elasticsearch.integration;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.http.HttpEntity;
+import org.apache.http.entity.ContentType;
+import org.apache.http.nio.entity.NStringEntity;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.VerifiableControllerService;
@@ -31,7 +36,6 @@ import org.apache.nifi.elasticsearch.IndexOperationRequest;
 import org.apache.nifi.elasticsearch.IndexOperationResponse;
 import org.apache.nifi.elasticsearch.MapBuilder;
 import org.apache.nifi.elasticsearch.SearchResponse;
-import org.apache.nifi.elasticsearch.TestControllerServiceProcessor;
 import org.apache.nifi.elasticsearch.UpdateOperationResponse;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
@@ -39,11 +43,15 @@ import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceLookup;
 import org.apache.nifi.util.MockVariableRegistry;
+import org.elasticsearch.client.Request;
+import org.elasticsearch.client.Response;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -82,13 +90,38 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
                 runner.getLogger(),
                 Collections.emptyMap()
         );
-        assertEquals(3, results.size());
+        assertEquals(4, results.size());
         assertEquals(3, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SUCCESSFUL).count(), results.toString());
+        assertVerifySnifferSkipped(results);
+    }
+
+    @Test
+    void testVerifySniffer() {
+        runner.disableControllerService(service);
+        runner.setProperty(service, ElasticSearchClientService.SNIFF_CLUSTER_NODES, "true");
+        runner.setProperty(service, ElasticSearchClientService.SNIFF_ON_FAILURE, "false");
+        runner.enableControllerService(service);
+        assertVerifySniffer();
+
+        runner.disableControllerService(service);
+        runner.setProperty(service, ElasticSearchClientService.SNIFF_ON_FAILURE, "true");
+        runner.enableControllerService(service);
+        assertVerifySniffer();
+    }
+
+    private void assertVerifySniffer() {
+        final List<ConfigVerificationResult> results = ((VerifiableControllerService) service).verify(
+                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
+                runner.getLogger(),
+                Collections.emptyMap()
+        );
+        assertEquals(4, results.size());
+        assertEquals(4, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SUCCESSFUL).count(), results.toString());
     }
 
     @Test
     void testVerifySuccessWithApiKeyAuth() throws IOException {
-        final Pair<String, String> apiKey = createApiKeyForIndex("*");
+        final Pair<String, String> apiKey = createApiKeyForIndex();
 
         runner.disableControllerService(service);
         runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY.getValue());
@@ -103,8 +136,9 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
                 runner.getLogger(),
                 Collections.emptyMap()
         );
-        assertEquals(3, results.size());
+        assertEquals(4, results.size());
         assertEquals(3, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SUCCESSFUL).count(), results.toString());
+        assertVerifySnifferSkipped(results);
     }
 
     @Test
@@ -117,8 +151,8 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
                 runner.getLogger(),
                 Collections.emptyMap()
         );
-        assertEquals(3, results.size());
-        assertEquals(2, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
+        assertEquals(4, results.size());
+        assertEquals(3, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
         assertEquals(1, results.stream().filter(
                 result -> Objects.equals(result.getVerificationStepName(), ElasticSearchClientServiceImpl.VERIFICATION_STEP_CLIENT_SETUP)
                         && Objects.equals(result.getExplanation(), "Incorrect/invalid " + ElasticSearchClientService.HTTP_HOSTS.getDisplayName())
@@ -146,8 +180,8 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
                 runner.getLogger(),
                 Collections.emptyMap()
         );
-        assertEquals(3, results.size());
-        assertEquals(2, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
+        assertEquals(4, results.size());
+        assertEquals(3, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
         assertEquals(1, results.stream().filter(
                 result -> Objects.equals(result.getVerificationStepName(), ElasticSearchClientServiceImpl.VERIFICATION_STEP_CLIENT_SETUP)
                         && Objects.equals(result.getExplanation(), "Incorrect/invalid " + ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE.getDisplayName())
@@ -167,9 +201,9 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
                 runner.getLogger(),
                 Collections.emptyMap()
         );
-        assertEquals(3, results.size());
+        assertEquals(4, results.size());
         assertEquals(1, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SUCCESSFUL).count(), results.toString());
-        assertEquals(1, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
+        assertEquals(2, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
         assertEquals(1, results.stream().filter(
                 result -> Objects.equals(result.getVerificationStepName(), ElasticSearchClientServiceImpl.VERIFICATION_STEP_CONNECTION)
                         && Objects.equals(result.getExplanation(), "Unable to retrieve system summary from Elasticsearch root endpoint")
@@ -193,9 +227,9 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
                 runner.getLogger(),
                 Collections.emptyMap()
         );
-        assertEquals(3, results.size());
+        assertEquals(4, results.size());
         assertEquals(1, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SUCCESSFUL).count(), results.toString());
-        assertEquals(1, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
+        assertEquals(2, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
         assertEquals(1, results.stream().filter(
                 result -> Objects.equals(result.getVerificationStepName(), ElasticSearchClientServiceImpl.VERIFICATION_STEP_CONNECTION)
                         && Objects.equals(result.getExplanation(), "Unable to retrieve system summary from Elasticsearch root endpoint")
@@ -624,6 +658,71 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     }
 
     @Test
+    void testCompression() {
+        runner.disableControllerService(service);
+        runner.setProperty(service, ElasticSearchClientService.COMPRESSION, "true");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+
+        assertTrue(service.exists(INDEX, null), "index does not exist");
+    }
+
+    @Test
+    void testNoMetaHeader() {
+        runner.disableControllerService(service);
+        runner.setProperty(service, ElasticSearchClientService.SEND_META_HEADER, "false");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+
+        assertTrue(service.exists(INDEX, null), "index does not exist");
+    }
+
+    @Test
+    void testStrictDeprecation() {
+        runner.disableControllerService(service);
+        runner.setProperty(service, ElasticSearchClientService.STRICT_DEPRECATION, "true");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+
+        assertTrue(service.exists(INDEX, null), "index does not exist");
+    }
+
+    @Test
+    void testNodeSelector() {
+        runner.disableControllerService(service);
+        runner.setProperty(service, ElasticSearchClientService.NODE_SELECTOR, ElasticSearchClientService.NODE_SELECTOR_SKIP_DEDICATED_MASTERS.getValue());
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+
+        assertTrue(service.exists(INDEX, null), "index does not exist");
+    }
+
+    @Test
+    void testRestClientRequestHeaders() {
+        runner.disableControllerService(service);
+        runner.setProperty(service, "User-Agent", "NiFi Integration Tests");
+        runner.setProperty(service, "X-Extra_header", "Request should still work");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+
+        assertTrue(service.exists(INDEX, null), "index does not exist");
+    }
+
+    @Test
+    void testSniffer() {
+        runner.disableControllerService(service);
+        runner.setProperty(service, ElasticSearchClientService.SNIFF_CLUSTER_NODES, "false");
+        runner.setProperty(service, ElasticSearchClientService.SNIFF_ON_FAILURE, "true");
+        runner.assertNotValid(service);
+
+        runner.setProperty(service, ElasticSearchClientService.SNIFF_CLUSTER_NODES, "true");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+
+        assertTrue(service.exists(INDEX, null), "index does not exist");
+    }
+
+    @Test
     void testNullSuppression() throws InterruptedException {
         final Map<String, Object> doc = new HashMap<>();
         doc.put("msg", "test");
@@ -659,13 +758,12 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     }
 
     private void suppressNulls(final boolean suppressNulls) {
-        runner.setProperty(TestControllerServiceProcessor.CLIENT_SERVICE, "Client Service");
         runner.disableControllerService(service);
         runner.setProperty(service, ElasticSearchClientService.SUPPRESS_NULLS, suppressNulls
                 ? ElasticSearchClientService.ALWAYS_SUPPRESS.getValue()
                 : ElasticSearchClientService.NEVER_SUPPRESS.getValue());
         runner.enableControllerService(service);
-        runner.assertValid();
+        runner.assertValid(service);
     }
 
     @Test
@@ -823,4 +921,38 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         Thread.sleep(1000);
     }
 
+    private void assertVerifySnifferSkipped(final List<ConfigVerificationResult> results) {
+        assertEquals(1, results.stream().filter(
+                        result -> Objects.equals(result.getVerificationStepName(), ElasticSearchClientServiceImpl.VERIFICATION_STEP_SNIFFER)
+                                && Objects.equals(result.getExplanation(), "Sniff on Connection not enabled")
+                                && result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(),
+                results.toString()
+        );
+    }
+
+    protected Pair<String, String> createApiKeyForIndex() throws IOException {
+        final String body = prettyJson(new MapBuilder()
+                .of("name", "test-api-key")
+                .of("role_descriptors", new MapBuilder()
+                        .of("test-role", new MapBuilder()
+                                .of("cluster", Collections.singletonList("all"))
+                                .of("index", Collections.singletonList(new MapBuilder()
+                                        .of("names", Collections.singletonList("*"))
+                                        .of("privileges", Collections.singletonList("all"))
+                                        .build()))
+                                .build())
+                        .build())
+                .build());
+        final String endpoint = String.format("%s/%s", elasticsearchHost, "_security/api_key");
+        final Request request = new Request("POST", endpoint);
+        final HttpEntity jsonBody = new NStringEntity(body, ContentType.APPLICATION_JSON);
+        request.setEntity(jsonBody);
+
+        final Response response = testDataManagementClient.performRequest(request);
+        final InputStream inputStream = response.getEntity().getContent();
+        final byte[] result = IOUtils.toByteArray(inputStream);
+        inputStream.close();
+        final Map<String, String> ret = MAPPER.readValue(new String(result, StandardCharsets.UTF_8), new TypeReference<Map<String, String>>() {});
+        return Pair.of(ret.get("id"), ret.get("api_key"));
+    }
 }
