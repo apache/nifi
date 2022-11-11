@@ -53,6 +53,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -172,7 +173,7 @@ public class StandardOauth2AccessTokenProviderTest {
     }
 
     @Test
-    public void testVerify() throws Exception {
+    public void testVerifySuccess() throws Exception {
         Processor processor = new NoOpProcessor();
         TestRunner runner = TestRunners.newTestRunner(processor);
         runner.addControllerService("testSubject", testSubject);
@@ -199,6 +200,28 @@ public class StandardOauth2AccessTokenProviderTest {
         assertNotNull(results);
         assertEquals(1, results.size());
         assertEquals(SUCCESSFUL, results.get(0).getOutcome());
+    }
+
+    @Test
+    public void testVerifyError() throws Exception {
+        Processor processor = new NoOpProcessor();
+        TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.addControllerService("testSubject", testSubject);
+
+        Map<PropertyDescriptor, String> properties = ((MockControllerServiceLookup) runner.getProcessContext().getControllerServiceLookup())
+                .getControllerServices().get("testSubject").getProperties();
+
+        when(mockHttpClient.newCall(any(Request.class)).execute()).thenThrow(new IOException());
+
+        final List<ConfigVerificationResult> results = ((VerifiableControllerService) testSubject).verify(
+                new MockConfigurationContext(testSubject, properties, runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
+                runner.getLogger(),
+                Collections.emptyMap()
+        );
+
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        assertEquals(FAILED, results.get(0).getOutcome());
     }
 
     @Test
