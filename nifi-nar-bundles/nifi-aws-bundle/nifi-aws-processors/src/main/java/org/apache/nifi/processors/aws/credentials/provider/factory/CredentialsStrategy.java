@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.factory;
 
-import java.util.Collection;
-import java.util.Map;
-
+import com.amazonaws.auth.AWSCredentialsProvider;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
+import java.util.Collection;
+import java.util.Map;
 
 
 /**
@@ -71,5 +71,17 @@ public interface CredentialsStrategy {
      */
     AWSCredentialsProvider getDerivedCredentialsProvider(Map<PropertyDescriptor, String> properties,
                                                          AWSCredentialsProvider primaryCredentialsProvider);
+
+    /**
+     * Creates an AwsCredentialsProvider instance for this strategy, given the properties defined by the user.
+     */
+    AwsCredentialsProvider getAwsCredentialsProvider(Map<PropertyDescriptor, String> properties);
+
+    /**
+     * Creates an AwsCredentialsProvider instance for this strategy, given the properties defined by the user and
+     * the AwsCredentialsProvider from the winning primary strategy.
+     */
+    AwsCredentialsProvider getDerivedAwsCredentialsProvider(Map<PropertyDescriptor, String> properties,
+                                                            AwsCredentialsProvider primaryCredentialsProvider);
 
 }

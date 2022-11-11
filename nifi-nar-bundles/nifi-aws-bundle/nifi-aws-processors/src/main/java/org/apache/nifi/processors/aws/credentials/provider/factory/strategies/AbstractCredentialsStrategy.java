@@ -26,6 +26,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsStrategy;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 
 /**
@@ -35,17 +36,17 @@ public abstract class AbstractCredentialsStrategy implements CredentialsStrategy
     private final String name;
     private final PropertyDescriptor[] requiredProperties;
 
-    public AbstractCredentialsStrategy(String name, PropertyDescriptor[] requiredProperties) {
+    public AbstractCredentialsStrategy(final String name, PropertyDescriptor[] requiredProperties) {
         this.name = name;
         this.requiredProperties = requiredProperties;
     }
 
     @Override
-    public boolean canCreatePrimaryCredential(Map<PropertyDescriptor, String> properties) {
-        for (PropertyDescriptor requiredProperty : requiredProperties) {
-            boolean containsRequiredProperty = properties.containsKey(requiredProperty);
-            String propertyValue = properties.get(requiredProperty);
-            boolean containsValue = propertyValue != null;
+    public boolean canCreatePrimaryCredential(final Map<PropertyDescriptor, String> properties) {
+        for (final PropertyDescriptor requiredProperty : requiredProperties) {
+            final boolean containsRequiredProperty = properties.containsKey(requiredProperty);
+            final String propertyValue = properties.get(requiredProperty);
+            final boolean containsValue = propertyValue != null;
             if (!containsRequiredProperty || !containsValue) {
                 return false;
             }
@@ -56,19 +57,19 @@ public abstract class AbstractCredentialsStrategy implements CredentialsStrategy
     @Override
     public Collection<ValidationResult> validate(final ValidationContext validationContext,
                                                  final CredentialsStrategy primaryStrategy) {
-        boolean thisIsSelectedStrategy = this == primaryStrategy;
-        String requiredMessageFormat = "property %1$s must be set with %2$s";
-        String excludedMessageFormat = "property %1$s cannot be used with %2$s";
-        String failureFormat = thisIsSelectedStrategy ? requiredMessageFormat : excludedMessageFormat;
+        final boolean thisIsSelectedStrategy = this == primaryStrategy;
+        final String requiredMessageFormat = "property %1$s must be set with %2$s";
+        final String excludedMessageFormat = "property %1$s cannot be used with %2$s";
+        final String failureFormat = thisIsSelectedStrategy ? requiredMessageFormat : excludedMessageFormat;
         Collection<ValidationResult> validationFailureResults = null;
 
-        for (PropertyDescriptor requiredProperty : requiredProperties) {
-            boolean requiredPropertyIsSet = validationContext.getProperty(requiredProperty).isSet();
+        for (final PropertyDescriptor requiredProperty : requiredProperties) {
+            final boolean requiredPropertyIsSet = validationContext.getProperty(requiredProperty).isSet();
             if (requiredPropertyIsSet != thisIsSelectedStrategy) {
                 String message = String.format(failureFormat, requiredProperty.getDisplayName(),
                         primaryStrategy.getName());
                 if (validationFailureResults == null) {
-                    validationFailureResults = new ArrayList<ValidationResult>();
+                    validationFailureResults = new ArrayList<>();
                 }
                 validationFailureResults.add(new ValidationResult.Builder()
                         .subject(requiredProperty.getDisplayName())
@@ -80,7 +81,7 @@ public abstract class AbstractCredentialsStrategy implements CredentialsStrategy
         return validationFailureResults;
     }
 
-    public abstract AWSCredentialsProvider getCredentialsProvider(Map<PropertyDescriptor, String> properties);
+    public abstract AWSCredentialsProvider getCredentialsProvider(final Map<PropertyDescriptor, String> properties);
 
     public String getName() {
         return name;
@@ -88,14 +89,19 @@ public abstract class AbstractCredentialsStrategy implements CredentialsStrategy
 
 
     @Override
-    public boolean canCreateDerivedCredential(Map<PropertyDescriptor, String> properties) {
+    public boolean canCreateDerivedCredential(final Map<PropertyDescriptor, String> properties) {
         return false;
     }
 
     @Override
-    public AWSCredentialsProvider getDerivedCredentialsProvider(Map<PropertyDescriptor, String> properties,
-                                                                AWSCredentialsProvider primaryCredentialsProvider) {
-        throw new UnsupportedOperationException();
+    public AWSCredentialsProvider getDerivedCredentialsProvider(final Map<PropertyDescriptor, String> properties,
+                                                                final AWSCredentialsProvider primaryCredentialsProvider) {
+        return null;
     }
 
+    @Override
+    public AwsCredentialsProvider getDerivedAwsCredentialsProvider(final Map<PropertyDescriptor, String> properties,
+                                                                   final AwsCredentialsProvider primaryCredentialsProvider) {
+        return null;
+    }
 }

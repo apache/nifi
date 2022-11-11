@@ -14,30 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.aws.credentials.provider.service;
+package org.apache.nifi.processors.aws.credentials.provider;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 /**
- * AWSCredentialsProviderService interface to support getting AWSCredentialsProvider used for instantiating
- * aws clients
+ * AwsCredentialsProviderService interface to support getting AwsCredentialsProvider used for instantiating
+ * aws clients using the v2 SDK.
  *
- * @see <a href="http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/AWSCredentialsProvider.html">AWSCredentialsProvider</a>
+ * @see <a href="https://sdk.amazonaws.com/java/api/2.0.0/software/amazon/awssdk/auth/credentials/AwsCredentialsProvider.html">AwsCredentialsProvider</a>
  */
-@Tags({"aws", "security", "credentials", "provider", "session"})
-@CapabilityDescription("Provides AWSCredentialsProvider.")
-public interface AWSCredentialsProviderService extends AwsCredentialsProviderService {
+@Tags({"aws", "v2", "security", "credentials", "provider", "session"})
+@CapabilityDescription("Provides AwsCredentialsProvider.")
+public interface AwsCredentialsProviderService extends ControllerService {
 
     /**
-     * Get credentials provider for Java SDK v1
+     * Get credentials provider for Java SDK v2
      * @return credentials provider
      * @throws ProcessException process exception in case there is problem in getting credentials provider
      *
-     * @see  <a href="http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/AWSCredentialsProvider.html">AWSCredentialsProvider</a>
+     * @see <a href="https://sdk.amazonaws.com/java/api/2.0.0/software/amazon/awssdk/auth/credentials/AwsCredentialsProvider.html">AwsCredentialsProvider</a>
      */
-    AWSCredentialsProvider getCredentialsProvider() throws ProcessException;
+    AwsCredentialsProvider getAwsCredentialsProvider();
 }

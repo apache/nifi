@@ -16,14 +16,15 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.factory.strategies;
 
-import java.util.Map;
-
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
-
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.internal.StaticCredentialsProvider;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+
+import java.util.Map;
 
 
 /**
@@ -42,11 +43,18 @@ public class AccessKeyPairCredentialsStrategy extends AbstractCredentialsStrateg
     }
 
     @Override
-    public AWSCredentialsProvider getCredentialsProvider(Map<PropertyDescriptor, String> properties) {
-        String accessKey = properties.get(CredentialPropertyDescriptors.ACCESS_KEY);
-        String secretKey = properties.get(CredentialPropertyDescriptors.SECRET_KEY);
-        BasicAWSCredentials creds = new BasicAWSCredentials(accessKey, secretKey);
-        return new StaticCredentialsProvider(creds);
+    public AWSCredentialsProvider getCredentialsProvider(final Map<PropertyDescriptor, String> properties) {
+        final String accessKey = properties.get(CredentialPropertyDescriptors.ACCESS_KEY);
+        final String secretKey = properties.get(CredentialPropertyDescriptors.SECRET_KEY);
+        final BasicAWSCredentials credentials = new BasicAWSCredentials(accessKey, secretKey);
+        return new StaticCredentialsProvider(credentials);
+    }
+
+    @Override
+    public AwsCredentialsProvider getAwsCredentialsProvider(final Map<PropertyDescriptor, String> properties) {
+        final String accessKey = properties.get(CredentialPropertyDescriptors.ACCESS_KEY);
+        final String secretKey = properties.get(CredentialPropertyDescriptors.SECRET_KEY);
+        return software.amazon.awssdk.auth.credentials.StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey));
     }
 
 }
