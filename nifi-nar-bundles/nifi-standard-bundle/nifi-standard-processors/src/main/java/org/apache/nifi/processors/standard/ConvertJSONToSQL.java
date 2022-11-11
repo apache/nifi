@@ -292,6 +292,9 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         final boolean translateFieldNames = context.getProperty(TRANSLATE_FIELD_NAMES).asBoolean();
         final boolean ignoreUnmappedFields = IGNORE_UNMATCHED_FIELD.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_FIELD_BEHAVIOR).getValue());
         String statementType = context.getProperty(STATEMENT_TYPE).getValue();
+        if (USE_ATTR_TYPE.equals(statementType)) {
+            statementType = flowFile.getAttribute(STATEMENT_TYPE_ATTRIBUTE);
+        }
         final String updateKeys = context.getProperty(UPDATE_KEY).evaluateAttributeExpressions(flowFile).getValue();
 
         final String catalog = context.getProperty(CATALOG_NAME).evaluateAttributeExpressions(flowFile).getValue();
@@ -382,10 +385,6 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                 }
                 tableNameBuilder.append(tableName);
                 final String fqTableName = tableNameBuilder.toString();
-
-                if (USE_ATTR_TYPE.equals(statementType)) {
-                    statementType = flowFile.getAttribute(STATEMENT_TYPE_ATTRIBUTE);
-                }
 
                 if (INSERT_TYPE.equals(statementType)) {
                     sql = generateInsert(jsonNode, attributes, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
