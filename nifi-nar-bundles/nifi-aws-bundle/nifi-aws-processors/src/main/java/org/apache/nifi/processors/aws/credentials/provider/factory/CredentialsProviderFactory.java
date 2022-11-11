@@ -33,6 +33,7 @@ import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.Im
 import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.AssumeRoleCredentialsStrategy;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 
 /**
@@ -112,6 +113,30 @@ public class CredentialsProviderFactory {
             if (strategy.canCreateDerivedCredential(properties)) {
                 derivedCredentialsProvider = strategy.getDerivedCredentialsProvider(properties,
                         primaryCredentialsProvider);
+                break;
+            }
+        }
+
+        if (derivedCredentialsProvider != null) {
+            return derivedCredentialsProvider;
+        } else {
+            return primaryCredentialsProvider;
+        }
+    }
+
+    /**
+     * Produces the AwsCredentialsProvider according to the given property set and the strategies configured in
+     * the factory.
+     * @return AwsCredentialsProvider implementation
+     */
+    public AwsCredentialsProvider getV2CredentialsProvider(final Map<PropertyDescriptor, String> properties) {
+        final CredentialsStrategy primaryStrategy = selectPrimaryStrategy(properties);
+        AwsCredentialsProvider primaryCredentialsProvider = primaryStrategy.getV2CredentialsProvider(properties);
+        AwsCredentialsProvider derivedCredentialsProvider = null;
+
+        for (final CredentialsStrategy strategy : strategies) {
+            if (strategy.canCreateDerivedCredential(properties)) {
+                derivedCredentialsProvider = strategy.getDerivedV2CredentialsProvider(properties, primaryCredentialsProvider);
                 break;
             }
         }
