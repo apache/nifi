@@ -26,7 +26,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -36,12 +36,12 @@ import static org.apache.nifi.schema.access.SchemaField.SCHEMA_NAME;
 public class TestSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
     @Override
     public RecordSchema retrieveSchema(SchemaIdentifier schemaIdentifier) {
-        List<RecordField> fields = Arrays.asList(new RecordField("msg", RecordFieldType.STRING.getDataType()));
+        List<RecordField> fields = Collections.singletonList(new RecordField("msg", RecordFieldType.STRING.getDataType()));
         return new SimpleRecordSchema(fields);
     }
 
     @Override
     public Set<SchemaField> getSuppliedSchemaFields() {
-        return new HashSet<>(Arrays.asList(SCHEMA_NAME));
+        return new HashSet<>(Collections.singletonList(SCHEMA_NAME));
     }
 }

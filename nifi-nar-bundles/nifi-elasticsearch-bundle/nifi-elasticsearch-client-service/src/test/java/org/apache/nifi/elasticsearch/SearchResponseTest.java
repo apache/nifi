@@ -20,7 +20,7 @@ package org.apache.nifi.elasticsearch;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,17 +31,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class SearchResponseTest {
     @Test
     void test() {
-        List<Map<String, Object>> results = new ArrayList<>();
-        Map<String, Object> aggs    = new HashMap<>();
-        String pitId = "pitId";
-        String scrollId = "scrollId";
-        String searchAfter = "searchAfter";
-        int num     = 10;
-        int took    = 100;
-        boolean timeout = false;
-        List<String> warnings = Arrays.asList("auth");
-        SearchResponse response = new SearchResponse(results, aggs, pitId, scrollId, searchAfter, num, took, timeout, warnings);
-        String str = response.toString();
+        final List<Map<String, Object>> results = new ArrayList<>();
+        final Map<String, Object> aggs    = new HashMap<>();
+        final String pitId = "pitId";
+        final String scrollId = "scrollId";
+        final String searchAfter = "searchAfter";
+        final int num     = 10;
+        final int took    = 100;
+        final boolean timeout = false;
+        final List<String> warnings = Collections.singletonList("auth");
+        final SearchResponse response = new SearchResponse(results, aggs, pitId, scrollId, searchAfter, num, took, timeout, warnings);
+        final String str = response.toString();
 
         assertEquals(results, response.getHits());
         assertEquals(aggs, response.getAggregations());
