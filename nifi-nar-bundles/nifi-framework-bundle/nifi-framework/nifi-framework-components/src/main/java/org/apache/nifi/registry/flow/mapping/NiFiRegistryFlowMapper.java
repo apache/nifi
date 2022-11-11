@@ -17,6 +17,7 @@
 
 package org.apache.nifi.registry.flow.mapping;
 
+
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -102,6 +103,7 @@ import java.util.stream.Collectors;
 public class NiFiRegistryFlowMapper {
     private static final String ENCRYPTED_PREFIX = "enc{";
     private static final String ENCRYPTED_SUFFIX = "}";
+    private static final String REGISTRY_URL_DESCRIPTOR_NAME = "url";
 
     private final ExtensionManager extensionManager;
     private final FlowMappingOptions flowMappingOptions;
@@ -193,7 +195,8 @@ public class NiFiRegistryFlowMapper {
 
     // This is specific for the {@code NifiRegistryFlowRegistryClient}, purely for backward compatibility
     private String getRegistryUrl(final FlowRegistryClientNode registry) {
-        return registry.getComponentType().equals("org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient") ? registry.getRawPropertyValue(registry.getPropertyDescriptor("URL")) : "";
+        return registry.getComponentType().endsWith("NifiRegistryFlowRegistryClient")
+               ? registry.getRawPropertyValue(registry.getPropertyDescriptor(REGISTRY_URL_DESCRIPTOR_NAME)) : "";
     }
 
     private InstantiatedVersionedProcessGroup mapGroup(final ProcessGroup group, final ControllerServiceProvider serviceProvider,

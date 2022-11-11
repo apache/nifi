@@ -17,6 +17,7 @@
 
 package org.apache.nifi.registry.flow.mapping;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -71,6 +72,7 @@ import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
@@ -133,8 +135,10 @@ public class NiFiRegistryFlowMapperTest {
     @Before
     public void setup() {
         final FlowRegistryClientNode flowRegistry = mock(FlowRegistryClientNode.class);
-        Mockito.when(flowRegistry.getComponentType()).thenReturn("org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient");
+        Mockito.when(flowRegistry.getComponentType()).thenReturn(TestNifiRegistryFlowRegistryClient.class.getName());
         Mockito.when(flowRegistry.getRawPropertyValue(Mockito.any())).thenReturn("");
+        Mockito.when(flowRegistry.getPropertyDescriptor(TestNifiRegistryFlowRegistryClient.PROPERTY_URL.getName())).thenReturn(TestNifiRegistryFlowRegistryClient.PROPERTY_URL);
+        Mockito.when(flowRegistry.getRawPropertyValue(TestNifiRegistryFlowRegistryClient.PROPERTY_URL)).thenReturn("http://127.0.0.1:18080");
 
         when(flowManager.getFlowRegistryClient(anyString())).thenReturn(flowRegistry);
 
@@ -234,6 +238,9 @@ public class NiFiRegistryFlowMapperTest {
                         false);
         final VersionedProcessGroup innerVersionedProcessGroup =
                 versionedProcessGroup.getProcessGroups().iterator().next();
+
+        // ensure the Registry URL has been set correctly in the flowManager
+        assert(StringUtils.isNotEmpty(innerVersionedProcessGroup.getVersionedFlowCoordinates().getStorageLocation()));
 
         // verify root versioned process group contents only
         verifyVersionedProcessGroup(processGroup, versionedProcessGroup,false,false);
@@ -846,5 +853,15 @@ public class NiFiRegistryFlowMapperTest {
         assertEquals(propertyDescriptor.getName(), versionedPropertyDescriptor.getName());
         assertEquals(propertyDescriptor.getDisplayName(), versionedPropertyDescriptor.getDisplayName());
         assertEquals(propertyDescriptor.isSensitive(), versionedPropertyDescriptor.isSensitive());
+    }
+
+    private static class TestNifiRegistryFlowRegistryClient {
+        public static final PropertyDescriptor PROPERTY_URL = new PropertyDescriptor.Builder()
+                .name("url")
+                .displayName("URL")
+                .description("URL of the NiFi Registry")
+                .addValidator(StandardValidators.URL_VALIDATOR)
+                .required(true)
+                .build();
     }
 }
