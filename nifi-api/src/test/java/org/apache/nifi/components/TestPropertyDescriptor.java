@@ -26,6 +26,7 @@ import org.mockito.Mockito;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -46,6 +47,7 @@ public class TestPropertyDescriptor {
     private static Builder invalidDescriptorBuilder;
     private static Builder validDescriptorBuilder;
     private static final String DEFAULT_VALUE = "Default Value";
+    private static final String DEPENDENT_PROPERTY_NAME = "dependentProperty";
 
     @BeforeAll
     public static void setUp() {
@@ -66,10 +68,15 @@ public class TestPropertyDescriptor {
 
     @Test
     void testPropertyDescriptorWithEnumValue() {
-        Builder enumDescriptorBuilder = new PropertyDescriptor.Builder()
+        final PropertyDescriptor dependentProperty = new PropertyDescriptor.Builder()
+                .name(DEPENDENT_PROPERTY_NAME)
+                .build();
+
+        final Builder enumDescriptorBuilder = new PropertyDescriptor.Builder()
                 .name("enumAllowableValueDescriptor")
                 .allowableValues(EnumAllowableValue.class)
-                .defaultValue(EnumAllowableValue.GREEN.name());
+                .defaultValue(EnumAllowableValue.GREEN)
+                .dependsOn(dependentProperty, EnumAllowableValue.RED);
 
         final PropertyDescriptor propertyDescriptor = enumDescriptorBuilder.build();
         assertNotNull(propertyDescriptor);
@@ -79,6 +86,15 @@ public class TestPropertyDescriptor {
                 .map(enumValue -> new AllowableValue(enumValue.name(), enumValue.getDisplayName(), enumValue.getDescription()))
                 .collect(Collectors.toList());
         assertEquals(expectedAllowableValues, propertyDescriptor.getAllowableValues());
+
+        final Set<PropertyDependency> dependencies = propertyDescriptor.getDependencies();
+        assertEquals(1, dependencies.size());
+        final PropertyDependency dependency = dependencies.iterator().next();
+        assertEquals(DEPENDENT_PROPERTY_NAME, dependency.getPropertyName());
+        final Set<String> dependentValues = dependency.getDependentValues();
+        assertEquals(1, dependentValues.size());
+        final String dependentValue = dependentValues.iterator().next();
+        assertEquals(EnumAllowableValue.RED.name(), dependentValue);
     }
 
     @Test

@@ -130,7 +130,6 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
             .name("kerberos-principal")
             .displayName("Kerberos Principal")
             .description("The kerberos principal to authenticate with when not using the kerberos credentials service")
-            .defaultValue(null)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
@@ -139,7 +138,6 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
             .name("kerberos-password")
             .displayName("Kerberos Password")
             .description("The password for the kerberos principal when not using the kerberos credentials service")
-            .defaultValue(null)
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

@@ -80,7 +80,6 @@ public class Hive_1_1ConnectionPool extends AbstractControllerService implements
             .description("A database connection URL used to connect to a database. May contain database system name, host, port, database name and some parameters."
                     + " The exact syntax of a database connection URL is specified by the Hive documentation. For example, the server principal is often included "
                     + "as a connection parameter when connecting to a secure Hive server.")
-            .defaultValue(null)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -101,7 +100,6 @@ public class Hive_1_1ConnectionPool extends AbstractControllerService implements
             .name("hive-db-user")
             .displayName("Database User")
             .description("Database user name")
-            .defaultValue(null)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
@@ -110,7 +108,6 @@ public class Hive_1_1ConnectionPool extends AbstractControllerService implements
             .name("hive-db-password")
             .displayName("Password")
             .description("The password for the database user")
-            .defaultValue(null)
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

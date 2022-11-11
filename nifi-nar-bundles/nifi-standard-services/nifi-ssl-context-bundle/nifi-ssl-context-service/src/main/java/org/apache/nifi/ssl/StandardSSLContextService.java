@@ -69,7 +69,6 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .name("Truststore Filename")
             .description("The fully-qualified filename of the Truststore")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .defaultValue(null)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .sensitive(false)
             .build();
@@ -83,7 +82,6 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     public static final PropertyDescriptor TRUSTSTORE_PASSWORD = new PropertyDescriptor.Builder()
             .name("Truststore Password")
             .description("The password for the Truststore")
-            .defaultValue(null)
             .addValidator(Validator.VALID)
             .required(false)
             .sensitive(true)
@@ -92,7 +90,6 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .name("Keystore Filename")
             .description("The fully-qualified filename of the Keystore")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .defaultValue(null)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .sensitive(false)
             .build();
@@ -105,7 +102,6 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .build();
     public static final PropertyDescriptor KEYSTORE_PASSWORD = new PropertyDescriptor.Builder()
             .name("Keystore Password")
-            .defaultValue(null)
             .description("The password for the Keystore")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
