@@ -53,12 +53,16 @@ import java.util.Map;
 import static org.apache.http.auth.AuthScope.ANY;
 
 public abstract class AbstractElasticsearchITBase {
+    // default Elasticsearch version should (ideally) match that in the nifi-elasticsearch-bundle#pom.xml for the integration-tests profile
     protected static final DockerImageName IMAGE = DockerImageName
-            .parse(System.getProperty("elasticsearch.docker.image", "docker.elastic.co/elasticsearch/elasticsearch:8.4.3"));
+            .parse(System.getProperty("elasticsearch.docker.image", "docker.elastic.co/elasticsearch/elasticsearch:8.5.0"));
     protected static final String ELASTIC_USER_PASSWORD = System.getProperty("elasticsearch.elastic_user.password", RandomStringUtils.randomAlphanumeric(10, 20));
     protected static final ElasticsearchContainer ELASTICSEARCH_CONTAINER = new ElasticsearchContainer(IMAGE)
             .withPassword(ELASTIC_USER_PASSWORD)
-            .withEnv("xpack.security.enabled", "true");
+            .withEnv("xpack.security.enabled", "true")
+            // enable API Keys for integration-tests (6.x & 7.x don't enable SSL and therefore API Keys by default, so use a trial license and explicitly enable API Keys)
+            .withEnv("xpack.license.self_generated.type", "trial")
+            .withEnv("xpack.security.authc.api_key.enabled", "true");
     protected static final String CLIENT_SERVICE_NAME = "Client Service";
     protected static final String INDEX = "messages";
 
@@ -68,7 +72,12 @@ public abstract class AbstractElasticsearchITBase {
     protected static String elasticsearchHost;
     protected static void startTestcontainer() {
         if (ENABLE_TEST_CONTAINERS) {
-            ELASTICSEARCH_CONTAINER.start();
+            if (getElasticMajorVersion() == 6) {
+                // disable system call filter check to allow Elasticsearch 6 to run on aarch64 machines (e.g. Mac M1/2)
+                ELASTICSEARCH_CONTAINER.withEnv("bootstrap.system_call_filter", "false").start();
+            } else {
+                ELASTICSEARCH_CONTAINER.start();
+            }
             elasticsearchHost = String.format("http://%s", ELASTICSEARCH_CONTAINER.getHttpHostAddress());
         } else {
             elasticsearchHost = System.getProperty("elasticsearch.endpoint", "http://localhost:9200");
@@ -89,6 +98,7 @@ public abstract class AbstractElasticsearchITBase {
 
     @BeforeAll
     static void beforeAll() throws IOException {
+
         startTestcontainer();
         type = getElasticMajorVersion() == 6 ? "_doc" : "";
         System.out.printf("%n%n%n%n%n%n%n%n%n%n%n%n%n%n%nTYPE: %s%nIMAGE: %s:%s%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n",

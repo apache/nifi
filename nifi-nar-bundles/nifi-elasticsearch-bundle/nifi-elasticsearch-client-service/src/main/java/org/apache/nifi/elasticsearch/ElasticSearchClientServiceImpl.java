@@ -112,31 +112,62 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final List<ValidationResult> results = new ArrayList<>(1);
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+
+        final AuthorizationScheme authorizationScheme = AuthorizationScheme.valueOf(validationContext.getProperty(AUTHORIZATION_SCHEME).getValue());
 
         final boolean usernameSet = validationContext.getProperty(USERNAME).isSet();
         final boolean passwordSet = validationContext.getProperty(PASSWORD).isSet();
 
-        if ((usernameSet && !passwordSet) || (!usernameSet && passwordSet)) {
-            results.add(new ValidationResult.Builder().subject(String.format("%s and %s", USERNAME.getDisplayName(), PASSWORD.getDisplayName()))
-                    .valid(false).explanation(String.format("if '%s' or '%s' is set, both must be set.", USERNAME.getDisplayName(), PASSWORD.getDisplayName())).build());
-        }
-
         final boolean apiKeyIdSet = validationContext.getProperty(API_KEY_ID).isSet();
         final boolean apiKeySet = validationContext.getProperty(API_KEY).isSet();
 
-        if ((apiKeyIdSet && !apiKeySet) || (!apiKeyIdSet && apiKeySet)) {
-            results.add(new ValidationResult.Builder().subject(String.format("%s and %s", API_KEY.getDisplayName(), API_KEY_ID.getDisplayName()))
-                    .valid(false).explanation(String.format("if '%s' or '%s' is set, both must be set.", API_KEY.getDisplayName(), API_KEY_ID.getDisplayName())).build());
-        }
+        switch (authorizationScheme) {
+            case NONE:
+                if (usernameSet || passwordSet || apiKeyIdSet || apiKeySet) {
+                    final List<String> present = new ArrayList<>(4);
+                    if (usernameSet) present.add(USERNAME.getDisplayName());
+                    if (passwordSet) present.add(PASSWORD.getDisplayName());
+                    if (apiKeyIdSet) present.add(API_KEY_ID.getDisplayName());
+                    if (apiKeySet) present.add(API_KEY.getDisplayName());
 
-        if (usernameSet && apiKeyIdSet) {
-            results.add(new ValidationResult.Builder().subject(String.format("%s and %s", USERNAME.getDisplayName(), API_KEY_ID.getDisplayName()))
-                    .valid(false).explanation(String.format("'%s' and '%s' cannot be used together.", USERNAME.getDisplayName(), API_KEY_ID.getDisplayName())).build());
+                    results.add(new ValidationResult.Builder().subject(AUTHORIZATION_SCHEME.getName()).valid(false)
+                            .explanation(String.format("if '%s' is '%s' then %s cannot be set.", AUTHORIZATION_SCHEME.getDisplayName(), authorizationScheme.getDisplayName(), present)).build());
+                }
+                break;
+            case BASIC:
+                if (!usernameSet) addAuthorizationSchemeValidationIssue(results, authorizationScheme, USERNAME);
+                if (!passwordSet) addAuthorizationSchemeValidationIssue(results, authorizationScheme, PASSWORD);
+                break;
+            case API_KEY:
+                if (!apiKeySet) addAuthorizationSchemeValidationIssue(results, authorizationScheme, API_KEY);
+                if (!apiKeyIdSet) addAuthorizationSchemeValidationIssue(results, authorizationScheme, API_KEY_ID);
+                break;
+            case PKI:
+                final SSLContextService sslService = validationContext.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+                if (sslService == null) {
+                    addAuthorizationSchemeValidationIssue(results, authorizationScheme, PROP_SSL_CONTEXT_SERVICE);
+                } else if (!sslService.isKeyStoreConfigured()) {
+                    results.add(new ValidationResult.Builder().subject(PROP_SSL_CONTEXT_SERVICE.getName()).valid(false)
+                            .explanation(String.format("if '%s' is '%s' then '%s' must specify a Keystore for 2-way TLS encryption.",
+                                    AUTHORIZATION_SCHEME.getDisplayName(), authorizationScheme.getDisplayName(), PROP_SSL_CONTEXT_SERVICE.getDisplayName())
+                            ).build()
+                    );
+                }
+                break;
+            default:
+                throw new IllegalArgumentException(String.format("Unable to validate '%s' with value %s", AUTHORIZATION_SCHEME.getDisplayName(), authorizationScheme.getDisplayName()));
         }
 
         return results;
+    }
+
+    private void addAuthorizationSchemeValidationIssue(final List<ValidationResult> results, final AuthorizationScheme scheme, final PropertyDescriptor subject) {
+        results.add(new ValidationResult.Builder().subject(subject.getName()).valid(false)
+                .explanation(String.format("if '%s' is '%s' then '%s' must be set.", AUTHORIZATION_SCHEME.getDisplayName(), scheme.getDisplayName(), subject.getDisplayName()))
+                .build()
+        );
     }
 
     @OnEnabled
