@@ -58,7 +58,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
     PropertyDescriptor AUTHORIZATION_SCHEME = new PropertyDescriptor.Builder()
             .name("authorization-scheme")
             .displayName("Authorization Scheme")
-            .description("Authorization Scheme used for authenticating to Elasticsearch using the HTTP Authorization header.")
+            .description("Authorization Scheme used for optional authentication to Elasticsearch.")
             .allowableValues(AuthorizationScheme.class)
             .defaultValue(AuthorizationScheme.BASIC.getValue())
             .required(true)

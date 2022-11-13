@@ -19,6 +19,8 @@ package org.apache.nifi.elasticsearch;
 import org.apache.nifi.components.DescribedValue;
 
 public enum AuthorizationScheme implements DescribedValue {
+    NONE("None", "No authorization scheme."),
+    PKI("PKI", "Mutual TLS with PKI certificate authorization scheme."),
     BASIC("Basic", "Basic authorization scheme."),
     API_KEY("API Key", "API key authorization scheme.");
 
