@@ -321,7 +321,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
          * if the user does not specify a value. When {@link #build()} is
          * called, if Allowable Values have been set (see
          * {@link #allowableValues(AllowableValue...)}) and this value is not
-         * one of those Allowable Values and Exception will be thrown. If the
+         * one of those Allowable Values, an Exception will be thrown. If the
          * Allowable Values have been set using the
          * {@link #allowableValues(AllowableValue...)} method, the default value
          * should be set to the "Value" of the {@link AllowableValue} object
@@ -342,7 +342,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
          * if the user does not specify a value. When {@link #build()} is
          * called, if Allowable Values have been set (see
          * {@link #allowableValues(Class)}) and this value is not
-         * one of those Allowable Values and Exception will be thrown.
+         * one of those Allowable Values, an Exception will be thrown.
          *
          * @param value default value
          * @return the builder

@@ -67,25 +67,44 @@ public class TestPropertyDescriptor {
     }
 
     @Test
-    void testPropertyDescriptorWithEnumValue() {
-        final PropertyDescriptor dependentProperty = new PropertyDescriptor.Builder()
+    void testDefaultValueWithEnumValue() {
+        final PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder()
+                .name("enumDefaultValueDescriptor")
+                .defaultValue(EnumAllowableValue.GREEN)
+                .build();
+
+        assertNotNull(propertyDescriptor);
+
+        assertEquals(EnumAllowableValue.GREEN.getValue(), propertyDescriptor.getDefaultValue());
+    }
+
+    @Test
+    void testAllowableValuesWithEnumValue() {
+        final PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder()
+                .name("enumAllowableValueDescriptor")
+                .allowableValues(EnumAllowableValue.class)
+                .build();
+
+        assertNotNull(propertyDescriptor);
+
+        final List<AllowableValue> expectedAllowableValues = Arrays.stream(EnumAllowableValue.values())
+                .map(enumValue -> new AllowableValue(enumValue.getValue(), enumValue.getDisplayName(), enumValue.getDescription()))
+                .collect(Collectors.toList());
+        assertEquals(expectedAllowableValues, propertyDescriptor.getAllowableValues());
+    }
+
+    @Test
+    void testDependsOnWithEnumValue() {
+        final PropertyDescriptor dependentPropertyDescriptor = new PropertyDescriptor.Builder()
                 .name(DEPENDENT_PROPERTY_NAME)
                 .build();
 
-        final Builder enumDescriptorBuilder = new PropertyDescriptor.Builder()
-                .name("enumAllowableValueDescriptor")
-                .allowableValues(EnumAllowableValue.class)
-                .defaultValue(EnumAllowableValue.GREEN)
-                .dependsOn(dependentProperty, EnumAllowableValue.RED);
+        final PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder()
+                .name("enumDependsOnDescriptor")
+                .dependsOn(dependentPropertyDescriptor, EnumAllowableValue.RED)
+                .build();
 
-        final PropertyDescriptor propertyDescriptor = enumDescriptorBuilder.build();
         assertNotNull(propertyDescriptor);
-
-        assertEquals(EnumAllowableValue.GREEN.name(), propertyDescriptor.getDefaultValue());
-        final List<AllowableValue> expectedAllowableValues = Arrays.stream(EnumAllowableValue.values())
-                .map(enumValue -> new AllowableValue(enumValue.name(), enumValue.getDisplayName(), enumValue.getDescription()))
-                .collect(Collectors.toList());
-        assertEquals(expectedAllowableValues, propertyDescriptor.getAllowableValues());
 
         final Set<PropertyDependency> dependencies = propertyDescriptor.getDependencies();
         assertEquals(1, dependencies.size());
@@ -94,7 +113,7 @@ public class TestPropertyDescriptor {
         final Set<String> dependentValues = dependency.getDependentValues();
         assertEquals(1, dependentValues.size());
         final String dependentValue = dependentValues.iterator().next();
-        assertEquals(EnumAllowableValue.RED.name(), dependentValue);
+        assertEquals(EnumAllowableValue.RED.getValue(), dependentValue);
     }
 
     @Test
