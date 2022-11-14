@@ -205,6 +205,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         schedulingPeriod = new AtomicReference<>("0 sec");
         schedulingNanos = new AtomicLong(MINIMUM_SCHEDULING_NANOS);
         yieldPeriod = new AtomicReference<>(DEFAULT_YIELD_PERIOD);
+        yieldNanos = Math.round(FormatUtils.getPreciseTimeDuration(DEFAULT_YIELD_PERIOD, TimeUnit.NANOSECONDS));
         yieldExpiration = new AtomicLong(0L);
         concurrentTaskCount = new AtomicInteger(1);
         position = new AtomicReference<>(new Position(0D, 0D));
@@ -596,7 +597,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public void yield() {
         final Processor processor = processorRef.get().getProcessor();
         final long yieldMillis = getYieldPeriod(TimeUnit.MILLISECONDS);
-        yield(yieldMillis, TimeUnit.MILLISECONDS);
+        this.yield(yieldMillis, TimeUnit.MILLISECONDS);
 
         final String yieldDuration = (yieldMillis > 1000) ? (yieldMillis / 1000) + " seconds" : yieldMillis + " milliseconds";
         LoggerFactory.getLogger(processor.getClass()).trace("{} has chosen to yield its resources; will not be scheduled to run again for {}", processor, yieldDuration);
