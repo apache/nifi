@@ -37,6 +37,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.CounterRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.RepositoryContext;
@@ -820,5 +821,9 @@ public class StandardStatelessFlow implements StatelessDataflow {
         public TimeUnit getSchedulingUnit() {
             return schedulingUnit;
         }
+    }
+
+    public ContentRepository getContentRepository() {
+        return repositoryContextFactory.getContentRepository();
     }
 }
