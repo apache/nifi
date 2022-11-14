@@ -141,6 +141,7 @@ public class EventFactory {
                 .eventType(EventType.CREATE_USER)
                 .addField(EventFieldName.USER_ID, user.getIdentifier())
                 .addField(EventFieldName.USER_IDENTITY, user.getIdentity())
+                .addField(EventFieldName.USER, NiFiUserUtils.getNiFiUserIdentity())
                 .build();
     }
 
@@ -149,6 +150,7 @@ public class EventFactory {
                 .eventType(EventType.UPDATE_USER)
                 .addField(EventFieldName.USER_ID, user.getIdentifier())
                 .addField(EventFieldName.USER_IDENTITY, user.getIdentity())
+                .addField(EventFieldName.USER, NiFiUserUtils.getNiFiUserIdentity())
                 .build();
     }
 
@@ -157,6 +159,7 @@ public class EventFactory {
                 .eventType(EventType.DELETE_USER)
                 .addField(EventFieldName.USER_ID, user.getIdentifier())
                 .addField(EventFieldName.USER_IDENTITY, user.getIdentity())
+                .addField(EventFieldName.USER, NiFiUserUtils.getNiFiUserIdentity())
                 .build();
     }
 
@@ -165,6 +168,7 @@ public class EventFactory {
                 .eventType(EventType.CREATE_USER_GROUP)
                 .addField(EventFieldName.USER_GROUP_ID, userGroup.getIdentifier())
                 .addField(EventFieldName.USER_GROUP_IDENTITY, userGroup.getIdentity())
+                .addField(EventFieldName.USER, NiFiUserUtils.getNiFiUserIdentity())
                 .build();
     }
 
@@ -173,6 +177,7 @@ public class EventFactory {
                 .eventType(EventType.UPDATE_USER_GROUP)
                 .addField(EventFieldName.USER_GROUP_ID, userGroup.getIdentifier())
                 .addField(EventFieldName.USER_GROUP_IDENTITY, userGroup.getIdentity())
+                .addField(EventFieldName.USER, NiFiUserUtils.getNiFiUserIdentity())
                 .build();
     }
 
@@ -181,6 +186,7 @@ public class EventFactory {
                 .eventType(EventType.DELETE_USER_GROUP)
                 .addField(EventFieldName.USER_GROUP_ID, userGroup.getIdentifier())
                 .addField(EventFieldName.USER_GROUP_IDENTITY, userGroup.getIdentity())
+                .addField(EventFieldName.USER, NiFiUserUtils.getNiFiUserIdentity())
                 .build();
     }
 }
