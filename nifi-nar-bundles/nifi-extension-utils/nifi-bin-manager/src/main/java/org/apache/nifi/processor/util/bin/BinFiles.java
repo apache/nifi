@@ -263,12 +263,14 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 
     private int binFlowFiles(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         int flowFilesBinned = 0;
-        while (binManager.getBinCount() <= context.getProperty(MAX_BIN_COUNT).asInteger()) {
+
+        final ProcessSession session = sessionFactory.createSession();
+        final int maxBinCount = context.getProperty(MAX_BIN_COUNT).asInteger();
+        while (binManager.getBinCount() <= maxBinCount) {
             if (!isScheduled()) {
                 break;
             }
 
-            final ProcessSession session = sessionFactory.createSession();
             final List<FlowFile> flowFiles = session.get(1000);
             if (flowFiles.isEmpty()) {
                 break;
@@ -284,7 +286,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
                 } catch (final Exception e) {
                     getLogger().error("Could not determine which Bin to add {} to; will route to failure", new Object[] {flowFile}, e);
                     session.transfer(flowFile, REL_FAILURE);
-                    continue;
+                    session.commitAsync();
                 }
             }
 

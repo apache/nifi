@@ -641,6 +641,8 @@ public class MergeContent extends BinFiles {
                             out.write(header);
                         }
 
+                        final byte[] demarcator = getDelimiterContent(context, contents, DEMARCATOR);
+
                         boolean isFirst = true;
                         final Iterator<FlowFile> itr = contents.iterator();
                         while (itr.hasNext()) {
@@ -653,7 +655,6 @@ public class MergeContent extends BinFiles {
                             });
 
                             if (itr.hasNext()) {
-                                final byte[] demarcator = getDelimiterContent(context, contents, DEMARCATOR);
                                 if (demarcator != null) {
                                     out.write(demarcator);
                                 }

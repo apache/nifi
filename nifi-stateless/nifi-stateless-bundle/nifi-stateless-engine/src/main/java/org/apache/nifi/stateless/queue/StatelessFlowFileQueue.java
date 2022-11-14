@@ -394,4 +394,14 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     public void drainTo(final List<FlowFileRecord> destination) {
         this.flowFiles.drainTo(destination);
     }
+
+    @Override
+    public int hashCode() {
+        return identifier.hashCode();
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        return this == obj;
+    }
 }
