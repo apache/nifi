@@ -24,6 +24,9 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.deltalake.storage.StorageAdapter;
 import org.apache.nifi.processors.deltalake.storage.StorageAdapterFactory;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -31,8 +34,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.PARQUET_SCHEMA_INPUT_TEXT;
+import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.PARQUET_SCHEMA_SELECTOR;
 import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.PARTITION_COLUMNS;
-import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.STRUCTURE_JSON;
+import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.SCHEMA_FILE_JSON;
+import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.SCHEMA_TEXT_JSON;
 
 public class DeltaLakeService {
 
@@ -43,14 +49,13 @@ public class DeltaLakeService {
         StorageAdapterFactory adapterFactory = new StorageAdapterFactory();
         StorageAdapter storageAdapter = adapterFactory.initializeAdapter(processorContext);
 
-        String parquetStructure = processorContext.getProperty(STRUCTURE_JSON).getValue();
-        StructType structType = (StructType) StructType.fromJson(parquetStructure);
+        StructType parquetSchema = getParquetSchema(processorContext);
 
         String partitionColumns = processorContext.getProperty(PARTITION_COLUMNS).getValue();
         List<String> columns = partitionColumns == null ? Collections.emptyList() : Arrays.asList(partitionColumns.split(","));
 
         storageService = new StorageService(storageAdapter, columns);
-        deltaTableService = new DeltaTableService(storageAdapter, structType, columns);
+        deltaTableService = new DeltaTableService(storageAdapter, parquetSchema, columns);
     }
 
     public boolean deltaTableExists() {
@@ -101,6 +106,24 @@ public class DeltaLakeService {
 
     public void finishTransaction() {
         deltaTableService.finishTransaction();
+    }
+
+    private StructType getParquetSchema(ProcessContext processorContext) {
+        String parquetSchemaType = processorContext.getProperty(PARQUET_SCHEMA_SELECTOR).getValue();
+
+        String parquetSchema;
+        if (parquetSchemaType.equals(PARQUET_SCHEMA_INPUT_TEXT.getValue())) {
+            parquetSchema = processorContext.getProperty(SCHEMA_TEXT_JSON).getValue();
+        } else {
+            String parquetSchemaFilePath = processorContext.getProperty(SCHEMA_FILE_JSON).getValue();
+            try {
+                parquetSchema = new String(Files.readAllBytes(Paths.get(parquetSchemaFilePath)));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        return (StructType) StructType.fromJson(parquetSchema);
     }
 
 }

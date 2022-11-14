@@ -59,6 +59,13 @@ public class DeltaLakeMetadataWriter extends AbstractProcessor {
     public static final AllowableValue GCP = new AllowableValue("GCP", "GCP",
             "The parquet files stored in a GCP bucket.");
 
+    public static final AllowableValue PARQUET_SCHEMA_INPUT_TEXT = new AllowableValue("INPUT", "Text Input",
+            "The parquet files schema in text input in json format");
+
+    public static final AllowableValue PARQUET_SCHEMA_FILE = new AllowableValue("FILE", "Local file path",
+            "The parquet schema files path");
+
+
     private List<PropertyDescriptor> descriptors;
 
     private Set<Relationship> relationships;
@@ -72,9 +79,19 @@ public class DeltaLakeMetadataWriter extends AbstractProcessor {
             .required(true)
             .build();
 
+
+    public static final PropertyDescriptor PARQUET_SCHEMA_SELECTOR = new PropertyDescriptor.Builder()
+            .name("parquet-schema-selector")
+            .displayName("Parquet schema location")
+            .description("Choose parquet schema source. Text input or local file.")
+            .allowableValues(PARQUET_SCHEMA_INPUT_TEXT, PARQUET_SCHEMA_FILE)
+            .defaultValue(PARQUET_SCHEMA_INPUT_TEXT.getValue())
+            .required(true)
+            .build();
+
     public static final PropertyDescriptor LOCAL_PATH = new PropertyDescriptor.Builder()
             .name("local-path")
-            .displayName("Local filesystem path")
+            .displayName("Data path on local filesystem")
             .description("Path on the local file system, can be absolute(has to start with '/') or relative path")
             .dependsOn(STORAGE_SELECTOR, LOCAL_FILESYSTEM)
             .addValidator(StandardValidators.createDirectoryExistsValidator(false, false))
@@ -183,14 +200,6 @@ public class DeltaLakeMetadataWriter extends AbstractProcessor {
             .required(true)
             .build();
 
-    public static final PropertyDescriptor STRUCTURE_JSON = new PropertyDescriptor.Builder()
-            .name("parquet-structure")
-            .displayName("Parquet structure in json")
-            .description("Describes the data structure of the parquet file in json format")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(true)
-            .build();
-
     public static final PropertyDescriptor PARTITION_COLUMNS = new PropertyDescriptor.Builder()
             .name("partition-columns")
             .displayName("Parquet partition columns")
@@ -209,13 +218,31 @@ public class DeltaLakeMetadataWriter extends AbstractProcessor {
             .description("DeltaLake table update failed")
             .build();
 
+    public static final PropertyDescriptor SCHEMA_TEXT_JSON = new PropertyDescriptor.Builder()
+            .name("parquet-schema-text")
+            .displayName("Parquet schema in json")
+            .description("Describes the data structure of the parquet file in json format as text")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .dependsOn(PARQUET_SCHEMA_SELECTOR, PARQUET_SCHEMA_INPUT_TEXT)
+            .required(true)
+            .build();
+
+    public static final PropertyDescriptor SCHEMA_FILE_JSON = new PropertyDescriptor.Builder()
+            .name("parquet-schema-file")
+            .displayName("Parquet schema file location")
+            .description("Location of a json file that describes the data structure of the parquet file")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .dependsOn(PARQUET_SCHEMA_SELECTOR, PARQUET_SCHEMA_FILE)
+            .required(true)
+            .build();
+
     private DeltaLakeService deltalakeService;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
         this.relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILED)));
         this.descriptors = Collections.unmodifiableList(Arrays.asList(
-                STORAGE_SELECTOR, LOCAL_PATH, STRUCTURE_JSON, PARTITION_COLUMNS,
+                STORAGE_SELECTOR, LOCAL_PATH, PARQUET_SCHEMA_SELECTOR, SCHEMA_TEXT_JSON, SCHEMA_FILE_JSON, PARTITION_COLUMNS,
                 S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET, S3_PATH,
                 AZURE_ACCOUNT_KEY, AZURE_STORAGE_NAME, AZURE_STORAGE_ACCOUNT, AZURE_PATH,
                 GCP_ACCOUNT_JSON_KEYFILE_PATH, GCP_BUCKET, GCP_PATH));
