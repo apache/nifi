@@ -24,11 +24,14 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.deltalake.storage.StorageAdapter;
 import org.apache.nifi.processors.deltalake.storage.StorageAdapterFactory;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.PARTITION_COLUMNS;
 import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.STRUCTURE_JSON;
 
 public class DeltaLakeService {
@@ -43,8 +46,11 @@ public class DeltaLakeService {
         String parquetStructure = processorContext.getProperty(STRUCTURE_JSON).getValue();
         StructType structType = (StructType) StructType.fromJson(parquetStructure);
 
-        storageService = new StorageService(storageAdapter);
-        deltaTableService = new DeltaTableService(storageAdapter, structType);
+        String partitionColumns = processorContext.getProperty(PARTITION_COLUMNS).getValue();
+        List<String> columns = partitionColumns == null ? Collections.emptyList() : Arrays.asList(partitionColumns.split(","));
+
+        storageService = new StorageService(storageAdapter, columns);
+        deltaTableService = new DeltaTableService(storageAdapter, structType, columns);
     }
 
     public boolean deltaTableExists() {
@@ -52,12 +58,12 @@ public class DeltaLakeService {
     }
 
     public int addNewFilesToDeltaTable() {
-        Set<String> dataFileNames = storageService.getParquetFileNamesFromDataStore();
-        dataFileNames.removeAll(deltaTableService.getDataFileNamesInDeltaTable());
+        Set<String> fileNamesInDeltaTable = deltaTableService.getDataFileNamesInDeltaTable();
 
         List<FileStatus> dataFileStatuses = storageService.getParquetFilesFromDataStore();
         List<AddFile> newFiles = dataFileStatuses.stream()
-                .filter(fileStatus -> dataFileNames.contains(fileStatus.getPath().getName()))
+                .filter(fileStatus -> !fileNamesInDeltaTable.stream()
+                        .anyMatch(s -> fileStatus.getPath().toString().endsWith(s)))
                 .map(deltaTableService::createAddFile)
                 .collect(Collectors.toList());
 
@@ -70,7 +76,8 @@ public class DeltaLakeService {
 
         List<AddFile> filesInDeltaTable = deltaTableService.getAllFiles();
         List<RemoveFile> removeFileList = filesInDeltaTable.stream()
-                .filter(fileInDeltaTable -> !dataFileNames.contains(fileInDeltaTable.getPath()))
+                .filter(fileInDeltaTable -> !dataFileNames.stream()
+                        .anyMatch(dataFileName -> fileInDeltaTable.getPath().equals(dataFileName)))
                 .map(deltaTableService::createRemoveFile)
                 .collect(Collectors.toList());
 
@@ -91,7 +98,9 @@ public class DeltaLakeService {
     public void startTransaction() {
         deltaTableService.startTransaction();
     }
+
     public void finishTransaction() {
         deltaTableService.finishTransaction();
     }
+
 }

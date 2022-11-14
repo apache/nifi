@@ -17,10 +17,15 @@
 package org.apache.nifi.processors.deltalake.service;
 
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.nifi.processors.deltalake.storage.StorageAdapter;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -29,11 +34,13 @@ import java.util.stream.Collectors;
 public class StorageService {
 
     private static final String PARQUET_FILE_EXTENSION = ".parquet";
+    private final List<String> partitionColumns;
 
     private StorageAdapter storageAdapter;
 
-    public StorageService(StorageAdapter storageAdapter) {
+    public StorageService(StorageAdapter storageAdapter, List<String> columns) {
         this.storageAdapter = storageAdapter;
+        this.partitionColumns = columns;
     }
 
     public FileStatus[] getFileStatuses() {
@@ -45,15 +52,46 @@ public class StorageService {
     }
 
     public List<FileStatus> getParquetFilesFromDataStore() {
-        return Arrays.stream(getFileStatuses())
-                .filter(f -> f.isFile() && f.getPath().getName().endsWith(PARQUET_FILE_EXTENSION))
-                .collect(Collectors.toList());
+        try {
+            Path path = new Path(storageAdapter.getDataPath());
+            RemoteIterator<LocatedFileStatus> statuses = storageAdapter.getFileSystem().listFiles(path, true);
+
+            List<FileStatus> fileStatuses = new ArrayList<>();
+            while (statuses.hasNext()) {
+                LocatedFileStatus fileStatus = statuses.next();
+                if (fileStatus.isFile() && isDataParquetFile(fileStatus)) {
+                    fileStatuses.add(fileStatus);
+                }
+            }
+            return fileStatuses;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public Set<String> getParquetFileNamesFromDataStore() {
         return getParquetFilesFromDataStore().stream()
-                .map(fileStatus -> fileStatus.getPath().getName())
+                .map(FileStatus::getPath)
+                .map(this::getFileNameWithPartitionColumns)
                 .collect(Collectors.toSet());
+    }
+
+    private String getFileNameWithPartitionColumns(Path fileName) {
+        String separator = FileSystems.getDefault().getSeparator();
+        List<String> pathElements = Arrays.stream(fileName.toString().split(separator))
+                .collect(Collectors.toList());
+        List<String> fileWithPartitionColumns = pathElements
+                .subList(pathElements.size() - partitionColumns.size() - 1, pathElements.size());
+        return StringUtils.join(fileWithPartitionColumns, separator);
+    }
+
+    private boolean isDataParquetFile(LocatedFileStatus fileStatus) {
+        String fileName = fileStatus.getPath().getName();
+        return fileName.endsWith(PARQUET_FILE_EXTENSION) && notInternalParquetFile(fileName);
+    }
+
+    private boolean notInternalParquetFile(String fileName) {
+        return !fileName.endsWith("checkpoint" + PARQUET_FILE_EXTENSION);
     }
 
 }

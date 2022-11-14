@@ -27,10 +27,14 @@ import io.delta.standalone.types.StructType;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.nifi.processors.deltalake.storage.StorageAdapter;
 
+import java.nio.file.FileSystems;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -39,14 +43,16 @@ public class DeltaTableService {
     private final static String DELTA_TABLE_NAME = "delta-table";
     private final StructType structType;
     private final StorageAdapter storageAdapter;
+    private final List<String> partitionColumns;
 
     private OptimisticTransaction transaction;
     private List<FileAction> fileUpdates;
     private Metadata deltaTableMetadata;
 
-    public DeltaTableService(StorageAdapter storageAdapter, StructType structType) {
+    public DeltaTableService(StorageAdapter storageAdapter, StructType structType, List<String> partitionColumns) {
         this.storageAdapter = storageAdapter;
         this.structType = structType;
+        this.partitionColumns = partitionColumns;
     }
 
     public void startTransaction() {
@@ -83,7 +89,7 @@ public class DeltaTableService {
         if (!newFiles.isEmpty()) {
             OptimisticTransaction transaction = storageAdapter.getDeltaLog().startTransaction();
             transaction.updateMetadata(createMetadata());
-            transaction.commit(fileUpdates, new Operation(Operation.Name.CREATE_TABLE), storageAdapter.getEngineInfo());
+            transaction.commit(newFiles, new Operation(Operation.Name.CREATE_TABLE), storageAdapter.getEngineInfo());
         }
     }
 
@@ -101,7 +107,7 @@ public class DeltaTableService {
     public AddFile createAddFile(FileStatus file) {
         return new AddFile(
                 file.getPath().toString(),
-                Collections.emptyMap(),
+                calculatePartitionColumns(file.getPath().toString()),
                 file.getLen(),
                 file.getModificationTime(),
                 true,
@@ -115,14 +121,28 @@ public class DeltaTableService {
                 Optional.of(System.currentTimeMillis()),
                 true,
                 false,
-                Collections.emptyMap(),
+                calculatePartitionColumns(file.getPath()),
                 Optional.of(file.getSize()),
                 null);
+    }
+
+    private Map<String, String> calculatePartitionColumns(String filePath) {
+        Map<String, String> partitionColumns = new HashMap<>();
+        String separator = FileSystems.getDefault().getSeparator();
+        List<String> directories = Arrays.asList(filePath.split(separator));
+        List<String> partitionDirectories = directories.subList(directories.size() - (this.partitionColumns.size() + 1), directories.size()-1);
+
+        for (int i = 0; i < this.partitionColumns.size(); i++) {
+            partitionColumns.put(this.partitionColumns.get(i), partitionDirectories.get(this.partitionColumns.size() - i - 1));
+        }
+
+        return partitionColumns;
     }
 
     private Metadata createMetadata() {
         return Metadata.builder()
                 .id(DELTA_TABLE_NAME)
+                .partitionColumns(partitionColumns)
                 .schema(structType)
                 .build();
     }

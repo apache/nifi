@@ -191,6 +191,14 @@ public class DeltaLakeMetadataWriter extends AbstractProcessor {
             .required(true)
             .build();
 
+    public static final PropertyDescriptor PARTITION_COLUMNS = new PropertyDescriptor.Builder()
+            .name("partition-columns")
+            .displayName("Parquet partition columns")
+            .description("Parquet file partition columns, nested columns separated by ',' ")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("DeltaLake table successfully updated")
@@ -206,7 +214,8 @@ public class DeltaLakeMetadataWriter extends AbstractProcessor {
     @Override
     protected void init(final ProcessorInitializationContext context) {
         this.relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILED)));
-        this.descriptors = Collections.unmodifiableList(Arrays.asList(STORAGE_SELECTOR, LOCAL_PATH, STRUCTURE_JSON,
+        this.descriptors = Collections.unmodifiableList(Arrays.asList(
+                STORAGE_SELECTOR, LOCAL_PATH, STRUCTURE_JSON, PARTITION_COLUMNS,
                 S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET, S3_PATH,
                 AZURE_ACCOUNT_KEY, AZURE_STORAGE_NAME, AZURE_STORAGE_ACCOUNT, AZURE_PATH,
                 GCP_ACCOUNT_JSON_KEYFILE_PATH, GCP_BUCKET, GCP_PATH));
