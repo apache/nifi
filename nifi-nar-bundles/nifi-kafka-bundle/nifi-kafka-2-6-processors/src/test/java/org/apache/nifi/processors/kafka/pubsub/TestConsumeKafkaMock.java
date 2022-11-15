@@ -35,6 +35,7 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
+import org.apache.nifi.kafka.shared.property.OutputStrategy;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.reporting.InitializationException;
@@ -57,6 +58,7 @@ import java.util.regex.Pattern;
 
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.BOOTSTRAP_SERVERS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -75,7 +77,7 @@ public class TestConsumeKafkaMock {
     /**
      * Kafka server endpoint (mock) for test interactions.
      */
-    private static final String BOOTSTRAP_SERVER = "localhost:59092";
+    private static final String TEST_BOOTSTRAP_SERVER = "localhost:59092";
 
     /**
      * Ensure fresh data for each test run.
@@ -418,7 +420,7 @@ public class TestConsumeKafkaMock {
         };
         final TestRunner runner = TestRunners.newTestRunner(processor);
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, BOOTSTRAP_SERVER);
+        runner.setProperty(BOOTSTRAP_SERVERS, TEST_BOOTSTRAP_SERVER);
         runner.setProperty("topic", topic);
         runner.setProperty("topic_type", "names");
         runner.setProperty(ConsumerConfig.GROUP_ID_CONFIG, group);

@@ -35,6 +35,7 @@
         <module>nifi-kafka-1-0-nar</module>
         <module>nifi-kafka-2-0-nar</module>
         <module>nifi-kafka-2-6-nar</module>
+        <module>nifi-kafka-shared</module>
     </modules>
     <dependencyManagement>
         <dependencies>
@@ -51,6 +52,11 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-kafka-2-6-processors</artifactId>
+                <version>1.19.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-kafka-shared</artifactId>
                 <version>1.19.0-SNAPSHOT</version>
             </dependency>
             <dependency>

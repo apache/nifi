@@ -14,28 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.kafka.pubsub;
+package org.apache.nifi.kafka.shared.property;
 
-import org.junit.jupiter.api.Test;
+/**
+ * Enumeration of supported Kafka Security Protocols
+ */
+public enum SecurityProtocol {
+    PLAINTEXT,
 
-import java.util.function.Supplier;
+    SSL,
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+    SASL_PLAINTEXT,
 
-public class KafkaProcessorUtilsTest {
-
-  @Test
-  public void getTransactionalIdSupplierWithPrefix() {
-    Supplier<String> prefix = KafkaProcessorUtils.getTransactionalIdSupplier("prefix");
-    String id = prefix.get();
-    assertTrue(id.startsWith("prefix"));
-    assertEquals(42, id.length());
-  }
-
-  @Test
-  public void getTransactionalIdSupplierWithEmptyPrefix() {
-    Supplier<String> prefix = KafkaProcessorUtils.getTransactionalIdSupplier(null);
-    assertEquals(36, prefix.get().length() );
-  }
+    SASL_SSL
 }

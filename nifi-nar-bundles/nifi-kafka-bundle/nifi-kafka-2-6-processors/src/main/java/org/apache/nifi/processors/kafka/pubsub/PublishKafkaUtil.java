@@ -27,12 +27,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KAFKA_CONSUMER_GROUP_ID;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KAFKA_LEADER_EPOCH;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KAFKA_MAX_OFFSET;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KAFKA_OFFSET;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KAFKA_PARTITION;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KAFKA_TOPIC;
+import static org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute.KAFKA_CONSUMER_GROUP_ID;
+import static org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute.KAFKA_CONSUMER_OFFSETS_COMMITTED;
+import static org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute.KAFKA_LEADER_EPOCH;
+import static org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute.KAFKA_MAX_OFFSET;
+import static org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute.KAFKA_OFFSET;
+import static org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute.KAFKA_PARTITION;
+import static org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute.KAFKA_TOPIC;
 
 public class PublishKafkaUtil {
 
@@ -50,7 +51,7 @@ public class PublishKafkaUtil {
         // Check if any of the FlowFiles indicate that the consumer offsets have yet to be committed.
         boolean offsetsCommitted = true;
         for (final FlowFile flowFile : initialFlowFiles) {
-            if ("false".equals(flowFile.getAttribute(KafkaProcessorUtils.KAFKA_CONSUMER_OFFSETS_COMMITTED))) {
+            if ("false".equals(flowFile.getAttribute(KAFKA_CONSUMER_OFFSETS_COMMITTED))) {
                 offsetsCommitted = false;
                 break;
             }
@@ -89,14 +90,14 @@ public class PublishKafkaUtil {
      * @param logger the processor's logger
      */
     public static void addConsumerOffsets(final PublisherLease lease, final FlowFile flowFile, final ComponentLog logger) {
-        final String topic = flowFile.getAttribute(KafkaProcessorUtils.KAFKA_TOPIC);
-        final Long partition = getNumericAttribute(flowFile, KafkaProcessorUtils.KAFKA_PARTITION, logger);
-        Long maxOffset = getNumericAttribute(flowFile, KafkaProcessorUtils.KAFKA_MAX_OFFSET, logger);
+        final String topic = flowFile.getAttribute(KAFKA_TOPIC);
+        final Long partition = getNumericAttribute(flowFile, KAFKA_PARTITION, logger);
+        Long maxOffset = getNumericAttribute(flowFile, KAFKA_MAX_OFFSET, logger);
         if (maxOffset == null) {
-            maxOffset = getNumericAttribute(flowFile, KafkaProcessorUtils.KAFKA_OFFSET, logger);
+            maxOffset = getNumericAttribute(flowFile, KAFKA_OFFSET, logger);
         }
 
-        final Long epoch = getNumericAttribute(flowFile, KafkaProcessorUtils.KAFKA_LEADER_EPOCH, logger);
+        final Long epoch = getNumericAttribute(flowFile, KAFKA_LEADER_EPOCH, logger);
         final String consumerGroupId = flowFile.getAttribute(KAFKA_CONSUMER_GROUP_ID);
 
         if (topic == null || partition == null || maxOffset == null || consumerGroupId == null) {

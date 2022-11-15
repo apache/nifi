@@ -14,28 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.kafka.pubsub;
+package org.apache.nifi.kafka.shared.attribute;
 
-import org.junit.jupiter.api.Test;
+/**
+ * Transit URI Provider for Provenance Reporting
+ */
+public class StandardTransitUriProvider {
+    private static final String TRANSIT_URI = "%s://%s/%s";
 
-import java.util.function.Supplier;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-public class KafkaProcessorUtilsTest {
-
-  @Test
-  public void getTransactionalIdSupplierWithPrefix() {
-    Supplier<String> prefix = KafkaProcessorUtils.getTransactionalIdSupplier("prefix");
-    String id = prefix.get();
-    assertTrue(id.startsWith("prefix"));
-    assertEquals(42, id.length());
-  }
-
-  @Test
-  public void getTransactionalIdSupplierWithEmptyPrefix() {
-    Supplier<String> prefix = KafkaProcessorUtils.getTransactionalIdSupplier(null);
-    assertEquals(36, prefix.get().length() );
-  }
+    /**
+     * Get Transit URI
+     *
+     * @param securityProtocol Kafka Security Protocol
+     * @param brokers One or more hostname and port combinations of Kafka Brokers
+     * @param topic Kafka Topic
+     * @return Transit URI
+     */
+    public static String getTransitUri(final String securityProtocol, final String brokers, final String topic) {
+        return String.format(TRANSIT_URI, securityProtocol, brokers, topic);
+    }
 }
