@@ -30,7 +30,7 @@ import java.util.Set;
 public class VersionedDataflow {
     private VersionedFlowEncodingVersion encodingVersion;
     private int maxTimerDrivenThreadCount;
-    private int maxEventDrivenThreadCount = 1;
+    private int maxEventDrivenThreadCount;
     private List<VersionedFlowRegistryClient> registries;
     private List<VersionedParameterContext> parameterContexts;
     private List<VersionedParameterProvider> parameterProviders;
@@ -38,6 +38,8 @@ public class VersionedDataflow {
     private List<VersionedReportingTask> reportingTasks;
     private Set<VersionedTemplate> templates;
     private VersionedProcessGroup rootGroup;
+
+    final static int DEFAULT_MAX_EVENT_DRIVEN_THREAD_COUNT = 1;
 
     public VersionedFlowEncodingVersion getEncodingVersion() {
         return encodingVersion;
@@ -56,7 +58,7 @@ public class VersionedDataflow {
     }
 
     public int getMaxEventDrivenThreadCount() {
-        return maxEventDrivenThreadCount;
+        return maxEventDrivenThreadCount < 1 ? DEFAULT_MAX_EVENT_DRIVEN_THREAD_COUNT : maxEventDrivenThreadCount;
     }
 
     public void setMaxEventDrivenThreadCount(final int maxEventDrivenThreadCount) {
