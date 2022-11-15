@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.kafka.pubsub;
 
+import org.apache.nifi.kafka.shared.property.KeyFormat;
+import org.apache.nifi.kafka.shared.property.OutputStrategy;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.kafka.pubsub.util.MockRecordParser;
@@ -28,20 +30,16 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KEY_AS_RECORD;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.OUTPUT_USE_VALUE;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.OUTPUT_USE_WRAPPER;
+import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.BOOTSTRAP_SERVERS;
 import static org.mockito.Mockito.mock;
 
 public class TestConsumeKafkaRecordKey_2_6 {
 
-    private ConsumerLease mockLease = null;
     private ConsumerPool mockConsumerPool = null;
     private TestRunner runner;
 
     @BeforeEach
     public void setup() throws InitializationException {
-        mockLease = mock(ConsumerLease.class);
         mockConsumerPool = mock(ConsumerPool.class);
 
         ConsumeKafkaRecord_2_6 proc = new ConsumeKafkaRecord_2_6() {
@@ -52,7 +50,7 @@ public class TestConsumeKafkaRecordKey_2_6 {
         };
 
         runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "okeydokey:1234");
+        runner.setProperty(BOOTSTRAP_SERVERS, "okeydokey:1234");
 
         final String readerId = "record-reader";
         final MockRecordParser readerService = new MockRecordParser();
@@ -78,13 +76,13 @@ public class TestConsumeKafkaRecordKey_2_6 {
         runner.assertValid();
         runner.setProperty(ConsumeKafkaRecord_2_6.OUTPUT_STRATEGY, "foo");
         runner.assertNotValid();
-        runner.setProperty(ConsumeKafkaRecord_2_6.OUTPUT_STRATEGY, OUTPUT_USE_VALUE);
+        runner.setProperty(ConsumeKafkaRecord_2_6.OUTPUT_STRATEGY, OutputStrategy.USE_VALUE.getValue());
         runner.assertValid();
-        runner.setProperty(ConsumeKafkaRecord_2_6.OUTPUT_STRATEGY, OUTPUT_USE_WRAPPER);
+        runner.setProperty(ConsumeKafkaRecord_2_6.OUTPUT_STRATEGY, OutputStrategy.USE_WRAPPER.getValue());
         runner.assertValid();
         runner.setProperty(ConsumeKafkaRecord_2_6.KEY_FORMAT, "foo");
         runner.assertNotValid();
-        runner.setProperty(ConsumeKafkaRecord_2_6.KEY_FORMAT, KEY_AS_RECORD);
+        runner.setProperty(ConsumeKafkaRecord_2_6.KEY_FORMAT, KeyFormat.RECORD.getValue());
         runner.assertValid();
         runner.setProperty(ConsumeKafkaRecord_2_6.KEY_RECORD_READER, "no-record-reader");
         runner.assertNotValid();

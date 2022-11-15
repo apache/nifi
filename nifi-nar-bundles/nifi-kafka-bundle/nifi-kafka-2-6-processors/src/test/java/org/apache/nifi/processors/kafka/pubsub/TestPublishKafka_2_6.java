@@ -19,6 +19,7 @@ package org.apache.nifi.processors.kafka.pubsub;
 
 import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.kafka.shared.property.FailureStrategy;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -139,7 +140,7 @@ public class TestPublishKafka_2_6 {
 
     @Test
     public void testSingleFailureWithRollback() throws IOException {
-        runner.setProperty(KafkaProcessorUtils.FAILURE_STRATEGY, KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK);
+        runner.setProperty(PublishKafka_2_6.FAILURE_STRATEGY, FailureStrategy.ROLLBACK.getValue());
         final MockFlowFile flowFile = runner.enqueue("hello world");
 
         when(mockLease.complete()).thenReturn(createFailurePublishResult(flowFile));
@@ -155,7 +156,7 @@ public class TestPublishKafka_2_6 {
 
     @Test
     public void testMultipleFailuresWithRollback() throws IOException {
-        runner.setProperty(KafkaProcessorUtils.FAILURE_STRATEGY, KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK);
+        runner.setProperty(PublishKafka_2_6.FAILURE_STRATEGY, FailureStrategy.ROLLBACK.getValue());
 
         final Set<FlowFile> flowFiles = new HashSet<>();
         flowFiles.add(runner.enqueue("hello world"));

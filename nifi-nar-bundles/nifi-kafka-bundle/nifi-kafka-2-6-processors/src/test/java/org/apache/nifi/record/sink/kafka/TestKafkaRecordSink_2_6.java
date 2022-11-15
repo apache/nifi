@@ -27,10 +27,11 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
+import org.apache.nifi.kafka.shared.property.SecurityProtocol;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils;
 import org.apache.nifi.record.sink.RecordSinkService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -138,13 +139,13 @@ public class TestKafkaRecordSink_2_6 {
         when(context.getProperty(KafkaRecordSink_2_6.MESSAGE_HEADER_ENCODING)).thenReturn(charEncodingValue);
 
         final PropertyValue securityValue = Mockito.mock(StandardPropertyValue.class);
-        when(securityValue.getValue()).thenReturn(KafkaProcessorUtils.SEC_SASL_PLAINTEXT.getValue());
-        when(context.getProperty(KafkaProcessorUtils.SECURITY_PROTOCOL)).thenReturn(securityValue);
+        when(securityValue.getValue()).thenReturn(SecurityProtocol.PLAINTEXT.name());
+        when(context.getProperty(KafkaRecordSink_2_6.SECURITY_PROTOCOL)).thenReturn(securityValue);
 
         final PropertyValue jaasValue = Mockito.mock(StandardPropertyValue.class);
         when(jaasValue.evaluateAttributeExpressions()).thenReturn(jaasValue);
         when(jaasValue.getValue()).thenReturn(null);
-        when(context.getProperty(KafkaProcessorUtils.JAAS_SERVICE_NAME)).thenReturn(jaasValue);
+        when(context.getProperty(KafkaRecordSink_2_6.KERBEROS_SERVICE_NAME)).thenReturn(jaasValue);
 
         Map<PropertyDescriptor, String> propertyMap = new HashMap<>();
         propertyMap.put(KafkaRecordSink_2_6.TOPIC, KafkaRecordSink_2_6.TOPIC.getName());
@@ -160,9 +161,9 @@ public class TestKafkaRecordSink_2_6 {
         MockRecordWriter writer = new MockRecordWriter(null, false);
         when(context.getProperty(RecordSinkService.RECORD_WRITER_FACTORY)).thenReturn(pValue);
         when(pValue.asControllerService(RecordSetWriterFactory.class)).thenReturn(writer);
-        when(context.getProperty(KafkaProcessorUtils.SSL_CONTEXT_SERVICE)).thenReturn(pValue);
+        when(context.getProperty(KafkaRecordSink_2_6.SSL_CONTEXT_SERVICE)).thenReturn(pValue);
         when(pValue.asControllerService(SSLContextService.class)).thenReturn(null);
-        when(context.getProperty(KafkaProcessorUtils.KERBEROS_CREDENTIALS_SERVICE)).thenReturn(pValue);
+        when(context.getProperty(KafkaClientComponent.KERBEROS_CREDENTIALS_SERVICE)).thenReturn(pValue);
         when(pValue.asControllerService(KerberosCredentialsService.class)).thenReturn(null);
 
         final ControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(task, UUID.randomUUID().toString(), logger, stateManager);

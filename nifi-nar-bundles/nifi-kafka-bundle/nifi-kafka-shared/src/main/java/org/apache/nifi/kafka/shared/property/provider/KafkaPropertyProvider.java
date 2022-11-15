@@ -14,12 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.kafka.pubsub;
+package org.apache.nifi.kafka.shared.property.provider;
+
+import org.apache.nifi.context.PropertyContext;
+
+import java.util.Map;
 
 /**
- * Enumeration of strategies used by {@link ConsumeKafkaRecord_2_6} to map Kafka records to NiFi FlowFiles.
+ * Provider abstraction for configuring Kafka Consumer and Producer properties
  */
-public enum OutputStrategy {
-    USE_VALUE,
-    USE_WRAPPER;
+public interface KafkaPropertyProvider {
+    /**
+     * Get Kafka Properties
+     *
+     * @param context Property Context
+     * @return Kafka Properties
+     */
+    Map<String, Object> getProperties(PropertyContext context);
 }

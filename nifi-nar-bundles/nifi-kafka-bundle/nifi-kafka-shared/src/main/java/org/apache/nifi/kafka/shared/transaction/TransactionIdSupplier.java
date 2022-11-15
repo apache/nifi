@@ -14,12 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.kafka.pubsub;
+package org.apache.nifi.kafka.shared.transaction;
+
+import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
- * Enumeration of strategies used by {@link PublishKafkaRecord_2_6} to map NiFi FlowFiles to Kafka records.
+ * Standard Transaction Identifier Supplier with optional prefix
  */
-public enum PublishStrategy {
-    USE_VALUE,
-    USE_WRAPPER;
+public class TransactionIdSupplier implements Supplier<String> {
+    private static final String EMPTY_PREFIX = "";
+
+    private final String prefix;
+
+    public TransactionIdSupplier(final String prefix) {
+        this.prefix = prefix == null ? EMPTY_PREFIX : prefix;
+    }
+
+    /**
+     * Get Transaction Identifier consisting of a random UUID with configured prefix string
+     *
+     * @return Transaction Identifier
+     */
+    @Override
+    public String get() {
+        return prefix + UUID.randomUUID();
+    }
 }
