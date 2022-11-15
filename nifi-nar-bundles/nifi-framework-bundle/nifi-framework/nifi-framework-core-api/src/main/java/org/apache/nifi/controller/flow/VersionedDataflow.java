@@ -30,7 +30,7 @@ import java.util.Set;
 public class VersionedDataflow {
     private VersionedFlowEncodingVersion encodingVersion;
     private int maxTimerDrivenThreadCount;
-    private int maxEventDrivenThreadCount;
+    private int maxEventDrivenThreadCount = 1;
     private List<VersionedFlowRegistryClient> registries;
     private List<VersionedParameterContext> parameterContexts;
     private List<VersionedParameterProvider> parameterProviders;
