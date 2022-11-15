@@ -17,6 +17,7 @@
 
 package org.apache.nifi.registry.flow.mapping;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -74,6 +75,7 @@ import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
+import org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
@@ -135,6 +137,8 @@ public class NiFiRegistryFlowMapperTest {
         final FlowRegistryClientNode flowRegistry = mock(FlowRegistryClientNode.class);
         Mockito.when(flowRegistry.getComponentType()).thenReturn("org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient");
         Mockito.when(flowRegistry.getRawPropertyValue(Mockito.any())).thenReturn("");
+        Mockito.when(flowRegistry.getPropertyDescriptor(NifiRegistryFlowRegistryClient.PROPERTY_URL.getName())).thenReturn(NifiRegistryFlowRegistryClient.PROPERTY_URL);
+        Mockito.when(flowRegistry.getRawPropertyValue(NifiRegistryFlowRegistryClient.PROPERTY_URL)).thenReturn("http://127.0.0.1:18080");
 
         when(flowManager.getFlowRegistryClient(anyString())).thenReturn(flowRegistry);
 
@@ -234,6 +238,9 @@ public class NiFiRegistryFlowMapperTest {
                         false);
         final VersionedProcessGroup innerVersionedProcessGroup =
                 versionedProcessGroup.getProcessGroups().iterator().next();
+
+        // ensure the Registry URL has been set correctly in the flowManager
+        assert(StringUtils.isNotEmpty(innerVersionedProcessGroup.getVersionedFlowCoordinates().getStorageLocation()));
 
         // verify root versioned process group contents only
         verifyVersionedProcessGroup(processGroup, versionedProcessGroup,false,false);
