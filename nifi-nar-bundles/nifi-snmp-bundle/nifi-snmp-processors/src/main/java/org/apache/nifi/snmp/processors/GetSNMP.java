@@ -107,6 +107,7 @@ public class GetSNMP extends AbstractSNMPProcessor {
                     "the outgoing flowfile.")
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .defaultValue(null)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()

@@ -92,6 +92,7 @@ public class HttpNotificationService extends AbstractNotificationService {
     public static final PropertyDescriptor PROP_TRUSTSTORE_PASSWORD = new PropertyDescriptor.Builder()
             .name("Truststore Password")
             .description("The password for the Truststore")
+            .defaultValue(null)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
@@ -99,6 +100,7 @@ public class HttpNotificationService extends AbstractNotificationService {
     public static final PropertyDescriptor PROP_KEYSTORE = new PropertyDescriptor.Builder()
             .name("Keystore Filename")
             .description("The fully-qualified filename of the Keystore")
+            .defaultValue(null)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .sensitive(false)
             .build();
@@ -111,6 +113,7 @@ public class HttpNotificationService extends AbstractNotificationService {
             .build();
     public static final PropertyDescriptor PROP_KEYSTORE_PASSWORD = new PropertyDescriptor.Builder()
             .name("Keystore Password")
+            .defaultValue(null)
             .description("The password for the Keystore")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
@@ -122,6 +125,14 @@ public class HttpNotificationService extends AbstractNotificationService {
                     + "then the Keystore Password will be assumed to be the same as the Key Password.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
+            .build();
+
+    public static final PropertyDescriptor SSL_ALGORITHM = new PropertyDescriptor.Builder()
+            .name("SSL Protocol")
+            .defaultValue("TLS")
+            .allowableValues("SSL", "TLS")
+            .description("The algorithm to use for this SSL context.")
+            .sensitive(false)
             .build();
 
     private final AtomicReference<OkHttpClient> httpClientReference = new AtomicReference<>();

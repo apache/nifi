@@ -93,6 +93,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
             .description("Skips forward to the given nested JSON field (array or object) to begin processing.")
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .defaultValue(null)
             .dependsOn(STARTING_FIELD_STRATEGY, StartingFieldStrategy.NESTED_FIELD.name())
             .build();
 

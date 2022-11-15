@@ -94,6 +94,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
             .name("Database Connection URL")
             .description("A database connection URL used to connect to a database. May contain database system name, host, port, database name and some parameters."
                     + " The exact syntax of a database connection URL is specified by your DBMS.")
+            .defaultValue(null)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -102,6 +103,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
     public static final PropertyDescriptor DB_DRIVERNAME = new PropertyDescriptor.Builder()
             .name("Database Driver Class Name")
             .description("Database driver class name")
+            .defaultValue(null)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -113,6 +115,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
             .description("Comma-separated list of files/folders and/or URLs containing the driver JAR and its dependencies (if any). " +
                     "For example '/var/tmp/phoenix-client.jar'. NOTE: It is required that the resources specified by this property provide " +
                     "the classes from hadoop-common, such as Configuration and UserGroupInformation.")
+            .defaultValue(null)
             .required(true)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -134,6 +137,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
     public static final PropertyDescriptor DB_USER = new PropertyDescriptor.Builder()
             .name("Database User")
             .description("The user for the database")
+            .defaultValue(null)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
@@ -141,6 +145,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
     public static final PropertyDescriptor DB_PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
             .description("The password for the database user")
+            .defaultValue(null)
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

@@ -337,23 +337,6 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             return this;
         }
 
-        /**
-         * Specifies the initial value and the default value that will be used
-         * if the user does not specify a value. When {@link #build()} is
-         * called, if Allowable Values have been set (see
-         * {@link #allowableValues(Class)}) and this value is not
-         * one of those Allowable Values, an Exception will be thrown.
-         *
-         * @param value default value
-         * @return the builder
-         */
-        public Builder defaultValue(final DescribedValue value) {
-            if (null != value) {
-                return defaultValue(value.getValue());
-            }
-            return this;
-        }
-
         public Builder dynamic(final boolean dynamic) {
             this.dynamic = dynamic;
             return this;

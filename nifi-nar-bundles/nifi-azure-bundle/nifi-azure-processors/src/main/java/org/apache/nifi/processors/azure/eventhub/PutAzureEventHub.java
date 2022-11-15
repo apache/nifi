@@ -98,6 +98,7 @@ public class PutAzureEventHub extends AbstractProcessor {
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
+            .defaultValue(null)
             .build();
     static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("max-batch-size")

@@ -60,7 +60,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .displayName("Authorization Scheme")
             .description("Authorization Scheme used for authenticating to Elasticsearch using the HTTP Authorization header.")
             .allowableValues(AuthorizationScheme.class)
-            .defaultValue(AuthorizationScheme.BASIC)
+            .defaultValue(AuthorizationScheme.BASIC.getValue())
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
