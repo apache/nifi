@@ -27,6 +27,7 @@ public class TbcdStringConverter implements JASN1TypeAndValueConverter {
 
     private static final String TBCD_STRING_TYPE = "TBCDSTRING";
     private static final char[] TBCD_SYMBOLS = "0123456789*#abc".toCharArray();
+    private static final int FILLER_DECIMAL_CODE = 15;
 
     @Override
     public boolean supportsType(Class<?> berType) {
@@ -64,7 +65,7 @@ public class TbcdStringConverter implements JASN1TypeAndValueConverter {
             int digit2 = (octet >> 4) & 0xF;
             int digit1 = octet & 0xF;
 
-            if (digit1 == 15) {
+            if (digit1 == FILLER_DECIMAL_CODE) {
                 invalidFiller(octetIndex, octet);
             } else if (digit1 > 15) {
                 invalidInteger(digit1);
@@ -72,7 +73,7 @@ public class TbcdStringConverter implements JASN1TypeAndValueConverter {
                 resultBuilder.append(TBCD_SYMBOLS[digit1]);
             }
 
-            if (digit2 == 15) {
+            if (digit2 == FILLER_DECIMAL_CODE) {
                 if (octetIndex != size - 1) {
                     invalidFiller(octetIndex, octet);
                 }
@@ -100,7 +101,7 @@ public class TbcdStringConverter implements JASN1TypeAndValueConverter {
     }
 
     private void invalidFiller(int octetIndex, int octet) {
-        throw new NumberFormatException("Illegal filler in octet nr. " + octetIndex + ": " + octet);
+        throw new NumberFormatException("Illegal filler in octet " + octetIndex + ": " + octet);
     }
 
     private void invalidInteger(int digit) {
