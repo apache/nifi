@@ -46,7 +46,7 @@ public class ExplicitDefaultCredentialsStrategy extends AbstractBooleanCredentia
     }
 
     @Override
-    public AwsCredentialsProvider getV2CredentialsProvider(final Map<PropertyDescriptor, String> properties) {
+    public AwsCredentialsProvider getAwsCredentialsProvider(final Map<PropertyDescriptor, String> properties) {
         return DefaultCredentialsProvider.create();
     }
 

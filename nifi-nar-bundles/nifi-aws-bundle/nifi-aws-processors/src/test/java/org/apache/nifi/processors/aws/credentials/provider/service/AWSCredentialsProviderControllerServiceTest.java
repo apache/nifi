@@ -80,7 +80,7 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
         runner.setProperty(serviceImpl, AbstractAWSProcessor.ACCESS_KEY, "awsAccessKey");
         runner.setProperty(serviceImpl, AbstractAWSProcessor.SECRET_KEY, "awsSecretKey");
-        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.REGION, Region.US_WEST_1.id());
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_REGION, Region.US_WEST_1.id());
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN, "Role");
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME, "RoleName");
         runner.enableControllerService(serviceImpl);
@@ -102,7 +102,7 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
         runner.setProperty(serviceImpl, AbstractAWSProcessor.ACCESS_KEY, "awsAccessKey");
         runner.setProperty(serviceImpl, AbstractAWSProcessor.SECRET_KEY, "awsSecretKey");
-        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.REGION, Region.US_WEST_1.id());
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_REGION, Region.US_WEST_1.id());
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN, "Role");
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME, "RoleName");
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.MAX_SESSION_TIME, "1000");
@@ -125,7 +125,7 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
         runner.setProperty(serviceImpl, AbstractAWSProcessor.ACCESS_KEY, "awsAccessKey");
         runner.setProperty(serviceImpl, AbstractAWSProcessor.SECRET_KEY, "awsSecretKey");
-        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.REGION, Region.US_WEST_1.id());
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_REGION, Region.US_WEST_1.id());
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN, "Role");
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME, "RoleName");
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.MAX_SESSION_TIME, "900");
@@ -141,7 +141,7 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
         runner.setProperty(serviceImpl, AbstractAWSProcessor.ACCESS_KEY, "awsAccessKey");
         runner.setProperty(serviceImpl, AbstractAWSProcessor.SECRET_KEY, "awsSecretKey");
-        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.REGION, Region.US_WEST_1.id());
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_REGION, Region.US_WEST_1.id());
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN, "Role");
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME, "RoleName");
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.MAX_SESSION_TIME, "900");
@@ -207,7 +207,7 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
         runner.setProperty(serviceImpl, AbstractAWSProcessor.CREDENTIALS_FILE,
                 "src/test/resources/mock-aws-credentials.properties");
-        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.REGION, Region.US_WEST_1.id());
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_REGION, Region.US_WEST_1.id());
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN, "Role");
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME, "RoleName");
         runner.enableControllerService(serviceImpl);
@@ -343,7 +343,7 @@ public class AWSCredentialsProviderControllerServiceTest {
         final AWSCredentialsProviderService service = (AWSCredentialsProviderService) runner.getProcessContext()
                 .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
         assertNotNull(service);
-        final AwsCredentialsProvider credentialsProvider = service.getAwsV2CredentialsProvider();
+        final AwsCredentialsProvider credentialsProvider = service.getAwsCredentialsProvider();
         assertNotNull(credentialsProvider);
         assertEquals(DefaultCredentialsProvider.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");

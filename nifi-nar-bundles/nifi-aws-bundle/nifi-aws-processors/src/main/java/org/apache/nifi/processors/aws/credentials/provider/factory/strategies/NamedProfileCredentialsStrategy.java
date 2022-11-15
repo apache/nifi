@@ -47,7 +47,7 @@ public class NamedProfileCredentialsStrategy extends AbstractCredentialsStrategy
     }
 
     @Override
-    public AwsCredentialsProvider getV2CredentialsProvider(final Map<PropertyDescriptor, String> properties) {
+    public AwsCredentialsProvider getAwsCredentialsProvider(final Map<PropertyDescriptor, String> properties) {
         final String profileName = properties.get(CredentialPropertyDescriptors.PROFILE_NAME);
         return software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider.create(profileName);
     }

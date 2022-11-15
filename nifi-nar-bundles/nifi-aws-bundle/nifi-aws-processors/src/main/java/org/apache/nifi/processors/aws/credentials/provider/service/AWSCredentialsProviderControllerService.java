@@ -74,7 +74,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
     public static final PropertyDescriptor ASSUME_ROLE_ARN = CredentialPropertyDescriptors.ASSUME_ROLE_ARN;
     public static final PropertyDescriptor ASSUME_ROLE_NAME = CredentialPropertyDescriptors.ASSUME_ROLE_NAME;
     public static final PropertyDescriptor MAX_SESSION_TIME = CredentialPropertyDescriptors.MAX_SESSION_TIME;
-    public static final PropertyDescriptor REGION = CredentialPropertyDescriptors.ASSUME_ROLE_REGION;
+    public static final PropertyDescriptor ASSUME_ROLE_REGION = CredentialPropertyDescriptors.ASSUME_ROLE_REGION;
 
     private static final List<PropertyDescriptor> properties;
 
@@ -93,7 +93,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         props.add(ASSUME_ROLE_PROXY_HOST);
         props.add(ASSUME_ROLE_PROXY_PORT);
         props.add(ASSUME_ROLE_STS_ENDPOINT);
-        props.add(REGION);
+        props.add(ASSUME_ROLE_REGION);
         properties = Collections.unmodifiableList(props);
     }
 
@@ -112,7 +112,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
     }
 
     @Override
-    public AwsCredentialsProvider getAwsV2CredentialsProvider() throws ProcessException {
+    public AwsCredentialsProvider getAwsCredentialsProvider() {
         // Avoiding instantiation until actually used, in case v1-related configuration is not compatible with v2 clients
         return credentialsProviderFactory.getV2CredentialsProvider(evaluatedProperties);
     }

@@ -189,13 +189,13 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
     }
 
     @Override
-    public AwsCredentialsProvider getV2CredentialsProvider(final Map<PropertyDescriptor, String> properties) {
+    public AwsCredentialsProvider getAwsCredentialsProvider(final Map<PropertyDescriptor, String> properties) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public AwsCredentialsProvider getDerivedV2CredentialsProvider(final Map<PropertyDescriptor, String> properties,
-                                                                  AwsCredentialsProvider primaryCredentialsProvider) {
+    public AwsCredentialsProvider getDerivedAwsCredentialsProvider(final Map<PropertyDescriptor, String> properties,
+                                                                   AwsCredentialsProvider primaryCredentialsProvider) {
         final String assumeRoleArn = properties.get(ASSUME_ROLE_ARN);
         final String assumeRoleName = properties.get(ASSUME_ROLE_NAME);
         String rawMaxSessionTime = properties.get(MAX_SESSION_TIME);

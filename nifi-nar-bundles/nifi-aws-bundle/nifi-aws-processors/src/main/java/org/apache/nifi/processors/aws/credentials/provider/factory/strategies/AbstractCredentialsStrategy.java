@@ -100,8 +100,8 @@ public abstract class AbstractCredentialsStrategy implements CredentialsStrategy
     }
 
     @Override
-    public AwsCredentialsProvider getDerivedV2CredentialsProvider(final Map<PropertyDescriptor, String> properties,
-                                                                  AwsCredentialsProvider primaryCredentialsProvider) {
+    public AwsCredentialsProvider getDerivedAwsCredentialsProvider(final Map<PropertyDescriptor, String> properties,
+                                                                   AwsCredentialsProvider primaryCredentialsProvider) {
         throw new UnsupportedOperationException();
     }
 }

@@ -131,12 +131,12 @@ public class CredentialsProviderFactory {
      */
     public AwsCredentialsProvider getV2CredentialsProvider(final Map<PropertyDescriptor, String> properties) {
         final CredentialsStrategy primaryStrategy = selectPrimaryStrategy(properties);
-        AwsCredentialsProvider primaryCredentialsProvider = primaryStrategy.getV2CredentialsProvider(properties);
+        AwsCredentialsProvider primaryCredentialsProvider = primaryStrategy.getAwsCredentialsProvider(properties);
         AwsCredentialsProvider derivedCredentialsProvider = null;
 
         for (final CredentialsStrategy strategy : strategies) {
             if (strategy.canCreateDerivedCredential(properties)) {
-                derivedCredentialsProvider = strategy.getDerivedV2CredentialsProvider(properties, primaryCredentialsProvider);
+                derivedCredentialsProvider = strategy.getDerivedAwsCredentialsProvider(properties, primaryCredentialsProvider);
                 break;
             }
         }

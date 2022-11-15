@@ -20,6 +20,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 
 /**
  * AWSCredentialsProviderService interface to support getting AWSCredentialsProvider used for instantiating
@@ -29,7 +30,7 @@ import org.apache.nifi.processor.exception.ProcessException;
  */
 @Tags({"aws", "security", "credentials", "provider", "session"})
 @CapabilityDescription("Provides AWSCredentialsProvider.")
-public interface AWSCredentialsProviderService extends AwsV2CredentialsProviderService {
+public interface AWSCredentialsProviderService extends AwsCredentialsProviderService {
 
     /**
      * Get credentials provider for Java SDK v1

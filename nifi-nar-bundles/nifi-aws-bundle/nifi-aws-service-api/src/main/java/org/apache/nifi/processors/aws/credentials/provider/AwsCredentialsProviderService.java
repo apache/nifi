@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.aws.credentials.provider.service;
+package org.apache.nifi.processors.aws.credentials.provider;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -23,14 +23,14 @@ import org.apache.nifi.processor.exception.ProcessException;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 /**
- * AwsV2CredentialsProviderService interface to support getting AwsCredentialsProvider used for instantiating
+ * AwsCredentialsProviderService interface to support getting AwsCredentialsProvider used for instantiating
  * aws clients using the v2 SDK.
  *
  * @see <a href="https://sdk.amazonaws.com/java/api/2.0.0/software/amazon/awssdk/auth/credentials/AwsCredentialsProvider.html">AwsCredentialsProvider</a>
  */
 @Tags({"aws", "v2", "security", "credentials", "provider", "session"})
 @CapabilityDescription("Provides AwsCredentialsProvider.")
-public interface AwsV2CredentialsProviderService extends ControllerService {
+public interface AwsCredentialsProviderService extends ControllerService {
 
     /**
      * Get credentials provider for Java SDK v2
@@ -39,5 +39,5 @@ public interface AwsV2CredentialsProviderService extends ControllerService {
      *
      * @see <a href="https://sdk.amazonaws.com/java/api/2.0.0/software/amazon/awssdk/auth/credentials/AwsCredentialsProvider.html">AwsCredentialsProvider</a>
      */
-    AwsCredentialsProvider getAwsV2CredentialsProvider() throws ProcessException;
+    AwsCredentialsProvider getAwsCredentialsProvider();
 }

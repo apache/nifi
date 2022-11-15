@@ -51,7 +51,7 @@ public class AccessKeyPairCredentialsStrategy extends AbstractCredentialsStrateg
     }
 
     @Override
-    public AwsCredentialsProvider getV2CredentialsProvider(final Map<PropertyDescriptor, String> properties) {
+    public AwsCredentialsProvider getAwsCredentialsProvider(final Map<PropertyDescriptor, String> properties) {
         final String accessKey = properties.get(CredentialPropertyDescriptors.ACCESS_KEY);
         final String secretKey = properties.get(CredentialPropertyDescriptors.SECRET_KEY);
         return software.amazon.awssdk.auth.credentials.StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey));

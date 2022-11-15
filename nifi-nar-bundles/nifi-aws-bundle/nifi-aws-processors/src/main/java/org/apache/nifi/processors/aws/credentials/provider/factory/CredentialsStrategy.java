@@ -75,13 +75,13 @@ public interface CredentialsStrategy {
     /**
      * Creates an AwsCredentialsProvider instance for this strategy, given the properties defined by the user.
      */
-    AwsCredentialsProvider getV2CredentialsProvider(Map<PropertyDescriptor, String> properties);
+    AwsCredentialsProvider getAwsCredentialsProvider(Map<PropertyDescriptor, String> properties);
 
     /**
      * Creates an AwsCredentialsProvider instance for this strategy, given the properties defined by the user and
      * the AwsCredentialsProvider from the winning primary strategy.
      */
-    AwsCredentialsProvider getDerivedV2CredentialsProvider(Map<PropertyDescriptor, String> properties,
-                                                           AwsCredentialsProvider primaryCredentialsProvider);
+    AwsCredentialsProvider getDerivedAwsCredentialsProvider(Map<PropertyDescriptor, String> properties,
+                                                            AwsCredentialsProvider primaryCredentialsProvider);
 
 }
