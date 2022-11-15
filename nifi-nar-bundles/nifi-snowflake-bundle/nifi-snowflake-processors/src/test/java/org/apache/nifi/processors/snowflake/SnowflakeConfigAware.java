@@ -25,6 +25,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.snowflake.service.util.ConnectionUrlFormat;
 import org.apache.nifi.snowflake.service.SnowflakeComputingConnectionPool;
 import org.apache.nifi.snowflake.service.StandardSnowflakeIngestManagerProviderService;
+import org.apache.nifi.processors.snowflake.util.SnowflakeProperties;
 import org.apache.nifi.util.TestRunner;
 
 public interface SnowflakeConfigAware {
@@ -81,10 +82,10 @@ public interface SnowflakeConfigAware {
                 SnowflakeComputingConnectionPool.SNOWFLAKE_PASSWORD,
                 password);
         runner.setProperty(connectionProviderService,
-                SnowflakeComputingConnectionPool.SNOWFLAKE_DATABASE,
+                SnowflakeProperties.DATABASE,
                 database);
         runner.setProperty(connectionProviderService,
-                SnowflakeComputingConnectionPool.SNOWFLAKE_SCHEMA,
+                SnowflakeProperties.SCHEMA,
                 schema);
 
         runner.enableControllerService(connectionProviderService);
@@ -109,7 +110,13 @@ public interface SnowflakeConfigAware {
                 StandardSnowflakeIngestManagerProviderService.USER_NAME,
                 userName);
         runner.setProperty(ingestManagerProviderService,
-                StandardSnowflakeIngestManagerProviderService.PIPE_NAME,
+                StandardSnowflakeIngestManagerProviderService.DATABASE,
+                database);
+        runner.setProperty(ingestManagerProviderService,
+                StandardSnowflakeIngestManagerProviderService.SCHEMA,
+                schema);
+        runner.setProperty(ingestManagerProviderService,
+                StandardSnowflakeIngestManagerProviderService.PIPE,
                 pipeName);
         runner.setProperty(ingestManagerProviderService,
                 StandardSnowflakeIngestManagerProviderService.PRIVATE_KEY_SERVICE,

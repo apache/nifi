@@ -15,12 +15,23 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.processors.snowflake.common;
+package org.apache.nifi.snowflake.service.util;
 
-public final class Attributes {
+public final class AccountIdentifierFormatParameters extends SnowflakeCommonParameters {
 
-    private Attributes() {
+    private final String hostUrl;
+
+    public AccountIdentifierFormatParameters(final String hostUrl,
+            final String organizationName,
+            final String accountName,
+            final String accountLocator,
+            final String cloudRegion,
+            final String cloudType) {
+        super(organizationName, accountName, accountLocator, cloudRegion, cloudType);
+        this.hostUrl = hostUrl;
     }
 
-    public static final String ATTRIBUTE_STAGED_FILE_PATH = "snowflake.staged.file.path";
+    public String getHostUrl() {
+        return hostUrl;
+    }
 }

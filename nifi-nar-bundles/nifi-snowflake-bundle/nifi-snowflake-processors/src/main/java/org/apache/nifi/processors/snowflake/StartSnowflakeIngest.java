@@ -17,7 +17,7 @@
 
 package org.apache.nifi.processors.snowflake;
 
-import static org.apache.nifi.processors.snowflake.common.Attributes.ATTRIBUTE_STAGED_FILE_PATH;
+import static org.apache.nifi.processors.snowflake.util.SnowflakeAttributes.ATTRIBUTE_STAGED_FILE_PATH;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -49,7 +49,8 @@ import org.apache.nifi.processor.exception.ProcessException;
         @ReadsAttribute(attribute = ATTRIBUTE_STAGED_FILE_PATH, description = "Staged file path")
 })
 @Tags({"snowflake", "snowpipe", "ingest"})
-@CapabilityDescription("Ingest files in a Snowflake stage. The stage must be created in the Snowflake account beforehand."
+@CapabilityDescription("Ingests files from a Snowflake internal or external stage into a Snowflake table."
+        + " The stage must be created in the Snowflake account beforehand."
         + " The result of the ingestion is not available immediately, so this processor can be connected to an"
         + " GetSnowflakeIngestStatus processor to wait for the results")
 @SeeAlso({PutSnowflakeInternalStage.class, GetSnowflakeIngestStatus.class})

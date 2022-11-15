@@ -37,7 +37,9 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.snowflake.SnowflakeIngestManagerProviderService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.snowflake.service.util.AccountIdentifierFormat;
-import org.apache.nifi.snowflake.service.util.CommonProperties;
+import org.apache.nifi.snowflake.service.util.AccountIdentifierFormatParameters;
+import org.apache.nifi.snowflake.service.util.ConnectionUrlFormat;
+import org.apache.nifi.processors.snowflake.util.SnowflakeProperties;
 
 @Tags({"snowflake", "jdbc", "database", "connection"})
 @CapabilityDescription("Provides a Snowflake Ingest Manager for Snowflake pipe processors")
@@ -57,7 +59,7 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
     public static final PropertyDescriptor HOST_URL = new PropertyDescriptor.Builder()
             .name("host-url")
             .displayName("Snowflake URL")
-            .description("Example host url: [account-locator].[cloud-region].[cloud].snowflakecomputing.com")
+            .description("Example host url: [account-locator].[cloud-region].[cloud]" + ConnectionUrlFormat.SNOWFLAKE_HOST_SUFFIX)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
@@ -65,27 +67,27 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
             .build();
 
     public static final PropertyDescriptor ACCOUNT_LOCATOR = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(CommonProperties.ACCOUNT_LOCATOR)
+            .fromPropertyDescriptor(SnowflakeProperties.ACCOUNT_LOCATOR)
             .dependsOn(ACCOUNT_IDENTIFIER_FORMAT, AccountIdentifierFormat.ACCOUNT_LOCATOR)
             .build();
 
     public static final PropertyDescriptor CLOUD_REGION = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(CommonProperties.CLOUD_REGION)
+            .fromPropertyDescriptor(SnowflakeProperties.CLOUD_REGION)
             .dependsOn(ACCOUNT_IDENTIFIER_FORMAT, AccountIdentifierFormat.ACCOUNT_LOCATOR)
             .build();
 
     public static final PropertyDescriptor CLOUD_TYPE = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(CommonProperties.CLOUD_TYPE)
+            .fromPropertyDescriptor(SnowflakeProperties.CLOUD_TYPE)
             .dependsOn(ACCOUNT_IDENTIFIER_FORMAT, AccountIdentifierFormat.ACCOUNT_LOCATOR)
             .build();
 
     public static final PropertyDescriptor ORGANIZATION_NAME = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(CommonProperties.ORGANIZATION_NAME)
+            .fromPropertyDescriptor(SnowflakeProperties.ORGANIZATION_NAME)
             .dependsOn(ACCOUNT_IDENTIFIER_FORMAT, AccountIdentifierFormat.ACCOUNT_NAME)
             .build();
 
     public static final PropertyDescriptor ACCOUNT_NAME = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(CommonProperties.ACCOUNT_NAME)
+            .fromPropertyDescriptor(SnowflakeProperties.ACCOUNT_NAME)
             .dependsOn(ACCOUNT_IDENTIFIER_FORMAT, AccountIdentifierFormat.ACCOUNT_NAME)
             .build();
 
@@ -93,15 +95,6 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
             .name("user-name")
             .displayName("User Name")
             .description("The Snowflake user name.")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .required(true)
-            .build();
-
-    public static final PropertyDescriptor PIPE_NAME = new PropertyDescriptor.Builder()
-            .name("pipe-name")
-            .displayName("Pipe Name")
-            .description("The Snowflake pipe's name to ingest from.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
@@ -115,21 +108,21 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
             .required(true)
             .build();
 
-    public static final PropertyDescriptor HOST_SCHEME = new PropertyDescriptor.Builder()
-            .name("host-scheme")
-            .displayName("Host Scheme")
-            .description("The scheme of the host url to connect to.")
-            .allowableValues("http", "https")
-            .defaultValue("https")
+    public static final PropertyDescriptor DATABASE = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(SnowflakeProperties.DATABASE)
             .required(true)
             .build();
 
-    public static final PropertyDescriptor HOST_PORT = new PropertyDescriptor.Builder()
-            .name("host-port")
-            .displayName("Host Port")
-            .description("The port of the host url to connect to.")
-            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .defaultValue("443")
+    public static final PropertyDescriptor SCHEMA = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(SnowflakeProperties.SCHEMA)
+            .required(true)
+            .build();
+
+    public static final PropertyDescriptor PIPE = new PropertyDescriptor.Builder()
+            .name("pipe")
+            .displayName("Pipe")
+            .description("The Snowflake pipe to ingest from.")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
             .build();
@@ -143,10 +136,10 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
             ORGANIZATION_NAME,
             ACCOUNT_NAME,
             USER_NAME,
-            PIPE_NAME,
             PRIVATE_KEY_SERVICE,
-            HOST_SCHEME,
-            HOST_PORT
+            DATABASE,
+            SCHEMA,
+            PIPE
     ));
 
     @Override
@@ -154,26 +147,31 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
         return PROPERTIES;
     }
 
-    private volatile String pipeName;
+    private volatile String fullyQualifiedPipeName;
     private volatile SimpleIngestManager ingestManager;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
-        final AccountIdentifierFormat accountIdentifierFormat = AccountIdentifierFormat.forName(context.getProperty(ACCOUNT_IDENTIFIER_FORMAT)
-                .getValue());
-
-        final String hostScheme = context.getProperty(HOST_SCHEME).getValue();
-        final Integer hostPort = context.getProperty(HOST_PORT).evaluateAttributeExpressions().asInteger();
         final String user = context.getProperty(USER_NAME).evaluateAttributeExpressions().getValue();
-        pipeName = context.getProperty(PIPE_NAME).evaluateAttributeExpressions().getValue();
+        final String database = context.getProperty(DATABASE)
+                .evaluateAttributeExpressions()
+                .getValue();
+        final String schema = context.getProperty(SCHEMA)
+                .evaluateAttributeExpressions()
+                .getValue();
+        final String pipe = context.getProperty(PIPE).evaluateAttributeExpressions().getValue();
+        fullyQualifiedPipeName = database + "." + schema + "." + pipe;
         final PrivateKeyService privateKeyService = context.getProperty(PRIVATE_KEY_SERVICE)
                 .asControllerService(PrivateKeyService.class);
         final PrivateKey privateKey = privateKeyService.getPrivateKey();
 
-        final String account = accountIdentifierFormat.getAccount(context);
-        final String host = accountIdentifierFormat.buildHost(context);
+        final AccountIdentifierFormat accountIdentifierFormat = AccountIdentifierFormat.forName(context.getProperty(ACCOUNT_IDENTIFIER_FORMAT)
+                .getValue());
+        final AccountIdentifierFormatParameters parameters = getAccountIdentifierFormatParameters(context);
+        final String account = accountIdentifierFormat.getAccount(parameters);
+        final String host = accountIdentifierFormat.getHostname(parameters);
         try {
-            ingestManager = new SimpleIngestManager(account, user, pipeName, privateKey, hostScheme, host, hostPort);
+            ingestManager = new SimpleIngestManager(account, user, fullyQualifiedPipeName, privateKey, "https", host, 443);
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             throw new InitializationException("Failed create Snowflake ingest manager", e);
         }
@@ -189,11 +187,38 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
 
     @Override
     public String getPipeName() {
-        return pipeName;
+        return fullyQualifiedPipeName;
     }
 
     @Override
     public SimpleIngestManager getIngestManager() {
         return ingestManager;
+    }
+
+    private AccountIdentifierFormatParameters getAccountIdentifierFormatParameters(ConfigurationContext context) {
+        final String hostUrl = context.getProperty(HOST_URL)
+                .evaluateAttributeExpressions()
+                .getValue();
+        final String organizationName = context.getProperty(ORGANIZATION_NAME)
+                .evaluateAttributeExpressions()
+                .getValue();
+        final String accountName = context.getProperty(ACCOUNT_NAME)
+                .evaluateAttributeExpressions()
+                .getValue();
+        final String accountLocator = context.getProperty(ACCOUNT_LOCATOR)
+                .evaluateAttributeExpressions()
+                .getValue();
+        final String cloudRegion = context.getProperty(CLOUD_REGION)
+                .evaluateAttributeExpressions()
+                .getValue();
+        final String cloudType = context.getProperty(CLOUD_TYPE)
+                .evaluateAttributeExpressions()
+                .getValue();
+        return new AccountIdentifierFormatParameters(hostUrl,
+                organizationName,
+                accountName,
+                accountLocator,
+                cloudRegion,
+                cloudType);
     }
 }

@@ -17,22 +17,16 @@
 
 package org.apache.nifi.snowflake.service.util;
 
-import static org.apache.nifi.snowflake.service.SnowflakeComputingConnectionPool.SNOWFLAKE_ACCOUNT_LOCATOR;
-import static org.apache.nifi.snowflake.service.SnowflakeComputingConnectionPool.SNOWFLAKE_ACCOUNT_NAME;
-import static org.apache.nifi.snowflake.service.SnowflakeComputingConnectionPool.SNOWFLAKE_CLOUD_REGION;
-import static org.apache.nifi.snowflake.service.SnowflakeComputingConnectionPool.SNOWFLAKE_CLOUD_TYPE;
-import static org.apache.nifi.snowflake.service.SnowflakeComputingConnectionPool.SNOWFLAKE_ORGANIZATION_NAME;
-import static org.apache.nifi.snowflake.service.SnowflakeComputingConnectionPool.SNOWFLAKE_URL;
-
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 import org.apache.nifi.components.DescribedValue;
-import org.apache.nifi.controller.ConfigurationContext;
 
 public enum ConnectionUrlFormat implements DescribedValue {
     FULL_URL("full-url", "Full URL", "Provide connection URL in a single property") {
         @Override
-        public String buildConnectionUrl(final ConfigurationContext context) {
-            String snowflakeUrl = context.getProperty(SNOWFLAKE_URL).evaluateAttributeExpressions().getValue();
+        public String buildConnectionUrl(final ConnectionUrlFormatParameters parameters) {
+            String snowflakeUrl = parameters.getSnowflakeUrl();
             if (!snowflakeUrl.startsWith(SNOWFLAKE_SCHEME)) {
                 snowflakeUrl = SNOWFLAKE_URI_PREFIX + snowflakeUrl;
             }
@@ -42,40 +36,30 @@ public enum ConnectionUrlFormat implements DescribedValue {
     },
     ACCOUNT_NAME("account-name", "Account Name", "Provide a Snowflake Account Name") {
         @Override
-        public String buildConnectionUrl(ConfigurationContext context) {
-            final String organizationName = context.getProperty(SNOWFLAKE_ORGANIZATION_NAME)
-                    .evaluateAttributeExpressions()
-                    .getValue();
-            final String accountName = context.getProperty(SNOWFLAKE_ACCOUNT_NAME)
-                    .evaluateAttributeExpressions()
-                    .getValue();
-
-            return SNOWFLAKE_URI_PREFIX + organizationName + "-" + accountName + ".snowflakecomputing.com";
+        public String buildConnectionUrl(final ConnectionUrlFormatParameters parameters) {
+            final String organizationName = Objects.requireNonNull(parameters.getOrganizationName());
+            final String accountName = Objects.requireNonNull(parameters.getAccountName());
+            return SNOWFLAKE_URI_PREFIX + organizationName + "-" + accountName + SNOWFLAKE_HOST_SUFFIX;
         }
     },
     ACCOUNT_LOCATOR("account-locator", "Account Locator", "Provide a Snowflake Account Locator") {
         @Override
-        public String buildConnectionUrl(final ConfigurationContext context) {
-            final String accountLocator = context.getProperty(SNOWFLAKE_ACCOUNT_LOCATOR)
-                    .evaluateAttributeExpressions()
-                    .getValue();
-            final String cloudRegion = context.getProperty(SNOWFLAKE_CLOUD_REGION)
-                    .evaluateAttributeExpressions()
-                    .getValue();
-            final String cloudType = context.getProperty(SNOWFLAKE_CLOUD_TYPE)
-                    .evaluateAttributeExpressions()
-                    .getValue();
+        public String buildConnectionUrl(final ConnectionUrlFormatParameters parameters) {
+            final String accountLocator = Objects.requireNonNull(parameters.getAccountLocator());
+            final String cloudRegion = Objects.requireNonNull(parameters.getCloudRegion());
+            final String optCloudType = parameters.getCloudType();
+
             final StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.append(SNOWFLAKE_URI_PREFIX).append(accountLocator)
                     .append(".").append(cloudRegion);
-            if (cloudType != null) {
-                stringBuilder.append(".").append(cloudType);
-            }
-            stringBuilder.append(".snowflakecomputing.com");
+            Optional.ofNullable(optCloudType)
+                    .ifPresent(cloudType -> stringBuilder.append(".").append(cloudType));
+            stringBuilder.append(SNOWFLAKE_HOST_SUFFIX);
             return stringBuilder.toString();
         }
     };
 
+    public static final String SNOWFLAKE_HOST_SUFFIX = ".snowflakecomputing.com";
     public static final String SNOWFLAKE_SCHEME = "jdbc:snowflake";
     public static final String SNOWFLAKE_URI_PREFIX = SNOWFLAKE_SCHEME + "://";
 
@@ -104,7 +88,7 @@ public enum ConnectionUrlFormat implements DescribedValue {
         return description;
     }
 
-    public abstract String buildConnectionUrl(final ConfigurationContext context);
+    public abstract String buildConnectionUrl(final ConnectionUrlFormatParameters parameters);
 
     public static ConnectionUrlFormat forName(String provideMethod) {
         return Stream.of(values()).filter(provider -> provider.getValue().equalsIgnoreCase(provideMethod))

@@ -17,7 +17,7 @@
 
 package org.apache.nifi.processors.snowflake;
 
-import static org.apache.nifi.processors.snowflake.common.Attributes.ATTRIBUTE_STAGED_FILE_PATH;
+import static org.apache.nifi.processors.snowflake.util.SnowflakeAttributes.ATTRIBUTE_STAGED_FILE_PATH;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -61,11 +61,11 @@ import org.apache.nifi.processor.exception.ProcessException;
 })
 @Tags({"snowflake", "snowpipe", "ingest", "history"})
 @CapabilityDescription("Waits until a file in a Snowflake stage is ingested. The stage must be created in the Snowflake account beforehand."
-        + " This processor is usually connected to an upstream StartSnowflakeIngest processor to make sure that the file is ingested")
+        + " This processor is usually connected to an upstream StartSnowflakeIngest processor to make sure that the file is ingested.")
 @SeeAlso({StartSnowflakeIngest.class, PutSnowflakeInternalStage.class})
 public class GetSnowflakeIngestStatus extends AbstractProcessor {
 
-    static final PropertyDescriptor INGEST_MANAGER_PROVIDER = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor INGEST_MANAGER_PROVIDER = new PropertyDescriptor.Builder()
             .name("ingest-manager-provider")
             .displayName("Ingest Manager Provider")
             .description("Specifies the Controller Service to use for ingesting Snowflake staged files.")

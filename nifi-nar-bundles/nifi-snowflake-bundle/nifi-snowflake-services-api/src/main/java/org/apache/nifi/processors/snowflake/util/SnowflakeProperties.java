@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.snowflake.service.util;
+package org.apache.nifi.processors.snowflake.util;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 
-public final class CommonProperties {
-    private CommonProperties() {
+public final class SnowflakeProperties {
+    private SnowflakeProperties() {
     }
 
     public static final PropertyDescriptor ACCOUNT_LOCATOR = new PropertyDescriptor.Builder()
@@ -67,5 +67,22 @@ public final class CommonProperties {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
+            .build();
+
+    public static final PropertyDescriptor DATABASE = new PropertyDescriptor.Builder()
+            .name("database")
+            .displayName("Database")
+            .description("The database to use by default. The same as passing 'db=DATABASE_NAME' to the connection string.")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor SCHEMA = new PropertyDescriptor.Builder()
+            .name("schema")
+            .displayName("Schema")
+            .description("The schema to use by default. The same as passing 'schema=SCHEMA' to the connection string.")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .defaultValue("PUBLIC")
             .build();
 }
