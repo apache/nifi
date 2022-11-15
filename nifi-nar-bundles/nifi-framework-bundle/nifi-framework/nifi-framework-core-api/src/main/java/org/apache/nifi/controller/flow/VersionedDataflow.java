@@ -39,7 +39,7 @@ public class VersionedDataflow {
     private Set<VersionedTemplate> templates;
     private VersionedProcessGroup rootGroup;
 
-    final static int DEFAULT_MAX_EVENT_DRIVEN_THREAD_COUNT = 1;
+    private final static int DEFAULT_MAX_EVENT_DRIVEN_THREAD_COUNT = 1;
 
     public VersionedFlowEncodingVersion getEncodingVersion() {
         return encodingVersion;
