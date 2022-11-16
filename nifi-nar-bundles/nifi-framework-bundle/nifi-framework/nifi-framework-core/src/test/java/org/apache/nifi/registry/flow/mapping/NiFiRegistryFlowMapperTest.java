@@ -72,10 +72,10 @@ import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
-import org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
@@ -135,10 +135,10 @@ public class NiFiRegistryFlowMapperTest {
     @Before
     public void setup() {
         final FlowRegistryClientNode flowRegistry = mock(FlowRegistryClientNode.class);
-        Mockito.when(flowRegistry.getComponentType()).thenReturn("org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient");
+        Mockito.when(flowRegistry.getComponentType()).thenReturn(TestNifiRegistryFlowRegistryClient.class.getName());
         Mockito.when(flowRegistry.getRawPropertyValue(Mockito.any())).thenReturn("");
-        Mockito.when(flowRegistry.getPropertyDescriptor(NifiRegistryFlowRegistryClient.PROPERTY_URL.getName())).thenReturn(NifiRegistryFlowRegistryClient.PROPERTY_URL);
-        Mockito.when(flowRegistry.getRawPropertyValue(NifiRegistryFlowRegistryClient.PROPERTY_URL)).thenReturn("http://127.0.0.1:18080");
+        Mockito.when(flowRegistry.getPropertyDescriptor(TestNifiRegistryFlowRegistryClient.PROPERTY_URL.getName())).thenReturn(TestNifiRegistryFlowRegistryClient.PROPERTY_URL);
+        Mockito.when(flowRegistry.getRawPropertyValue(TestNifiRegistryFlowRegistryClient.PROPERTY_URL)).thenReturn("http://127.0.0.1:18080");
 
         when(flowManager.getFlowRegistryClient(anyString())).thenReturn(flowRegistry);
 
@@ -853,5 +853,15 @@ public class NiFiRegistryFlowMapperTest {
         assertEquals(propertyDescriptor.getName(), versionedPropertyDescriptor.getName());
         assertEquals(propertyDescriptor.getDisplayName(), versionedPropertyDescriptor.getDisplayName());
         assertEquals(propertyDescriptor.isSensitive(), versionedPropertyDescriptor.isSensitive());
+    }
+
+    private static class TestNifiRegistryFlowRegistryClient {
+        public static final PropertyDescriptor PROPERTY_URL = new PropertyDescriptor.Builder()
+                .name("url")
+                .displayName("URL")
+                .description("URL of the NiFi Registry")
+                .addValidator(StandardValidators.URL_VALIDATOR)
+                .required(true)
+                .build();
     }
 }

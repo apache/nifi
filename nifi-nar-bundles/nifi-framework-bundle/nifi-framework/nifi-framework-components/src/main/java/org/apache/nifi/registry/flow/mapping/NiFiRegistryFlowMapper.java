@@ -195,7 +195,7 @@ public class NiFiRegistryFlowMapper {
 
     // This is specific for the {@code NifiRegistryFlowRegistryClient}, purely for backward compatibility
     private String getRegistryUrl(final FlowRegistryClientNode registry) {
-        return registry.getComponentType().equals("org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient")
+        return registry.getComponentType().endsWith("NifiRegistryFlowRegistryClient")
                ? registry.getRawPropertyValue(registry.getPropertyDescriptor(REGISTRY_URL_DESCRIPTOR_NAME)) : "";
     }
 
