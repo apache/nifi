@@ -37,12 +37,12 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter;
+import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Textract"})
 @CapabilityDescription("Retrieves the current status of an AWS Textract job.")
 @SeeAlso({StartAwsTextractJob.class})
-public class GetAwsTextractJobStatus extends AwsMLJobStatusGetter<AmazonTextractClient> {
+public class GetAwsTextractJobStatus extends AwsMachineLearningJobStatusGetter<AmazonTextractClient> {
     public static final String DOCUMENT_ANALYSIS = "Document Analysis";
     public static final String DOCUMENT_TEXT_DETECTION = "Document Text Detection";
     public static final String EXPENSE_ANALYSIS = "Expense Analysis";
@@ -67,7 +67,10 @@ public class GetAwsTextractJobStatus extends AwsMLJobStatusGetter<AmazonTextract
 
     @Override
     protected AmazonTextractClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
-        return (AmazonTextractClient) AmazonTextractClient.builder().build();
+        return (AmazonTextractClient) AmazonTextractClient.builder()
+                .withRegion(context.getProperty(REGION).getValue())
+                .withCredentials(credentialsProvider)
+                .build();
     }
 
     @Override
@@ -81,12 +84,13 @@ public class GetAwsTextractJobStatus extends AwsMLJobStatusGetter<AmazonTextract
         String awsTaskId = flowFile.getAttribute(AWS_TASK_ID_PROPERTY);
         JobStatus jobStatus = getTaskStatus(typeOfTextract, getClient(), awsTaskId);
         if (JobStatus.SUCCEEDED == jobStatus) {
-            writeToFlowFile(session, flowFile, getTask(typeOfTextract, getClient(), awsTaskId));
+            Object task = getTask(typeOfTextract, getClient(), awsTaskId);
+            writeToFlowFile(session, flowFile, task);
             session.transfer(flowFile, REL_SUCCESS);
         }
 
         if (JobStatus.IN_PROGRESS == jobStatus) {
-            session.transfer(flowFile, REL_IN_PROGRESS);
+            session.transfer(flowFile, REL_RUNNING);
         }
 
         if (JobStatus.PARTIAL_SUCCESS == jobStatus) {

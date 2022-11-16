@@ -36,6 +36,8 @@
     For more details please check the official <a target="blank" href="https://docs.aws.amazon.com/polly/latest/dg/API_Reference.html">Polly API reference</a>
     With this processor you will trigger a startSpeechSynthesisTask async call to Polly Service.
 
+    You can define json payload as property or provide as a flow file content. Property has higher precedence.
+
     After the job is triggered the serialized json response will be written to the output flow file.
     The <code>awsTaskId</code> attribute will be populated, so it makes it easier to query job status by the corresponding fetcher processor.
 </p>

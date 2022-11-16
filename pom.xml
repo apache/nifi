@@ -147,6 +147,7 @@
         <swagger.annotations.version>1.6.6</swagger.annotations.version>
         <h2.version>2.1.214</h2.version>
         <zookeeper.version>3.8.0</zookeeper.version>
+        <aws.ml.version>1.12.328</aws.ml.version>
     </properties>
     <dependencyManagement>
         <dependencies>

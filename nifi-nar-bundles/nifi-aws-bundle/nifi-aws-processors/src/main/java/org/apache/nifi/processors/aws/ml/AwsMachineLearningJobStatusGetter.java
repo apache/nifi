@@ -22,11 +22,11 @@ import com.amazonaws.ClientConfiguration;
 import com.amazonaws.ResponseMetadata;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.http.SdkHttpMetadata;
+import com.amazonaws.regions.Regions;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import java.io.BufferedWriter;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -42,8 +42,8 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 
-abstract public class AwsMLJobStatusGetter<SERVICE extends AmazonWebServiceClient>
-        extends AbstractAWSCredentialsProviderProcessor<SERVICE>  {
+public abstract class AwsMachineLearningJobStatusGetter<T extends AmazonWebServiceClient>
+        extends AbstractAWSCredentialsProviderProcessor<T>  {
     public static final String AWS_TASK_ID_PROPERTY = "awsTaskId";
     public static final String AWS_TASK_OUTPUT_LOCATION = "outputLocation";
     public static final PropertyDescriptor MANDATORY_AWS_CREDENTIALS_PROVIDER_SERVICE =
@@ -55,8 +55,8 @@ abstract public class AwsMLJobStatusGetter<SERVICE extends AmazonWebServiceClien
             .description("Upon successful completion, the original FlowFile will be routed to this relationship.")
             .autoTerminateDefault(true)
             .build();
-    public static final Relationship REL_IN_PROGRESS = new Relationship.Builder()
-            .name("in progress")
+    public static final Relationship REL_RUNNING = new Relationship.Builder()
+            .name("running")
             .description("The job is currently still being processed")
             .build();
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -64,7 +64,7 @@ abstract public class AwsMLJobStatusGetter<SERVICE extends AmazonWebServiceClien
             .description("Job successfully finished. FlowFile will be routed to this relation.")
             .build();
     public static final Relationship REL_THROTTLED = new Relationship.Builder()
-            .name("partial success")
+            .name("throttled")
             .description("Retrieving results failed for some reason, but the issue is likely to resolve on its own, such as Provisioned Throughput Exceeded or a Throttling failure. " +
                     "It is generally expected to retry this relationship.")
             .build();
@@ -73,19 +73,23 @@ abstract public class AwsMLJobStatusGetter<SERVICE extends AmazonWebServiceClien
             .description("The job failed, the original FlowFile will be routed to this relationship.")
             .autoTerminateDefault(true)
             .build();
+    public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
+            .displayName("Region")
+            .name("aws-ml-region")
+            .required(true)
+            .allowableValues(getAvailableRegions())
+            .defaultValue(createAllowableValue(Regions.DEFAULT_REGION).getValue())
+            .build();
     protected final ObjectMapper mapper = JsonMapper.builder()
             .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
             .build();
     protected static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             MANDATORY_AWS_CREDENTIALS_PROVIDER_SERVICE,
+            REGION,
             TIMEOUT,
             SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE,
-            PROXY_CONFIGURATION_SERVICE,
-            PROXY_HOST,
-            PROXY_HOST_PORT,
-            PROXY_USERNAME,
-            PROXY_PASSWORD));
+            PROXY_CONFIGURATION_SERVICE));
 
     public static final String FAILURE_REASON_ATTRIBUTE = "failure.reason";
 
@@ -97,7 +101,7 @@ abstract public class AwsMLJobStatusGetter<SERVICE extends AmazonWebServiceClien
     private static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             REL_ORIGINAL,
             REL_SUCCESS,
-            REL_IN_PROGRESS,
+            REL_RUNNING,
             REL_THROTTLED,
             REL_FAILURE
     )));
@@ -108,8 +112,8 @@ abstract public class AwsMLJobStatusGetter<SERVICE extends AmazonWebServiceClien
     }
 
     @Override
-    protected SERVICE createClient(ProcessContext context, AWSCredentials credentials, ClientConfiguration config) {
-        throw new UnsupportedOperationException("Tried to create client in a deprecated way.");
+    protected T createClient(ProcessContext context, AWSCredentials credentials, ClientConfiguration config) {
+        throw new UnsupportedOperationException("Client creation not supported");
     }
 
     @Override
@@ -125,9 +129,9 @@ abstract public class AwsMLJobStatusGetter<SERVICE extends AmazonWebServiceClien
 
     protected void writeToFlowFile(ProcessSession session, FlowFile flowFile, Object response) {
         session.write(flowFile, out -> {
-            try (BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8))) {
-                bufferedWriter.write(mapper.writeValueAsString(response));
-                bufferedWriter.flush();
+            try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
+                outputStreamWriter.write(mapper.writeValueAsString(response));
+                outputStreamWriter.flush();
             }
         });
     }

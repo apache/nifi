@@ -120,22 +120,22 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-translate</artifactId>
-            <version>1.12.328</version>
+            <version>${aws.ml.version}</version>
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-polly</artifactId>
-            <version>1.12.328</version>
+            <version>${aws.ml.version}</version>
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-transcribe</artifactId>
-            <version>1.12.328</version>
+            <version>${aws.ml.version}</version>
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-textract</artifactId>
-            <version>1.12.328</version>
+            <version>${aws.ml.version}</version>
         </dependency>
     </dependencies>
 

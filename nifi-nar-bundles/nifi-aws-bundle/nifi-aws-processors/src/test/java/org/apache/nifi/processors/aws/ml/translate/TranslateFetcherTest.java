@@ -3,9 +3,9 @@ package org.apache.nifi.processors.aws.ml.translate;
 import static org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
 import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_FAILURE;
 import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_SUCCESS;
-import static org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter.AWS_TASK_ID_PROPERTY;
-import static org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter.AWS_TASK_OUTPUT_LOCATION;
-import static org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter.REL_IN_PROGRESS;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter.AWS_TASK_ID_PROPERTY;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter.AWS_TASK_OUTPUT_LOCATION;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter.REL_RUNNING;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
@@ -19,7 +19,7 @@ import com.amazonaws.services.translate.model.OutputDataConfig;
 import com.amazonaws.services.translate.model.TextTranslationJobProperties;
 import java.util.Collections;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.aws.ml.polly.MockAwsCredentialsProvider;
+import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -35,13 +35,13 @@ public class TranslateFetcherTest {
     private static final String OUTPUT_LOCATION_PATH = "outputLocation";
     private TestRunner runner = null;
     private AmazonTranslateClient mockTranslateClient = null;
-    private MockAwsCredentialsProvider mockAwsCredentialsProvider = null;
+    private AWSCredentialsProviderService mockAwsCredentialsProvider = null;
 
     @BeforeEach
     public void setUp() throws InitializationException {
         mockTranslateClient = Mockito.mock(AmazonTranslateClient.class);
-        mockAwsCredentialsProvider = new MockAwsCredentialsProvider();
-        mockAwsCredentialsProvider.setIdentifier(AWS_CREDENTIALS_PROVIDER_NAME);
+        mockAwsCredentialsProvider = Mockito.mock(AWSCredentialsProviderService.class);
+        when(mockAwsCredentialsProvider.getIdentifier()).thenReturn(AWS_CREDENTIALS_PROVIDER_NAME);
         final GetAwsTranslateJobStatus mockPollyFetcher = new GetAwsTranslateJobStatus() {
             protected AmazonTranslateClient getClient() {
                 return mockTranslateClient;
@@ -69,7 +69,7 @@ public class TranslateFetcherTest {
         runner.enqueue(CONTENT_STRING, Collections.singletonMap(AWS_TASK_ID_PROPERTY, TEST_TASK_ID));
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(REL_IN_PROGRESS);
+        runner.assertAllFlowFilesTransferred(REL_RUNNING);
         assertEquals(requestCaptor.getValue().getJobId(), TEST_TASK_ID);
     }
 

@@ -30,15 +30,18 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter;
+import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Transcribe"})
 @CapabilityDescription("Retrieves the current status of an AWS Transcribe job.")
 @SeeAlso({StartAwsTranscribeJob.class})
-public class GetAwsTranscribeJobStatus extends AwsMLJobStatusGetter<AmazonTranscribeClient> {
+public class GetAwsTranscribeJobStatus extends AwsMachineLearningJobStatusGetter<AmazonTranscribeClient> {
     @Override
     protected AmazonTranscribeClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
-        return (AmazonTranscribeClient) AmazonTranscribeClient.builder().build();
+        return (AmazonTranscribeClient) AmazonTranscribeClient.builder()
+                .withRegion(context.getProperty(REGION).getValue())
+                .withCredentials(credentialsProvider)
+                .build();
     }
 
     @Override
@@ -57,14 +60,14 @@ public class GetAwsTranscribeJobStatus extends AwsMLJobStatusGetter<AmazonTransc
         }
 
         if (TranscriptionJobStatus.IN_PROGRESS == jobStatus) {
-            session.transfer(flowFile, REL_IN_PROGRESS);
+            session.transfer(flowFile, REL_RUNNING);
         }
 
         if (TranscriptionJobStatus.FAILED == jobStatus) {
             final String failureReason = job.getTranscriptionJob().getFailureReason();
             session.putAttribute(flowFile, FAILURE_REASON_ATTRIBUTE, failureReason);
             session.transfer(flowFile, REL_FAILURE);
-            getLogger().error("Amazon transcribe reported that the task failed for {}: {}", flowFile, failureReason);
+            getLogger().error("Transcribe Task Failed for {}: {}", flowFile, failureReason);
             return;
         }
     }

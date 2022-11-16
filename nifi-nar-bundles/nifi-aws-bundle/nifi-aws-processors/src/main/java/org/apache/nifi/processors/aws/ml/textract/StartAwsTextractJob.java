@@ -38,12 +38,12 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.ml.AwsMlJobStarter;
+import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStarter;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Textract"})
 @CapabilityDescription("Trigger a AWS Textract job. It should be followed by GetAwsTextractJobStatus processor in order to monitor job status.")
 @SeeAlso({GetAwsTextractJobStatus.class})
-public class StartAwsTextractJob extends AwsMlJobStarter<AmazonTextractClient, AmazonWebServiceRequest, AmazonWebServiceResult> {
+public class StartAwsTextractJob extends AwsMachineLearningJobStarter<AmazonTextractClient, AmazonWebServiceRequest, AmazonWebServiceResult> {
     private static final String DOCUMENT_ANALYSIS = "Document Analysis";
     private static final String DOCUMENT_TEXT_DETECTION = "Document Text Detection";
     private static final String EXPENSE_ANALYSIS = "Expense Analysis";
@@ -69,7 +69,10 @@ public class StartAwsTextractJob extends AwsMlJobStarter<AmazonTextractClient, A
 
     @Override
     protected AmazonTextractClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
-        return (AmazonTextractClient) AmazonTextractClient.builder().build();
+        return (AmazonTextractClient) AmazonTextractClient.builder()
+                .withRegion(context.getProperty(REGION).getValue())
+                .withCredentials(credentialsProvider)
+                .build();
     }
 
     @Override

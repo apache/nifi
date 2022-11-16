@@ -22,11 +22,11 @@ import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.AmazonWebServiceResult;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.regions.Regions;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
@@ -46,8 +46,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 
-public abstract class AwsMlJobStarter<SERVICE extends AmazonWebServiceClient, REQUEST extends AmazonWebServiceRequest, RESPONSE extends AmazonWebServiceResult>
-        extends AbstractAWSCredentialsProviderProcessor<SERVICE> {
+public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceClient, REQUEST extends AmazonWebServiceRequest, RESPONSE extends AmazonWebServiceResult>
+        extends AbstractAWSCredentialsProviderProcessor<T> {
     protected static final String AWS_TASK_ID_PROPERTY = "awsTaskId";
     public static final PropertyDescriptor JSON_PAYLOAD = new PropertyDescriptor.Builder()
             .name("json-payload")
@@ -59,9 +59,17 @@ public abstract class AwsMlJobStarter<SERVICE extends AmazonWebServiceClient, RE
             new PropertyDescriptor.Builder().fromPropertyDescriptor(AWS_CREDENTIALS_PROVIDER_SERVICE)
                     .required(true)
                     .build();
+    public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
+            .displayName("Region")
+            .name("aws-ml-region")
+            .required(true)
+            .allowableValues(getAvailableRegions())
+            .defaultValue(createAllowableValue(Regions.DEFAULT_REGION).getValue())
+            .build();
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             JSON_PAYLOAD,
             MANDATORY_AWS_CREDENTIALS_PROVIDER_SERVICE,
+            REGION,
             TIMEOUT,
             SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE));
@@ -129,7 +137,7 @@ public abstract class AwsMlJobStarter<SERVICE extends AmazonWebServiceClient, RE
     }
 
     @Override
-    protected SERVICE createClient(ProcessContext context, AWSCredentials credentials, ClientConfiguration config) {
+    protected T createClient(ProcessContext context, AWSCredentials credentials, ClientConfiguration config) {
         throw new UnsupportedOperationException("Tried to create client in a deprecated way.");
     }
 
@@ -142,10 +150,9 @@ public abstract class AwsMlJobStarter<SERVICE extends AmazonWebServiceClient, RE
     protected FlowFile writeToFlowFile(ProcessSession session, FlowFile flowFile, RESPONSE response) {
         FlowFile childFlowFile = session.create(flowFile);
         session.write(childFlowFile, out -> {
-            try (BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8))) {
-                bufferedWriter.write(mapper.writeValueAsString(response));
-                bufferedWriter.newLine();
-                bufferedWriter.flush();
+            try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
+                outputStreamWriter.write(mapper.writeValueAsString(response));
+                outputStreamWriter.flush();
             }
         });
         return childFlowFile;

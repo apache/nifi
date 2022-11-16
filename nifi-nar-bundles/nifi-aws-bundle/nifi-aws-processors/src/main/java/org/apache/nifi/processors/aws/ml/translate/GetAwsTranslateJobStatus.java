@@ -13,15 +13,18 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.aws.ml.AwsMLJobStatusGetter;
+import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Translate"})
 @CapabilityDescription("Retrieves the current status of an AWS Translate job.")
 @SeeAlso({StartAwsTranslateJob.class})
-public class GetAwsTranslateJobStatus extends AwsMLJobStatusGetter<AmazonTranslateClient> {
+public class GetAwsTranslateJobStatus extends AwsMachineLearningJobStatusGetter<AmazonTranslateClient> {
     @Override
     protected AmazonTranslateClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
-        return (AmazonTranslateClient) AmazonTranslateClient.builder().build();
+        return (AmazonTranslateClient) AmazonTranslateClient.builder()
+                .withRegion(context.getProperty(REGION).getValue())
+                .withCredentials(credentialsProvider)
+                .build();
     }
 
     @Override
@@ -37,12 +40,12 @@ public class GetAwsTranslateJobStatus extends AwsMLJobStatusGetter<AmazonTransla
         if (status == JobStatus.IN_PROGRESS || status == JobStatus.SUBMITTED) {
             writeToFlowFile(session, flowFile, describeTextTranslationJobResult);
             session.penalize(flowFile);
-            session.transfer(flowFile, REL_IN_PROGRESS);
+            session.transfer(flowFile, REL_RUNNING);
         }
 
         if (status == JobStatus.COMPLETED) {
-            writeToFlowFile(session, flowFile, describeTextTranslationJobResult);
             session.putAttribute(flowFile, AWS_TASK_OUTPUT_LOCATION, describeTextTranslationJobResult.getTextTranslationJobProperties().getOutputDataConfig().getS3Uri());
+            writeToFlowFile(session, flowFile, describeTextTranslationJobResult);
             session.transfer(flowFile, REL_SUCCESS);
         }
 

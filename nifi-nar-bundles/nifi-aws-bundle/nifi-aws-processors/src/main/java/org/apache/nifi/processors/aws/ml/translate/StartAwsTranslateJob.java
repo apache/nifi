@@ -26,15 +26,18 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.aws.ml.AwsMlJobStarter;
+import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStarter;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Translate"})
 @CapabilityDescription("Trigger a AWS Translate job. It should be followed by GetAwsTranslateJobStatus processor in order to monitor job status.")
 @SeeAlso({GetAwsTranslateJobStatus.class})
-public class StartAwsTranslateJob extends AwsMlJobStarter<AmazonTranslateClient, StartTextTranslationJobRequest, StartTextTranslationJobResult> {
+public class StartAwsTranslateJob extends AwsMachineLearningJobStarter<AmazonTranslateClient, StartTextTranslationJobRequest, StartTextTranslationJobResult> {
     @Override
     protected AmazonTranslateClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
-        return (AmazonTranslateClient) AmazonTranslateClient.builder().build();
+        return (AmazonTranslateClient) AmazonTranslateClient.builder()
+                .withRegion(context.getProperty(REGION).getValue())
+                .withCredentials(credentialsProvider)
+                .build();
     }
 
     @Override

@@ -35,6 +35,8 @@
     For more details please check the official <a target="blank" href="https://docs.aws.amazon.com/textract/latest/dg/API_Reference.html">Textract API reference</a>
     With this processor you will trigger a startDocumentAnalysis, startDocumentTextDetection or startExpenseAnalysis async call according to your type of textract settings.
 
+    You can define json payload as property or provide as a flow file content. Property has higher precedence.
+
     After the job is triggered the serialized json response will be written to the output flow file.
     The awsTaskId attribute will be populated, so it makes it easier to query job status by the corresponding fetcher processor.
 </p>

@@ -27,15 +27,18 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.aws.ml.AwsMlJobStarter;
+import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStarter;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Transcribe"})
 @CapabilityDescription("Trigger a AWS Transcribe job. It should be followed by GetAwsTranscribeStatus processor in order to monitor job status.")
 @SeeAlso({GetAwsTranscribeJobStatus.class})
-public class StartAwsTranscribeJob extends AwsMlJobStarter<AmazonTranscribeClient, StartTranscriptionJobRequest, StartTranscriptionJobResult> {
+public class StartAwsTranscribeJob extends AwsMachineLearningJobStarter<AmazonTranscribeClient, StartTranscriptionJobRequest, StartTranscriptionJobResult> {
     @Override
     protected AmazonTranscribeClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
-        return (AmazonTranscribeClient) AmazonTranscribeClient.builder().build();
+        return (AmazonTranscribeClient) AmazonTranscribeClient.builder()
+                .withRegion(context.getProperty(REGION).getValue())
+                .withCredentials(credentialsProvider)
+                .build();
     }
 
     @Override
