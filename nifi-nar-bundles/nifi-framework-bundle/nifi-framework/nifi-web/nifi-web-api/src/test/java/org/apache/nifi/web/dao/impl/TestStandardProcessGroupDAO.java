@@ -41,7 +41,7 @@ public class TestStandardProcessGroupDAO {
     private static final String PROCESS_GROUP_ID = "pgId";
     private static final String PROCESS_GROUP_NAME = "pgName";
     private static final String PROCESS_GROUP_COMMENTS = "This is a comment";
-    private static final String PARAMETER_CONTEXT_ID = "paramContext";
+    private static final String PARAMETER_CONTEXT_ID = "parameterContextId";
 
     private StandardProcessGroupDAO testSubject;
 
@@ -73,6 +73,7 @@ public class TestStandardProcessGroupDAO {
 
     @Test
     public void testCreateProcessGroup() {
+        //GIVEN
         ParameterContextReferenceEntity parameterContextReferenceEntity = new ParameterContextReferenceEntity();
         parameterContextReferenceEntity.setId(PARAMETER_CONTEXT_ID);
 
@@ -83,8 +84,10 @@ public class TestStandardProcessGroupDAO {
         processGroupDTO.setPosition(new PositionDTO(10.0, 20.0));
         processGroupDTO.setParameterContext(parameterContextReferenceEntity);
 
+        //WHEN
         ProcessGroup createdProcessGroup = testSubject.createProcessGroup(PARENT_PROCESS_GROUP_ID, processGroupDTO);
 
+        //THEN
         verify(createdProcessGroup).setParent(parentProcessGroup);
         verify(createdProcessGroup).setParameterContext(parameterContext);
         verify(createdProcessGroup).setName(PROCESS_GROUP_NAME);
