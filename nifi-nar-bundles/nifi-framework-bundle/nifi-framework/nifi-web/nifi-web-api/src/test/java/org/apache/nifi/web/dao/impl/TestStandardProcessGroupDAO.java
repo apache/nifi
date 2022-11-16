@@ -17,22 +17,25 @@
 
 package org.apache.nifi.web.dao.impl;
 
+import static org.mockito.Answers.RETURNS_DEEP_STUBS;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
-import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class TestStandardProcessGroupDAO {
     private static final String PARENT_PROCESS_GROUP_ID = "parentId";
     private static final String PROCESS_GROUP_ID = "pgId";
@@ -40,43 +43,54 @@ public class TestStandardProcessGroupDAO {
     private static final String PROCESS_GROUP_COMMENTS = "This is a comment";
     private static final String PARAMETER_CONTEXT_ID = "paramContext";
 
+    private StandardProcessGroupDAO testSubject;
+
+    @Mock(answer = RETURNS_DEEP_STUBS)
+    private FlowController flowController;
+
+    @Mock
+    private ProcessGroup parentProcessGroup;
+
+    @Mock
+    private ParameterContext parameterContext;
+
+    @BeforeEach
+    void setUp() {
+        testSubject = new StandardProcessGroupDAO();
+        testSubject.setFlowController(flowController);
+
+        when(flowController
+                .getFlowManager()
+                .getGroup(PARENT_PROCESS_GROUP_ID)
+        ).thenReturn(parentProcessGroup);
+
+        when(flowController
+                .getFlowManager()
+                .getParameterContextManager()
+                .getParameterContext(PARAMETER_CONTEXT_ID)
+        ).thenReturn(parameterContext);
+    }
+
     @Test
     public void testCreateProcessGroup() {
-        final StandardProcessGroupDAO dao = new StandardProcessGroupDAO();
-        final FlowController flowController = mock(FlowController.class);
-        final FlowManager flowManager = mock(FlowManager.class);
-        when(flowController.getFlowManager()).thenReturn(flowManager);
-        dao.setFlowController(flowController);
+        ParameterContextReferenceEntity parameterContextReferenceEntity = new ParameterContextReferenceEntity();
+        parameterContextReferenceEntity.setId(PARAMETER_CONTEXT_ID);
 
-        final ProcessGroup parentProcessGroup = mock(ProcessGroup.class);
-        when(flowManager.getGroup(PARENT_PROCESS_GROUP_ID)).thenReturn(parentProcessGroup);
+        ProcessGroupDTO processGroupDTO = new ProcessGroupDTO();
+        processGroupDTO.setId(PROCESS_GROUP_ID);
+        processGroupDTO.setName(PROCESS_GROUP_NAME);
+        processGroupDTO.setComments(PROCESS_GROUP_COMMENTS);
+        processGroupDTO.setPosition(new PositionDTO(10.0, 20.0));
+        processGroupDTO.setParameterContext(parameterContextReferenceEntity);
 
-        final ParameterContextReferenceEntity parameterContextReferenceEntity = mock(ParameterContextReferenceEntity.class);
-        final ParameterContextManager parameterContextManager = mock(ParameterContextManager.class);
-        final ParameterContext parameterContext = mock(ParameterContext.class);
+        ProcessGroup createdProcessGroup = testSubject.createProcessGroup(PARENT_PROCESS_GROUP_ID, processGroupDTO);
 
-        final ProcessGroupDTO processGroupDTO = mock(ProcessGroupDTO.class);
-        when(processGroupDTO.getId()).thenReturn(PROCESS_GROUP_ID);
-        when(processGroupDTO.getName()).thenReturn(PROCESS_GROUP_NAME);
-        when(processGroupDTO.getComments()).thenReturn(PROCESS_GROUP_COMMENTS);
-        final PositionDTO position = mock(PositionDTO.class);
-        when(processGroupDTO.getPosition()).thenReturn(position);
+        verify(createdProcessGroup).setParent(parentProcessGroup);
+        verify(createdProcessGroup).setParameterContext(parameterContext);
+        verify(createdProcessGroup).setName(PROCESS_GROUP_NAME);
+        verify(createdProcessGroup).setComments(PROCESS_GROUP_COMMENTS);
+        verify(createdProcessGroup).setPosition(any(Position.class));
 
-        when(flowManager.getParameterContextManager()).thenReturn(parameterContextManager);
-        when(parameterContextManager.getParameterContext(PARAMETER_CONTEXT_ID)).thenReturn(parameterContext);
-        when(processGroupDTO.getParameterContext()).thenReturn(parameterContextReferenceEntity);
-        when(parameterContextReferenceEntity.getId()).thenReturn(PARAMETER_CONTEXT_ID);
-
-        final ProcessGroup childProcessGroup = mock(ProcessGroup.class);
-        when(flowManager.createProcessGroup(PROCESS_GROUP_ID)).thenReturn(childProcessGroup);
-
-        dao.createProcessGroup(PARENT_PROCESS_GROUP_ID, processGroupDTO);
-
-        verify(childProcessGroup).setName(PROCESS_GROUP_NAME);
-        verify(childProcessGroup).setComments(PROCESS_GROUP_COMMENTS);
-        verify(childProcessGroup).setPosition(any(Position.class));
-        verify(childProcessGroup).setParameterContext(parameterContext);
-        verify(childProcessGroup).setParent(parentProcessGroup);
-        verify(parentProcessGroup).addProcessGroup(childProcessGroup);
+        verify(parentProcessGroup).addProcessGroup(createdProcessGroup);
     }
 }
