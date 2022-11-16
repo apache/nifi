@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.amqp.processors;
 
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.GetResponse;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -24,20 +33,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.GetResponse;
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PublishAMQPTest {
@@ -107,8 +105,12 @@ public class PublishAMQPTest {
         setConnectionProperties(runner);
         runner.setProperty(PublishAMQP.HEADER_SEPARATOR,"|");
 
-        final Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> expectedHeaders = new HashMap<String, String>() {{
+            put("foo", "(bar,bar)");
+            put("foo2", "bar2");
+        }};
 
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("amqp$headers", "foo=(bar,bar)|foo2=bar2|foo3");
 
         runner.enqueue("Hello Joe".getBytes(), attributes);
@@ -124,10 +126,7 @@ public class PublishAMQPTest {
 
         final Map<String, Object> headerMap = msg1.getProps().getHeaders();
 
-        assertEquals(2, headerMap.size());
-        assertEquals("(bar,bar)", headerMap.get("foo").toString());
-        assertEquals("bar2", headerMap.get("foo2").toString());
-        assertFalse(headerMap.containsKey("foo3"));
+        assertEquals(expectedHeaders, headerMap);
 
         assertNotNull(channel.basicGet("queue2", true));
     }
@@ -148,8 +147,13 @@ public class PublishAMQPTest {
         runner.setProperty(PublishAMQP.HEADER_SEPARATOR,"|");
         runner.setProperty(PublishAMQP.IGNORE_HEADER_WITH_NULL_VALUE, "false");
 
-        final Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> expectedHeaders = new HashMap<String, String>() {{
+            put("foo", "(bar,bar)");
+            put("foo2", "bar2");
+            put("foo3", null);
+        }};
 
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("amqp$headers", "foo=(bar,bar)|foo2=bar2|foo3");
 
         runner.enqueue("Hello Joe".getBytes(), attributes);
@@ -165,10 +169,7 @@ public class PublishAMQPTest {
 
         final Map<String, Object> headerMap = msg1.getProps().getHeaders();
 
-        assertEquals(3, headerMap.size());
-        assertEquals("(bar,bar)", headerMap.get("foo").toString());
-        assertEquals("bar2", headerMap.get("foo2").toString());
-        assertNull(headerMap.get("foo3"));
+        assertEquals(expectedHeaders, headerMap);
 
         assertNotNull(channel.basicGet("queue2", true));
     }
