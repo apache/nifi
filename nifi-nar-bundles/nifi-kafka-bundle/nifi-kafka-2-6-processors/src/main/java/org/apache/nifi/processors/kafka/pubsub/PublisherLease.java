@@ -186,7 +186,7 @@ public class PublisherLease implements Closeable {
     }
 
     void publish(final FlowFile flowFile, final RecordSet recordSet, final RecordSetWriterFactory writerFactory, final RecordSchema schema,
-                 final String messageKeyField, final String topic, final Function<Record, Integer> partitioner) throws IOException {
+                 final String messageKeyField, final String explicitTopic, final Function<Record, Integer> partitioner, final PublishMetadataStrategy metadataStrategy) throws IOException {
         if (tracker == null) {
             tracker = new InFlightMessageTracker(logger);
         }
@@ -201,17 +201,41 @@ public class PublisherLease implements Closeable {
                 recordCount++;
                 baos.reset();
 
-                Map<String, String> additionalAttributes = Collections.emptyMap();
+                final String topic;
                 final List<Header> headers;
                 final byte[] messageContent;
                 final byte[] messageKey;
+                Integer partition;
                 if (PublishStrategy.USE_WRAPPER.equals(publishStrategy)) {
                     headers = toHeadersWrapper(record.getValue("headers"));
                     final Object key = record.getValue("key");
                     final Object value = record.getValue("value");
                     messageContent = toByteArray("value", value, writerFactory, flowFile);
                     messageKey = toByteArray("key", key, recordKeyWriterFactory, flowFile);
+
+                    if (metadataStrategy == PublishMetadataStrategy.USE_RECORD_METADATA) {
+                        final Object metadataObject = record.getValue("metadata");
+                        if (metadataObject instanceof Record) {
+                            final Record metadataRecord = (Record) metadataObject;
+                            final String recordTopic = metadataRecord.getAsString("topic");
+                            topic = recordTopic == null ? explicitTopic : recordTopic;
+
+                            try {
+                                partition = metadataRecord.getAsInt("partition");
+                            } catch (final Exception e) {
+                                logger.warn("Encountered invalid partition for record in {}; will use configured partitioner for Record", flowFile);
+                                partition = partitioner == null ? null : partitioner.apply(record);
+                            }
+                        } else {
+                            topic = explicitTopic;
+                            partition = partitioner == null ? null : partitioner.apply(record);
+                        }
+                    } else {
+                        topic = explicitTopic;
+                        partition = partitioner == null ? null : partitioner.apply(record);
+                    }
                 } else {
+                    final Map<String, String> additionalAttributes;
                     try (final RecordSetWriter writer = writerFactory.createWriter(logger, schema, baos, flowFile)) {
                         final WriteResult writeResult = writer.write(record);
                         additionalAttributes = writeResult.getAttributes();
@@ -220,9 +244,10 @@ public class PublisherLease implements Closeable {
                     headers = toHeaders(flowFile, additionalAttributes);
                     messageContent = baos.toByteArray();
                     messageKey = getMessageKey(flowFile, writerFactory, record.getValue(messageKeyField));
+                    topic = explicitTopic;
+                    partition = partitioner == null ? null : partitioner.apply(record);
                 }
 
-                final Integer partition = partitioner == null ? null : partitioner.apply(record);
                 publish(flowFile, headers, messageKey, messageContent, topic, tracker, partition);
 
                 if (tracker.isFailed(flowFile)) {

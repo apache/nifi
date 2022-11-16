@@ -55,7 +55,7 @@ public class TestPublishKafkaRecordKey_2_6 {
         mockPool = mock(PublisherPool.class);
         mockLease = mock(PublisherLease.class);
         Mockito.doCallRealMethod().when(mockLease).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-            any(RecordSchema.class), any(String.class), any(String.class), nullable(Function.class));
+            any(RecordSchema.class), any(String.class), any(String.class), nullable(Function.class), any(PublishMetadataStrategy.class));
 
         when(mockPool.obtainPublisher()).thenReturn(mockLease);
 

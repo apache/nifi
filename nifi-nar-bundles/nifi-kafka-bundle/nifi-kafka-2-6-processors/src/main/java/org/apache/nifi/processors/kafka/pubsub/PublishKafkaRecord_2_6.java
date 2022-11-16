@@ -127,6 +127,11 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         "Interprets the <Partition> property as Expression Language that will be evaluated against each FlowFile. This Expression will be evaluated once against the FlowFile, " +
             "so all Records in a given FlowFile will go to the same partition.");
 
+    static final AllowableValue RECORD_METADATA_FROM_RECORD = new AllowableValue("Metadata From Record", "Metadata From Record", "The Kafka Record's Topic and Partition will be determined by " +
+        "looking at the /metadata/topic and /metadata/partition fields of the Record, respectively. If these fields are invalid or not present, the Topic Name and Partition/Partitioner class " +
+        "properties of the processor will be considered.");
+    static final AllowableValue RECORD_METADATA_FROM_PROPERTIES = new AllowableValue("Use Configured Values", "Use Configured Values", "The Kafka Record's Topic will be determined using the 'Topic " +
+        "Name' processor property. The partition will be determined using the 'Partition' and 'Partitioner class' properties.");
 
     static final PropertyDescriptor TOPIC = new Builder()
         .name("topic")
@@ -291,6 +296,17 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
             .identifiesControllerService(RecordSetWriterFactory.class)
             .dependsOn(PUBLISH_STRATEGY, PUBLISH_USE_WRAPPER)
             .build();
+    static final PropertyDescriptor RECORD_METADATA_STRATEGY = new Builder()
+        .name("Record Metadata Strategy")
+        .displayName("Record Metadata Strategy")
+        .description("Specifies whether the Record's metadata (topic and partition) should come from the Record's metadata field or if it should come from the configured Topic Name and Partition / " +
+            "Partitioner class properties")
+        .required(true)
+        .allowableValues(RECORD_METADATA_FROM_PROPERTIES, RECORD_METADATA_FROM_RECORD)
+        .defaultValue(RECORD_METADATA_FROM_PROPERTIES.getValue())
+        .dependsOn(PUBLISH_STRATEGY, PUBLISH_USE_WRAPPER)
+        .build();
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
         .description("FlowFiles for which all content was sent to Kafka.")
@@ -319,6 +335,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         properties.add(DELIVERY_GUARANTEE);
         properties.add(PUBLISH_STRATEGY);
         properties.add(RECORD_KEY_WRITER);
+        properties.add(RECORD_METADATA_STRATEGY);
         properties.add(ATTRIBUTE_NAME_REGEX);
         properties.add(MESSAGE_HEADER_ENCODING);
         properties.add(KafkaProcessorUtils.SECURITY_PROTOCOL);
@@ -479,6 +496,14 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         final boolean useTransactions = context.getProperty(USE_TRANSACTIONS).asBoolean();
         final PublishFailureStrategy failureStrategy = getFailureStrategy(context);
 
+        final PublishMetadataStrategy publishMetadataStrategy;
+        final String recordMetadataStrategy = context.getProperty(RECORD_METADATA_STRATEGY).getValue();
+        if (RECORD_METADATA_FROM_RECORD.getValue().equalsIgnoreCase(recordMetadataStrategy)) {
+            publishMetadataStrategy = PublishMetadataStrategy.USE_RECORD_METADATA;
+        } else {
+            publishMetadataStrategy = PublishMetadataStrategy.USE_CONFIGURED_VALUES;
+        }
+
         final long startTime = System.nanoTime();
         try (final PublisherLease lease = pool.obtainPublisher()) {
             try {
@@ -518,7 +543,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
                                     final RecordSet recordSet = reader.createRecordSet();
 
                                     final RecordSchema schema = writerFactory.getSchema(flowFile.getAttributes(), recordSet.getSchema());
-                                    lease.publish(flowFile, recordSet, writerFactory, schema, messageKeyField, topic, partitioner);
+                                    lease.publish(flowFile, recordSet, writerFactory, schema, messageKeyField, topic, partitioner, publishMetadataStrategy);
                                 } catch (final SchemaNotFoundException | MalformedRecordException e) {
                                     throw new ProcessException(e);
                                 }

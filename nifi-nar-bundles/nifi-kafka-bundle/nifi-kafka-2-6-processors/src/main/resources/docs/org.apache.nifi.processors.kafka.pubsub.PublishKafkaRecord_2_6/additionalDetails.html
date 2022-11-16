@@ -205,14 +205,39 @@
             <ul>
                 <li>'Use Content as Record Value' (the default) - the content of the FlowFile Record becomes the content of the Kafka record. The Kafka record's key is determined by the 'Message Key
                     Field' property, and the Kafka record's headers are determined by the 'Attributes to Send as Headers (Regex)' property.</li>
-                <li>'Use Wrapper' - the content of the FlowFile record is a wrapper consisting of the Kafka record's key, value, and headers.</li>
+                <li>'Use Wrapper' - the content of the FlowFile record is a wrapper consisting of the Kafka record's key, value, headers, and metadata (topic and partition).</li>
             </ul>
 
-            <p>If Publish Strategy is set to 'Use Wrapper', an additional processor configuration property is
-                made available: 'Record Key Writer'. This property determines the Record Writer that should be used to serialize the Kafka record's key.
-                This may be used to emit the key as JSON, Avro, XML, or some other data format. If this property is not set, and the NiFi Record indicates that the key itself
-                is a Record, the FlowFile will be routed to the 'failure' relationship. If this property is not set and the NiFi Record has a Byte Array or a String (encoded in UTF-8 format), the
-                Kafka record's key will still be set accordingly.</p>
+            <p>
+            If Publish Strategy is set to 'Use Wrapper', two additional processor configuration properties are
+            made available: 'Record Key Writer' and 'Record Metadata Strategy'.
+            </p>
+
+            <p>
+            The 'Record Key Writer' property determines the Record Writer that should be used to serialize the Kafka record's key.
+            This may be used to emit the key as JSON, Avro, XML, or some other data format. If this property is not set, and the NiFi Record indicates that the key itself
+            is a Record, the FlowFile will be routed to the 'failure' relationship. If this property is not set and the NiFi Record has a Byte Array or a String (encoded in UTF-8 format), the
+            Kafka record's key will still be set accordingly.
+            </p>
+
+            <p>
+            The 'Record Metadata Strategy' specifies whether the Kafka Topic and partition should come from the configured 'Topic Name' property and 'Partition' / 'Partitioner class' properties,
+            or if they should come from the Record's optional <code>metadata</code> field. If the value is set to 'Metadata From Record', the incoming FlowFile record is expected to have a field
+            named 'metadata'. That field is expected to be a Record with a 'topic' and a 'partition' field. If these fields are missing or invalid, the processor's 'Topic Name' and 'Partition' /
+            'Partitioner class' properties will still be used.
+            </p>
+
+            <p>
+            Using the <code>metadata</code> field to convey the topic and partition has two advantages. Firstly, it pairs well with the ConsumeKafkaRecord_* processor, which produces
+            this same schema. This means that if data is consumed from one topic and pushed to another topic (or Kafka cluster), the data can be easily pinned to the same partition and topic name.
+            If the data should be pushed to a different topic, it can be easily updated using an UpdateRecord processor, for instance.
+            </p>
+
+            <p>
+            Additionally, because a single FlowFile can be sent as a single Kafka transaction, this allows sending records to multiple Kafka topics in a single transaction.
+            </p>
+
+
 
             <h3>Examples</h3>
             <p>
@@ -310,15 +335,16 @@
             <h4>Publish Strategy = 'Use Wrapper'</h4>
 
             <p>
-            When the Publish Strategy is configured to 'Use Wrapper' each FlowFile Record is expected to adhere to a specific schema.
-            The Record must have three fields: <code>key</code>, <code>value</code>, and <code>headers</code>.
+            When the Publish Strategy is configured to 'Use Wrapper', each FlowFile Record is expected to adhere to a specific schema.
+            The Record must have three fields: <code>key</code>, <code>value</code>, and <code>headers</code>. There is a fourth, optional field named <code>metadata</code>.
             The <code>key</code> may be a String, a byte array, or a Record. The <code>value</code> can be any Record. The <code>headers</code>
-            is a Map where the values are Strings.
+            is a Map where the values are Strings. The <code>metadata</code> field is a Record that has two fields of interest: <code>topic</code> and <code>partition</code>. If these
+            fields are specified, they will take precedence over the configured 'Topic Name' and 'Partition' and 'Partitioner class' processor properties.
             </p>
 
 
 
-            <h5>Example 1</h5>
+            <h5>Example 1 - Key as String</h5>
 
             <p>
             Given a FlowFile with the content:
@@ -572,6 +598,476 @@
             header has an expected value of <code>MapRecord[{d=e}]</code>. This is because the <code>headers</code> field is expected always to be a Map
             with String values. By providing a Record for the <code>c</code> element, we have violated the contract. NiFi attempts to compensate for this
             by creating a String representation of the Record, even if it is unlikely to be the representation that the user expects.
+            </p>
+
+
+
+            <h5>Example 5 - Topic provided in Record</h5>
+            <p>
+            If the Metadata field is provided in the FlowFile's Record, it will be used to determine the Topic and the Partition that the Records are written to.
+            </p>
+
+            <p>
+            Given a FlowFile with the content:
+            </p>
+
+            <pre>
+<code>{
+    "value": {
+        "address": "1234 First Street",
+        "zip": "12345",
+        "account": {
+            "name": "Acme",
+            "number":"AC1234"
+        }
+    },
+    "headers": {
+        "a": "b"
+    },
+    "metadata": {
+        "topic": "topic1"
+    }
+}</code>
+            </pre>
+
+            <p>
+            And considering that the processor properties are configured as:
+            </p>
+
+            <table border="thin">
+                <tr>
+                    <th>Property Name</th>
+                    <th>Property Value</th>
+                </tr>
+                <tr>
+                    <td>Topic Name</td>
+                    <td>My Topic</td>
+                </tr>
+                <tr>
+                    <td>Partition</td>
+                    <td>2</td>
+                </tr>
+                <tr>
+                    <td>Record Metadata Strategy</td>
+                    <td>Metadata From Record</td>
+                </tr>
+            </table>
+
+            <p>
+            The record that is produced to Kafka will have the following characteristics:
+            </p>
+
+            <table border="thin">
+                <tr>
+                    <th>Kafka Topic</th>
+                    <td>topic1</td>
+                </tr>
+                <tr>
+                    <th>Topic Partition</th>
+                    <td>2</td>
+                </tr>
+                <tr>
+                    <th>Record Key</th>
+                    <td></td>
+                </tr>
+                <tr>
+                    <th>Record Value</th>
+                    <td><code>{"address":"1234 First Street","zip":"12345","account":{"name":"Acme","number":"AC1234"}}</code></td>
+                </tr>
+                <tr>
+                    <th>Record Headers</th>
+                    <td>
+                        <table border="thin">
+                            <tr>
+                                <td>Header Name</td>
+                                <td>Header Value</td>
+                            </tr>
+                            <tr>
+                                <td>a</td>
+                                <td>b</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+
+            <p>
+            Note that the topic name comes directly from the FlowFile record, and the configured topic name ("My Topic") is ignored. However, if either the "metadata" field or its "topic" sub-field
+            were missing, the configured topic name ("My Topic") would be used.
+            </p>
+
+
+
+
+            <h5>Example 6 - Partition provided in Record</h5>
+
+            <p>
+            Given a FlowFile with the content:
+            </p>
+
+            <pre>
+<code>{
+    "value": {
+        "address": "1234 First Street",
+        "zip": "12345",
+        "account": {
+            "name": "Acme",
+            "number":"AC1234"
+        }
+    },
+    "headers": {
+        "a": "b"
+    },
+    "metadata": {
+        "partition": 6
+    }
+}</code>
+            </pre>
+
+            <p>
+            And considering that the processor properties are configured as:
+            </p>
+
+            <table border="thin">
+                <tr>
+                    <th>Property Name</th>
+                    <th>Property Value</th>
+                </tr>
+                <tr>
+                    <td>Topic Name</td>
+                    <td>My Topic</td>
+                </tr>
+                <tr>
+                    <td>Partition</td>
+                    <td>2</td>
+                </tr>
+                <tr>
+                    <td>Record Metadata Strategy</td>
+                    <td>Metadata From Record</td>
+                </tr>
+            </table>
+
+            <p>
+            The record that is produced to Kafka will have the following characteristics:
+            </p>
+
+            <table border="thin">
+                <tr>
+                    <th>Kafka Topic</th>
+                    <td>My Topic</td>
+                </tr>
+                <tr>
+                    <th>Topic Partition</th>
+                    <td>6</td>
+                </tr>
+                <tr>
+                    <th>Record Key</th>
+                    <td></td>
+                </tr>
+                <tr>
+                    <th>Record Value</th>
+                    <td><code>{"address":"1234 First Street","zip":"12345","account":{"name":"Acme","number":"AC1234"}}</code></td>
+                </tr>
+                <tr>
+                    <th>Record Headers</th>
+                    <td>
+                        <table border="thin">
+                            <tr>
+                                <td>Header Name</td>
+                                <td>Header Value</td>
+                            </tr>
+                            <tr>
+                                <td>a</td>
+                                <td>b</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+
+
+
+
+
+            <h5>Example 7 - Topic and Partition provided in Record</h5>
+            <p>
+            If the Metadata field is provided in the FlowFile's Record, it will be used to determine the Topic and the Partition that the Records are written to.
+            </p>
+
+            <p>
+            Given a FlowFile with the content:
+            </p>
+
+            <pre>
+<code>{
+    "value": {
+        "address": "1234 First Street",
+        "zip": "12345",
+        "account": {
+            "name": "Acme",
+            "number":"AC1234"
+        }
+    },
+    "headers": {
+        "a": "b"
+    },
+    "metadata": {
+        "topic": "topic1",
+        "partition": 0
+    }
+}</code>
+            </pre>
+
+            <p>
+            And considering that the processor properties are configured as:
+            </p>
+
+            <table border="thin">
+                <tr>
+                    <th>Property Name</th>
+                    <th>Property Value</th>
+                </tr>
+                <tr>
+                    <td>Topic Name</td>
+                    <td>My Topic</td>
+                </tr>
+                <tr>
+                    <td>Partition</td>
+                    <td>2</td>
+                </tr>
+                <tr>
+                    <td>Record Metadata Strategy</td>
+                    <td>Metadata From Record</td>
+                </tr>
+            </table>
+
+            <p>
+            The record that is produced to Kafka will have the following characteristics:
+            </p>
+
+            <table border="thin">
+                <tr>
+                    <th>Kafka Topic</th>
+                    <td>topic1</td>
+                </tr>
+                <tr>
+                    <th>Topic Partition</th>
+                    <td>0</td>
+                </tr>
+                <tr>
+                    <th>Record Key</th>
+                    <td></td>
+                </tr>
+                <tr>
+                    <th>Record Value</th>
+                    <td><code>{"address":"1234 First Street","zip":"12345","account":{"name":"Acme","number":"AC1234"}}</code></td>
+                </tr>
+                <tr>
+                    <th>Record Headers</th>
+                    <td>
+                        <table border="thin">
+                            <tr>
+                                <td>Header Name</td>
+                                <td>Header Value</td>
+                            </tr>
+                            <tr>
+                                <td>a</td>
+                                <td>b</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+
+            <p>
+            In this case, both the topic name and the partition are explicitly defined within the incoming Record, and those will be used.
+            </p>
+
+
+
+
+
+            <h5>Example 8 - Invalid metadata provided in Record</h5>
+
+            <p>
+            Given a FlowFile with the content:
+            </p>
+
+            <pre>
+<code>{
+    "value": {
+        "address": "1234 First Street",
+        "zip": "12345",
+        "account": {
+            "name": "Acme",
+            "number":"AC1234"
+        }
+    },
+    "headers": {
+        "a": "b"
+    },
+    "metadata": "hello"
+}</code>
+            </pre>
+
+            <p>
+            And considering that the processor properties are configured as:
+            </p>
+
+            <table border="thin">
+                <tr>
+                    <th>Property Name</th>
+                    <th>Property Value</th>
+                </tr>
+                <tr>
+                    <td>Topic Name</td>
+                    <td>My Topic</td>
+                </tr>
+                <tr>
+                    <td>Partition</td>
+                    <td>2</td>
+                </tr>
+                <tr>
+                    <td>Record Metadata Strategy</td>
+                    <td>Metadata From Record</td>
+                </tr>
+            </table>
+
+            <p>
+            The record that is produced to Kafka will have the following characteristics:
+            </p>
+
+            <table border="thin">
+                <tr>
+                    <th>Kafka Topic</th>
+                    <td>My Topic</td>
+                </tr>
+                <tr>
+                    <th>Topic Partition</th>
+                    <td>2</td>
+                </tr>
+                <tr>
+                    <th>Record Key</th>
+                    <td></td>
+                </tr>
+                <tr>
+                    <th>Record Value</th>
+                    <td><code>{"address":"1234 First Street","zip":"12345","account":{"name":"Acme","number":"AC1234"}}</code></td>
+                </tr>
+                <tr>
+                    <th>Record Headers</th>
+                    <td>
+                        <table border="thin">
+                            <tr>
+                                <td>Header Name</td>
+                                <td>Header Value</td>
+                            </tr>
+                            <tr>
+                                <td>a</td>
+                                <td>b</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+
+            <p>
+            In this case, the "metadata" field in the Record is ignored because it is not itself a Record.
+            </p>
+
+
+
+
+            <h5>Example 9 - Use Configured Values for Metadata</h5>
+
+            <p>
+            Given a FlowFile with the content:
+            </p>
+
+            <pre>
+<code>{
+    "value": {
+        "address": "1234 First Street",
+        "zip": "12345",
+        "account": {
+            "name": "Acme",
+            "number":"AC1234"
+        }
+    },
+    "headers": {
+        "a": "b"
+    },
+    "metadata": {
+        "topic": "topic1",
+        "partition": 6
+    }
+}</code>
+            </pre>
+
+            <p>
+            And considering that the processor properties are configured as:
+            </p>
+
+            <table border="thin">
+                <tr>
+                    <th>Property Name</th>
+                    <th>Property Value</th>
+                </tr>
+                <tr>
+                    <td>Topic Name</td>
+                    <td>My Topic</td>
+                </tr>
+                <tr>
+                    <td>Partition</td>
+                    <td>2</td>
+                </tr>
+                <tr>
+                    <td>Record Metadata Strategy</td>
+                    <td>Use Configured Values</td>
+                </tr>
+            </table>
+
+            <p>
+            The record that is produced to Kafka will have the following characteristics:
+            </p>
+
+            <table border="thin">
+                <tr>
+                    <th>Kafka Topic</th>
+                    <td>My Topic</td>
+                </tr>
+                <tr>
+                    <th>Topic Partition</th>
+                    <td>2</td>
+                </tr>
+                <tr>
+                    <th>Record Key</th>
+                    <td></td>
+                </tr>
+                <tr>
+                    <th>Record Value</th>
+                    <td><code>{"address":"1234 First Street","zip":"12345","account":{"name":"Acme","number":"AC1234"}}</code></td>
+                </tr>
+                <tr>
+                    <th>Record Headers</th>
+                    <td>
+                        <table border="thin">
+                            <tr>
+                                <td>Header Name</td>
+                                <td>Header Value</td>
+                            </tr>
+                            <tr>
+                                <td>a</td>
+                                <td>b</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+
+            <p>
+            In this case, the "metadata" field specifies both the topic and the partition. However, it is ignored in favor of the processor properties 'Topic' and 'Partition' because
+            the property 'Record Metadata Strategy' is set to 'Use Configured Values'.
             </p>
 
 
