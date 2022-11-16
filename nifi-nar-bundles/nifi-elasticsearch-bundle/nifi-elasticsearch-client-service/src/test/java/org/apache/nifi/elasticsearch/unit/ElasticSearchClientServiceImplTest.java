@@ -29,12 +29,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.atMostOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -63,6 +60,7 @@ class ElasticSearchClientServiceImplTest {
         final String type = "no-type";
 
         runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.NONE.getValue());
+        runner.assertValid(service);
         runner.enableControllerService(service);
 
         assertEquals(String.format("%s/%s/%s", HOST, index, type), service.getTransitUrl(index, type));
@@ -77,14 +75,14 @@ class ElasticSearchClientServiceImplTest {
         runner.assertValid(service);
 
         runner.removeProperty(service, ElasticSearchClientService.PASSWORD);
-        assertAuthorizationSchemePropertyValidationErrorMessage(AuthorizationScheme.BASIC, ElasticSearchClientService.PASSWORD);
+        assertAuthorizationPropertyValidationErrorMessage(ElasticSearchClientService.USERNAME, ElasticSearchClientService.PASSWORD);
 
         runner.removeProperty(service, ElasticSearchClientService.USERNAME);
-        assertAuthorizationSchemePropertyValidationErrorMessage(AuthorizationScheme.BASIC, ElasticSearchClientService.USERNAME);
+        runner.assertValid(service);
 
         runner.setProperty(service, ElasticSearchClientService.PASSWORD, "password");
         runner.removeProperty(service, ElasticSearchClientService.USERNAME);
-        assertAuthorizationSchemePropertyValidationErrorMessage(AuthorizationScheme.BASIC, ElasticSearchClientService.USERNAME);
+        assertAuthorizationPropertyValidationErrorMessage(ElasticSearchClientService.PASSWORD, ElasticSearchClientService.USERNAME);
     }
 
     @Test
@@ -95,14 +93,14 @@ class ElasticSearchClientServiceImplTest {
         runner.assertValid(service);
 
         runner.removeProperty(service, ElasticSearchClientService.API_KEY_ID);
-        assertAuthorizationSchemePropertyValidationErrorMessage(AuthorizationScheme.API_KEY, ElasticSearchClientService.API_KEY_ID);
+        assertAuthorizationPropertyValidationErrorMessage(ElasticSearchClientService.API_KEY, ElasticSearchClientService.API_KEY_ID);
 
         runner.removeProperty(service, ElasticSearchClientService.API_KEY);
-        assertAuthorizationSchemePropertyValidationErrorMessage(AuthorizationScheme.API_KEY, ElasticSearchClientService.API_KEY);
+        runner.assertValid(service);
 
         runner.setProperty(service, ElasticSearchClientService.API_KEY_ID, "api-key-id");
         runner.removeProperty(service, ElasticSearchClientService.API_KEY);
-        assertAuthorizationSchemePropertyValidationErrorMessage(AuthorizationScheme.API_KEY, ElasticSearchClientService.API_KEY);
+        assertAuthorizationPropertyValidationErrorMessage(ElasticSearchClientService.API_KEY_ID, ElasticSearchClientService.API_KEY);
     }
 
     @Test
@@ -119,58 +117,28 @@ class ElasticSearchClientServiceImplTest {
         reset(sslService);
 
         when(sslService.isKeyStoreConfigured()).thenReturn(false);
-        final AssertionFailedError ise = assertThrows(AssertionFailedError.class, () -> runner.assertValid(service));
-        assertEquals(String.format(
-                "Expected Controller Service to be valid but it is invalid due to: '%s' is invalid because if '%s' is '%s' then '%s' must specify a Keystore for 2-way TLS encryption.",
-                ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE.getName(),
-                ElasticSearchClientService.AUTHORIZATION_SCHEME.getDisplayName(),
-                AuthorizationScheme.PKI.getDisplayName(),
-                ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE.getDisplayName()
-        ), ise.getMessage());
+        assertPKIAuthorizationValidationErrorMessage();
         verify(sslService, atMostOnce()).isKeyStoreConfigured();
         reset(sslService);
 
         runner.removeProperty(service, ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE);
-        assertAuthorizationSchemePropertyValidationErrorMessage(AuthorizationScheme.PKI, ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE);
+        assertPKIAuthorizationValidationErrorMessage();
         verify(sslService, atMostOnce()).isKeyStoreConfigured();
         reset(sslService);
     }
 
-    @Test
-    void testValidateNoAuth() {
-        runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.NONE.getValue());
-        runner.assertValid(service);
-
-        runner.setProperty(service, ElasticSearchClientService.USERNAME, "elastic");
-        assertNoneAuthorizationSchemeValidationMessage(Collections.singletonList(ElasticSearchClientService.USERNAME.getDisplayName()));
-
-        runner.setProperty(service, ElasticSearchClientService.USERNAME, "elastic");
-        runner.setProperty(service, ElasticSearchClientService.PASSWORD, "password");
-        runner.setProperty(service, ElasticSearchClientService.API_KEY_ID, "api-key-id");
-        runner.setProperty(service, ElasticSearchClientService.API_KEY, "api-key");
-        assertNoneAuthorizationSchemeValidationMessage(
-                Arrays.asList(ElasticSearchClientService.USERNAME.getDisplayName(), ElasticSearchClientService.PASSWORD.getDisplayName(),
-                        ElasticSearchClientService.API_KEY_ID.getDisplayName(),ElasticSearchClientService.API_KEY.getDisplayName())
-        );
+    private void assertAuthorizationPropertyValidationErrorMessage(final PropertyDescriptor presentProperty, final PropertyDescriptor missingProperty) {
+        final AssertionFailedError afe = assertThrows(AssertionFailedError.class, () -> runner.assertValid(service));
+        assertTrue(afe.getMessage().contains(String.format("if '%s' is then '%s' must be set.", presentProperty.getDisplayName(), missingProperty.getDisplayName())));
     }
 
-    private void assertAuthorizationSchemePropertyValidationErrorMessage(final AuthorizationScheme scheme, final PropertyDescriptor subject) {
-        final AssertionFailedError ise = assertThrows(AssertionFailedError.class, () -> runner.assertValid(service));
-        assertEquals(String.format("Expected Controller Service to be valid but it is invalid due to: '%s' is invalid because if '%s' is '%s' then '%s' must be set.",
-                subject.getName(),
+    private void assertPKIAuthorizationValidationErrorMessage() {
+        final AssertionFailedError afe = assertThrows(AssertionFailedError.class, () -> runner.assertValid(service));
+        assertTrue(afe.getMessage().contains(String.format(
+                "if '%s' is '%s' then '%s' must be set and specify a Keystore for mutual TLS encryption.",
                 ElasticSearchClientService.AUTHORIZATION_SCHEME.getDisplayName(),
-                scheme.getDisplayName(),
-                subject.getDisplayName()
-        ), ise.getMessage());
-    }
-
-    private void assertNoneAuthorizationSchemeValidationMessage(final List<String> present) {
-        final AssertionFailedError ise = assertThrows(AssertionFailedError.class, () -> runner.assertValid(service));
-        assertEquals(String.format("Expected Controller Service to be valid but it is invalid due to: '%s' is invalid because if '%s' is '%s' then %s cannot be set.",
-                ElasticSearchClientService.AUTHORIZATION_SCHEME.getName(),
-                ElasticSearchClientService.AUTHORIZATION_SCHEME.getDisplayName(),
-                AuthorizationScheme.NONE.getDisplayName(),
-                present
-        ), ise.getMessage());
+                AuthorizationScheme.PKI.getDisplayName(),
+                ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE.getDisplayName()
+        )));
     }
 }

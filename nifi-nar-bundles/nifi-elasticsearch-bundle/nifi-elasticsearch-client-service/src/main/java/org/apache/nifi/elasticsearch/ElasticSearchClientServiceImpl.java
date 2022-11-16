@@ -123,49 +123,33 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         final boolean apiKeyIdSet = validationContext.getProperty(API_KEY_ID).isSet();
         final boolean apiKeySet = validationContext.getProperty(API_KEY).isSet();
 
-        switch (authorizationScheme) {
-            case NONE:
-                if (usernameSet || passwordSet || apiKeyIdSet || apiKeySet) {
-                    final List<String> present = new ArrayList<>(4);
-                    if (usernameSet) present.add(USERNAME.getDisplayName());
-                    if (passwordSet) present.add(PASSWORD.getDisplayName());
-                    if (apiKeyIdSet) present.add(API_KEY_ID.getDisplayName());
-                    if (apiKeySet) present.add(API_KEY.getDisplayName());
+        final SSLContextService sslService = validationContext.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        if (authorizationScheme == AuthorizationScheme.PKI && (sslService == null || !sslService.isKeyStoreConfigured())) {
+            results.add(new ValidationResult.Builder().subject(PROP_SSL_CONTEXT_SERVICE.getName()).valid(false)
+                    .explanation(String.format("if '%s' is '%s' then '%s' must be set and specify a Keystore for mutual TLS encryption.",
+                            AUTHORIZATION_SCHEME.getDisplayName(), authorizationScheme.getDisplayName(), PROP_SSL_CONTEXT_SERVICE.getDisplayName())
+                    ).build()
+            );
+        }
 
-                    results.add(new ValidationResult.Builder().subject(AUTHORIZATION_SCHEME.getName()).valid(false)
-                            .explanation(String.format("if '%s' is '%s' then %s cannot be set.", AUTHORIZATION_SCHEME.getDisplayName(), authorizationScheme.getDisplayName(), present)).build());
-                }
-                break;
-            case BASIC:
-                if (!usernameSet) addAuthorizationSchemeValidationIssue(results, authorizationScheme, USERNAME);
-                if (!passwordSet) addAuthorizationSchemeValidationIssue(results, authorizationScheme, PASSWORD);
-                break;
-            case API_KEY:
-                if (!apiKeySet) addAuthorizationSchemeValidationIssue(results, authorizationScheme, API_KEY);
-                if (!apiKeyIdSet) addAuthorizationSchemeValidationIssue(results, authorizationScheme, API_KEY_ID);
-                break;
-            case PKI:
-                final SSLContextService sslService = validationContext.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-                if (sslService == null) {
-                    addAuthorizationSchemeValidationIssue(results, authorizationScheme, PROP_SSL_CONTEXT_SERVICE);
-                } else if (!sslService.isKeyStoreConfigured()) {
-                    results.add(new ValidationResult.Builder().subject(PROP_SSL_CONTEXT_SERVICE.getName()).valid(false)
-                            .explanation(String.format("if '%s' is '%s' then '%s' must specify a Keystore for 2-way TLS encryption.",
-                                    AUTHORIZATION_SCHEME.getDisplayName(), authorizationScheme.getDisplayName(), PROP_SSL_CONTEXT_SERVICE.getDisplayName())
-                            ).build()
-                    );
-                }
-                break;
-            default:
-                throw new IllegalArgumentException(String.format("Unable to validate '%s' with value %s", AUTHORIZATION_SCHEME.getDisplayName(), authorizationScheme.getDisplayName()));
+        if (usernameSet && !passwordSet) {
+            addAuthorizationPropertiesValidationIssue(results, USERNAME, PASSWORD);
+        } else if (passwordSet && !usernameSet) {
+            addAuthorizationPropertiesValidationIssue(results, PASSWORD, USERNAME);
+        }
+
+        if (apiKeyIdSet && !apiKeySet) {
+            addAuthorizationPropertiesValidationIssue(results, API_KEY_ID, API_KEY);
+        } else if (apiKeySet && !apiKeyIdSet) {
+            addAuthorizationPropertiesValidationIssue(results, API_KEY, API_KEY_ID);
         }
 
         return results;
     }
 
-    private void addAuthorizationSchemeValidationIssue(final List<ValidationResult> results, final AuthorizationScheme scheme, final PropertyDescriptor subject) {
-        results.add(new ValidationResult.Builder().subject(subject.getName()).valid(false)
-                .explanation(String.format("if '%s' is '%s' then '%s' must be set.", AUTHORIZATION_SCHEME.getDisplayName(), scheme.getDisplayName(), subject.getDisplayName()))
+    private void addAuthorizationPropertiesValidationIssue(final List<ValidationResult> results, final PropertyDescriptor presentProperty, final PropertyDescriptor missingProperty) {
+        results.add(new ValidationResult.Builder().subject(missingProperty.getName()).valid(false)
+                .explanation(String.format("if '%s' is then '%s' must be set.", presentProperty.getDisplayName(), missingProperty.getDisplayName()))
                 .build()
         );
     }
