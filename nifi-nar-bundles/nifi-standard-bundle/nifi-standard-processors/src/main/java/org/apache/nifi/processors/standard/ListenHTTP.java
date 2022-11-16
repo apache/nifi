@@ -562,7 +562,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         for (final String id : findOldFlowFileIds(context)) {
             final FlowFileEntryTimeWrapper wrapper = flowFileMap.remove(id);
             if (wrapper != null) {
-                getLogger().warn("failed to received acknowledgment for HOLD with ID {} sent by {}; rolling back session", id, wrapper.getClientIP());
+                getLogger().warn("failed to receive acknowledgment for HOLD with ID {} sent by {}; rolling back session", id, wrapper.getClientIP());
                 wrapper.session.rollback();
             }
         }
