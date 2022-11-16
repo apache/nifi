@@ -174,13 +174,13 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
     public final void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         final int totalBinCount = binManager.getBinCount() + readyBins.size();
         final int maxBinCount = context.getProperty(MAX_BIN_COUNT).asInteger();
-        final int flowFilesBinned;
+        final BinningResult binningResult;
 
-        if (totalBinCount < maxBinCount) {
-            flowFilesBinned = binFlowFiles(context, sessionFactory);
-            getLogger().debug("Binned {} FlowFiles", new Object[] {flowFilesBinned});
+        if (totalBinCount <= maxBinCount) {
+            binningResult = binFlowFiles(context, sessionFactory);
+            getLogger().debug("Binned {} FlowFiles", binningResult.getFlowFilesBinned());
         } else {
-            flowFilesBinned = 0;
+            binningResult = BinningResult.EMPTY;
             getLogger().debug("Will not bin any FlowFiles because {} bins already exist;"
                 + "will wait until bins have been emptied before any more are created", new Object[] {totalBinCount});
         }
@@ -189,25 +189,28 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             return;
         }
 
-        final int binsMigrated = migrateBins(context, flowFilesBinned == 0);
+        final int binsMigrated = migrateBins(context, binningResult.getFlowFilesBinned() == 0, binningResult.isNewBinNeeded());
         final int binsProcessed = processBins(context, sessionFactory);
         //If we accomplished nothing then let's yield
-        if (flowFilesBinned == 0 && binsMigrated == 0 && binsProcessed == 0) {
+        if (binningResult.getFlowFilesBinned() == 0 && binsMigrated == 0 && binsProcessed == 0) {
             context.yield();
         }
     }
 
-    private int migrateBins(final ProcessContext context, final boolean relaxFullnessConstraint) {
+    private int migrateBins(final ProcessContext context, final boolean relaxFullnessConstraint, final boolean newBinNeeded) {
         int added = 0;
         for (final Bin bin : binManager.removeReadyBins(relaxFullnessConstraint)) {
             this.readyBins.add(bin);
             added++;
         }
 
-        // if we have created all of the bins that are allowed, go ahead and remove the oldest one. If we don't do
+        // Evict the oldest bin if we were not able to evict any based on size (added = 0) and either we need a new bin,
+        // or we've already created too many. If we don't do
         // this, then we will simply wait for it to expire because we can't get any more FlowFiles into the
         // bins. So we may as well expire it now.
-        if (added == 0 && binManager.getBinCount() > context.getProperty(MAX_BIN_COUNT).asInteger()) {
+        final int currentBinCount = binManager.getBinCount();
+        final int maxBinCount = context.getProperty(MAX_BIN_COUNT).asInteger();
+        if (added == 0 && ((currentBinCount > maxBinCount) || (currentBinCount == maxBinCount && newBinNeeded))) {
             final Bin bin = binManager.removeOldestBin();
             if (bin != null) {
                 added++;
@@ -261,11 +264,12 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
         return processedBins;
     }
 
-    private int binFlowFiles(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
+    private BinningResult binFlowFiles(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         int flowFilesBinned = 0;
 
         final ProcessSession session = sessionFactory.createSession();
         final int maxBinCount = context.getProperty(MAX_BIN_COUNT).asInteger();
+        boolean newBinNeeded = false;
         while (binManager.getBinCount() <= maxBinCount) {
             if (!isScheduled()) {
                 break;
@@ -292,16 +296,21 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 
             for (final Map.Entry<String, List<FlowFile>> entry : flowFileGroups.entrySet()) {
                 final Set<FlowFile> unbinned = binManager.offer(entry.getKey(), entry.getValue(), session, sessionFactory);
+                if (!unbinned.isEmpty()) {
+                    newBinNeeded = true;
+                }
+
                 for (final FlowFile flowFile : unbinned) {
                     Bin bin = new Bin(sessionFactory.createSession(), 0, Long.MAX_VALUE, 0, Integer.MAX_VALUE, null);
                     bin.offer(flowFile, session);
                     this.readyBins.add(bin);
                 }
+
                 flowFilesBinned += entry.getValue().size();
             }
         }
 
-        return flowFilesBinned;
+        return new BinningResult(flowFilesBinned, newBinNeeded);
     }
 
     @OnScheduled
@@ -383,5 +392,25 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
         }
 
         return problems;
+    }
+
+    private static class BinningResult {
+        private final int flowFilesBinned;
+        private final boolean newBinNeeded;
+
+        public BinningResult(final int flowFilesBinned, final boolean newBinNeeded) {
+            this.flowFilesBinned = flowFilesBinned;
+            this.newBinNeeded = newBinNeeded;
+        }
+
+        public int getFlowFilesBinned() {
+            return flowFilesBinned;
+        }
+
+        public boolean isNewBinNeeded() {
+            return newBinNeeded;
+        }
+
+        public static BinningResult EMPTY = new BinningResult(0, false);
     }
 }
