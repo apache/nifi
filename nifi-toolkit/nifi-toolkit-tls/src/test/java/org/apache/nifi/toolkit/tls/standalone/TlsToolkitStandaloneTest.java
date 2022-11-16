@@ -32,9 +32,9 @@ import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.apache.nifi.toolkit.tls.util.TlsHelperTest;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.asn1.x509.GeneralName;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,13 +45,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.KeyPair;
 import java.security.KeyStore;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -60,10 +58,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TlsToolkitStandaloneTest {
     public static final String NIFI_FAKE_PROPERTY = "nifi.fake.property";
@@ -74,7 +72,7 @@ public class TlsToolkitStandaloneTest {
 
     private File tempDir;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         tempDir = File.createTempFile("tls-test", UUID.randomUUID().toString());
         if (!tempDir.delete()) {
@@ -87,7 +85,7 @@ public class TlsToolkitStandaloneTest {
         systemExitCapturer = new SystemExitCapturer();
     }
 
-    @After
+    @AfterEach
     public void teardown() throws IOException {
         systemExitCapturer.close();
         FileUtils.deleteDirectory(tempDir);
@@ -434,13 +432,13 @@ public class TlsToolkitStandaloneTest {
     }
 
     @Test
-    public void testDynamicHostnameDynamicSansNonNumeric() throws Exception {
+    public void testDynamicHostnameDynamicSansNonNumeric() {
         String nodeNames = "node[1-2].nifi.apache.org";
         String saNames = "alternative[A-B].nifi.apache.org";
         runAndAssertExitCode(ExitCode.ERROR_PARSING_INT_ARG, "-o", tempDir.getAbsolutePath(), "-n", nodeNames, "--subjectAlternativeName", saNames);
     }
 
-    private X509Certificate checkLoadCertPrivateKey(String algorithm) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException, CertificateException {
+    private X509Certificate checkLoadCertPrivateKey(String algorithm) throws IOException, CertificateException {
         KeyPair keyPair = TlsHelperTest.loadKeyPair(new File(tempDir, TlsToolkitStandalone.NIFI_KEY + ".key"));
 
         assertEquals(algorithm, keyPair.getPrivate().getAlgorithm());

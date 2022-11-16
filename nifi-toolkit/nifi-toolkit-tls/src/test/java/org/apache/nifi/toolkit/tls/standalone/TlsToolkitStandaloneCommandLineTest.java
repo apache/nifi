@@ -17,17 +17,18 @@
 
 package org.apache.nifi.toolkit.tls.standalone;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyStoreException;
@@ -36,6 +37,7 @@ import java.security.UnrecoverableKeyException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -47,53 +49,40 @@ import org.apache.nifi.toolkit.tls.configuration.StandaloneConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriter;
 import org.apache.nifi.toolkit.tls.util.PasswordUtil;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class TlsToolkitStandaloneCommandLineTest {
-    private SecureRandom secureRandom;
     private TlsToolkitStandaloneCommandLine tlsToolkitStandaloneCommandLine;
-
 
     final String CHANGEIT = "changeit";
     final String keyPass = CHANGEIT;
     final String keystorePass = CHANGEIT;
     final String wrongPass = "wrongpass";
     private File outputFolder = null;
-    final String keystoreFile = getClass().getClassLoader().getResource("keystore.jks").getFile();
+    final String keystoreFile = Objects.requireNonNull(getClass().getClassLoader().getResource("keystore.jks")).getFile();
 
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
-
-    @Before
-    public void setup() throws IOException {
-        secureRandom = new SecureRandom();
+    @BeforeEach
+    public void setup(@TempDir Path tempDir) throws IOException {
+        final SecureRandom secureRandom = new SecureRandom();
         tlsToolkitStandaloneCommandLine = new TlsToolkitStandaloneCommandLine(new PasswordUtil(secureRandom));
-        outputFolder = tempFolder.newFolder("splitKeystoreOutputDir");
+        final Path outputDir = Files.createTempDirectory(tempDir, "splitKeystoreOutputDir");
+        outputFolder = outputDir.toFile();
     }
 
     @Test
     public void testHelp() {
-        try {
-            tlsToolkitStandaloneCommandLine.parse("-h");
-            fail("Expected usage and help exit");
-        } catch (CommandLineParseException e) {
-            Assert.assertEquals(ExitCode.HELP, e.getExitCode());
-        }
+        final CommandLineParseException e = assertThrows(CommandLineParseException.class, () -> tlsToolkitStandaloneCommandLine.parse("-h"));
+
+        assertEquals(ExitCode.HELP, e.getExitCode());
     }
 
     @Test
     public void testUnknownArg() {
-        try {
-            tlsToolkitStandaloneCommandLine.parse("--unknownArg");
-            fail("Expected error parsing command line");
-        } catch (CommandLineParseException e) {
-            assertEquals(ExitCode.ERROR_PARSING_COMMAND_LINE, e.getExitCode());
-        }
+        final CommandLineParseException e = assertThrows(CommandLineParseException.class, () -> tlsToolkitStandaloneCommandLine.parse("--unknownArg"));
+
+        assertEquals(ExitCode.ERROR_PARSING_COMMAND_LINE, e.getExitCode());
     }
 
     @Test
@@ -105,30 +94,27 @@ public class TlsToolkitStandaloneCommandLineTest {
 
     @Test
     public void testKeySizeArgNotInteger() {
-        try {
-            tlsToolkitStandaloneCommandLine.parse("-k", "badVal");
-            fail("Expected bad keysize exit code");
-        } catch (CommandLineParseException e) {
-            assertEquals(ExitCode.ERROR_PARSING_INT_ARG, e.getExitCode());
-        }
+        final CommandLineParseException e = assertThrows(CommandLineParseException.class, () -> tlsToolkitStandaloneCommandLine.parse("-k", "badVal"));
+
+        assertEquals(ExitCode.ERROR_PARSING_INT_ARG, e.getExitCode());
     }
 
     @Test
-    public void testKeySize() throws CommandLineParseException, IOException {
+    public void testKeySize() throws CommandLineParseException {
         int testKeySize = 4096;
         tlsToolkitStandaloneCommandLine.parse("-k", Integer.toString(testKeySize));
         assertEquals(testKeySize, tlsToolkitStandaloneCommandLine.createConfig().getKeySize());
     }
 
     @Test
-    public void testSigningAlgorithm() throws CommandLineParseException, IOException {
+    public void testSigningAlgorithm() throws CommandLineParseException {
         String testSigningAlgorithm = "testSigningAlgorithm";
         tlsToolkitStandaloneCommandLine.parse("-s", testSigningAlgorithm);
         assertEquals(testSigningAlgorithm, tlsToolkitStandaloneCommandLine.createConfig().getSigningAlgorithm());
     }
 
     @Test
-    public void testSAN() throws CommandLineParseException, IOException {
+    public void testSAN() throws CommandLineParseException {
         String dnsSAN = "nifi.apache.org";
         tlsToolkitStandaloneCommandLine.parse("--subjectAlternativeNames", dnsSAN);
         assertEquals(dnsSAN, tlsToolkitStandaloneCommandLine.createConfig().getDomainAlternativeNames().get(0));
@@ -136,11 +122,9 @@ public class TlsToolkitStandaloneCommandLineTest {
 
     @Test
     public void testDaysNotInteger() {
-        try {
-            tlsToolkitStandaloneCommandLine.parse("-d", "badVal");
-        } catch (CommandLineParseException e) {
-            assertEquals(ExitCode.ERROR_PARSING_INT_ARG, e.getExitCode());
-        }
+        final CommandLineParseException e = assertThrows(CommandLineParseException.class, () -> tlsToolkitStandaloneCommandLine.parse("-d", "badVal"));
+
+        assertEquals(ExitCode.ERROR_PARSING_INT_ARG, e.getExitCode());
     }
 
     @Test
@@ -191,12 +175,9 @@ public class TlsToolkitStandaloneCommandLineTest {
 
     @Test
     public void testBadNifiPropertiesFile() {
-        try {
-            tlsToolkitStandaloneCommandLine.parse("-f", "/this/file/should/not/exist.txt");
-            fail("Expected error when unable to read file");
-        } catch (CommandLineParseException e) {
-            assertEquals(ExitCode.ERROR_READING_NIFI_PROPERTIES, e.getExitCode());
-        }
+        final CommandLineParseException e = assertThrows(CommandLineParseException.class, () -> tlsToolkitStandaloneCommandLine.parse("-f", "/this/file/should/not/exist.txt"));
+
+        assertEquals(ExitCode.ERROR_READING_NIFI_PROPERTIES, e.getExitCode());
     }
 
     @Test
@@ -429,9 +410,9 @@ public class TlsToolkitStandaloneCommandLineTest {
         assertEquals(16, other06.getNumber());
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testBadGlobalOrder() throws CommandLineParseException {
-        tlsToolkitStandaloneCommandLine.parse("-n", "notInGlobalOrder", "-G", "nifi[1-3]");
+    @Test
+    public void testBadGlobalOrder() {
+        assertThrows(IllegalArgumentException.class, () -> tlsToolkitStandaloneCommandLine.parse("-n", "notInGlobalOrder", "-G", "nifi[1-3]"));
     }
 
     @Test
@@ -468,21 +449,17 @@ public class TlsToolkitStandaloneCommandLineTest {
         TlsToolkitStandalone toolkit = new TlsToolkitStandalone();
         toolkit.splitKeystore(standaloneConfig);
 
-        assertTrue(outputFolder.listFiles().length == 3);
+        assertEquals(3, Objects.requireNonNull(outputFolder.listFiles()).length);
 
         // Validity checking of the output is done in TlsHelperTest
-        for(File file : outputFolder.listFiles()) {
+        for (File file : Objects.requireNonNull(outputFolder.listFiles())) {
             assertTrue(file.length() > 0);
         }
     }
 
-    @Test(expected = CommandLineParseException.class)
-    public void testSplitKeystoreMissingPasswords() throws Exception {
-        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", keystoreFile, "-o", outputFolder.getPath());
-        StandaloneConfig standaloneConfig = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
-
-        TlsToolkitStandalone toolkit = new TlsToolkitStandalone();
-        toolkit.splitKeystore(standaloneConfig);
+    @Test
+    public void testSplitKeystoreMissingPasswords() {
+        assertThrows(CommandLineParseException.class, () -> tlsToolkitStandaloneCommandLine.parse("-splitKeystore", keystoreFile, "-o", outputFolder.getPath()));
     }
 
     @Test
@@ -494,44 +471,33 @@ public class TlsToolkitStandaloneCommandLineTest {
         toolkit.splitKeystore(standaloneConfig);
     }
 
-    @Test(expected = UnrecoverableKeyException.class)
+    @Test
     public void testSplitKeystoreWrongKeyPass() throws Exception {
         tlsToolkitStandaloneCommandLine.parse("-splitKeystore", keystoreFile, "-S", keystorePass, "-K", wrongPass, "-o", outputFolder.getPath());
         StandaloneConfig standaloneConfig = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
 
         TlsToolkitStandalone toolkit = new TlsToolkitStandalone();
-        toolkit.splitKeystore(standaloneConfig);
+
+        assertThrows(UnrecoverableKeyException.class, () -> toolkit.splitKeystore(standaloneConfig));
     }
 
-    @Test(expected = IOException.class)
+    @Test
     public void testSplitKeystoreWrongKeystorePass() throws Exception {
         tlsToolkitStandaloneCommandLine.parse("-splitKeystore", keystoreFile, "-S", wrongPass, "-K", keyPass, "-o", outputFolder.getPath());
         StandaloneConfig standaloneConfig = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
 
         TlsToolkitStandalone toolkit = new TlsToolkitStandalone();
-        toolkit.splitKeystore(standaloneConfig);
+
+        assertThrows(IOException.class, () -> toolkit.splitKeystore(standaloneConfig));
     }
 
-    @Rule
-    public ExpectedException expectedEx = ExpectedException.none();
-
     @Test
-    public void testSplitKeystoreNoKeystore() throws Exception {
-        expectedEx.expect(CommandLineParseException.class);
-        expectedEx.expectMessage("Error parsing command line. (Missing argument for option: splitKeystore)");
-
-        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", "-S", keystorePass, "-K", keyPass, "-o", outputFolder.getPath());
-        StandaloneConfig standaloneConfig = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
-
-        TlsToolkitStandalone toolkit = new TlsToolkitStandalone();
-        toolkit.splitKeystore(standaloneConfig);
+    public void testSplitKeystoreNoKeystore() {
+        assertThrows(CommandLineParseException.class, () -> tlsToolkitStandaloneCommandLine.parse("-splitKeystore", "-S", keystorePass, "-K", keyPass, "-o", outputFolder.getPath()));
     }
 
     @Test
     public void testSplitKeystoreEmptyKeystore() throws Exception {
-        expectedEx.expect(KeyStoreException.class);
-        expectedEx.expectMessage("was empty. No cert/key pairs to output to file.");
-
         tlsToolkitStandaloneCommandLine.parse(
                 "-splitKeystore", new File("src/test/resources/empty-keystore.jks").getPath(), "-S", keystorePass, "-K", keyPass, "-o", outputFolder.getPath());
         StandaloneConfig standaloneConfig = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
@@ -540,7 +506,7 @@ public class TlsToolkitStandaloneCommandLineTest {
         assertEquals(keyPass, standaloneConfig.getKeyPassword());
         assertEquals(keystorePass, standaloneConfig.getKeyStorePassword());
         TlsToolkitStandalone toolkit = new TlsToolkitStandalone();
-        toolkit.splitKeystore(standaloneConfig);
-    }
 
+        assertThrows(KeyStoreException.class, () -> toolkit.splitKeystore(standaloneConfig));
+    }
 }

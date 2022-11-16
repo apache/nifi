@@ -62,6 +62,32 @@ public class TestExecuteJython extends BaseScriptTest {
     }
 
     /**
+     * Tests a Jython script that references an outside python module
+     *
+     */
+    @Test
+    public void testAccessModuleAndStoreInFlowFileAttributeWithScriptBody() {
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
+        runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/jython/");
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY,
+                "from org.apache.nifi.processors.script import ExecuteScript\n"
+                        + "from test_external_module import ExternalModule\n"
+                        + "externalModule = ExternalModule()\n"
+                        + "flowFile = session.get()\n"
+                        + "flowFile = session.putAttribute(flowFile, \"key\", externalModule.testHelloWorld())\n"
+                        + "session.transfer(flowFile, ExecuteScript.REL_SUCCESS)");
+
+        runner.assertValid();
+        runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS, 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS);
+        result.get(0).assertAttributeEquals("key", "helloWorld");
+    }
+
+    /**
      * Tests a script that does not transfer or remove the original flow file, thereby causing an error during commit.
      *
      */

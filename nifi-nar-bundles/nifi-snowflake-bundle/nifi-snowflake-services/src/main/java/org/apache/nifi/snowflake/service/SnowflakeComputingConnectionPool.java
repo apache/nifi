@@ -26,7 +26,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.dbcp.DBCPConnectionPool;
+import org.apache.nifi.dbcp.AbstractDBCPConnectionPool;
+import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 
@@ -54,28 +55,28 @@ import java.util.List;
         description = "Snowflake JDBC driver property name prefixed with 'SENSITIVE.' handled as a sensitive property.")
 })
 @RequiresInstanceClassLoading
-public class SnowflakeComputingConnectionPool extends DBCPConnectionPool {
+public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool implements DBCPService {
 
     public static final PropertyDescriptor SNOWFLAKE_URL = new PropertyDescriptor.Builder()
-        .fromPropertyDescriptor(DBCPConnectionPool.DATABASE_URL)
+        .fromPropertyDescriptor(AbstractDBCPConnectionPool.DATABASE_URL)
         .displayName("Snowflake URL")
         .description("Example connection string: jdbc:snowflake://[account].[region].snowflakecomputing.com/?[connection_params]" +
             " The connection parameters can include db=DATABASE_NAME to avoid using qualified table names such as DATABASE_NAME.PUBLIC.TABLE_NAME")
         .build();
 
     public static final PropertyDescriptor SNOWFLAKE_USER = new PropertyDescriptor.Builder()
-        .fromPropertyDescriptor(DBCPConnectionPool.DB_USER)
+        .fromPropertyDescriptor(AbstractDBCPConnectionPool.DB_USER)
         .displayName("Snowflake User")
         .description("The Snowflake user name")
         .build();
 
     public static final PropertyDescriptor SNOWFLAKE_PASSWORD = new PropertyDescriptor.Builder()
-        .fromPropertyDescriptor(DBCPConnectionPool.DB_PASSWORD)
+        .fromPropertyDescriptor(AbstractDBCPConnectionPool.DB_PASSWORD)
         .displayName("Snowflake Password")
         .description("The password for the Snowflake user")
         .build();
 
-    private static final List<PropertyDescriptor> properties;
+    private static final List<PropertyDescriptor> PROPERTIES;
 
     static {
         final List<PropertyDescriptor> props = new ArrayList<>();
@@ -92,12 +93,12 @@ public class SnowflakeComputingConnectionPool extends DBCPConnectionPool {
         props.add(MIN_EVICTABLE_IDLE_TIME);
         props.add(SOFT_MIN_EVICTABLE_IDLE_TIME);
 
-        properties = Collections.unmodifiableList(props);
+        PROPERTIES = Collections.unmodifiableList(props);
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

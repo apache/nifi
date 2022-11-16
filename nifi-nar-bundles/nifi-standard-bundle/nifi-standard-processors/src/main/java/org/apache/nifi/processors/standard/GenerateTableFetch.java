@@ -79,9 +79,9 @@ import java.util.stream.IntStream;
         + "processor is intended to be run on the Primary Node only.\n\n"
         + "This processor can accept incoming connections; the behavior of the processor is different whether incoming connections are provided:\n"
         + "  - If no incoming connection(s) are specified, the processor will generate SQL queries on the specified processor schedule. Expression Language is supported for many "
-        + "fields, but no flow file attributes are available. However the properties will be evaluated using the Variable Registry.\n"
-        + "  - If incoming connection(s) are specified and no flow file is available to a processor task, no work will be performed.\n"
-        + "  - If incoming connection(s) are specified and a flow file is available to a processor task, the flow file's attributes may be used in Expression Language for such fields "
+        + "fields, but no FlowFile attributes are available. However the properties will be evaluated using the Variable Registry.\n"
+        + "  - If incoming connection(s) are specified and no FlowFile is available to a processor task, no work will be performed.\n"
+        + "  - If incoming connection(s) are specified and a FlowFile is available to a processor task, the FlowFile's attributes may be used in Expression Language for such fields "
         + "as Table Name and others. However, the Max-Value Columns and Columns to Return fields must be empty or refer to columns that are available in each specified table.")
 @Stateful(scopes = Scope.CLUSTER, description = "After performing a query on the specified table, the maximum values for "
         + "the specified column(s) will be retained for use in future executions of the query. This allows the Processor "
@@ -89,8 +89,8 @@ import java.util.stream.IntStream;
         + "incremental fetching, fetching of newly added rows, etc. To clear the maximum values, clear the state of the processor "
         + "per the State Management documentation")
 @WritesAttributes({
-        @WritesAttribute(attribute = "generatetablefetch.sql.error", description = "If the processor has incoming connections, and processing an incoming flow file causes "
-                + "a SQL Exception, the flow file is routed to failure and this attribute is set to the exception message."),
+        @WritesAttribute(attribute = "generatetablefetch.sql.error", description = "If the processor has incoming connections, and processing an incoming FlowFile causes "
+                + "a SQL Exception, the FlowFile is routed to failure and this attribute is set to the exception message."),
         @WritesAttribute(attribute = "generatetablefetch.tableName", description = "The name of the database table to be queried."),
         @WritesAttribute(attribute = "generatetablefetch.columnNames", description = "The comma-separated list of column names used in the query."),
         @WritesAttribute(attribute = "generatetablefetch.whereClause", description = "Where clause used in the query to get the expected rows."),
@@ -112,7 +112,7 @@ import java.util.stream.IntStream;
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES, description = "Specifies an initial "
         + "max value for max value columns. Properties should be added in the format `initial.maxvalue.<max_value_column>`. This value is only used the first time "
         + "the table is accessed (when a Maximum Value Column is specified). In the case of incoming connections, the value is only used the first time for each table "
-        + "specified in the flow files.")
+        + "specified in the FlowFiles.")
 public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
     public static final PropertyDescriptor PARTITION_SIZE = new PropertyDescriptor.Builder()
@@ -145,8 +145,8 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             .name("gen-table-output-flowfile-on-zero-results")
             .displayName("Output Empty FlowFile on Zero Results")
             .description("Depending on the specified properties, an execution of this processor may not result in any SQL statements generated. When this property "
-                    + "is true, an empty flow file will be generated (having the parent of the incoming flow file if present) and transferred to the 'success' relationship. "
-                    + "When this property is false, no output flow files will be generated.")
+                    + "is true, an empty FlowFile will be generated (having the parent of the incoming FlowFile if present) and transferred to the 'success' relationship. "
+                    + "When this property is false, no output FlowFiles will be generated.")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -254,7 +254,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             fileToProcess = session.get();
 
             if (fileToProcess == null) {
-                // Incoming connection with no flow file available, do no work (see capability description)
+                // Incoming connection with no FlowFile available, do no work (see capability description)
                 return;
             }
         }
@@ -417,7 +417,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                                 statePropertyMap.put(fullyQualifiedStateKey, newMaxValue);
                             }
                         } catch (ParseException | IOException | ClassCastException pice) {
-                            // Fail the whole thing here before we start creating flow files and such
+                            // Fail the whole thing here before we start creating FlowFiles and such
                             throw new ProcessException(pice);
                         }
                     }
@@ -477,7 +477,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 baseAttributes.put(FRAGMENT_ID, fragmentIdentifier);
                 baseAttributes.put(FRAGMENT_COUNT, String.valueOf(numberOfFetches));
 
-                // If there are no SQL statements to be generated, still output an empty flow file if specified by the user
+                // If there are no SQL statements to be generated, still output an empty FlowFile if specified by the user
                 if (numberOfFetches == 0 && outputEmptyFlowFileOnZeroResults) {
                     FlowFile emptyFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
                     Map<String, String> attributesToAdd = new HashMap<>();

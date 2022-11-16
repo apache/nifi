@@ -51,7 +51,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
-import java.sql.SQLNonTransientConnectionException;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -115,7 +114,7 @@ public class PutDatabaseRecordTest {
     public static void shutdownDatabase() throws Exception {
         try {
             DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
-        } catch (SQLNonTransientConnectionException ignore) {
+        } catch (Exception ignore) {
             // Do nothing, this is what happens at Derby shutdown
         }
         // remove previous test database, if any
@@ -1757,6 +1756,51 @@ public class PutDatabaseRecordTest {
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0);
         runner.assertTransferCount(PutDatabaseRecord.REL_RETRY, 0);
         runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
+    }
+
+    @Test
+    void testInsertEnum() throws InitializationException, ProcessException, SQLException, IOException {
+        dbcp = spy(new DBCPServiceSimpleImpl(DB_LOCATION, false)); // Use H2
+        runner = TestRunners.newTestRunner(processor);
+        runner.addControllerService("dbcp", dbcp, new HashMap<>());
+        runner.enableControllerService(dbcp);
+        runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, "dbcp");
+        try (Connection conn = dbcp.getConnection()) {
+            conn.createStatement().executeUpdate("DROP TABLE IF EXISTS ENUM_TEST");
+        }
+        recreateTable("CREATE TABLE IF NOT EXISTS ENUM_TEST (id integer primary key, suit ENUM('clubs', 'diamonds', 'hearts', 'spades'))");
+        final MockRecordParser parser = new MockRecordParser();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("suit", RecordFieldType.ENUM.getEnumDataType(Arrays.asList("clubs", "diamonds", "hearts", "spades")).getFieldType());
+
+        parser.addRecord(1, "diamonds");
+        parser.addRecord(2, "hearts");
+
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, "ENUM_TEST");
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1);
+        final Connection conn = dbcp.getConnection();
+        final Statement stmt = conn.createStatement();
+        final ResultSet rs = stmt.executeQuery("SELECT * FROM ENUM_TEST");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertEquals("diamonds", rs.getString(2));
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        assertEquals("hearts", rs.getString(2));
+        assertFalse(rs.next());
+
+        stmt.close();
+        conn.close();
     }
 
     private void recreateTable() throws ProcessException {

@@ -16,11 +16,16 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.MessageProperties;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -30,19 +35,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeoutException;
-import java.util.regex.Pattern;
 
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.MessageProperties;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class ConsumeAMQPTest {
 
@@ -170,8 +168,11 @@ public class ConsumeAMQPTest {
         final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
         final Map<String, Object> headersMap = new HashMap<>();
-        headersMap.put("foo1","bar,bar");
-        headersMap.put("foo2","bar,bar");
+        headersMap.put("foo1", "bar,bar");
+        headersMap.put("foo2", "bar,bar");
+        headersMap.put("foo3", "null");
+        headersMap.put("foo4", null);
+        final String EXPECTED_RESULT = "{foo1=bar,bar|foo2=bar,bar|foo3=null|foo4}";
 
         AMQP.BasicProperties.Builder builderBasicProperties = new AMQP.BasicProperties.Builder();
         builderBasicProperties.headers(headersMap);
@@ -190,8 +191,7 @@ public class ConsumeAMQPTest {
             successFF.assertAttributeEquals("amqp$routingKey", "key1");
             successFF.assertAttributeEquals("amqp$exchange", "myExchange");
             String headers = successFF.getAttribute("amqp$headers");
-            Map<String, String> properties = convertStringToMap(headers.substring(1,headers.length()-1),"|");
-            assertEquals(headersMap,properties);
+            assertEquals(EXPECTED_RESULT, headers);
         }
     }
     @Test
@@ -239,6 +239,7 @@ public class ConsumeAMQPTest {
         final Map<String, Object> headersMap = new HashMap<>();
         headersMap.put("key1","(bar,bar)");
         headersMap.put("key2","(bar,bar)");
+        final String EXPECTED_RESULT = "key1=(bar,bar)|key2=(bar,bar)";
 
         AMQP.BasicProperties.Builder builderBasicProperties = new AMQP.BasicProperties.Builder();
         builderBasicProperties.headers(headersMap);
@@ -259,8 +260,7 @@ public class ConsumeAMQPTest {
             successFF.assertAttributeEquals("amqp$routingKey", "key1");
             successFF.assertAttributeEquals("amqp$exchange", "myExchange");
             String headers = successFF.getAttribute("amqp$headers");
-            Map<String, String> properties = convertStringToMap(headers,"|");
-            assertEquals(headersMap,properties);
+            assertEquals(EXPECTED_RESULT, headers);
         }
     }
 
@@ -271,9 +271,13 @@ public class ConsumeAMQPTest {
         final Map<String, Object> headersMap = new HashMap<>();
         headersMap.put("key1","bar");
         headersMap.put("key2","bar2");
+        headersMap.put("key3","");
+        headersMap.put("key4", null);
+        final String EXPECTED_RESULT = "{key1=bar,key2=bar2,key3=,key4}";
 
         AMQP.BasicProperties.Builder builderBasicProperties = new AMQP.BasicProperties.Builder();
         builderBasicProperties.headers(headersMap);
+
 
         final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
 
@@ -289,22 +293,10 @@ public class ConsumeAMQPTest {
             successFF.assertAttributeEquals("amqp$routingKey", "key1");
             successFF.assertAttributeEquals("amqp$exchange", "myExchange");
             String headers = successFF.getAttribute("amqp$headers");
-            Map<String, String> properties = convertStringToMap(headers.substring(1,headers.length()-1),",");
-            assertEquals(headersMap,properties);
+            assertEquals(EXPECTED_RESULT, headers);
         }
     }
 
-
-    private Map<String,String> convertStringToMap(String map,String splitCharacter){
-        Map<String, String> headers = new HashMap<>();
-        String[] pairs = map.split(Pattern.quote(String.valueOf(splitCharacter)));
-        for (String pair : pairs) {
-            String[] keyValue = pair.split("=", 2);
-            assertEquals(2,keyValue.length);
-            headers.put(keyValue[0].trim(), keyValue[1].trim());
-        }
-        return headers;
-    }
     private TestRunner initTestRunner(ConsumeAMQP proc) {
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(ConsumeAMQP.BROKERS, "injvm:5672");

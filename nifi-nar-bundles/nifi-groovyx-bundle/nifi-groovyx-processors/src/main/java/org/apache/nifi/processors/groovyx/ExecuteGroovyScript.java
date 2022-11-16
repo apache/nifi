@@ -131,7 +131,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             .name("groovyx-additional-classpath")
             .displayName("Additional classpath")
             .required(false)
-            .description("Classpath list separated by semicolon. You can use masks like `*`, `*.jar` in file name.")
+            .description("Classpath list separated by semicolon or comma. You can use masks like `*`, `*.jar` in file name.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();

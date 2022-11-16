@@ -76,6 +76,9 @@ public class ConsumerPool implements Closeable {
     private final boolean separateByKey;
     private final int[] partitionsToConsume;
     private final boolean commitOffsets;
+    private final OutputStrategy outputStrategy;
+    private final String keyFormat;
+    private final RecordReaderFactory keyReaderFactory;
     private final AtomicLong consumerCreatedCountRef = new AtomicLong();
     private final AtomicLong consumerClosedCountRef = new AtomicLong();
     private final AtomicLong leasesObtainedCountRef = new AtomicLong();
@@ -135,6 +138,9 @@ public class ConsumerPool implements Closeable {
         this.separateByKey = separateByKey;
         this.partitionsToConsume = partitionsToConsume;
         this.commitOffsets = commitOffsets;
+        this.outputStrategy = null;
+        this.keyFormat = null;
+        this.keyReaderFactory = null;
         enqueueAssignedPartitions(partitionsToConsume);
     }
 
@@ -172,6 +178,9 @@ public class ConsumerPool implements Closeable {
         this.separateByKey = separateByKey;
         this.partitionsToConsume = partitionsToConsume;
         this.commitOffsets = commitOffsets;
+        this.outputStrategy = null;
+        this.keyFormat = null;
+        this.keyReaderFactory = null;
         enqueueAssignedPartitions(partitionsToConsume);
     }
 
@@ -191,7 +200,10 @@ public class ConsumerPool implements Closeable {
             final boolean separateByKey,
             final String keyEncoding,
             final int[] partitionsToConsume,
-            final boolean commitOffsets) {
+            final boolean commitOffsets,
+            final OutputStrategy outputStrategy,
+            final String keyFormat,
+            final RecordReaderFactory keyReaderFactory) {
         this.pooledLeases = new LinkedBlockingQueue<>();
         this.maxWaitMillis = maxWaitMillis;
         this.logger = logger;
@@ -210,6 +222,9 @@ public class ConsumerPool implements Closeable {
         this.keyEncoding = keyEncoding;
         this.partitionsToConsume = partitionsToConsume;
         this.commitOffsets = commitOffsets;
+        this.outputStrategy = outputStrategy;
+        this.keyFormat = keyFormat;
+        this.keyReaderFactory = keyReaderFactory;
         enqueueAssignedPartitions(partitionsToConsume);
     }
 
@@ -229,7 +244,10 @@ public class ConsumerPool implements Closeable {
             final boolean separateByKey,
             final String keyEncoding,
             final int[] partitionsToConsume,
-            final boolean commitOffsets) {
+            final boolean commitOffsets,
+            final OutputStrategy outputStrategy,
+            final String keyFormat,
+            final RecordReaderFactory keyReaderFactory) {
         this.pooledLeases = new LinkedBlockingQueue<>();
         this.maxWaitMillis = maxWaitMillis;
         this.logger = logger;
@@ -248,6 +266,9 @@ public class ConsumerPool implements Closeable {
         this.keyEncoding = keyEncoding;
         this.partitionsToConsume = partitionsToConsume;
         this.commitOffsets = commitOffsets;
+        this.outputStrategy = outputStrategy;
+        this.keyFormat = keyFormat;
+        this.keyReaderFactory = keyReaderFactory;
         enqueueAssignedPartitions(partitionsToConsume);
     }
 
@@ -619,7 +640,8 @@ public class ConsumerPool implements Closeable {
 
         private SimpleConsumerLease(final Consumer<byte[], byte[]> consumer, final List<TopicPartition> assignedPartitions) {
             super(maxWaitMillis, consumer, demarcatorBytes, keyEncoding, securityProtocol, bootstrapServers,
-                readerFactory, writerFactory, logger, headerCharacterSet, headerNamePattern, separateByKey, commitOffsets);
+                    readerFactory, writerFactory, logger, headerCharacterSet, headerNamePattern, separateByKey,
+                    commitOffsets, outputStrategy, keyFormat, keyReaderFactory);
             this.consumer = consumer;
             this.assignedPartitions = assignedPartitions;
         }

@@ -17,24 +17,31 @@
 
 package org.apache.nifi.processors.elasticsearch;
 
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public interface ElasticsearchRestProcessor {
+public interface ElasticsearchRestProcessor extends VerifiableProcessor {
     String ATTR_RECORD_COUNT = "record.count";
+    String VERIFICATION_STEP_INDEX_EXISTS = "Elasticsearch Index Exists";
 
     PropertyDescriptor INDEX = new PropertyDescriptor.Builder()
             .name("el-rest-fetch-index")
@@ -117,13 +124,70 @@ public interface ElasticsearchRestProcessor {
     }
 
     default Map<String, String> getUrlQueryParameters(final ProcessContext context, final FlowFile flowFile) {
+        return getUrlQueryParameters(context, flowFile != null ? flowFile.getAttributes() : null);
+    }
+
+    default Map<String, String> getUrlQueryParameters(final ProcessContext context, final Map<String, String> attributes) {
         return context.getProperties().entrySet().stream()
                 // filter non-null dynamic properties
                 .filter(e -> e.getKey().isDynamic() && e.getValue() != null)
                 // convert to Map of URL parameter keys and values
                 .collect(Collectors.toMap(
-                    e -> e.getKey().getName(),
-                    e -> context.getProperty(e.getKey()).evaluateAttributeExpressions(flowFile).getValue()
+                        e -> e.getKey().getName(),
+                        e -> context.getProperty(e.getKey()).evaluateAttributeExpressions(attributes).getValue()
                 ));
+    }
+
+    @Override
+    default List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
+        final List<ConfigVerificationResult> results = new ArrayList<>();
+        final ConfigVerificationResult.Builder indexExistsResult = new ConfigVerificationResult.Builder()
+                .verificationStepName(VERIFICATION_STEP_INDEX_EXISTS);
+
+        ElasticSearchClientService verifyClientService = null;
+        String index = null;
+        boolean indexExists = false;
+        if (context.getProperty(CLIENT_SERVICE).isSet()) {
+            verifyClientService = context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class);
+            if (context.getProperty(INDEX).isSet()) {
+                index = context.getProperty(INDEX).evaluateAttributeExpressions(attributes).getValue();
+                try {
+                    if (verifyClientService.exists(index, getUrlQueryParameters(context, attributes))) {
+                        indexExistsResult.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
+                                .explanation(String.format("Index [%s] exists", index));
+                        indexExists = true;
+                    } else {
+                        if (isIndexNotExistSuccessful()) {
+                            indexExistsResult.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL);
+                        } else {
+                            indexExistsResult.outcome(ConfigVerificationResult.Outcome.FAILED);
+                        }
+                        indexExistsResult.explanation(String.format("Index [%s] does not exist", index));
+                    }
+                } catch (final Exception ex) {
+                    verificationLogger.error("Error checking whether index [{}] exists", index, ex);
+                    indexExistsResult.outcome(ConfigVerificationResult.Outcome.FAILED)
+                            .explanation(String.format("Failed to check whether index [%s] exists", index));
+                }
+            } else {
+                indexExistsResult.outcome(ConfigVerificationResult.Outcome.SKIPPED)
+                        .explanation(String.format("No [%s] specified for existence check", INDEX.getDisplayName()));
+            }
+        } else {
+            indexExistsResult.outcome(ConfigVerificationResult.Outcome.SKIPPED)
+                    .explanation(CLIENT_SERVICE.getDisplayName() + " not configured, cannot check index existence");
+        }
+        results.add(indexExistsResult.build());
+        results.addAll(verifyAfterIndex(context, verificationLogger, attributes, verifyClientService, index, indexExists));
+
+        return results;
+    }
+
+    boolean isIndexNotExistSuccessful();
+
+    @SuppressWarnings("unused")
+    default List<ConfigVerificationResult> verifyAfterIndex(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes,
+                                                            final ElasticSearchClientService verifyClientService, final String index, final boolean indexExists) {
+        return Collections.emptyList();
     }
 }

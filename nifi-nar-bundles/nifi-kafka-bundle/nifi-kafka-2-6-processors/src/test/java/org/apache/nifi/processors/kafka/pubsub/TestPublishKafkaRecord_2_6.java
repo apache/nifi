@@ -73,7 +73,7 @@ public class TestPublishKafkaRecord_2_6 {
         mockPool = mock(PublisherPool.class);
         mockLease = mock(PublisherLease.class);
         Mockito.doCallRealMethod().when(mockLease).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-            any(RecordSchema.class), any(String.class), any(String.class), nullable(Function.class));
+            any(RecordSchema.class), any(String.class), any(String.class), nullable(Function.class), any(PublishMetadataStrategy.class));
 
         when(mockPool.obtainPublisher()).thenReturn(mockLease);
 
@@ -113,7 +113,7 @@ public class TestPublishKafkaRecord_2_6 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_SUCCESS, 1);
 
         verify(mockLease, times(1)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class), any(PublishMetadataStrategy.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(0)).poison();
         verify(mockLease, times(1)).close();
@@ -132,7 +132,7 @@ public class TestPublishKafkaRecord_2_6 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_SUCCESS, 3);
 
         verify(mockLease, times(3)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class), any(PublishMetadataStrategy.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(0)).poison();
         verify(mockLease, times(1)).close();
@@ -148,7 +148,7 @@ public class TestPublishKafkaRecord_2_6 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_FAILURE, 1);
 
         verify(mockLease, times(1)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class), any(PublishMetadataStrategy.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(1)).close();
     }
@@ -165,7 +165,7 @@ public class TestPublishKafkaRecord_2_6 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_FAILURE, 0);
 
         verify(mockLease, times(1)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-            AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+            AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class), any(PublishMetadataStrategy.class));
         verify(mockLease, times(1)).close();
 
         assertEquals(1, runner.getQueueSize().getObjectCount());
@@ -217,7 +217,7 @@ public class TestPublishKafkaRecord_2_6 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_FAILURE, 3);
 
         verify(mockLease, times(3)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class), any(PublishMetadataStrategy.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(1)).close();
     }
@@ -236,7 +236,7 @@ public class TestPublishKafkaRecord_2_6 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_FAILURE, 0);
 
         verify(mockLease, times(3)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-            AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+            AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class), any(PublishMetadataStrategy.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(1)).close();
 
@@ -261,9 +261,9 @@ public class TestPublishKafkaRecord_2_6 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_SUCCESS, 2);
 
         verify(mockLease, times(2)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class), any(PublishMetadataStrategy.class));
         verify(mockLease, times(0)).publish(
-            any(FlowFile.class), any(Map.class), eq(null), any(byte[].class), eq(TOPIC_NAME), any(InFlightMessageTracker.class), any(Integer.class));
+            any(FlowFile.class), any(List.class), eq(null), any(byte[].class), eq(TOPIC_NAME), any(InFlightMessageTracker.class), any(Integer.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(0)).poison();
         verify(mockLease, times(1)).close();
@@ -293,7 +293,7 @@ public class TestPublishKafkaRecord_2_6 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_SUCCESS, 1);
 
         verify(mockLease, times(1)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class), any(PublishMetadataStrategy.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(0)).poison();
         verify(mockLease, times(1)).close();
@@ -336,13 +336,13 @@ public class TestPublishKafkaRecord_2_6 {
 
             return null;
         }).when(mockLease).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-            nullable(RecordSchema.class), nullable(String.class), any(String.class), nullable(Function.class));
+            nullable(RecordSchema.class), nullable(String.class), any(String.class), nullable(Function.class), any(PublishMetadataStrategy.class));
 
         runner.run();
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_SUCCESS, 1);
 
         verify(mockLease, times(1)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-            nullable(RecordSchema.class), nullable(String.class), any(String.class), nullable(Function.class));
+            nullable(RecordSchema.class), nullable(String.class), any(String.class), nullable(Function.class), any(PublishMetadataStrategy.class));
 
         assertEquals(2, partitionsByAge.size()); // 2 ages
 
@@ -380,7 +380,7 @@ public class TestPublishKafkaRecord_2_6 {
         runner.assertTransferCount(PublishKafkaRecord_2_6.REL_FAILURE, 4);
 
         verify(mockLease, times(4)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class), any(PublishMetadataStrategy.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(1)).close();
 

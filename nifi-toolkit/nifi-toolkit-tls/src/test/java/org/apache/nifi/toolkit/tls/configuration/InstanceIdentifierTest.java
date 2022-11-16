@@ -17,9 +17,10 @@
 
 package org.apache.nifi.toolkit.tls.configuration;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -28,7 +29,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class InstanceIdentifierTest {
 
@@ -62,9 +64,9 @@ public class InstanceIdentifierTest {
         testExtractHostnames("test[002]", "test001", "test002");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testExtractHostnamesNoNumber() {
-        testExtractHostnames("test[]", "test");
+        assertThrows(IllegalArgumentException.class, () -> testExtractHostnames("test[]", "test"));
     }
 
     @Test
@@ -72,43 +74,43 @@ public class InstanceIdentifierTest {
         testExtractHostnames("test[1-3]name[1-3]", "test1name1", "test1name2", "test1name3", "test2name1", "test2name2", "test2name3", "test3name1", "test3name2", "test3name3");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testExtractHostnamesUnmatched() {
-        testExtractHostnames("test[");
+        assertThrows(IllegalArgumentException.class, () -> testExtractHostnames("test["));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testExtractHostnamesSpace() {
-        testExtractHostnames("test[ 1-2]");
+        assertThrows(IllegalArgumentException.class, () -> testExtractHostnames("test[ 1-2]"));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testExtractHostnamesMultipleHyphens() {
-        testExtractHostnames("test[1-2-3]");
+        assertThrows(IllegalArgumentException.class, () -> testExtractHostnames("test[1-2-3]"));
     }
 
     @Test
     public void testCreateDefinitionsSingleHostSingleName() {
-        testCreateIdentifiers(Arrays.asList("hostname"), Arrays.asList("hostname"), Arrays.asList(1));
+        testCreateIdentifiers(Collections.singletonList("hostname"), Collections.singletonList("hostname"), Collections.singletonList(1));
     }
 
     @Test
     public void testCreateDefinitionsSingleHostnameOneNumberInParens() {
-        testCreateIdentifiers(Arrays.asList("hostname(20)"),
+        testCreateIdentifiers(Collections.singletonList("hostname(20)"),
                 IntStream.range(1, 21).mapToObj(operand -> "hostname").collect(Collectors.toList()),
                 integerRange(1, 20).collect(Collectors.toList()));
     }
 
     @Test
     public void testCreateDefinitionsSingleHostnameTwoNumbersInParens() {
-        testCreateIdentifiers(Arrays.asList("hostname(5-20)"),
+        testCreateIdentifiers(Collections.singletonList("hostname(5-20)"),
                 IntStream.range(5, 21).mapToObj(operand -> "hostname").collect(Collectors.toList()),
                 integerRange(5, 20).collect(Collectors.toList()));
     }
 
     @Test
     public void testCreateDefinitionsMultipleHostnamesWithMultipleNumbers() {
-        testCreateIdentifiers(Arrays.asList("host[10]name[02-5](20)"),
+        testCreateIdentifiers(Collections.singletonList("host[10]name[02-5](20)"),
                 integerRange(1, 10).flatMap(v -> integerRange(2, 5).flatMap(v2 -> integerRange(1, 20).map(v3 -> "host" + v + "name" + String.format("%02d", v2)))).collect(Collectors.toList()),
                 integerRange(1, 10).flatMap(val -> integerRange(2, 5).flatMap(val2 -> integerRange(1, 20))).collect(Collectors.toList()));
     }
@@ -137,9 +139,9 @@ public class InstanceIdentifierTest {
         InstanceIdentifier.extractHostnames(b).map(s -> new InstanceIdentifier(s, 1)).forEach(action);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testCreateIdentifiersCharactersAfterNumber() {
-        InstanceIdentifier.createIdentifiers(Stream.of("test(2)a")).count();
+        assertThrows(IllegalArgumentException.class, () -> InstanceIdentifier.createIdentifiers(Stream.of("test(2)a")).count());
     }
 
     private Stream<Integer> integerRange(int start, int endInclusive) {

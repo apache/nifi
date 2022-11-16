@@ -1591,7 +1591,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
      */
     private void setMaxThreadCount(final int maxThreadCount, final FlowEngine engine, final AtomicInteger maxThreads) {
         if (maxThreadCount < 1) {
-            throw new IllegalArgumentException("Cannot set max number of threads to less than 2");
+            throw new IllegalArgumentException("Cannot set max number of threads to less than 1");
         }
 
         maxThreads.getAndSet(maxThreadCount);

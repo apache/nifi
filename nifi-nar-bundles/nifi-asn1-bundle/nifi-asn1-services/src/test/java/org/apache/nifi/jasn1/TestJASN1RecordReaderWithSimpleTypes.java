@@ -106,11 +106,11 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
         berValue.setValue(new BerBitString(new boolean[]{false, true, false, false, true, true, true, true, false, true, false, false}));
 
         Map<String, Object> expectedValues = new HashMap<String, Object>() {{
-            put("value", new boolean[]{false, true, false, false, true, true, true, true, false, true, false, false});
+            put("value", "010011110100");
         }};
 
         RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
-                new RecordField("value", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BOOLEAN.getDataType())))
+                new RecordField("value", RecordFieldType.STRING.getDataType()))
         );
 
         testReadRecord(dataFile, berValue, expectedValues, expectedSchema);

@@ -147,15 +147,19 @@
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk15on</artifactId>
+            <artifactId>bcprov-jdk18on</artifactId>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
-            <artifactId>bcpg-jdk15on</artifactId>
+            <artifactId>bcpg-jdk18on</artifactId>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
-            <artifactId>bcpkix-jdk15on</artifactId>
+            <artifactId>bcpkix-jdk18on</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcutil-jdk18on</artifactId>
         </dependency>
         <dependency>
             <groupId>commons-codec</groupId>
@@ -175,6 +179,20 @@
         <dependency>
             <groupId>com.hierynomus</groupId>
             <artifactId>sshj</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcprov-jdk15on</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcpkix-jdk15on</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcutil-jdk15on</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.exceptionfactory.socketbroker</groupId>
@@ -398,6 +416,10 @@
         <dependency>
             <groupId>com.github.wnameless.json</groupId>
             <artifactId>json-flattener</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.networknt</groupId>
+            <artifactId>json-schema-validator</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.bval</groupId>
@@ -686,6 +708,10 @@
                         <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-expected.csv</exclude>
                         <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-original.csv</exclude>
                         <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-rename-expected.csv</exclude>
+                        <exclude>src/test/resources/TestValidateJson/schema-simple-example-missing-required.json</exclude>
+                        <exclude>src/test/resources/TestValidateJson/schema-simple-example-unmatched-pattern.json</exclude>
+                        <exclude>src/test/resources/TestValidateJson/schema-simple-example.json</exclude>
+                        <exclude>src/test/resources/TestValidateJson/simple-example.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>

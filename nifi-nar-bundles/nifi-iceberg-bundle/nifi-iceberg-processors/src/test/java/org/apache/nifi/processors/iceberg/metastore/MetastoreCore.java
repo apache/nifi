@@ -163,7 +163,7 @@ class MetastoreCore {
         final Connection connection = DriverManager.getConnection(dbURL);
         ScriptRunner scriptRunner = new ScriptRunner(connection);
 
-        final URL initScript = getClass().getClassLoader().getResource("hive-schema-3.2.0.derby.sql");
+        final URL initScript = getClass().getClassLoader().getResource("hive-schema-4.0.0-alpha-2.derby.sql");
         final Reader reader = new BufferedReader(new FileReader(initScript.getFile()));
         scriptRunner.runScript(reader);
     }

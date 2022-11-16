@@ -110,6 +110,18 @@ public final class KafkaProcessorUtils {
         "When unable to publish a FlowFile to Kafka, the FlowFile will be placed back on the top of its queue so that it will be the next FlowFile tried again. " +
             "For dataflows where ordering of FlowFiles is important, this strategy can be used along with ensuring that the each processor in the dataflow uses only a single Concurrent Task.");
 
+    static final AllowableValue PUBLISH_USE_VALUE = new AllowableValue(PublishStrategy.USE_VALUE.name(),
+            "Use Content as Record Value", "Write only the FlowFile content to the Kafka Record value.");
+    static final AllowableValue PUBLISH_USE_WRAPPER = new AllowableValue(PublishStrategy.USE_WRAPPER.name(),
+            "Use Wrapper", "Write the Kafka Record key, value, headers, and metadata into the Kafka Record value.  (See processor usage for more information.)");
+    static final AllowableValue OUTPUT_USE_VALUE = new AllowableValue(OutputStrategy.USE_VALUE.name(),
+            "Use Content as Value", "Write only the Kafka Record value to the FlowFile record.");
+    static final AllowableValue OUTPUT_USE_WRAPPER = new AllowableValue(OutputStrategy.USE_WRAPPER.name(),
+            "Use Wrapper", "Write the Kafka Record key, value, headers, and metadata into the FlowFile record.  (See processor usage for more information.)");
+    static final AllowableValue KEY_AS_STRING = new AllowableValue("string", "String", "Format the Kafka ConsumerRecord key as a UTF-8 string.");
+    static final AllowableValue KEY_AS_BYTE_ARRAY = new AllowableValue("byte-array", "Byte Array", "Format the Kafka ConsumerRecord key as a byte array.");
+    static final AllowableValue KEY_AS_RECORD = new AllowableValue("record", "Record", "Format the Kafka ConsumerRecord key as a record.");
+
     public static final PropertyDescriptor BOOTSTRAP_SERVERS = new PropertyDescriptor.Builder()
             .name(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)
             .displayName("Kafka Brokers")

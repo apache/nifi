@@ -138,7 +138,7 @@ public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition
         return poll(filter, expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 
-    private int getExpiration() {
+    private long getExpiration() {
         return flowFileQueue.getFlowFileExpiration(TimeUnit.MILLISECONDS);
     }
 

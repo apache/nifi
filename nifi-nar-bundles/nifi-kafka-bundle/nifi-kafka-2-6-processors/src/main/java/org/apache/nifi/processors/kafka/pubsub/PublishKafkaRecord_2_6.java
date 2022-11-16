@@ -83,6 +83,8 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILURE_STRATEGY;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.PUBLISH_USE_VALUE;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.PUBLISH_USE_WRAPPER;
 
 @Tags({"Apache", "Kafka", "Record", "csv", "json", "avro", "logs", "Put", "Send", "Message", "PubSub", "2.6"})
 @CapabilityDescription("Sends the contents of a FlowFile as individual records to Apache Kafka using the Kafka 2.6 Producer API. "
@@ -125,6 +127,11 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         "Interprets the <Partition> property as Expression Language that will be evaluated against each FlowFile. This Expression will be evaluated once against the FlowFile, " +
             "so all Records in a given FlowFile will go to the same partition.");
 
+    static final AllowableValue RECORD_METADATA_FROM_RECORD = new AllowableValue("Metadata From Record", "Metadata From Record", "The Kafka Record's Topic and Partition will be determined by " +
+        "looking at the /metadata/topic and /metadata/partition fields of the Record, respectively. If these fields are invalid or not present, the Topic Name and Partition/Partitioner class " +
+        "properties of the processor will be considered.");
+    static final AllowableValue RECORD_METADATA_FROM_PROPERTIES = new AllowableValue("Use Configured Values", "Use Configured Values", "The Kafka Record's Topic will be determined using the 'Topic " +
+        "Name' processor property. The partition will be determined using the 'Partition' and 'Partitioner class' properties.");
 
     static final PropertyDescriptor TOPIC = new Builder()
         .name("topic")
@@ -153,12 +160,22 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         .required(true)
         .build();
 
+    static final PropertyDescriptor PUBLISH_STRATEGY = new PropertyDescriptor.Builder()
+            .name("publish-strategy")
+            .displayName("Publish Strategy")
+            .description("The format used to publish the incoming FlowFile record to Kafka.")
+            .required(true)
+            .defaultValue(PUBLISH_USE_VALUE.getValue())
+            .allowableValues(PUBLISH_USE_VALUE, PUBLISH_USE_WRAPPER)
+            .build();
+
     static final PropertyDescriptor MESSAGE_KEY_FIELD = new Builder()
         .name("message-key-field")
         .displayName("Message Key Field")
         .description("The name of a field in the Input Records that should be used as the Key for the Kafka message.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
+        .dependsOn(PUBLISH_STRATEGY, PUBLISH_USE_VALUE)
         .required(false)
         .build();
 
@@ -239,6 +256,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
             + "If not specified, no FlowFile attributes will be added as headers.")
         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
         .expressionLanguageSupported(NONE)
+        .dependsOn(PUBLISH_STRATEGY, PUBLISH_USE_VALUE)
         .required(false)
         .build();
     static final PropertyDescriptor USE_TRANSACTIONS = new Builder()
@@ -271,6 +289,23 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         .defaultValue("UTF-8")
         .required(false)
         .build();
+    static final PropertyDescriptor RECORD_KEY_WRITER = new PropertyDescriptor.Builder()
+            .name("record-key-writer")
+            .displayName("Record Key Writer")
+            .description("The Record Key Writer to use for outgoing FlowFiles")
+            .identifiesControllerService(RecordSetWriterFactory.class)
+            .dependsOn(PUBLISH_STRATEGY, PUBLISH_USE_WRAPPER)
+            .build();
+    static final PropertyDescriptor RECORD_METADATA_STRATEGY = new Builder()
+        .name("Record Metadata Strategy")
+        .displayName("Record Metadata Strategy")
+        .description("Specifies whether the Record's metadata (topic and partition) should come from the Record's metadata field or if it should come from the configured Topic Name and Partition / " +
+            "Partitioner class properties")
+        .required(true)
+        .allowableValues(RECORD_METADATA_FROM_PROPERTIES, RECORD_METADATA_FROM_RECORD)
+        .defaultValue(RECORD_METADATA_FROM_PROPERTIES.getValue())
+        .dependsOn(PUBLISH_STRATEGY, PUBLISH_USE_WRAPPER)
+        .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -298,6 +333,9 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         properties.add(TRANSACTIONAL_ID_PREFIX);
         properties.add(KafkaProcessorUtils.FAILURE_STRATEGY);
         properties.add(DELIVERY_GUARANTEE);
+        properties.add(PUBLISH_STRATEGY);
+        properties.add(RECORD_KEY_WRITER);
+        properties.add(RECORD_METADATA_STRATEGY);
         properties.add(ATTRIBUTE_NAME_REGEX);
         properties.add(MESSAGE_HEADER_ENCODING);
         properties.add(KafkaProcessorUtils.SECURITY_PROTOCOL);
@@ -413,9 +451,11 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         final boolean useTransactions = context.getProperty(USE_TRANSACTIONS).asBoolean();
         final String transactionalIdPrefix = context.getProperty(TRANSACTIONAL_ID_PREFIX).evaluateAttributeExpressions().getValue();
         Supplier<String> transactionalIdSupplier = KafkaProcessorUtils.getTransactionalIdSupplier(transactionalIdPrefix);
+        final PublishStrategy publishStrategy = PublishStrategy.valueOf(context.getProperty(PUBLISH_STRATEGY).getValue());
 
         final String charsetName = context.getProperty(MESSAGE_HEADER_ENCODING).evaluateAttributeExpressions().getValue();
         final Charset charset = Charset.forName(charsetName);
+        final RecordSetWriterFactory recordKeyWriterFactory = context.getProperty(RECORD_KEY_WRITER).asControllerService(RecordSetWriterFactory.class);
 
         final Map<String, Object> kafkaProperties = new HashMap<>();
         KafkaProcessorUtils.buildCommonKafkaProperties(context, ProducerConfig.class, kafkaProperties);
@@ -423,7 +463,8 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         kafkaProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
         kafkaProperties.put("max.request.size", String.valueOf(maxMessageSize));
 
-        return new PublisherPool(kafkaProperties, getLogger(), maxMessageSize, maxAckWaitMillis, useTransactions, transactionalIdSupplier, attributeNamePattern, charset);
+        return new PublisherPool(kafkaProperties, getLogger(), maxMessageSize, maxAckWaitMillis,
+                useTransactions, transactionalIdSupplier, attributeNamePattern, charset, publishStrategy, recordKeyWriterFactory);
     }
 
     @OnStopped
@@ -454,6 +495,14 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final boolean useTransactions = context.getProperty(USE_TRANSACTIONS).asBoolean();
         final PublishFailureStrategy failureStrategy = getFailureStrategy(context);
+
+        final PublishMetadataStrategy publishMetadataStrategy;
+        final String recordMetadataStrategy = context.getProperty(RECORD_METADATA_STRATEGY).getValue();
+        if (RECORD_METADATA_FROM_RECORD.getValue().equalsIgnoreCase(recordMetadataStrategy)) {
+            publishMetadataStrategy = PublishMetadataStrategy.USE_RECORD_METADATA;
+        } else {
+            publishMetadataStrategy = PublishMetadataStrategy.USE_CONFIGURED_VALUES;
+        }
 
         final long startTime = System.nanoTime();
         try (final PublisherLease lease = pool.obtainPublisher()) {
@@ -494,7 +543,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
                                     final RecordSet recordSet = reader.createRecordSet();
 
                                     final RecordSchema schema = writerFactory.getSchema(flowFile.getAttributes(), recordSet.getSchema());
-                                    lease.publish(flowFile, recordSet, writerFactory, schema, messageKeyField, topic, partitioner);
+                                    lease.publish(flowFile, recordSet, writerFactory, schema, messageKeyField, topic, partitioner, publishMetadataStrategy);
                                 } catch (final SchemaNotFoundException | MalformedRecordException e) {
                                     throw new ProcessException(e);
                                 }

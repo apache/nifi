@@ -2131,6 +2131,8 @@ public class DataTypeUtils {
                 return Types.SMALLINT;
             case STRING:
                 return Types.VARCHAR;
+            case ENUM:
+                return Types.OTHER;
             case TIME:
                 return Types.TIME;
             case TIMESTAMP:

@@ -13,7 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-name: Manage stale PRs
+name: pull-request-review
 
 on:
   # Run every day at midnight 00:00
@@ -26,19 +26,18 @@ permissions:
 jobs:
   stale:
     permissions:
-      issues: write  # for actions/stale to close stale issues
-      pull-requests: write  # for actions/stale to close stale PRs
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/stale@v3
+      - uses: actions/stale@v6
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           stale-pr-message: >
-            We're marking this PR as stale due to lack of updates in the past few months.
-            If after another couple of weeks the stale label has not been removed this PR will be closed.
-            This stale marker and eventual auto close does not indicate a judgement of the PR just
+            Automated review is marking this PR as stale due to lack of updates in the past four months.
+            This PR will be closed in 15 days if the stale label is not removed.
+            This stale label and automated closure does not indicate a judgement of the PR, just
             lack of reviewer bandwidth and helps us keep the PR queue more manageable.  If you would
-            like this PR re-opened you can do so and a committer can remove the stale tag.  Or you can
+            like this PR re-opened you can do so and a committer can remove the stale label.  Or you can
             open a new PR.  Try to help review other PRs to increase PR review bandwidth which in
             turn helps yours.
           days-before-stale: 120

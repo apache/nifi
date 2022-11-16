@@ -40,6 +40,12 @@
                 <groupId>com.hierynomus</groupId>
                 <artifactId>smbj</artifactId>
                 <version>0.11.5</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.bouncycastle</groupId>
+                        <artifactId>bcprov-jdk15on</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>net.engio</groupId>
@@ -50,16 +56,6 @@
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mock</artifactId>
                 <version>1.19.0-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>testcontainers</artifactId>
-                <version>${testcontainers.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>toxiproxy</artifactId>
-                <version>${testcontainers.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

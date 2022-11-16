@@ -22,8 +22,9 @@ language governing permissions and limitations under the License. -->
     <packaging>pom</packaging>
 
     <modules>
+        <module>nifi-elasticsearch-test-utils</module>
 	    <module>nifi-elasticsearch-client-service-api</module>
-        <module>nifi-elasticsearch-client-service-api-nar</module> 
+        <module>nifi-elasticsearch-client-service-api-nar</module>
         <module>nifi-elasticsearch-client-service</module>
         <module>nifi-elasticsearch-client-service-nar</module>
         <module>nifi-elasticsearch-nar</module>
@@ -50,6 +51,74 @@ language governing permissions and limitations under the License. -->
                 <artifactId>commons-compress</artifactId>
                 <version>1.21</version>
             </dependency>
+
+            <dependency>
+                <groupId>org.elasticsearch.client</groupId>
+                <artifactId>elasticsearch-rest-client</artifactId>
+                <!-- pinned at 7.13.4 as it is the last version prior to Elastic forcing the client to check it is connecting
+                 to an Elastic-provided Elasticsearch instead of an instance provided by someone else (e.g. AWS OpenSearch)
+                 see: https://opensearch.org/blog/community/2021/08/community-clients/ for more info.
+
+                 Note: the low-level elasticsearch-rest-client remains licensed with Apache 2.0
+                 (https://www.elastic.co/guide/en/elasticsearch/client/java-rest/current/_license.html) even after the move
+                 of the main Elasticsearch product and elasticsearch-rest-high-level-client to Elastic 2.0/SSPL 1.0 in v7.11.0+ -->
+                <version>7.13.4</version>
+                <scope>compile</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.vividsolutions</groupId>
+                        <artifactId>jts</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-logging</groupId>
+                        <artifactId>commons-logging</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <profiles>
+        <!-- currently used by nifi-elasticsearch-client-service and nifi-elasticsearch-restapi-processors -->
+        <profile>
+            <id>integration-tests</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <elasticsearch_docker_image>8.5.0</elasticsearch_docker_image>
+                <elasticsearch.elastic.password>s3cret</elasticsearch.elastic.password>
+            </properties>
+            <build>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-failsafe-plugin</artifactId>
+                            <configuration>
+                                <systemPropertyVariables>
+                                    <elasticsearch.endpoint>http://localhost:9200</elasticsearch.endpoint>
+                                    <elasticsearch.testcontainers.enabled>true</elasticsearch.testcontainers.enabled>
+                                    <elasticsearch.docker.image>docker.elastic.co/elasticsearch/elasticsearch:${elasticsearch_docker_image}</elasticsearch.docker.image>
+                                    <elasticsearch.elastic_user.password>${elasticsearch.elastic.password}</elasticsearch.elastic_user.password>
+                                </systemPropertyVariables>
+                            </configuration>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+            </build>
+        </profile>
+        <profile>
+            <id>elasticsearch6</id>
+            <properties>
+                <elasticsearch_docker_image>6.8.23</elasticsearch_docker_image>
+            </properties>
+        </profile>
+        <profile>
+            <id>elasticsearch7</id>
+            <properties>
+                <elasticsearch_docker_image>7.17.7</elasticsearch_docker_image>
+            </properties>
+        </profile>
+    </profiles>
 </project>

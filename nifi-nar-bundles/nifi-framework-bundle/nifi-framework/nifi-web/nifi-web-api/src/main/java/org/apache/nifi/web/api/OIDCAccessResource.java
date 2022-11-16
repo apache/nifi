@@ -35,8 +35,10 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.nifi.admin.service.IdpUserGroupService;
 import org.apache.nifi.authentication.exception.AuthenticationNotSupportedException;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.idp.IdpType;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
@@ -66,11 +68,12 @@ import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 
 @Path(OIDCEndpoints.OIDC_ACCESS_ROOT)
@@ -88,12 +91,11 @@ public class OIDCAccessResource extends ApplicationResource {
     private static final String REVOKE_ACCESS_TOKEN_LOGOUT = "oidc_access_token_logout";
     private static final String ID_TOKEN_LOGOUT = "oidc_id_token_logout";
     private static final String STANDARD_LOGOUT = "oidc_standard_logout";
-    private static final Pattern REVOKE_ACCESS_TOKEN_LOGOUT_FORMAT = Pattern.compile("(\\.google\\.com)");
-    private static final Pattern ID_TOKEN_LOGOUT_FORMAT = Pattern.compile("(\\.okta)");
     private static final int msTimeout = 30_000;
     private static final boolean LOGGING_IN = true;
 
     private OidcService oidcService;
+    private IdpUserGroupService idpUserGroupService;
     private BearerTokenProvider bearerTokenProvider;
 
     public OIDCAccessResource() {
@@ -156,6 +158,12 @@ public class OIDCAccessResource extends ApplicationResource {
 
                 // store the NiFi token
                 oidcService.storeJwt(oidcRequestIdentifier, bearerToken);
+
+                Set<String> groups = oidcToken.getAuthorities().stream().map(authority -> authority.getAuthority()).collect(Collectors.collectingAndThen(
+                        Collectors.toSet(),
+                        Collections::unmodifiableSet
+                ));
+                idpUserGroupService.replaceUserGroups(oidcToken.getName(), IdpType.OIDC, groups);
             } catch (final Exception e) {
                 logger.error(OIDC_ID_TOKEN_AUTHN_ERROR + e.getMessage(), e);
 
@@ -236,11 +244,11 @@ public class OIDCAccessResource extends ApplicationResource {
         applicationCookieService.removeCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.AUTHORIZATION_BEARER);
         logger.debug("Invalidated JWT for user [{}]", mappedUserIdentity);
 
-        // Get the oidc discovery url
-        String oidcDiscoveryUrl = properties.getOidcDiscoveryUrl();
+        idpUserGroupService.deleteUserGroups(mappedUserIdentity);
+        logger.debug("Deleted user groups for user [{}]", mappedUserIdentity);
 
         // Determine the logout method
-        String logoutMethod = determineLogoutMethod(oidcDiscoveryUrl);
+        String logoutMethod = determineLogoutMethod();
 
         switch (logoutMethod) {
             case REVOKE_ACCESS_TOKEN_LOGOUT:
@@ -286,11 +294,8 @@ public class OIDCAccessResource extends ApplicationResource {
             final String oidcRequestIdentifier = requestIdentifier.get();
             checkOidcState(httpServletResponse, oidcRequestIdentifier, successfulOidcResponse, false);
 
-            // Get the oidc discovery url
-            String oidcDiscoveryUrl = properties.getOidcDiscoveryUrl();
-
             // Determine which logout method to use
-            String logoutMethod = determineLogoutMethod(oidcDiscoveryUrl);
+            String logoutMethod = determineLogoutMethod();
 
             // Get the authorization code and grant
             final AuthorizationCode authorizationCode = successfulOidcResponse.getAuthorizationCode();
@@ -400,14 +405,11 @@ public class OIDCAccessResource extends ApplicationResource {
                 .build();
     }
 
-    private String determineLogoutMethod(String oidcDiscoveryUrl) {
-        Matcher accessTokenMatcher = REVOKE_ACCESS_TOKEN_LOGOUT_FORMAT.matcher(oidcDiscoveryUrl);
-        Matcher idTokenMatcher = ID_TOKEN_LOGOUT_FORMAT.matcher(oidcDiscoveryUrl);
-
-        if (accessTokenMatcher.find()) {
-            return REVOKE_ACCESS_TOKEN_LOGOUT;
-        } else if (idTokenMatcher.find()) {
+    private String determineLogoutMethod() {
+        if (oidcService.getEndSessionEndpoint() != null) {
             return ID_TOKEN_LOGOUT;
+        } else if (oidcService.getRevocationEndpoint() != null) {
+            return REVOKE_ACCESS_TOKEN_LOGOUT;
         } else {
             return STANDARD_LOGOUT;
         }
@@ -556,6 +558,10 @@ public class OIDCAccessResource extends ApplicationResource {
 
     public void setOidcService(OidcService oidcService) {
         this.oidcService = oidcService;
+    }
+
+    public void setIdpUserGroupService(IdpUserGroupService idpUserGroupService) {
+        this.idpUserGroupService = idpUserGroupService;
     }
 
     public void setBearerTokenProvider(final BearerTokenProvider bearerTokenProvider) {

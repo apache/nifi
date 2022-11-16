@@ -32,7 +32,7 @@
     </modules>
 
     <properties>
-        <grpc.version>1.48.0</grpc.version>
+        <grpc.version>1.50.2</grpc.version>
         <protoc.version>3.21.4</protoc.version>
     </properties>
 

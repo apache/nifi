@@ -18,10 +18,12 @@ package org.apache.nifi.processors.azure.storage;
 
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.models.BlobErrorCode;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.services.azure.storage.AzureStorageConflictResolutionStrategy;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,11 +34,12 @@ import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_ERROR_CODE;
+import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_IGNORED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
-
     @Override
     protected Class<? extends Processor> getProcessorClass() {
         return PutAzureBlobStorage_v12.class;
@@ -101,7 +104,7 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
 
         runProcessor(BLOB_DATA);
 
-        assertFailure(BLOB_DATA);
+        assertFailure(BLOB_DATA, BlobErrorCode.CONTAINER_NOT_FOUND);
     }
 
     @Test
@@ -136,7 +139,29 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
 
         runProcessor(BLOB_DATA);
 
-        assertFailure(BLOB_DATA);
+        MockFlowFile flowFile = assertFailure(BLOB_DATA, BlobErrorCode.BLOB_ALREADY_EXISTS);
+        assertEquals(flowFile.getAttribute(ATTR_NAME_IGNORED), null);
+    }
+
+    @Test
+    public void testPutBlobToExistingBlobConflictStrategyIgnore() throws Exception {
+        uploadBlob(BLOB_NAME, BLOB_DATA);
+        runner.setProperty(PutAzureBlobStorage_v12.CONFLICT_RESOLUTION, AzureStorageConflictResolutionStrategy.IGNORE_RESOLUTION.getValue());
+
+        runProcessor(BLOB_DATA);
+
+        MockFlowFile flowFile = assertIgnored(getContainerName(), BLOB_NAME);
+        assertEquals(flowFile.getAttribute(ATTR_NAME_IGNORED), "true");
+    }
+
+    @Test
+    public void testPutBlobToExistingBlobConflictStrategyReplace() throws Exception {
+        uploadBlob(BLOB_NAME, BLOB_DATA);
+        runner.setProperty(PutAzureBlobStorage_v12.CONFLICT_RESOLUTION, AzureStorageConflictResolutionStrategy.REPLACE_RESOLUTION.getValue());
+
+        runProcessor(BLOB_DATA);
+
+        assertSuccess(getContainerName(), BLOB_NAME, BLOB_DATA);
     }
 
     @Test
@@ -158,20 +183,30 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
         runner.run();
     }
 
-    private void assertSuccess(String containerName, String blobName, byte[] blobData) throws Exception {
-        assertFlowFile(containerName, blobName, blobData);
+    private MockFlowFile assertSuccess(String containerName, String blobName, byte[] blobData) throws Exception {
+        MockFlowFile flowFile = assertFlowFile(containerName, blobName, blobData);
         assertAzureBlob(containerName, blobName, blobData);
         assertProvenanceEvents();
+        return flowFile;
     }
 
-    private void assertFlowFile(String containerName, String blobName, byte[] blobData) throws Exception {
-        runner.assertAllFlowFilesTransferred(PutAzureDataLakeStorage.REL_SUCCESS, 1);
+    private MockFlowFile assertIgnored(String containerName, String blobName) throws Exception {
+        MockFlowFile flowFile = assertFlowFile(containerName, blobName, null);
+        assertProvenanceEvents();
+        return flowFile;
+    }
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutAzureDataLakeStorage.REL_SUCCESS).get(0);
+    private MockFlowFile assertFlowFile(String containerName, String blobName, byte[] blobData) throws Exception {
+        runner.assertAllFlowFilesTransferred(PutAzureBlobStorage_v12.REL_SUCCESS, 1);
 
-        assertFlowFileBlobAttributes(flowFile, containerName, blobName, blobData.length);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutAzureBlobStorage_v12.REL_SUCCESS).get(0);
 
-        flowFile.assertContentEquals(blobData);
+        assertFlowFileCommonBlobAttributes(flowFile, containerName, blobName);
+        if (blobData != null) {
+            assertFlowFileResultBlobAttributes(flowFile, blobData.length);
+            flowFile.assertContentEquals(blobData);
+        }
+        return flowFile;
     }
 
     private void assertAzureBlob(String containerName, String blobName, byte[] blobData) {
@@ -191,10 +226,12 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
         assertEquals(expectedEventTypes, actualEventTypes);
     }
 
-    private void assertFailure(byte[] blobData) throws Exception {
+    private MockFlowFile assertFailure(byte[] blobData, BlobErrorCode errorCode) throws Exception {
         runner.assertAllFlowFilesTransferred(PutAzureBlobStorage_v12.REL_FAILURE, 1);
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteAzureBlobStorage_v12.REL_FAILURE).get(0);
         flowFile.assertContentEquals(blobData);
+        flowFile.assertAttributeEquals(ATTR_NAME_ERROR_CODE, errorCode.toString());
+        return flowFile;
     }
 }

@@ -51,7 +51,7 @@ public interface HashiCorpVaultCommunicationService {
     byte[] decrypt(String transitPath, String cipherText);
 
     /**
-     * Writes a single secret value using Vault's Key/Value Secrets Engine.
+     * Writes a single secret value using Vault's Key/Value Version 1 Secrets Engine.
      *
      * @see <a href="https://www.vaultproject.io/api-docs/secret/kv">https://www.vaultproject.io/api-docs/secret/kv</a>
      * @param keyValuePath The Vault path to use for the configured Key/Value Secrets Engine
@@ -61,7 +61,7 @@ public interface HashiCorpVaultCommunicationService {
     void writeKeyValueSecret(String keyValuePath, String secretKey, String value);
 
     /**
-     * Reads a single secret value from Vault's Key/Value Secrets Engine.
+     * Reads a single secret value from Vault's Key/Value Version 1 Secrets Engine.
      *
      * @see <a href="https://www.vaultproject.io/api-docs/secret/kv">https://www.vaultproject.io/api-docs/secret/kv</a>
      * @param keyValuePath The Vault path to use for the configured Key/Value Secrets Engine
@@ -71,7 +71,7 @@ public interface HashiCorpVaultCommunicationService {
     Optional<String> readKeyValueSecret(String keyValuePath, String secretKey);
 
     /**
-     * Writes a secret with multiple key/value pairs using Vault's Key/Value Secrets Engine.
+     * Writes a secret with multiple key/value pairs using Vault's Key/Value Version 1 Secrets Engine.
      *
      * @see <a href="https://www.vaultproject.io/api-docs/secret/kv">https://www.vaultproject.io/api-docs/secret/kv</a>
      * @param keyValuePath The Vault path to use for the configured Key/Value Secrets Engine
@@ -80,7 +80,7 @@ public interface HashiCorpVaultCommunicationService {
     void writeKeyValueSecretMap(String keyValuePath, String secretKey, Map<String, String> keyValues);
 
     /**
-     * Reads a secret with multiple key/value pairs from Vault's Key/Value Secrets Engine.
+     * Reads a secret with multiple key/value pairs from Vault's Key/Value Version 1 Secrets Engine.
      *
      * @see <a href="https://www.vaultproject.io/api-docs/secret/kv">https://www.vaultproject.io/api-docs/secret/kv</a>
      * @param keyValuePath The Vault path to use for the configured Key/Value Secrets Engine
@@ -90,7 +90,7 @@ public interface HashiCorpVaultCommunicationService {
     Map<String, String> readKeyValueSecretMap(String keyValuePath, String secretKey);
 
     /**
-     * Lists the secrets at the given Key/Value Secrets Engine path.
+     * Lists the secrets at the given Key/Value Version 1 Secrets Engine path.
      * @param keyValuePath The Vault path to list
      * @return The list of secret names
      */

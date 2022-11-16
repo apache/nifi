@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -47,6 +48,7 @@ import org.apache.nifi.processors.shopify.model.ResourceType;
 import org.apache.nifi.processors.shopify.model.ShopifyResource;
 import org.apache.nifi.processors.shopify.rest.ShopifyRestService;
 import org.apache.nifi.processors.shopify.util.IncrementalTimers;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.HttpResponseStatus;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
@@ -75,6 +77,7 @@ import java.util.stream.Collectors;
 @Stateful(scopes = Scope.CLUSTER, description = "For a few resources the processor supports incremental loading." +
         " The list of the resources with the supported parameters can be found in the additional details.")
 @CapabilityDescription("Retrieves objects from a custom Shopify store. The processor yield time must be set to the account's rate limit accordingly.")
+@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class GetShopify extends AbstractProcessor {
 
     static final PropertyDescriptor STORE_DOMAIN = new PropertyDescriptor.Builder()

@@ -38,6 +38,7 @@
         <module>nifi-azure-nar</module>
         <module>nifi-azure-services-api</module>
         <module>nifi-azure-services-api-nar</module>
+        <module>nifi-azure-parameter-providers</module>
     </modules>
 
     <dependencyManagement>
@@ -53,11 +54,6 @@
                 <groupId>com.microsoft.azure</groupId>
                 <artifactId>azure-storage</artifactId>
                 <version>${microsoft.azure-storage.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-text</artifactId>
-                <version>1.8</version>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>

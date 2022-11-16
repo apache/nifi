@@ -315,6 +315,11 @@
                 <artifactId>guava</artifactId>
                 <version>31.0.1-jre</version>
             </dependency>
+            <dependency>
+                <groupId>com.networknt</groupId>
+                <artifactId>json-schema-validator</artifactId>
+            <version>1.0.73</version>
+        </dependency>
         </dependencies>
     </dependencyManagement>
 </project>

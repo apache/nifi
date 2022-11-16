@@ -629,6 +629,7 @@
     </bean>
     <bean id="oidcResource" class="org.apache.nifi.web.api.OIDCAccessResource" scope="singleton">
         <property name="oidcService" ref="oidcService"/>
+        <property name="idpUserGroupService" ref="idpUserGroupService" />
         <property name="properties" ref="nifiProperties"/>
         <property name="bearerTokenProvider" ref="bearerTokenProvider"/>
     </bean>

@@ -304,6 +304,16 @@ public class ByteArrayContentRepository implements ContentRepository {
         public InputStream read() {
             return resourceClaim.read();
         }
+
+        @Override
+        public int hashCode() {
+            return resourceClaim.hashCode();
+        }
+
+        @Override
+        public boolean equals(final Object obj) {
+            return this == obj;
+        }
     }
 
     private static class ByteArrayResourceClaim implements ResourceClaim {
@@ -379,7 +389,7 @@ public class ByteArrayContentRepository implements ContentRepository {
 
         @Override
         public int hashCode() {
-            return Objects.hash(id);
+            return id.hashCode();
         }
     }
 }

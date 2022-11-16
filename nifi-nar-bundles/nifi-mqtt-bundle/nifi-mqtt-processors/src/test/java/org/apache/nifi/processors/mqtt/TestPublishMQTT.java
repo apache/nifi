@@ -40,9 +40,12 @@ import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static org.apache.nifi.processors.mqtt.PublishMQTT.ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
-import static org.apache.nifi.processors.mqtt.PublishMQTT.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE;
-import static org.apache.nifi.processors.mqtt.PublishMQTT.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER;
-import static org.apache.nifi.processors.mqtt.PublishMQTT.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS;
+import static org.apache.nifi.processors.mqtt.PublishMQTT.ProcessDemarcatedContentStrategy.PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_FAILURE;
+import static org.apache.nifi.processors.mqtt.PublishMQTT.ProcessDemarcatedContentStrategy.PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_RECOVER;
+import static org.apache.nifi.processors.mqtt.PublishMQTT.ProcessDemarcatedContentStrategy.PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_SUCCESS;
+import static org.apache.nifi.processors.mqtt.PublishMQTT.ProcessRecordSetStrategy.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE;
+import static org.apache.nifi.processors.mqtt.PublishMQTT.ProcessRecordSetStrategy.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER;
+import static org.apache.nifi.processors.mqtt.PublishMQTT.ProcessRecordSetStrategy.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS;
 import static org.apache.nifi.processors.mqtt.PublishMQTT.REL_FAILURE;
 import static org.apache.nifi.processors.mqtt.PublishMQTT.REL_SUCCESS;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_CLEAN_SESSION_FALSE;
@@ -68,6 +71,18 @@ public class TestPublishMQTT {
     public void cleanup() {
         testRunner = null;
         mqttTestClient = null;
+    }
+
+    @Test
+    public void testRecordAndDemarcatorConfigurationTogetherIsInvalid() throws InitializationException {
+        mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Publisher);
+        testRunner = initializeTestRunner(mqttTestClient);
+
+        testRunner.setProperty(PublishMQTT.RECORD_READER, createJsonRecordSetReaderService(testRunner));
+        testRunner.setProperty(PublishMQTT.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+        testRunner.setProperty(PublishMQTT.MESSAGE_DEMARCATOR, "\n");
+
+        testRunner.assertNotValid();
     }
 
     @Test
@@ -180,12 +195,12 @@ public class TestPublishMQTT {
     }
 
     @Test
-    public void testPublishRecordSet() throws InitializationException {
+    public void testPublishRecords() throws InitializationException {
         mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Publisher);
         testRunner = initializeTestRunner(mqttTestClient);
 
-        testRunner.setProperty(ConsumeMQTT.RECORD_READER, createJsonRecordSetReaderService(testRunner));
-        testRunner.setProperty(ConsumeMQTT.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+        testRunner.setProperty(PublishMQTT.RECORD_READER, createJsonRecordSetReaderService(testRunner));
+        testRunner.setProperty(PublishMQTT.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
         testRunner.setProperty(PublishMQTT.PROP_QOS, "2");
         testRunner.assertValid();
 
@@ -213,15 +228,15 @@ public class TestPublishMQTT {
     }
 
     @Test
-    public void testPublishRecordSetFailed() throws InitializationException {
+    public void testPublishRecordsFailed() throws InitializationException {
         mqttTestClient = Mockito.spy(new MqttTestClient(MqttTestClient.ConnectType.Publisher));
         Mockito.doCallRealMethod()
                 .doThrow(new RuntimeException("Second publish failed."))
                 .when(mqttTestClient).publish(any(), any());
         testRunner = initializeTestRunner(mqttTestClient);
 
-        testRunner.setProperty(ConsumeMQTT.RECORD_READER, createJsonRecordSetReaderService(testRunner));
-        testRunner.setProperty(ConsumeMQTT.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+        testRunner.setProperty(PublishMQTT.RECORD_READER, createJsonRecordSetReaderService(testRunner));
+        testRunner.setProperty(PublishMQTT.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
         testRunner.setProperty(PublishMQTT.PROP_QOS, "2");
         testRunner.assertValid();
 
@@ -254,8 +269,8 @@ public class TestPublishMQTT {
                 .when(mqttTestClient).publish(any(), any());
         testRunner = initializeTestRunner(mqttTestClient);
 
-        testRunner.setProperty(ConsumeMQTT.RECORD_READER, createJsonRecordSetReaderService(testRunner));
-        testRunner.setProperty(ConsumeMQTT.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+        testRunner.setProperty(PublishMQTT.RECORD_READER, createJsonRecordSetReaderService(testRunner));
+        testRunner.setProperty(PublishMQTT.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
         testRunner.setProperty(PublishMQTT.PROP_QOS, "2");
         testRunner.assertValid();
 
@@ -288,8 +303,8 @@ public class TestPublishMQTT {
         Mockito.doCallRealMethod().when(mqttTestClient).publish(any(), any());
         testRunner = initializeTestRunner(mqttTestClient);
 
-        testRunner.setProperty(ConsumeMQTT.RECORD_READER, createJsonRecordSetReaderService(testRunner));
-        testRunner.setProperty(ConsumeMQTT.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+        testRunner.setProperty(PublishMQTT.RECORD_READER, createJsonRecordSetReaderService(testRunner));
+        testRunner.setProperty(PublishMQTT.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
         testRunner.setProperty(PublishMQTT.PROP_QOS, "2");
         testRunner.assertValid();
 
@@ -308,6 +323,149 @@ public class TestPublishMQTT {
         verify(mqttTestClient, Mockito.times(2)).publish(any(), any());
         verifyPublishedMessage(testInput.get(1).toString().getBytes(), 2, false);
         verifyPublishedMessage(testInput.get(2).toString().getBytes(), 2, false);
+        verifyNoMorePublished();
+
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
+        assertEquals(1, flowFiles.size());
+
+        final MockFlowFile successfulFlowFile = flowFiles.get(0);
+        assertNull(successfulFlowFile.getAttribute(publishFailedIndexAttributeName),
+                publishFailedIndexAttributeName + " is expected to be removed after all remaining records have been published successfully.");
+    }
+
+    @Test
+    public void testPublishDemarcatedContent() {
+        mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Publisher);
+        testRunner = initializeTestRunner(mqttTestClient);
+
+        final String demarcator = "\n";
+
+        testRunner.setProperty(PublishMQTT.MESSAGE_DEMARCATOR, demarcator);
+        testRunner.setProperty(PublishMQTT.PROP_QOS, "2");
+        testRunner.assertValid();
+
+        final List<String> testInput = createMultipleInput();
+
+        testRunner.enqueue(String.join(demarcator, testInput).getBytes());
+
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
+        assertProvenanceEvent(String.format(PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_SUCCESS, 3));
+
+        testRunner.assertTransferCount(REL_SUCCESS, 1);
+        verifyPublishedMessage(testInput.get(0).getBytes(), 2, false);
+        verifyPublishedMessage(testInput.get(1).getBytes(), 2, false);
+        verifyPublishedMessage(testInput.get(2).getBytes(), 2, false);
+        verifyNoMorePublished();
+
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
+        assertEquals(1, flowFiles.size());
+
+        final MockFlowFile successfulFlowFile = flowFiles.get(0);
+        final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
+        assertFalse(successfulFlowFile.getAttributes().containsKey(publishFailedIndexAttributeName), "Failed attribute should not be present on the FlowFile");
+    }
+
+    @Test
+    public void testPublishDemarcatedContentFailed() {
+        mqttTestClient = Mockito.spy(new MqttTestClient(MqttTestClient.ConnectType.Publisher));
+        Mockito.doCallRealMethod()
+                .doThrow(new RuntimeException("Second publish failed."))
+                .when(mqttTestClient).publish(any(), any());
+        testRunner = initializeTestRunner(mqttTestClient);
+
+        final String demarcator = "\n";
+
+        testRunner.setProperty(PublishMQTT.MESSAGE_DEMARCATOR, demarcator);
+        testRunner.setProperty(PublishMQTT.PROP_QOS, "2");
+        testRunner.assertValid();
+
+        final List<String> testInput = createMultipleInput();
+
+        testRunner.enqueue(String.join(demarcator, testInput).getBytes());
+
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(REL_FAILURE);
+        assertProvenanceEvent(String.format(PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_FAILURE, 1));
+
+        verify(mqttTestClient, Mockito.times(2)).publish(any(), any());
+        verifyPublishedMessage(testInput.get(0).getBytes(), 2, false);
+        verifyNoMorePublished();
+
+        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_FAILURE);
+        assertEquals(1, flowFiles.size());
+
+        final MockFlowFile failedFlowFile = flowFiles.get(0);
+        final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
+        assertEquals("1", failedFlowFile.getAttribute(publishFailedIndexAttributeName), "Only one record is expected to be published successfully.");
+    }
+
+    @Test
+    public void testContinuePublishDemarcatedContentAndFailAgainWhenPreviousPublishFailed() {
+        mqttTestClient = Mockito.spy(new MqttTestClient(MqttTestClient.ConnectType.Publisher));
+        Mockito.doCallRealMethod()
+                .doThrow(new RuntimeException("Second publish failed."))
+                .when(mqttTestClient).publish(any(), any());
+        testRunner = initializeTestRunner(mqttTestClient);
+
+        final String demarcator = "\n";
+
+        testRunner.setProperty(PublishMQTT.MESSAGE_DEMARCATOR, demarcator);
+        testRunner.setProperty(PublishMQTT.PROP_QOS, "2");
+        testRunner.assertValid();
+
+        final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
+        final List<String> testInput = createMultipleInput();
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(publishFailedIndexAttributeName, "1");
+        testRunner.enqueue(String.join(demarcator, testInput).getBytes(), attributes);
+
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(REL_FAILURE);
+        assertProvenanceEvent(String.format(PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_FAILURE, 2));
+
+        verify(mqttTestClient, Mockito.times(2)).publish(any(), any());
+        verifyPublishedMessage(testInput.get(1).getBytes(), 2, false);
+        verifyNoMorePublished();
+
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_FAILURE);
+        assertEquals(1, flowFiles.size());
+
+        final MockFlowFile failedFlowFile = flowFiles.get(0);
+        assertEquals("2", failedFlowFile.getAttribute(publishFailedIndexAttributeName), "Only one record is expected to be published successfully.");
+    }
+
+    @Test
+    public void testContinuePublishDemarcatedContentSuccessfullyWhenPreviousPublishFailed() {
+        mqttTestClient = Mockito.spy(new MqttTestClient(MqttTestClient.ConnectType.Publisher));
+        Mockito.doCallRealMethod().when(mqttTestClient).publish(any(), any());
+        testRunner = initializeTestRunner(mqttTestClient);
+
+        final String demarcator = "\n";
+
+        testRunner.setProperty(PublishMQTT.MESSAGE_DEMARCATOR, demarcator);
+        testRunner.setProperty(PublishMQTT.PROP_QOS, "2");
+        testRunner.assertValid();
+
+        final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
+        final List<String> testInput = createMultipleInput();
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(publishFailedIndexAttributeName, "1");
+        testRunner.enqueue(String.join(demarcator, testInput).getBytes(), attributes);
+
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
+        assertProvenanceEvent(String.format(PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_RECOVER, 3));
+
+        verify(mqttTestClient, Mockito.times(2)).publish(any(), any());
+        verifyPublishedMessage(testInput.get(1).getBytes(), 2, false);
+        verifyPublishedMessage(testInput.get(2).getBytes(), 2, false);
         verifyNoMorePublished();
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
@@ -365,6 +523,10 @@ public class TestPublishMQTT {
                         .put("firstAttribute", "foobar")
                         .put("secondAttribute", false)
         ));
+    }
+
+    private static List<String> createMultipleInput() {
+        return Arrays.asList("message1", "message2", "message3");
     }
 
     private TestRunner initializeTestRunner(MqttTestClient mqttTestClient) {

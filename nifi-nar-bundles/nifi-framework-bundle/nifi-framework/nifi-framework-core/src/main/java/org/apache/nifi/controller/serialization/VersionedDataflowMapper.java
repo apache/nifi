@@ -82,6 +82,7 @@ public class VersionedDataflowMapper {
         final VersionedDataflow dataflow = new VersionedDataflow();
         dataflow.setEncodingVersion(ENCODING_VERSION);
         dataflow.setMaxTimerDrivenThreadCount(flowController.getMaxTimerDrivenThreadCount());
+        dataflow.setMaxEventDrivenThreadCount(flowController.getMaxEventDrivenThreadCount());
         dataflow.setControllerServices(mapControllerServices());
         dataflow.setParameterContexts(mapParameterContexts());
         dataflow.setRegistries(mapRegistries());

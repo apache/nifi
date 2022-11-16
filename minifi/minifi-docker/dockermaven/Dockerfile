@@ -16,10 +16,11 @@
 # under the License.
 #
 
-ARG IMAGE_NAME=openjdk
-ARG IMAGE_TAG=8-jre-alpine
+ARG IMAGE_NAME=eclipse-temurin
+ARG IMAGE_TAG=8-jre
 FROM ${IMAGE_NAME}:${IMAGE_TAG}
-MAINTAINER Apache MiNiFi <dev@nifi.apache.org>
+LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
+LABEL site="https://nifi.apache.org"
 
 # Values are set by Maven
 ARG UID
@@ -31,8 +32,8 @@ ENV MINIFI_BASE_DIR /opt/minifi
 ENV MINIFI_HOME $MINIFI_BASE_DIR/minifi-current
 
 # Setup MiNiFi user
-RUN addgroup -g $GID minifi || groupmod -n minifi `getent group $GID | cut -d: -f1`
-RUN adduser -S -H -G minifi minifi
+RUN addgroup -gid $GID minifi || groupmod -n minifi $(getent group $GID | cut -d: -f1)
+RUN useradd -r -g minifi minifi
 RUN mkdir -p $MINIFI_BASE_DIR
 
 ADD $MINIFI_BINARY $MINIFI_BASE_DIR
