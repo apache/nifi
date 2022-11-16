@@ -324,6 +324,11 @@ public class PublisherLease implements Closeable {
         if (object == null) {
             return null;
         } else if (object instanceof Record) {
+            if (writerFactory == null) {
+                throw new MalformedRecordException("Record has a key that is itself a record, but the 'Record Key Writer' of the processor was not configured. If Records are expected to have a " +
+                    "Record as the key, the 'Record Key Writer' property must be set.");
+            }
+
             final Record record = (Record) object;
             final RecordSchema schema = record.getSchema();
             try (final ByteArrayOutputStream baos = new ByteArrayOutputStream();
