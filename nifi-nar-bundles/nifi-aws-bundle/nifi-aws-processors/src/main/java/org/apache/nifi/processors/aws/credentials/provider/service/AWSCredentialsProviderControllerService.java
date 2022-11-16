@@ -114,7 +114,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
     @Override
     public AwsCredentialsProvider getAwsCredentialsProvider() {
         // Avoiding instantiation until actually used, in case v1-related configuration is not compatible with v2 clients
-        return credentialsProviderFactory.getV2CredentialsProvider(evaluatedProperties);
+        return credentialsProviderFactory.getAwsCredentialsProvider(evaluatedProperties);
     }
 
     @Override

@@ -59,7 +59,7 @@ public class TestCredentialsProviderFactory {
         assertEquals(DefaultAWSCredentialsProviderChain.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");
 
-        final AwsCredentialsProvider credentialsProviderV2 = factory.getV2CredentialsProvider(properties);
+        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(properties);
         assertNotNull(credentialsProviderV2);
         assertEquals(DefaultCredentialsProvider.class,
                 credentialsProviderV2.getClass(), "credentials provider should be equal");
@@ -78,7 +78,7 @@ public class TestCredentialsProviderFactory {
         assertEquals(DefaultAWSCredentialsProviderChain.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");
 
-        final AwsCredentialsProvider credentialsProviderV2 = factory.getV2CredentialsProvider(properties);
+        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(properties);
         assertNotNull(credentialsProviderV2);
         assertEquals(DefaultCredentialsProvider.class,
                 credentialsProviderV2.getClass(), "credentials provider should be equal");
@@ -107,7 +107,7 @@ public class TestCredentialsProviderFactory {
         assertEquals(StaticCredentialsProvider.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");
 
-        final AwsCredentialsProvider credentialsProviderV2 = factory.getV2CredentialsProvider(properties);
+        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(properties);
         assertNotNull(credentialsProviderV2);
         assertEquals(software.amazon.awssdk.auth.credentials.StaticCredentialsProvider.class,
                 credentialsProviderV2.getClass(), "credentials provider should be equal");
@@ -140,7 +140,7 @@ public class TestCredentialsProviderFactory {
         assertEquals(PropertiesFileCredentialsProvider.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");
 
-        final AwsCredentialsProvider credentialsProviderV2 = factory.getV2CredentialsProvider(properties);
+        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(properties);
         assertNotNull(credentialsProviderV2);
         assertEquals(PropertiesCredentialsProvider.class,
                 credentialsProviderV2.getClass(), "credentials provider should be equal");
@@ -161,11 +161,11 @@ public class TestCredentialsProviderFactory {
         assertEquals(STSAssumeRoleSessionCredentialsProvider.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");
 
-        assertThrows(IllegalStateException.class, () -> factory.getV2CredentialsProvider(properties));
+        assertThrows(IllegalStateException.class, () -> factory.getAwsCredentialsProvider(properties));
 
         runner.setProperty(CredentialPropertyDescriptors.ASSUME_ROLE_REGION, Region.US_WEST_1.id());
         final Map<PropertyDescriptor, String> properties2 = runner.getProcessContext().getProperties();
-        final AwsCredentialsProvider credentialsProviderV2 = factory.getV2CredentialsProvider(properties2);
+        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(properties2);
         assertNotNull(credentialsProviderV2);
         assertEquals(StsAssumeRoleCredentialsProvider.class,
                 credentialsProviderV2.getClass(), "credentials provider should be equal");
@@ -218,7 +218,7 @@ public class TestCredentialsProviderFactory {
         final AWSCredentials creds = credentialsProvider.getCredentials();
         assertEquals(AnonymousAWSCredentials.class, creds.getClass(), "credentials should be equal");
 
-        final AwsCredentialsProvider credentialsProviderV2 = factory.getV2CredentialsProvider(properties);
+        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(properties);
         assertNotNull(credentialsProviderV2);
         assertEquals(AnonymousCredentialsProvider.class,
                 credentialsProviderV2.getClass(), "credentials provider should be equal");
@@ -246,7 +246,7 @@ public class TestCredentialsProviderFactory {
         assertEquals(ProfileCredentialsProvider.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");
 
-        final AwsCredentialsProvider credentialsProviderV2 = factory.getV2CredentialsProvider(properties);
+        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(properties);
         assertNotNull(credentialsProviderV2);
         assertEquals(software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider.class,
                 credentialsProviderV2.getClass(), "credentials provider should be equal");
@@ -270,7 +270,7 @@ public class TestCredentialsProviderFactory {
         assertEquals(STSAssumeRoleSessionCredentialsProvider.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");
 
-        final AwsCredentialsProvider credentialsProviderV2 = factory.getV2CredentialsProvider(properties);
+        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(properties);
         assertNotNull(credentialsProviderV2);
         assertEquals(StsAssumeRoleCredentialsProvider.class,
                 credentialsProviderV2.getClass(), "credentials provider should be equal");

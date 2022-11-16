@@ -155,7 +155,7 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
         final String assumeRoleArn = properties.get(ASSUME_ROLE_ARN);
         final String assumeRoleName = properties.get(ASSUME_ROLE_NAME);
         String rawMaxSessionTime = properties.get(MAX_SESSION_TIME);
-        rawMaxSessionTime = (rawMaxSessionTime != null) ? rawMaxSessionTime : MAX_SESSION_TIME.getDefaultValue();
+        rawMaxSessionTime = rawMaxSessionTime == null ? MAX_SESSION_TIME.getDefaultValue() : rawMaxSessionTime;
         final Integer maxSessionTime = Integer.parseInt(rawMaxSessionTime.trim());
         final String assumeRoleExternalId = properties.get(ASSUME_ROLE_EXTERNAL_ID);
         final String assumeRoleSTSEndpoint = properties.get(ASSUME_ROLE_STS_ENDPOINT);
@@ -199,7 +199,7 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
         final String assumeRoleArn = properties.get(ASSUME_ROLE_ARN);
         final String assumeRoleName = properties.get(ASSUME_ROLE_NAME);
         String rawMaxSessionTime = properties.get(MAX_SESSION_TIME);
-        rawMaxSessionTime = (rawMaxSessionTime != null) ? rawMaxSessionTime : MAX_SESSION_TIME.getDefaultValue();
+        rawMaxSessionTime = rawMaxSessionTime == null ? MAX_SESSION_TIME.getDefaultValue() : rawMaxSessionTime;
         final Integer maxSessionTime = Integer.parseInt(rawMaxSessionTime.trim());
         final String assumeRoleExternalId = properties.get(ASSUME_ROLE_EXTERNAL_ID);
         final String assumeRoleSTSEndpoint = properties.get(ASSUME_ROLE_STS_ENDPOINT);

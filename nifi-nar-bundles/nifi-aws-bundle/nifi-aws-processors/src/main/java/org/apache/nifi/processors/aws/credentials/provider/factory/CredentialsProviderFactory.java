@@ -129,9 +129,9 @@ public class CredentialsProviderFactory {
      * the factory.
      * @return AwsCredentialsProvider implementation
      */
-    public AwsCredentialsProvider getV2CredentialsProvider(final Map<PropertyDescriptor, String> properties) {
+    public AwsCredentialsProvider getAwsCredentialsProvider(final Map<PropertyDescriptor, String> properties) {
         final CredentialsStrategy primaryStrategy = selectPrimaryStrategy(properties);
-        AwsCredentialsProvider primaryCredentialsProvider = primaryStrategy.getAwsCredentialsProvider(properties);
+        final AwsCredentialsProvider primaryCredentialsProvider = primaryStrategy.getAwsCredentialsProvider(properties);
         AwsCredentialsProvider derivedCredentialsProvider = null;
 
         for (final CredentialsStrategy strategy : strategies) {
@@ -141,10 +141,6 @@ public class CredentialsProviderFactory {
             }
         }
 
-        if (derivedCredentialsProvider != null) {
-            return derivedCredentialsProvider;
-        } else {
-            return primaryCredentialsProvider;
-        }
+        return derivedCredentialsProvider == null ? primaryCredentialsProvider : derivedCredentialsProvider;
     }
 }
