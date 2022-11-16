@@ -27,18 +27,30 @@ import java.util.Map;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class TestControlRate {
 
-    private static final long ONE_SEC_PLUS = 1010L;
+    private static final String ONE_SECOND_TIME_PERIOD = "1 s";
+
+    private static final long CURRENT_TIME_INCREMENT = 1100;
+
+    private ConfigurableControlRate controlRate;
+
+    private TestRunner runner;
+
+    @BeforeEach
+    public void setRunner() {
+        controlRate = new ConfigurableControlRate();
+        runner = TestRunners.newTestRunner(controlRate);
+    }
 
     @Test
     public void testLimitExceededThenOtherLimitNotExceeded() {
         // If we have flowfiles queued that have different values for the "Rate Controlled Attribute"
         // and we encounter a FlowFile whose rate should be throttled, we should continue pulling other flowfiles
         // whose rate does not need to be throttled.
-        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
         runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
         runner.setProperty(ControlRate.MAX_RATE, "3");
         runner.setProperty(ControlRate.TIME_PERIOD, "1 min");
@@ -64,11 +76,10 @@ public class TestControlRate {
     }
 
     @Test
-    public void testFileCountRate() throws InterruptedException {
-        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
+    public void testFileCountRate() {
         runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
         runner.setProperty(ControlRate.MAX_RATE, "3");
-        runner.setProperty(ControlRate.TIME_PERIOD, "1 sec");
+        runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
 
         runner.enqueue("test data 1");
         runner.enqueue("test data 2");
@@ -86,18 +97,18 @@ public class TestControlRate {
         runner.assertQueueNotEmpty();
 
         // we have sent 3 files and after 1 second, we should be able to send the 4th
-        Thread.sleep(ONE_SEC_PLUS);
-        runner.run();
+        incrementCurrentTime();
+
+        runner.run(5);
         runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, 1);
         runner.assertQueueEmpty();
     }
 
     @Test
-    public void testFileCountWithGrouping() throws InterruptedException {
-        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
+    public void testFileCountWithGrouping() {
         runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
         runner.setProperty(ControlRate.MAX_RATE, "2");
-        runner.setProperty(ControlRate.TIME_PERIOD, "1 sec");
+        runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
         runner.setProperty(ControlRate.GROUPING_ATTRIBUTE_NAME, "group");
 
         createFlowFileWithGroup(runner, "one");
@@ -118,18 +129,17 @@ public class TestControlRate {
         runner.assertQueueNotEmpty();
 
         // we have sent 2 files per group and after 1 second, we should be able to send the remaining 1 file per group
-        Thread.sleep(ONE_SEC_PLUS);
+        incrementCurrentTime();
         runner.run(2);
         runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, 2);
         runner.assertQueueEmpty();
     }
 
     @Test
-    public void testDataSizeRate() throws InterruptedException {
-        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
+    public void testDataSizeRate() {
         runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.DATA_RATE);
         runner.setProperty(ControlRate.MAX_RATE, "20 b");
-        runner.setProperty(ControlRate.TIME_PERIOD, "1 sec");
+        runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
 
         runner.enqueue("testdata 1");
         runner.enqueue("testdata 2");
@@ -147,19 +157,18 @@ public class TestControlRate {
         runner.assertQueueNotEmpty();
 
         // we have sent 20 bytes and after 1 second, we should be able to send 20 more
-        Thread.sleep(ONE_SEC_PLUS);
+        incrementCurrentTime();
         runner.run(2, false);
         runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, 2);
         runner.assertQueueEmpty();
     }
 
     @Test
-    public void testViaAttribute() throws InterruptedException {
-        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
+    public void testViaAttribute() {
         runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.ATTRIBUTE_RATE);
         runner.setProperty(ControlRate.RATE_CONTROL_ATTRIBUTE_NAME, "count");
         runner.setProperty(ControlRate.MAX_RATE, "20000");
-        runner.setProperty(ControlRate.TIME_PERIOD, "1 sec");
+        runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
 
         createFlowFile(runner, 1000);
         createFlowFile(runner, 3000);
@@ -178,14 +187,14 @@ public class TestControlRate {
         runner.assertTransferCount(ControlRate.REL_SUCCESS, 0);
         runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
         runner.assertQueueNotEmpty();
-        Thread.sleep(1200L);
+        incrementCurrentTime(1450);
 
         // at this point, more than TIME_PERIOD 1.0 seconds but less than 1.45 seconds have passed
         runner.run(50, false);
         runner.assertTransferCount(ControlRate.REL_SUCCESS, 0);
         runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
         runner.assertQueueNotEmpty();
-        Thread.sleep(600L);
+        incrementCurrentTime(600);
 
         // at this point, more than 1.45 seconds have passed, so we should be able to send another 20,000
         runner.run();
@@ -195,12 +204,11 @@ public class TestControlRate {
     }
 
     @Test
-    public void testAttributeDoesNotExist() throws InterruptedException {
-        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
+    public void testAttributeDoesNotExist() {
         runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.ATTRIBUTE_RATE);
         runner.setProperty(ControlRate.RATE_CONTROL_ATTRIBUTE_NAME, "no.such.attribute");
         runner.setProperty(ControlRate.MAX_RATE, "20000");
-        runner.setProperty(ControlRate.TIME_PERIOD, "1 sec");
+        runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
 
         createFlowFile(runner, 1000);
         createFlowFile(runner, 3000);
@@ -218,11 +226,10 @@ public class TestControlRate {
 
     @Test
     public void testBadAttributeRate() {
-        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
         runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.ATTRIBUTE_RATE);
         runner.setProperty(ControlRate.RATE_CONTROL_ATTRIBUTE_NAME, "count");
         runner.setProperty(ControlRate.MAX_RATE, "20000");
-        runner.setProperty(ControlRate.TIME_PERIOD, "1 sec");
+        runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
 
         final Map<String, String> attributeMap = new HashMap<>();
         attributeMap.put("count", "bad string");
@@ -236,10 +243,9 @@ public class TestControlRate {
 
     @Test
     public void testBatchLimit() {
-        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
         runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
         runner.setProperty(ControlRate.MAX_RATE, "5555");
-        runner.setProperty(ControlRate.TIME_PERIOD, "1 sec");
+        runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
 
         final int TEST_FILE_COUNT = 1500;
 
@@ -265,10 +271,9 @@ public class TestControlRate {
 
     @Test
     public void testNonExistingGroupAttribute() {
-        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
         runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
         runner.setProperty(ControlRate.MAX_RATE, "2");
-        runner.setProperty(ControlRate.TIME_PERIOD, "1 sec");
+        runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
         runner.setProperty(ControlRate.GROUPING_ATTRIBUTE_NAME, "group");
 
         createFlowFileWithGroup(runner, "one");
@@ -283,11 +288,10 @@ public class TestControlRate {
     }
 
     @Test
-    public void testIncreaseDataRate() throws InterruptedException {
-        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
+    public void testIncreaseDataRate() {
         runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.DATA_RATE);
         runner.setProperty(ControlRate.MAX_RATE, "11 B");
-        runner.setProperty(ControlRate.TIME_PERIOD, "1 sec");
+        runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
 
         runner.enqueue("test data 1");
         runner.enqueue("test data 2");
@@ -310,7 +314,7 @@ public class TestControlRate {
         runner.assertQueueNotEmpty();
 
         // after 1 second, we should be able to send the up to 3 more flowfiles
-        Thread.sleep(ONE_SEC_PLUS);
+        incrementCurrentTime();
         runner.run(7, false);
         runner.assertTransferCount(ControlRate.REL_SUCCESS, 6);
         runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
@@ -318,11 +322,10 @@ public class TestControlRate {
     }
 
     @Test
-    public void testIncreaseFlowFileRate() throws InterruptedException {
-        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
+    public void testIncreaseFlowFileRate() {
         runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
         runner.setProperty(ControlRate.MAX_RATE, "1");
-        runner.setProperty(ControlRate.TIME_PERIOD, "1 sec");
+        runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
 
         runner.enqueue("test data 1");
         runner.enqueue("test data 2");
@@ -345,7 +348,7 @@ public class TestControlRate {
         runner.assertQueueNotEmpty();
 
         // after 1 second, we should be able to send the up to 3 more flowfiles
-        Thread.sleep(ONE_SEC_PLUS);
+        incrementCurrentTime();
         runner.run(7, false);
         runner.assertTransferCount(ControlRate.REL_SUCCESS, 6);
         runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
@@ -353,10 +356,9 @@ public class TestControlRate {
     }
 
     @Test
-    public void testDataOrFlowFileCountLimitedByBytes() throws InterruptedException {
-        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
+    public void testDataOrFlowFileCountLimitedByBytes() {
         runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.DATA_OR_FLOWFILE_RATE);
-        runner.setProperty(ControlRate.TIME_PERIOD, "1 sec");
+        runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
         // Data rate will throttle before FlowFile count
         runner.setProperty(ControlRate.MAX_DATA_RATE, "22 B");
         runner.setProperty(ControlRate.MAX_COUNT_RATE, "3");
@@ -377,17 +379,16 @@ public class TestControlRate {
         runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
         runner.assertQueueNotEmpty();
         // we have sent 22 bytes and after 1 second, we should be able to send 22 more
-        Thread.sleep(ONE_SEC_PLUS);
+        incrementCurrentTime(1500);
         runner.run(4, false);
         runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, 1);
         runner.assertQueueEmpty();
     }
 
     @Test
-    public void testDataOrFlowFileCountLimitedByCount() throws InterruptedException {
-        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
+    public void testDataOrFlowFileCountLimitedByCount() {
         runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.DATA_OR_FLOWFILE_RATE);
-        runner.setProperty(ControlRate.TIME_PERIOD, "1 sec");
+        runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
         // FlowFile count rate will throttle before data rate
         runner.setProperty(ControlRate.MAX_DATA_RATE, "44 B"); // greater than all flowfiles to be queued
         runner.setProperty(ControlRate.MAX_COUNT_RATE, "1");  // limit to 1 flowfile per second
@@ -396,32 +397,23 @@ public class TestControlRate {
         runner.enqueue("test data 2");
         runner.enqueue("test data 3");
 
-        runner.run(4, false);
+        runner.run(1, false);
 
         runner.assertTransferCount(ControlRate.REL_SUCCESS, 1);
         runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
         runner.assertQueueNotEmpty();
 
-        // we have sent 1 flowfile and after 1 second, we should be able to send 1 more
-        Thread.sleep(ONE_SEC_PLUS);
-        runner.run(4, false);
-        runner.assertTransferCount(ControlRate.REL_SUCCESS, 2);
-        runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
-        runner.assertQueueNotEmpty();
-
-        // we have sent 2 flowfile and after 1 second, we should be able to send 1 more
-        Thread.sleep(ONE_SEC_PLUS);
-        runner.run(4, false);
-        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, 3);
+        incrementCurrentTime(2000);
+        runner.run(1, false);
+        runner.assertTransferCount(ControlRate.REL_SUCCESS, 3);
         runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
         runner.assertQueueEmpty();
     }
 
     @Test
-    public void testDataOrFlowFileCountLimitedByBytesThenCount() throws InterruptedException {
-        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
+    public void testDataOrFlowFileCountLimitedByBytesThenCount() {
         runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.DATA_OR_FLOWFILE_RATE);
-        runner.setProperty(ControlRate.TIME_PERIOD, "1 sec");
+        runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
         // Data rate will throttle before FlowFile count
         runner.setProperty(ControlRate.MAX_DATA_RATE, "22 B");
         runner.setProperty(ControlRate.MAX_COUNT_RATE, "5");
@@ -440,27 +432,17 @@ public class TestControlRate {
         runner.assertTransferCount(ControlRate.REL_SUCCESS, 2);
         runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
         runner.assertQueueNotEmpty();
-        runner.clearTransferState();
 
         // we have sent 2 flowfile and after 1 second, we should be able to send more, now limited by flowfile count
-        Thread.sleep(ONE_SEC_PLUS);
-        runner.run(10, false);
-        runner.assertTransferCount(ControlRate.REL_SUCCESS, 5);
-        runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
-        runner.assertQueueNotEmpty();
-        runner.clearTransferState();
-
-        // after 1 second, we should be able to send the remaining flowfile
-        Thread.sleep(ONE_SEC_PLUS);
-        runner.run(10, false);
-        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, 1);
+        incrementCurrentTime(1500);
+        runner.run(1, false);
+        runner.assertTransferCount(ControlRate.REL_SUCCESS, 8);
         runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
         runner.assertQueueEmpty();
     }
 
     @Test
     public void testValidate() {
-        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
         runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.DATA_RATE);
         runner.assertNotValid(); // MAX_RATE is not set
         runner.setProperty(ControlRate.MAX_RATE, "1");
@@ -526,5 +508,23 @@ public class TestControlRate {
         final Map<String, String> attributeMap = new HashMap<>();
         attributeMap.put("group", group);
         runner.enqueue(new byte[0], attributeMap);
+    }
+
+    private void incrementCurrentTime() {
+        controlRate.currentTimeMillis += CURRENT_TIME_INCREMENT;
+    }
+
+    private void incrementCurrentTime(final long milliseconds) {
+        controlRate.currentTimeMillis += milliseconds;
+    }
+
+    private static class ConfigurableControlRate extends ControlRate {
+
+        private long currentTimeMillis = System.currentTimeMillis();
+
+        @Override
+        protected long getCurrentTimeMillis() {
+            return currentTimeMillis;
+        }
     }
 }
