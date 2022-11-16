@@ -29,8 +29,6 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Objects;
 
@@ -39,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TestValidateJson {
-    private static final Path JSON = Paths.get(getFilePath("simple-example.json"));
+    private static final String JSON = getFileContent("simple-example.json");
     private static final String NON_JSON = "Not JSON";
     private static final String SCHEMA_VERSION = ValidateJson.SchemaVersion.DRAFT_7.getValue();
     private TestRunner runner;
@@ -50,7 +48,7 @@ class TestValidateJson {
     }
 
     @Test
-    void testPassSchema() throws IOException {
+    void testPassSchema() {
         final String schemaPath = getFilePath("schema-simple-example.json");
         runner.setProperty(ValidateJson.SCHEMA_CONTENT, schemaPath);
         runner.setProperty(ValidateJson.SCHEMA_VERSION, SCHEMA_VERSION);
@@ -67,7 +65,7 @@ class TestValidateJson {
     }
 
     @Test
-    void testEmptySchema() throws IOException {
+    void testEmptySchema() {
         runner.setProperty(ValidateJson.SCHEMA_CONTENT, "{}");
         runner.setProperty(ValidateJson.SCHEMA_VERSION, SCHEMA_VERSION);
 
@@ -82,7 +80,7 @@ class TestValidateJson {
     }
 
     @Test
-    void testAllUnknownKeywordsSchema() throws IOException {
+    void testAllUnknownKeywordsSchema() {
         runner.setProperty(ValidateJson.SCHEMA_CONTENT,
                 "{\"fruit\": \"Apple\", \"size\": \"Large\", \"color\": \"Red\"}");
         runner.setProperty(ValidateJson.SCHEMA_VERSION, SCHEMA_VERSION);
@@ -98,7 +96,7 @@ class TestValidateJson {
     }
 
     @Test
-    void testPatternSchemaCheck() throws IOException {
+    void testPatternSchemaCheck() {
         final String schemaPath = getFilePath("schema-simple-example-unmatched-pattern.json");
         runner.setProperty(ValidateJson.SCHEMA_CONTENT, schemaPath);
         runner.setProperty(ValidateJson.SCHEMA_VERSION, SCHEMA_VERSION);
@@ -114,7 +112,7 @@ class TestValidateJson {
     }
 
     @Test
-    void testMissingRequiredValue() throws IOException {
+    void testMissingRequiredValue() {
         final String schema = getFileContent("schema-simple-example-missing-required.json");
         runner.setProperty(ValidateJson.SCHEMA_CONTENT, schema);
         runner.setProperty(ValidateJson.SCHEMA_VERSION, SCHEMA_VERSION);
@@ -146,7 +144,7 @@ class TestValidateJson {
     }
 
     @Test
-    void testNonExistingSchema() throws IOException {
+    void testNonExistingSchema() {
         runner.setProperty(ValidateJson.SCHEMA_CONTENT, "not-found.json");
         runner.setProperty(ValidateJson.SCHEMA_VERSION, SCHEMA_VERSION);
 
@@ -155,7 +153,7 @@ class TestValidateJson {
     }
 
     @Test
-    void testBadSchema() throws IOException {
+    void testBadSchema() {
         runner.setProperty(ValidateJson.SCHEMA_CONTENT, NON_JSON);
         runner.setProperty(ValidateJson.SCHEMA_VERSION, SCHEMA_VERSION);
 
