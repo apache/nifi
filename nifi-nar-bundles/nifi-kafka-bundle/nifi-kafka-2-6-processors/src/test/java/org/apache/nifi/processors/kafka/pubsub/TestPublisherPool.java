@@ -37,7 +37,7 @@ public class TestPublisherPool {
         kafkaProperties.put("key.serializer", ByteArraySerializer.class.getName());
         kafkaProperties.put("value.serializer", ByteArraySerializer.class.getName());
 
-        final PublisherPool pool = new PublisherPool(kafkaProperties, Mockito.mock(ComponentLog.class), 1024 * 1024, 1000L, false, null, null, StandardCharsets.UTF_8);
+        final PublisherPool pool = new PublisherPool(kafkaProperties, Mockito.mock(ComponentLog.class), 1024 * 1024, 1000L, false, null, null, StandardCharsets.UTF_8, null, null);
         assertEquals(0, pool.available());
 
         final PublisherLease lease = pool.obtainPublisher();
@@ -54,7 +54,7 @@ public class TestPublisherPool {
         kafkaProperties.put("key.serializer", ByteArraySerializer.class.getName());
         kafkaProperties.put("value.serializer", ByteArraySerializer.class.getName());
 
-        final PublisherPool pool = new PublisherPool(kafkaProperties, Mockito.mock(ComponentLog.class), 1024 * 1024, 1000L, false, null, null, StandardCharsets.UTF_8);
+        final PublisherPool pool = new PublisherPool(kafkaProperties, Mockito.mock(ComponentLog.class), 1024 * 1024, 1000L, false, null, null, StandardCharsets.UTF_8, null, null);
         assertEquals(0, pool.available());
 
         final PublisherLease lease = pool.obtainPublisher();

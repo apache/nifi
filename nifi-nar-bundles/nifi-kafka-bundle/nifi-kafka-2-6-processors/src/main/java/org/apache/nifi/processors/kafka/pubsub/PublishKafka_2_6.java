@@ -401,7 +401,8 @@ public class PublishKafka_2_6 extends AbstractProcessor implements VerifiablePro
         kafkaProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
         kafkaProperties.put("max.request.size", String.valueOf(maxMessageSize));
 
-        return new PublisherPool(kafkaProperties, getLogger(), maxMessageSize, maxAckWaitMillis, useTransactions, transactionalIdSupplier, attributeNamePattern, charset);
+        return new PublisherPool(kafkaProperties, getLogger(), maxMessageSize, maxAckWaitMillis,
+                useTransactions, transactionalIdSupplier, attributeNamePattern, charset, null, null);
     }
 
     @OnStopped
