@@ -136,7 +136,7 @@ public class MockProcessSession implements ProcessSession {
     }
 
     public void migrate(final ProcessSession newOwner) {
-        migrate(newOwner, (Collection) currentVersions.values());
+        migrate(newOwner, new ArrayList<>((Collection) currentVersions.values()));
     }
 
     @Override
