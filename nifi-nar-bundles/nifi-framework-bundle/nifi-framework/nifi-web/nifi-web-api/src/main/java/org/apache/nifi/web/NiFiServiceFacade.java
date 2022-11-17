@@ -2473,6 +2473,17 @@ public interface NiFiServiceFacade {
      */
     Set<VersionedFlowEntity> getFlowsForUser(String registryClientId, String bucketId);
 
+
+    /**
+     * Returns the details of a versioned flow from a given bucket of a given registry.
+     *
+     * @param registryClientId registry client id
+     * @param bucketId bucket id
+     * @param flowId flow id
+     * @return the flow details
+     */
+    VersionedFlowEntity getFlowForUser(String registryClientId, String bucketId, String flowId);
+
     /**
      * Gets the versions of the specified registry, bucket, and flow for the current user.
      *
