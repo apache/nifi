@@ -29,7 +29,9 @@ ARG MINIFI_VERSION
 ARG MINIFI_BINARY
 
 ENV MINIFI_BASE_DIR /opt/minifi
+ENV MINIFI_C2_BINARY_NAME minifi-${MINIFI_VERSION}-bin.zip
 ENV MINIFI_HOME $MINIFI_BASE_DIR/minifi-current
+
 
 RUN  mkdir -p $MINIFI_BASE_DIR
 COPY $MINIFI_BINARY $MINIFI_BASE_DIR
@@ -40,8 +42,8 @@ RUN apt-get update \
     && apt-get -y autoremove \
     && apt-get clean autoclean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
-    && unzip ${MINIFI_BASE_DIR}/${MINIFI_BINARY} -d ${MINIFI_BASE_DIR} \
-    && rm ${MINIFI_BASE_DIR}/${MINIFI_BINARY} \
+    && unzip ${MINIFI_BASE_DIR}/${MINIFI_C2_BINARY_NAME} -d ${MINIFI_BASE_DIR} \
+    && rm ${MINIFI_BASE_DIR}/${MINIFI_C2_BINARY_NAME} \
     && groupadd -g ${GID} minifi \
     && useradd --shell /bin/bash -u ${UID} -g ${GID} -m minifi \
     && ln -s $MINIFI_BASE_DIR/minifi-$MINIFI_VERSION $MINIFI_HOME
