@@ -39,16 +39,16 @@ RUN mkdir -p $MINIFI_BASE_DIR
 ADD sh/ ${MINIFI_BASE_DIR}/scripts/
 
 # Download, validate, and expand Apache MiNiFi binary.
-RUN apt-get update \
+RUN chmod -R +x ${MINIFI_BASE_DIR}/scripts/*.sh \
+    && apt-get update \
     && apt-get install -y zip \
     && rm -rf /var/lib/apt/lists/* \
     && curl -fSL $MINIFI_BINARY_URL -o $MINIFI_BASE_DIR/${MINIFI_BINARY} \
-	&& echo "$(curl $MINIFI_BINARY_URL.sha256) *$MINIFI_BASE_DIR/${MINIFI_BINARY}" | sha256sum -c - \
-	&& unzip $MINIFI_BASE_DIR/${MINIFI_BINARY} -d $MINIFI_BASE_DIR \
-	&& rm $MINIFI_BASE_DIR/${MINIFI_BINARY} \
-	&& ln -s $MINIFI_BASE_DIR/minifi-$MINIFI_VERSION $MINIFI_HOME
-
-RUN chown -R -L minifi:minifi $MINIFI_HOME
+    && echo "$(curl $MINIFI_BINARY_URL.sha256) *$MINIFI_BASE_DIR/${MINIFI_BINARY}" | sha256sum -c - \
+    && unzip $MINIFI_BASE_DIR/${MINIFI_BINARY} -d $MINIFI_BASE_DIR \
+    && rm $MINIFI_BASE_DIR/${MINIFI_BINARY} \
+    && ln -s $MINIFI_BASE_DIR/minifi-$MINIFI_VERSION $MINIFI_HOME
+    && chown -R -L minifi:minifi $MINIFI_HOME
 
 USER minifi
 

@@ -16,13 +16,13 @@
 # under the License.
 #
 
-FROM openjdk:8-jdk-slim
+FROM eclipse-temurin:8-jdk
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 LABEL site="https://nifi.apache.org"
 
 ARG UID=1000
 ARG GID=1000
-ARG NIFI_REGISTRY_VERSION=1.17.0
+ARG NIFI_REGISTRY_VERSION=1.19.0
 ARG MIRROR=https://archive.apache.org/dist
 
 ENV NIFI_REGISTRY_BASE_DIR /opt/nifi-registry
@@ -32,13 +32,17 @@ ENV NIFI_REGISTRY_BINARY_PATH nifi/${NIFI_REGISTRY_VERSION}/${NIFI_REGISTRY_BINA
 ENV NIFI_REGISTRY_BINARY_URL ${MIRROR}/${NIFI_REGISTRY_BINARY_PATH}
 
 ADD sh/ ${NIFI_REGISTRY_BASE_DIR}/scripts/
+RUN chmod -R +x ${NIFI_REGISTRY_BASE_DIR}/scripts/*.sh
 
 # Setup NiFi-Registry user
 RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -f1` \
     && useradd --shell /bin/bash -u ${UID} -g ${GID} -m nifi \
     && chown -R nifi:nifi ${NIFI_REGISTRY_BASE_DIR} \
     && apt-get update -y \
-    && apt-get install -y curl jq xmlstarlet unzip
+    && apt-get install -y curl jq xmlstarlet unzip \
+    && apt-get -y autoremove \
+    && apt-get clean autoclean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 USER nifi
 

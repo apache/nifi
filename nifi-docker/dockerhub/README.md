@@ -15,6 +15,10 @@
 
 ## Latest changes
 
+### 1.19.0
+
+- Changed base image to eclipse-temurin:8-jre as openjdk:8-jre is no longer maintained.
+
 ### 1.14.0
 
 - Updated default container configuration to use HTTPS with Single User Authentication
