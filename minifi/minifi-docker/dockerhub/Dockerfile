@@ -16,7 +16,7 @@
 # under the License.
 #
 
-FROM eclipse-temurin:8-jre
+FROM eclipse-temurin:11-jre
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 LABEL site="https://nifi.apache.org"
 
@@ -47,7 +47,7 @@ RUN chmod -R +x ${MINIFI_BASE_DIR}/scripts/*.sh \
     && echo "$(curl $MINIFI_BINARY_URL.sha256) *$MINIFI_BASE_DIR/${MINIFI_BINARY}" | sha256sum -c - \
     && unzip $MINIFI_BASE_DIR/${MINIFI_BINARY} -d $MINIFI_BASE_DIR \
     && rm $MINIFI_BASE_DIR/${MINIFI_BINARY} \
-    && ln -s $MINIFI_BASE_DIR/minifi-$MINIFI_VERSION $MINIFI_HOME
+    && ln -s $MINIFI_BASE_DIR/minifi-$MINIFI_VERSION $MINIFI_HOME \
     && chown -R -L minifi:minifi $MINIFI_HOME
 
 USER minifi

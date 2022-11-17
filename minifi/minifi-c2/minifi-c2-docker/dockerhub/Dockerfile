@@ -16,7 +16,7 @@
 # under the License.
 #
 
-FROM eclipse-temurin:8-jre
+FROM eclipse-temurin:11-jre
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 LABEL site="https://nifi.apache.org"
 
@@ -41,9 +41,9 @@ RUN apt-get update \
     && apt-get install -y zip \
     && rm -rf /var/lib/apt/lists/* \
     && curl -fSL $MINIFI_C2_BINARY_URL -o $MINIFI_C2_BASE_DIR/${MINIFI_C2_BINARY} \
-	&& echo "$(curl $MINIFI_C2_BINARY_URL.sha256) *$MINIFI_C2_BASE_DIR/${MINIFI_C2_BINARY}" | sha256sum -c - \
-	&& unzip $MINIFI_C2_BASE_DIR/${MINIFI_C2_BINARY} -d $MINIFI_C2_BASE_DIR \
-	&& rm $MINIFI_C2_BASE_DIR/${MINIFI_C2_BINARY}
+    && echo "$(curl $MINIFI_C2_BINARY_URL.sha256) *$MINIFI_C2_BASE_DIR/${MINIFI_C2_BINARY}" | sha256sum -c - \
+    && unzip $MINIFI_C2_BASE_DIR/${MINIFI_C2_BINARY} -d $MINIFI_C2_BASE_DIR \
+    && rm $MINIFI_C2_BASE_DIR/${MINIFI_C2_BINARY}
 
 RUN chown -R c2:c2 $MINIFI_C2_HOME
 

@@ -22,7 +22,10 @@ VERSION=$2
 
 container_name=nifi-registry-${TAG}-integration-test
 
-trap "{ docker ps -qaf Name=${container_name} | xargs docker rm -f; }" EXIT
+trap "{ docker rm -f ${container_name}; }" EXIT
+
+echo "Deleting any existing ${container_name} containers"
+docker rm -f ${container_name};
 
 echo "Checking that all files are owned by NiFi"
 test -z $(docker run --rm --entrypoint /bin/bash apache/nifi-registry:${TAG} -c "find /opt/nifi-registry ! -user nifi")
@@ -40,11 +43,15 @@ docker run -d --name ${container_name} apache/nifi-registry:${TAG}
 IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${container_name})
 
 for i in $(seq 1 10) :; do
-    if docker exec ${container_name} bash -c "ss -ntl | grep 18080"; then
+    echo "Iteration: ${i}"
+    if docker exec ${container_name} bash -c " echo Running < /dev/tcp/${IP}/18080"; then
         break
     fi
     sleep 10
 done
+
+echo "Checking NiFi Registry REST API Access"
+test "200" = "$(docker exec "${container_name}" bash -c "curl -s -o /dev/null -w %{http_code} -k http://${IP}:18080/nifi-registry-api/access")"
 
 echo "Stopping NiFi Registry container"
 time docker stop ${container_name}

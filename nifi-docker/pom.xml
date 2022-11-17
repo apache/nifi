@@ -23,6 +23,9 @@ language governing permissions and limitations under the License. -->
 
     <properties>
         <nifi.version>${project.version}</nifi.version>
+        <docker.image.name>eclipse-temurin</docker.image.name>
+        <docker.image.tag>11-jre</docker.image.tag>
+        <docker.maintainer><![CDATA[Apache NiFi <dev@nifi.apache.org>]]></docker.maintainer>
     </properties>
 
     <modules>

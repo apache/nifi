@@ -16,7 +16,7 @@
 # under the License.
 #
 
-FROM eclipse-temurin:8-jdk AS artifactbase
+FROM eclipse-temurin:11-jdk AS artifactbase
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 LABEL site="https://nifi.apache.org"
 
@@ -38,7 +38,7 @@ RUN unzip ${NIFI_REGISTRY_BASE_DIR}/nifi-registry-${NIFI_REGISTRY_VERSION}-bin.z
     && ln -s ${NIFI_REGISTRY_HOME} ${NIFI_REGISTRY_BASE_DIR}/nifi-registry-${NIFI_REGISTRY_VERSION}
 
 
-FROM eclipse-temurin:8-jdk
+FROM eclipse-temurin:11-jdk
 LABEL maintainer="Apache NiFi Registry <dev@nifi.apache.org>"
 LABEL site="https://nifi.apache.org"
 

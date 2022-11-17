@@ -16,7 +16,7 @@
 # under the License.
 #
 
-FROM eclipse-temurin:8-jdk
+FROM eclipse-temurin:11-jdk
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 LABEL site="https://nifi.apache.org"
 

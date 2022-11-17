@@ -17,7 +17,7 @@
 #
 
 ARG IMAGE_NAME=eclipse-temurin
-ARG IMAGE_TAG=8-jre
+ARG IMAGE_TAG=11-jre
 FROM ${IMAGE_NAME}:${IMAGE_TAG}
 ARG MAINTAINER="Apache NiFi <dev@nifi.apache.org>"
 LABEL maintainer="${MAINTAINER}"
