@@ -16,11 +16,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -37,14 +33,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 public class PutDatabaseRecordIT {
-    @Container
-    private static final PostgreSQLContainer POSTGRE_SQL_CONTAINER = new PostgreSQLContainer(DockerImageName.parse("postgres:14"))
-            .withPassword("postgres")
-            .withUsername("postgres");
-    @Container
-    private static final MySQLContainer MY_SQL_CONTAINER = new MySQLContainer(DockerImageName.parse("mysql:8"))
-            .withPassword("root")
-            .withUsername("root");
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -174,44 +162,44 @@ public class PutDatabaseRecordIT {
     public void testMySQLJsonSupport() throws Exception {
         testMySQLVariant(MySQLSimplePool.class);
     }
-}
 
-abstract class AbstractSimplePool extends AbstractControllerService implements DBCPService {
-    private String url;
-    private String username;
-    private String password;
+    static abstract class AbstractSimplePool extends AbstractControllerService implements DBCPService {
+        private String url;
+        private String username;
+        private String password;
 
-    public AbstractSimplePool(String url, String username, String password) {
-        this.url = url;
-        this.username = username;
-        this.password = password;
-    }
+        public AbstractSimplePool(String url, String username, String password) {
+            this.url = url;
+            this.username = username;
+            this.password = password;
+        }
 
-    @Override
-    public Connection getConnection() throws ProcessException {
-        try {
-            Class.forName("org.testcontainers.jdbc.ContainerDatabaseDriver");
-            return DriverManager.getConnection(url, username, password);
-        } catch (Exception ex) {
-            throw new ProcessException(ex);
+        @Override
+        public Connection getConnection() throws ProcessException {
+            try {
+                Class.forName("org.testcontainers.jdbc.ContainerDatabaseDriver");
+                return DriverManager.getConnection(url, username, password);
+            } catch (Exception ex) {
+                throw new ProcessException(ex);
+            }
         }
     }
-}
 
-class MariaDBSimplePool extends AbstractSimplePool {
-    public MariaDBSimplePool() {
-        super("jdbc:tc:mariadb:10.9:///test", "root", "root");
+    static class MariaDBSimplePool extends AbstractSimplePool {
+        public MariaDBSimplePool() {
+            super("jdbc:tc:mariadb:10.9:///test", "root", "root");
+        }
     }
-}
 
-class MySQLSimplePool extends AbstractSimplePool {
-    public MySQLSimplePool() {
-        super("jdbc:tc:mysql:8:///test","root", "root");
+    static class MySQLSimplePool extends AbstractSimplePool {
+        public MySQLSimplePool() {
+            super("jdbc:tc:mysql:8:///test","root", "root");
+        }
     }
-}
 
-class PostgreSQLSimplePool extends AbstractSimplePool {
-    public PostgreSQLSimplePool() {
-        super("jdbc:tc:postgresql:14:///postgres", "postgres", "postgres");
+    static class PostgreSQLSimplePool extends AbstractSimplePool {
+        public PostgreSQLSimplePool() {
+            super("jdbc:tc:postgresql:14:///postgres", "postgres", "postgres");
+        }
     }
 }
