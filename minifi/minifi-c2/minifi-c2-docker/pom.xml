@@ -50,10 +50,10 @@ limitations under the License.
                                 </goals>
                                 <phase>process-sources</phase>
                                 <configuration>
-                                    <target name="copy assembly for image build">
+                                    <target name="copy assembly for docker image build">
                                         <copy todir="${project.basedir}/target" overwrite="true" flatten="true">
-                                            <fileset dir="${project.basedir}/../minifi-c2-assembly/target" includes="*.tar.gz">
-                                                <include name="*.tar.gz" />
+                                            <fileset dir="${project.basedir}/../minifi-c2-assembly/target" includes="*.zip">
+                                                <include name="*.zip" />
                                             </fileset>
                                         </copy>
                                     </target>
@@ -72,7 +72,7 @@ limitations under the License.
                                         <UID>1000</UID>
                                         <GID>1000</GID>
                                         <MINIFI_C2_VERSION>${minifi.c2.version}</MINIFI_C2_VERSION>
-                                        <MINIFI_C2_BINARY>target/minifi-c2-${minifi.c2.version}-bin.tar.gz</MINIFI_C2_BINARY>
+                                        <MINIFI_C2_BINARY>target/minifi-c2-${minifi.c2.version}-bin.zip</MINIFI_C2_BINARY>
                                     </buildArgs>
                                     <repository>apacheminific2</repository>
                                     <tag>${minifi.c2.version}</tag>

@@ -31,26 +31,26 @@ ENV MINIFI_BINARY minifi-${MINIFI_VERSION}-bin.zip
 ENV MINIFI_BINARY_PATH nifi/${MINIFI_VERSION}/${MINIFI_BINARY}
 ENV MINIFI_BINARY_URL ${MIRROR}/${MINIFI_BINARY_PATH}
 
-# Setup MiNiFi user
-RUN addgroup -gid $GID minifi || groupmod -n minifi $(getent group $GID | cut -d: -f1)
-RUN useradd -r -g minifi minifi
 RUN mkdir -p $MINIFI_BASE_DIR
-
 ADD sh/ ${MINIFI_BASE_DIR}/scripts/
 
 # Download, validate, and expand Apache MiNiFi binary.
-RUN chmod -R +x ${MINIFI_BASE_DIR}/scripts/*.sh \
-    && apt-get update \
+RUN apt-get update \
     && apt-get install -y zip \
     && rm -rf /var/lib/apt/lists/* \
     && curl -fSL $MINIFI_BINARY_URL -o $MINIFI_BASE_DIR/${MINIFI_BINARY} \
     && echo "$(curl $MINIFI_BINARY_URL.sha256) *$MINIFI_BASE_DIR/${MINIFI_BINARY}" | sha256sum -c - \
     && unzip $MINIFI_BASE_DIR/${MINIFI_BINARY} -d $MINIFI_BASE_DIR \
     && rm $MINIFI_BASE_DIR/${MINIFI_BINARY} \
+    && groupadd -g ${GID} minifi \
+    && useradd --shell /bin/bash -u ${UID} -g ${GID} -m minifi \
     && ln -s $MINIFI_BASE_DIR/minifi-$MINIFI_VERSION $MINIFI_HOME \
-    && chown -R -L minifi:minifi $MINIFI_HOME
+    && chown -R -L minifi:minifi ${MINIFI_BASE_DIR} \
+    && chmod -R +x ${MINIFI_BASE_DIR}/scripts/*.sh
 
 USER minifi
 
+WORKDIR ${MINIFI_HOME}
+
 # Startup MiNiFi
-CMD ${MINIFI_BASE_DIR}/scripts/start.sh
+ENTRYPOINT ["../scripts/start.sh"]

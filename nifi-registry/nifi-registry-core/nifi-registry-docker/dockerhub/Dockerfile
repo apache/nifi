@@ -16,7 +16,7 @@
 # under the License.
 #
 
-FROM eclipse-temurin:11-jdk
+FROM eclipse-temurin:11-jre
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 LABEL site="https://nifi.apache.org"
 
@@ -61,4 +61,4 @@ EXPOSE 18080 18443
 WORKDIR ${NIFI_REGISTRY_HOME}
 
 # Apply configuration and start NiFi Registry
-CMD ${NIFI_REGISTRY_BASE_DIR}/scripts/start.sh
+ENTRYPOINT ["../scripts/start.sh"]

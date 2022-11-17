@@ -65,7 +65,7 @@
                         <version>3.0.0</version>
                         <executions>
                             <execution>
-                                <id>copy-sh-for-docker</id>
+                                <id>copy-scripts-for-docker</id>
                                 <phase>process-sources</phase>
                                 <configuration>
                                     <target name="copy docker scripts to nifi-docker for image build">
@@ -81,7 +81,7 @@
                                 </goals>
                             </execution>
                             <execution>
-                                <id>copy-for-docker</id>
+                                <id>copy-nifi-assembly-for-docker</id>
                                 <phase>process-sources</phase>
                                 <configuration>
                                     <target name="copy assembly to nifi-docker for image build">
@@ -97,7 +97,7 @@
                                 </goals>
                             </execution>
                             <execution>
-                                <id>copy-toolkit-for-docker</id>
+                                <id>copy-nifi-toolkit-assembly-for-docker</id>
                                 <phase>process-sources</phase>
                                 <configuration>
                                     <target name="copy toolkit assembly to nifi-docker for image build">

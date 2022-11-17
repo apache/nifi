@@ -53,7 +53,7 @@ limitations under the License.
                                         <UID>1000</UID>
                                         <GID>1000</GID>
                                         <MINIFI_VERSION>${minifi.version}</MINIFI_VERSION>
-                                        <MINIFI_BINARY>target/minifi-${minifi.version}-bin.tar.gz</MINIFI_BINARY>
+                                        <MINIFI_BINARY>target/minifi-${minifi.version}-bin.zip</MINIFI_BINARY>
                                     </buildArgs>
                                     <repository>apacheminifi</repository>
                                     <tag>${minifi.version}</tag>
@@ -66,13 +66,29 @@ limitations under the License.
                         <version>3.0.0</version>
                         <executions>
                             <execution>
+                                <id>copy-scripts-for-docker</id>
+                                <phase>process-sources</phase>
+                                <configuration>
+                                    <target name="copy docker scripts for image build">
+                                        <copy todir="${project.basedir}/target/sh" overwrite="true" flatten="true">
+                                            <fileset dir="${project.basedir}/dockerhub/sh" includes="*.sh">
+                                                <include name="*.sh" />
+                                            </fileset>
+                                        </copy>
+                                    </target>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                            <execution>
                                 <id>copy-assembly-for-docker</id>
                                 <phase>process-sources</phase>
                                 <configuration>
                                     <target name="copy assembly for image build">
                                         <copy todir="${project.basedir}/target" overwrite="true" flatten="true">
-                                            <fileset dir="${project.basedir}/../minifi-assembly/target" includes="*.tar.gz">
-                                                <include name="*.tar.gz" />
+                                            <fileset dir="${project.basedir}/../minifi-assembly/target" includes="*.zip">
+                                                <include name="*.zip" />
                                             </fileset>
                                         </copy>
                                     </target>

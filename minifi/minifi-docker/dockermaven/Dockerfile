@@ -31,16 +31,26 @@ ARG MINIFI_BINARY
 ENV MINIFI_BASE_DIR /opt/minifi
 ENV MINIFI_HOME $MINIFI_BASE_DIR/minifi-current
 
-# Setup MiNiFi user
-RUN addgroup -gid $GID minifi || groupmod -n minifi $(getent group $GID | cut -d: -f1)
-RUN useradd -r -g minifi minifi
-RUN mkdir -p $MINIFI_BASE_DIR
+RUN  mkdir -p $MINIFI_BASE_DIR
+COPY $MINIFI_BINARY $MINIFI_BASE_DIR
+ADD sh/ ${MINIFI_BASE_DIR}/scripts/
 
-ADD $MINIFI_BINARY $MINIFI_BASE_DIR
-RUN ln -s $MINIFI_BASE_DIR/minifi-$MINIFI_VERSION $MINIFI_HOME
-RUN chown -R -L minifi:minifi $MINIFI_HOME
+RUN apt-get update \
+    && apt-get install -y unzip \
+    && apt-get -y autoremove \
+    && apt-get clean autoclean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && unzip ${MINIFI_BASE_DIR}/${MINIFI_BINARY} -d ${MINIFI_BASE_DIR} \
+    && rm ${MINIFI_BASE_DIR}/${MINIFI_BINARY} \
+    && groupadd -g ${GID} minifi \
+    && useradd --shell /bin/bash -u ${UID} -g ${GID} -m minifi \
+    && ln -s $MINIFI_BASE_DIR/minifi-$MINIFI_VERSION $MINIFI_HOME
+    && chown -R -L minifi:minifi $MINIFI_HOME \
+    && chmod -R +x ${MINIFI_BASE_DIR}/scripts/*.sh
 
 USER minifi
 
+WORKDIR ${MINIFI_HOME}
+
 # Startup MiNiFi
-CMD $MINIFI_HOME/bin/minifi.sh run
+ENTRYPOINT ["../scripts/start.sh"]

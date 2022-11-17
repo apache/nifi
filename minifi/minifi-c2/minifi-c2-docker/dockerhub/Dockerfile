@@ -26,15 +26,12 @@ ARG MINIFI_C2_VERSION=1.19.0
 ARG MIRROR=https://archive.apache.org/dist
 
 ENV MINIFI_C2_BASE_DIR /opt/minifi-c2
-ENV MINIFI_C2_HOME ${MINIFI_C2_BASE_DIR}/minifi-c2-${MINIFI_C2_VERSION}
+ENV MINIFI_C2_HOME ${MINIFI_C2_BASE_DIR}/minifi-c2-current
 ENV MINIFI_C2_BINARY minifi-c2-${MINIFI_C2_VERSION}-bin.zip
 ENV MINIFI_C2_BINARY_PATH nifi/${MINIFI_C2_VERSION}/${MINIFI_C2_BINARY}
 ENV MINIFI_C2_BINARY_URL ${MIRROR}/${MINIFI_C2_BINARY_PATH}
 
-# Setup MiNiFi user
-RUN addgroup -gid $GID c2 || groupmod -n c2 $(getent group $GID | cut -d: -f1)
-RUN useradd -r -g c2 c2
-RUN mkdir -p $MINIFI_C2_HOME
+RUN mkdir -p ${MINIFI_C2_BASE_DIR}
 
 # Download, validate, and expand Apache MiNiFi C2 binary.
 RUN apt-get update \
@@ -43,14 +40,18 @@ RUN apt-get update \
     && curl -fSL $MINIFI_C2_BINARY_URL -o $MINIFI_C2_BASE_DIR/${MINIFI_C2_BINARY} \
     && echo "$(curl $MINIFI_C2_BINARY_URL.sha256) *$MINIFI_C2_BASE_DIR/${MINIFI_C2_BINARY}" | sha256sum -c - \
     && unzip $MINIFI_C2_BASE_DIR/${MINIFI_C2_BINARY} -d $MINIFI_C2_BASE_DIR \
-    && rm $MINIFI_C2_BASE_DIR/${MINIFI_C2_BINARY}
-
-RUN chown -R c2:c2 $MINIFI_C2_HOME
+    && rm $MINIFI_C2_BASE_DIR/${MINIFI_C2_BINARY} \
+    && groupadd -g ${GID} c2 \
+    && useradd --shell /bin/bash -u ${UID} -g ${GID} -m c2 \
+    && ln -s ${MINIFI_C2_BASE_DIR}/minifi-c2-${MINIFI_C2_VERSION} $MINIFI_C2_HOME \
+    && chown -R -L c2:c2 ${MINIFI_C2_BASE_DIR}
 
 USER c2
 
 #Default http port
 EXPOSE 10090
 
+WORKDIR ${MINIFI_C2_HOME}
+
 # Startup MiNiFi C2
-CMD $MINIFI_C2_HOME/bin/c2.sh
+ENTRYPOINT ["./bin/c2.sh", "run"]
