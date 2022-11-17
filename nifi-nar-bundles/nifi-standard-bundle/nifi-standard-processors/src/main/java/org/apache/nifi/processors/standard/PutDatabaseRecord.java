@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.commons.lang3.StringUtils;
@@ -52,6 +53,7 @@ import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -347,6 +349,16 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .dependsOn(STATEMENT_TYPE, INSERT_TYPE, UPDATE_TYPE, USE_ATTR_TYPE, USE_RECORD_PATH)
             .build();
 
+    static final PropertyDescriptor MAP_RECORD_TO_JSON = new PropertyDescriptor.Builder()
+            .name("put-db-record-map-record-to-json")
+            .displayName("Map \"record\" types to JSON")
+            .description("If enabled, fields that are a record type in their schema will be turned into a JSON string for insertion " +
+                    "into a SQL JSON field. Note: this feature has only been tested against MariaDB, MySQL and Postgres.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
     static final PropertyDescriptor DB_TYPE;
 
     protected static final Map<String, DatabaseAdapter> dbAdapters;
@@ -395,6 +407,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         pds.add(UPDATE_KEYS);
         pds.add(FIELD_CONTAINING_SQL);
         pds.add(ALLOW_MULTIPLE_STATEMENTS);
+        pds.add(MAP_RECORD_TO_JSON);
         pds.add(QUOTE_IDENTIFIERS);
         pds.add(QUOTE_TABLE_IDENTIFIER);
         pds.add(QUERY_TIMEOUT);
@@ -664,6 +677,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                         final RecordSchema recordSchema = currentRecord.getSchema();
 
                         final SqlAndIncludedColumns sqlHolder;
+
                         if (INSERT_TYPE.equalsIgnoreCase(statementType)) {
                             sqlHolder = generateInsert(recordSchema, fqTableName, tableSchema, settings);
                         } else if (UPDATE_TYPE.equalsIgnoreCase(statementType)) {
@@ -739,6 +753,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                             sqlType = column.dataType;
                         }
 
+                        boolean mapRecordAsJson = context.getProperty(MAP_RECORD_TO_JSON).asBoolean();
                         // Convert (if necessary) from field data type to column data type
                         if (fieldSqlType != sqlType) {
                             try {
@@ -764,10 +779,13 @@ public class PutDatabaseRecord extends AbstractProcessor {
                                             throw new IllegalTypeConversionException("Cannot convert value " + currentValue + " to BLOB/BINARY");
                                         }
                                     } else {
-                                        currentValue = DataTypeUtils.convertType(
-                                                currentValue,
-                                                targetDataType,
-                                                fieldName);
+
+                                        if (!mapRecordAsJson) {
+                                            currentValue = DataTypeUtils.convertType(
+                                                    currentValue,
+                                                    targetDataType,
+                                                    fieldName);
+                                        }
                                     }
                                 }
                             } catch (IllegalTypeConversionException itce) {
@@ -789,6 +807,10 @@ public class PutDatabaseRecord extends AbstractProcessor {
                                 setParameter(ps, i + (fieldIndexes.size() * j) + 1, currentValue, fieldSqlType, sqlType);
                             }
                         } else {
+                            if (mapRecordAsJson && dataType.getFieldType() == RecordFieldType.RECORD) {
+//                                sqlType = Types.OTHER;
+                                currentValue = convertMapRecordToJson((Record)currentValue);
+                            }
                             setParameter(ps, i + 1, currentValue, fieldSqlType, sqlType);
                         }
                     }
@@ -814,6 +836,19 @@ public class PutDatabaseRecord extends AbstractProcessor {
             for (final PreparedSqlAndColumns preparedSqlAndColumns : preparedSql.values()) {
                 preparedSqlAndColumns.getPreparedStatement().close();
             }
+        }
+    }
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private static String convertMapRecordToJson(Record record) {
+        try {
+            MapRecord mapRecord = (MapRecord)record;
+            Map<String, Object> converted = mapRecord.toMap(true);
+
+            return MAPPER.writeValueAsString(converted);
+        } catch (Exception ex) {
+            throw new ProcessException(ex);
         }
     }
 
@@ -873,6 +908,12 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     } catch (SQLException e) {
                         // Fall back to default setObject params
                         ps.setObject(index, value, sqlType);
+                    }
+                } else if (fieldSqlType == Types.STRUCT && sqlType == Types.OTHER) {
+                    try {
+                        ps.setObject(index, value, sqlType);
+                    } catch (SQLException e) {
+                        ps.setString(index, (String)value);
                     }
                 } else {
                     ps.setObject(index, value, sqlType);
