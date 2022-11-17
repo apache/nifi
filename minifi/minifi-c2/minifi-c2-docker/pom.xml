@@ -40,37 +40,45 @@ limitations under the License.
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>com.spotify</groupId>
-                        <artifactId>docker-maven-plugin</artifactId>
-                        <version>0.4.13</version>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.0.0</version>
                         <executions>
                             <execution>
-                                <phase>package</phase>
+                                <id>copy-assembly-for-docker</id>
                                 <goals>
-                                    <goal>build</goal>
+                                    <goal>run</goal>
                                 </goals>
+                                <phase>process-sources</phase>
+                                <configuration>
+                                    <target name="copy assembly for docker image build">
+                                        <copy todir="${project.basedir}/target" overwrite="true" flatten="true">
+                                            <fileset dir="${project.basedir}/../minifi-c2-assembly/target" includes="*.zip">
+                                                <include name="*.zip" />
+                                            </fileset>
+                                        </copy>
+                                    </target>
+                                </configuration>
                             </execution>
                         </executions>
-                        <configuration>
-                            <imageName>apacheminific2</imageName>
-                            <dockerDirectory>${project.basedir}/dockermaven</dockerDirectory>
-                            <imageTags>
-                               <imageTag>${minifi.c2.version}</imageTag>
-                            </imageTags>
-                            <buildArgs>
-                                <UID>1000</UID>
-                                <GID>1000</GID>
-                                <MINIFI_C2_VERSION>${minifi.c2.version}</MINIFI_C2_VERSION>
-                                <MINIFI_C2_BINARY>minifi-c2-${minifi.c2.version}-bin.tar.gz</MINIFI_C2_BINARY>
-                            </buildArgs>
-                            <resources>
-                               <resource>
-                                 <targetPath>/</targetPath>
-                                 <directory>${project.basedir}/../minifi-c2-assembly/target</directory>
-                                 <include>minifi-c2-${minifi.c2.version}-bin.tar.gz</include>
-                               </resource>
-                            </resources>
-                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>com.spotify</groupId>
+                        <artifactId>dockerfile-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <configuration>
+                                    <dockerfile>dockermaven/Dockerfile</dockerfile>
+                                    <buildArgs>
+                                        <UID>1000</UID>
+                                        <GID>1000</GID>
+                                        <MINIFI_C2_VERSION>${minifi.c2.version}</MINIFI_C2_VERSION>
+                                        <MINIFI_C2_BINARY>target/minifi-c2-${minifi.c2.version}-bin.zip</MINIFI_C2_BINARY>
+                                    </buildArgs>
+                                    <repository>apacheminific2</repository>
+                                    <tag>${minifi.c2.version}</tag>
+                                </configuration>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>

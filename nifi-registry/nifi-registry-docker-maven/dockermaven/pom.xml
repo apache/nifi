@@ -28,13 +28,8 @@
                     <plugin>
                         <groupId>com.spotify</groupId>
                         <artifactId>dockerfile-maven-plugin</artifactId>
-                        <version>1.3.5</version>
                         <executions>
                             <execution>
-                                <id>default</id>
-                                <goals>
-                                    <goal>build</goal>
-                                </goals>
                                 <configuration>
                                     <buildArgs>
                                         <UID>1000</UID>

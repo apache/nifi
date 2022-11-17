@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-ARG IMAGE_NAME=openjdk
-ARG IMAGE_TAG=8-jre
+
+ARG IMAGE_NAME=eclipse-temurin
+ARG IMAGE_TAG=11-jre
 FROM ${IMAGE_NAME}:${IMAGE_TAG}
 ARG MAINTAINER="Apache NiFi <dev@nifi.apache.org>"
 LABEL maintainer="${MAINTAINER}"
@@ -34,7 +35,6 @@ ARG NIFI_TOOLKIT_BINARY_PATH=${NIFI_TOOLKIT_BINARY_PATH:-/nifi/${DISTRO_PATH}/ni
 ENV NIFI_BASE_DIR=/opt/nifi
 ENV NIFI_HOME ${NIFI_BASE_DIR}/nifi-current
 ENV NIFI_TOOLKIT_HOME ${NIFI_BASE_DIR}/nifi-toolkit-current
-
 ENV NIFI_PID_DIR=${NIFI_HOME}/run
 ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 
@@ -47,7 +47,10 @@ RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -
     && mkdir -p ${NIFI_BASE_DIR} \
     && chown -R nifi:nifi ${NIFI_BASE_DIR} \
     && apt-get update \
-    && apt-get install -y jq xmlstarlet procps
+    && apt-get install -y jq xmlstarlet procps unzip \
+    && apt-get -y autoremove \
+    && apt-get clean autoclean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 USER nifi
 

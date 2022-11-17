@@ -31,7 +31,7 @@ limitations under the License.
     <properties>
         <minifi.version>${project.version}</minifi.version>
         <docker.image.name>eclipse-temurin</docker.image.name>
-        <docker.image.tag>8-jre</docker.image.tag>
+        <docker.image.tag>11-jre</docker.image.tag>
     </properties>
 
     <profiles>
@@ -41,39 +41,64 @@ limitations under the License.
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>com.spotify</groupId>
-                        <artifactId>docker-maven-plugin</artifactId>
-                        <version>0.4.13</version>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.0.0</version>
                         <executions>
                             <execution>
-                                <phase>package</phase>
+                                <id>copy-scripts-for-docker</id>
+                                <phase>process-sources</phase>
+                                <configuration>
+                                    <target name="copy docker scripts for image build">
+                                        <copy todir="${project.basedir}/target/sh" overwrite="true" flatten="true">
+                                            <fileset dir="${project.basedir}/dockerhub/sh" includes="*.sh">
+                                                <include name="*.sh" />
+                                            </fileset>
+                                        </copy>
+                                    </target>
+                                </configuration>
                                 <goals>
-                                    <goal>build</goal>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>copy-assembly-for-docker</id>
+                                <phase>process-sources</phase>
+                                <configuration>
+                                    <target name="copy assembly for image build">
+                                        <copy todir="${project.basedir}/target" overwrite="true" flatten="true">
+                                            <fileset dir="${project.basedir}/../minifi-assembly/target" includes="*.zip">
+                                                <include name="*.zip" />
+                                            </fileset>
+                                        </copy>
+                                    </target>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
                                 </goals>
                             </execution>
                         </executions>
-                        <configuration>
-                            <imageName>apacheminifi</imageName>
-                            <dockerDirectory>${project.basedir}/dockermaven</dockerDirectory>
-                            <imageTags>
-                               <imageTag>${minifi.version}</imageTag>
-                            </imageTags>
-                            <buildArgs>
-                                <IMAGE_NAME>${docker.image.name}</IMAGE_NAME>
-                                <IMAGE_TAG>${docker.image.tag}</IMAGE_TAG>
-                                <UID>1000</UID>
-                                <GID>1000</GID>
-                                <MINIFI_VERSION>${minifi.version}</MINIFI_VERSION>
-                                <MINIFI_BINARY>minifi-${minifi.version}-bin.tar.gz</MINIFI_BINARY>
-                            </buildArgs>
-                            <resources>
-                               <resource>
-                                 <targetPath>/</targetPath>
-                                 <directory>${project.basedir}/../minifi-assembly/target</directory>
-                                 <include>minifi-${minifi.version}-bin.tar.gz</include>
-                               </resource>
-                            </resources>
-                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>com.spotify</groupId>
+                        <artifactId>dockerfile-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <configuration>
+                                    <dockerfile>dockermaven/Dockerfile</dockerfile>
+                                    <buildArgs>
+                                        <IMAGE_NAME>${docker.image.name}</IMAGE_NAME>
+                                        <IMAGE_TAG>${docker.image.tag}</IMAGE_TAG>
+                                        <UID>1000</UID>
+                                        <GID>1000</GID>
+                                        <MINIFI_VERSION>${minifi.version}</MINIFI_VERSION>
+                                        <MINIFI_BINARY>target/minifi-${minifi.version}-bin.zip</MINIFI_BINARY>
+                                        <MINIFI_SCRIPTS>target/sh</MINIFI_SCRIPTS>
+                                    </buildArgs>
+                                    <repository>apacheminifi</repository>
+                                    <tag>${minifi.version}</tag>
+                                </configuration>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>

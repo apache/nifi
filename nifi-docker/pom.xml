@@ -23,35 +23,14 @@ language governing permissions and limitations under the License. -->
 
     <properties>
         <nifi.version>${project.version}</nifi.version>
+        <docker.image.name>eclipse-temurin</docker.image.name>
+        <docker.image.tag>11-jre</docker.image.tag>
+        <docker.maintainer><![CDATA[Apache NiFi <dev@nifi.apache.org>]]></docker.maintainer>
     </properties>
 
     <modules>
         <module>dockermaven</module>
         <module>dockerhub</module>
     </modules>
-
-    <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>com.spotify</groupId>
-                    <artifactId>dockerfile-maven-plugin</artifactId>
-                    <version>1.4.13</version>
-                    <executions>
-                        <execution>
-                            <id>default</id>
-                            <goals>
-                                <goal>build</goal>
-                                <goal>push</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                    <configuration>
-                        <tag>${nifi.version}</tag>
-                    </configuration>
-                </plugin>
-            </plugins>
-        </pluginManagement>
-    </build>
 
 </project>
