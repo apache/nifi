@@ -3211,14 +3211,20 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public Set<VersionedFlowEntity> getFlowsForUser(String registryClientId, String bucketId) {
+    public Set<VersionedFlowEntity> getFlowsForUser(final String registryClientId, final String bucketId) {
         return flowRegistryDAO.getFlowsForUser(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), registryClientId, bucketId).stream()
                 .map(rf -> createVersionedFlowEntity(registryClientId, rf))
                 .collect(Collectors.toSet());
     }
 
     @Override
-    public Set<VersionedFlowSnapshotMetadataEntity> getFlowVersionsForUser(String registryClientId, String bucketId, String flowId) {
+    public VersionedFlowEntity getFlowForUser(final String registryClientId, final String bucketId, final String flowId) {
+        final RegisteredFlow flow = flowRegistryDAO.getFlowForUser(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), registryClientId, bucketId, flowId);
+        return createVersionedFlowEntity(registryClientId, flow);
+    }
+
+    @Override
+    public Set<VersionedFlowSnapshotMetadataEntity> getFlowVersionsForUser(final String registryClientId, final String bucketId, final String flowId) {
         return flowRegistryDAO.getFlowVersionsForUser(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), registryClientId, bucketId, flowId).stream()
                 .map(md -> createVersionedFlowSnapshotMetadataEntity(registryClientId, md))
                 .collect(Collectors.toSet());
