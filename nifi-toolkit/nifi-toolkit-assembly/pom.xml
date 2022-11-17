@@ -190,14 +190,8 @@ language governing permissions and limitations under the License. -->
                     <plugin>
                         <groupId>com.spotify</groupId>
                         <artifactId>dockerfile-maven-plugin</artifactId>
-                        <version>1.4.13</version>
                         <executions>
                             <execution>
-                                <id>default</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>build</goal>
-                                </goals>
                                 <configuration>
                                     <contextDirectory>./target/docker-build</contextDirectory>
                                     <buildArgs>
