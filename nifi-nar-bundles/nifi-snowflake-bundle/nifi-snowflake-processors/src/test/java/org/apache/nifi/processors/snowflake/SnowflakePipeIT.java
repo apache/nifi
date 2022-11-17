@@ -21,7 +21,6 @@ import java.security.Security;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import net.snowflake.ingest.utils.StagedFileWrapper;
 import org.apache.commons.io.FileUtils;
@@ -62,12 +61,7 @@ class SnowflakePipeIT implements SnowflakeConfigAware {
 
         runner.run();
 
-        final Set<String> checkedAttributes = Collections.singleton(SnowflakeAttributes.ATTRIBUTE_STAGED_FILE_PATH);
-        final Map<String, String> expectedAttributesMap = Collections.singletonMap(SnowflakeAttributes.ATTRIBUTE_STAGED_FILE_PATH, uuid + "/" + fileName);
-        final Set<Map<String, String>> expectedAttributes = Collections.singleton(expectedAttributesMap);
-
         runner.assertAllFlowFilesTransferred(StartSnowflakeIngest.REL_SUCCESS);
-        runner.assertAttributes(StartSnowflakeIngest.REL_SUCCESS, checkedAttributes, expectedAttributes);
     }
 
     @Test

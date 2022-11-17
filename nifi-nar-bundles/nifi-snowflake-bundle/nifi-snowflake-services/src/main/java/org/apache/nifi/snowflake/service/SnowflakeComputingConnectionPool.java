@@ -211,11 +211,21 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
         if (proxyConfigurationService != null) {
             final ProxyConfiguration proxyConfiguration = proxyConfigurationService.getConfiguration();
             connectionProperties.put(SFSessionProperty.USE_PROXY.getPropertyKey(), "true");
-            connectionProperties.put(SFSessionProperty.PROXY_HOST.getPropertyKey(), proxyConfiguration.getProxyServerHost());
-            connectionProperties.put(SFSessionProperty.PROXY_PORT.getPropertyKey(), proxyConfiguration.getProxyServerPort().toString());
-            connectionProperties.put(SFSessionProperty.PROXY_USER.getPropertyKey(), proxyConfiguration.getProxyUserName());
-            connectionProperties.put(SFSessionProperty.PROXY_PASSWORD.getPropertyKey(), proxyConfiguration.getProxyUserPassword());
-            connectionProperties.put(SFSessionProperty.PROXY_PROTOCOL.getPropertyKey(), proxyConfiguration.getProxyType().name().toLowerCase());
+            if (proxyConfiguration.getProxyServerHost() != null) {
+                connectionProperties.put(SFSessionProperty.PROXY_HOST.getPropertyKey(), proxyConfiguration.getProxyServerHost());
+            }
+            if (proxyConfiguration.getProxyServerPort() != null) {
+                connectionProperties.put(SFSessionProperty.PROXY_PORT.getPropertyKey(), proxyConfiguration.getProxyServerPort().toString());
+            }
+            if (proxyConfiguration.getProxyUserName() != null) {
+                connectionProperties.put(SFSessionProperty.PROXY_USER.getPropertyKey(), proxyConfiguration.getProxyUserName());
+            }
+            if (proxyConfiguration.getProxyUserPassword() != null) {
+                connectionProperties.put(SFSessionProperty.PROXY_PASSWORD.getPropertyKey(), proxyConfiguration.getProxyUserPassword());
+            }
+            if (proxyConfiguration.getProxyType() != null) {
+                connectionProperties.put(SFSessionProperty.PROXY_PROTOCOL.getPropertyKey(), proxyConfiguration.getProxyType().name().toLowerCase());
+            }
         }
         return connectionProperties;
     }
