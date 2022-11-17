@@ -111,7 +111,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -475,10 +474,10 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
     private <T> Set<T> toSet(final List<T> values) {
         if (values == null || values.isEmpty()) {
-            return new HashSet<>();
+            return new LinkedHashSet<>();
         }
 
-        return new HashSet<>(values);
+        return new LinkedHashSet<>(values);
     }
 
     private VersionedDataflow createEmptyVersionedDataflow() {
@@ -816,7 +815,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         }
 
         final Map<String, Parameter> updatedParameters = new HashMap<>();
-        final Set<String> proposedParameterNames = new HashSet<>();
+        final Set<String> proposedParameterNames = new LinkedHashSet<>();
         for (final VersionedParameter parameter : versionedParameterContext.getParameters()) {
             final String parameterName = parameter.getName();
             final String currentValue = currentValues.get(parameterName);
@@ -854,8 +853,8 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     private void inheritControllerServices(final FlowController controller, final VersionedDataflow dataflow, final AffectedComponentSet affectedComponentSet) {
         final FlowManager flowManager = controller.getFlowManager();
 
-        final Set<ControllerServiceNode> toEnable = new HashSet<>();
-        final Set<ControllerServiceNode> toDisable = new HashSet<>();
+        final Set<ControllerServiceNode> toEnable = new LinkedHashSet<>();
+        final Set<ControllerServiceNode> toDisable = new LinkedHashSet<>();
 
         // We need to add any Controller Services that are not yet part of the flow. We must then
         // update the Controller Services to match what is proposed. Finally, we can enable the services.
@@ -864,7 +863,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         // Service B's references won't be updated. To avoid this, we create them all first, and then configure/update
         // them so that when AbstractComponentNode#setProperty is called, it properly establishes that reference.
         final List<VersionedControllerService> controllerServices = dataflow.getControllerServices();
-        final Set<ControllerServiceNode> controllerServicesAdded = new HashSet<>();
+        final Set<ControllerServiceNode> controllerServicesAdded = new LinkedHashSet<>();
         for (final VersionedControllerService versionedControllerService : controllerServices) {
             final ControllerServiceNode serviceNode = flowManager.getRootControllerService(versionedControllerService.getInstanceIdentifier());
             if (serviceNode == null) {
@@ -1157,7 +1156,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         final FlowManager flowManager = controller.getFlowManager();
 
         // Determine missing components
-        final Set<String> missingComponents = new HashSet<>();
+        final Set<String> missingComponents = new LinkedHashSet<>();
         flowManager.getAllControllerServices().stream().filter(ComponentNode::isExtensionMissing).forEach(cs -> missingComponents.add(cs.getIdentifier()));
         flowManager.getAllReportingTasks().stream().filter(ComponentNode::isExtensionMissing).forEach(r -> missingComponents.add(r.getIdentifier()));
         flowManager.getAllParameterProviders().stream().filter(ComponentNode::isExtensionMissing).forEach(r -> missingComponents.add(r.getIdentifier()));

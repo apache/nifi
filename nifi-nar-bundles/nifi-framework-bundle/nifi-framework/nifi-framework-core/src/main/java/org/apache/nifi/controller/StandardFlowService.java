@@ -93,7 +93,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -611,7 +611,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             final byte[] snippetBytes = controller.getSnippetManager().export();
             final byte[] authorizerFingerprint = getAuthorizerFingerprint();
-            final StandardDataFlow fromDisk = new StandardDataFlow(bytes, snippetBytes, authorizerFingerprint, new HashSet<>());
+            final StandardDataFlow fromDisk = new StandardDataFlow(bytes, snippetBytes, authorizerFingerprint, new LinkedHashSet<>());
             return fromDisk;
         }
 
@@ -635,7 +635,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
         final FlowManager flowManager = controller.getFlowManager();
 
-        final Set<String> missingComponents = new HashSet<>();
+        final Set<String> missingComponents = new LinkedHashSet<>();
         flowManager.getRootGroup().findAllProcessors().stream().filter(AbstractComponentNode::isExtensionMissing).forEach(p -> missingComponents.add(p.getIdentifier()));
         flowManager.getAllControllerServices().stream().filter(ComponentNode::isExtensionMissing).forEach(cs -> missingComponents.add(cs.getIdentifier()));
         controller.getAllReportingTasks().stream().filter(ComponentNode::isExtensionMissing).forEach(r -> missingComponents.add(r.getIdentifier()));
@@ -821,7 +821,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             copyCurrentFlow(flowOnDisk);
             flowBytes = flowOnDisk.toByteArray();
             authorizerFingerprint = getAuthorizerFingerprint();
-            missingComponents = new HashSet<>();
+            missingComponents = new LinkedHashSet<>();
             logger.debug("Loaded Flow from bytes");
         } else {
             flowBytes = proposedFlow.getFlow();

@@ -35,7 +35,7 @@ import java.io.ByteArrayInputStream;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
@@ -73,14 +73,14 @@ public class StandardDataFlow implements Serializable, DataFlow {
         this.flow = flow;
         this.snippetBytes = snippetBytes;
         this.authorizerFingerprint = authorizerFingerprint;
-        this.missingComponentIds = Collections.unmodifiableSet(missingComponentIds == null ? new HashSet<>() : new HashSet<>(missingComponentIds));
+        this.missingComponentIds = Collections.unmodifiableSet(missingComponentIds == null ? new LinkedHashSet<>() : new LinkedHashSet<>(missingComponentIds));
     }
 
     public StandardDataFlow(final DataFlow toCopy) {
         this.flow = copy(toCopy.getFlow());
         this.snippetBytes = copy(toCopy.getSnippets());
         this.authorizerFingerprint = copy(toCopy.getAuthorizerFingerprint());
-        this.missingComponentIds = Collections.unmodifiableSet(toCopy.getMissingComponents() == null ? new HashSet<>() : new HashSet<>(toCopy.getMissingComponents()));
+        this.missingComponentIds = Collections.unmodifiableSet(toCopy.getMissingComponents() == null ? new LinkedHashSet<>() : new LinkedHashSet<>(toCopy.getMissingComponents()));
     }
 
     private static byte[] copy(final byte[] bytes) {
