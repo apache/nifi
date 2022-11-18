@@ -74,6 +74,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         "User Password",
         "Resource Owner Password Credentials Grant. Used to access resources available to users. Requires username and password and usually Client ID and Client Secret"
     );
+
     public static AllowableValue CLIENT_CREDENTIALS_GRANT_TYPE = new AllowableValue(
         "client_credentials",
         "Client Credentials",
@@ -151,8 +152,18 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .required(false)
         .build();
 
+    public static final PropertyDescriptor HTTP_PROTOCOL_STRATEGY = new PropertyDescriptor.Builder()
+        .name("HTTP Protocols")
+        .description("HTTP Protocols supported for Application Layer Protocol Negotiation with TLS")
+        .required(true)
+        .allowableValues(HttpProtocolStrategy.class)
+        .defaultValue(HttpProtocolStrategy.HTTP_1_1.getValue())
+        .dependsOn(SSL_CONTEXT)
+        .build();
+
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
         AUTHORIZATION_SERVER_URL,
+        HTTP_PROTOCOL_STRATEGY,
         GRANT_TYPE,
         USERNAME,
         PASSWORD,
@@ -237,6 +248,9 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
             SSLContext sslContext = sslService.createContext();
             clientBuilder.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
         }
+
+        final HttpProtocolStrategy httpProtocolStrategy = HttpProtocolStrategy.valueOf(context.getProperty(HTTP_PROTOCOL_STRATEGY).getValue());
+        clientBuilder.protocols(httpProtocolStrategy.getProtocols());
 
         return clientBuilder.build();
     }
