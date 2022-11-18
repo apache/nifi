@@ -80,7 +80,7 @@ import java.util.stream.Collectors;
         " The list of the resources with the supported parameters can be found in the additional details.")
 @CapabilityDescription("Retrieves objects from a custom Shopify store. The processor yield time must be set to the account's rate limit accordingly.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
-@WritesAttribute(attribute = "mime.type", description = "Sets the mime type to application/json")
+@WritesAttribute(attribute = "mime.type", description = "Sets the MIME type to application/json")
 public class GetShopify extends AbstractProcessor {
 
     static final PropertyDescriptor STORE_DOMAIN = new PropertyDescriptor.Builder()

@@ -84,7 +84,7 @@ import java.util.stream.Collectors;
         " objects can be set in the 'Result Limit' property.")
 @DefaultSettings(yieldDuration = "10 sec")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
-@WritesAttribute(attribute = "mime.type", description = "Sets the mime type to application/json")
+@WritesAttribute(attribute = "mime.type", description = "Sets the MIME type to application/json")
 public class GetHubSpot extends AbstractProcessor {
 
     static final PropertyDescriptor OBJECT_TYPE = new PropertyDescriptor.Builder()

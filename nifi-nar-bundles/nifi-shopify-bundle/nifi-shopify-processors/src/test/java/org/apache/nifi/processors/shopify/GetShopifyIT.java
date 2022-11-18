@@ -20,6 +20,7 @@ import okhttp3.HttpUrl;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processors.shopify.model.IncrementalLoadingParameter;
 import org.apache.nifi.processors.shopify.model.ResourceType;
 import org.apache.nifi.processors.shopify.rest.ShopifyRestService;
@@ -71,7 +72,6 @@ class GetShopifyIT {
 
     @Test
     void testStateIsUpdatedIfIncrementalAndNotPaging() throws InitializationException, IOException {
-        final String lastExecutionTimeKey = "last_execution_time";
 
         final MockResponse mockResponse = new MockResponse()
                 .setResponseCode(200)
@@ -97,6 +97,10 @@ class GetShopifyIT {
         runner.run(1);
 
         verify(customGetShopify).updateState(any(), any());
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetShopify.REL_SUCCESS);
+
+        assertEquals("application/json", flowFiles.get(0).getAttribute(CoreAttributes.MIME_TYPE.key()));
     }
 
     @Test
