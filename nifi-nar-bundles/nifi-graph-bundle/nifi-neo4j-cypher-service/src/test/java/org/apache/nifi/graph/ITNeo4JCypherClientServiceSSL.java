@@ -58,7 +58,7 @@ public class ITNeo4JCypherClientServiceSSL {
 
     private static final String ADMIN_ACCESS = UUID.randomUUID().toString();
 
-    private static final String IMAGE_NAME = "neo4j:4.4";
+    private static final String IMAGE_NAME = System.getProperty("neo4j.docker.image");
 
     private static final Map<String, String> CONTAINER_ENVIRONMENT = new LinkedHashMap<>();
 

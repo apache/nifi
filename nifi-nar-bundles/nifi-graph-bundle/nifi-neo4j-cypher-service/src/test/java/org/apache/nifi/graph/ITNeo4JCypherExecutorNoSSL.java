@@ -48,7 +48,7 @@ import static org.junit.Assert.assertEquals;
 public class ITNeo4JCypherExecutorNoSSL {
     @Container
     private static Neo4jContainer<?> neo4jContainer =
-            new Neo4jContainer<>(DockerImageName.parse("neo4j:4.4"))
+            new Neo4jContainer<>(DockerImageName.parse(System.getProperty("neo4j.docker.image")))
                     .withAdminPassword("testing1234");
 
     protected TestRunner runner;
