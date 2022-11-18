@@ -1761,7 +1761,7 @@ public class FlowResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("registries/{registry-id}/buckets/{bucket-id}/flows/{flow-id}/details")
     @ApiOperation(value = "Gets the details of a flow from the specified registry and bucket for the specified flow for the current user",
-            response = VersionedFlowSnapshotMetadataSetEntity.class,
+            response = VersionedFlowEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /flow")
             })
