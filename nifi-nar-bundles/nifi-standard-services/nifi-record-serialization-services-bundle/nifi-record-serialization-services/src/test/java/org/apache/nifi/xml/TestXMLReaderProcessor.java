@@ -57,7 +57,8 @@ public class TestXMLReaderProcessor extends AbstractProcessor {
              final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
             Record record;
             while ((record = reader.nextRecord()) != null) {
-                records.add(record.toString());
+                String str="MapRecord[{COUNTRY="+record.getValue("COUNTRY").toString()+", ATTR_ID="+record.getValue("ATTR_ID").toString()+", NAME="+record.getValue("NAME").toString()+", AGE="+record.getValue("AGE").toString()+"}]";
+                records.add(str);
             }
         } catch (Exception e) {
             e.printStackTrace();
