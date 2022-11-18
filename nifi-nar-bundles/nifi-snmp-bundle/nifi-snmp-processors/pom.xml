@@ -20,8 +20,8 @@ language governing permissions and limitations under the License. -->
     <packaging>jar</packaging>
 
     <properties>
-        <snmp4j.version>2.8.7</snmp4j.version>
-        <snmp4j-agent.version>2.7.4</snmp4j-agent.version>
+        <snmp4j.version>2.8.15</snmp4j.version>
+        <snmp4j-agent.version>2.7.8</snmp4j-agent.version>
     </properties>
 
     <dependencies>
