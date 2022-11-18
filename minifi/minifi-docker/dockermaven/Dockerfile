@@ -27,27 +27,27 @@ ARG UID
 ARG GID
 ARG MINIFI_VERSION
 ARG MINIFI_BINARY
+ARG MINIFI_SCRIPTS
 
 ENV MINIFI_BASE_DIR /opt/minifi
-ENV MINIFI_C2_BINARY_NAME minifi-${MINIFI_VERSION}-bin.zip
+ENV MINIFI_BINARY_NAME minifi-${MINIFI_VERSION}-bin.zip
 ENV MINIFI_HOME $MINIFI_BASE_DIR/minifi-current
-
 
 RUN  mkdir -p $MINIFI_BASE_DIR
 COPY $MINIFI_BINARY $MINIFI_BASE_DIR
-ADD sh/ ${MINIFI_BASE_DIR}/scripts/
+ADD $MINIFI_SCRIPTS ${MINIFI_BASE_DIR}/scripts
 
 RUN apt-get update \
     && apt-get install -y unzip \
     && apt-get -y autoremove \
     && apt-get clean autoclean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
-    && unzip ${MINIFI_BASE_DIR}/${MINIFI_C2_BINARY_NAME} -d ${MINIFI_BASE_DIR} \
-    && rm ${MINIFI_BASE_DIR}/${MINIFI_C2_BINARY_NAME} \
+    && unzip ${MINIFI_BASE_DIR}/${MINIFI_BINARY_NAME} -d ${MINIFI_BASE_DIR} \
+    && rm ${MINIFI_BASE_DIR}/${MINIFI_BINARY_NAME} \
     && groupadd -g ${GID} minifi \
     && useradd --shell /bin/bash -u ${UID} -g ${GID} -m minifi \
-    && ln -s $MINIFI_BASE_DIR/minifi-$MINIFI_VERSION $MINIFI_HOME
-    && chown -R -L minifi:minifi $MINIFI_HOME \
+    && ln -s $MINIFI_BASE_DIR/minifi-$MINIFI_VERSION $MINIFI_HOME \
+    && chown -R -L minifi:minifi $MINIFI_BASE_DIR \
     && chmod -R +x ${MINIFI_BASE_DIR}/scripts/*.sh
 
 USER minifi
