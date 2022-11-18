@@ -2616,6 +2616,47 @@ names begin with the letter `a`.
 
 
 
+
+[.function]
+=== getUri
+
+*Description*: [.description]#Returns a URI compliant with RFC 2396. This includes encoding non-US-ASCII characters and
+quoting illegal characters with octets. This expression utilizes the
+link:https://docs.oracle.com/javase/8/docs/api/java/net/URI.html[java.net.URI^] class to build a URI.
+As described in the API, a hierarchical URI consists of seven components represented with the following types:#
+|============================================================================
+| Component   | Type
+| `scheme`    | `String`
+| `user-info` | `String`
+| `host`      | `String`
+| `port`      | `int`
+| `path`      | `String`
+| `query`     | `String`
+| `fragment`  | `String`
+|============================================================================
+
+See the API for more details on character categories, encoding and quoting.
+
+*Subject Type*: [.subjectless]#No Subject#
+
+*Arguments*: This expression takes seven arguments.
+
+- [.argName]#_scheme_#, [.argName]#_userinfo_#, [.argName]#_host_#, [.argName]#_port_#, [.argName]#_path_#, [.argName]#_query_#, [.argName]#_fragment_#
+
+*NOTE:* Any component of the new URI may be left undefined by passing [.argName]#_null_# for the corresponding parameter or, in the case of the port parameter, by passing [.argName]#_-1_#.
+
+*Return Type*: [.returnType]#String#
+
+*Examples*
+The following examples detail how this expression can be invoked:
+
+|============================================================================
+| Expression | Value
+|`${getUri('https', 'admin:admin', 'nifi.apache.org', '1234', '/path/data ', 'key=value &key2=value2', 'frag1')}` | `https://admin:admin@nifi.apache.org:1234/path/data%20?key=value%20&key2=value2#frag1`
+|`${getUri('https', null, 'nifi.apache.org', 8443, '/docs.html', null, null)}`                                    | `https://nifi.apache.org:8443/docs.html`
+|`${getUri('http', null, 'nifi.apache.org', -1, '/docs.html', null, null)}`                                       | `http://nifi.apache.org/docs.html`
+|============================================================================
+
 [[multi]]
 == Evaluating Multiple Attributes
 
