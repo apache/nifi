@@ -18,6 +18,11 @@
     <artifactId>nifi-neo4j-cypher-service</artifactId>
     <packaging>jar</packaging>
 
+    <properties>
+        <neo4j.driver.version>4.4.9</neo4j.driver.version>
+        <neo4j.docker.version>4.4</neo4j.docker.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -74,7 +79,7 @@
         <dependency>
             <groupId>org.neo4j.driver</groupId>
             <artifactId>neo4j-java-driver</artifactId>
-            <version>4.4.9</version>
+            <version>${neo4j.driver.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -94,6 +99,19 @@
     </dependencies>
 
     <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <configuration>
+                        <systemPropertyVariables>
+                            <neo4j.docker.image>neo4j:${neo4j.docker.version}</neo4j.docker.image>
+                        </systemPropertyVariables>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.apache.rat</groupId>
@@ -115,4 +133,16 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <!-- Neo4j 5 has a hard dependency on Java 17. Do NOT activate this profile unless you
+             intend to do a full build of NiFi with Java 17! -->
+            <id>neo4j-5</id>
+            <properties>
+                <neo4j.driver.version>5.2.0</neo4j.driver.version>
+                <neo4j.docker.version>5.1</neo4j.docker.version>
+            </properties>
+        </profile>
+    </profiles>
 </project>
