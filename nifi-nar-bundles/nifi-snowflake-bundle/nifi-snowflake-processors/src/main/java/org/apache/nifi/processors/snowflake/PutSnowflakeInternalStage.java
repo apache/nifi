@@ -95,9 +95,9 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
             .dependsOn(INTERNAL_STAGE_TYPE, SnowflakeInternalStageType.TABLE)
             .build();
 
-    public static final PropertyDescriptor INTERNAL_STAGE_NAME = new PropertyDescriptor.Builder()
-            .name("internal-stage-name")
-            .displayName("Internal Stage Name")
+    public static final PropertyDescriptor INTERNAL_STAGE = new PropertyDescriptor.Builder()
+            .name("internal-stage")
+            .displayName("Stage")
             .description("The name of the internal stage in the Snowflake account to put files into.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -121,7 +121,7 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
             DATABASE,
             SCHEMA,
             TABLE,
-            INTERNAL_STAGE_NAME
+            INTERNAL_STAGE
     ));
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
@@ -149,7 +149,7 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
         final SnowflakeInternalStageType internalStageType = SnowflakeInternalStageType.forName(context.getProperty(INTERNAL_STAGE_TYPE)
                 .getValue());
         final SnowflakeInternalStageTypeParameters parameters = getSnowflakeInternalStageTypeParameters(context, flowFile);
-        final String internalStageName = internalStageType.getStageName(parameters);
+        final String internalStageName = internalStageType.getStage(parameters);
         final SnowflakeConnectionProviderService connectionProviderService =
                 context.getProperty(SNOWFLAKE_CONNECTION_PROVIDER)
                         .asControllerService(SnowflakeConnectionProviderService.class);
@@ -176,7 +176,7 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
         final String database = context.getProperty(DATABASE).evaluateAttributeExpressions().getValue();
         final String schema = context.getProperty(SCHEMA).evaluateAttributeExpressions().getValue();
         final String table = context.getProperty(TABLE).evaluateAttributeExpressions(flowFile).getValue();
-        final String stageName = context.getProperty(INTERNAL_STAGE_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String stageName = context.getProperty(INTERNAL_STAGE).evaluateAttributeExpressions(flowFile).getValue();
         return new SnowflakeInternalStageTypeParameters(database, schema, table, stageName);
     }
 }

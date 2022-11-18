@@ -25,11 +25,6 @@ The following binary components are provided under the Apache Software License v
       Apache Commons Pool
       Copyright 2002-2019 The Apache Software Foundation
 
-  (ASLv2) snowflake-jdbc
-    The following NOTICE information applies:
-      snowflake-jdbc
-      Copyright (c) 2013-2018 Snowflake Computing, Inc.
-
 ************
 Bouncy Castle (MIT style)
 ************

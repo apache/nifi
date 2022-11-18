@@ -49,7 +49,7 @@ class SnowflakePipeIT implements SnowflakeConfigAware {
 
         runner.setProperty(PutSnowflakeInternalStage.SNOWFLAKE_CONNECTION_PROVIDER, connectionProviderService.getIdentifier());
         runner.setProperty(PutSnowflakeInternalStage.INTERNAL_STAGE_TYPE, SnowflakeInternalStageType.NAMED.getValue());
-        runner.setProperty(PutSnowflakeInternalStage.INTERNAL_STAGE_NAME, internalStageName);
+        runner.setProperty(PutSnowflakeInternalStage.INTERNAL_STAGE, internalStageName);
 
         final String uuid = UUID.randomUUID().toString();
         final String fileName = filePath.getFileName().toString();

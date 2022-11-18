@@ -83,6 +83,5 @@ public final class SnowflakeProperties {
             .description("The schema to use by default. The same as passing 'schema=SCHEMA' to the connection string.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .defaultValue("PUBLIC")
             .build();
 }

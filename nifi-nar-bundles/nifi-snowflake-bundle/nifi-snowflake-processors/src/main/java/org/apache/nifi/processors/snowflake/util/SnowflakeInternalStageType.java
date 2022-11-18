@@ -25,13 +25,13 @@ import org.apache.nifi.components.DescribedValue;
 public enum SnowflakeInternalStageType implements DescribedValue {
     USER("user", "User", "Use the user's internal stage") {
         @Override
-        public String getStageName(final SnowflakeInternalStageTypeParameters parameters) {
+        public String getStage(final SnowflakeInternalStageTypeParameters parameters) {
             return "@~";
         }
     },
     TABLE("table", "Table", "Use a table's internal stage") {
         @Override
-        public String getStageName(final SnowflakeInternalStageTypeParameters parameters) {
+        public String getStage(final SnowflakeInternalStageTypeParameters parameters) {
             final StringBuilder stringBuilder = new StringBuilder("@");
             Optional.ofNullable(parameters.getDatabase())
                     .ifPresent(database -> stringBuilder.append(database).append("."));
@@ -44,7 +44,7 @@ public enum SnowflakeInternalStageType implements DescribedValue {
     },
     NAMED("named", "Named", "Use a named internal stage. This stage must be created beforehand in Snowflake") {
         @Override
-        public String getStageName(final SnowflakeInternalStageTypeParameters parameters) {
+        public String getStage(final SnowflakeInternalStageTypeParameters parameters) {
             final StringBuilder stringBuilder = new StringBuilder("@");
             Optional.ofNullable(parameters.getDatabase())
                     .ifPresent(database -> stringBuilder.append(database).append("."));
@@ -80,7 +80,7 @@ public enum SnowflakeInternalStageType implements DescribedValue {
         return description;
     }
 
-    public abstract String getStageName(final SnowflakeInternalStageTypeParameters parameters);
+    public abstract String getStage(final SnowflakeInternalStageTypeParameters parameters);
 
     public static SnowflakeInternalStageType forName(String stageType) {
         return Stream.of(values())

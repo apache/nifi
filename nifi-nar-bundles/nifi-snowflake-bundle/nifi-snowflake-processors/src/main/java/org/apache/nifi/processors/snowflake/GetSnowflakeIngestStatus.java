@@ -23,10 +23,8 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import net.snowflake.ingest.SimpleIngestManager;
@@ -37,14 +35,11 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
-import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -53,8 +48,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Stateful(scopes = Scope.CLUSTER,
-        description = "The 'begin mark' from the response of a history request is stored to keep track of already requested history time range.")
 @DefaultSettings(penaltyDuration = "5 sec")
 @ReadsAttributes({
         @ReadsAttribute(attribute = ATTRIBUTE_STAGED_FILE_PATH, description = "Staged file path")
@@ -125,13 +118,10 @@ public class GetSnowflakeIngestStatus extends AbstractProcessor {
         final SnowflakeIngestManagerProviderService ingestManagerProviderService =
                 context.getProperty(INGEST_MANAGER_PROVIDER)
                         .asControllerService(SnowflakeIngestManagerProviderService.class);
-        final String beginMarkKey = stagedFilePath + ".begin.mark";
-        final StateManager stateManager = StateManager.create(beginMarkKey, session);
-        final String beginMark = stateManager.getBeginMark();
         final HistoryResponse historyResponse;
         try {
             final SimpleIngestManager snowflakeIngestManager = ingestManagerProviderService.getIngestManager();
-            historyResponse = snowflakeIngestManager.getHistory(null, null, beginMark);
+            historyResponse = snowflakeIngestManager.getHistory(null, null, null);
         } catch (URISyntaxException | IOException e) {
             throw new ProcessException("Failed to get Snowflake ingest history for staged file [" + stagedFilePath + "]", e);
         } catch (IngestResponseException e) {
@@ -146,12 +136,10 @@ public class GetSnowflakeIngestStatus extends AbstractProcessor {
                         .findFirst());
 
         if (!fileEntry.isPresent()) {
-            stateManager.saveBeginMarkToState(historyResponse.getNextBeginMark());
             session.transfer(session.penalize(flowFile), REL_RETRY);
             return;
         }
 
-        stateManager.removeBeginMarkFromState();
         if (fileEntry.get().getErrorsSeen() > 0) {
             getLogger().error("Failed to ingest file [" + stagedFilePath + "] in Snowflake stage via pipe [" + ingestManagerProviderService.getPipeName() + "]."
                     + " Error: " + fileEntry.get().getFirstError());
@@ -160,50 +148,5 @@ public class GetSnowflakeIngestStatus extends AbstractProcessor {
         }
         session.transfer(flowFile, REL_SUCCESS);
 
-    }
-
-    private static class StateManager {
-
-        private final StateMap stateMap;
-        private final String beginMarkKey;
-        private final ProcessSession session;
-
-        public StateManager(final StateMap stateMap, final String beginMarkKey, final ProcessSession session) {
-            this.stateMap = stateMap;
-            this.beginMarkKey = beginMarkKey;
-            this.session = session;
-        }
-
-        public static StateManager create(final String beginMarkKey, final ProcessSession session) {
-            try {
-                return new StateManager(session.getState(Scope.CLUSTER), beginMarkKey, session);
-            } catch (IOException e) {
-                throw new ProcessException("Failed to get state", e);
-            }
-        }
-
-        public String getBeginMark() {
-            return stateMap.get(beginMarkKey);
-        }
-
-        public void saveBeginMarkToState(final String newBeginMark) {
-            final Map<String, String> newState = new HashMap<>(stateMap.toMap());
-            newState.put(beginMarkKey, newBeginMark);
-            try {
-                session.setState(newState, Scope.CLUSTER);
-            } catch (IOException e) {
-                throw new ProcessException("Failed to save new begin mark to state", e);
-            }
-        }
-
-        public void removeBeginMarkFromState() {
-            final Map<String, String> newState = new HashMap<>(stateMap.toMap());
-            newState.remove(beginMarkKey);
-            try {
-                session.setState(newState, Scope.CLUSTER);
-            } catch (IOException e) {
-                throw new ProcessException("Failed to remove begin mark key from state", e);
-            }
-        }
     }
 }

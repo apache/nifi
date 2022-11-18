@@ -33,7 +33,7 @@
 
 <h3>Description</h3>
 <p>
-    The StartSnowflakeIngest processor triggers a Snowflake pipe ingestion for a staged file. The pipe has to be set up in your Snowflake account.
+    The StartSnowflakeIngest processor triggers a Snowflake pipe ingestion for a staged file. Please note, that the pipe has to be created in your Snowflake account manually.
     The processor requires an upstream connection that provides the path of the file to be ingested in the stage through the "snowflake.staged.file.path" attribute.
     This attribute is automatically filled in by the PutSnowflakeInternalStage processor when using an internal stage.
     In case a pipe copies data from an external stage, the attribute shall be manually provided (e.g. with an UpdateAttribute processor).
