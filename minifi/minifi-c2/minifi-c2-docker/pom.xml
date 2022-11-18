@@ -72,6 +72,7 @@ limitations under the License.
                                         <UID>1000</UID>
                                         <GID>1000</GID>
                                         <MINIFI_C2_VERSION>${minifi.c2.version}</MINIFI_C2_VERSION>
+                                        <MINIFI_C2_BINARY_NAME>minifi-c2-${minifi.c2.version}-bin.zip</MINIFI_C2_BINARY_NAME>
                                         <MINIFI_C2_BINARY>target/minifi-c2-${minifi.c2.version}-bin.zip</MINIFI_C2_BINARY>
                                     </buildArgs>
                                     <repository>apacheminific2</repository>

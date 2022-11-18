@@ -91,6 +91,7 @@ limitations under the License.
                                         <UID>1000</UID>
                                         <GID>1000</GID>
                                         <MINIFI_VERSION>${minifi.version}</MINIFI_VERSION>
+                                        <MINIFI_BINARY_NAME>minifi-${minifi.version}-bin.zip</MINIFI_BINARY_NAME>
                                         <MINIFI_BINARY>target/minifi-${minifi.version}-bin.zip</MINIFI_BINARY>
                                         <MINIFI_SCRIPTS>target/sh</MINIFI_SCRIPTS>
                                     </buildArgs>

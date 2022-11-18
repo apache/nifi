@@ -16,17 +16,19 @@
 # under the License.
 #
 
-FROM eclipse-temurin:11-jre
-LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
-LABEL site="https://nifi.apache.org"
+ARG IMAGE_NAME=eclipse-temurin
+ARG IMAGE_TAG=11-jre
+FROM ${IMAGE_NAME}:${IMAGE_TAG} as builder
+LABEL stage=builder
 
 ARG UID=1000
 ARG GID=1000
 ARG MINIFI_C2_VERSION
+ARG MINIFI_C2_BINARY_NAME
 ARG MINIFI_C2_BINARY
 
+ENV MINIFI_C2_USER c2
 ENV MINIFI_C2_BASE_DIR /opt/minifi-c2
-ENV MINIFI_C2_BINARY_NAME minifi-c2-${MINIFI_C2_VERSION}-bin.zip
 ENV MINIFI_C2_HOME ${MINIFI_C2_BASE_DIR}/minifi-c2-current
 
 RUN mkdir -p ${MINIFI_C2_BASE_DIR}
@@ -39,12 +41,28 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     && unzip ${MINIFI_C2_BASE_DIR}/${MINIFI_C2_BINARY_NAME} -d ${MINIFI_C2_BASE_DIR} \
     && rm ${MINIFI_C2_BASE_DIR}/${MINIFI_C2_BINARY_NAME} \
-    && groupadd -g ${GID} c2 \
-    && useradd --shell /bin/bash -u ${UID} -g ${GID} -m c2 \
-    && ln -s $MINIFI_C2_BASE_DIR/minifi-c2-$MINIFI_C2_VERSION $MINIFI_C2_HOME \
-    && chown -R -L c2:c2 ${MINIFI_C2_BASE_DIR}
+    && groupadd -g ${GID} ${MINIFI_C2_USER} \
+    && useradd --shell /bin/bash -u ${UID} -g ${GID} -m ${MINIFI_C2_USER} \
+    && ln -s ${MINIFI_C2_BASE_DIR}/minifi-c2-${MINIFI_C2_VERSION} ${MINIFI_C2_HOME} \
+    && chown -R -L ${MINIFI_C2_USER}:${MINIFI_C2_USER} ${MINIFI_C2_BASE_DIR}
 
-USER c2
+FROM ${IMAGE_NAME}:${IMAGE_TAG}
+LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
+LABEL site="https://nifi.apache.org"
+
+ARG UID
+ARG GID
+
+ENV MINIFI_C2_USER c2
+ENV MINIFI_C2_BASE_DIR /opt/minifi-c2
+ENV MINIFI_C2_HOME ${MINIFI_C2_BASE_DIR}/minifi-c2-current
+
+RUN groupadd -g ${GID} ${MINIFI_C2_USER} \
+    && useradd --shell /bin/bash -u ${UID} -g ${GID} -m ${MINIFI_C2_USER}
+
+COPY --from=builder ${MINIFI_C2_BASE_DIR} ${MINIFI_C2_BASE_DIR}
+
+USER ${MINIFI_C2_USER}
 
 #Default http port
 EXPOSE 10090

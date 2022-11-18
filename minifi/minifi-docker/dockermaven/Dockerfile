@@ -18,24 +18,24 @@
 
 ARG IMAGE_NAME=eclipse-temurin
 ARG IMAGE_TAG=11-jre
-FROM ${IMAGE_NAME}:${IMAGE_TAG}
-LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
-LABEL site="https://nifi.apache.org"
+FROM ${IMAGE_NAME}:${IMAGE_TAG} as builder
+LABEL stage=builder
 
 # Values are set by Maven
 ARG UID
 ARG GID
 ARG MINIFI_VERSION
+ARG MINIFI_BINARY_NAME
 ARG MINIFI_BINARY
 ARG MINIFI_SCRIPTS
 
+ENV MINIFI_USER minifi
 ENV MINIFI_BASE_DIR /opt/minifi
-ENV MINIFI_BINARY_NAME minifi-${MINIFI_VERSION}-bin.zip
-ENV MINIFI_HOME $MINIFI_BASE_DIR/minifi-current
+ENV MINIFI_HOME ${MINIFI_BASE_DIR}/minifi-current
 
-RUN  mkdir -p $MINIFI_BASE_DIR
-COPY $MINIFI_BINARY $MINIFI_BASE_DIR
-ADD $MINIFI_SCRIPTS ${MINIFI_BASE_DIR}/scripts
+RUN mkdir -p ${MINIFI_BASE_DIR}
+COPY ${MINIFI_BINARY} ${MINIFI_BASE_DIR}
+ADD ${MINIFI_SCRIPTS} ${MINIFI_BASE_DIR}/scripts
 
 RUN apt-get update \
     && apt-get install -y unzip \
@@ -44,13 +44,29 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     && unzip ${MINIFI_BASE_DIR}/${MINIFI_BINARY_NAME} -d ${MINIFI_BASE_DIR} \
     && rm ${MINIFI_BASE_DIR}/${MINIFI_BINARY_NAME} \
-    && groupadd -g ${GID} minifi \
-    && useradd --shell /bin/bash -u ${UID} -g ${GID} -m minifi \
-    && ln -s $MINIFI_BASE_DIR/minifi-$MINIFI_VERSION $MINIFI_HOME \
-    && chown -R -L minifi:minifi $MINIFI_BASE_DIR \
+    && groupadd -g ${GID} ${MINIFI_USER} \
+    && useradd --shell /bin/bash -u ${UID} -g ${GID} -m ${MINIFI_USER} \
+    && ln -s ${MINIFI_BASE_DIR}/minifi-${MINIFI_VERSION} ${MINIFI_HOME} \
+    && chown -R ${MINIFI_USER}:${MINIFI_USER} ${MINIFI_BASE_DIR} \
     && chmod -R +x ${MINIFI_BASE_DIR}/scripts/*.sh
 
-USER minifi
+FROM ${IMAGE_NAME}:${IMAGE_TAG}
+LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
+LABEL site="https://nifi.apache.org"
+
+ARG UID
+ARG GID
+
+ENV MINIFI_USER minifi
+ENV MINIFI_BASE_DIR /opt/minifi
+ENV MINIFI_HOME ${MINIFI_BASE_DIR}/minifi-current
+
+RUN groupadd -g ${GID} ${MINIFI_USER} \
+    && useradd --shell /bin/bash -u ${UID} -g ${GID} -m ${MINIFI_USER}
+
+COPY --from=builder ${MINIFI_BASE_DIR} ${MINIFI_BASE_DIR}
+
+USER ${MINIFI_USER}
 
 WORKDIR ${MINIFI_HOME}
 
