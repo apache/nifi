@@ -111,6 +111,7 @@ UUID : 'UUID';
 HOSTNAME : 'hostname';	// requires boolean arg: prefer FQDN
 NOW	: 'now';
 THREAD : 'thread';
+GET_URI : 'getUri';
 
 
 // 0 arg functions

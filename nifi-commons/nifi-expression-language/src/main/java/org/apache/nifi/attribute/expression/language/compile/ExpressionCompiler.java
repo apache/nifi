@@ -117,6 +117,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.ToStri
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToUpperEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.EvaluateELStringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.TrimEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.GetUriEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlDecodeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlEncodeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UuidEvaluator;
@@ -152,6 +153,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLexer.TO_MICROS;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLexer.TO_NANOS;
@@ -187,6 +189,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FROM_RADIX;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GET_DELIMITED_FIELD;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GET_STATE_VALUE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GET_URI;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GREATER_THAN;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GREATER_THAN_OR_EQUAL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.HASH;
@@ -1266,6 +1269,14 @@ public class ExpressionCompiler {
                 final GetStateVariableEvaluator eval = new GetStateVariableEvaluator(stringEvaluator);
                 evaluators.add(eval);
                 return eval;
+            }
+            case GET_URI: {
+                @SuppressWarnings("unchecked")
+                Evaluator<String> [] uriArgs = Stream.iterate(0, i -> i + 1)
+                        .limit(tree.getChildCount())
+                        .map(num -> toStringEvaluator(buildEvaluator(tree.getChild(num))))
+                        .toArray(Evaluator[]::new);
+                return addToken(new GetUriEvaluator(uriArgs), "getUri");
             }
             default:
                 throw new AttributeExpressionLanguageParsingException("Unexpected token: " + tree.toString());

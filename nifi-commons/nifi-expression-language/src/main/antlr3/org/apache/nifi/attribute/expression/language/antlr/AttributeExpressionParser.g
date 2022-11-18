@@ -137,7 +137,8 @@ booleanLiteral : TRUE | FALSE;
 zeroArgStandaloneFunction : (IP | UUID | NOW | NEXT_INT | HOSTNAME | THREAD | RANDOM) LPAREN! RPAREN!;
 oneArgStandaloneFunction : ((TO_LITERAL | MATH | GET_STATE_VALUE)^ LPAREN! anyArg RPAREN!) |
                            (HOSTNAME^ LPAREN! booleanLiteral RPAREN!);
-standaloneFunction : zeroArgStandaloneFunction | oneArgStandaloneFunction;
+threeOrFourOrFiveOrSevenArgStandaloneFunction : GET_URI^ LPAREN! anyArg COMMA! anyArg COMMA! anyArg (COMMA! anyArg (COMMA! anyArg (COMMA! anyArg COMMA! anyArg)?)?)? RPAREN!;
+standaloneFunction : zeroArgStandaloneFunction | oneArgStandaloneFunction | threeOrFourOrFiveOrSevenArgStandaloneFunction;
 
 attributeRefOrFunctionCall	: (attributeRef | standaloneFunction | parameterReference);
 
