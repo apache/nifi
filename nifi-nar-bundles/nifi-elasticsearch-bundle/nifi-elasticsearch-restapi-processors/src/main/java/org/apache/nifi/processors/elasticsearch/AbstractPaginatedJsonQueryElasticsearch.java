@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.elasticsearch.SearchResponse;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -30,6 +29,8 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.elasticsearch.api.PaginatedJsonQueryParameters;
+import org.apache.nifi.processors.elasticsearch.api.PaginationType;
+import org.apache.nifi.processors.elasticsearch.api.ResultOutputStrategy;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 
@@ -43,45 +44,20 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJsonQueryElasticsearch<PaginatedJsonQueryParameters> {
-    public static final AllowableValue FLOWFILE_PER_QUERY = new AllowableValue(
-            "splitUp-query",
-            "Per Query",
-            "Combine results from all query responses (one flowfile per entire paginated result set of hits). " +
-                    "Note that aggregations cannot be paged, they are generated across the entire result set and " +
-                    "returned as part of the first page. Results are output with one JSON object per line " +
-                    "(allowing hits to be combined from multiple pages without loading all results into memory)."
-    );
-
     public static final PropertyDescriptor SEARCH_RESULTS_SPLIT = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT)
             .description("Output a flowfile containing all hits or one flowfile for each individual hit " +
                     "or one flowfile containing all hits from all paged responses.")
-            .allowableValues(FLOWFILE_PER_RESPONSE, FLOWFILE_PER_HIT, FLOWFILE_PER_QUERY)
+            .allowableValues(ResultOutputStrategy.class)
             .build();
-
-    public static final AllowableValue PAGINATION_SEARCH_AFTER = new AllowableValue(
-            "pagination-search_after",
-            "Search After",
-            "Use Elasticsearch \"search_after\" to page sorted results."
-    );
-    public static final AllowableValue PAGINATION_POINT_IN_TIME = new AllowableValue(
-            "pagination-pit",
-            "Point in Time",
-            "Use Elasticsearch (7.10+ with XPack) \"point in time\" to page sorted results."
-    );
-    public static final AllowableValue PAGINATION_SCROLL = new AllowableValue(
-            "pagination-scroll",
-            "Scroll",
-            "Use Elasticsearch \"scroll\" to page results."
-    );
 
     public static final PropertyDescriptor PAGINATION_TYPE = new PropertyDescriptor.Builder()
             .name("el-rest-pagination-type")
             .displayName("Pagination Type")
             .description("Pagination method to use. Not all types are available for all Elasticsearch versions, " +
                     "check the Elasticsearch docs to confirm which are applicable and recommended for your service.")
-            .allowableValues(PAGINATION_SCROLL, PAGINATION_SEARCH_AFTER, PAGINATION_POINT_IN_TIME)
-            .defaultValue(PAGINATION_SCROLL.getValue())
+            .allowableValues(PaginationType.class)
+            .defaultValue(PaginationType.SCROLL.getValue())
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
@@ -106,7 +82,9 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
         descriptors.add(TYPE);
         descriptors.add(CLIENT_SERVICE);
         descriptors.add(SEARCH_RESULTS_SPLIT);
+        descriptors.add(SEARCH_RESULTS_FORMAT);
         descriptors.add(AGGREGATION_RESULTS_SPLIT);
+        descriptors.add(AGGREGATION_RESULTS_FORMAT);
         descriptors.add(PAGINATION_TYPE);
         descriptors.add(PAGINATION_KEEP_ALIVE);
         descriptors.add(OUTPUT_NO_HITS);
@@ -117,14 +95,14 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
     // output as newline delimited JSON (allows for multiple pages of results to be appended to existing FlowFiles without retaining all hits in memory)
     private final ObjectWriter writer = mapper.writer().withRootValueSeparator("\n");
 
-    String paginationType;
+    PaginationType paginationType;
 
     @Override
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
 
-        paginationType = context.getProperty(PAGINATION_TYPE).getValue();
+        paginationType = PaginationType.fromValue(context.getProperty(PAGINATION_TYPE).getValue());
     }
 
     @Override
@@ -139,18 +117,18 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
 
             // execute query/scroll
             final String queryJson = updateQueryJson(newQuery, paginatedJsonQueryParameters);
-            if (!newQuery && PAGINATION_SCROLL.getValue().equals(paginationType)) {
+            if (!newQuery && paginationType == PaginationType.SCROLL) {
                 response = clientService.get().scroll(queryJson);
             } else {
                 final Map<String, String> requestParameters = getUrlQueryParameters(context, input);
-                if (PAGINATION_SCROLL.getValue().equals(paginationType)) {
+                if (paginationType == PaginationType.SCROLL) {
                     requestParameters.put("scroll", paginatedJsonQueryParameters.getKeepAlive());
                 }
 
                 response = clientService.get().search(
                         queryJson,
                         // Point in Time uses general /_search API not /index/_search
-                        PAGINATION_POINT_IN_TIME.getValue().equals(paginationType) ? null : paginatedJsonQueryParameters.getIndex(),
+                        paginationType == PaginationType.POINT_IN_TIME ? null : paginatedJsonQueryParameters.getIndex(),
                         paginatedJsonQueryParameters.getType(),
                         requestParameters
                 );
@@ -170,7 +148,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
             updatePageExpirationTimestamp(paginatedJsonQueryParameters, !response.getHits().isEmpty());
 
             hitsFlowFiles = handleResponse(response, newQuery, paginatedJsonQueryParameters, hitsFlowFiles, session, input, stopWatch);
-        } while (!response.getHits().isEmpty() && (input != null || FLOWFILE_PER_QUERY.getValue().equals(splitUpHits)));
+        } while (!response.getHits().isEmpty() && (input != null || hitStrategy == ResultOutputStrategy.PER_QUERY));
 
         if (response.getHits().isEmpty()) {
             getLogger().debug("No more results for paginated query, clearing Elasticsearch resources");
@@ -199,7 +177,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
 
     private void prepareNextPageQuery(final ObjectNode queryJson, final PaginatedJsonQueryParameters paginatedJsonQueryParameters) throws IOException {
         // prepare to get next page of results (depending on pagination type)
-        if (PAGINATION_SCROLL.getValue().equals(paginationType)) {
+        if (paginationType == PaginationType.SCROLL) {
             // overwrite query JSON with existing Scroll details
             queryJson.removeAll().put("scroll_id", paginatedJsonQueryParameters.getScrollId());
             if (StringUtils.isNotBlank(paginatedJsonQueryParameters.getKeepAlive())) {
@@ -222,13 +200,13 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
 
         if (!newQuery) {
             prepareNextPageQuery(queryJson, paginatedJsonQueryParameters);
-        } else if ((PAGINATION_POINT_IN_TIME.getValue().equals(paginationType) || PAGINATION_SEARCH_AFTER.getValue().equals(paginationType))
+        } else if ((paginationType == PaginationType.POINT_IN_TIME || paginationType == PaginationType.SEARCH_AFTER)
                 && !queryJson.has("sort")) {
             // verify query contains a "sort" field if pit/search_after requested
             throw new IllegalArgumentException("Query using pit/search_after must contain a \"sort\" field");
         }
 
-        if (PAGINATION_POINT_IN_TIME.getValue().equals(paginationType)) {
+        if (paginationType == PaginationType.POINT_IN_TIME) {
             // add pit_id to query JSON
             final String queryPitId = newQuery
                     ? clientService.get().initialisePointInTime(paginatedJsonQueryParameters.getIndex(), paginatedJsonQueryParameters.getKeepAlive())
@@ -273,7 +251,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
 
             hitsFlowFiles.add(writeCombinedHitFlowFile(paginatedJsonQueryParameters.getHitCount() + hits.size(),
                     hits, session, hitFlowFile, attributes, append));
-        } else if (getOutputNoHits()) {
+        } else if (isOutputNoHits()) {
             final FlowFile hitFlowFile = createChildFlowFile(session, parent);
             hitsFlowFiles.add(writeHitFlowFile(0, "", session, hitFlowFile, attributes));
         }
@@ -292,7 +270,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
         paginatedJsonQueryParameters.incrementPageCount();
         attributes.put("page.number", Integer.toString(paginatedJsonQueryParameters.getPageCount()));
 
-        if (FLOWFILE_PER_QUERY.getValue().equals(splitUpHits)) {
+        if (hitStrategy == ResultOutputStrategy.PER_QUERY) {
             combineHits(hits, paginatedJsonQueryParameters, session, parent, attributes, hitsFlowFiles);
 
             // output results if it seems we've combined all available results (i.e. no hits in this page and therefore no more expected)
@@ -317,20 +295,20 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
 
     void clearElasticsearchState(final ProcessContext context, final SearchResponse response) {
         try {
-            if (PAGINATION_SCROLL.getValue().equals(paginationType)) {
+            if (paginationType == PaginationType.SCROLL) {
                 final String scrollId = getScrollId(context, response);
 
                 if (StringUtils.isNotBlank(scrollId)) {
                     clientService.get().deleteScroll(scrollId);
                 }
-            } else if (PAGINATION_POINT_IN_TIME.getValue().equals(paginationType)) {
+            } else if (paginationType == PaginationType.POINT_IN_TIME) {
                 final String pitId = getPitId(context, response);
 
                 if (StringUtils.isNotBlank(pitId)) {
                     clientService.get().deletePointInTime(pitId);
                 }
             }
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             getLogger().warn("Error while cleaning up Elasticsearch pagination resources, ignoring", ex);
         }
     }

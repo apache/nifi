@@ -19,7 +19,6 @@ package org.apache.nifi.processors.elasticsearch;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.ElasticsearchException;
@@ -32,7 +31,10 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.elasticsearch.api.AggregationResultsFormat;
 import org.apache.nifi.processors.elasticsearch.api.JsonQueryParameters;
+import org.apache.nifi.processors.elasticsearch.api.ResultOutputStrategy;
+import org.apache.nifi.processors.elasticsearch.api.SearchResultsFormat;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 
@@ -41,11 +43,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParameters> extends AbstractProcessor implements ElasticsearchRestProcessor {
     public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original")
@@ -57,23 +61,22 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
             .description("Aggregations are routed to this relationship.")
             .build();
 
-    public static final AllowableValue FLOWFILE_PER_HIT = new AllowableValue(
-            "splitUp-yes",
-            "Per Hit",
-            "Flowfile per hit."
-    );
-    public static final AllowableValue FLOWFILE_PER_RESPONSE = new AllowableValue(
-            "splitUp-no",
-            "Per Response",
-            "Flowfile per response."
-    );
-
     public static final PropertyDescriptor SEARCH_RESULTS_SPLIT = new PropertyDescriptor.Builder()
             .name("el-rest-split-up-hits")
             .displayName("Search Results Split")
             .description("Output a flowfile containing all hits or one flowfile for each individual hit.")
-            .allowableValues(FLOWFILE_PER_RESPONSE, FLOWFILE_PER_HIT)
-            .defaultValue(FLOWFILE_PER_RESPONSE.getValue())
+            .allowableValues(ResultOutputStrategy.PER_RESPONSE.getValue(), ResultOutputStrategy.PER_HIT.getValue())
+            .defaultValue(ResultOutputStrategy.PER_RESPONSE.getValue())
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .build();
+
+    public static final PropertyDescriptor SEARCH_RESULTS_FORMAT = new PropertyDescriptor.Builder()
+            .name("el-rest-format-hits")
+            .displayName("Search Results Format")
+            .description("Format of Hits output.")
+            .allowableValues(SearchResultsFormat.class)
+            .defaultValue(SearchResultsFormat.FULL.getValue())
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
@@ -81,8 +84,18 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
             .name("el-rest-split-up-aggregations")
             .displayName("Aggregation Results Split")
             .description("Output a flowfile containing all aggregations or one flowfile for each individual aggregation.")
-            .allowableValues(FLOWFILE_PER_RESPONSE, FLOWFILE_PER_HIT)
-            .defaultValue(FLOWFILE_PER_RESPONSE.getValue())
+            .allowableValues(ResultOutputStrategy.PER_RESPONSE.getValue(), ResultOutputStrategy.PER_HIT.getValue())
+            .defaultValue(ResultOutputStrategy.PER_RESPONSE.getValue())
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .build();
+
+    public static final PropertyDescriptor AGGREGATION_RESULTS_FORMAT = new PropertyDescriptor.Builder()
+            .name("el-rest-format-aggregations")
+            .displayName("Aggregation Results Format")
+            .description("Format of Aggregation output.")
+            .allowableValues(AggregationResultsFormat.class)
+            .defaultValue(AggregationResultsFormat.FULL.getValue())
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
@@ -101,13 +114,11 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
 
-    String splitUpHits;
-    private String splitUpAggregations;
+    ResultOutputStrategy hitStrategy;
+    private SearchResultsFormat hitFormat;
+    private ResultOutputStrategy aggregationStrategy;
+    private AggregationResultsFormat aggregationFormat;
     private boolean outputNoHits;
-
-    boolean getOutputNoHits() {
-        return outputNoHits;
-    }
 
     final ObjectMapper mapper = new ObjectMapper();
 
@@ -128,7 +139,9 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
         descriptors.add(TYPE);
         descriptors.add(CLIENT_SERVICE);
         descriptors.add(SEARCH_RESULTS_SPLIT);
+        descriptors.add(SEARCH_RESULTS_FORMAT);
         descriptors.add(AGGREGATION_RESULTS_SPLIT);
+        descriptors.add(AGGREGATION_RESULTS_FORMAT);
         descriptors.add(OUTPUT_NO_HITS);
 
         propertyDescriptors = Collections.unmodifiableList(descriptors);
@@ -160,12 +173,18 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
         return false;
     }
 
+    boolean isOutputNoHits() {
+        return outputNoHits;
+    }
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         clientService.set(context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class));
 
-        splitUpHits = context.getProperty(SEARCH_RESULTS_SPLIT).getValue();
-        splitUpAggregations = context.getProperty(AGGREGATION_RESULTS_SPLIT).getValue();
+        hitStrategy = ResultOutputStrategy.fromValue(context.getProperty(SEARCH_RESULTS_SPLIT).getValue());
+        hitFormat = SearchResultsFormat.valueOf(context.getProperty(SEARCH_RESULTS_FORMAT).getValue());
+        aggregationStrategy = ResultOutputStrategy.fromValue(context.getProperty(AGGREGATION_RESULTS_SPLIT).getValue());
+        aggregationFormat = AggregationResultsFormat.valueOf(context.getProperty(AGGREGATION_RESULTS_FORMAT).getValue());
 
         outputNoHits = context.getProperty(OUTPUT_NO_HITS).asBoolean();
     }
@@ -203,7 +222,7 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
                 input = session.putAttribute(input, "elasticsearch.query.error", ese.getMessage());
                 session.transfer(input, ese.isElastic() ? REL_RETRY : REL_FAILURE);
             }
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             getLogger().error("Could not query documents.", ex);
             if (input != null) {
                 input = session.putAttribute(input, "elasticsearch.query.error", ex.getMessage());
@@ -260,17 +279,19 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
                                     final FlowFile parent, final Map<String, String> attributes,
                                     final String transitUri, final StopWatch stopWatch) throws IOException {
         if (aggregations != null && !aggregations.isEmpty()) {
+            final Map<String, Object> formattedAggregations = formatAggregations(aggregations);
             final List<FlowFile> aggsFlowFiles = new ArrayList<>();
-            if (splitUpAggregations.equals(FLOWFILE_PER_HIT.getValue())) {
+
+            if (aggregationStrategy == ResultOutputStrategy.PER_HIT) {
                 int aggCount = 0;
-                for (final Map.Entry<String, Object> agg : aggregations.entrySet()) {
+                for (final Map.Entry<String, Object> agg : formattedAggregations.entrySet()) {
                     final FlowFile aggFlowFile = createChildFlowFile(session, parent);
                     final String aggJson = mapper.writeValueAsString(agg.getValue());
                     aggsFlowFiles.add(writeAggregationFlowFileContents(agg.getKey(), ++aggCount, aggJson, session, aggFlowFile, attributes));
                 }
             } else {
                 final FlowFile aggFlowFile = createChildFlowFile(session, parent);
-                final String json = mapper.writeValueAsString(aggregations);
+                final String json = mapper.writeValueAsString(formattedAggregations);
                 aggsFlowFiles.add(writeAggregationFlowFileContents(null, null, json, session, aggFlowFile, attributes));
             }
 
@@ -281,8 +302,29 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> formatAggregations(final Map<String, Object> aggregations) {
+        final Map<String, Object> formattedAggregations;
+
+        if (aggregationFormat == AggregationResultsFormat.METADATA_ONLY) {
+            formattedAggregations = new LinkedHashMap<>(aggregations);
+            formattedAggregations.forEach((k, v) -> ((Map<String, Object>)v).remove("buckets"));
+        } else if (aggregationFormat == AggregationResultsFormat.BUCKETS_ONLY) {
+            formattedAggregations = aggregations.entrySet().stream().collect(Collectors.toMap(
+                    Map.Entry::getKey,
+                    e -> ((Map<String, Object>)e.getValue()).get("buckets"),
+                    (k1, k2) -> k1,
+                    LinkedHashMap::new
+            ));
+        } else {
+            formattedAggregations = aggregations;
+        }
+
+        return formattedAggregations;
+    }
+
     FlowFile writeHitFlowFile(final int count, final String json, final ProcessSession session,
-                              final FlowFile hitFlowFile, final Map<String, String> attributes) {
+                                      final FlowFile hitFlowFile, final Map<String, String> attributes) {
         final FlowFile ff = session.write(hitFlowFile, out -> out.write(json.getBytes()));
         attributes.put("hit.count", Integer.toString(count));
 
@@ -301,16 +343,18 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
                               final FlowFile parent, final Map<String, String> attributes, final List<FlowFile> hitsFlowFiles,
                               final String transitUri, final StopWatch stopWatch) throws IOException {
         if (hits != null && !hits.isEmpty()) {
-            if (FLOWFILE_PER_HIT.getValue().equals(splitUpHits)) {
-                for (final Map<String, Object> hit : hits) {
+            final List<Map<String, Object>> formattedHits = formatHits(hits);
+
+            if (hitStrategy == ResultOutputStrategy.PER_HIT) {
+                for (final Map<String, Object> hit : formattedHits) {
                     final FlowFile hitFlowFile = createChildFlowFile(session, parent);
                     final String json = mapper.writeValueAsString(hit);
                     hitsFlowFiles.add(writeHitFlowFile(1, json, session, hitFlowFile, attributes));
                 }
             } else {
                 final FlowFile hitFlowFile = createChildFlowFile(session, parent);
-                final String json = mapper.writeValueAsString(hits);
-                hitsFlowFiles.add(writeHitFlowFile(hits.size(), json, session, hitFlowFile, attributes));
+                final String json = mapper.writeValueAsString(formattedHits);
+                hitsFlowFiles.add(writeHitFlowFile(formattedHits.size(), json, session, hitFlowFile, attributes));
             }
         } else if (newQuery && outputNoHits) {
             final FlowFile hitFlowFile = createChildFlowFile(session, parent);
@@ -320,6 +364,24 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
         transferResultFlowFiles(session, hitsFlowFiles, transitUri, stopWatch);
 
         return hitsFlowFiles;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> formatHits(final List<Map<String, Object>> hits) {
+        final List<Map<String, Object>> formattedHits;
+
+        if (hitFormat == SearchResultsFormat.METADATA_ONLY) {
+            formattedHits = hits.stream().map(HashMap::new).collect(Collectors.toList());
+            formattedHits.forEach(h -> h.remove("_source"));
+        } else if (hitFormat == SearchResultsFormat.SOURCE_ONLY) {
+            formattedHits = hits.stream()
+                    .map(h -> (Map<String, Object>) h.getOrDefault("_source", Collections.emptyMap()))
+                    .collect(Collectors.toList());
+        } else {
+            formattedHits = hits;
+        }
+
+        return formattedHits;
     }
 
     private void transferResultFlowFiles(final ProcessSession session, final List<FlowFile> hitsFlowFiles, final String transitUri,

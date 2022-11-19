@@ -38,6 +38,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.elasticsearch.api.PaginatedJsonQueryParameters;
+import org.apache.nifi.processors.elasticsearch.api.PaginationType;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
@@ -144,12 +145,12 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
             getLogger().debug("Updating local state for next execution");
 
             final Map<String, String> newStateMap = new HashMap<>();
-            if (PAGINATION_SCROLL.getValue().equals(paginationType)) {
+            if (paginationType == PaginationType.SCROLL) {
                 newStateMap.put(STATE_SCROLL_ID, response.getScrollId());
             } else {
                 newStateMap.put(STATE_SEARCH_AFTER, response.getSearchAfter());
 
-                if (PAGINATION_POINT_IN_TIME.getValue().equals(paginationType)) {
+                if (paginationType == PaginationType.POINT_IN_TIME) {
                     newStateMap.put(STATE_PIT_ID, response.getPitId());
                 }
             }
