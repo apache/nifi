@@ -604,7 +604,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             final String body = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
             parseResponseWarningHeaders(response);
 
-            return (Map<String, Object>) mapper.readValue(body, Map.class).get("_source");
+            return (Map<String, Object>) mapper.readValue(body, Map.class).getOrDefault("_source", Collections.emptyMap());
         } catch (final Exception ex) {
             throw new ElasticsearchException(ex);
         }

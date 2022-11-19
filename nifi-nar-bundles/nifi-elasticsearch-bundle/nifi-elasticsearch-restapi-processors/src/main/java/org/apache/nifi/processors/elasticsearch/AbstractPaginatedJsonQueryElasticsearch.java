@@ -273,7 +273,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
 
             hitsFlowFiles.add(writeCombinedHitFlowFile(paginatedJsonQueryParameters.getHitCount() + hits.size(),
                     hits, session, hitFlowFile, attributes, append));
-        } else if (getOutputNoHits()) {
+        } else if (isOutputNoHits()) {
             final FlowFile hitFlowFile = createChildFlowFile(session, parent);
             hitsFlowFiles.add(writeHitFlowFile(0, "", session, hitFlowFile, attributes));
         }

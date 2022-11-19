@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.elasticsearch
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.nifi.components.state.Scope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.provenance.ProvenanceEventType
@@ -31,10 +32,15 @@ import static org.hamcrest.CoreMatchers.equalTo
 import static org.hamcrest.CoreMatchers.is
 import static org.hamcrest.MatcherAssert.assertThat
 import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertFalse
+import static org.junit.jupiter.api.Assertions.assertInstanceOf
 import static org.junit.jupiter.api.Assertions.assertNotNull
 import static org.junit.jupiter.api.Assertions.assertThrows
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryElasticsearch> {
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+
     static final String INDEX_NAME = "messages"
 
     abstract P getProcessor()
@@ -114,14 +120,22 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
 
     @Test
     void testBasicQuery() throws Exception {
-        // test hits (no splitting)
+        // test hits (no splitting) - full hit format
         final TestRunner runner = createRunner(false)
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([query: [ match_all: [:] ]])))
+        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_FORMAT, AbstractPaginatedJsonQueryElasticsearch.HITS_FULL.getValue())
         runOnce(runner)
         testCounts(runner, isInput() ? 1 : 0, 1, 0, 0)
         final FlowFile hits = runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0)
         hits.assertAttributeEquals("hit.count", "10")
         assertOutputContent(hits.getContent(), 10, false)
+        final List<Map<String, Object>> result = OBJECT_MAPPER.readValue(hits.getContent(), List.class)
+        result.forEach({ hit ->
+            final Map<String, Object> h = ((Map<String, Object>)hit)
+            assertFalse(h.isEmpty())
+            assertTrue(h.containsKey("_source"))
+            assertTrue(h.containsKey("_index"))
+        })
         assertThat(
                 runner.getProvenanceEvents().stream().filter({ pe ->
                     pe.getEventType() == ProvenanceEventType.RECEIVE &&
@@ -132,14 +146,46 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
         reset(runner)
 
 
-        // test splitting hits
+        // test splitting hits - _source only format
         runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, AbstractJsonQueryElasticsearch.FLOWFILE_PER_HIT)
+        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_FORMAT, AbstractPaginatedJsonQueryElasticsearch.HITS_SOURCE_ONLY.getValue())
+        runOnce(runner)
+        testCounts(runner, isInput() ? 1 : 0, 10, 0, 0)
+        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach({ hit ->
+            hit.assertAttributeEquals("hit.count", "1")
+            assertOutputContent(hit.getContent(), 1, false)
+            final Map<String, Object> h = OBJECT_MAPPER.readValue(hit.getContent(), Map.class)
+            assertFalse(h.isEmpty())
+            assertFalse(h.containsKey("_source"))
+            assertFalse(h.containsKey("_index"))
+            // should be the _source content only
+            assertTrue(h.containsKey("msg"))
+
+            assertThat(
+                    runner.getProvenanceEvents().stream().filter({ pe ->
+                        pe.getEventType() == ProvenanceEventType.RECEIVE &&
+                                pe.getAttribute("uuid") == hit.getAttribute("uuid")
+                    }).count(),
+                    is(1L)
+            )
+        })
+        reset(runner)
+
+
+        // test splitting hits - metadata only format
+        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, AbstractJsonQueryElasticsearch.FLOWFILE_PER_HIT)
+        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_FORMAT, AbstractPaginatedJsonQueryElasticsearch.HITS_METADATA_ONLY.getValue())
         runOnce(runner)
         testCounts(runner, isInput() ? 1 : 0, 10, 0, 0)
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach(
                 { hit ->
                     hit.assertAttributeEquals("hit.count", "1")
                     assertOutputContent(hit.getContent(), 1, false)
+                    final Map<String, Object> h = OBJECT_MAPPER.readValue(hit.getContent(), Map.class)
+                    assertFalse(h.isEmpty())
+                    assertFalse(h.containsKey("_source"))
+                    assertTrue(h.containsKey("_index"))
+
                     assertThat(
                             runner.getProvenanceEvents().stream().filter({ pe ->
                                 pe.getEventType() == ProvenanceEventType.RECEIVE &&
@@ -197,9 +243,10 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
                 aggs: [ term_agg: [ terms: [ field: "msg" ] ], term_agg2: [ terms: [ field: "msg" ] ] ]
         ]))
 
-        // test aggregations (no splitting)
+        // test aggregations (no splitting) - full aggregation format
         final TestRunner runner = createRunner(true)
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, query)
+        runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_FORMAT, AbstractJsonQueryElasticsearch.AGGS_FULL.getValue())
         runOnce(runner)
         testCounts(runner, isInput() ? 1 : 0, 1, 0, 1)
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "10")
@@ -208,30 +255,57 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
         aggregations.assertAttributeNotExists("aggregation.name")
         // count == 1 because aggregations is a single Map rather than a List of Maps, even when there are multiple aggs
         assertOutputContent(aggregations.getContent(), 1, false)
+        Map<String, Object> agg = OBJECT_MAPPER.readValue(aggregations.getContent(), Map.class)
+        // agg Map of 2 Maps (buckets and metadata)
+        assertThat(agg.size(), is(2))
+        agg.keySet().forEach({ aggName ->
+            final Map<String, Object> termAgg = agg.get(aggName) as Map<String, Object>
+            assertInstanceOf(List.class, termAgg.get("buckets"))
+            assertTrue(termAgg.containsKey("doc_count_error_upper_bound"))
+        })
         reset(runner)
 
 
-        // test with the query parameter and no incoming connection
+        // test with the query parameter and no incoming connection - buckets only aggregation format
         runner.setIncomingConnection(false)
+        runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_FORMAT, AbstractJsonQueryElasticsearch.AGGS_BUCKETS_ONLY.getValue())
         runner.run(1, true, true)
         testCounts(runner, 0, 1, 0, 1)
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "10")
-        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_AGGREGATIONS).get(0).assertAttributeNotExists("aggregation.number")
-        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_AGGREGATIONS).get(0).assertAttributeNotExists("aggregation.name")
+        final MockFlowFile singleAgg = runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_AGGREGATIONS).get(0)
+        singleAgg.assertAttributeNotExists("aggregation.number")
+        singleAgg.assertAttributeNotExists("aggregation.name")
+        agg = OBJECT_MAPPER.readValue(singleAgg.getContent(), Map.class)
+        // agg Map of 2 Lists (bucket contents only)
+        assertThat(agg.size(), is(2))
+        agg.keySet().forEach({ aggName ->
+            final List<Map<String, Object>> termAgg = agg.get(aggName) as List<Map<String, Object>>
+            assertThat(termAgg.size(), is(5))
+            termAgg.forEach({a ->
+                assertTrue(a.containsKey("key"))
+                assertTrue(a.containsKey("doc_count"))
+            })
+        })
         reset(runner)
 
 
-        // test splitting aggregations
+        // test splitting aggregations - metadata only aggregation format
         runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_SPLIT, AbstractJsonQueryElasticsearch.FLOWFILE_PER_HIT)
+        runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_FORMAT, AbstractJsonQueryElasticsearch.AGGS_METADATA_ONLY.getValue())
         runOnce(runner)
         testCounts(runner, isInput() ? 1 : 0, 1, 0, 2)
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "10")
         int a = 0
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_AGGREGATIONS).forEach(
-                { agg ->
-                    agg.assertAttributeEquals("aggregation.name", a == 0 ? "term_agg" : "term_agg2")
-                    agg.assertAttributeEquals("aggregation.number", Integer.toString(++a))
-                    assertOutputContent(agg.getContent(), 1, false)
+                { termAgg ->
+                    termAgg.assertAttributeEquals("aggregation.name", a == 0 ? "term_agg" : "term_agg2")
+                    termAgg.assertAttributeEquals("aggregation.number", Integer.toString(++a))
+                    assertOutputContent(termAgg.getContent(), 1, false)
+
+                    Map<String, Object> aggContent = OBJECT_MAPPER.readValue(termAgg.getContent(), Map.class)
+                    // agg Map (metadata, no buckets)
+                    assertTrue(aggContent.containsKey("doc_count_error_upper_bound"))
+                    assertFalse(aggContent.containsKey("buckets"))
                 }
         )
         reset(runner)
@@ -248,15 +322,16 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, query)
         runner.setProperty(AbstractJsonQueryElasticsearch.INDEX, "\${es.index}")
         runner.setProperty(AbstractJsonQueryElasticsearch.TYPE, "\${es.type}")
+        runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_FORMAT, AbstractJsonQueryElasticsearch.AGGS_FULL.getValue())
         runOnce(runner)
         testCounts(runner, isInput() ? 1 : 0, 1, 0, 2)
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "10")
         a = 0
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_AGGREGATIONS).forEach(
-                { agg ->
-                    agg.assertAttributeEquals("aggregation.name", a == 0 ? "term_agg" : "term_agg2")
-                    agg.assertAttributeEquals("aggregation.number", Integer.toString(++a))
-                    assertOutputContent(agg.getContent(), 1, false)
+                { termAgg ->
+                    termAgg.assertAttributeEquals("aggregation.name", a == 0 ? "term_agg" : "term_agg2")
+                    termAgg.assertAttributeEquals("aggregation.number", Integer.toString(++a))
+                    assertOutputContent(termAgg.getContent(), 1, false)
                 }
         )
     }
