@@ -1,0 +1,10 @@
+{
+    "name": "person",
+    "namespace": "nifi",
+    "type": "record",
+    "fields": [
+        { "name": "name", "type": "string" },
+        { "name": "favNum", "type": ["null", "int"]},
+        { "name": "id", "type": ["null", "string"]}
+    ]
+}
