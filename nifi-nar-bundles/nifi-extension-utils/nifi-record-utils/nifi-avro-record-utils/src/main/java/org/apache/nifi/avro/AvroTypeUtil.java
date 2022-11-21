@@ -931,7 +931,7 @@ public class AvroTypeUtil {
 
             final String fieldName = recordField.getFieldName();
             try {
-                final Field avroField = avroRecord.getSchema().getField(fieldName);
+                final Field avroField = avroRecord.getSchema().getField(relevantFieldName);
                 if (avroField == null) {
                     values.put(fieldName, null);
                     continue;
