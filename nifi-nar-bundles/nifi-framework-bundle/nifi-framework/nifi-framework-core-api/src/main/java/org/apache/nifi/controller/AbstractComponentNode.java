@@ -462,17 +462,17 @@ public abstract class AbstractComponentNode implements ComponentNode {
     // Keep setProperty/removeProperty private so that all calls go through setProperties
     private void setProperty(final PropertyDescriptor descriptor, final PropertyConfiguration propertyConfiguration, final Function<PropertyDescriptor, PropertyConfiguration> valueToCompareFunction) {
         // Remove current PropertyDescriptor to force updated instance references
-        properties.remove(descriptor);
+        final PropertyConfiguration removed = properties.remove(descriptor);
 
         final PropertyConfiguration propertyModComparisonValue = valueToCompareFunction.apply(descriptor);
-        final PropertyConfiguration oldConfiguration = properties.put(descriptor, propertyConfiguration);
+        properties.put(descriptor, propertyConfiguration);
         final String effectiveValue = propertyConfiguration.getEffectiveValue(getParameterContext());
 
         // If the property references a Controller Service, we need to register this component & property descriptor as a reference.
         // If it previously referenced a Controller Service, we need to also remove that reference.
         // It is okay if the new & old values are the same - we just unregister the component/descriptor and re-register it.
         if (descriptor.getControllerServiceDefinition() != null) {
-            Optional.ofNullable(oldConfiguration)
+            Optional.ofNullable(removed)
                 .map(_oldConfiguration -> _oldConfiguration.getEffectiveValue(getParameterContext()))
                 .map(oldEffectiveValue -> serviceProvider.getControllerServiceNode(oldEffectiveValue))
                 .ifPresent(oldNode -> oldNode.removeReference(this, descriptor));
