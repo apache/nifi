@@ -178,6 +178,7 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
         try (GzipCompressorOutputStream gzipCompressorOutputStream = new GzipCompressorOutputStream(byteOutputStream);
              TarArchiveOutputStream tarOutputStream = new TarArchiveOutputStream(gzipCompressorOutputStream)) {
             for (Path filePath : filePaths) {
+                tarOutputStream.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX);
                 TarArchiveEntry tarArchiveEntry = new TarArchiveEntry(filePath.toFile(), filePath.getFileName().toString());
                 tarOutputStream.putArchiveEntry(tarArchiveEntry);
                 copy(filePath, tarOutputStream);
