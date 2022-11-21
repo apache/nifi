@@ -821,6 +821,28 @@
     };
 
     /**
+     * Loads details for a specified flow.
+     *
+     * @param registryIdentifier
+     * @param bucketIdentifier
+     * @param flowIdentifier
+     */
+
+     var loadFlowDetails = function (registryIdentifier, bucketIdentifier, flowIdentifier) {
+        return $.ajax({
+            type: 'GET',
+            url: '../nifi-api/flow/registries/' + encodeURIComponent(registryIdentifier) + '/buckets/' + encodeURIComponent(bucketIdentifier) + '/flows/' + encodeURIComponent(flowIdentifier) + '/details',
+            dataType: 'json'
+        }).done(function (response) {
+            if (response.versionedFlow.description) {
+                $('#import-flow-version-details').text(response.versionedFlow.description);
+            } else {
+                $('#import-flow-version-details').text('No description provided.');
+            }
+        }).fail(nfErrorHandler.handleAjaxError);
+    };
+
+    /**
      * Loads the flow versions for the specified registry, bucket, and flow.
      *
      * @param registryIdentifier
@@ -910,7 +932,8 @@
                 options: versionedFlows,
                 select: function (selectedFlow) {
                     if (nfCommon.isDefinedAndNotNull(selectedFlow.value)) {
-                        selectFlow(registryIdentifier, bucketIdentifier, selectedFlow.value)
+                        selectFlow(registryIdentifier, bucketIdentifier, selectedFlow.value);
+                        loadFlowDetails(registryIdentifier, bucketIdentifier, selectedFlow.value);
                     } else {
                         var importFlowVersionGrid = $('#import-flow-version-table').data('gridInstance');
                         var importFlowVersionData = importFlowVersionGrid.getData();
