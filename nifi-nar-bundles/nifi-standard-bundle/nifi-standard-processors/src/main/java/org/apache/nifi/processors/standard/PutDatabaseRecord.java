@@ -736,12 +736,20 @@ public class PutDatabaseRecord extends AbstractProcessor {
                             }
                         } else {
                             sqlType = column.getDataType();
+                            // SQLServer returns -150 for sql_variant from DatabaseMetaData though the server expects -156 when setting a sql_variant parameter
+                            if (sqlType == -150) {
+                                sqlType = -156;
+                            }
                         }
 
                         // Convert (if necessary) from field data type to column data type
                         if (fieldSqlType != sqlType) {
                             try {
                                 DataType targetDataType = DataTypeUtils.getDataTypeFromSQLTypeValue(sqlType);
+                                // If sqlType is unsupported, fall back to the fieldSqlType instead
+                                if (targetDataType == null) {
+                                    targetDataType = DataTypeUtils.getDataTypeFromSQLTypeValue(fieldSqlType);
+                                }
                                 if (targetDataType != null) {
                                     if (sqlType == Types.BLOB || sqlType == Types.BINARY) {
                                         if (currentValue instanceof Object[]) {
