@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.adx.enums;
+package org.apache.nifi.processors.adx.sink.enums;
 
 public enum IngestionStatusEnum {
     ST_SUCCESS("IngestionStatus:SUCCESS","Wait until ingestions are reported as succeeded."),

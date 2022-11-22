@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.adx;
+package org.apache.nifi.processors.adx.sink;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,15 +54,15 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.adx.enums.AzureAdxIngestProcessorParamsEnum;
-import org.apache.nifi.processors.adx.enums.DataFormatEnum;
-import org.apache.nifi.processors.adx.enums.IngestionIgnoreFirstRecordEnum;
-import org.apache.nifi.processors.adx.enums.IngestionReportLevelEnum;
-import org.apache.nifi.processors.adx.enums.IngestionReportMethodEnum;
-import org.apache.nifi.processors.adx.enums.IngestionStatusEnum;
-import org.apache.nifi.processors.adx.enums.RelationshipStatusEnum;
-import org.apache.nifi.processors.adx.enums.TransactionalIngestionEnum;
-import org.apache.nifi.processors.adx.model.IngestionBatchingPolicy;
+import org.apache.nifi.processors.adx.sink.enums.AzureAdxIngestProcessorParamsEnum;
+import org.apache.nifi.processors.adx.sink.enums.DataFormatEnum;
+import org.apache.nifi.processors.adx.sink.enums.IngestionIgnoreFirstRecordEnum;
+import org.apache.nifi.processors.adx.sink.enums.IngestionReportLevelEnum;
+import org.apache.nifi.processors.adx.sink.enums.IngestionReportMethodEnum;
+import org.apache.nifi.processors.adx.sink.enums.IngestionStatusEnum;
+import org.apache.nifi.processors.adx.sink.enums.RelationshipStatusEnum;
+import org.apache.nifi.processors.adx.sink.enums.TransactionalIngestionEnum;
+import org.apache.nifi.processors.adx.sink.model.IngestionBatchingPolicy;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -875,7 +875,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
 
             //apply batching policy
             String batchingPolicyString = new ObjectMapper().writeValueAsString(ingestionBatchingPolicy);
-            String applyBatchingPolicy = ".alter table Storms policy ingestionbatching ``` " + batchingPolicyString + " ```";
+            String applyBatchingPolicy = ".alter table "+ ingestionProperties.getTableName() +" policy ingestionbatching ``` " + batchingPolicyString + " ```";
             executionClient.execute(ingestionProperties.getDatabaseName(), applyBatchingPolicy);
         } catch (DataServiceException | DataClientException | JsonProcessingException e) {
             getLogger().error("Error occurred while retrieving ingestion batching policy of main table");

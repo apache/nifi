@@ -22,12 +22,12 @@ import java.util.Collections;
 import java.util.List;
 
 
-import com.google.common.base.Strings;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -230,7 +230,7 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
         final ConnectionStringBuilder kcsb;
         switch (kustoAuthStrategy) {
             case "application":
-                if (!Strings.isNullOrEmpty(appId) && !Strings.isNullOrEmpty(appKey)) {
+                if (StringUtils.isNotEmpty(appId) && StringUtils.isNotEmpty(appKey)) {
                     kcsb = ConnectionStringBuilder.createWithAadApplicationCredentials(
                             clusterUrl,
                             appId,

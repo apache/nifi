@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.adx.enums;
+package org.apache.nifi.processors.adx.sink.enums;
 
 public enum DataFormatEnum {
     AVRO(".avro", "An Avro format with support for logical types and for the snappy compression codec."),

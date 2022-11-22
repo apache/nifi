@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.adx.enums;
+package org.apache.nifi.processors.adx.sink.enums;
 
 public enum IngestionMappingKindEnum {
     IM_KIND_APACHEAVRO("IngestionsMappingKind:Avro","Ingestion Mapping Kind (Type) is Avro."),
