@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -91,6 +92,7 @@ import static org.apache.nifi.util.hive.HiveJdbcCommon.NORMALIZE_NAMES_FOR_AVRO;
                 + "FlowFiles were produced"),
         @WritesAttribute(attribute = "query.input.tables", description = "Contains input table names in comma delimited 'databaseName.tableName' format.")
 })
+@DeprecationNotice(classNames = "org.apache.nifi.processors.hive.SelectHive3QL")
 public class SelectHive_1_1QL extends AbstractHive_1_1QLProcessor {
 
     public static final String RESULT_ROW_COUNT = "selecthiveql.row.count";
