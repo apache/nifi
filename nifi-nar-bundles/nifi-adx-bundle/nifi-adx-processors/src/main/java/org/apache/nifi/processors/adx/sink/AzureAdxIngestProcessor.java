@@ -85,7 +85,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
 
 @Tags({"azure", "adx", "microsoft", "data", "explorer"})
-@CapabilityDescription("The Azure ADX Processor acts as a ADX sink connector which sends flowFiles using the ADX-Service to the provided Azure Data" +
+@CapabilityDescription("The Azure ADX Ingest Processor acts as a ADX sink connector which sends flowFiles using the ADX-Service to the provided Azure Data" +
         "Explorer Ingest Endpoint. The data can be sent through queued ingestion or streaming ingestion to the Azure Data Explorer cluster." +
         "The data ingested to ADX can be in non-transactional mode or transactional mode. " +
         "This processor supports transactionality of the ingested data ie. it ensures no duplicates are inserted while retries during ingestion failures. " +
