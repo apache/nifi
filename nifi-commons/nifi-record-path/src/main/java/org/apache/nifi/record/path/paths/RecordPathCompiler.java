@@ -329,8 +329,15 @@ public class RecordPathCompiler {
                         return new EscapeJson(args[0], absolute);
                     }
                     case "unescapeJson": {
-                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
-                        return new UnescapeJson(args[0], absolute);
+                        final int numArgs = argumentListTree.getChildCount();
+
+                        if (numArgs == 1) {
+                            final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                            return new UnescapeJson(args[0], null, absolute);
+                        } else {
+                            final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                            return new UnescapeJson(args[0], args[1], absolute);
+                        }
                     }
                     case "hash":{
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
