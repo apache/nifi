@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -45,6 +44,12 @@ public class PublishAMQPTest {
         final PublishAMQP pubProc = new LocalPublishAMQP();
         final TestRunner runner = TestRunners.newTestRunner(pubProc);
         setConnectionProperties(runner);
+
+        final Map<String, String> expectedHeaders = new HashMap<String, String>() {{
+            put("foo", "bar");
+            put("foo2", "bar2");
+            put("foo3", null);
+        }};
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("foo", "bar");
@@ -78,10 +83,7 @@ public class PublishAMQPTest {
 
         final Map<String, Object> headerMap = msg1.getProps().getHeaders();
 
-        assertEquals(2, headerMap.size());
-        assertEquals("bar", headerMap.get("foo").toString());
-        assertEquals("bar2", headerMap.get("foo2").toString());
-        assertFalse(headerMap.containsKey("foo3"));
+        assertEquals(expectedHeaders, headerMap);
 
         assertEquals((Integer) 1, msg1.getProps().getDeliveryMode());
         assertEquals((Integer) 2, msg1.getProps().getPriority());
@@ -108,6 +110,7 @@ public class PublishAMQPTest {
         final Map<String, String> expectedHeaders = new HashMap<String, String>() {{
             put("foo", "(bar,bar)");
             put("foo2", "bar2");
+            put("foo3", null);
         }};
 
         final Map<String, String> attributes = new HashMap<>();
@@ -140,12 +143,11 @@ public class PublishAMQPTest {
     }
 
     @Test
-    public void validateSuccessWithNullInHeaderAndPublishToSuccess() throws Exception {
+    public void validateMalformedHeaderIgnoredAndPublishToSuccess() throws Exception {
         final PublishAMQP pubProc = new LocalPublishAMQP();
         final TestRunner runner = TestRunners.newTestRunner(pubProc);
         setConnectionProperties(runner);
         runner.setProperty(PublishAMQP.HEADER_SEPARATOR,"|");
-        runner.setProperty(PublishAMQP.IGNORE_HEADER_WITH_NULL_VALUE, "false");
 
         final Map<String, String> expectedHeaders = new HashMap<String, String>() {{
             put("foo", "(bar,bar)");
@@ -154,7 +156,7 @@ public class PublishAMQPTest {
         }};
 
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put("amqp$headers", "foo=(bar,bar)|foo2=bar2|foo3");
+        attributes.put("amqp$headers", "foo=(bar,bar)|foo2=bar2|foo3|foo4=malformed=|foo5=mal=formed");
 
         runner.enqueue("Hello Joe".getBytes(), attributes);
 

@@ -107,16 +107,6 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             .required(false)
             .build();
 
-    public static final PropertyDescriptor IGNORE_HEADER_WITH_NULL_VALUE = new PropertyDescriptor.Builder()
-            .name("header.null.ignored")
-            .displayName("Ignore Null Header")
-            .description("Ignore header with null value.")
-            .required(true)
-            .allowableValues("true", "false")
-            .defaultValue("true")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .build();
-
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All FlowFiles that are sent to the AMQP destination are routed to this relationship")
@@ -136,7 +126,6 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         properties.add(EXCHANGE);
         properties.add(ROUTING_KEY);
         properties.add(HEADER_SEPARATOR);
-        properties.add(IGNORE_HEADER_WITH_NULL_VALUE);
         properties.addAll(getCommonPropertyDescriptors());
         propertyDescriptors = Collections.unmodifiableList(properties);
 
@@ -171,9 +160,8 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         }
 
         final Character separator = context.getProperty(HEADER_SEPARATOR).toString().charAt(0);
-        final boolean ignoreHeaderWithNullValue = context.getProperty(IGNORE_HEADER_WITH_NULL_VALUE).asBoolean();
 
-        final BasicProperties amqpProperties = extractAmqpPropertiesFromFlowFile(flowFile, separator, ignoreHeaderWithNullValue);
+        final BasicProperties amqpProperties = extractAmqpPropertiesFromFlowFile(flowFile, separator);
 
         final String exchange = context.getProperty(EXCHANGE).evaluateAttributeExpressions(flowFile).getValue();
         final byte[] messageContent = extractMessage(flowFile, session);
@@ -237,7 +225,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
      * properties if their names are prefixed with
      * {@link PublishAMQP#ATTRIBUTES_PREFIX} (e.g., amqp$contentType=text/xml).
      */
-    private BasicProperties extractAmqpPropertiesFromFlowFile(FlowFile flowFile, Character headerSeparator, boolean ignoreHeaderWithNullValue) {
+    private BasicProperties extractAmqpPropertiesFromFlowFile(FlowFile flowFile, Character headerSeparator) {
         final AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
 
         updateBuilderFromAttribute(flowFile, "contentType", builder::contentType);
@@ -253,7 +241,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         updateBuilderFromAttribute(flowFile, "userId", builder::userId);
         updateBuilderFromAttribute(flowFile, "appId", builder::appId);
         updateBuilderFromAttribute(flowFile, "clusterId", builder::clusterId);
-        updateBuilderFromAttribute(flowFile, "headers", headers -> builder.headers(validateAMQPHeaderProperty(headers, headerSeparator, ignoreHeaderWithNullValue)));
+        updateBuilderFromAttribute(flowFile, "headers", headers -> builder.headers(validateAMQPHeaderProperty(headers, headerSeparator)));
 
         return builder.build();
     }
@@ -265,17 +253,17 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
      * @param amqpPropValue the value of the property
      * @return {@link Map} if valid otherwise null
      */
-    private Map<String, Object> validateAMQPHeaderProperty(String amqpPropValue, Character splitValue, boolean ignoreHeaderWithNullValue) {
-        String[] strEntries = amqpPropValue.split(Pattern.quote(String.valueOf(splitValue)));
-        Map<String, Object> headers = new HashMap<>();
+    private Map<String, Object> validateAMQPHeaderProperty(String amqpPropValue, Character splitValue) {
+        final String[] strEntries = amqpPropValue.split(Pattern.quote(String.valueOf(splitValue)));
+        final Map<String, Object> headers = new HashMap<>();
         for (String strEntry : strEntries) {
-            String[] kv = strEntry.split("=");
+            final String[] kv = strEntry.split("=", -1); // without using limit, trailing delimiter would be ignored
             if (kv.length == 2) {
                 headers.put(kv[0].trim(), kv[1].trim());
-            } else if (ignoreHeaderWithNullValue) {
-                getLogger().warn("Malformed key value pair for AMQP header property: " + amqpPropValue);
-            } else {
+            } else if (kv.length == 1) {
                 headers.put(kv[0].trim(), null);
+            } else {
+                getLogger().warn(String.format("Malformed key value pair in AMQP header property (%s): %s", amqpPropValue, strEntry));
             }
         }
         return headers;
