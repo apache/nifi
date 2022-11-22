@@ -47,6 +47,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -90,6 +91,7 @@ import java.util.Optional;
         "stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up " +
         "where the previous node left off, without duplicating the data.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
+@DeprecationNotice(alternatives = ListAzureBlobStorage_v12.class, reason = "Processor depends on legacy Microsoft Azure SDK")
 public class ListAzureBlobStorage extends AbstractListAzureProcessor<BlobInfo> {
 
     private static final PropertyDescriptor PROP_PREFIX = new PropertyDescriptor.Builder()
