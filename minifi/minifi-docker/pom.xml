@@ -101,29 +101,6 @@ limitations under the License.
                             </execution>
                         </executions>
                     </plugin>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>prune-images</id>
-                                <phase>package</phase>
-                                <configuration>
-                                    <executable>docker</executable>
-                                    <arguments>
-                                        <argument>image</argument>
-                                        <argument>prune</argument>
-                                        <argument>-f</argument>
-                                        <argument>--filter</argument>
-                                        <argument>label=stage=builder</argument>
-                                    </arguments>
-                                </configuration>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
                 </plugins>
             </build>
         </profile>
