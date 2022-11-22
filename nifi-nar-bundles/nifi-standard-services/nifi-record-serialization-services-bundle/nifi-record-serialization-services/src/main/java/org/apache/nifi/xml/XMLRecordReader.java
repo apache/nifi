@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -363,7 +364,7 @@ public class XMLRecordReader implements RecordReader {
     }
 
     private Record parseRecord(StartElement startElement, RecordSchema schema, boolean coerceTypes, boolean dropUnknown) throws XMLStreamException, MalformedRecordException {
-        final Map<String, Object> recordValues = new HashMap<>();
+        final Map<String, Object> recordValues = new LinkedHashMap<>();
 
         // parse attributes
         if (parseXmlAttributes) {
