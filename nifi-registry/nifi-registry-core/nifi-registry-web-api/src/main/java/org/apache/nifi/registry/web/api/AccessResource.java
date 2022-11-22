@@ -53,6 +53,7 @@ import org.apache.nifi.registry.security.authentication.exception.IdentityAccess
 import org.apache.nifi.registry.security.authentication.exception.InvalidCredentialsException;
 import org.apache.nifi.registry.security.authorization.user.NiFiUser;
 import org.apache.nifi.registry.security.authorization.user.NiFiUserUtils;
+import org.apache.nifi.registry.util.FormatUtils;
 import org.apache.nifi.registry.web.exception.UnauthorizedException;
 import org.apache.nifi.registry.web.security.authentication.jwt.JwtService;
 import org.apache.nifi.registry.web.security.authentication.kerberos.KerberosSpnegoIdentityProvider;
@@ -63,8 +64,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.Nullable;
-import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
-import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.stereotype.Component;
 
 import javax.net.ssl.SSLContext;
@@ -91,6 +90,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Component
@@ -115,7 +115,6 @@ public class AccessResource extends ApplicationResource {
     private X509IdentityProvider x509IdentityProvider;
     private KerberosSpnegoIdentityProvider kerberosSpnegoIdentityProvider;
     private IdentityProvider identityProvider;
-    private BearerTokenResolver bearerTokenResolver;
 
     @Context
     protected UriInfo uriInfo;
@@ -137,7 +136,6 @@ public class AccessResource extends ApplicationResource {
         this.oidcService = oidcService;
         this.kerberosSpnegoIdentityProvider = kerberosSpnegoIdentityProvider;
         this.identityProvider = identityProvider;
-        this.bearerTokenResolver = new DefaultBearerTokenResolver();
     }
 
     /**
@@ -322,18 +320,19 @@ public class AccessResource extends ApplicationResource {
             throw new IllegalStateException("User authentication/authorization is only supported when running over HTTPS.");
         }
 
-        final String bearerToken = bearerTokenResolver.resolve(httpServletRequest);
-        if (StringUtils.isEmpty(bearerToken)) {
-            return Response.status(401, "Authentication token provided was empty or not in the correct JWT format.").build();
-        } else {
-            final String userIdentity = jwtService.getUserIdentityFromToken(bearerToken);
+        final String userIdentity = NiFiUserUtils.getNiFiUserIdentity();
+
+        if(userIdentity != null && !userIdentity.isEmpty()) {
             try {
+                logger.info("Logging out user " + userIdentity);
                 jwtService.deleteKey(userIdentity);
                 return generateOkResponse().build();
             } catch (final JwtException e) {
                 logger.error("Logout of user " + userIdentity + " failed due to: " + e.getMessage());
                 return Response.serverError().build();
             }
+        } else {
+            return Response.status(401, "Authentication token provided was empty or not in the correct JWT format.").build();
         }
     }
 
@@ -707,11 +706,9 @@ public class AccessResource extends ApplicationResource {
             throw new IllegalStateException("OpenId Connect is not configured.");
         }
 
-        // Checks if OIDC service supports logout using either by
-        // 1. revoke access token method, or
-        // 2. ID token logout method.
-        // If either of the above methods are supported,
-        // redirects request to OP to request authorization that can be exchanged for a token used for logout
+        // Checks if OIDC service supports logout using either by invoking the revocation endpoint (for OAuth 2.0 providers)
+        // or the end session endpoint (for OIDC providers). If either is supported, send a request to get an authorization
+        // code that can be eventually exchanged for a token that is required as a parameter for the logout request.
         final String logoutMethod = determineLogoutMethod();
         switch (logoutMethod) {
             case REVOKE_ACCESS_TOKEN_LOGOUT:
@@ -720,9 +717,10 @@ public class AccessResource extends ApplicationResource {
                 httpServletResponse.sendRedirect(authorizationURI.toString());
                 break;
             default:
-                // if the above logout methods are not supported, last ditch effort to logout by providing the client_id,
-                // to the end session endpoint if it exists, this option is not available when using the POST request
-                // to the revocation endpoint
+                // If the above logout methods are not supported, last ditch effort to logout by providing the client_id,
+                // to the end session endpoint if it exists. This is a way to logout defined in the OIDC specs, but the
+                // id_token_hint logout method is recommended. This option is not available when using the POST request
+                // to the revocation endpoint (OAuth 2.0 providers).
                 final URI endSessionEndpoint = oidcService.getEndSessionEndpoint();
                 if (endSessionEndpoint != null) {
                     final String postLogoutRedirectUri = getNiFiRegistryUri();
@@ -879,12 +877,6 @@ public class AccessResource extends ApplicationResource {
         return uriInfo.getRequestUri();
     }
 
-    private String getNiFiRegistryUri() {
-        final String nifiRegistryApiUrl = generateResourceUri();
-        final String baseUrl = StringUtils.substringBeforeLast(nifiRegistryApiUrl, "/nifi-registry-api");
-        return baseUrl + "/nifi-registry";
-    }
-
     private void forwardToMessagePage(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse, final String message) throws Exception {
         httpServletRequest.setAttribute("title", OIDC_ERROR_TITLE);
         httpServletRequest.setAttribute("messages", message);
@@ -1028,7 +1020,7 @@ public class AccessResource extends ApplicationResource {
             // remove the oidc request cookie
             removeOidcRequestCookie(httpServletResponse);
 
-            throw new IllegalStateException(String.format("Purposed state does not match the stored state. Unable to continue %s process.", loginOrLogoutMessage));
+            throw new IllegalStateException(String.format("Proposed state does not match the stored state. Unable to continue %s process.", loginOrLogoutMessage));
         }
     }
 
@@ -1065,14 +1057,18 @@ public class AccessResource extends ApplicationResource {
     }
 
     private CloseableHttpClient getHttpClient() throws NoSuchAlgorithmException {
-        final int msTimeout = 30_000;
-        RequestConfig config = RequestConfig.custom()
-                .setConnectTimeout(msTimeout)
-                .setConnectionRequestTimeout(msTimeout)
-                .setSocketTimeout(msTimeout)
+        final String rawConnectTimeout = properties.getOidcConnectTimeout();
+        final String rawReadTimeout = properties.getOidcReadTimeout();
+        final int oidcConnectTimeout = (int) FormatUtils.getPreciseTimeDuration(rawConnectTimeout, TimeUnit.MILLISECONDS);
+        final int oidcReadTimeout = (int) FormatUtils.getPreciseTimeDuration(rawReadTimeout, TimeUnit.MILLISECONDS);
+
+        final RequestConfig config = RequestConfig.custom()
+                .setConnectTimeout(oidcConnectTimeout)
+                .setConnectionRequestTimeout(oidcReadTimeout)
+                .setSocketTimeout(oidcReadTimeout)
                 .build();
 
-        HttpClientBuilder builder = HttpClientBuilder
+        final HttpClientBuilder builder = HttpClientBuilder
                 .create()
                 .setDefaultRequestConfig(config)
                 .setSSLContext(SSLContext.getDefault());

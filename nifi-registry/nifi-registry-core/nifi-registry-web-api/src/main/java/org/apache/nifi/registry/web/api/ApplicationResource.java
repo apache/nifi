@@ -230,10 +230,7 @@ public class ApplicationResource {
         return revisionInfo;
     }
 
-    private String getNiFiRegistryUri() {
-        final String nifiRegistryApiUrl = generateResourceUri();
-        final String baseUrl = StringUtils.substringBeforeLast(nifiRegistryApiUrl, "/nifi-registry-api");
-
-        return baseUrl + "/nifi-registry/";
+    protected String getNiFiRegistryUri() {
+        return generateResourceUri("..", "nifi-registry");
     }
 }
