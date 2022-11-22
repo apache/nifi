@@ -1,0 +1,9 @@
+[ {
+  "str" : "{\"label\":\"Test!\",\"child\":{\"name\":\"Child record!\"}}",
+  "embedded" : {
+    "label" : "Test!",
+    "child" : {
+      "name" : "Child record!"
+    }
+  }
+} ]

@@ -1,0 +1,39 @@
+{
+  "name": "Parent",
+  "type": "record",
+  "fields": [
+    {
+      "name": "str",
+      "type": "string"
+    },
+    {
+      "name": "embedded",
+      "type": [
+        {
+          "name": "EmbeddedRecord",
+          "type": "record",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string"
+            },
+            {
+              "name": "child",
+              "type": {
+                "name": "ChildRecord",
+                "type": "record",
+                "fields": [
+                  {
+                    "name": "name",
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "null"
+      ]
+    }
+  ]
+}
