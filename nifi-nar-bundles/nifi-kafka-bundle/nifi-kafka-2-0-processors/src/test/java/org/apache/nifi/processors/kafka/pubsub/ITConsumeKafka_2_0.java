@@ -42,7 +42,7 @@ public class ITConsumeKafka_2_0 {
     }
 
     @Test
-    public void validateGetAllMessages() throws Exception {
+    public void validateGetAllMessages() {
         String groupName = "validateGetAllMessages";
 
         when(mockConsumerPool.obtainConsumer(any(), any())).thenReturn(mockLease);
@@ -56,7 +56,7 @@ public class ITConsumeKafka_2_0 {
             }
         };
         final TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
+        runner.setProperty(ConsumeKafka_2_0.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
         runner.setProperty(ConsumeKafka_2_0.TOPICS, "foo,bar");
         runner.setProperty(ConsumeKafka_2_0.GROUP_ID, groupName);
         runner.setProperty(ConsumeKafka_2_0.AUTO_OFFSET_RESET, ConsumeKafka_2_0.OFFSET_EARLIEST);
@@ -72,7 +72,7 @@ public class ITConsumeKafka_2_0 {
     }
 
     @Test
-    public void validateGetAllMessagesPattern() throws Exception {
+    public void validateGetAllMessagesPattern() {
         String groupName = "validateGetAllMessagesPattern";
 
         when(mockConsumerPool.obtainConsumer(any(), any())).thenReturn(mockLease);
@@ -86,7 +86,7 @@ public class ITConsumeKafka_2_0 {
             }
         };
         final TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
+        runner.setProperty(ConsumeKafka_2_0.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
         runner.setProperty(ConsumeKafka_2_0.TOPICS, "(fo.*)|(ba)");
         runner.setProperty(ConsumeKafka_2_0.TOPIC_TYPE, "pattern");
         runner.setProperty(ConsumeKafka_2_0.GROUP_ID, groupName);
@@ -103,7 +103,7 @@ public class ITConsumeKafka_2_0 {
     }
 
     @Test
-    public void validateGetErrorMessages() throws Exception {
+    public void validateGetErrorMessages() {
         String groupName = "validateGetErrorMessages";
 
         when(mockConsumerPool.obtainConsumer(any(), any())).thenReturn(mockLease);
@@ -117,7 +117,7 @@ public class ITConsumeKafka_2_0 {
             }
         };
         final TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
+        runner.setProperty(ConsumeKafka_2_0.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
         runner.setProperty(ConsumeKafka_2_0.TOPICS, "foo,bar");
         runner.setProperty(ConsumeKafka_2_0.GROUP_ID, groupName);
         runner.setProperty(ConsumeKafka_2_0.AUTO_OFFSET_RESET, ConsumeKafka_2_0.OFFSET_EARLIEST);

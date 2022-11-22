@@ -34,6 +34,13 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
+import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
+import org.apache.nifi.kafka.shared.property.KeyEncoding;
+import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyProvider;
+import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
+import org.apache.nifi.kafka.shared.validation.DynamicPropertyValidator;
+import org.apache.nifi.kafka.shared.validation.KafkaClientCustomValidationFunction;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -49,7 +56,6 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -59,9 +65,6 @@ import java.util.regex.Pattern;
 
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.DO_NOT_ADD_KEY_AS_ATTRIBUTE;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.HEX_ENCODING;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.UTF8_ENCODING;
 
 @CapabilityDescription("Consumes messages from Apache Kafka specifically built against the Kafka 2.0 Consumer API. "
     + "The complementary NiFi processor for sending messages is PublishKafkaRecord_2_0. Please note that, at this time, the Processor assumes that "
@@ -74,9 +77,9 @@ import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.UTF8_E
 @WritesAttributes({
     @WritesAttribute(attribute = "record.count", description = "The number of records received"),
     @WritesAttribute(attribute = "mime.type", description = "The MIME Type that is provided by the configured Record Writer"),
-    @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_PARTITION, description = "The partition of the topic the records are from"),
-    @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_TIMESTAMP, description = "The timestamp of the message in the partition of the topic."),
-    @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_TOPIC, description = "The topic records are from")
+    @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_PARTITION, description = "The partition of the topic the records are from"),
+    @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TIMESTAMP, description = "The timestamp of the message in the partition of the topic."),
+    @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TOPIC, description = "The topic records are from")
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
@@ -85,7 +88,7 @@ import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.UTF8_E
         + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration.",
         expressionLanguageScope = VARIABLE_REGISTRY)
 @SeeAlso({ConsumeKafka_2_0.class, PublishKafka_2_0.class, PublishKafkaRecord_2_0.class})
-public class ConsumeKafkaRecord_2_0 extends AbstractProcessor {
+public class ConsumeKafkaRecord_2_0 extends AbstractProcessor implements KafkaClientComponent {
 
     static final AllowableValue OFFSET_EARLIEST = new AllowableValue("earliest", "earliest", "Automatically reset the offset to the earliest offset");
     static final AllowableValue OFFSET_LATEST = new AllowableValue("latest", "latest", "Automatically reset the offset to the latest offset");
@@ -223,11 +226,11 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor {
     static final PropertyDescriptor KEY_ATTRIBUTE_ENCODING = new PropertyDescriptor.Builder()
         .name("key-attribute-encoding")
         .displayName("Key Attribute Encoding")
-        .description("If the <Separate By Key> property is set to true, FlowFiles that are emitted have an attribute named '" + KafkaProcessorUtils.KAFKA_KEY +
+        .description("If the <Separate By Key> property is set to true, FlowFiles that are emitted have an attribute named '" + KafkaFlowFileAttribute.KAFKA_KEY +
             "'. This property dictates how the value of the attribute should be encoded.")
         .required(true)
-        .defaultValue(UTF8_ENCODING.getValue())
-        .allowableValues(UTF8_ENCODING, HEX_ENCODING, DO_NOT_ADD_KEY_AS_ATTRIBUTE)
+        .defaultValue(KeyEncoding.UTF8.getValue())
+        .allowableValues(KeyEncoding.class)
         .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -248,22 +251,22 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor {
 
     static {
         List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(KafkaProcessorUtils.BOOTSTRAP_SERVERS);
+        descriptors.add(BOOTSTRAP_SERVERS);
         descriptors.add(TOPICS);
         descriptors.add(TOPIC_TYPE);
         descriptors.add(RECORD_READER);
         descriptors.add(RECORD_WRITER);
         descriptors.add(HONOR_TRANSACTIONS);
-        descriptors.add(KafkaProcessorUtils.SECURITY_PROTOCOL);
-        descriptors.add(KafkaProcessorUtils.SASL_MECHANISM);
-        descriptors.add(KafkaProcessorUtils.KERBEROS_CREDENTIALS_SERVICE);
-        descriptors.add(KafkaProcessorUtils.JAAS_SERVICE_NAME);
-        descriptors.add(KafkaProcessorUtils.USER_PRINCIPAL);
-        descriptors.add(KafkaProcessorUtils.USER_KEYTAB);
-        descriptors.add(KafkaProcessorUtils.USERNAME);
-        descriptors.add(KafkaProcessorUtils.PASSWORD);
-        descriptors.add(KafkaProcessorUtils.TOKEN_AUTH);
-        descriptors.add(KafkaProcessorUtils.SSL_CONTEXT_SERVICE);
+        descriptors.add(SECURITY_PROTOCOL);
+        descriptors.add(SASL_MECHANISM);
+        descriptors.add(KERBEROS_CREDENTIALS_SERVICE);
+        descriptors.add(KERBEROS_SERVICE_NAME);
+        descriptors.add(KERBEROS_PRINCIPAL);
+        descriptors.add(KERBEROS_KEYTAB);
+        descriptors.add(SASL_USERNAME);
+        descriptors.add(SASL_PASSWORD);
+        descriptors.add(TOKEN_AUTHENTICATION);
+        descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(GROUP_ID);
         descriptors.add(SEPARATE_BY_KEY);
         descriptors.add(KEY_ATTRIBUTE_ENCODING);
@@ -306,7 +309,7 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor {
         return new Builder()
                 .description("Specifies the value for '" + propertyDescriptorName + "' Kafka Configuration.")
                 .name(propertyDescriptorName)
-                .addValidator(new KafkaProcessorUtils.KafkaConfigValidator(ConsumerConfig.class))
+                .addValidator(new DynamicPropertyValidator(ConsumerConfig.class))
                 .dynamic(true)
                 .expressionLanguageSupported(VARIABLE_REGISTRY)
                 .build();
@@ -314,7 +317,7 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final Collection<ValidationResult> validationResults = KafkaProcessorUtils.validateCommonProperties(validationContext);
+        final Collection<ValidationResult> validationResults = new KafkaClientCustomValidationFunction().apply(validationContext);
 
         final ValidationResult consumerPartitionsResult = ConsumerPartitionsUtil.validateConsumePartitions(validationContext.getAllProperties());
         validationResults.add(consumerPartitionsResult);
@@ -368,16 +371,16 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor {
         final int maxLeases = context.getMaxConcurrentTasks();
         final long maxUncommittedTime = context.getProperty(MAX_UNCOMMITTED_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
 
-        final Map<String, Object> props = new HashMap<>();
-        KafkaProcessorUtils.buildCommonKafkaProperties(context, ConsumerConfig.class, props);
-        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        final KafkaPropertyProvider propertyProvider = new StandardKafkaPropertyProvider(ConsumerConfig.class);
+        final Map<String, Object> props = propertyProvider.getProperties(context);
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, Boolean.FALSE.toString());
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         final String topicListing = context.getProperty(ConsumeKafkaRecord_2_0.TOPICS).evaluateAttributeExpressions().getValue();
         final String topicType = context.getProperty(ConsumeKafkaRecord_2_0.TOPIC_TYPE).evaluateAttributeExpressions().getValue();
         final List<String> topics = new ArrayList<>();
-        final String securityProtocol = context.getProperty(KafkaProcessorUtils.SECURITY_PROTOCOL).getValue();
-        final String bootstrapServers = context.getProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue();
+        final String securityProtocol = context.getProperty(SECURITY_PROTOCOL).getValue();
+        final String bootstrapServers = context.getProperty(BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue();
 
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
