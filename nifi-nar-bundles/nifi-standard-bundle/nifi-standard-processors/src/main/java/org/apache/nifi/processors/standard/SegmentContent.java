@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -170,7 +171,7 @@ public class SegmentContent extends AbstractProcessor {
         segmentAttributes.put(FRAGMENT_ID, segmentId);
         segmentAttributes.put(FRAGMENT_COUNT, String.valueOf(totalSegments));
 
-        final Set<FlowFile> segmentSet = new HashSet<>();
+        final Set<FlowFile> segmentSet = new LinkedHashSet<>();
         for (int i = 1; i <= totalSegments; i++) {
             final long segmentOffset = segmentSize * (i - 1);
             FlowFile segment = session.clone(flowFile, segmentOffset, Math.min(segmentSize, flowFile.getSize() - segmentOffset));
