@@ -31,6 +31,7 @@ import org.apache.nifi.flow.VersionedLabel;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
@@ -58,6 +59,7 @@ public class FlowDifferenceFilters {
     public static boolean isEnvironmentalChange(final FlowDifference difference, final VersionedProcessGroup localGroup, final FlowManager flowManager) {
         return difference.getDifferenceType() == DifferenceType.BUNDLE_CHANGED
             || isVariableValueChange(difference)
+            || isAncestorVariableAdded(difference, flowManager)
             || isRpgUrlChange(difference)
             || isAddedOrRemovedRemotePort(difference)
             || isPublicPortNameChange(difference)
@@ -320,6 +322,26 @@ public class FlowDifferenceFilters {
 
     public static boolean isVariableValueChange(final FlowDifference flowDifference) {
         return flowDifference.getDifferenceType() == DifferenceType.VARIABLE_CHANGED;
+    }
+
+    public static boolean isAncestorVariableAdded(final FlowDifference fd, final FlowManager flowManager) {
+        if (fd.getDifferenceType() == DifferenceType.VARIABLE_ADDED) {
+            if (fd.getComponentA() instanceof InstantiatedVersionedComponent) {
+                final InstantiatedVersionedComponent componentA = (InstantiatedVersionedComponent) fd.getComponentA();
+                final ProcessGroup processGroup = flowManager.getGroup(componentA.getInstanceIdentifier());
+                if (processGroup.getVariableRegistry().getVariableKey(fd.getFieldName().get()) == null)  {
+                    return true;
+                }
+            } else if (fd.getComponentB() instanceof InstantiatedVersionedComponent) {
+                final InstantiatedVersionedComponent componentB = (InstantiatedVersionedComponent) fd.getComponentB();
+                final ProcessGroup processGroup = flowManager.getGroup(componentB.getInstanceIdentifier());
+                if (processGroup.getVariableRegistry().getVariableKey(fd.getFieldName().get()) == null)  {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public static boolean isRpgUrlChange(final FlowDifference flowDifference) {

@@ -17,18 +17,26 @@
 
 package org.apache.nifi.processors.elasticsearch.mock
 
+import org.apache.nifi.components.ConfigVerificationResult
 import org.apache.nifi.controller.AbstractControllerService
+import org.apache.nifi.controller.ConfigurationContext
 import org.apache.nifi.elasticsearch.DeleteOperationResponse
 import org.apache.nifi.elasticsearch.ElasticSearchClientService
 import org.apache.nifi.elasticsearch.IndexOperationRequest
 import org.apache.nifi.elasticsearch.IndexOperationResponse
 import org.apache.nifi.elasticsearch.SearchResponse
 import org.apache.nifi.elasticsearch.UpdateOperationResponse
+import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.util.StringUtils
 
 class AbstractMockElasticsearchClient extends AbstractControllerService implements ElasticSearchClientService {
     boolean throwRetriableError
     boolean throwFatalError
+
+    @Override
+    List<ConfigVerificationResult> verify(ConfigurationContext context, ComponentLog verificationLogger, Map<String, String> variables) {
+        return null
+    }
 
     @Override
     IndexOperationResponse add(IndexOperationRequest operation, Map<String, String> requestParameters) {
@@ -67,6 +75,11 @@ class AbstractMockElasticsearchClient extends AbstractControllerService implemen
 
     @Override
     void refresh(final String index, final Map<String, String> requestParameters) {
+    }
+
+    @Override
+    boolean exists(final String index, final Map<String, String> requestParameters) {
+        return true
     }
 
     @Override

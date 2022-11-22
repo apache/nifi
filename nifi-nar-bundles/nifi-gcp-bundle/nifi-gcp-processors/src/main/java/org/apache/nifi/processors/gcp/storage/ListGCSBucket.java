@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -52,6 +53,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.ListableEntityWrapper;
 import org.apache.nifi.processor.util.list.ListedEntity;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -165,6 +167,7 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_DESC;
         @WritesAttribute(attribute = OWNER_TYPE_ATTR, description = OWNER_TYPE_DESC),
         @WritesAttribute(attribute = URI_ATTR, description = URI_DESC)
 })
+@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class ListGCSBucket extends AbstractGCSProcessor {
     public static final AllowableValue BY_TIMESTAMPS = new AllowableValue("timestamps", "Tracking Timestamps",
         "This strategy tracks the latest timestamp of listed entity to determine new/updated entities." +

@@ -107,7 +107,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         assertTrue(it.next().toString().contains("is invalid because Record Reader is required"));
 
         // invalid write concern
-        runner.setProperty(AbstractMongoProcessor.URI, MONGO_URI);
+        runner.setProperty(AbstractMongoProcessor.URI, MONGO_CONTAINER.getConnectionString());
         runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, DATABASE_NAME);
         runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, COLLECTION_NAME);
         runner.setProperty(PutMongoRecord.RECORD_READER_FACTORY, "reader");
@@ -163,7 +163,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         MongoDBClientService clientService = new MongoDBControllerService();
         runner.addControllerService("clientService", clientService);
         runner.removeProperty(PutMongoRecord.URI);
-        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_URI);
+        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
         runner.setProperty(PutMongoRecord.CLIENT_SERVICE, "clientService");
         runner.enableControllerService(clientService);
         runner.assertValid();

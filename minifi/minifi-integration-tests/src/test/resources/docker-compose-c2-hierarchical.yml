@@ -56,7 +56,7 @@ services:
     entrypoint:
       - sh
       - -c
-      - /opt/minifi/minifi-${minifi.version}/bin/minifi.sh start && python /home/minifi/tailFileServer.py --file /opt/minifi/minifi-${minifi.version}/logs/minifi-app.log --file /opt/minifi/minifi-${minifi.version}/logs/minifi-bootstrap.log
+      - /opt/minifi/minifi-${minifi.version}/bin/minifi.sh start && python3 /home/minifi/tailFileServer.py --file /opt/minifi/minifi-${minifi.version}/logs/minifi-app.log --file /opt/minifi/minifi-${minifi.version}/logs/minifi-bootstrap.log
     networks:
       - edge1
 
@@ -66,7 +66,7 @@ services:
       dockerfile: Dockerfile.minific2.test
     image: apacheminific2-test
     ports:
-      - "10080"
+      - "10090"
     hostname: c2-edge2
     volumes:
       - ./c2/hierarchical/c2-edge2/conf/c2.properties:/opt/minifi-c2/minifi-c2-${minifi.c2.version}/conf/c2.properties
@@ -93,7 +93,7 @@ services:
     entrypoint:
       - sh
       - -c
-      - /opt/minifi/minifi-${minifi.version}/bin/minifi.sh start && python /home/minifi/tailFileServer.py --file /opt/minifi/minifi-${minifi.version}/logs/minifi-app.log --file /opt/minifi/minifi-${minifi.version}/logs/minifi-bootstrap.log
+      - /opt/minifi/minifi-${minifi.version}/bin/minifi.sh start && python3 /home/minifi/tailFileServer.py --file /opt/minifi/minifi-${minifi.version}/logs/minifi-app.log --file /opt/minifi/minifi-${minifi.version}/logs/minifi-bootstrap.log
     networks:
       - edge2
 
@@ -126,7 +126,7 @@ services:
     entrypoint:
       - sh
       - -c
-      - /opt/minifi/minifi-${minifi.version}/bin/minifi.sh start && python /home/minifi/tailFileServer.py --file /opt/minifi/minifi-${minifi.version}/logs/minifi-app.log --file /opt/minifi/minifi-${minifi.version}/logs/minifi-bootstrap.log
+      - /opt/minifi/minifi-${minifi.version}/bin/minifi.sh start && python3 /home/minifi/tailFileServer.py --file /opt/minifi/minifi-${minifi.version}/logs/minifi-app.log --file /opt/minifi/minifi-${minifi.version}/logs/minifi-bootstrap.log
     networks:
       - edge3
 

@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry-core</artifactId>
-        <version>1.18.0-SNAPSHOT</version>
+        <version>1.19.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>nifi-registry-framework</artifactId>
@@ -159,7 +159,7 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-data-model</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
+            <version>1.19.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -178,7 +178,7 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-utils</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
+            <version>1.19.0-SNAPSHOT</version>
             <scope>provided</scope> <!-- will be in lib dir -->
         </dependency>
         <dependency>
@@ -194,27 +194,27 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-security-utils</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
+            <version>1.19.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-bundle-utils</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
+            <version>1.19.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-flow-diff</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
+            <version>1.19.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-h2-database-migrator</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
+            <version>1.19.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-xml-processing</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
+            <version>1.19.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
@@ -257,17 +257,6 @@
                     <artifactId>commons-logging</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk15on</artifactId>
-            <version>${org.bouncycastle.version}</version>
-        </dependency>
-        <!-- JGit depends on bcpg so declare a consistent version with our other bouncy castle deps -->
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcpg-jdk15on</artifactId>
-            <version>${org.bouncycastle.version}</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
@@ -336,6 +325,40 @@
             <groupId>org.eclipse.jgit</groupId>
             <artifactId>org.eclipse.jgit.gpg.bc</artifactId>
             <version>${jgit.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcprov-jdk15on</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcpkix-jdk15on</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcpg-jdk15on</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcutil-jdk15on</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk18on</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpg-jdk18on</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcutil-jdk18on</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jgit</groupId>
@@ -349,7 +372,7 @@
         <dependency>
             <groupId>com.jcraft</groupId>
             <artifactId>jsch</artifactId>
-            <version>0.1.54</version>
+            <version>0.1.55</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -367,7 +390,7 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-test</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
+            <version>1.19.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -395,18 +418,8 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.spockframework</groupId>
             <artifactId>spock-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -424,7 +437,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-protection-api</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
+            <version>1.19.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

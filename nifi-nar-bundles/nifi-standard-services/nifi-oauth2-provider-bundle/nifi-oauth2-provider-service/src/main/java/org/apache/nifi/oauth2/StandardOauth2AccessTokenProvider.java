@@ -29,13 +29,16 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
@@ -50,12 +53,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Tags({"oauth2", "provider", "authorization", "access token", "http"})
 @CapabilityDescription("Provides OAuth 2.0 access tokens that can be used as Bearer authorization header in HTTP requests." +
     " Uses Resource Owner Password Credentials Grant.")
-public class StandardOauth2AccessTokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider {
+public class StandardOauth2AccessTokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider, VerifiableControllerService {
     public static final PropertyDescriptor AUTHORIZATION_SERVER_URL = new PropertyDescriptor.Builder()
         .name("authorization-server-url")
         .displayName("Authorization Server URL")
@@ -337,5 +341,21 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
                 .minusSeconds(refreshWindowSeconds);
 
         return Instant.now().isAfter(expirationRefreshTime);
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(ConfigurationContext context, ComponentLog verificationLogger, Map<String, String> variables) {
+        ConfigVerificationResult.Builder builder = new ConfigVerificationResult.Builder()
+                .verificationStepName("Can acquire token");
+
+        try {
+            getAccessDetails();
+            builder.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL);
+        } catch (Exception ex) {
+            builder.outcome(ConfigVerificationResult.Outcome.FAILED)
+                    .explanation(ex.getMessage());
+        }
+
+        return Arrays.asList(builder.build());
     }
 }

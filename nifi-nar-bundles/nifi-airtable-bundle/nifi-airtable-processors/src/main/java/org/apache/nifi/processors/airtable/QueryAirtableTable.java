@@ -44,6 +44,7 @@ import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -64,6 +65,7 @@ import org.apache.nifi.processors.airtable.parse.AirtableTableRetriever;
 import org.apache.nifi.processors.airtable.service.AirtableGetRecordsParameters;
 import org.apache.nifi.processors.airtable.service.AirtableRestService;
 import org.apache.nifi.processors.airtable.service.RateLimitExceededException;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
 @PrimaryNodeOnly
@@ -92,6 +94,7 @@ import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
                 + "FlowFiles were produced"),
 })
 @DefaultSettings(yieldDuration = "15 sec")
+@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class QueryAirtableTable extends AbstractProcessor {
 
     static final PropertyDescriptor API_URL = new PropertyDescriptor.Builder()

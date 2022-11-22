@@ -555,10 +555,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private synchronized void commit(final boolean asynchronous) {
         checkpoint(this.checkpoint != null); // If a checkpoint already exists, we need to copy the collection
         commit(this.checkpoint, asynchronous);
-
-        acknowledgeRecords();
-        resetState();
-
         this.checkpoint = null;
     }
 
@@ -720,6 +716,11 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 }
             }
 
+            // Acknowledge records in order to update counts for incoming connections' queues
+            acknowledgeRecords();
+
+            // Reset the internal state, now that the session has been committed
+            resetState();
         } catch (final Exception e) {
             LOG.error("Failed to commit session {}. Will roll back.", this, e);
 

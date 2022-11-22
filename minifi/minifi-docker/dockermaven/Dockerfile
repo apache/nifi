@@ -16,30 +16,43 @@
 # under the License.
 #
 
-ARG IMAGE_NAME=openjdk
-ARG IMAGE_TAG=8-jre-alpine
+ARG IMAGE_NAME=eclipse-temurin
+ARG IMAGE_TAG=11-jre
 FROM ${IMAGE_NAME}:${IMAGE_TAG}
-MAINTAINER Apache MiNiFi <dev@nifi.apache.org>
+LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
+LABEL site="https://nifi.apache.org"
 
 # Values are set by Maven
 ARG UID
 ARG GID
 ARG MINIFI_VERSION
 ARG MINIFI_BINARY
+ARG MINIFI_SCRIPTS
 
 ENV MINIFI_BASE_DIR /opt/minifi
+ENV MINIFI_BINARY_NAME minifi-${MINIFI_VERSION}-bin.zip
 ENV MINIFI_HOME $MINIFI_BASE_DIR/minifi-current
 
-# Setup MiNiFi user
-RUN addgroup -g $GID minifi || groupmod -n minifi `getent group $GID | cut -d: -f1`
-RUN adduser -S -H -G minifi minifi
-RUN mkdir -p $MINIFI_BASE_DIR
+RUN  mkdir -p $MINIFI_BASE_DIR
+COPY $MINIFI_BINARY $MINIFI_BASE_DIR
+ADD $MINIFI_SCRIPTS ${MINIFI_BASE_DIR}/scripts
 
-ADD $MINIFI_BINARY $MINIFI_BASE_DIR
-RUN ln -s $MINIFI_BASE_DIR/minifi-$MINIFI_VERSION $MINIFI_HOME
-RUN chown -R -L minifi:minifi $MINIFI_HOME
+RUN apt-get update \
+    && apt-get install -y unzip \
+    && apt-get -y autoremove \
+    && apt-get clean autoclean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && unzip ${MINIFI_BASE_DIR}/${MINIFI_BINARY_NAME} -d ${MINIFI_BASE_DIR} \
+    && rm ${MINIFI_BASE_DIR}/${MINIFI_BINARY_NAME} \
+    && groupadd -g ${GID} minifi \
+    && useradd --shell /bin/bash -u ${UID} -g ${GID} -m minifi \
+    && ln -s $MINIFI_BASE_DIR/minifi-$MINIFI_VERSION $MINIFI_HOME \
+    && chown -R -L minifi:minifi $MINIFI_BASE_DIR \
+    && chmod -R +x ${MINIFI_BASE_DIR}/scripts/*.sh
 
 USER minifi
 
+WORKDIR ${MINIFI_HOME}
+
 # Startup MiNiFi
-CMD $MINIFI_HOME/bin/minifi.sh run
+ENTRYPOINT ["../scripts/start.sh"]

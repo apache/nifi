@@ -16,25 +16,107 @@
  */
 package org.apache.nifi.minifi;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import org.apache.nifi.headless.HeadlessNiFiServer;
+import org.apache.nifi.minifi.bootstrap.BootstrapListener;
+import org.apache.nifi.minifi.c2.C2NiFiProperties;
+import org.apache.nifi.minifi.c2.C2NifiClientService;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.apache.nifi.minifi.status.StatusConfigReporter;
 import org.apache.nifi.minifi.status.StatusRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 /**
  *
  */
 public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiServer {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardMiNiFiServer.class);
+    public static final String BOOTSTRAP_PORT_PROPERTY = "nifi.bootstrap.listen.port";
+
+    private BootstrapListener bootstrapListener;
+
+    /* A reference to the client service for handling*/
+    private C2NifiClientService c2NifiClientService;
+
 
     public StandardMiNiFiServer() {
         super();
     }
 
     public FlowStatusReport getStatusReport(String requestString) throws StatusRequestException {
-        return StatusConfigReporter.getStatus(this.flowController, requestString, logger);
+        return StatusConfigReporter.getStatus(flowController, requestString, logger);
+    }
+
+    @Override
+    public void start() {
+        super.start();
+
+        initBootstrapListener();
+        initC2();
+
+        sendStartedStatus();
+    }
+
+    @Override
+    public void stop(boolean reload) {
+        super.stop();
+        if (bootstrapListener != null) {
+            try {
+                if (reload) {
+                    bootstrapListener.reload();
+                } else {
+                    bootstrapListener.stop();
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+        if (c2NifiClientService != null) {
+            c2NifiClientService.stop();
+        }
+    }
+
+    private void initC2() {
+        if (Boolean.parseBoolean(props.getProperty(C2NiFiProperties.C2_ENABLE_KEY, "false"))) {
+            logger.info("C2 enabled, creating a C2 client instance");
+            c2NifiClientService = new C2NifiClientService(props, flowController);
+            c2NifiClientService.start();
+        } else {
+            logger.debug("C2 Property [{}] missing or disabled: C2 client not created", C2NiFiProperties.C2_ENABLE_KEY);
+            c2NifiClientService = null;
+        }
+    }
+
+    private void initBootstrapListener() {
+        String bootstrapPort = System.getProperty(BOOTSTRAP_PORT_PROPERTY);
+        if (bootstrapPort != null) {
+            try {
+                int port = Integer.parseInt(bootstrapPort);
+
+                if (port < 1 || port > 65535) {
+                    throw new RuntimeException("Failed to start MiNiFi because system property '" + BOOTSTRAP_PORT_PROPERTY + "' is not a valid integer in the range 1 - 65535");
+                }
+
+                bootstrapListener = new BootstrapListener(this, port);
+                bootstrapListener.start();
+            } catch (NumberFormatException | IOException nfe) {
+                throw new RuntimeException("Failed to start MiNiFi because system property '" + BOOTSTRAP_PORT_PROPERTY + "' is not a valid integer in the range 1 - 65535");
+            }
+        } else {
+            logger.info("MiNiFi started without Bootstrap Port information provided; will not listen for requests from Bootstrap");
+            bootstrapListener = null;
+        }
+    }
+
+    private void sendStartedStatus() {
+        if (bootstrapListener != null) {
+            try {
+                bootstrapListener.sendStartedStatus(true);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
     }
 }

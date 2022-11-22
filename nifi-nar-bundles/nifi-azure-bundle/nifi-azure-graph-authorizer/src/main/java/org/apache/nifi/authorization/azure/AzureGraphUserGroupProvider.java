@@ -32,17 +32,16 @@ import java.util.stream.Collectors;
 
 import com.google.gson.JsonObject;
 import com.microsoft.graph.core.ClientException;
-import com.microsoft.graph.models.extensions.DirectoryObject;
 import com.microsoft.graph.models.extensions.IGraphServiceClient;
 import com.microsoft.graph.options.Option;
 import com.microsoft.graph.options.QueryOption;
 import com.microsoft.graph.requests.extensions.GraphServiceClient;
-import com.microsoft.graph.requests.extensions.IDirectoryObjectCollectionWithReferencesPage;
-import com.microsoft.graph.requests.extensions.IDirectoryObjectCollectionWithReferencesRequest;
-import com.microsoft.graph.requests.extensions.IDirectoryObjectCollectionWithReferencesRequestBuilder;
 import com.microsoft.graph.requests.extensions.IGroupCollectionPage;
 import com.microsoft.graph.requests.extensions.IGroupCollectionRequest;
 import com.microsoft.graph.requests.extensions.IGroupCollectionRequestBuilder;
+import com.microsoft.graph.requests.extensions.IUserCollectionWithReferencesPage;
+import com.microsoft.graph.requests.extensions.IUserCollectionWithReferencesRequest;
+import com.microsoft.graph.requests.extensions.IUserCollectionWithReferencesRequestBuilder;
 
 import org.apache.nifi.authorization.AuthorizerConfigurationContext;
 import org.apache.nifi.authorization.Group;
@@ -345,23 +344,16 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
                     .identifier(graphGroup.id)
                     .name(graphGroup.displayName);
 
-            IDirectoryObjectCollectionWithReferencesRequest uRequest =
+            IUserCollectionWithReferencesRequest uRequest =
                 graphClient.groups(graphGroup.id)
-                    .members()
+                    .transitiveMembersAsUser()
                     .buildRequest()
                     .select("id, displayName, mail, userPrincipalName");
 
-            if (pageSize > 0) {
-                uRequest = uRequest.top(pageSize);
-            }
-            IDirectoryObjectCollectionWithReferencesPage userpage =
-                graphClient.groups(graphGroup.id)
-                    .members()
-                    .buildRequest()
-                    .select("id, displayName, mail, userPrincipalName").get();
+            IUserCollectionWithReferencesPage userpage = uRequest.get();
 
-            while (userpage.getCurrentPage() != null) {
-                for (DirectoryObject userDO : userpage.getCurrentPage()) {
+            while (userpage != null && userpage.getCurrentPage() != null) {
+                for (com.microsoft.graph.models.extensions.User userDO : userpage.getCurrentPage()) {
                     JsonObject jsonUser = userDO.getRawObject();
                     final String idUser;
                     if (!jsonUser.get("id").isJsonNull()) {
@@ -386,7 +378,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
                     users.add(user);
                     groupBuilder.addUser(idUser);
                 }
-                IDirectoryObjectCollectionWithReferencesRequestBuilder nextPageRequest = userpage.getNextPage();
+                IUserCollectionWithReferencesRequestBuilder nextPageRequest = userpage.getNextPage();
 
                 if (nextPageRequest != null) {
                     userpage = nextPageRequest.buildRequest().get();

@@ -111,6 +111,7 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -131,6 +132,8 @@ public class StandardVersionedComponentSynchronizerTest {
     private ParameterContextManager parameterContextManager;
     private ParameterReferenceManager parameterReferenceManager;
     private CapturingScheduledStateChangeListener scheduledStateChangeListener;
+    private ControllerServiceNode controllerServiceNode;
+    private BundleCoordinate bundleCoordinate;
 
     private final Set<String> queuesWithData = Collections.synchronizedSet(new HashSet<>());
     private final Bundle bundle = new Bundle("group", "artifact", "version 1.0");
@@ -147,8 +150,11 @@ public class StandardVersionedComponentSynchronizerTest {
         parameterContextManager = new StandardParameterContextManager();
         parameterReferenceManager = Mockito.mock(ParameterReferenceManager.class);
 
+        bundleCoordinate = new BundleCoordinate("org.apache.nifi", "nifi-standard-nar", "1.18.0");
+        controllerServiceNode = Mockito.mock(ControllerServiceNode.class);
+        when(controllerServiceNode.getBundleCoordinate()).thenReturn(bundleCoordinate);
         when(flowManager.createControllerService(anyString(), anyString(), any(BundleCoordinate.class), anySet(), anyBoolean(), anyBoolean(), nullable(String.class)))
-            .thenReturn(Mockito.mock(ControllerServiceNode.class));
+            .thenReturn(controllerServiceNode);
         when(flowManager.getParameterContextManager()).thenReturn(parameterContextManager);
         doAnswer(invocation -> {
             invocation.getArgument(0, Runnable.class).run();
@@ -336,6 +342,22 @@ public class StandardVersionedComponentSynchronizerTest {
         versionedProcessor.setScheduledState(ScheduledState.RUNNING);
 
         when(processorA.isRunning()).thenReturn(true);
+        when(group.stopProcessor(processorA)).thenReturn(CompletableFuture.completedFuture(null));
+
+        synchronizer.synchronize(processorA, versionedProcessor, group, synchronizationOptions);
+
+        verify(group, times(1)).stopProcessor(processorA);
+        verify(processorA).setProperties(versionedProcessor.getProperties(), true, Collections.emptySet());
+        verify(componentScheduler, atLeast(1)).startComponent(any(Connectable.class));
+    }
+
+    @Test
+    public void testStartingProcessorRestarted() throws FlowSynchronizationException, TimeoutException, InterruptedException {
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setScheduledState(ScheduledState.RUNNING);
+
+        when(processorA.isRunning()).thenReturn(false);
+        when(processorA.getPhysicalScheduledState()).thenReturn(org.apache.nifi.controller.ScheduledState.STARTING);
         when(group.stopProcessor(processorA)).thenReturn(CompletableFuture.completedFuture(null));
 
         synchronizer.synchronize(processorA, versionedProcessor, group, synchronizationOptions);
@@ -586,9 +608,27 @@ public class StandardVersionedComponentSynchronizerTest {
     public void testPortRestarted() throws FlowSynchronizationException, InterruptedException, TimeoutException {
         final VersionedPort versionedInputPort = createMinimalVersionedPort(ComponentType.INPUT_PORT);
         versionedInputPort.setScheduledState(ScheduledState.RUNNING);
+
+        when(inputPort.isRunning()).thenReturn(true);
+
         synchronizer.synchronize(inputPort, versionedInputPort, group, synchronizationOptions);
 
         verify(componentScheduler, atLeast(1)).transitionComponentState(inputPort, ScheduledState.RUNNING);
+        verify(componentScheduler, times(1)).startComponent(inputPort);
+        verify(inputPort).setName("Input");
+    }
+
+    @Test
+    public void testStoppedPortNotRestarted() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        final VersionedPort versionedInputPort = createMinimalVersionedPort(ComponentType.INPUT_PORT);
+        versionedInputPort.setScheduledState(ScheduledState.ENABLED);
+
+        when(inputPort.isRunning()).thenReturn(true);
+
+        synchronizer.synchronize(inputPort, versionedInputPort, group, synchronizationOptions);
+
+        verify(componentScheduler, times(1)).transitionComponentState(inputPort, ScheduledState.ENABLED);
+        verify(componentScheduler, never()).startComponent(inputPort);
         verify(inputPort).setName("Input");
     }
 
@@ -624,13 +664,13 @@ public class StandardVersionedComponentSynchronizerTest {
         });
     }
 
-
     @Test
     public void testAddsControllerService() throws FlowSynchronizationException, InterruptedException, TimeoutException {
         final VersionedControllerService versionedService = createMinimalVersionedControllerService();
         synchronizer.synchronize(null, versionedService, group, synchronizationOptions);
 
         verify(group).addControllerService(any(ControllerServiceNode.class));
+        verify(controllerServiceNode).setName(eq(versionedService.getName()));
     }
 
     @Test
@@ -1089,6 +1129,7 @@ public class StandardVersionedComponentSynchronizerTest {
         versionedService.setProperties(Collections.singletonMap("abc", "123"));
         versionedService.setPosition(new Position(0D, 0D));
         versionedService.setType("ControllerServiceImpl");
+        versionedService.setBundle(new Bundle(bundleCoordinate.getGroup(), bundleCoordinate.getId(), bundleCoordinate.getVersion()));
 
         return versionedService;
     }

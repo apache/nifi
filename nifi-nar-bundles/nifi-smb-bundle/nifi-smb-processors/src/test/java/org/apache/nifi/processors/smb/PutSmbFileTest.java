@@ -21,6 +21,7 @@ import com.hierynomus.mssmb2.SMB2ShareAccess;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.server.ServerList;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskEntry;
 import com.hierynomus.smbj.share.DiskShare;
@@ -59,6 +60,7 @@ public class PutSmbFileTest {
     private DiskShare diskShare;
     private DiskEntry diskEntry;
     private File smbfile;
+    private ServerList serverList;
     private ByteArrayOutputStream baOutputStream;
 
     private final static String HOSTNAME = "smbhostname";
@@ -80,9 +82,12 @@ public class PutSmbFileTest {
         diskShare = mock(DiskShare.class);
         diskEntry = mock(DiskEntry.class);
         smbfile = mock(File.class);
+        serverList = mock(ServerList.class);
         baOutputStream = new ByteArrayOutputStream();
 
         when(smbClient.connect(any(String.class))).thenReturn(connection);
+        when(smbClient.getServerList()).thenReturn(serverList);
+
         when(connection.authenticate(any(AuthenticationContext.class))).thenReturn(session);
         when(session.connectShare(SHARE)).thenReturn(diskShare);
         when(diskShare.openFile(

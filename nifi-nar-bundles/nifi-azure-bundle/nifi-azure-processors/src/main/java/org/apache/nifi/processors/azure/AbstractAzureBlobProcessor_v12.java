@@ -161,21 +161,26 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
     }
 
     protected Map<String, String> createBlobAttributesMap(BlobClient blobClient) {
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
+        applyStandardBlobAttributes(attributes, blobClient);
+        applyBlobMetadata(attributes, blobClient);
+        return attributes;
+    }
 
-        BlobProperties properties = blobClient.getProperties();
-        String primaryUri = String.format("%s/%s", blobClient.getContainerClient().getBlobContainerUrl(), blobClient.getBlobName());
-
+    protected void applyStandardBlobAttributes(Map<String, String> attributes, BlobClient blobClient) {
+        String primaryUri = blobClient.getBlobUrl().replace("%2F", "/");
         attributes.put(ATTR_NAME_CONTAINER, blobClient.getContainerName());
         attributes.put(ATTR_NAME_BLOBNAME, blobClient.getBlobName());
         attributes.put(ATTR_NAME_PRIMARY_URI, primaryUri);
+    }
+
+    protected void applyBlobMetadata(Map<String, String> attributes, BlobClient blobClient) {
+        BlobProperties properties = blobClient.getProperties();
         attributes.put(ATTR_NAME_ETAG, properties.getETag());
         attributes.put(ATTR_NAME_BLOBTYPE, properties.getBlobType().toString());
         attributes.put(ATTR_NAME_MIME_TYPE, properties.getContentType());
         attributes.put(ATTR_NAME_LANG, properties.getContentLanguage());
         attributes.put(ATTR_NAME_TIMESTAMP, String.valueOf(properties.getLastModified()));
         attributes.put(ATTR_NAME_LENGTH, String.valueOf(properties.getBlobSize()));
-
-        return attributes;
     }
 }

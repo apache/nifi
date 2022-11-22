@@ -1082,7 +1082,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
     public Response initiateRevertFlowVersion(@ApiParam("The process group id.") @PathParam("id") final String groupId,
-        @ApiParam(value = "The controller service configuration details.", required = true) final VersionControlInformationEntity requestEntity) {
+        @ApiParam(value = "The Version Control Information to revert to.", required = true) final VersionControlInformationEntity requestEntity) {
 
         if (requestEntity == null) {
             throw new IllegalArgumentException("Version control information must be specified.");

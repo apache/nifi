@@ -42,7 +42,7 @@
                         </bean>
                     </constructor-arg>
                     <constructor-arg>
-                        <value>http://c2-upstream:10080</value>
+                        <value>http://c2-upstream:10090</value>
                     </constructor-arg>
                 </bean>
             </list>

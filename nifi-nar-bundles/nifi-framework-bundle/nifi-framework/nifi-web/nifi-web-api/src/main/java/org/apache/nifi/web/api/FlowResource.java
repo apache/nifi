@@ -1759,6 +1759,45 @@ public class FlowResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
+    @Path("registries/{registry-id}/buckets/{bucket-id}/flows/{flow-id}/details")
+    @ApiOperation(value = "Gets the details of a flow from the specified registry and bucket for the specified flow for the current user",
+            response = VersionedFlowEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow")
+            })
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response getDetails(
+            @ApiParam(
+                    value = "The registry client id.",
+                    required = true
+            )
+            @PathParam("registry-id") String registryId,
+            @ApiParam(
+                    value = "The bucket id.",
+                    required = true
+            )
+            @PathParam("bucket-id") String bucketId,
+            @ApiParam(
+                    value = "The flow id.",
+                    required = true
+            )
+            @PathParam("flow-id") String flowId) {
+
+        authorizeFlow();
+
+        final VersionedFlowEntity flowDetails = serviceFacade.getFlowForUser(registryId, bucketId, flowId);
+        return generateOkResponse(flowDetails).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("registries/{registry-id}/buckets/{bucket-id}/flows/{flow-id}/versions")
     @ApiOperation(value = "Gets the flow versions from the specified registry and bucket for the specified flow for the current user",
                   response = VersionedFlowSnapshotMetadataSetEntity.class,

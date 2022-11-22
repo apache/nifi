@@ -16,8 +16,12 @@
  */
 package org.apache.nifi.processors.standard.db;
 
+import java.sql.JDBCType;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Interface for RDBMS/JDBC-specific code.
@@ -91,11 +95,11 @@ public interface DatabaseAdapter {
      * <br /><br />
      * There is no standard way of doing this so not all adapters support it - use together with {@link #supportsUpsert()}!
      *
-     * @param table                     The name of the table in which to update/insert a record into.
-     * @param columnNames               The name of the columns in the table to add values to.
-     * @param uniqueKeyColumnNames      The name of the columns that form a unique key.
-     * @return                          A String containing the parameterized jdbc SQL statement.
-     *                                      The order and number of parameters are the same as that of the provided column list.
+     * @param table                The name of the table in which to update/insert a record into.
+     * @param columnNames          The name of the columns in the table to add values to.
+     * @param uniqueKeyColumnNames The name of the columns that form a unique key.
+     * @return A String containing the parameterized jdbc SQL statement.
+     * The order and number of parameters are the same as that of the provided column list.
      */
     default String getUpsertStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames) {
         throw new UnsupportedOperationException("UPSERT is not supported for " + getName());
@@ -122,6 +126,7 @@ public interface DatabaseAdapter {
      * <p>The default implementation of this method removes double quotes.
      * If the target database engine supports different escape characters, then its DatabaseAdapter implementation should override
      * this method so that such escape characters can be removed properly.</p>
+     *
      * @param identifier An identifier which may be wrapped with escape characters
      * @return An unwrapped identifier string, or null if the input identifier is null
      */
@@ -131,5 +136,84 @@ public interface DatabaseAdapter {
 
     default String getTableAliasClause(String tableName) {
         return "AS " + tableName;
+    }
+
+    default String getTableQuoteString() {
+        // ANSI standard is a double quote
+        return "\"";
+    }
+
+    default String getColumnQuoteString() {
+        // ANSI standard is a double quote
+        return "\"";
+    }
+
+    default boolean supportsCreateTableIfNotExists() {
+        return false;
+    }
+
+    /**
+     * Generates a CREATE TABLE statement using the specified table schema
+     * @param tableSchema The table schema including column information
+     * @param quoteTableName Whether to quote the table name in the generated DDL
+     * @param quoteColumnNames Whether to quote column names in the generated DDL
+     * @return A String containing DDL to create the specified table
+     */
+    default String getCreateTableStatement(TableSchema tableSchema, boolean quoteTableName, boolean quoteColumnNames) {
+        StringBuilder createTableStatement = new StringBuilder();
+
+        List<ColumnDescription> columns = tableSchema.getColumnsAsList();
+        List<String> columnsAndDatatypes = new ArrayList<>(columns.size());
+        Set<String> primaryKeyColumnNames = tableSchema.getPrimaryKeyColumnNames();
+        for (ColumnDescription column : columns) {
+            StringBuilder sb = new StringBuilder()
+                    .append(quoteColumnNames ? getColumnQuoteString() : "")
+                    .append(column.getColumnName())
+                    .append(quoteColumnNames ? getColumnQuoteString() : "")
+                    .append(" ")
+                    .append(getSQLForDataType(column.getDataType()))
+                    .append(column.isNullable() ? "" : " NOT NULL")
+                    .append(primaryKeyColumnNames != null && primaryKeyColumnNames.contains(column.getColumnName()) ? " PRIMARY KEY" : "");
+            columnsAndDatatypes.add(sb.toString());
+        }
+
+        createTableStatement.append("CREATE TABLE IF NOT EXISTS ")
+                .append(quoteTableName ? getTableQuoteString() : "")
+                .append(tableSchema.getTableName())
+                .append(quoteTableName ? getTableQuoteString() : "")
+                .append(" (")
+                .append(String.join(", ", columnsAndDatatypes))
+                .append(") ");
+
+        return createTableStatement.toString();
+    }
+
+    default List<String> getAlterTableStatements(String tableName, List<ColumnDescription> columnsToAdd, final boolean quoteTableName, final boolean quoteColumnNames) {
+        StringBuilder createTableStatement = new StringBuilder();
+
+        List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
+        for (ColumnDescription column : columnsToAdd) {
+            StringBuilder sb = new StringBuilder()
+                    .append(quoteColumnNames ? getColumnQuoteString() : "")
+                    .append(column.getColumnName())
+                    .append(quoteColumnNames ? getColumnQuoteString() : "")
+                    .append(" ")
+                    .append(getSQLForDataType(column.getDataType()));
+            columnsAndDatatypes.add(sb.toString());
+        }
+
+        createTableStatement.append("ALTER TABLE ")
+                .append(quoteTableName ? getTableQuoteString() : "")
+                .append(tableName)
+                .append(quoteTableName ? getTableQuoteString() : "")
+                .append(" ADD COLUMNS (")
+                .append(String.join(", ", columnsAndDatatypes))
+                .append(") ");
+
+        return Collections.singletonList(createTableStatement.toString());
+    }
+
+    default String getSQLForDataType(int sqlType) {
+        return JDBCType.valueOf(sqlType).getName();
     }
 }

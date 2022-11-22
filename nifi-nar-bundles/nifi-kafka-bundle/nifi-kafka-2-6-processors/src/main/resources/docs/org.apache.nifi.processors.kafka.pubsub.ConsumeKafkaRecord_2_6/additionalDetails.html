@@ -256,5 +256,132 @@
             ssl.client.auth property.
         </p>
 
+        <h2>Output Strategies</h2>
+        <div>
+            <p>This processor offers multiple output strategies (configured via processor property 'Output
+                Strategy') for converting Kafka records into FlowFiles.</p>
+            <ul>
+                <li>Output Strategy 'Write Value Only' (the default) emits flowfile records containing only the Kafka
+                    record value.
+                </li>
+                <li>Output Strategy 'Use Wrapper' (new) emits flowfile records containing the Kafka record key, value,
+                    and headers, as well as additional metadata from the Kafka record.
+                </li>
+            </ul>
+
+
+            <p>The record schema that is used when 'Use Wrapper' is active is as follows (in Avro format):</p>
+<pre>
+<code>
+{
+  "type": "record",
+  "name": "nifiRecord",
+  "namespace": "org.apache.nifi",
+  "fields": [{
+      "name": "key",
+      "type": [{
+          &lt; Schema is determined by the Key Record Reader, or will be "string" or "bytes", depending on the "Key Format" property (see below for more details) &gt;
+        }, "null"]
+    },
+    {
+      "name": "value",
+      "type": [
+        {
+          &lt; Schema is determined by the Value Record Reader &gt;
+        },
+        "null"
+      ]
+    },
+    {
+      "name": "headers",
+      "type": [
+        { "type": "map", "values": "string", "default": {}},
+        "null"]
+    },
+    {
+      "name": "metadata",
+      "type": [
+        {
+          "type": "record",
+          "name": "metadataType",
+          "fields": [
+            { "name": "topic", "type": ["string", "null"] },
+            { "name": "partition", "type": ["int", "null"] },
+            { "name": "offset", "type": ["int", "null"] },
+            { "name": "timestamp", "type": ["long", "null"] }
+          ]
+        },
+        "null"
+      ]
+    }
+  ]
+}
+</code>
+</pre>
+
+            <p>If the Output Strategy property is set to 'Use Wrapper', an additional processor configuration property
+                ('Key Format') is activated. This property is used to specify how the Kafka Record's key should be written out to the FlowFile.
+                The possible values for 'Key Format' are as follows:</p>
+            <ul>
+                <li>'Byte Array' supplies the Kafka Record Key as a byte array, exactly as they are received in the Kafka record.</li>
+                <li>'String' converts the Kafka Record Key bytes into a string using the UTF-8 character encoding.
+                    (Failure to parse the key bytes as UTF-8 will result in the record being routed to the
+                    'parse.failure' relationship.)
+                </li>
+                <li>'Record' converts the Kafka Record Key bytes into a deserialized NiFi record, using the associated
+                    'Key Record Reader' controller service.
+                </li>
+            </ul>
+
+            <p>
+                If the Key Format property is set to 'Record', an additional processor configuration property name 'Key Record Reader' is
+                made available. This property is used to specify the Record Reader to use in order to parse the Kafka Record's key as a Record.
+            </p>
+
+            <p>Here is an example of FlowFile content that is emitted by <code>JsonRecordSetWriter</code> when strategy "Use Wrapper" is active:</p>
+<pre>
+<code>
+[
+  {
+    "key": {
+      "name": "Acme",
+      "number": "AC1234"
+    },
+    "value": {
+      "address": "1234 First Street",
+      "zip": "12345",
+      "account": {
+        "name": "Acme",
+        "number": "AC1234"
+      }
+    },
+    "headers": {
+      "attributeA": "valueA",
+      "attributeB": "valueB"
+    },
+    "metadata": {
+      "topic": "accounts",
+      "partition": 0,
+      "offset": 0,
+      "timestamp": 0
+    }
+  }
+]
+</code>
+</pre>
+
+            <p>These new processor properties may be used to extend the capabilities of ConsumeKafkaRecord_2_6, by
+                optionally incorporating additional information from the Kafka record (key, headers, metadata) into the
+                outbound flowfile. Additionally, the Kafka records' keys may now be interpreted as records, rather than as a string.
+                This enables additional decision-making by downstream processors in your flow and enables handling of records where
+                the key is complex, such as an Avro record.</p>
+
+            <p>Additionally, the choice of the 'Output Strategy' property affects the related properties
+                'Headers to Add as Attributes (Regex)' and 'Key Attribute Encoding'. Since Output Strategy 'Use
+                Wrapper' includes headers and keys in the FlowFile content, they are not also added to the FlowFile
+                attributes. These properties are available only when the FlowFile Output Strategy is set to 'Write
+                Value Only'.</p>
+        </div>
+
     </body>
 </html>

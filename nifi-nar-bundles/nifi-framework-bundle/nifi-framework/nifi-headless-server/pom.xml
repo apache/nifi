@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.18.0-SNAPSHOT</version>
+        <version>1.19.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-headless-server</artifactId>
     <packaging>jar</packaging>
@@ -56,7 +56,6 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-text</artifactId>
-            <version>1.8</version>
         </dependency>
         <dependency>
             <groupId>com.github.stefanbirkner</groupId>

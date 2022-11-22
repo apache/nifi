@@ -35,6 +35,8 @@ import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
+import org.apache.nifi.controller.scheduling.LifecycleState;
+import org.apache.nifi.controller.scheduling.SchedulingAgent;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
@@ -64,6 +66,7 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.registry.variable.StandardComponentVariableRegistry;
+import org.apache.nifi.test.processors.AlwaysInvalid;
 import org.apache.nifi.test.processors.DynamicPropertiesTestProcessor;
 import org.apache.nifi.test.processors.ModifiesClasspathNoAnnotationProcessor;
 import org.apache.nifi.test.processors.ModifiesClasspathProcessor;
@@ -88,8 +91,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -149,21 +155,7 @@ public class StandardProcessorNodeIT {
         final ScheduledExecutorService taskScheduler = new FlowEngine(1, "TestClasspathResources", true);
 
         final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, null, () -> false, null);
-        final SchedulingAgentCallback schedulingAgentCallback = new SchedulingAgentCallback() {
-            @Override
-            public void onTaskComplete() {
-            }
-
-            @Override
-            public Future<?> scheduleTask(final Callable<?> task) {
-                return taskScheduler.submit(task);
-            }
-
-            @Override
-            public void trigger() {
-                Assert.fail("Should not have completed");
-            }
-        };
+        final SchedulingAgentCallback schedulingAgentCallback = new FailIfTriggeredSchedulingAgentCallback(taskScheduler);
 
         procNode.performValidation();
         procNode.start(taskScheduler, 20000L, 10000L, () -> processContext, schedulingAgentCallback, true);
@@ -551,6 +543,30 @@ public class StandardProcessorNodeIT {
         }
     }
 
+    @Test
+    public void testStartInvalidProcessorThenStopFutureTriggered() throws ExecutionException, InterruptedException, TimeoutException {
+        final Processor alwaysInvalid = new AlwaysInvalid();
+        final ProcessorNode procNode = createProcessorNode(alwaysInvalid, new MockReloadComponent());
+
+        final ScheduledExecutorService taskScheduler = new FlowEngine(1, "TestStartInvalidProcessorThenStopFutureTriggered", true);
+        final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, null, () -> false, null);
+        final SchedulingAgentCallback schedulingAgentCallback = new FailIfTriggeredSchedulingAgentCallback(taskScheduler);
+
+        procNode.start(taskScheduler, 20000L, 10000L, () -> processContext, schedulingAgentCallback, true);
+        assertEquals(ScheduledState.STARTING, procNode.getPhysicalScheduledState());
+
+        final ProcessScheduler processScheduler = mock(ProcessScheduler.class);
+        final SchedulingAgent schedulingAgent = mock(SchedulingAgent.class);
+        final LifecycleState lifecycleState = new LifecycleState();
+
+        final Future<Void> future = procNode.stop(processScheduler, taskScheduler, processContext, schedulingAgent, lifecycleState);
+        final ScheduledState currentState = procNode.getPhysicalScheduledState();
+        assertTrue(currentState == ScheduledState.STOPPED || currentState == ScheduledState.STOPPING);
+
+        future.get(15, TimeUnit.SECONDS);
+        assertEquals(ScheduledState.STOPPED, procNode.getPhysicalScheduledState());
+    }
+
     private StandardProcessorNode createProcessorNode(final Processor processor, final ReloadComponent reloadComponent) {
         final String uuid = UUID.randomUUID().toString();
         final ValidationContextFactory validationContextFactory = createValidationContextFactory();
@@ -758,4 +774,25 @@ public class StandardProcessorNodeIT {
         }
     }
 
+    private static class FailIfTriggeredSchedulingAgentCallback implements SchedulingAgentCallback {
+        private final ScheduledExecutorService executorService;
+
+        public FailIfTriggeredSchedulingAgentCallback(final ScheduledExecutorService executorService) {
+            this.executorService = executorService;
+        }
+
+        @Override
+        public void onTaskComplete() {
+        }
+
+        @Override
+        public Future<?> scheduleTask(final Callable<?> task) {
+            return executorService.submit(task);
+        }
+
+        @Override
+        public void trigger() {
+            Assert.fail("Should not have completed");
+        }
+    }
 }

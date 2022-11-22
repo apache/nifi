@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Date;
 
+import com.fasterxml.jackson.databind.MapperFeature;
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -70,6 +71,7 @@ public class TestJsonEntitySerializer {
         final ObjectMapper jsonCodec = new ObjectMapper();
         jsonCodec.registerModule(new JaxbAnnotationModule());
         jsonCodec.setSerializationInclusion(Include.NON_NULL);
+        jsonCodec.setConfig(jsonCodec.getSerializationConfig().with(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY));
 
         final Date timestamp = new Date();
         final TimeAdapter adapter = new TimeAdapter();

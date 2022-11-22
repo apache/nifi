@@ -18,14 +18,14 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.event.transport.configuration.LineEnding;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.StringNettyEventSenderFactory;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.syslog.attributes.SyslogAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -42,8 +42,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class TestListenSyslog {
     private static final String PRIORITY = "34";
@@ -77,22 +75,6 @@ public class TestListenSyslog {
     }
 
     @Test
-    public void testUdpSslContextServiceInvalid() throws InitializationException {
-        runner.setProperty(ListenSyslog.PROTOCOL, TransportProtocol.UDP.toString());
-        final int port = NetworkUtils.getAvailableUdpPort();
-        runner.setProperty(ListenSyslog.PORT, Integer.toString(port));
-
-        final RestrictedSSLContextService sslContextService = mock(RestrictedSSLContextService.class);
-        final String identifier = RestrictedSSLContextService.class.getName();
-        when(sslContextService.getIdentifier()).thenReturn(identifier);
-        runner.addControllerService(identifier, sslContextService);
-        runner.enableControllerService(sslContextService);
-        runner.setProperty(ListenSyslog.SSL_CONTEXT_SERVICE, identifier);
-
-        runner.assertNotValid();
-    }
-
-    @Test
     public void testRunTcp() throws Exception {
         final int port = NetworkUtils.getAvailableTcpPort();
         final TransportProtocol protocol = TransportProtocol.TCP;
@@ -101,6 +83,33 @@ public class TestListenSyslog {
         runner.setProperty(ListenSyslog.SOCKET_KEEP_ALIVE, Boolean.FALSE.toString());
 
         assertSendSuccess(protocol, port);
+    }
+
+    @Test
+    public void testRunTcpBatchParseDisabled() throws Exception {
+        final int port = NetworkUtils.getAvailableTcpPort();
+        final TransportProtocol protocol = TransportProtocol.TCP;
+        runner.setProperty(ListenSyslog.PROTOCOL, protocol.toString());
+        runner.setProperty(ListenSyslog.PORT, Integer.toString(port));
+        runner.setProperty(ListenSyslog.SOCKET_KEEP_ALIVE, Boolean.FALSE.toString());
+        runner.setProperty(ListenSyslog.PARSE_MESSAGES, Boolean.FALSE.toString());
+        runner.setProperty(ListenSyslog.MAX_BATCH_SIZE, "2");
+
+        runner.run(1, STOP_ON_FINISH_DISABLED);
+
+        final String batchedWithEmptyMessages = String.format("%s\n\n%s\n", VALID_MESSAGE, VALID_MESSAGE);
+        sendMessages(protocol, port, LineEnding.NONE, batchedWithEmptyMessages);
+        runner.run(1, STOP_ON_FINISH_DISABLED, INITIALIZE_DISABLED);
+
+        runner.assertTransferCount(ListenSyslog.REL_INVALID, 0);
+
+        final List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS);
+        assertEquals(1, successFlowFiles.size(), "Success FlowFiles not matched");
+
+        final MockFlowFile flowFile = successFlowFiles.iterator().next();
+
+        final String batchedMessages = String.format("%s\n%s", VALID_MESSAGE, VALID_MESSAGE);
+        flowFile.assertContentEquals(batchedMessages);
     }
 
     @Test
@@ -201,6 +210,8 @@ public class TestListenSyslog {
 
     private void sendMessages(final TransportProtocol protocol, final int port, final LineEnding lineEnding, final String... messages) throws Exception {
         final StringNettyEventSenderFactory eventSenderFactory = new StringNettyEventSenderFactory(runner.getLogger(), LOCALHOST_ADDRESS, port, protocol, CHARSET, lineEnding);
+        eventSenderFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        eventSenderFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         eventSenderFactory.setTimeout(SENDER_TIMEOUT);
         try (final EventSender<String> eventSender = eventSenderFactory.getEventSender()) {
             for (final String message : messages) {

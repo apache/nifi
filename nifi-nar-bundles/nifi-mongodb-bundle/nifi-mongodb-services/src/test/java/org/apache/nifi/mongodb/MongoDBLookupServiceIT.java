@@ -50,7 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-public class MongoDBLookupServiceIT {
+public class MongoDBLookupServiceIT extends AbstractMongoIT {
     private static final String DB_NAME = String.format("nifi_test-%d", Calendar.getInstance().getTimeInMillis());
     private static final String COL_NAME = String.format("nifi_test-%d", Calendar.getInstance().getTimeInMillis());
 
@@ -70,7 +70,7 @@ public class MongoDBLookupServiceIT {
         runner.setProperty(TestLookupServiceProcessor.CLIENT_SERVICE, "Client Service");
         runner.setProperty(service, MongoDBLookupService.DATABASE_NAME, DB_NAME);
         runner.setProperty(service, MongoDBLookupService.COLLECTION_NAME, COL_NAME);
-        runner.setProperty(controllerService, MongoDBControllerService.URI, "mongodb://localhost:27017");
+        runner.setProperty(controllerService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
         runner.setProperty(service, MongoDBLookupService.LOOKUP_VALUE_FIELD, "message");
         runner.setProperty(service, MongoDBLookupService.CONTROLLER_SERVICE, "Client Service 2");
         SchemaRegistry registry = new StubSchemaRegistry();

@@ -17,7 +17,7 @@
     <parent>
         <artifactId>nifi-asn1-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.18.0-SNAPSHOT</version>
+        <version>1.19.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -39,17 +39,17 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
+            <version>1.19.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.beanit</groupId>
             <artifactId>asn1bean</artifactId>
-            <version>1.12.0</version>
+            <version>1.13.0</version>
         </dependency>
         <dependency>
             <groupId>com.beanit</groupId>
             <artifactId>asn1bean-compiler</artifactId>
-            <version>1.12.0</version>
+            <version>1.13.0</version>
         </dependency>
         <dependency>
             <groupId>com.beanit</groupId>
@@ -92,6 +92,7 @@
                                 <argument>${basedir}/src/test/resources/simple_types.asn</argument>
                                 <argument>${basedir}/src/test/resources/complex_types.asn</argument>
                                 <argument>${basedir}/src/test/resources/example.asn</argument>
+                                <argument>${basedir}/src/test/resources/tbcd_string.asn</argument>
                                 <argument>-o</argument>
                                 <argument>${basedir}/target/generated-test-sources</argument>
                             </arguments>
@@ -128,8 +129,10 @@
                         <exclude>src/test/resources/example.asn</exclude>
                         <exclude>src/test/resources/simple_types.asn</exclude>
                         <exclude>src/test/resources/complex_types.asn</exclude>
+                        <exclude>src/test/resources/tbcd_string.asn</exclude>
                         <exclude>src/test/resources/examples/basic-types.dat</exclude>
                         <exclude>src/test/resources/examples/composite.dat</exclude>
+                        <exclude>src/test/resources/examples/tbcd-string.dat</exclude>
                     </excludes>
                 </configuration>
             </plugin>

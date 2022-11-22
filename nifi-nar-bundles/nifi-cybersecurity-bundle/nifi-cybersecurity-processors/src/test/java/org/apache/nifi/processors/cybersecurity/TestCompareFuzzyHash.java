@@ -98,14 +98,14 @@ public class TestCompareFuzzyHash {
 
 
         outFile.assertAttributeEquals("fuzzyhash.value.0.match",
-                "\"nifi/nifi-nar-bundles/nifi-lumberjack-bundle/nifi-lumberjack-processors/pom.xml\""
+                "\"nifi/nifi-nar-bundles/nifi-beats-bundle/nifi-beats-processors/pom.xml\""
         );
 
         double similarity = Double.valueOf(outFile.getAttribute("fuzzyhash.value.0.similarity"));
         assertTrue(similarity >= matchingSimilarity);
 
         outFile.assertAttributeEquals("fuzzyhash.value.1.match",
-                "\"nifi/nifi-nar-bundles/nifi-beats-bundle/nifi-beats-processors/pom.xml\""
+                "\"nifi/nifi-nar-bundles/nifi-lumberjack-bundle/nifi-lumberjack-processors/pom.xml\""
         );
         similarity = Double.valueOf(outFile.getAttribute("fuzzyhash.value.1.similarity"));
         assertTrue(similarity >= matchingSimilarity);

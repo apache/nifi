@@ -45,11 +45,14 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
     private final C2Client client;
     private final Function<byte[], Boolean> updateFlow;
     private final FlowIdHolder flowIdHolder;
+    private final OperandPropertiesProvider operandPropertiesProvider;
 
-    public UpdateConfigurationOperationHandler(C2Client client, FlowIdHolder flowIdHolder, Function<byte[], Boolean> updateFlow) {
+    public UpdateConfigurationOperationHandler(C2Client client, FlowIdHolder flowIdHolder, Function<byte[], Boolean> updateFlow,
+        OperandPropertiesProvider operandPropertiesProvider) {
         this.client = client;
         this.updateFlow = updateFlow;
         this.flowIdHolder = flowIdHolder;
+        this.operandPropertiesProvider = operandPropertiesProvider;
     }
 
     @Override
@@ -127,5 +130,10 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
             logger.error("Could not get flow id from the provided URL, flow update URL format unexpected [{}]", flowUpdateUrl);
         }
         return null;
+    }
+
+    @Override
+    public Map<String, Object> getProperties() {
+        return operandPropertiesProvider.getProperties();
     }
 }

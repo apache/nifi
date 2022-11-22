@@ -22,12 +22,13 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.ssl.SSLContextService;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Config;
 import org.neo4j.driver.Driver;
@@ -41,11 +42,15 @@ import org.neo4j.driver.summary.SummaryCounters;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import static org.apache.nifi.util.StringUtils.isEmpty;
+import static org.neo4j.driver.Config.TrustStrategy.trustCustomCertificateSignedBy;
 
 @Tags({ "graph", "neo4j", "cypher" })
 @CapabilityDescription("Provides a client service for managing connections to a Neo4J 4.X or newer database. Configuration information for " +
@@ -137,23 +142,13 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .sensitive(false)
             .build();
 
-    public static final PropertyDescriptor ENCRYPTION = new PropertyDescriptor.Builder()
-            .name("neo4j-driver-tls-encryption-enabled")
-            .displayName("Neo4J Driver TLS Encryption")
-            .description("Is the driver using TLS encryption ?")
-            .defaultValue("false")
-            .required(true)
-            .allowableValues("true","false")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .sensitive(false)
-            .build();
-
-    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("SSL Context Service")
-            .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
-                    + "connections.")
+    public static final PropertyDescriptor SSL_TRUST_STORE_FILE = new PropertyDescriptor.Builder()
+            .name("SSL Trust Chain PEM")
+            .description("Neo4J requires trust chains to be stored in a PEM file. If you want to use a custom trust chain " +
+                    "rather than defaulting to the system trust chain, specify the path to a PEM file with the trust chain.")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     protected Driver neo4JDriver;
@@ -172,10 +167,26 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
         _temp.add(MAX_CONNECTION_ACQUISITION_TIMEOUT);
         _temp.add(IDLE_TIME_BEFORE_CONNECTION_TEST);
         _temp.add(MAX_CONNECTION_LIFETIME);
-        _temp.add(ENCRYPTION);
-        _temp.add(SSL_CONTEXT_SERVICE);
+        _temp.add(SSL_TRUST_STORE_FILE);
 
         DESCRIPTORS = Collections.unmodifiableList(_temp);
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        String url = validationContext.getProperty(CONNECTION_URL).evaluateAttributeExpressions().getValue();
+        List<ValidationResult> results = new ArrayList<>();
+
+        if (!isEmpty(url) && (url.contains("+s://") || url.contains("+ssc://"))
+            && validationContext.getProperty(SSL_TRUST_STORE_FILE).isSet()) {
+            results.add(new ValidationResult.Builder()
+                    .valid(false)
+                    .explanation("Neo4J requires the security scheme (+s or +ssc) to not be set on the URL property " +
+                            "when a custom trust chain is set. Remove the SSL modifier from the URL (ex: bolt+ssc to just 'bolt')")
+                    .build());
+        }
+
+        return results;
     }
 
     @Override
@@ -200,20 +211,11 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
 
         configBuilder.withConnectionLivenessCheckTimeout(context.getProperty(IDLE_TIME_BEFORE_CONNECTION_TEST).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS), TimeUnit.SECONDS);
 
-        if ( context.getProperty(ENCRYPTION).asBoolean() ) {
-            configBuilder.withEncryption();
-        } else {
-            configBuilder.withoutEncryption();
-        }
-
-        final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        if (sslService != null) {
-            if ( sslService.isTrustStoreConfigured()) {
-                configBuilder.withTrustStrategy(Config.TrustStrategy.trustCustomCertificateSignedBy(new File(
-                        sslService.getTrustStoreFile())));
-            } else {
-                configBuilder.withTrustStrategy(Config.TrustStrategy.trustSystemCertificates());
-            }
+        if (context.getProperty(SSL_TRUST_STORE_FILE).isSet()) {
+            String trustFile = context.getProperty(SSL_TRUST_STORE_FILE).evaluateAttributeExpressions().getValue();
+            configBuilder
+                    .withEncryption()
+                    .withTrustStrategy(trustCustomCertificateSignedBy(new File(trustFile)));
         }
 
         return GraphDatabase.driver( connectionUrl, AuthTokens.basic( username, password),

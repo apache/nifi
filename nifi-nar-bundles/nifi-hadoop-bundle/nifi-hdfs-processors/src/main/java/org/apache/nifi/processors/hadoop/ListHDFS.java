@@ -31,6 +31,7 @@ import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -52,6 +53,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -85,6 +87,7 @@ import java.util.regex.Pattern;
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"hadoop", "HCFS", "HDFS", "get", "list", "ingest", "source", "filesystem"})
+@SeeAlso({GetHDFS.class, FetchHDFS.class, PutHDFS.class})
 @CapabilityDescription("Retrieves a listing of files from HDFS. Each time a listing is performed, the files with the latest timestamp will be excluded "
         + "and picked up during the next execution of the processor. This is done to ensure that we do not miss any files, or produce duplicates, in the "
         + "cases where files with the same timestamp are written immediately before and after a single execution of the processor. For each file that is "
@@ -109,7 +112,7 @@ import java.util.regex.Pattern;
         + "this date the next time that the Processor is run, without having to store all of the actual filenames/paths which could lead to performance "
         + "problems. State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary "
         + "Node is selected, the new node can pick up where the previous node left off, without duplicating the data.")
-@SeeAlso({GetHDFS.class, FetchHDFS.class, PutHDFS.class})
+@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class ListHDFS extends AbstractHadoopProcessor {
 
     private static final RecordSchema RECORD_SCHEMA;

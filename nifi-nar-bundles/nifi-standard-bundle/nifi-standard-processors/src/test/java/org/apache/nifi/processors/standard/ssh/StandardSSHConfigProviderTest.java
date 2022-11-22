@@ -50,7 +50,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class StandardSSHConfigProviderTest {
-    private static final Config DEFAULT_CONFIG = new DefaultConfig();
+    private static final Config DEFAULT_CONFIG;
 
     private static final String FIRST_ALLOWED_CIPHER = "aes128-ctr";
 
@@ -65,6 +65,12 @@ public class StandardSSHConfigProviderTest {
     private static final int KEEP_ALIVE_DISABLED_INTERVAL = 0;
 
     private static final String IDENTIFIER = UUID.randomUUID().toString();
+
+    static {
+        final DefaultConfig prioritizedConfig = new DefaultConfig();
+        prioritizedConfig.prioritizeSshRsaKeyAlgorithm();
+        DEFAULT_CONFIG = prioritizedConfig;
+    }
 
     @Mock
     private PropertyContext context;

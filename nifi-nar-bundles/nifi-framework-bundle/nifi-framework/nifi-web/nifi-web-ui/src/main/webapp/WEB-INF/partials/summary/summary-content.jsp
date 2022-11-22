@@ -27,7 +27,12 @@
             </div>
             <div id="summary-filter-container" class="filter-container">
                 <input type="text" placeholder="Filter" id="summary-filter" class="filter"/>
-                <div id="summary-filter-type" class="filter-type"></div>
+                <div id="summary-filter-type" class="filter-type filter"></div>
+                <div id="summary-filter-status-dropdown" class="filter-status-dropdown"></div>
+                <div id="summary-filter-primary-node-container" class="setting-field summary-filter-primary-node-container">
+                    <div id="summary-filter-primary-node" class="summary-filter-primary-node nf-checkbox checkbox-unchecked"></div>
+                    <div class="relationship-name nf-checkbox-label ellipsis">Primary Node</div>
+                </div>
             </div>
         </div>
         <div id="view-options-container">

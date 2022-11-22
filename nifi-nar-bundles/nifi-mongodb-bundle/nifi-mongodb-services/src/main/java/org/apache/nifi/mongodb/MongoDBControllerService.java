@@ -23,20 +23,25 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoDatabase;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import javax.net.ssl.SSLContext;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.ssl.SSLContextService;
+import org.bson.Document;
 
 @Tags({"mongo", "mongodb", "service"})
 @CapabilityDescription(
@@ -49,7 +54,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         this.uri = getURI(context);
-        this.createClient(context);
+        this.mongoClient = createClient(context, this.mongoClient);
     }
 
     static List<PropertyDescriptor> descriptors = new ArrayList<>();
@@ -65,9 +70,9 @@ public class MongoDBControllerService extends AbstractControllerService implemen
     protected MongoClient mongoClient;
 
     // TODO: Remove duplicate code by refactoring shared method to accept PropertyContext
-    protected final void createClient(ConfigurationContext context) {
-        if (mongoClient != null) {
-            closeClient();
+    protected MongoClient createClient(ConfigurationContext context, MongoClient existing) {
+        if (existing != null) {
+            closeClient(existing);
         }
 
         getLogger().info("Creating MongoClient");
@@ -84,9 +89,9 @@ public class MongoDBControllerService extends AbstractControllerService implemen
 
         try {
             if(sslContext == null) {
-                mongoClient = new MongoClient(new MongoClientURI(getURI(context)));
+                return new MongoClient(new MongoClientURI(getURI(context)));
             } else {
-                mongoClient = new MongoClient(new MongoClientURI(getURI(context), getClientOptions(sslContext)));
+                return new MongoClient(new MongoClientURI(getURI(context), getClientOptions(sslContext)));
             }
         } catch (Exception e) {
             getLogger().error("Failed to schedule {} due to {}", new Object[] { this.getClass().getName(), e }, e);
@@ -102,10 +107,13 @@ public class MongoDBControllerService extends AbstractControllerService implemen
     }
 
     @OnStopped
-    public final void closeClient() {
-        if (mongoClient != null) {
-            mongoClient.close();
-            mongoClient = null;
+    public final void onStopped() {
+        closeClient(mongoClient);
+    }
+
+    private void closeClient(MongoClient client) {
+        if (client != null) {
+            client.close();
         }
     }
 
@@ -184,5 +192,29 @@ public class MongoDBControllerService extends AbstractControllerService implemen
     @Override
     public String getURI() {
         return uri;
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(ConfigurationContext context,
+                                                 ComponentLog verificationLogger,
+                                                 Map<String, String> variables) {
+        ConfigVerificationResult.Builder connectionSuccessful = new ConfigVerificationResult.Builder()
+                .verificationStepName("Connection test");
+
+        MongoClient client = null;
+        try {
+            client = createClient(context, null);
+            MongoDatabase db = client.getDatabase("test");
+            db.runCommand(new Document("buildInfo", 1));
+            connectionSuccessful.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL);
+        } catch (Exception ex) {
+            connectionSuccessful
+                    .explanation(ex.getMessage())
+                    .outcome(ConfigVerificationResult.Outcome.FAILED);
+        } finally {
+            closeClient(client);
+        }
+
+        return Arrays.asList(connectionSuccessful.build());
     }
 }

@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/bash -e
 
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements. See the NOTICE file
@@ -22,7 +22,7 @@ toolkit_path="${NIFI_TOOLKIT_HOME}/bin"
 
 program=$1
 
-function print_help() {
+print_help () {
     if [ -z ${program} ]; then
         echo "No program option specified."
     else

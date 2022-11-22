@@ -25,19 +25,25 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.ElasticsearchException;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,9 +52,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
-@Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "put", "index", "record"})
+@Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "put", "index", "record"})
 @CapabilityDescription("Elasticsearch get processor that uses the official Elastic REST client libraries " +
         "to fetch a single document from Elasticsearch by _id. " +
         "Note that the full body of the document will be read into memory before being written to a FlowFile for transfer.")
@@ -76,7 +83,7 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
             "Output the retrieved document as a FlowFile attribute specified by the Attribute Name."
     );
 
-    static final PropertyDescriptor ID = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor ID = new PropertyDescriptor.Builder()
             .name("get-es-id")
             .displayName("Document Id")
             .description("The _id of the document to retrieve.")
@@ -113,6 +120,8 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
             .description("A FlowFile is routed to this relationship if the specified document does not exist in the Elasticsearch cluster.")
             .build();
 
+    public static final String VERIFICATION_STEP_DOCUMENT_EXISTS = "Elasticsearch Document Exists";
+
     static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
             ID, INDEX, TYPE, DESTINATION, ATTRIBUTE_NAME, CLIENT_SERVICE
     ));
@@ -120,8 +129,9 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
             REL_DOC, REL_FAILURE, REL_RETRY, REL_NOT_FOUND
     )));
 
-    private volatile ElasticSearchClientService clientService;
     private final ObjectMapper mapper = new ObjectMapper();
+
+    private final AtomicReference<ElasticSearchClientService> clientService = new AtomicReference<>(null);
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -144,9 +154,66 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
                 .build();
     }
 
+    @Override
+    public boolean isIndexNotExistSuccessful() {
+        return false;
+    }
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        this.clientService = context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class);
+        clientService.set(context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class));
+    }
+
+    @OnStopped
+    public void onStopped() {
+        clientService.set(null);
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verifyAfterIndex(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes,
+                                                           final ElasticSearchClientService verifyClientService, final String index, final boolean indexExists) {
+        final List<ConfigVerificationResult> results = new ArrayList<>();
+        final ConfigVerificationResult.Builder documentExistsResult = new ConfigVerificationResult.Builder()
+                .verificationStepName(VERIFICATION_STEP_DOCUMENT_EXISTS);
+
+        if (indexExists && context.getProperty(ID).isSet()) {
+            final String type = context.getProperty(TYPE).evaluateAttributeExpressions(attributes).getValue();
+            final String id = context.getProperty(ID).evaluateAttributeExpressions(attributes).getValue();
+            try {
+                final Map<String, String> requestParameters = new HashMap<>(getUrlQueryParameters(context, attributes));
+                requestParameters.putIfAbsent("_source", "false");
+                verifyClientService.get(index, type, id, requestParameters);
+                documentExistsResult.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
+                        .explanation(String.format("Document [%s] exists in index [%s]", id, index));
+            } catch (final ElasticsearchException ee) {
+                if (ee.isNotFound()) {
+                    documentExistsResult.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
+                            .explanation(String.format("Document [%s] does not exist in index [%s]", id, index));
+                } else {
+                    handleDocumentExistsCheckException(ee, documentExistsResult, verificationLogger, index, id);
+                }
+            } catch (final Exception ex) {
+                handleDocumentExistsCheckException(ex, documentExistsResult, verificationLogger, index, id);
+            }
+        } else {
+            String skippedReason;
+            if (indexExists) {
+                skippedReason = String.format("No %s specified for document existence check", ID.getDisplayName());
+            } else {
+                skippedReason = String.format("Index %s does not exist for document existence check", index);
+            }
+            documentExistsResult.outcome(ConfigVerificationResult.Outcome.SKIPPED).explanation(skippedReason);
+        }
+        results.add(documentExistsResult.build());
+
+        return results;
+    }
+
+    private void handleDocumentExistsCheckException(final Exception ex, final ConfigVerificationResult.Builder documentExistsResult,
+                                                    final ComponentLog verificationLogger, final String index, final String id) {
+        verificationLogger.error("Error checking whether document [{}] exists in index [{}]", id, index, ex);
+        documentExistsResult.outcome(ConfigVerificationResult.Outcome.FAILED)
+                .explanation(String.format("Failed to check whether document [%s] exists in index [%s]", id, index));
     }
 
     @Override
@@ -161,8 +228,12 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
         final String attributeName = context.getProperty(ATTRIBUTE_NAME).evaluateAttributeExpressions(input).getValue();
 
         try {
+            if (StringUtils.isBlank(id)) {
+                throw new ProcessException(ID.getDisplayName() + " is blank (after evaluating attribute expressions), cannot GET document");
+            }
+
             final StopWatch stopWatch = new StopWatch(true);
-            final Map<String, Object> doc = clientService.get(index, type, id, getUrlQueryParameters(context, input));
+            final Map<String, Object> doc = clientService.get().get(index, type, id, getUrlQueryParameters(context, input));
 
             final Map<String, String> attributes = new HashMap<>(4, 1);
             attributes.put("filename", id);
@@ -179,25 +250,10 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
             }
 
             documentFlowFile = session.putAllAttributes(documentFlowFile, attributes);
-            session.getProvenanceReporter().receive(documentFlowFile, clientService.getTransitUrl(index, type), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().receive(documentFlowFile, clientService.get().getTransitUrl(index, type), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(documentFlowFile, REL_DOC);
         } catch (final ElasticsearchException ese) {
-            if (ese.isNotFound()) {
-                if (input != null) {
-                    session.transfer(input, REL_NOT_FOUND);
-                } else {
-                    getLogger().warn("Document with _id {} not found in index {} (and type {})", id, index, type);
-                }
-            } else {
-                final String msg = String.format("Encountered a server-side problem with Elasticsearch. %s",
-                        ese.isElastic() ? "Routing to retry." : "Routing to failure");
-                getLogger().error(msg, ese);
-                if (input != null) {
-                    session.penalize(input);
-                    input = session.putAttribute(input, "elasticsearch.get.error", ese.getMessage());
-                    session.transfer(input, ese.isElastic() ? REL_RETRY : REL_FAILURE);
-                }
-            }
+            handleElasticsearchException(ese, input, session, index, type, id);
         } catch (final Exception ex) {
             getLogger().error("Could not fetch document.", ex);
             if (input != null) {
@@ -205,6 +261,26 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
                 session.transfer(input, REL_FAILURE);
             }
             context.yield();
+        }
+    }
+
+    private void handleElasticsearchException(final ElasticsearchException ese, FlowFile input, final ProcessSession session,
+                                               final String index, final String type, final String id) {
+        if (ese.isNotFound()) {
+            if (input != null) {
+                session.transfer(input, REL_NOT_FOUND);
+            } else {
+                getLogger().warn("Document with _id {} not found in index {} (and type {})", id, index, type);
+            }
+        } else {
+            final String msg = String.format("Encountered a server-side problem with Elasticsearch. %s",
+                    ese.isElastic() ? "Routing to retry." : "Routing to failure");
+            getLogger().error(msg, ese);
+            if (input != null) {
+                session.penalize(input);
+                input = session.putAttribute(input, "elasticsearch.get.error", ese.getMessage());
+                session.transfer(input, ese.isElastic() ? REL_RETRY : REL_FAILURE);
+            }
         }
     }
 }

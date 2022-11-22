@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.toolkit.cli.api.ClientFactory;
 import org.apache.nifi.toolkit.cli.api.Command;
@@ -35,9 +34,10 @@ import org.apache.nifi.util.StringUtils;
 import org.jline.reader.Candidate;
 import org.jline.reader.LineReader;
 import org.jline.reader.ParsedLine;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.mockito.Mockito;
 
 import java.util.ArrayList;
@@ -46,17 +46,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@DisabledOnOs(OS.WINDOWS)
 public class TestCLICompleter {
 
     private static CLICompleter completer;
     private static LineReader lineReader;
 
-    @BeforeClass
+    @BeforeAll
     public static void setupCompleter() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
         final Session session = new InMemorySession();
         final ClientFactory<NiFiClient> niFiClientFactory = new NiFiClientFactory();
         final ClientFactory<NiFiRegistryClient> nifiRegClientFactory = new NiFiRegistryClientFactory();

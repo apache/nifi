@@ -20,7 +20,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bootstrap.notification.NotificationType;
 import org.apache.nifi.bootstrap.util.DumpFileValidator;
 import org.apache.nifi.bootstrap.util.OSUtils;
+import org.apache.nifi.bootstrap.util.RuntimeVersionProvider;
 import org.apache.nifi.bootstrap.util.SecureNiFiConfigUtil;
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -147,7 +150,7 @@ public class RunNiFi {
     private final Logger cmdLogger = LoggerFactory.getLogger("org.apache.nifi.bootstrap.Command");
     // used for logging all info. These by default will be written to the log file
     private final Logger defaultLogger = LoggerFactory.getLogger(RunNiFi.class);
-
+    private final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(RunNiFi.class);
 
     private final ExecutorService loggingExecutor;
     private volatile Set<Future<?>> loggingFutures = new HashSet<>(2);
@@ -1203,7 +1206,7 @@ public class RunNiFi {
 
         String runtimeJavaVersion = System.getProperty("java.version");
         defaultLogger.info("Runtime Java version: {}", runtimeJavaVersion);
-        int javaMajorVersion = OSUtils.parseJavaVersion(runtimeJavaVersion);
+        final int javaMajorVersion = RuntimeVersionProvider.getMajorVersion();
         if (javaMajorVersion >= 11) {
             /* If running on Java 11 or greater, add the JAXB/activation/annotation libs to the classpath.
              *
@@ -1217,6 +1220,10 @@ public class RunNiFi {
                     cpFiles.add(file.getAbsolutePath());
                 }
             }
+        }
+
+        if (RuntimeVersionProvider.isMajorVersionDeprecated(javaMajorVersion)) {
+            deprecationLogger.warn("Support for Java {} is deprecated. Java {} is the minimum recommended version", javaMajorVersion, RuntimeVersionProvider.getMinimumMajorVersion());
         }
 
         final StringBuilder classPathBuilder = new StringBuilder();

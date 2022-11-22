@@ -62,7 +62,7 @@ import java.util.Set;
 @TriggerSerially
 @PrimaryNodeOnly
 @DefaultSchedule(period="1 min")
-@Tags({"elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "query", "scroll", "page", "search", "json"})
+@Tags({"elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "query", "scroll", "page", "search", "json"})
 @CapabilityDescription("A processor that allows the user to repeatedly run a paginated query (with aggregations) written with the Elasticsearch JSON DSL. " +
         "Search After/Point in Time queries must include a valid \"sort\" field. The processor will retrieve multiple pages of results " +
         "until either no more results are available or the Pagination Keep Alive expiration is reached, after which the query will " +

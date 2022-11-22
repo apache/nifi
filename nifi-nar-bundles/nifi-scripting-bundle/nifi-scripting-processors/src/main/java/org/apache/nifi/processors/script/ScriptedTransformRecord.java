@@ -118,6 +118,9 @@ public class ScriptedTransformRecord extends ScriptedRecordProcessor {
                 final ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
                 evaluator = createEvaluator(scriptEngine, flowFile);
             } catch (final ScriptException se) {
+                if (getLogger().isDebugEnabled()) {
+                    getLogger().debug("Script as executed by NiFi with preloads {}", scriptRunner.getScript());
+                }
                 getLogger().error("Failed to initialize script engine", se);
                 session.transfer(flowFile, REL_FAILURE);
                 return;

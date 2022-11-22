@@ -16,24 +16,8 @@
  */
 package org.apache.nifi.minifi;
 
-import org.apache.nifi.NiFiServer;
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.headless.FlowEnrichmentException;
-import org.apache.nifi.nar.ExtensionMapping;
-import org.apache.nifi.nar.NarClassLoaders;
-import org.apache.nifi.nar.NarClassLoadersHolder;
-import org.apache.nifi.nar.NarUnpacker;
-import org.apache.nifi.nar.SystemBundle;
-import org.apache.nifi.nar.NarUnpackMode;
-import org.apache.nifi.util.FileUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.bridge.SLF4JBridgeHandler;
-
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
@@ -45,28 +29,35 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.nifi.NiFiServer;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.nar.ExtensionMapping;
+import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.nar.NarClassLoadersHolder;
+import org.apache.nifi.nar.NarUnpackMode;
+import org.apache.nifi.nar.NarUnpacker;
+import org.apache.nifi.nar.SystemBundle;
+import org.apache.nifi.util.FileUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 public class MiNiFi {
 
     private static final Logger logger = LoggerFactory.getLogger(MiNiFi.class);
     private final MiNiFiServer minifiServer;
-    private final BootstrapListener bootstrapListener;
-
-    public static final String BOOTSTRAP_PORT_PROPERTY = "nifi.bootstrap.listen.port";
     private volatile boolean shutdown = false;
 
     private static final String FRAMEWORK_NAR_ID = "minifi-framework-nar";
 
 
     public MiNiFi(final NiFiProperties properties)
-            throws ClassNotFoundException, IOException, NoSuchMethodException, InstantiationException,
-            IllegalAccessException, IllegalArgumentException, InvocationTargetException, FlowEnrichmentException {
+            throws ClassNotFoundException, IOException, IllegalArgumentException {
         this(properties, ClassLoader.getSystemClassLoader());
     }
 
-    public MiNiFi(final NiFiProperties properties, ClassLoader rootClassLoader)
-            throws ClassNotFoundException, IOException, NoSuchMethodException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-            FlowEnrichmentException {
+    public MiNiFi(final NiFiProperties properties, ClassLoader rootClassLoader) throws ClassNotFoundException, IOException, IllegalArgumentException {
 
         // There can only be one krb5.conf for the overall Java process so set this globally during
         // start up so that processors and our Kerberos authentication code don't have to set this
@@ -87,25 +78,6 @@ public class MiNiFi {
             // shutdown the jetty server
             shutdownHook(false);
         }));
-
-        final String bootstrapPort = System.getProperty(BOOTSTRAP_PORT_PROPERTY);
-        if (bootstrapPort != null) {
-            try {
-                final int port = Integer.parseInt(bootstrapPort);
-
-                if (port < 1 || port > 65535) {
-                    throw new RuntimeException("Failed to start MiNiFi because system property '" + BOOTSTRAP_PORT_PROPERTY + "' is not a valid integer in the range 1 - 65535");
-                }
-
-                bootstrapListener = new BootstrapListener(this, port);
-                bootstrapListener.start();
-            } catch (final NumberFormatException nfe) {
-                throw new RuntimeException("Failed to start MiNiFi because system property '" + BOOTSTRAP_PORT_PROPERTY + "' is not a valid integer in the range 1 - 65535");
-            }
-        } else {
-            logger.info("MiNiFi started without Bootstrap Port information provided; will not listen for requests from Bootstrap");
-            bootstrapListener = null;
-        }
 
         // delete the web working dir - if the application does not start successfully
         // the web app directories might be in an invalid state. when this happens
@@ -164,10 +136,6 @@ public class MiNiFi {
         } else {
             minifiServer.start();
 
-            if (bootstrapListener != null) {
-                bootstrapListener.sendStartedStatus(true);
-            }
-
             final long endTime = System.nanoTime();
             final long durationNanos = endTime - startTime;
             // Convert to millis for higher precision and then convert to a float representation of seconds
@@ -184,13 +152,7 @@ public class MiNiFi {
             if (minifiServer != null) {
                 minifiServer.stop();
             }
-            if (bootstrapListener != null) {
-                if (isReload) {
-                    bootstrapListener.reload();
-                } else {
-                    bootstrapListener.stop();
-                }
-            }
+
             logger.info("MiNiFi server shutdown completed (nicely or otherwise).");
         } catch (final Throwable t) {
             logger.warn("Problem occurred ensuring MiNiFi server was properly terminated due to " + t);
@@ -249,10 +211,6 @@ public class MiNiFi {
         };
         final Timer timer = new Timer(true);
         timer.schedule(timerTask, 60000L);
-    }
-
-    MiNiFiServer getMinifiServer() {
-        return minifiServer;
     }
 
     /**

@@ -41,21 +41,24 @@ import org.apache.ranger.plugin.policyengine.RangerAccessRequestImpl;
 import org.apache.ranger.plugin.policyengine.RangerAccessResourceImpl;
 import org.apache.ranger.plugin.policyengine.RangerAccessResult;
 import org.apache.ranger.plugin.policyengine.RangerAccessResultProcessor;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatcher;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -96,6 +99,18 @@ public class TestRangerAuthorizer {
 
     private RangerAccessResult allowedResult;
     private RangerAccessResult notAllowedResult;
+    private Map<String, String> authorizersXmlContent = null;
+
+    @BeforeEach
+    public void initialization() {
+        authorizersXmlContent = Stream.of(new String[][] {
+                {RangerAuthorizer.USER_GROUP_PROVIDER, "user-group-provider"},
+                {RangerAuthorizer.RANGER_SECURITY_PATH_PROP, "src/test/resources/ranger/ranger-nifi-registry-security.xml"},
+                {RangerAuthorizer.RANGER_AUDIT_PATH_PROP, "src/test/resources/ranger/ranger-nifi-registry-audit.xml"},
+                {RangerAuthorizer.RANGER_APP_ID_PROP, appId},
+                {RangerAuthorizer.RANGER_SERVICE_TYPE_PROP, serviceType}
+        }).collect(Collectors.toMap(entry -> entry[0], entry -> entry[1]));
+    }
 
     private void setup(final NiFiRegistryProperties registryProperties,
                       final UserGroupProvider userGroupProvider,
@@ -139,20 +154,12 @@ public class TestRangerAuthorizer {
     private AuthorizerConfigurationContext createMockConfigContext() {
         AuthorizerConfigurationContext configurationContext = mock(AuthorizerConfigurationContext.class);
 
-        when(configurationContext.getProperty(eq(RangerAuthorizer.USER_GROUP_PROVIDER)))
-                .thenReturn(new StandardPropertyValue("user-group-provider"));
+        for (Map.Entry<String, String> entry : authorizersXmlContent.entrySet()) {
+            when(configurationContext.getProperty(eq(entry.getKey())))
+                    .thenReturn(new StandardPropertyValue(entry.getValue()));
+        }
 
-        when(configurationContext.getProperty(eq(RangerAuthorizer.RANGER_SECURITY_PATH_PROP)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/ranger/ranger-nifi-registry-security.xml"));
-
-        when(configurationContext.getProperty(eq(RangerAuthorizer.RANGER_AUDIT_PATH_PROP)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/ranger/ranger-nifi-registry-audit.xml"));
-
-        when(configurationContext.getProperty(eq(RangerAuthorizer.RANGER_APP_ID_PROP)))
-                .thenReturn(new StandardPropertyValue(appId));
-
-        when(configurationContext.getProperty(eq(RangerAuthorizer.RANGER_SERVICE_TYPE_PROP)))
-                .thenReturn(new StandardPropertyValue(serviceType));
+        when(configurationContext.getProperties()).thenReturn(authorizersXmlContent);
 
         return configurationContext;
     }
@@ -388,20 +395,63 @@ public class TestRangerAuthorizer {
 
     @Test
     public void testRangerAdminApproved() {
-        runRangerAdminTest(RangerAuthorizer.RESOURCES_RESOURCE, AuthorizationResult.approved().getResult());
+        final String acceptableIdentity = "ranger-admin";
+        authorizersXmlContent.put(RangerAuthorizer.RANGER_ADMIN_IDENTITY_PROP_PREFIX, acceptableIdentity);
+
+        final String requestIdentity = "ranger-admin";
+        runRangerAdminTest(RangerAuthorizer.RESOURCES_RESOURCE, requestIdentity, AuthorizationResult.approved().getResult());
+    }
+
+    @Test
+    public void testRangerAdminApprovedMultipleAcceptableIdentities() {
+        final String acceptableIdentity1 = "ranger-admin1";
+        final String acceptableIdentity2 = "ranger-admin2";
+        final String acceptableIdentity3 = "ranger-admin3";
+        authorizersXmlContent.put(RangerAuthorizer.RANGER_ADMIN_IDENTITY_PROP_PREFIX, acceptableIdentity1);
+        authorizersXmlContent.put(RangerAuthorizer.RANGER_ADMIN_IDENTITY_PROP_PREFIX + " 2", acceptableIdentity2);
+        authorizersXmlContent.put(RangerAuthorizer.RANGER_ADMIN_IDENTITY_PROP_PREFIX + " 3", acceptableIdentity3);
+
+        final String requestIdentity = "ranger-admin2";
+        runRangerAdminTest(RangerAuthorizer.RESOURCES_RESOURCE, requestIdentity, AuthorizationResult.approved().getResult());
+    }
+
+    @Test
+    public void testRangerAdminApprovedMultipleAcceptableIdentities2() {
+        final String acceptableIdentity1 = "ranger-admin1";
+        final String acceptableIdentity2 = "ranger-admin2";
+        final String acceptableIdentity3 = "ranger-admin3";
+        authorizersXmlContent.put(RangerAuthorizer.RANGER_ADMIN_IDENTITY_PROP_PREFIX, acceptableIdentity1);
+        authorizersXmlContent.put(RangerAuthorizer.RANGER_ADMIN_IDENTITY_PROP_PREFIX + " 2", acceptableIdentity2);
+        authorizersXmlContent.put(RangerAuthorizer.RANGER_ADMIN_IDENTITY_PROP_PREFIX + " 3", acceptableIdentity3);
+
+        final String requestIdentity = "ranger-admin3";
+        runRangerAdminTest(RangerAuthorizer.RESOURCES_RESOURCE, requestIdentity, AuthorizationResult.approved().getResult());
     }
 
     @Test
     public void testRangerAdminDenied() {
-        runRangerAdminTest("/flow", AuthorizationResult.denied().getResult());
+        final String acceptableIdentity = "ranger-admin";
+        authorizersXmlContent.put(RangerAuthorizer.RANGER_ADMIN_IDENTITY_PROP_PREFIX, acceptableIdentity);
+
+        final String requestIdentity = "ranger-admin";
+        runRangerAdminTest("/flow", requestIdentity, AuthorizationResult.denied().getResult());
     }
 
-    private void runRangerAdminTest(final String resourceIdentifier, final AuthorizationResult.Result expectedResult) {
-        final AuthorizerConfigurationContext configurationContext = createMockConfigContext();
+    @Test
+    public void testRangerAdminDeniedMultipleAcceptableIdentities() {
+        final String acceptableIdentity1 = "ranger-admin1";
+        final String acceptableIdentity2 = "ranger-admin2";
+        final String acceptableIdentity3 = "ranger-admin3";
+        authorizersXmlContent.put(RangerAuthorizer.RANGER_ADMIN_IDENTITY_PROP_PREFIX, acceptableIdentity1);
+        authorizersXmlContent.put(RangerAuthorizer.RANGER_ADMIN_IDENTITY_PROP_PREFIX + " 2", acceptableIdentity2);
+        authorizersXmlContent.put(RangerAuthorizer.RANGER_ADMIN_IDENTITY_PROP_PREFIX + " 3", acceptableIdentity3);
 
-        final String rangerAdminIdentity = "ranger-admin";
-        when(configurationContext.getProperty(eq(RangerAuthorizer.RANGER_ADMIN_IDENTITY_PROP)))
-                .thenReturn(new StandardPropertyValue(rangerAdminIdentity));
+        final String requestIdentity = "ranger-admin4";
+        runRangerAdminTest(RangerAuthorizer.RESOURCES_RESOURCE, requestIdentity, AuthorizationResult.denied().getResult());
+    }
+
+    private void runRangerAdminTest(final String resourceIdentifier, final String requestIdentity, final AuthorizationResult.Result expectedResult) {
+        final AuthorizerConfigurationContext configurationContext = createMockConfigContext();
 
         setup(mock(NiFiRegistryProperties.class), mock(UserGroupProvider.class), configurationContext);
 
@@ -411,7 +461,7 @@ public class TestRangerAuthorizer {
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .resource(new MockResource(resourceIdentifier, resourceIdentifier))
                 .action(action)
-                .identity(rangerAdminIdentity)
+                .identity(requestIdentity)
                 .resourceContext(new HashMap<>())
                 .accessAttempt(true)
                 .anonymous(false)
