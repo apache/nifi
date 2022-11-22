@@ -263,6 +263,10 @@ div.progress-label {
     width: calc(100% - 2px);
 }
 
+#import-flow-version-details {
+    padding: 2px;
+}
+
 #change-version-percent-complete {
     margin-top: 10px;
     border-radius: 0;
