@@ -201,32 +201,40 @@ public class UpdateRecord extends AbstractRecordProcessor {
     }
 
     private Record processAbsolutePath(final RecordPath replacementRecordPath, final Stream<FieldValue> destinationFields, final Record record) {
-        final RecordPathResult replacementResult = replacementRecordPath.evaluate(record);
-        final List<FieldValue> selectedFields = replacementResult.getSelectedFields().collect(Collectors.toList());
+        final List<FieldValue> selectedFields = getSelectedFields(replacementRecordPath, null, record);
         final List<FieldValue> destinationFieldValues = destinationFields.collect(Collectors.toList());
 
         return updateRecord(destinationFieldValues, selectedFields, record);
     }
 
+    private boolean isReplacingRoot(final List<FieldValue> destinationFields) {
+        return destinationFields.size() == 1 && !destinationFields.get(0).getParentRecord().isPresent();
+    }
+
     private Record processRelativePath(final RecordPath replacementRecordPath, final Stream<FieldValue> destinationFields, Record record) {
         final List<FieldValue> destinationFieldValues = destinationFields.collect(Collectors.toList());
 
-        for (final FieldValue fieldVal : destinationFieldValues) {
-            final RecordPathResult replacementResult = replacementRecordPath.evaluate(record, fieldVal);
-            final List<FieldValue> selectedFields = replacementResult.getSelectedFields().collect(Collectors.toList());
-            final Object replacementObject = getReplacementObject(selectedFields);
-            updateFieldValue(fieldVal, replacementObject);
+        if (isReplacingRoot(destinationFieldValues)) {
+            final List<FieldValue> selectedFields = getSelectedFields(replacementRecordPath, destinationFieldValues.get(0), record);
+            record = updateRecord(destinationFieldValues, selectedFields, record);
+        } else {
+            for (final FieldValue fieldVal : destinationFieldValues) {
+                final List<FieldValue> selectedFields = getSelectedFields(replacementRecordPath, fieldVal, record);
+                final Object replacementObject = getReplacementObject(selectedFields);
+                updateFieldValue(fieldVal, replacementObject);
+            }
         }
 
         return record;
     }
 
     private Record updateRecord(final List<FieldValue> destinationFields, final List<FieldValue> selectedFields, final Record record) {
-        if (destinationFields.size() == 1 && !destinationFields.get(0).getParentRecord().isPresent()) {
+        if (isReplacingRoot(destinationFields)) {
             final Object replacement = getReplacementObject(selectedFields);
             if (replacement == null) {
                 return record;
             }
+
             if (replacement instanceof Record) {
                 return (Record) replacement;
             }
@@ -260,6 +268,11 @@ public class UpdateRecord extends AbstractRecordProcessor {
         } else {
             fieldValue.updateValue(replacement);
         }
+    }
+
+    private List<FieldValue> getSelectedFields(final RecordPath replacementRecordPath, final FieldValue fieldValue, final Record record) {
+        final RecordPathResult replacementResult = replacementRecordPath.evaluate(record, fieldValue);
+        return replacementResult.getSelectedFields().collect(Collectors.toList());
     }
 
     private Object getReplacementObject(final List<FieldValue> selectedFields) {

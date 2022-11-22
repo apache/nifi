@@ -893,7 +893,10 @@ The following record path expression would convert the record into an escaped JS
 
 === unescapeJson
 
-Converts a stringified JSON element to a Record, Array or simple field (e.g. String), using the UTF-8 character set. For example, given a schema such as:
+Converts a stringified JSON element to a Record, Array or simple field (e.g. String), using the UTF-8 character set.
+Optionally convert JSON Objects parsed as Maps into Records (defaults to false).
+
+For example, given a schema such as:
 
 ----
 {
@@ -923,6 +926,23 @@ The following record path expression would populate the record with unescaped JS
 |==========================================================
 | RecordPath | Return value
 | `unescapeJson(/json_str)` | {"person": {"name": "John", "age": 30}}"
+|==========================================================
+
+Given a record such as:
+
+----
+{
+  "json_str": "{\"name\":\"John\",\"age\":30}"
+}
+----
+
+The following record path expression would return:
+
+|==========================================================
+| RecordPath | Return value
+| `unescapeJson(/json_str, 'true')` | {"name": "John", "age": 30} (as a Record)
+| `unescapeJson(/json_str, 'false')` | {"name"="John", "age"=30} (as a Map)
+| `unescapeJson(/json_str)` | {"name"="John", "age"=30} (as a Map)
 |==========================================================
 
 Given a record such as:
