@@ -227,10 +227,10 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
                 getLogger().info("File with the same name [{}] already exists. Remote file not modified due to {} being set to '{}'.",
                         sourceFileClient.getFileName(), CONFLICT_RESOLUTION.getDisplayName(), conflictResolution);
                 return null;
+            } else if (dataLakeStorageException.getStatusCode() == 409 && conflictResolution.equals(FAIL_RESOLUTION)) {
+                throw new ProcessException(String.format("File with the same name [%s] already exists.", sourceFileClient.getFileName()), dataLakeStorageException);
             } else {
-                // FAIL_RESOLUTION
-                getLogger().error("Renaming File [{}] failed", sourceFileClient.getFileName(), dataLakeStorageException);
-                throw dataLakeStorageException;
+                throw new ProcessException(String.format("Renaming File [%s] failed", sourceFileClient.getFileName()), dataLakeStorageException);
             }
         }
     }
