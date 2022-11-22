@@ -1,0 +1,21 @@
+ORG-APACHE-NIFI-JASN1-TEST
+
+DEFINITIONS IMPLICIT TAGS ::=
+
+BEGIN
+
+MissingComma ::= SEQUENCE
+{
+    field1                      [0] BOOLEAN,
+    field2MissingComma          [1] BOOLEAN
+    field3                      [2] BOOLEAN
+}
+
+Uppercase ::= SEQUENCE
+{
+    field1                      [0] BOOLEAN,
+    Field2Uppercase             [1] BOOLEAN,
+    field3                      [2] BOOLEAN
+}
+
+END
