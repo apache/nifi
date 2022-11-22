@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.jasn1;
 
+import antlr.RecognitionException;
+import antlr.TokenStreamException;
+import com.beanit.asn1bean.compiler.BerClassWriter;
+import com.beanit.asn1bean.compiler.BerClassWriterFactory;
+import com.beanit.asn1bean.compiler.model.AsnModel;
+import com.beanit.asn1bean.compiler.model.AsnModule;
+import com.beanit.asn1bean.compiler.parser.ASNLexer;
+import com.beanit.asn1bean.compiler.parser.ASNParser;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -38,11 +46,14 @@ import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
+import javax.tools.DiagnosticCollector;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -51,8 +62,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @Tags({"asn", "ans1", "jasn.1", "jasn1", "record", "reader", "parser"})
@@ -125,7 +141,7 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
     );
 
     private String identifier;
-    private ComponentLog logger;
+    ComponentLog logger;
 
     private RecordSchemaProvider schemaProvider = new RecordSchemaProvider();
 
@@ -219,10 +235,38 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
         asnCompilerArguments.add("-o");
         asnCompilerArguments.add(asnOutDir.toString());
 
+        HashMap<String, AsnModule> modulesByName = new HashMap<>();
+
+        Exception parseException = null;
+        for (String asn1File : asnFilePaths) {
+            logger.info("Parsing " + asn1File);
+            try {
+                AsnModel model = getJavaModelFromAsn1File(asn1File);
+                modulesByName.putAll(model.modulesByName);
+            } catch (FileNotFoundException e) {
+                logger.error("ASN.1 file not found [{}]", asn1File, e);
+                parseException = e;
+            } catch (TokenStreamException | RecognitionException e) {
+                logger.error("ASN.1 stream parsing failed [{}]", asn1File, e);
+                parseException = e;
+            } catch (Exception e) {
+                logger.error("ASN.1 parsing failed [{}]", asn1File, e);
+                parseException = e;
+            }
+        }
+
+        if (parseException != null) {
+            throw new ProcessException("ASN.1 parsing failed", parseException);
+        }
+
         try {
-            com.beanit.asn1bean.compiler.Compiler.main(asnCompilerArguments.toArray(new String[0]));
+            logger.info("Writing ASN.1 classes to directory [{}]", asnOutDir);
+
+            BerClassWriter classWriter = BerClassWriterFactory.createBerClassWriter(modulesByName, asnOutDir);
+
+            classWriter.translate();
         } catch (Exception e) {
-            throw new ProcessException("Couldn't compile asn files to java.", e);
+            throw new ProcessException("ASN.1 compilation failed", e);
         }
 
         List<File> javaFiles;
@@ -234,7 +278,7 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
                 .map(File::new)
                 .collect(Collectors.toList());
         } catch (IOException e) {
-            throw new ProcessException("Couldn't access '" + asnOutDir + "'");
+            throw new ProcessException("Access directory failed " + asnOutDir);
         }
 
         JavaCompiler javaCompiler = ToolProvider.getSystemJavaCompiler();
@@ -246,10 +290,17 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
         Iterable<? extends JavaFileObject> units;
         units = fileManager.getJavaFileObjectsFromFiles(javaFiles);
 
-        JavaCompiler.CompilationTask task = javaCompiler.getTask(null, fileManager, null, optionList, null, units);
+        DiagnosticCollector<JavaFileObject> diagnosticListener = new DiagnosticCollector<>();
+        JavaCompiler.CompilationTask task = javaCompiler.getTask(null, fileManager, diagnosticListener, optionList, null, units);
+
         Boolean success = task.call();
         if (!success) {
-            throw new ProcessException("Couldn't compile java file.");
+            Set<String> errorMessages = new LinkedHashSet();
+            diagnosticListener.getDiagnostics().stream().map(d -> d.getMessage(Locale.getDefault())).forEach(errorMessages::add);
+
+            errorMessages.forEach(logger::error);
+
+            throw new ProcessException("Java compilation failed");
         }
     }
 
@@ -266,7 +317,7 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
                     .map(Path::toFile)
                     .forEach(File::delete);
             } catch (IOException e) {
-                throw new ProcessException("Couldn't delete '" + asnOutDir + "'");
+                throw new ProcessException("Delete directory failed " + asnOutDir);
             }
         }
     }
@@ -294,6 +345,37 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
         return new JASN1RecordReader(rootClassName, recordField, schemaProvider, customClassLoader, iteratorProviderClassName, in, logger);
     }
 
+    AsnModel getJavaModelFromAsn1File(String inputFileName)
+            throws FileNotFoundException, TokenStreamException, RecognitionException {
+
+        InputStream stream = new FileInputStream(inputFileName);
+        ASNLexer lexer = new ASNLexer(stream);
+
+        AtomicBoolean parseError = new AtomicBoolean(false);
+        ASNParser parser = new ASNParser(lexer) {
+            @Override
+            public void reportError(String s) {
+                logger.error("{} - {}", inputFileName, s);
+                parseError.set(true);
+            }
+
+            @Override
+            public void reportError(RecognitionException e) {
+                logger.error("{} - {}", inputFileName, e.toString());
+                parseError.set(true);
+            }
+        };
+
+        if (parseError.get()) {
+            throw new ProcessException("ASN.1 parsing failed");
+        }
+
+        AsnModel model = new AsnModel();
+        parser.module_definitions(model);
+
+        return model;
+    }
+
     String guessRootClassName(String rootModelName) {
         try {
             StringBuilder rootClassNameBuilder = new StringBuilder();
@@ -311,5 +393,4 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
             throw new ProcessException("Couldn't infer root model name from '" + rootModelName + "'", e);
         }
     }
-
 }
