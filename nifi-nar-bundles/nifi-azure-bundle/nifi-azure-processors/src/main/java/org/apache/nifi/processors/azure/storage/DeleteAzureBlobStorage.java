@@ -25,6 +25,7 @@ import com.microsoft.azure.storage.blob.DeleteSnapshotsOption;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
@@ -46,6 +47,7 @@ import java.util.concurrent.TimeUnit;
 @SeeAlso({ ListAzureBlobStorage.class, FetchAzureBlobStorage.class, PutAzureBlobStorage.class})
 @CapabilityDescription("Deletes the provided blob from Azure Storage")
 @InputRequirement(Requirement.INPUT_REQUIRED)
+@DeprecationNotice(alternatives = DeleteAzureBlobStorage_v12.class, reason = "Processor depends on legacy Microsoft Azure SDK")
 public class DeleteAzureBlobStorage extends AbstractAzureBlobProcessor {
 
     private static final AllowableValue DELETE_SNAPSHOTS_NONE = new AllowableValue(DeleteSnapshotsOption.NONE.name(), "None", "Delete the blob only.");
