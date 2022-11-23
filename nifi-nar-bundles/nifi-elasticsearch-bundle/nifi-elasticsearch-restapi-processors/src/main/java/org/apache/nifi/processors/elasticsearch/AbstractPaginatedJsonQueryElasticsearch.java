@@ -273,6 +273,9 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
 
             hitsFlowFiles.add(writeCombinedHitFlowFile(paginatedJsonQueryParameters.getHitCount() + hits.size(),
                     hits, session, hitFlowFile, attributes, append));
+        } else if (getOutputNoHits()) {
+            final FlowFile hitFlowFile = createChildFlowFile(session, parent);
+            hitsFlowFiles.add(writeHitFlowFile(0, "", session, hitFlowFile, attributes));
         }
     }
 
@@ -297,10 +300,6 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
                 session.transfer(hitsFlowFiles, REL_HITS);
                 hitsFlowFiles.forEach(ff -> session.getProvenanceReporter().receive(ff, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS)));
                 hitsFlowFiles.clear();
-            } else if (getOutputNoHits()) {
-                final FlowFile hitFlowFile = createChildFlowFile(session, parent);
-                hitsFlowFiles.add(writeHitFlowFile(0, "", session, hitFlowFile, attributes));
-                session.transfer(hitsFlowFiles, REL_HITS);
             }
         } else {
             super.handleHits(hits, newQuery, paginatedJsonQueryParameters, session, parent, attributes, hitsFlowFiles, transitUri, stopWatch);

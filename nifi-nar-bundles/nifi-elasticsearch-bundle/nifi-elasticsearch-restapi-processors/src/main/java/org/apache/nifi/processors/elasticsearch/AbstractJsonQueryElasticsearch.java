@@ -105,7 +105,7 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
     private String splitUpAggregations;
     private boolean outputNoHits;
 
-    public boolean getOutputNoHits() {
+    boolean getOutputNoHits() {
         return outputNoHits;
     }
 
@@ -281,8 +281,8 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
         }
     }
 
-    public FlowFile writeHitFlowFile(final int count, final String json, final ProcessSession session,
-                                     final FlowFile hitFlowFile, final Map<String, String> attributes) {
+    FlowFile writeHitFlowFile(final int count, final String json, final ProcessSession session,
+                              final FlowFile hitFlowFile, final Map<String, String> attributes) {
         final FlowFile ff = session.write(hitFlowFile, out -> out.write(json.getBytes()));
         attributes.put("hit.count", Integer.toString(count));
 
