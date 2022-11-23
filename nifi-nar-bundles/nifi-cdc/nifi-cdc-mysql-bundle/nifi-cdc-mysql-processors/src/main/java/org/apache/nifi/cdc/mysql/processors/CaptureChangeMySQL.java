@@ -157,6 +157,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     // Random invalid constant used as an indicator to not set the binlog position on the client (thereby using the latest available)
     private static final int DO_NOT_SET = -1000;
 
+    // A regular expression matching multiline comments, used when parsing DDL statements
+    private static final Pattern MULTI_COMMENT_PATTERN = Pattern.compile("/\\*.*?\\*/", Pattern.DOTALL);
+
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -1112,13 +1115,11 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         currentSession.clearState(Scope.CLUSTER);
     }
 
-    protected void stop() throws CDCException {
-    private String normalizeQuery(String sql) {
+    protected String normalizeQuery(String sql) {
         String normalizedQuery = sql.toLowerCase().trim().replaceAll(" {2,}", " ");
 
         //Remove comments from the query
-        Pattern multiCommentPattern = Pattern.compile("/\\*.*?\\*/", Pattern.DOTALL);
-        normalizedQuery = multiCommentPattern.matcher(normalizedQuery).replaceAll("");
+        normalizedQuery = MULTI_COMMENT_PATTERN.matcher(normalizedQuery).replaceAll("").trim();
         normalizedQuery = normalizedQuery.replaceAll("#.*", "");
         normalizedQuery = normalizedQuery.replaceAll("-{2}.*", "");
         return normalizedQuery;
