@@ -264,7 +264,9 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             requestBuilder = requestBuilder.header("Authorization", credential);
         }
         Request httpRequest = requestBuilder.build();
-        log.debug("Sending Elasticsearch request to {}", new Object[]{url});
+        if (log.isDebugEnabled()) {
+            log.debug("Sending Elasticsearch request to {}", url);
+        }
 
         Response responseHttp = client.newCall(httpRequest).execute();
 
@@ -275,7 +277,9 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             throw new IllegalStateException("Status code unknown, connection hasn't been attempted.");
         }
 
-        log.debug("Received response from Elasticsearch with status code {}", new Object[]{statusCode});
+        if (log.isDebugEnabled()) {
+            log.debug("Received response from Elasticsearch with status code {}", statusCode);
+        }
 
         return responseHttp;
     }

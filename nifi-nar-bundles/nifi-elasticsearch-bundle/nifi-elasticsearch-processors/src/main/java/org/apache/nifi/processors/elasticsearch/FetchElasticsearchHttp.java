@@ -214,7 +214,9 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         Response getResponse = null;
 
         try {
-            logger.debug("Fetching {}/{}/{} from Elasticsearch", new Object[]{index, docType, docId});
+            if (logger.isDebugEnabled()) {
+                logger.debug("Fetching {}/{}/{} from Elasticsearch", index, docType, docId);
+            }
 
             // read the url property from the context
             final String urlstr = StringUtils.trimToEmpty(context.getProperty(ES_URL).evaluateAttributeExpressions().getValue());
@@ -243,7 +245,10 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                             out.write(source.toString().getBytes(charset));
                         });
                     }
-                    logger.debug("Elasticsearch document " + retrievedId + " fetched, routing to success");
+
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Elasticsearch document " + retrievedId + " fetched, routing to success");
+                    }
 
                     // emit provenance event
                     final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
@@ -254,8 +259,10 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     }
                     session.transfer(flowFile, REL_SUCCESS);
                 } else {
-                    logger.debug("Failed to read {}/{}/{} from Elasticsearch: Document not found",
-                            new Object[]{index, docType, docId});
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Failed to read {}/{}/{} from Elasticsearch: Document not found",
+                                index, docType, docId);
+                    }
 
                     // We couldn't find the document, so send it to "not found"
                     session.transfer(flowFile, REL_NOT_FOUND);

@@ -331,8 +331,9 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         int numResults = 0;
 
         try {
-            logger.debug("Querying {}/{} from Elasticsearch: {}", new Object[] { index, docType,
-                    query });
+            if (logger.isDebugEnabled()) {
+                logger.debug("Querying {}/{} from Elasticsearch: {}", index, docType, query);
+            }
 
             final long startNanos = System.nanoTime();
             // read the url property from the context
@@ -462,7 +463,9 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                 page.add(documentFlowFile);
             }
 
-            logger.debug("Elasticsearch retrieved " + responseJson.size() + " documents, routing to success");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Elasticsearch retrieved " + responseJson.size() + " documents, routing to success");
+            }
             // If we want to append query info as attributes but there were no hits,
             // pass along the original, if present.
             if (queryInfoRouteStrategy == QueryInfoRouteStrategy.APPEND_AS_ATTRIBUTES && page.isEmpty()

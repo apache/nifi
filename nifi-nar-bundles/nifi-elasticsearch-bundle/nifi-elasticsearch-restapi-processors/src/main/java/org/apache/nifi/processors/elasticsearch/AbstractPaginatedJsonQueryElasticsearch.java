@@ -151,7 +151,9 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
         } while (!response.getHits().isEmpty() && (input != null || hitStrategy == ResultOutputStrategy.PER_QUERY));
 
         if (response.getHits().isEmpty()) {
-            getLogger().debug("No more results for paginated query, clearing Elasticsearch resources");
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug("No more results for paginated query, clearing Elasticsearch resources");
+            }
             clearElasticsearchState(context, response);
         }
 
@@ -189,7 +191,9 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
 
             // remove any request for aggregations as they were dealt with in the first page
             if (queryJson.has("aggs")) {
-                getLogger().debug("Removing \"aggs\" from non-initial paged query");
+                if (getLogger().isDebugEnabled()) {
+                    getLogger().debug("Removing \"aggs\" from non-initial paged query");
+                }
                 queryJson.remove("aggs");
             }
         }

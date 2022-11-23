@@ -54,6 +54,7 @@ import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 
 import javax.net.ssl.SSLContext;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -792,6 +793,30 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         if (entity != null) {
             request.setEntity(entity);
         }
+
+        if (getLogger().isDebugEnabled()) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            entity.writeTo(out);
+            out.close();
+
+            StringBuilder builder = new StringBuilder();
+                builder.append("Dumping Elasticsearch REST request...\n")
+                    .append("HTTP Method: ")
+                    .append(method)
+                    .append("\n")
+                    .append("Endpoint: ")
+                    .append(endpoint)
+                    .append("\n")
+                    .append("Parameters: ")
+                    .append(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(parameters))
+                    .append("\n")
+                    .append("Request body: ")
+                    .append(new String(out.toByteArray()))
+                    .append("\n");
+
+            getLogger().debug(builder.toString());
+        }
+
         return client.performRequest(request);
     }
 }

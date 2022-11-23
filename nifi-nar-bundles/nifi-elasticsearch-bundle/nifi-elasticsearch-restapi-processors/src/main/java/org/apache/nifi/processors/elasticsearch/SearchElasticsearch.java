@@ -139,10 +139,14 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
     void finishQuery(final FlowFile input, final PaginatedJsonQueryParameters paginatedQueryJsonParameters,
                      final ProcessSession session, final ProcessContext context, final SearchResponse response) throws IOException {
         if (response.getHits().isEmpty()) {
-            getLogger().debug("No more results for paginated query, resetting local state for future queries");
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug("No more results for paginated query, resetting local state for future queries");
+            }
             resetProcessorState(context);
         } else {
-            getLogger().debug("Updating local state for next execution");
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug("Updating local state for next execution");
+            }
 
             final Map<String, String> newStateMap = new HashMap<>();
             if (paginationType == PaginationType.SCROLL) {
@@ -167,7 +171,9 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
         final boolean expiredQuery = StringUtils.isNotEmpty(paginatedJsonQueryParameters.getPageExpirationTimestamp())
                 && Instant.ofEpochMilli(Long.parseLong(paginatedJsonQueryParameters.getPageExpirationTimestamp())).isBefore(Instant.now());
         if (expiredQuery) {
-            getLogger().debug("Existing paginated query has expired, resetting for new query");
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug("Existing paginated query has expired, resetting for new query");
+            }
 
             resetProcessorState(context);
 

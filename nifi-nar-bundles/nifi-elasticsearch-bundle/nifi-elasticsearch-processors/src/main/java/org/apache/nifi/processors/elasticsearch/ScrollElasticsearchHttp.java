@@ -276,8 +276,10 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
                 this.getPage(getResponse, scrollurl, context, session, flowFile, logger, startNanos, charset);
                 getResponse.close();
             } else {
-                logger.debug("Querying {}/{} from Elasticsearch: {}", new Object[] { index,
-                        docType, query });
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Querying {}/{} from Elasticsearch: {}", index,
+                            docType, query);
+                }
 
                 // read the url property from the context
                 final URL queryUrl = buildRequestURL(urlstr, query, index, docType, fields, sort,
@@ -344,7 +346,9 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
                 }
             }
             builder.append("] }");
-            logger.debug("Elasticsearch retrieved " + responseJson.size() + " documents, routing to success");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Elasticsearch retrieved " + responseJson.size() + " documents, routing to success");
+            }
 
             flowFile = session.write(flowFile, out -> {
                 out.write(builder.toString().getBytes(charset));
@@ -375,12 +379,16 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         final StateMap stateMap = session.getState(Scope.LOCAL);
 
         if (stateMap.getVersion() < 0) {
-            getLogger().debug("No previous state found");
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug("No previous state found");
+            }
             return false;
         }
 
         final String isQueryFinished = stateMap.get(FINISHED_QUERY_STATE);
-        getLogger().debug("Loaded state with finishedQuery = {}", new Object[] { isQueryFinished });
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("Loaded state with finishedQuery = {}", isQueryFinished);
+        }
 
         return "true".equals(isQueryFinished);
     }
@@ -389,12 +397,16 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         final StateMap stateMap = session.getState(Scope.LOCAL);
 
         if (stateMap.getVersion() < 0) {
-            getLogger().debug("No previous state found");
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug("No previous state found");
+            }
             return null;
         }
 
         final String scrollId = stateMap.get(SCROLL_ID_STATE);
-        getLogger().debug("Loaded state with scrollId {}", new Object[] { scrollId });
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("Loaded state with scrollId {}", scrollId);
+        }
 
         return scrollId;
     }
@@ -404,7 +416,9 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         Map<String, String> state = new HashMap<>(2);
         state.put(FINISHED_QUERY_STATE, "true");
 
-        getLogger().debug("Saving state with finishedQuery = true");
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("Saving state with finishedQuery = true");
+        }
         stateManager.setState(state, Scope.LOCAL);
     }
 
