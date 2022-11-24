@@ -28,8 +28,10 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.io.FileNotFoundException;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.StringJoiner;
 
 import static org.apache.nifi.jasn1.JASN1Reader.ASN_FILES;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -77,7 +79,7 @@ public class JASN1ReaderTest {
         // GIVEN
         ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
         when(context.getProperty(ASN_FILES).isSet()).thenReturn(true);
-        when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue()).thenReturn("src/test/resources/test.asn");
+        when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue()).thenReturn(Path.of("src", "test", "resources", "test.asn").toString());
 
         // WHEN
         testSubject.onEnabled(context);
@@ -96,7 +98,10 @@ public class JASN1ReaderTest {
         ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
         when(context.getProperty(ASN_FILES).isSet()).thenReturn(true);
         when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue()).thenReturn(
-                "src/test/resources/test.asn,src/test/resources/doesnt_exist.asn"
+                new StringJoiner(",")
+                        .add(Path.of("src", "test", "resources", "test.asn").toString())
+                        .add(Path.of("src", "test", "resources", "doesnt_exist.asn").toString())
+                        .toString()
         );
 
         // WHEN
@@ -107,7 +112,7 @@ public class JASN1ReaderTest {
         Throwable cause = processException.getCause();
 
         assertEquals(FileNotFoundException.class, cause.getClass());
-        assertThat(cause.getMessage(), containsString("src/test/resources/doesnt_exist.asn"));
+        assertThat(cause.getMessage(), containsString("doesnt_exist.asn"));
     }
 
     @Test
@@ -117,7 +122,7 @@ public class JASN1ReaderTest {
      */
     public void testCantParseAsn() throws Exception {
         // GIVEN
-        String asnFiles = "src/test/resources/cant_parse.asn";
+        String asnFiles = Path.of("src", "test", "resources", "cant_parse.asn").toString();
 
         List<String> expectedErrorMessages = Arrays.asList(
                 "line 11:5: unexpected token: field3",
@@ -136,7 +141,7 @@ public class JASN1ReaderTest {
      */
     public void testCantCompileAsn() throws Exception {
         // GIVEN
-        String asnFiles = "src/test/resources/cant_compile.asn";
+        String asnFiles = Path.of("src", "test", "resources", "cant_compile.asn").toString();
 
         List<String> expectedErrorMessages = Arrays.asList(
                 "class SAMENAMEWithDifferentCase is public, should be declared in a file named SAMENAMEWithDifferentCase.java",
