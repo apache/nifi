@@ -17,6 +17,8 @@
 package org.apache.nifi.web.security.csrf;
 
 import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.util.matcher.AndRequestMatcher;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestHeaderRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -34,8 +36,11 @@ public class SkipReplicatedCsrfFilter extends OncePerRequestFilter {
     /** RequestReplicator.REQUEST_TRANSACTION_ID_HEADER applied to replicated cluster requests */
     protected static final String REPLICATED_REQUEST_HEADER = "X-RequestTransactionId";
 
-    /** Requests containing replicated header will be skipped */
-    private static final RequestMatcher REQUEST_MATCHER = new RequestHeaderRequestMatcher(REPLICATED_REQUEST_HEADER);
+    /** Requests containing replicated header and not containing authorization cookies will be skipped */
+    private static final RequestMatcher REQUEST_MATCHER = new AndRequestMatcher(
+            new RequestHeaderRequestMatcher(REPLICATED_REQUEST_HEADER),
+            new NegatedRequestMatcher(new CsrfCookieRequestMatcher())
+    );
 
     /**
      * Set request attribute to disable standard CSRF Filter when request matches

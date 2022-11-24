@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.security.csrf;
 
+import org.apache.nifi.web.security.http.SecurityCookieName;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +29,7 @@ import org.springframework.security.web.csrf.CsrfFilter;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
+import javax.servlet.http.Cookie;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -63,10 +65,30 @@ class SkipReplicatedCsrfFilterTest {
 
         filter.doFilterInternal(httpServletRequest, httpServletResponse, filterChain);
 
-        final Object shouldNotFilter = httpServletRequest.getAttribute(SHOULD_NOT_FILTER);
+        assertCsrfFilterNotSkipped();
+    }
 
-        assertNotEquals(Boolean.TRUE, shouldNotFilter);
-        verify(filterChain).doFilter(eq(httpServletRequest), eq(httpServletResponse));
+    @Test
+    void testDoFilterInternalBearerCookieNotSkipped() throws ServletException, IOException {
+        httpServletRequest.setMethod(HttpMethod.GET.name());
+        final Cookie bearerCookie = new Cookie(SecurityCookieName.AUTHORIZATION_BEARER.getName(), UUID.randomUUID().toString());
+        httpServletRequest.setCookies(bearerCookie);
+
+        filter.doFilterInternal(httpServletRequest, httpServletResponse, filterChain);
+
+        assertCsrfFilterNotSkipped();
+    }
+
+    @Test
+    void testDoFilterInternalReplicatedHeaderAndBearerCookieNotSkipped() throws ServletException, IOException {
+        httpServletRequest.setMethod(HttpMethod.GET.name());
+        httpServletRequest.addHeader(SkipReplicatedCsrfFilter.REPLICATED_REQUEST_HEADER, UUID.randomUUID().toString());
+        final Cookie bearerCookie = new Cookie(SecurityCookieName.AUTHORIZATION_BEARER.getName(), UUID.randomUUID().toString());
+        httpServletRequest.setCookies(bearerCookie);
+
+        filter.doFilterInternal(httpServletRequest, httpServletResponse, filterChain);
+
+        assertCsrfFilterNotSkipped();
     }
 
     @Test
@@ -79,6 +101,13 @@ class SkipReplicatedCsrfFilterTest {
         final Object shouldNotFilter = httpServletRequest.getAttribute(SHOULD_NOT_FILTER);
 
         assertEquals(Boolean.TRUE, shouldNotFilter);
+        verify(filterChain).doFilter(eq(httpServletRequest), eq(httpServletResponse));
+    }
+
+    private void assertCsrfFilterNotSkipped() throws ServletException, IOException {
+        final Object shouldNotFilter = httpServletRequest.getAttribute(SHOULD_NOT_FILTER);
+
+        assertNotEquals(Boolean.TRUE, shouldNotFilter);
         verify(filterChain).doFilter(eq(httpServletRequest), eq(httpServletResponse));
     }
 }
