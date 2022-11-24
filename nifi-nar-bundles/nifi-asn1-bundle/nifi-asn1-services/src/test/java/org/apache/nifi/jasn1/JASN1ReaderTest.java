@@ -28,7 +28,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.io.FileNotFoundException;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.StringJoiner;
@@ -41,8 +41,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -79,7 +79,7 @@ public class JASN1ReaderTest {
         // GIVEN
         ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
         when(context.getProperty(ASN_FILES).isSet()).thenReturn(true);
-        when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue()).thenReturn(Path.of("src", "test", "resources", "test.asn").toString());
+        when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue()).thenReturn(Paths.get("src", "test", "resources", "test.asn").toString());
 
         // WHEN
         testSubject.onEnabled(context);
@@ -99,8 +99,8 @@ public class JASN1ReaderTest {
         when(context.getProperty(ASN_FILES).isSet()).thenReturn(true);
         when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue()).thenReturn(
                 new StringJoiner(",")
-                        .add(Path.of("src", "test", "resources", "test.asn").toString())
-                        .add(Path.of("src", "test", "resources", "doesnt_exist.asn").toString())
+                        .add(Paths.get("src", "test", "resources", "test.asn").toString())
+                        .add(Paths.get("src", "test", "resources", "doesnt_exist.asn").toString())
                         .toString()
         );
 
@@ -122,7 +122,7 @@ public class JASN1ReaderTest {
      */
     public void testCantParseAsn() throws Exception {
         // GIVEN
-        String asnFiles = Path.of("src", "test", "resources", "cant_parse.asn").toString();
+        String asnFiles = Paths.get("src", "test", "resources", "cant_parse.asn").toString();
 
         List<String> expectedErrorMessages = Arrays.asList(
                 "line 11:5: unexpected token: field3",
@@ -141,7 +141,7 @@ public class JASN1ReaderTest {
      */
     public void testCantCompileAsn() throws Exception {
         // GIVEN
-        String asnFiles = Path.of("src", "test", "resources", "cant_compile.asn").toString();
+        String asnFiles = Paths.get("src", "test", "resources", "cant_compile.asn").toString();
 
         List<String> expectedErrorMessages = Arrays.asList(
                 "class SAMENAMEWithDifferentCase is public, should be declared in a file named SAMENAMEWithDifferentCase.java",
@@ -174,7 +174,7 @@ public class JASN1ReaderTest {
 
         // THEN
         ArgumentCaptor<String> errorCaptor = ArgumentCaptor.forClass(String.class);
-        verify(testSubject.logger, times(expectedErrorMessages.size())).error(errorCaptor.capture());
+        verify(testSubject.logger, atLeastOnce()).error(errorCaptor.capture());
 
         List<String> actualErrorMessages = errorCaptor.getAllValues();
 
