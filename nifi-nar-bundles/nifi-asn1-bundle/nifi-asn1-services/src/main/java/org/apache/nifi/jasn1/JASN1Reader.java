@@ -19,6 +19,7 @@ package org.apache.nifi.jasn1;
 import antlr.RecognitionException;
 import antlr.TokenStreamException;
 import com.beanit.asn1bean.compiler.BerClassWriter;
+import com.beanit.asn1bean.compiler.BerClassWriterFactory;
 import com.beanit.asn1bean.compiler.model.AsnModel;
 import com.beanit.asn1bean.compiler.model.AsnModule;
 import com.beanit.asn1bean.compiler.parser.ASNLexer;
@@ -55,8 +56,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -245,48 +244,29 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
                 AsnModel model = getJavaModelFromAsn1File(asn1File);
                 modulesByName.putAll(model.modulesByName);
             } catch (FileNotFoundException e) {
-                logger.error("Couldn't find " + asn1File, e);
+                logger.error("ASN.1 file not found [{}]", asn1File, e);
                 parseException = e;
             } catch (TokenStreamException | RecognitionException e) {
-                logger.error("Error while parsing " + asn1File, e);
+                logger.error("ASN.1 stream parsing failed [{}]", asn1File, e);
                 parseException = e;
             } catch (Exception e) {
-                logger.error("Couldn't parse " + asn1File, e);
+                logger.error("ASN.1 parsing failed [{}]", asn1File, e);
                 parseException = e;
             }
         }
 
         if (parseException != null) {
-            throw new ProcessException("Couldn't parse asn files.", parseException);
+            throw new ProcessException("ASN.1 parsing failed", parseException);
         }
 
         try {
-            Constructor<BerClassWriter> berClassWriterConstructor = BerClassWriter.class.getDeclaredConstructor(
-                    HashMap.class,
-                    String.class,
-                    String.class,
-                    Boolean.TYPE,
-                    Boolean.TYPE,
-                    Boolean.TYPE
-            );
+            logger.info("Writing ASN.1 classes to directory [{}]", asnOutDir);
 
-            berClassWriterConstructor.setAccessible(true);
-
-            logger.info("Writing asn classes to " + asnOutDir.toString());
-            BerClassWriter classWriter = berClassWriterConstructor.newInstance(
-                    modulesByName,
-                    asnOutDir.toString(),
-                    "",
-                    true,
-                    false,
-                    false
-            );
+            BerClassWriter classWriter = BerClassWriterFactory.createBerClassWriter(modulesByName, asnOutDir);
 
             classWriter.translate();
-        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            throw new ProcessException("Couldn't create asn compiler.", e);
         } catch (Exception e) {
-            throw new ProcessException("Couldn't compile asn files to java.", e);
+            throw new ProcessException("ASN.1 compilation failed", e);
         }
 
         List<File> javaFiles;
@@ -298,7 +278,7 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
                 .map(File::new)
                 .collect(Collectors.toList());
         } catch (IOException e) {
-            throw new ProcessException("Couldn't access '" + asnOutDir + "'");
+            throw new ProcessException("Access directory failed " + asnOutDir);
         }
 
         JavaCompiler javaCompiler = ToolProvider.getSystemJavaCompiler();
@@ -320,7 +300,7 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
 
             errorMessages.forEach(logger::error);
 
-            throw new ProcessException("Couldn't compile java files.");
+            throw new ProcessException("Java compilation failed");
         }
     }
 
@@ -337,7 +317,7 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
                     .map(Path::toFile)
                     .forEach(File::delete);
             } catch (IOException e) {
-                throw new ProcessException("Couldn't delete " + asnOutDir);
+                throw new ProcessException("Delete directory failed " + asnOutDir);
             }
         }
     }
@@ -387,7 +367,7 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
         };
 
         if (parseError.get()) {
-            throw new ProcessException("Error while parsing asn files.");
+            throw new ProcessException("ASN.1 parsing failed");
         }
 
         AsnModel model = new AsnModel();

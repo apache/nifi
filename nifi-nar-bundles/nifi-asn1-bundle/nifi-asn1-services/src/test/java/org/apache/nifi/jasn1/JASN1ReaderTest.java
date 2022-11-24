@@ -111,6 +111,10 @@ public class JASN1ReaderTest {
     }
 
     @Test
+    /*
+     * Checks reported messages of underlying libraries that are explained in additionalDetails.html.
+     * In case of changes to this test additionalDetails.html may need to be updated as well.
+     */
     public void testCantParseAsn() throws Exception {
         // GIVEN
         String asnFiles = "src/test/resources/cant_parse.asn";
@@ -126,6 +130,10 @@ public class JASN1ReaderTest {
     }
 
     @Test
+    /*
+     * Checks reported messages of underlying libraries that are explained in additionalDetails.html.
+     * In case of changes to this test additionalDetails.html may need to be updated as well.
+     */
     public void testCantCompileAsn() throws Exception {
         // GIVEN
         String asnFiles = "src/test/resources/cant_compile.asn";
