@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.adx.sink.enums;
+package org.apache.nifi.processors.adx.enums;
 
-public enum IngestionStatusEnum {
-    ST_SUCCESS("IngestionStatus:SUCCESS","Wait until ingestions are reported as succeeded."),
-    ST_FIREANDFORGET("IngestionStatus:FIRE_AND_FORGET","Do not wait on ADX for status.");
+public enum RelationshipStatusEnum {
+    RL_SUCCEEDED("RL_SUCCEEDED","Relationship for success"),
+    RL_FAILED("RL_FAILED","Relationship for failure");
 
-    private String ingestionStatus;
+    private String displayName;
     private String description;
 
 
-    IngestionStatusEnum(String ingestionStatus, String description) {
-        this.ingestionStatus = ingestionStatus;
+    RelationshipStatusEnum(String displayName, String description) {
+        this.displayName = displayName;
         this.description = description;
     }
 
-    public String getIngestionStatus() {
-        return ingestionStatus;
+    public String getDisplayName() {
+        return displayName;
     }
 
     public String getDescription() {

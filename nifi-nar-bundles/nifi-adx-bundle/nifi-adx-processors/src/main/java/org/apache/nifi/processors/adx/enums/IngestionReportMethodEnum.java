@@ -14,35 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.adx.sink.enums;
+package org.apache.nifi.processors.adx.enums;
 
-public enum IngestionIgnoreFirstRecordEnum {
+public enum IngestionReportMethodEnum {
+    IRM_QUEUE("IngestionReportMethod:Queue","Reports are generated for queue-events."),
+    IRM_TABLE("IngestionReportMethod:Table","Reports are generated for table-events."),
+    IRM_TABLEANDQUEUE("IngestionReportMethod:TableAndQueue","Reports are generated for table- and queue-events.");
 
-    YES("Yes","Ignore first record while ingesting data"),
-    NO("No","Do not ignore the first record while ingesting data");
-
-    private String ingestFirstRecord;
+    private String ingestionReportMethod;
     private String description;
 
 
-    IngestionIgnoreFirstRecordEnum(String displayName, String description) {
-        this.ingestFirstRecord = displayName;
+    IngestionReportMethodEnum(String displayName, String description) {
+        this.ingestionReportMethod = displayName;
         this.description = description;
     }
 
-    public String getIngestFirstRecord() {
-        return ingestFirstRecord;
-    }
-
-    public void setIngestFirstRecord(String ingestFirstRecord) {
-        this.ingestFirstRecord = ingestFirstRecord;
+    public String getIngestionReportMethod() {
+        return ingestionReportMethod;
     }
 
     public String getDescription() {
         return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
     }
 }

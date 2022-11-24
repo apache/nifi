@@ -1,4 +1,4 @@
-package org.apache.nifi.processors.adx.source;
+package org.apache.nifi.processors.adx;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
@@ -21,13 +21,15 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.adx.sink.enums.AzureAdxIngestProcessorParamsEnum;
-import org.apache.nifi.processors.adx.sink.enums.RelationshipStatusEnum;
+import org.apache.nifi.processors.adx.enums.AzureAdxIngestProcessorParamsEnum;
+import org.apache.nifi.processors.adx.enums.RelationshipStatusEnum;
 import org.apache.nifi.processors.adx.source.enums.AzureAdxSourceProcessorParamsEnum;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -53,6 +55,8 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
 
     private ObjectMapper objectMapper = new ObjectMapper();
 
+    public static final String ADX_QUERY_ERROR_MESSAGE = "adx.query.error.message";
+
     public static final String ADX_EXECUTED_QUERY = "adx.executed.query";
 
     public static final Relationship RL_SUCCEEDED = new Relationship.Builder()
@@ -72,21 +76,11 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
-            .name("kusto-charset")
-            .displayName("Character Set")
-            .description("Specifies the character set of the document data.")
-            .required(true)
-            .defaultValue("UTF-8")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
-            .build();
-
     public static final PropertyDescriptor ADX_QUERY = new PropertyDescriptor
             .Builder().name(AzureAdxSourceProcessorParamsEnum.ADX_QUERY.name())
             .displayName(AzureAdxSourceProcessorParamsEnum.ADX_QUERY.getParamDisplayName())
             .description(AzureAdxSourceProcessorParamsEnum.ADX_QUERY.getParamDescription())
-            .required(false)
+            .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -132,12 +126,43 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
 
-        FlowFile outgoingFlowFile = session.create();
-        Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(outgoingFlowFile).getValue());
+        FlowFile outgoingFlowFile;
 
         String databaseName = context.getProperty(DB_NAME).getValue();
-        String adxQuery = context.getProperty(ADX_QUERY).getValue();
+        String adxQuery = null;
         KustoResultSetTable kustoResultSetTable;
+
+        if ( context.hasIncomingConnection() ) {
+            FlowFile incomingFlowFile = session.get();
+
+            if ( incomingFlowFile == null && context.hasNonLoopConnection() ) {
+                return;
+            }
+
+            if ( incomingFlowFile.getSize() == 0 ) {
+                if ( context.getProperty(ADX_QUERY).isSet() ) {
+                    adxQuery = context.getProperty(ADX_QUERY).evaluateAttributeExpressions(incomingFlowFile).getValue();
+                } else {
+                    String message = "FlowFile query is empty and no scheduled query is set";
+                    getLogger().error(message);
+                    incomingFlowFile = session.putAttribute(incomingFlowFile, ADX_QUERY_ERROR_MESSAGE, message);
+                    session.transfer(incomingFlowFile, RL_FAILED);
+                    return;
+                }
+            } else {
+                try {
+                    adxQuery = getQuery(session, StandardCharsets.UTF_8, incomingFlowFile);
+                } catch(IOException ioe) {
+                    getLogger().error("Exception while reading from FlowFile " + ioe.getLocalizedMessage(), ioe);
+                    throw new ProcessException(ioe);
+                }
+            }
+            outgoingFlowFile = incomingFlowFile;
+
+        } else {
+            outgoingFlowFile = session.create();
+            adxQuery = context.getProperty(ADX_QUERY).evaluateAttributeExpressions(outgoingFlowFile).getValue();
+        }
 
         try {
             //execute Query
@@ -150,7 +175,7 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
                 getLogger().debug("Query result {} ", new Object[] {tableData});
             }
 
-            ByteArrayInputStream bais = new ByteArrayInputStream(json.getBytes(charset));
+            ByteArrayInputStream bais = new ByteArrayInputStream(json.getBytes());
             session.importFrom(bais, outgoingFlowFile);
             bais.close();
 
@@ -162,6 +187,14 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
             session.transfer(outgoingFlowFile, RL_FAILED);
         }
 
+    }
+
+    protected String getQuery(final ProcessSession session, Charset charset, FlowFile incomingFlowFile)
+            throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        session.exportTo(incomingFlowFile, baos);
+        baos.close();
+        return new String(baos.toByteArray(), charset);
     }
 
 

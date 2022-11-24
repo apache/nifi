@@ -14,9 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.adx.sink;
+package org.apache.nifi.processors.adx;
 
 import org.apache.nifi.adx.AzureAdxConnectionService;
+import org.apache.nifi.processors.adx.AzureAdxIngestProcessor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;

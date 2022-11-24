@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.adx.sink;
+package org.apache.nifi.processors.adx;
 
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
@@ -22,8 +22,9 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.adx.AzureAdxIngestProcessor;
 
-public class MockAzureAdxIngestProcessor extends AzureAdxIngestProcessor{
+public class MockAzureAdxIngestProcessor extends AzureAdxIngestProcessor {
 
     @Override
     protected boolean isStreamingPolicyEnabled(

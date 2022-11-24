@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.adx.sink.enums;
+package org.apache.nifi.processors.adx.enums;
 
 public enum AzureAdxIngestProcessorParamsEnum {
     DB_NAME("Database name","The name of the database to store the data in."),
@@ -35,7 +35,9 @@ public enum AzureAdxIngestProcessorParamsEnum {
 
     MAX_BATCHING_NO_OF_ITEMS("Maximum number of Items","Maximum number of items during batching while queued ingestion"),
 
-    MAX_BATCHING_RAW_DATA_SIZE_IN_MB("Maximum raw data size in MB","Maximum size of raw data in MBs while queued ingestion");
+    MAX_BATCHING_RAW_DATA_SIZE_IN_MB("Maximum raw data size in MB","Maximum size of raw data in MBs while queued ingestion"),
+
+    SHOW_ADVANCED_OPTIONS("Show Advanced Options","Show Advanced Options. Please use them with caution.");
 
     private String paramDisplayName;
     private String paramDescription;

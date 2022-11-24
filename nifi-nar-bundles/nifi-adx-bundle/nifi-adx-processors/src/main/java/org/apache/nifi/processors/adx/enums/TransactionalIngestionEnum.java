@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.adx.sink.enums;
+package org.apache.nifi.processors.adx.enums;
 
 public enum TransactionalIngestionEnum {
     YES("Yes","Transactionality required for ingestion"),

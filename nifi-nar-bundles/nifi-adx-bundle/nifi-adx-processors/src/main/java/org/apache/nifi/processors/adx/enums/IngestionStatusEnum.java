@@ -14,24 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.adx.sink.enums;
+package org.apache.nifi.processors.adx.enums;
 
-public enum IngestionReportMethodEnum {
-    IRM_QUEUE("IngestionReportMethod:Queue","Reports are generated for queue-events."),
-    IRM_TABLE("IngestionReportMethod:Table","Reports are generated for table-events."),
-    IRM_TABLEANDQUEUE("IngestionReportMethod:TableAndQueue","Reports are generated for table- and queue-events.");
+public enum IngestionStatusEnum {
+    ST_SUCCESS("IngestionStatus:SUCCESS","Wait until ingestions are reported as succeeded."),
+    ST_FIREANDFORGET("IngestionStatus:FIRE_AND_FORGET","Do not wait on ADX for status.");
 
-    private String ingestionReportMethod;
+    private String ingestionStatus;
     private String description;
 
 
-    IngestionReportMethodEnum(String displayName, String description) {
-        this.ingestionReportMethod = displayName;
+    IngestionStatusEnum(String ingestionStatus, String description) {
+        this.ingestionStatus = ingestionStatus;
         this.description = description;
     }
 
-    public String getIngestionReportMethod() {
-        return ingestionReportMethod;
+    public String getIngestionStatus() {
+        return ingestionStatus;
     }
 
     public String getDescription() {

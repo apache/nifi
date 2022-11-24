@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.adx.sink;
+package org.apache.nifi.processors.adx;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,15 +54,15 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.adx.sink.enums.AzureAdxIngestProcessorParamsEnum;
-import org.apache.nifi.processors.adx.sink.enums.DataFormatEnum;
-import org.apache.nifi.processors.adx.sink.enums.IngestionIgnoreFirstRecordEnum;
-import org.apache.nifi.processors.adx.sink.enums.IngestionReportLevelEnum;
-import org.apache.nifi.processors.adx.sink.enums.IngestionReportMethodEnum;
-import org.apache.nifi.processors.adx.sink.enums.IngestionStatusEnum;
-import org.apache.nifi.processors.adx.sink.enums.RelationshipStatusEnum;
-import org.apache.nifi.processors.adx.sink.enums.TransactionalIngestionEnum;
-import org.apache.nifi.processors.adx.sink.model.IngestionBatchingPolicy;
+import org.apache.nifi.processors.adx.enums.AzureAdxIngestProcessorParamsEnum;
+import org.apache.nifi.processors.adx.enums.DataFormatEnum;
+import org.apache.nifi.processors.adx.enums.IngestionIgnoreFirstRecordEnum;
+import org.apache.nifi.processors.adx.enums.IngestionReportLevelEnum;
+import org.apache.nifi.processors.adx.enums.IngestionReportMethodEnum;
+import org.apache.nifi.processors.adx.enums.IngestionStatusEnum;
+import org.apache.nifi.processors.adx.enums.RelationshipStatusEnum;
+import org.apache.nifi.processors.adx.enums.TransactionalIngestionEnum;
+import org.apache.nifi.processors.adx.model.IngestionBatchingPolicy;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -259,11 +259,22 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             .defaultValue(ST_SUCCESS.getValue())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+
+    public static final PropertyDescriptor SHOW_ADVANCED_OPTIONS = new PropertyDescriptor
+            .Builder().name(AzureAdxIngestProcessorParamsEnum.SHOW_ADVANCED_OPTIONS.name())
+            .displayName(AzureAdxIngestProcessorParamsEnum.SHOW_ADVANCED_OPTIONS.getParamDisplayName())
+            .description(AzureAdxIngestProcessorParamsEnum.SHOW_ADVANCED_OPTIONS.getParamDescription())
+            .required(false)
+            .allowableValues("Yes", "No")
+            .defaultValue("No")
+            .build();
+
     public static final PropertyDescriptor IS_TRANSACTIONAL = new PropertyDescriptor
             .Builder().name(AzureAdxIngestProcessorParamsEnum.IS_TRANSACTIONAL.name())
             .displayName(AzureAdxIngestProcessorParamsEnum.IS_TRANSACTIONAL.getParamDisplayName())
             .description(AzureAdxIngestProcessorParamsEnum.IS_TRANSACTIONAL.getParamDescription())
             .required(false)
+            .dependsOn(SHOW_ADVANCED_OPTIONS,"Yes")
             .allowableValues(TRANSACTIONAL_YES, TRANSACTIONAL_NO)
             .defaultValue(TRANSACTIONAL_NO.getValue())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -273,6 +284,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             .Builder().name("TEMP_TABLE_NAME")
             .displayName("Temporary Table Name")
             .description("This property specifies the temporary table name when data ingestion is selected in transactional mode")
+            .dependsOn(SHOW_ADVANCED_OPTIONS,"Yes")
             .dependsOn(IS_TRANSACTIONAL,TRANSACTIONAL_YES)
             .required(false)
             .build();
@@ -281,6 +293,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             .Builder().name("TEMP_TABLE_SOFT_DELETE_RETENTION")
             .displayName("Temporary table soft delete retention period")
             .description("This property specifies the soft delete retention period of temporary table when data ingestion is selected in transactional mode")
+            .dependsOn(SHOW_ADVANCED_OPTIONS,"Yes")
             .dependsOn(IS_TRANSACTIONAL,TRANSACTIONAL_YES)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -299,6 +312,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             .displayName(AzureAdxIngestProcessorParamsEnum.FLUSH_IMMEDIATE.getParamDisplayName())
             .description(AzureAdxIngestProcessorParamsEnum.FLUSH_IMMEDIATE.getParamDescription())
             .required(true)
+            .dependsOn(SHOW_ADVANCED_OPTIONS,"Yes")
             .defaultValue("false")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -341,6 +355,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             .displayName(AzureAdxIngestProcessorParamsEnum.MAX_BATCHING_TIME_SPAN.getParamDisplayName())
             .description(AzureAdxIngestProcessorParamsEnum.MAX_BATCHING_TIME_SPAN.getParamDescription())
             .required(false)
+            .dependsOn(SHOW_ADVANCED_OPTIONS,"Yes")
             .defaultValue("00:05:00")
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^(?:(?:([01]?\\d|2[0-3]):)?([0-5]?\\d):)?([0-5]?\\d)$")))
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -350,6 +365,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             .name(AzureAdxIngestProcessorParamsEnum.MAX_BATCHING_NO_OF_ITEMS.name())
             .displayName(AzureAdxIngestProcessorParamsEnum.MAX_BATCHING_NO_OF_ITEMS.getParamDisplayName())
             .description(AzureAdxIngestProcessorParamsEnum.MAX_BATCHING_NO_OF_ITEMS.getParamDescription())
+            .dependsOn(SHOW_ADVANCED_OPTIONS,"Yes")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue(String.valueOf(1000))
@@ -359,6 +375,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             .name(AzureAdxIngestProcessorParamsEnum.MAX_BATCHING_RAW_DATA_SIZE_IN_MB.name())
             .displayName(AzureAdxIngestProcessorParamsEnum.MAX_BATCHING_RAW_DATA_SIZE_IN_MB.getParamDisplayName())
             .description(AzureAdxIngestProcessorParamsEnum.MAX_BATCHING_RAW_DATA_SIZE_IN_MB.getParamDescription())
+            .dependsOn(SHOW_ADVANCED_OPTIONS,"Yes")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue(String.valueOf(1024))

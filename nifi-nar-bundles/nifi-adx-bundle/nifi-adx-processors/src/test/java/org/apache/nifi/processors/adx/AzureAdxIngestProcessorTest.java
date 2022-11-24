@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.adx.sink;
+package org.apache.nifi.processors.adx;
 
 
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
