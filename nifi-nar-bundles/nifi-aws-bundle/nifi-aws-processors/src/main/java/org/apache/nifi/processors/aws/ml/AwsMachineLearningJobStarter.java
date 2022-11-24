@@ -29,8 +29,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -52,7 +50,7 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
     public static final PropertyDescriptor JSON_PAYLOAD = new PropertyDescriptor.Builder()
             .name("json-payload")
             .displayName("JSON Payload")
-            .description("JSON Payload that represent an AWS ML Request. See more details in AWS API documentation.")
+            .description("JSON request for AWS Machine Learning services. The Processor will use FlowFile content for the request when this property is not specified.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor MANDATORY_AWS_CREDENTIALS_PROVIDER_SERVICE =
@@ -61,12 +59,12 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
                     .build();
     public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
             .displayName("Region")
-            .name("aws-ml-region")
+            .name("aws-region")
             .required(true)
             .allowableValues(getAvailableRegions())
             .defaultValue(createAllowableValue(Regions.DEFAULT_REGION).getValue())
             .build();
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    protected static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             JSON_PAYLOAD,
             MANDATORY_AWS_CREDENTIALS_PROVIDER_SERVICE,
             REGION,
@@ -99,12 +97,12 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
-        RESPONSE response;
+        final RESPONSE response;
         FlowFile childFlowFile;
         try {
             response = sendRequest(buildRequest(session, context, flowFile), context);
@@ -138,23 +136,12 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
 
     @Override
     protected T createClient(ProcessContext context, AWSCredentials credentials, ClientConfiguration config) {
-        throw new UnsupportedOperationException("Tried to create client in a deprecated way.");
+        throw new UnsupportedOperationException("createClient(ProcessContext, AWSCredentials, ClientConfiguration) is not supported");
     }
-
-    abstract protected RESPONSE sendRequest(REQUEST request, ProcessContext context) throws JsonProcessingException;
-
-    abstract protected Class<? extends REQUEST> getAwsRequestClass(ProcessContext context);
-
-    abstract protected String getAwsTaskId(ProcessContext context, RESPONSE response);
 
     protected FlowFile writeToFlowFile(ProcessSession session, FlowFile flowFile, RESPONSE response) {
         FlowFile childFlowFile = session.create(flowFile);
-        session.write(childFlowFile, out -> {
-            try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
-                outputStreamWriter.write(mapper.writeValueAsString(response));
-                outputStreamWriter.flush();
-            }
-        });
+        childFlowFile = session.write(childFlowFile, out -> mapper.writeValue(out, response));
         return childFlowFile;
     }
 
@@ -165,4 +152,10 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
             throw new ProcessException("Read FlowFile Failed", e);
         }
     }
+
+    abstract protected RESPONSE sendRequest(REQUEST request, ProcessContext context) throws JsonProcessingException;
+
+    abstract protected Class<? extends REQUEST> getAwsRequestClass(ProcessContext context);
+
+    abstract protected String getAwsTaskId(ProcessContext context, RESPONSE response);
 }

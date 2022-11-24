@@ -28,8 +28,10 @@ import com.amazonaws.services.textract.model.StartDocumentTextDetectionRequest;
 import com.amazonaws.services.textract.model.StartDocumentTextDetectionResult;
 import com.amazonaws.services.textract.model.StartExpenseAnalysisRequest;
 import com.amazonaws.services.textract.model.StartExpenseAnalysisResult;
-import com.google.common.collect.ImmutableList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -55,10 +57,12 @@ public class StartAwsTextractJob extends AwsMachineLearningJobStarter<AmazonText
             .defaultValue("Document Analysis")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+    private static final List<PropertyDescriptor> TEXTRACT_PROPERTIES =
+        Collections.unmodifiableList(Stream.concat(PROPERTIES.stream(), Stream.of(TYPE)).collect(Collectors.toList()));
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return new ImmutableList.Builder().add(TYPE).add(super.getSupportedPropertyDescriptors().toArray()).build();
+        return TEXTRACT_PROPERTIES;
     }
 
     @Override
@@ -89,7 +93,7 @@ public class StartAwsTextractJob extends AwsMachineLearningJobStarter<AmazonText
             case EXPENSE_ANALYSIS :
                 result = getClient().startExpenseAnalysis((StartExpenseAnalysisRequest) request);
                 break;
-            default: throw new UnsupportedOperationException("Unsupported textract type.");
+            default: throw new UnsupportedOperationException("Unsupported textract type: " + typeOfTextract);
         }
         return result;
     }

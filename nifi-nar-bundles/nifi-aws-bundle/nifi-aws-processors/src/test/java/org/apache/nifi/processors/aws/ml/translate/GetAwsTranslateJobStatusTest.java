@@ -20,9 +20,9 @@ package org.apache.nifi.processors.aws.ml.translate;
 import static org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
 import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_FAILURE;
 import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_SUCCESS;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter.AWS_TASK_ID_PROPERTY;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter.AWS_TASK_OUTPUT_LOCATION;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter.REL_RUNNING;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.AWS_TASK_ID_PROPERTY;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.AWS_TASK_OUTPUT_LOCATION;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_RUNNING;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
@@ -42,22 +42,29 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
+import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-public class TranslateFetcherTest {
+@ExtendWith(MockitoExtension.class)
+public class GetAwsTranslateJobStatusTest {
     private static final String TEST_TASK_ID = "testTaskId";
     private static final String CONTENT_STRING = "content";
     private static final String AWS_CREDENTIALS_PROVIDER_NAME = "awsCredetialProvider";
     private static final String OUTPUT_LOCATION_PATH = "outputLocation";
     private TestRunner runner = null;
+    @Mock
     private AmazonTranslateClient mockTranslateClient = null;
+    @Mock
     private AWSCredentialsProviderService mockAwsCredentialsProvider = null;
+    @Captor
+    private ArgumentCaptor<DescribeTextTranslationJobRequest> requestCaptor;
+
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        mockTranslateClient = Mockito.mock(AmazonTranslateClient.class);
-        mockAwsCredentialsProvider = Mockito.mock(AWSCredentialsProviderService.class);
         when(mockAwsCredentialsProvider.getIdentifier()).thenReturn(AWS_CREDENTIALS_PROVIDER_NAME);
         final GetAwsTranslateJobStatus mockPollyFetcher = new GetAwsTranslateJobStatus() {
             protected AmazonTranslateClient getClient() {
@@ -77,7 +84,6 @@ public class TranslateFetcherTest {
 
     @Test
     public void testTranscribeTaskInProgress() {
-        ArgumentCaptor<DescribeTextTranslationJobRequest> requestCaptor = ArgumentCaptor.forClass(DescribeTextTranslationJobRequest.class);
         TextTranslationJobProperties task = new TextTranslationJobProperties()
                 .withJobId(TEST_TASK_ID)
                 .withJobStatus(JobStatus.IN_PROGRESS);
@@ -92,7 +98,6 @@ public class TranslateFetcherTest {
 
     @Test
     public void testTranscribeTaskCompleted() {
-        ArgumentCaptor<DescribeTextTranslationJobRequest> requestCaptor = ArgumentCaptor.forClass(DescribeTextTranslationJobRequest.class);
         TextTranslationJobProperties task = new TextTranslationJobProperties()
                 .withJobId(TEST_TASK_ID)
                 .withOutputDataConfig(new OutputDataConfig().withS3Uri(OUTPUT_LOCATION_PATH))
@@ -109,7 +114,6 @@ public class TranslateFetcherTest {
 
     @Test
     public void testTranscribeTaskFailed() {
-        ArgumentCaptor<DescribeTextTranslationJobRequest> requestCaptor = ArgumentCaptor.forClass(DescribeTextTranslationJobRequest.class);
         TextTranslationJobProperties task = new TextTranslationJobProperties()
                 .withJobId(TEST_TASK_ID)
                 .withJobStatus(JobStatus.FAILED);

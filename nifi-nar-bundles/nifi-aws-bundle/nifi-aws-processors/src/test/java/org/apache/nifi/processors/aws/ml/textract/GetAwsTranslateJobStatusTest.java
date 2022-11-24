@@ -20,8 +20,8 @@ package org.apache.nifi.processors.aws.ml.textract;
 import static org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
 import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_FAILURE;
 import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_SUCCESS;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter.AWS_TASK_ID_PROPERTY;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter.REL_RUNNING;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.AWS_TASK_ID_PROPERTY;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_RUNNING;
 import static org.apache.nifi.processors.aws.ml.textract.GetAwsTextractJobStatus.DOCUMENT_ANALYSIS;
 import static org.apache.nifi.processors.aws.ml.textract.StartAwsTextractJob.TYPE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,21 +41,27 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
+import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-public class TextractFetcherTest {
+@ExtendWith(MockitoExtension.class)
+public class GetAwsTranslateJobStatusTest {
     private static final String TEST_TASK_ID = "testTaskId";
     private TestRunner runner = null;
+    @Mock
     private AmazonTextractClient mockTextractClient = null;
+    @Mock
     private AWSCredentialsProviderService mockAwsCredentialsProvider = null;
+    @Captor
+    private ArgumentCaptor<GetDocumentAnalysisRequest> requestCaptor;
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        mockTextractClient = Mockito.mock(AmazonTextractClient.class);
-        mockAwsCredentialsProvider = Mockito.mock(AWSCredentialsProviderService.class);
         when(mockAwsCredentialsProvider.getIdentifier()).thenReturn("awsCredetialProvider");
-        final GetAwsTextractJobStatus mockPollyFetcher = new GetAwsTextractJobStatus() {
+        final GetAwsTextractJobStatus awsTextractJobStatusGetter = new GetAwsTextractJobStatus() {
             protected AmazonTextractClient getClient() {
                 return mockTextractClient;
             }
@@ -65,7 +71,7 @@ public class TextractFetcherTest {
                 return mockTextractClient;
             }
         };
-        runner = TestRunners.newTestRunner(mockPollyFetcher);
+        runner = TestRunners.newTestRunner(awsTextractJobStatusGetter);
         runner.addControllerService("awsCredetialProvider", mockAwsCredentialsProvider);
         runner.enableControllerService(mockAwsCredentialsProvider);
         runner.setProperty(AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredetialProvider");
@@ -73,7 +79,6 @@ public class TextractFetcherTest {
 
     @Test
     public void testTextractDocAnalysisTaskInProgress() {
-        ArgumentCaptor<GetDocumentAnalysisRequest> requestCaptor = ArgumentCaptor.forClass(GetDocumentAnalysisRequest.class);
         GetDocumentAnalysisResult taskResult = new GetDocumentAnalysisResult()
                 .withJobStatus(JobStatus.IN_PROGRESS);
         when(mockTextractClient.getDocumentAnalysis(requestCaptor.capture())).thenReturn(taskResult);
@@ -87,7 +92,6 @@ public class TextractFetcherTest {
 
     @Test
     public void testTextractDocAnalysisTaskComplete() {
-        ArgumentCaptor<GetDocumentAnalysisRequest> requestCaptor = ArgumentCaptor.forClass(GetDocumentAnalysisRequest.class);
         GetDocumentAnalysisResult taskResult = new GetDocumentAnalysisResult()
                 .withJobStatus(JobStatus.SUCCEEDED);
         when(mockTextractClient.getDocumentAnalysis(requestCaptor.capture())).thenReturn(taskResult);
@@ -101,7 +105,6 @@ public class TextractFetcherTest {
 
     @Test
     public void testTextractDocAnalysisTaskFailed() {
-        ArgumentCaptor<GetDocumentAnalysisRequest> requestCaptor = ArgumentCaptor.forClass(GetDocumentAnalysisRequest.class);
         GetDocumentAnalysisResult taskResult = new GetDocumentAnalysisResult()
                 .withJobStatus(JobStatus.FAILED);
         when(mockTextractClient.getDocumentAnalysis(requestCaptor.capture())).thenReturn(taskResult);

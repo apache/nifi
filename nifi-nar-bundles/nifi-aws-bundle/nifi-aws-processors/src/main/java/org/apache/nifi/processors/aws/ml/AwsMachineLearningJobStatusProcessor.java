@@ -27,8 +27,6 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -42,7 +40,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 
-public abstract class AwsMachineLearningJobStatusGetter<T extends AmazonWebServiceClient>
+public abstract class AwsMachineLearningJobStatusProcessor<T extends AmazonWebServiceClient>
         extends AbstractAWSCredentialsProviderProcessor<T>  {
     public static final String AWS_TASK_ID_PROPERTY = "awsTaskId";
     public static final String AWS_TASK_OUTPUT_LOCATION = "outputLocation";
@@ -75,7 +73,7 @@ public abstract class AwsMachineLearningJobStatusGetter<T extends AmazonWebServi
             .build();
     public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
             .displayName("Region")
-            .name("aws-ml-region")
+            .name("aws-region")
             .required(true)
             .allowableValues(getAvailableRegions())
             .defaultValue(createAllowableValue(Regions.DEFAULT_REGION).getValue())
@@ -128,11 +126,6 @@ public abstract class AwsMachineLearningJobStatusGetter<T extends AmazonWebServi
 
 
     protected void writeToFlowFile(ProcessSession session, FlowFile flowFile, Object response) {
-        session.write(flowFile, out -> {
-            try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
-                outputStreamWriter.write(mapper.writeValueAsString(response));
-                outputStreamWriter.flush();
-            }
-        });
+        session.write(flowFile, out -> mapper.writeValue(out, response));
     }
 }

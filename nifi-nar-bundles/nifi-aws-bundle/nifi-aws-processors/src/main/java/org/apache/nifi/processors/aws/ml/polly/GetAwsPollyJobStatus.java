@@ -27,6 +27,8 @@ import com.amazonaws.services.polly.model.TaskStatus;
 import com.amazonaws.services.textract.model.ThrottlingException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -34,12 +36,17 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter;
+import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Polly"})
 @CapabilityDescription("Retrieves the current status of an AWS Polly job.")
 @SeeAlso({StartAwsPollyJob.class})
-public class GetAwsPollyJobStatus extends AwsMachineLearningJobStatusGetter<AmazonPollyClient> {
+@WritesAttributes({
+        @WritesAttribute(attribute = "PollyS3OutputBucket", description = "The bucket name where polly output will be located."),
+        @WritesAttribute(attribute = "PollyS3OutputKey", description = "Object key of polly output."),
+        @WritesAttribute(attribute = "outputLocation", description = "S3 path-style output location of the result.")
+})
+public class GetAwsPollyJobStatus extends AwsMachineLearningJobStatusProcessor<AmazonPollyClient> {
     private static final String BUCKET = "bucket";
     private static final String KEY = "key";
     private static final Pattern S3_PATH = Pattern.compile("https://s3.*amazonaws.com/(?<" + BUCKET + ">[^/]+)/(?<" + KEY + ">.*)");
@@ -68,7 +75,7 @@ public class GetAwsPollyJobStatus extends AwsMachineLearningJobStatusGetter<Amaz
             session.transfer(flowFile, REL_THROTTLED);
             return;
         } catch (Exception e) {
-            getLogger().info("Failed to get Polly Job status", e);
+            getLogger().warn("Failed to get Polly Job status", e);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -78,9 +85,7 @@ public class GetAwsPollyJobStatus extends AwsMachineLearningJobStatusGetter<Amaz
         if (taskStatus == TaskStatus.InProgress || taskStatus == TaskStatus.Scheduled) {
             session.penalize(flowFile);
             session.transfer(flowFile, REL_RUNNING);
-        }
-
-        if (taskStatus == TaskStatus.Completed) {
+        } else if (taskStatus == TaskStatus.Completed) {
             String outputUri = speechSynthesisTask.getSynthesisTask().getOutputUri();
 
             Matcher matcher = S3_PATH.matcher(outputUri);
@@ -90,19 +95,15 @@ public class GetAwsPollyJobStatus extends AwsMachineLearningJobStatusGetter<Amaz
             }
             FlowFile childFlowFile = session.create(flowFile);
             writeToFlowFile(session, childFlowFile, speechSynthesisTask);
-            session.putAttribute(childFlowFile, AWS_TASK_OUTPUT_LOCATION, outputUri);
+            childFlowFile = session.putAttribute(childFlowFile, AWS_TASK_OUTPUT_LOCATION, outputUri);
             session.transfer(flowFile, REL_ORIGINAL);
             session.transfer(childFlowFile, REL_SUCCESS);
             getLogger().info("Amazon Polly reported that the task completed for {}", flowFile);
-            return;
-        }
-
-        if (taskStatus == TaskStatus.Failed) {
+        } else if (taskStatus == TaskStatus.Failed) {
             final String failureReason =  speechSynthesisTask.getSynthesisTask().getTaskStatusReason();
-            session.putAttribute(flowFile, FAILURE_REASON_ATTRIBUTE, failureReason);
+            flowFile = session.putAttribute(flowFile, FAILURE_REASON_ATTRIBUTE, failureReason);
             session.transfer(flowFile, REL_FAILURE);
             getLogger().error("Amazon Polly reported that the task failed for {}: {}", flowFile, failureReason);
-            return;
         }
     }
 

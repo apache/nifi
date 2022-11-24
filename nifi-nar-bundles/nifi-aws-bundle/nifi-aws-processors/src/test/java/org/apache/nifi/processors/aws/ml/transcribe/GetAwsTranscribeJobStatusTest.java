@@ -20,9 +20,9 @@ package org.apache.nifi.processors.aws.ml.transcribe;
 import static org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
 import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_FAILURE;
 import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_SUCCESS;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter.AWS_TASK_ID_PROPERTY;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter.FAILURE_REASON_ATTRIBUTE;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter.REL_RUNNING;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.AWS_TASK_ID_PROPERTY;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.FAILURE_REASON_ATTRIBUTE;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_RUNNING;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
@@ -42,23 +42,29 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
+import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-public class TranscribeFetcherTest {
+@ExtendWith(MockitoExtension.class)
+public class GetAwsTranscribeJobStatusTest {
     private static final String TEST_TASK_ID = "testTaskId";
     private static final String AWS_CREDENTIAL_PROVIDER_NAME = "awsCredetialProvider";
     private static final String OUTPUT_LOCATION_PATH = "outputLocationPath";
     private static final String REASON_OF_FAILURE = "reasonOfFailure";
     private static final String CONTENT_STRING = "content";
     private TestRunner runner = null;
+    @Mock
     private AmazonTranscribeClient mockTranscribeClient = null;
+    @Mock
     private AWSCredentialsProviderService mockAwsCredentialsProvider = null;
+    @Captor
+    private ArgumentCaptor<GetTranscriptionJobRequest> requestCaptor;
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        mockTranscribeClient = Mockito.mock(AmazonTranscribeClient.class);
-        mockAwsCredentialsProvider = Mockito.mock(AWSCredentialsProviderService.class);
         when(mockAwsCredentialsProvider.getIdentifier()).thenReturn(AWS_CREDENTIAL_PROVIDER_NAME);
         final GetAwsTranscribeJobStatus mockPollyFetcher = new GetAwsTranscribeJobStatus() {
             protected AmazonTranscribeClient getClient() {
@@ -78,7 +84,6 @@ public class TranscribeFetcherTest {
 
     @Test
     public void testTranscribeTaskInProgress() {
-        ArgumentCaptor<GetTranscriptionJobRequest> requestCaptor = ArgumentCaptor.forClass(GetTranscriptionJobRequest.class);
         TranscriptionJob task = new TranscriptionJob()
                 .withTranscriptionJobName(TEST_TASK_ID)
                 .withTranscriptionJobStatus(TranscriptionJobStatus.IN_PROGRESS);
@@ -93,7 +98,6 @@ public class TranscribeFetcherTest {
 
     @Test
     public void testTranscribeTaskCompleted() {
-        ArgumentCaptor<GetTranscriptionJobRequest> requestCaptor = ArgumentCaptor.forClass(GetTranscriptionJobRequest.class);
         TranscriptionJob task = new TranscriptionJob()
                 .withTranscriptionJobName(TEST_TASK_ID)
                 .withTranscript(new Transcript().withTranscriptFileUri(OUTPUT_LOCATION_PATH))
@@ -110,7 +114,6 @@ public class TranscribeFetcherTest {
 
     @Test
     public void testPollyTaskFailed() {
-        ArgumentCaptor<GetTranscriptionJobRequest> requestCaptor = ArgumentCaptor.forClass(GetTranscriptionJobRequest.class);
         TranscriptionJob task = new TranscriptionJob()
                 .withTranscriptionJobName(TEST_TASK_ID)
                 .withFailureReason(REASON_OF_FAILURE)

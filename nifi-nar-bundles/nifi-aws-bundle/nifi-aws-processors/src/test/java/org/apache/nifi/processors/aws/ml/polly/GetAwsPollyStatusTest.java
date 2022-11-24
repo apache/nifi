@@ -18,12 +18,12 @@
 package org.apache.nifi.processors.aws.ml.polly;
 
 import static org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter.AWS_TASK_ID_PROPERTY;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter.AWS_TASK_OUTPUT_LOCATION;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter.REL_FAILURE;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter.REL_RUNNING;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter.REL_ORIGINAL;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusGetter.REL_SUCCESS;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.AWS_TASK_ID_PROPERTY;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.AWS_TASK_OUTPUT_LOCATION;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_FAILURE;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_RUNNING;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_ORIGINAL;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_SUCCESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
@@ -42,19 +42,26 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
+import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class GetAwsPollyStatusTest {
     private static final String TEST_TASK_ID = "testTaskId";
+    private static final String PLACEHOLDER_CONTENT = "content";
     private TestRunner runner = null;
-    private AmazonPollyClient mockPollyClient = null;
-    private AWSCredentialsProviderService mockAwsCredentialsProvider = null;
+    @Mock
+    private AmazonPollyClient mockPollyClient;
+    @Mock
+    private AWSCredentialsProviderService mockAwsCredentialsProvider;
+    @Captor
+    private ArgumentCaptor<GetSpeechSynthesisTaskRequest> requestCaptor;
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        mockPollyClient = Mockito.mock(AmazonPollyClient.class);
-        mockAwsCredentialsProvider = Mockito.mock(AWSCredentialsProviderService.class);
         when(mockAwsCredentialsProvider.getIdentifier()).thenReturn("awsCredetialProvider");
         final GetAwsPollyJobStatus mockGetAwsPollyStatus = new GetAwsPollyJobStatus() {
             protected AmazonPollyClient getClient() {
@@ -74,13 +81,12 @@ public class GetAwsPollyStatusTest {
 
     @Test
     public void testPollyTaskInProgress() {
-        ArgumentCaptor<GetSpeechSynthesisTaskRequest> requestCaptor = ArgumentCaptor.forClass(GetSpeechSynthesisTaskRequest.class);
         GetSpeechSynthesisTaskResult taskResult = new GetSpeechSynthesisTaskResult();
         SynthesisTask task = new SynthesisTask().withTaskId(TEST_TASK_ID)
                 .withTaskStatus(TaskStatus.InProgress);
         taskResult.setSynthesisTask(task);
         when(mockPollyClient.getSpeechSynthesisTask(requestCaptor.capture())).thenReturn(taskResult);
-        runner.enqueue("content", Collections.singletonMap(AWS_TASK_ID_PROPERTY, TEST_TASK_ID));
+        runner.enqueue(PLACEHOLDER_CONTENT, Collections.singletonMap(AWS_TASK_ID_PROPERTY, TEST_TASK_ID));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_RUNNING);
@@ -89,14 +95,13 @@ public class GetAwsPollyStatusTest {
 
     @Test
     public void testPollyTaskCompleted() {
-        ArgumentCaptor<GetSpeechSynthesisTaskRequest> requestCaptor = ArgumentCaptor.forClass(GetSpeechSynthesisTaskRequest.class);
         GetSpeechSynthesisTaskResult taskResult = new GetSpeechSynthesisTaskResult();
         SynthesisTask task = new SynthesisTask().withTaskId(TEST_TASK_ID)
                 .withTaskStatus(TaskStatus.Completed)
                 .withOutputUri("outputLocationPath");
         taskResult.setSynthesisTask(task);
         when(mockPollyClient.getSpeechSynthesisTask(requestCaptor.capture())).thenReturn(taskResult);
-        runner.enqueue("content", Collections.singletonMap(AWS_TASK_ID_PROPERTY, TEST_TASK_ID));
+        runner.enqueue(PLACEHOLDER_CONTENT, Collections.singletonMap(AWS_TASK_ID_PROPERTY, TEST_TASK_ID));
         runner.run();
 
         runner.assertTransferCount(REL_SUCCESS, 1);
@@ -108,14 +113,13 @@ public class GetAwsPollyStatusTest {
 
     @Test
     public void testPollyTaskFailed() {
-        ArgumentCaptor<GetSpeechSynthesisTaskRequest> requestCaptor = ArgumentCaptor.forClass(GetSpeechSynthesisTaskRequest.class);
         GetSpeechSynthesisTaskResult taskResult = new GetSpeechSynthesisTaskResult();
         SynthesisTask task = new SynthesisTask().withTaskId(TEST_TASK_ID)
                 .withTaskStatus(TaskStatus.Failed)
                 .withTaskStatusReason("reasonOfFailure");
         taskResult.setSynthesisTask(task);
         when(mockPollyClient.getSpeechSynthesisTask(requestCaptor.capture())).thenReturn(taskResult);
-        runner.enqueue("content", Collections.singletonMap(AWS_TASK_ID_PROPERTY, TEST_TASK_ID));
+        runner.enqueue(PLACEHOLDER_CONTENT, Collections.singletonMap(AWS_TASK_ID_PROPERTY, TEST_TASK_ID));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_FAILURE);
