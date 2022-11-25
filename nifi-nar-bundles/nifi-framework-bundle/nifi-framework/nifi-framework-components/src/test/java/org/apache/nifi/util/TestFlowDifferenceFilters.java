@@ -24,8 +24,8 @@ import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.StandardFlowDifference;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class TestFlowDifferenceFilters {
 
@@ -38,7 +38,7 @@ public class TestFlowDifferenceFilters {
                 DifferenceType.COMPONENT_ADDED, null, remoteGroupPort, null, null, "");
 
         // predicate should return false because we don't want to include changes for adding a remote input port
-        Assert.assertFalse(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
+        Assertions.assertFalse(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
     }
 
     @Test
@@ -50,7 +50,7 @@ public class TestFlowDifferenceFilters {
                 DifferenceType.COMPONENT_ADDED, remoteGroupPort, null, null, null, "");
 
         // predicate should return false because we don't want to include changes for adding a remote input port
-        Assert.assertFalse(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
+        Assertions.assertFalse(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
     }
 
     @Test
@@ -62,7 +62,7 @@ public class TestFlowDifferenceFilters {
                 DifferenceType.COMPONENT_ADDED, null, remoteGroupPort, null, null, "");
 
         // predicate should return false because we don't want to include changes for adding a remote input port
-        Assert.assertFalse(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
+        Assertions.assertFalse(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
     }
 
     @Test
@@ -74,7 +74,7 @@ public class TestFlowDifferenceFilters {
                 DifferenceType.COMPONENT_ADDED, null, versionedProcessor, null, null, "");
 
         // predicate should return true because we do want to include changes for adding a non-port
-        Assert.assertTrue(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
+        Assertions.assertTrue(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
     }
 
     @Test
@@ -97,7 +97,7 @@ public class TestFlowDifferenceFilters {
                 coordinatesA.getRegistryUrl(), coordinatesB.getRegistryUrl(),
                 "");
 
-        Assert.assertFalse(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES.test(flowDifference));
+        Assertions.assertFalse(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES.test(flowDifference));
     }
 
     @Test
@@ -120,7 +120,7 @@ public class TestFlowDifferenceFilters {
                 coordinatesA.getRegistryUrl(), coordinatesB.getRegistryUrl(),
                 "");
 
-        Assert.assertTrue(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES.test(flowDifference));
+        Assertions.assertTrue(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES.test(flowDifference));
     }
 
     @Test
@@ -134,7 +134,7 @@ public class TestFlowDifferenceFilters {
                 "http://localhost:18080", "http://localhost:17080",
                 "");
 
-        Assert.assertTrue(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES.test(flowDifference));
+        Assertions.assertTrue(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES.test(flowDifference));
     }
 
     @Test
@@ -148,7 +148,7 @@ public class TestFlowDifferenceFilters {
                 "Port A", "Port B",
                 "");
 
-        Assert.assertTrue(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES.test(flowDifference));
+        Assertions.assertTrue(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES.test(flowDifference));
     }
 
     @Test
@@ -165,7 +165,7 @@ public class TestFlowDifferenceFilters {
                 "Port A", "Port B",
                 "");
 
-        Assert.assertFalse(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES.test(flowDifference));
+        Assertions.assertFalse(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES.test(flowDifference));
     }
 }
 

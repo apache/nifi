@@ -23,15 +23,16 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.repository.StandardFlowFileRecord;
 import org.apache.nifi.flowfile.FlowFile;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 public class TestStandardPropertyValue {
@@ -97,13 +98,14 @@ public class TestStandardPropertyValue {
         assertEquals(139, value.evaluateAttributeExpressions(createFlowFile(attributes)).asInteger().intValue());
     }
 
-    @Test(expected = NumberFormatException.class)
+    @Test()
     public void testGetValueAsIntegerAfterSubstitutingWithNonInteger() {
         final PropertyValue value = new StandardPropertyValue("1${value}", lookup, ParameterLookup.EMPTY);
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("value", "Yes");
         final PropertyValue substituted = value.evaluateAttributeExpressions(createFlowFile(attributes));
-        substituted.asInteger();
+
+        assertThrows(NumberFormatException.class, substituted::asInteger);
     }
 
     @Test
