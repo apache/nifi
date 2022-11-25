@@ -40,10 +40,17 @@ import java.util.stream.Collectors;
 public class RecordExtender {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
     static final SimpleRecordSchema ATTRIBUTES_RECORD_SCHEMA = new SimpleRecordSchema(Arrays.asList(
             new RecordField("type", RecordFieldType.STRING.getDataType()),
             new RecordField("referenceId", RecordFieldType.STRING.getDataType())
     ));
+
+    private final RecordSchema extendedSchema;
+
+    public RecordExtender(final RecordSchema originalSchema) {
+        extendedSchema = getExtendedSchema(originalSchema);
+    }
 
     public ObjectNode getWrappedRecordsJson(ByteArrayOutputStream out) throws IOException {
         ObjectNode root = MAPPER.createObjectNode();
@@ -52,8 +59,7 @@ public class RecordExtender {
         return root;
     }
 
-    public MapRecord getExtendedRecord(String objectType, RecordSchema originalSchema, int count, Record record) {
-        SimpleRecordSchema extendedSchema = getExtendedSchema(originalSchema);
+    public MapRecord getExtendedRecord(String objectType, int count, Record record) {
 
         Set<String> rawFieldNames = record.getRawFieldNames();
         Map<String, Object> objectMap = rawFieldNames.stream()
@@ -76,5 +82,9 @@ public class RecordExtender {
                 ATTRIBUTES_RECORD_SCHEMA
         )));
         return new SimpleRecordSchema(recordFields);
+    }
+
+    public RecordSchema getExtendedSchema() {
+        return extendedSchema;
     }
 }

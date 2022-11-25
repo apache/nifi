@@ -24,6 +24,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -36,20 +37,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class TestRecordExtender {
 
-    private static RecordExtender EXTENDER;
     private static ObjectMapper OBJECT_MAPPER;
-    private static RecordSchema TEST_RECORD_SCHEMA;
-    private static RecordSchema EXTENDED_TEST_RECORD_SCHEMA;
+    private static RecordSchema ORIGINAL_SCHEMA;
+    private static RecordSchema EXPECTED_EXTENDED_SCHEMA;
 
     @BeforeAll
     public static void setup() {
-        EXTENDER = new RecordExtender();
         OBJECT_MAPPER = new ObjectMapper();
-        TEST_RECORD_SCHEMA = new SimpleRecordSchema(Arrays.asList(
+        ORIGINAL_SCHEMA = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("testRecordField1", RecordFieldType.STRING.getDataType()),
                 new RecordField("testRecordField2", RecordFieldType.STRING.getDataType())
         ));
-        EXTENDED_TEST_RECORD_SCHEMA = new SimpleRecordSchema(Arrays.asList(
+        EXPECTED_EXTENDED_SCHEMA = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("testRecordField1", RecordFieldType.STRING.getDataType()),
                 new RecordField("testRecordField2", RecordFieldType.STRING.getDataType()),
                 new RecordField("attributes", RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(Arrays.asList(
@@ -57,6 +56,13 @@ class TestRecordExtender {
                         new RecordField("referenceId", RecordFieldType.STRING.getDataType()
                         )))))
         ));
+    }
+
+    private RecordExtender testSubject;
+
+    @BeforeEach
+    public void init() {
+        testSubject = new RecordExtender(ORIGINAL_SCHEMA);
     }
 
     @Test
@@ -71,16 +77,16 @@ class TestRecordExtender {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         out.write(testNode.toString().getBytes());
 
-        ObjectNode actualWrappedJson = EXTENDER.getWrappedRecordsJson(out);
+        ObjectNode actualWrappedJson = testSubject.getWrappedRecordsJson(out);
 
         assertEquals(expectedWrappedNode, actualWrappedJson);
     }
 
     @Test
     void testGetExtendedSchema() {
-        final SimpleRecordSchema actualRecordSchema = EXTENDER.getExtendedSchema(TEST_RECORD_SCHEMA);
+        final SimpleRecordSchema actualExtendedSchema = testSubject.getExtendedSchema(ORIGINAL_SCHEMA);
 
-        assertEquals(EXTENDED_TEST_RECORD_SCHEMA, actualRecordSchema);
+        assertEquals(EXPECTED_EXTENDED_SCHEMA, actualExtendedSchema);
     }
 
     @Test
@@ -88,13 +94,13 @@ class TestRecordExtender {
         int referenceId = 0;
         String objectType = "Account";
 
-        MapRecord testRecord = new MapRecord(TEST_RECORD_SCHEMA, new HashMap<String, Object>() {{
+        MapRecord testRecord = new MapRecord(ORIGINAL_SCHEMA, new HashMap<String, Object>() {{
             put("testRecordField1", "testRecordValue1");
             put("testRecordField2", "testRecordValue2");
         }});
 
 
-        MapRecord expectedRecord = new MapRecord(EXTENDED_TEST_RECORD_SCHEMA, new HashMap<String, Object>() {{
+        MapRecord expectedRecord = new MapRecord(EXPECTED_EXTENDED_SCHEMA, new HashMap<String, Object>() {{
             put("attributes",
                     new MapRecord(ATTRIBUTES_RECORD_SCHEMA, new HashMap<String, Object>() {{
                         put("type", objectType);
@@ -105,7 +111,7 @@ class TestRecordExtender {
             put("testRecordField2", "testRecordValue2");
         }});
 
-        MapRecord actualRecord = EXTENDER.getExtendedRecord(objectType, TEST_RECORD_SCHEMA, referenceId, testRecord);
+        MapRecord actualRecord = testSubject.getExtendedRecord(objectType, referenceId, testRecord);
 
         assertEquals(expectedRecord, actualRecord);
     }

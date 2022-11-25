@@ -107,7 +107,7 @@ public class SalesforceRestService {
         Response response = null;
         try {
             response = httpClient.newCall(request).execute();
-            if (response.code() < 200 || response.code() >= 400) {
+            if (response.code() < 200 || response.code() > 201) {
                 throw new ProcessException("Invalid response" +
                         " Code: " + response.code() +
                         " Message: " + response.message() +

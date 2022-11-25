@@ -18,50 +18,42 @@ package org.apache.nifi.processors.salesforce;
 
 import org.apache.nifi.oauth2.StandardOauth2AccessTokenProvider;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties;
 import org.apache.nifi.processors.salesforce.util.SalesforceConfigAware;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class PutSalesforceRecordIT implements SalesforceConfigAware {
+class PutSalesforceObjectIT implements SalesforceConfigAware {
 
     private TestRunner runner;
 
     @BeforeEach
     void setUp() throws Exception {
-        int maxRecordCount = 2;
-        Processor putSalesforceRecord = new CustomPutSalesforceRecord(maxRecordCount);
+        Processor putSalesforceObject = new PutSalesforceObject() {
+            @Override
+            int getMaxRecordCount() {
+                return 2;
+            }
+        };
 
-        runner = TestRunners.newTestRunner(putSalesforceRecord);
+        runner = TestRunners.newTestRunner(putSalesforceObject);
 
         StandardOauth2AccessTokenProvider oauth2AccessTokenProvider = initOAuth2AccessTokenProvider(runner);
-        runner.setProperty(QuerySalesforceObject.TOKEN_PROVIDER, oauth2AccessTokenProvider.getIdentifier());
+        runner.setProperty(CommonSalesforceProperties.TOKEN_PROVIDER, oauth2AccessTokenProvider.getIdentifier());
     }
 
     @Test
-    void testPutSalesforceRecord() throws Exception {
-        MockComponentLog mockComponentLog = new MockComponentLog("id1", "testPutSalesforceRecord");
-        InputStream in = readFile("src/test/resources/json/put_records.json");
-
-        MockFlowFile flowFile = new MockFlowFile(1L);
-        byte[] fileContent = Files.readAllBytes(Paths.get("src/test/resources/json/put_records.json"));
-        flowFile.setData(fileContent);
-        flowFile.putAttributes(Collections.singletonMap("objectType", "Account"));
+    void testPutSalesforceObject() throws Exception {
 
         MockRecordParser reader = new MockRecordParser();
         reader.addSchemaField("name", RecordFieldType.STRING);
@@ -76,38 +68,19 @@ class PutSalesforceRecordIT implements SalesforceConfigAware {
         reader.addRecord("SampleAccount4", "444444", "www.salesforce4.com", "400", "Banking");
         reader.addRecord("SampleAccount5", "555555", "www.salesforce5.com", "500", "Banking");
 
-        reader.createRecordReader(flowFile, in, mockComponentLog);
+        runner.enqueue("", Collections.singletonMap("objectType", "Account"));
 
         runner.addControllerService("reader", reader);
         runner.enableControllerService(reader);
 
-        runner.setProperty(PutSalesforceRecord.API_VERSION, VERSION);
-        runner.setProperty(PutSalesforceRecord.API_URL, BASE_URL);
-        runner.setProperty(PutSalesforceRecord.RECORD_READER_FACTORY, reader.getIdentifier());
+        runner.setProperty(CommonSalesforceProperties.API_VERSION, VERSION);
+        runner.setProperty(CommonSalesforceProperties.API_URL, BASE_URL);
+        runner.setProperty(PutSalesforceObject.RECORD_READER_FACTORY, reader.getIdentifier());
 
-
-        runner.enqueue(flowFile);
         runner.run();
 
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(QuerySalesforceObject.REL_SUCCESS);
+        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PutSalesforceObject.REL_SUCCESS);
 
-        assertNotNull(results);
-    }
-
-    static class CustomPutSalesforceRecord extends PutSalesforceRecord {
-        private final int maxRecordCount;
-
-        public CustomPutSalesforceRecord(int maxRecordCount) {
-            this.maxRecordCount = maxRecordCount;
-        }
-
-        @Override
-        int getMaxRecordCount() {
-            return maxRecordCount;
-        }
-    }
-
-    private InputStream readFile(final String path) throws IOException {
-        return new FileInputStream(path);
+        assertEquals(1, results.size());
     }
 }
