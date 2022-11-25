@@ -52,7 +52,7 @@ import org.apache.nifi.reporting.InitializationException;
         @ReadsAttribute(attribute= "APP_TENANT", description="Azure application tenant for accessing the ADX-Cluster."),
         @ReadsAttribute(attribute= "CLUSTER_URL", description="Endpoint of ADX cluster. This is required only when streaming data to ADX cluster is enabled."),
 })
-public class AzureAdxConnectionService extends AbstractControllerService implements AdxConnectionService {
+public class AzureAdxSinkSinkConnectionService extends AbstractControllerService implements AdxSinkConnectionService {
 
     public static final PropertyDescriptor INGEST_URL = new PropertyDescriptor
             .Builder().name(AzureAdxConnectionServiceParamsEnum.INGEST_URL.name())
@@ -120,7 +120,6 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
     private Client executionClient;
 
     private ADXConnectionParams adxConnectionParams;
-
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

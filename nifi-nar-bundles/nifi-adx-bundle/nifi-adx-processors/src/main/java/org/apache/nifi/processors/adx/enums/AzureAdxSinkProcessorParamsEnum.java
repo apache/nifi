@@ -23,7 +23,7 @@ public enum AzureAdxSinkProcessorParamsEnum {
     FLUSH_IMMEDIATE("Flush immediate","Flush the content sent immediately to the ingest endpoint."),
     DATA_FORMAT("Data format","The format of the data that is sent to ADX."),
     IM_KIND("Ingestion Mapping Kind","The type of the ingestion mapping related to the table in ADX."),
-    ADX_SERVICE("Azure ADXConnection Service","Service that provides the ADX-Connections."),
+    ADX_SINK_SERVICE("Azure ADX Sink Connection Service","Service that provides the ADX-Connections."),
     IS_TRANSACTIONAL("Ingestion Transactional Mode","Defines whether we want transactionality in the ingested data."),
 
     IS_IGNORE_FIRST_RECORD("Ingestion Ignore First Record","Defines whether ignore first record while ingestion."),

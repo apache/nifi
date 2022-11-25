@@ -21,8 +21,8 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
-import org.apache.nifi.adx.AdxConnectionService;
-import org.apache.nifi.adx.AzureAdxConnectionService;
+import org.apache.nifi.adx.AdxSinkConnectionService;
+import org.apache.nifi.adx.AzureAdxSinkSinkConnectionService;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -68,7 +68,7 @@ public class AzureAdxSinkProcessorTest {
 
     private static final String MOCK_MAPPING_NAME= "mockMappingName";
 
-    private AzureAdxConnectionService azureAdxConnectionService;
+    private AzureAdxSinkSinkConnectionService azureAdxSinkConnectionService;
 
     private TestRunner testRunner;
 
@@ -102,22 +102,22 @@ public class AzureAdxSinkProcessorTest {
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME,MOCK_DB_NAME);
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT,"CSV");
-        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SINK_SERVICE,"adx-connection-service");
 
         testRunner.setValidateExpressionUsage(false);
 
-        azureAdxConnectionService = new MockAzureAdxConnectionService();
+        azureAdxSinkConnectionService = new MockAzureAdxSinkSinkConnectionService();
 
-        testRunner.addControllerService("adx-connection-service", azureAdxConnectionService, new HashMap<>());
+        testRunner.addControllerService("adx-connection-service", azureAdxSinkConnectionService, new HashMap<>());
 
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.INGEST_URL,"http://ingest-sample.com/");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_TENANT,"sample");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.CLUSTER_URL, "http://sample.com/");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.INGEST_URL,"http://ingest-sample.com/");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_ID,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_KEY,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_TENANT,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.CLUSTER_URL, "http://sample.com/");
 
-        testRunner.enableControllerService(azureAdxConnectionService);
-        testRunner.assertValid(azureAdxConnectionService);
+        testRunner.enableControllerService(azureAdxSinkConnectionService);
+        testRunner.assertValid(azureAdxSinkConnectionService);
         InputStream inputStream = this.getClass().getResourceAsStream("/fileQueuedSuccess.csv");
         testRunner.enqueue(inputStream);
         assert inputStream != null;
@@ -138,22 +138,22 @@ public class AzureAdxSinkProcessorTest {
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME,MOCK_DB_NAME);
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT,"CSV");
-        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SINK_SERVICE,"adx-connection-service");
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.IS_TRANSACTIONAL, org.apache.nifi.processors.adx.AzureAdxSinkProcessor.TRANSACTIONAL_YES);
 
         testRunner.setValidateExpressionUsage(false);
 
-        azureAdxConnectionService = new MockAzureAdxConnectionService();
+        azureAdxSinkConnectionService = new MockAzureAdxSinkSinkConnectionService();
 
-        testRunner.addControllerService("adx-connection-service", azureAdxConnectionService, new HashMap<>());
+        testRunner.addControllerService("adx-connection-service", azureAdxSinkConnectionService, new HashMap<>());
 
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.INGEST_URL,"http://ingest-sample.com/");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_TENANT,"sample");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.CLUSTER_URL, "http://sample.com/");
-        testRunner.enableControllerService(azureAdxConnectionService);
-        testRunner.assertValid(azureAdxConnectionService);
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.INGEST_URL,"http://ingest-sample.com/");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_ID,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_KEY,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_TENANT,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.CLUSTER_URL, "http://sample.com/");
+        testRunner.enableControllerService(azureAdxSinkConnectionService);
+        testRunner.assertValid(azureAdxSinkConnectionService);
         InputStream inputStream = this.getClass().getResourceAsStream("/fileQueuedSuccess.csv");
         testRunner.enqueue(inputStream);
         assert inputStream != null;
@@ -174,24 +174,24 @@ public class AzureAdxSinkProcessorTest {
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME,MOCK_DB_NAME);
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT,"CSV");
-        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SINK_SERVICE,"adx-connection-service");
         testRunner.setProperty(AzureAdxSinkProcessor.IS_STREAMING_ENABLED,"true");
 
         testRunner.setValidateExpressionUsage(false);
 
-        azureAdxConnectionService = new MockAzureAdxConnectionService();
+        azureAdxSinkConnectionService = new MockAzureAdxSinkSinkConnectionService();
 
-        testRunner.addControllerService("adx-connection-service", azureAdxConnectionService, new HashMap<>());
+        testRunner.addControllerService("adx-connection-service", azureAdxSinkConnectionService, new HashMap<>());
 
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.INGEST_URL,"https://ingest-sample.com/");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_TENANT,"sample");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.CLUSTER_URL,"https://sample-cluster.com/");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.INGEST_URL,"https://ingest-sample.com/");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_ID,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_KEY,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_TENANT,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.CLUSTER_URL,"https://sample-cluster.com/");
 
-        testRunner.enableControllerService(azureAdxConnectionService);
+        testRunner.enableControllerService(azureAdxSinkConnectionService);
 
-        testRunner.assertValid(azureAdxConnectionService);
+        testRunner.assertValid(azureAdxSinkConnectionService);
 
         testRunner.run(1);
         testRunner.assertAllFlowFilesTransferred(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.RL_SUCCEEDED);
@@ -207,11 +207,11 @@ public class AzureAdxSinkProcessorTest {
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME,MOCK_DB_NAME);
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT,"CSV");
-        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SINK_SERVICE,"adx-connection-service");
 
 
         List<PropertyDescriptor> pd = azureAdxSinkProcessor.getSupportedPropertyDescriptors();
-        assertTrue(pd.contains(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE));
+        assertTrue(pd.contains(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SINK_SERVICE));
         assertTrue(pd.contains(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT));
         assertTrue(pd.contains(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME));
         assertTrue(pd.contains(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.FLUSH_IMMEDIATE));
@@ -229,23 +229,23 @@ public class AzureAdxSinkProcessorTest {
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME,MOCK_DB_NAME);
         //testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT,"CSV");
-        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SINK_SERVICE,"adx-connection-service");
 
 
         testRunner.setValidateExpressionUsage(false);
 
-        azureAdxConnectionService = new AzureAdxConnectionService();
+        azureAdxSinkConnectionService = new AzureAdxSinkSinkConnectionService();
 
-        testRunner.addControllerService("adx-connection-service", azureAdxConnectionService, new HashMap<>());
+        testRunner.addControllerService("adx-connection-service", azureAdxSinkConnectionService, new HashMap<>());
 
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.INGEST_URL,"http://ingest-sample.com/");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_TENANT,"sample");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.CLUSTER_URL, "http://sample.com/");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.INGEST_URL,"http://ingest-sample.com/");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_ID,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_KEY,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_TENANT,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.CLUSTER_URL, "http://sample.com/");
 
-        testRunner.enableControllerService(azureAdxConnectionService);
-        testRunner.assertValid(azureAdxConnectionService);
+        testRunner.enableControllerService(azureAdxSinkConnectionService);
+        testRunner.assertValid(azureAdxSinkConnectionService);
         AssertionFailedError assertionFailedError = assertThrows(AssertionFailedError.class,()->{
             testRunner.run(1);
         });
@@ -262,22 +262,22 @@ public class AzureAdxSinkProcessorTest {
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME,MOCK_DB_NAME);
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT,"CSV");
-        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SINK_SERVICE,"adx-connection-service");
 
 
         testRunner.setValidateExpressionUsage(false);
 
-        azureAdxConnectionService = new AzureAdxConnectionService();
+        azureAdxSinkConnectionService = new AzureAdxSinkSinkConnectionService();
 
-        testRunner.addControllerService("adx-connection-service", azureAdxConnectionService, new HashMap<>());
+        testRunner.addControllerService("adx-connection-service", azureAdxSinkConnectionService, new HashMap<>());
 
         //missing ingest url required for connection service
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_TENANT,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_ID,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_KEY,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_TENANT,"sample");
 
         IllegalStateException illegalStateException =Assertions.assertThrows(IllegalStateException.class, () -> {
-            testRunner.enableControllerService(azureAdxConnectionService);
+            testRunner.enableControllerService(azureAdxSinkConnectionService);
         });
 
         assertTrue(illegalStateException.getMessage().contains("Ingest URL"));
@@ -294,26 +294,26 @@ public class AzureAdxSinkProcessorTest {
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME,MOCK_DB_NAME);
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
         testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT,"CSV");
-        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SINK_SERVICE,"adx-connection-service");
 
 
         testRunner.setValidateExpressionUsage(false);
 
-        azureAdxConnectionService = new AzureAdxConnectionService();
+        azureAdxSinkConnectionService = new AzureAdxSinkSinkConnectionService();
 
-        testRunner.addControllerService("adx-connection-service", azureAdxConnectionService, new HashMap<>());
+        testRunner.addControllerService("adx-connection-service", azureAdxSinkConnectionService, new HashMap<>());
 
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.INGEST_URL,"http://ingest-sample.com/");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_TENANT,"sample");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.CLUSTER_URL, "http://sample.com/");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.INGEST_URL,"http://ingest-sample.com/");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_ID,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_KEY,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_TENANT,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.CLUSTER_URL, "http://sample.com/");
 
-        testRunner.enableControllerService(azureAdxConnectionService);
-        testRunner.assertValid(azureAdxConnectionService);
+        testRunner.enableControllerService(azureAdxSinkConnectionService);
+        testRunner.assertValid(azureAdxSinkConnectionService);
 
-        AdxConnectionService adxConnectionServiceFromProcessContext = (AdxConnectionService) testRunner.getProcessContext().getControllerServiceLookup().getControllerService("adx-connection-service");
-        assertNotNull(adxConnectionServiceFromProcessContext);
+        AdxSinkConnectionService adxSinkConnectionServiceFromProcessContext = (AdxSinkConnectionService) testRunner.getProcessContext().getControllerServiceLookup().getControllerService("adx-connection-service");
+        assertNotNull(adxSinkConnectionServiceFromProcessContext);
 
         InputStream stream = new ByteArrayInputStream("exampleString".getBytes(StandardCharsets.UTF_8));
         testRunner.enqueue(stream);

@@ -32,11 +32,11 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class TestAzureAdxConnectionService {
+public class TestAzureAdxSinkConnectionService {
 
     private TestRunner runner;
 
-    private AzureAdxConnectionService service;
+    private AzureAdxSinkSinkConnectionService service;
 
     private static final String MOCK_URI = "https://mockURI:443/";
     private static final String MOCK_APP_ID = "mockAppId";
@@ -51,7 +51,7 @@ public class TestAzureAdxConnectionService {
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(TestAzureAdxIngestProcessor.class);
 
-        service = new AzureAdxConnectionService();
+        service = new AzureAdxSinkSinkConnectionService();
         runner.addControllerService("test-good", service);
 
     }
@@ -73,23 +73,23 @@ public class TestAzureAdxConnectionService {
     }
 
     private void configureIngestURL() {
-        runner.setProperty(service, AzureAdxConnectionService.INGEST_URL, MOCK_URI);
+        runner.setProperty(service, AzureAdxSinkSinkConnectionService.INGEST_URL, MOCK_URI);
     }
 
     private void configureAppId() {
-        runner.setProperty(service, AzureAdxConnectionService.APP_ID, MOCK_APP_ID);
+        runner.setProperty(service, AzureAdxSinkSinkConnectionService.APP_ID, MOCK_APP_ID);
     }
 
     private void configureAppKey() {
-        runner.setProperty(service, AzureAdxConnectionService.APP_KEY, MOCK_APP_KEY);
+        runner.setProperty(service, AzureAdxSinkSinkConnectionService.APP_KEY, MOCK_APP_KEY);
     }
 
     private void configureAppTenant() {
-        runner.setProperty(service, AzureAdxConnectionService.APP_TENANT, MOCK_APP_TENANT);
+        runner.setProperty(service, AzureAdxSinkSinkConnectionService.APP_TENANT, MOCK_APP_TENANT);
     }
 
     private void configureClusterURL() {
-        runner.setProperty(service, AzureAdxConnectionService.CLUSTER_URL, MOCK_CLUSTER_URL);
+        runner.setProperty(service, AzureAdxSinkSinkConnectionService.CLUSTER_URL, MOCK_CLUSTER_URL);
     }
 
     @Test
@@ -121,11 +121,11 @@ public class TestAzureAdxConnectionService {
         configureAppTenant();
 
         List<PropertyDescriptor> pd = service.getSupportedPropertyDescriptors();
-        assertTrue(pd.contains(AzureAdxConnectionService.APP_ID));
-        assertTrue(pd.contains(AzureAdxConnectionService.APP_KEY));
-        assertTrue(pd.contains(AzureAdxConnectionService.INGEST_URL));
-        assertTrue(pd.contains(AzureAdxConnectionService.APP_TENANT));
-        assertTrue(pd.contains(AzureAdxConnectionService.CLUSTER_URL));
+        assertTrue(pd.contains(AzureAdxSinkSinkConnectionService.APP_ID));
+        assertTrue(pd.contains(AzureAdxSinkSinkConnectionService.APP_KEY));
+        assertTrue(pd.contains(AzureAdxSinkSinkConnectionService.INGEST_URL));
+        assertTrue(pd.contains(AzureAdxSinkSinkConnectionService.APP_TENANT));
+        assertTrue(pd.contains(AzureAdxSinkSinkConnectionService.CLUSTER_URL));
     }
 
 

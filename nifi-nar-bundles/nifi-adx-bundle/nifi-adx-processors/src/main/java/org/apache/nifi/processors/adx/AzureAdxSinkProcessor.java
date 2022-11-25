@@ -22,7 +22,7 @@ import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.adx.AdxConnectionService;
+import org.apache.nifi.adx.AdxSinkConnectionService;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
@@ -108,7 +108,7 @@ public class AzureAdxSinkProcessor extends AbstractProcessor {
 
     private List<PropertyDescriptor> descriptors;
     private Set<Relationship> relationships;
-    private AdxConnectionService service;
+    private AdxSinkConnectionService service;
     private IngestClient ingestClient;
     private Client executionClient;
     private boolean isStreamingEnabled;
@@ -209,12 +209,12 @@ public class AzureAdxSinkProcessor extends AbstractProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .defaultValue("false")
             .build();
-    public static final PropertyDescriptor ADX_SERVICE = new PropertyDescriptor
-            .Builder().name(AzureAdxSinkProcessorParamsEnum.ADX_SERVICE.name())
-            .displayName(AzureAdxSinkProcessorParamsEnum.ADX_SERVICE.getParamDisplayName())
-            .description(AzureAdxSinkProcessorParamsEnum.ADX_SERVICE.getParamDescription())
+    public static final PropertyDescriptor ADX_SINK_SERVICE = new PropertyDescriptor
+            .Builder().name(AzureAdxSinkProcessorParamsEnum.ADX_SINK_SERVICE.name())
+            .displayName(AzureAdxSinkProcessorParamsEnum.ADX_SINK_SERVICE.getParamDisplayName())
+            .description(AzureAdxSinkProcessorParamsEnum.ADX_SINK_SERVICE.getParamDescription())
             .required(true)
-            .identifiesControllerService(AdxConnectionService.class)
+            .identifiesControllerService(AdxSinkConnectionService.class)
             .build();
     public static final PropertyDescriptor SHOW_ADVANCED_OPTIONS = new PropertyDescriptor
             .Builder().name(AzureAdxSinkProcessorParamsEnum.SHOW_ADVANCED_OPTIONS.name())
@@ -284,7 +284,7 @@ public class AzureAdxSinkProcessor extends AbstractProcessor {
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(ADX_SERVICE);
+        descriptors.add(ADX_SINK_SERVICE);
         descriptors.add(DB_NAME);
         descriptors.add(TABLE_NAME);
         descriptors.add(MAPPING_NAME);
@@ -315,7 +315,7 @@ public class AzureAdxSinkProcessor extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        service = context.getProperty(ADX_SERVICE).asControllerService(AdxConnectionService.class);
+        service = context.getProperty(ADX_SINK_SERVICE).asControllerService(AdxSinkConnectionService.class);
         executionClient = service.getKustoExecutionClient();
         if (!isIngestorRole(context.getProperty(DB_NAME).getValue(), context.getProperty(TABLE_NAME).getValue(), executionClient)) {
             getLogger().error("User might not have ingestor privileges, table validation will be skipped for all table mappings.");

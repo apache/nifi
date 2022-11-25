@@ -32,13 +32,13 @@ import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-import org.apache.nifi.adx.AzureAdxConnectionService;
+import org.apache.nifi.adx.AzureAdxSinkSinkConnectionService;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MockAzureAdxConnectionService extends AzureAdxConnectionService {
+public class MockAzureAdxSinkSinkConnectionService extends AzureAdxSinkSinkConnectionService {
 
     @Override
     public Client getKustoExecutionClient(){
