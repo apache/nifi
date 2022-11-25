@@ -76,7 +76,7 @@ public class MockAzureAdxConnectionService extends AzureAdxConnectionService {
     }
 
     @Override
-    public IngestClient getAdxClient() {
+    public IngestClient getAdxClient(boolean isStreamingEnabled) {
         return new IngestClient() {
             @Override
             public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {

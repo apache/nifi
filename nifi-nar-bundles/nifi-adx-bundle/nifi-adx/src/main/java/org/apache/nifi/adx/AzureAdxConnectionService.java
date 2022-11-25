@@ -28,6 +28,7 @@ import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
+import org.apache.nifi.adx.model.ADXConnectionParams;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -49,7 +50,6 @@ import org.apache.nifi.reporting.InitializationException;
         @ReadsAttribute(attribute= "APP_ID", description="Specifies Azure application id for accessing the ADX-Cluster."),
         @ReadsAttribute(attribute= "APP_KEY", description="Specifies Azure application key for accessing the ADX-Cluster."),
         @ReadsAttribute(attribute= "APP_TENANT", description="Azure application tenant for accessing the ADX-Cluster."),
-        @ReadsAttribute(attribute= "IS_STREAMING_ENABLED", description="This property determines whether we want to stream data to ADX."),
         @ReadsAttribute(attribute= "CLUSTER_URL", description="Endpoint of ADX cluster. This is required only when streaming data to ADX cluster is enabled."),
 })
 public class AzureAdxConnectionService extends AbstractControllerService implements AdxConnectionService {
@@ -96,20 +96,11 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor IS_STREAMING_ENABLED = new PropertyDescriptor
-            .Builder().name(AzureAdxConnectionServiceParamsEnum.IS_STREAMING_ENABLED.name())
-            .displayName(AzureAdxConnectionServiceParamsEnum.IS_STREAMING_ENABLED.getParamDisplayName())
-            .description(AzureAdxConnectionServiceParamsEnum.IS_STREAMING_ENABLED.getDescription())
-            .required(false)
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .defaultValue("false")
-            .build();
-
     public static final PropertyDescriptor CLUSTER_URL = new PropertyDescriptor
             .Builder().name(AzureAdxConnectionServiceParamsEnum.CLUSTER_URL.name())
             .displayName(AzureAdxConnectionServiceParamsEnum.CLUSTER_URL.getParamDisplayName())
             .description(AzureAdxConnectionServiceParamsEnum.CLUSTER_URL.getDescription())
-            .required(false)
+            .required(true)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
@@ -120,16 +111,16 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
                     APP_ID,
                     APP_KEY,
                     APP_TENANT,
-                    IS_STREAMING_ENABLED,
                     CLUSTER_URL
             )
     );
 
-    private IngestClient _ingestClient;
+    private IngestClient ingestClient;
 
     private Client executionClient;
 
-    private boolean isStreamingEnabled;
+    private ADXConnectionParams adxConnectionParams;
+
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -146,33 +137,29 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
     public void onEnabled(final ConfigurationContext context) throws ProcessException {
 
         getLogger().info("Starting Azure ADX Connection Service...");
+        adxConnectionParams = new ADXConnectionParams();
+        adxConnectionParams.setKustoAuthStrategy(context.getProperty(KUSTO_AUTH_STRATEGY).evaluateAttributeExpressions().getValue());
+        adxConnectionParams.setIngestURL(context.getProperty(INGEST_URL).evaluateAttributeExpressions().getValue());
+        adxConnectionParams.setAppId(context.getProperty(APP_ID).evaluateAttributeExpressions().getValue());
+        adxConnectionParams.setAppKey(context.getProperty(APP_KEY).evaluateAttributeExpressions().getValue());
+        adxConnectionParams.setAppTenant(context.getProperty(APP_TENANT).evaluateAttributeExpressions().getValue());
+        adxConnectionParams.setKustoEngineURL(context.getProperty(CLUSTER_URL).evaluateAttributeExpressions().getValue());
 
-        final String kustoAuthStrategy = context.getProperty(KUSTO_AUTH_STRATEGY).evaluateAttributeExpressions().getValue();
-        final String ingestUrl = context.getProperty(INGEST_URL).evaluateAttributeExpressions().getValue();
-        final String app_id = context.getProperty(APP_ID).evaluateAttributeExpressions().getValue();
-        final String app_key = context.getProperty(APP_KEY).evaluateAttributeExpressions().getValue();
-        final String app_tenant = context.getProperty(APP_TENANT).evaluateAttributeExpressions().getValue();
-        final String kustoEngineUrl = context.getProperty(CLUSTER_URL).evaluateAttributeExpressions().getValue();
-        isStreamingEnabled = context.getProperty(IS_STREAMING_ENABLED).evaluateAttributeExpressions().asBoolean();
-
-        if(this._ingestClient != null) {
+        if(this.ingestClient != null || this.executionClient != null) {
             onStopped();
         }
-
-        this._ingestClient = createAdxClient(ingestUrl, app_id, app_key, app_tenant,isStreamingEnabled,kustoEngineUrl,kustoAuthStrategy);
-        this.executionClient = createKustoExecutionClient(kustoEngineUrl,app_id,app_key,app_tenant,kustoAuthStrategy);
 
     }
 
     @OnStopped
     public final void onStopped() {
-        if (this._ingestClient != null) {
+        if (this.ingestClient != null) {
             try {
-                this._ingestClient.close();
+                this.ingestClient.close();
             } catch(IOException e) {
                 getLogger().error("Closing Azure ADX Client failed with: " + e.getMessage(), e);
             } finally {
-                this._ingestClient = null;
+                this.ingestClient = null;
             }
         }
         this.executionClient = null;
@@ -189,19 +176,15 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
         return createKustoIngestClient(ingestUrl,appId,appKey,appTenant,isStreamingEnabled,kustoEngineUrl,kustoAuthStrategy);
     }
     @Override
-    public IngestClient getAdxClient() {
-        return this._ingestClient;
+    public IngestClient getAdxClient(boolean isStreamingEnabled) {
+        return createAdxClient(adxConnectionParams.getIngestURL(), adxConnectionParams.getAppId(), adxConnectionParams.getAppKey(), adxConnectionParams.getAppTenant(), isStreamingEnabled, adxConnectionParams.getKustoEngineURL(), adxConnectionParams.getKustoAuthStrategy());
     }
 
     @Override
     public Client getKustoExecutionClient(){
-        return this.executionClient;
+        return createKustoExecutionClient(adxConnectionParams.getKustoEngineURL(), adxConnectionParams.getAppId(), adxConnectionParams.getAppKey(), adxConnectionParams.getAppTenant(), adxConnectionParams.getKustoAuthStrategy());
     }
 
-    @Override
-    public boolean isStreamingEnabled() {
-        return isStreamingEnabled;
-    }
 
     public IngestClient createKustoIngestClient(final String ingestUrl,
                                                 final String appId,
@@ -263,4 +246,6 @@ public class AzureAdxConnectionService extends AbstractControllerService impleme
             throw new ProcessException("Failed to initialize KustoEngineClient", e);
         }
     }
+
+
 }

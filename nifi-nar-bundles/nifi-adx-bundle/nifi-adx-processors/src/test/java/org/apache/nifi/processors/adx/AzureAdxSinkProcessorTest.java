@@ -53,9 +53,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class AzureAdxIngestProcessorTest {
+public class AzureAdxSinkProcessorTest {
 
-    private AzureAdxIngestProcessor azureAdxIngestProcessor;
+    private org.apache.nifi.processors.adx.AzureAdxSinkProcessor azureAdxSinkProcessor;
 
     private MockProcessSession processSession;
 
@@ -76,18 +76,18 @@ public class AzureAdxIngestProcessorTest {
     @BeforeEach
     public void init() {
 
-        azureAdxIngestProcessor = new MockAzureAdxIngestProcessor();
+        azureAdxSinkProcessor = new MockAzureAdxSinkProcessor();
         final ProcessorInitializationContext initContext = Mockito.mock(ProcessorInitializationContext.class);
         final String componentId = "componentId";
         when(initContext.getIdentifier()).thenReturn(componentId);
-        MockComponentLog componentLog = new MockComponentLog(componentId, azureAdxIngestProcessor);
+        MockComponentLog componentLog = new MockComponentLog(componentId, azureAdxSinkProcessor);
         when(initContext.getLogger()).thenReturn(componentLog);
-        azureAdxIngestProcessor.initialize(initContext);
+        azureAdxSinkProcessor.initialize(initContext);
 
         final ProcessSessionFactory processSessionFactory = Mockito.mock(ProcessSessionFactory.class);
 
-        sharedState = new SharedSessionState(azureAdxIngestProcessor, new AtomicLong(0));
-        processSession = new MockProcessSession(sharedState, azureAdxIngestProcessor);
+        sharedState = new SharedSessionState(azureAdxSinkProcessor, new AtomicLong(0));
+        processSession = new MockProcessSession(sharedState, azureAdxSinkProcessor);
 
 
 
@@ -96,16 +96,13 @@ public class AzureAdxIngestProcessorTest {
     @Test
     public void testAzureAdxIngestProcessorQueuedIngestionNonTransactional() throws InitializationException, IOException {
 
-        testRunner = TestRunners.newTestRunner(azureAdxIngestProcessor);
+        testRunner = TestRunners.newTestRunner(azureAdxSinkProcessor);
 
-        testRunner.setProperty(AzureAdxIngestProcessor.TABLE_NAME,MOCK_TABLE_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.DB_NAME,MOCK_DB_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.DATA_FORMAT,"CSV");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_LEVEL,"IRL_FAS");
-        testRunner.setProperty(AzureAdxIngestProcessor.WAIT_FOR_STATUS,"ST_SUCCESS");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_METHOD,"IRM_TABLE");
-        testRunner.setProperty(AzureAdxIngestProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.TABLE_NAME,MOCK_TABLE_NAME);
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME,MOCK_DB_NAME);
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT,"CSV");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE,"adx-connection-service");
 
         testRunner.setValidateExpressionUsage(false);
 
@@ -127,25 +124,22 @@ public class AzureAdxIngestProcessorTest {
         inputStream.close();
         testRunner.run(1);
         testRunner.assertQueueEmpty();
-        List<MockFlowFile> results = testRunner.getFlowFilesForRelationship(AzureAdxIngestProcessor.RL_SUCCEEDED);
-        testRunner.assertAllFlowFilesTransferred(AzureAdxIngestProcessor.RL_SUCCEEDED);
+        List<MockFlowFile> results = testRunner.getFlowFilesForRelationship(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.RL_SUCCEEDED);
+        testRunner.assertAllFlowFilesTransferred(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.RL_SUCCEEDED);
 
     }
 
     @Test
     public void testAzureAdxIngestProcessorQueuedIngestionTransactional() throws InitializationException, DataServiceException, DataClientException, IOException {
 
-        testRunner = TestRunners.newTestRunner(azureAdxIngestProcessor);
+        testRunner = TestRunners.newTestRunner(azureAdxSinkProcessor);
 
-        testRunner.setProperty(AzureAdxIngestProcessor.TABLE_NAME,MOCK_TABLE_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.DB_NAME,MOCK_DB_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.DATA_FORMAT,"CSV");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_LEVEL,"IRL_FAS");
-        testRunner.setProperty(AzureAdxIngestProcessor.WAIT_FOR_STATUS,"ST_SUCCESS");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_METHOD,"IRM_TABLE");
-        testRunner.setProperty(AzureAdxIngestProcessor.ADX_SERVICE,"adx-connection-service");
-        testRunner.setProperty(AzureAdxIngestProcessor.IS_TRANSACTIONAL,AzureAdxIngestProcessor.TRANSACTIONAL_YES);
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.TABLE_NAME,MOCK_TABLE_NAME);
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME,MOCK_DB_NAME);
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT,"CSV");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.IS_TRANSACTIONAL, org.apache.nifi.processors.adx.AzureAdxSinkProcessor.TRANSACTIONAL_YES);
 
         testRunner.setValidateExpressionUsage(false);
 
@@ -166,24 +160,22 @@ public class AzureAdxIngestProcessorTest {
         inputStream.close();
         testRunner.run(1);
         testRunner.assertQueueEmpty();
-        List<MockFlowFile> results = testRunner.getFlowFilesForRelationship(AzureAdxIngestProcessor.RL_SUCCEEDED);
-        testRunner.assertAllFlowFilesTransferred(AzureAdxIngestProcessor.RL_SUCCEEDED);
+        List<MockFlowFile> results = testRunner.getFlowFilesForRelationship(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.RL_SUCCEEDED);
+        testRunner.assertAllFlowFilesTransferred(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.RL_SUCCEEDED);
 
     }
 
     @Test
     public void testAzureAdxIngestProcessorManagedStreaming() throws InitializationException, DataServiceException, DataClientException {
 
-        testRunner = TestRunners.newTestRunner(azureAdxIngestProcessor);
+        testRunner = TestRunners.newTestRunner(azureAdxSinkProcessor);
 
-        testRunner.setProperty(AzureAdxIngestProcessor.TABLE_NAME,MOCK_TABLE_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.DB_NAME,MOCK_DB_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.DATA_FORMAT,"CSV");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_LEVEL,"IRL_FAS");
-        testRunner.setProperty(AzureAdxIngestProcessor.WAIT_FOR_STATUS,"ST_SUCCESS");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_METHOD,"IRM_TABLE");
-        testRunner.setProperty(AzureAdxIngestProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.TABLE_NAME,MOCK_TABLE_NAME);
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME,MOCK_DB_NAME);
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT,"CSV");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(AzureAdxSinkProcessor.IS_STREAMING_ENABLED,"true");
 
         testRunner.setValidateExpressionUsage(false);
 
@@ -195,7 +187,6 @@ public class AzureAdxIngestProcessorTest {
         testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_ID,"sample");
         testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_KEY,"sample");
         testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_TENANT,"sample");
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.IS_STREAMING_ENABLED, "true");
         testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.CLUSTER_URL,"https://sample-cluster.com/");
 
         testRunner.enableControllerService(azureAdxConnectionService);
@@ -203,51 +194,42 @@ public class AzureAdxIngestProcessorTest {
         testRunner.assertValid(azureAdxConnectionService);
 
         testRunner.run(1);
-        testRunner.assertAllFlowFilesTransferred(AzureAdxIngestProcessor.RL_SUCCEEDED);
+        testRunner.assertAllFlowFilesTransferred(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.RL_SUCCEEDED);
 
     }
 
     @Test
     public void testGetPropertyDescriptors() {
 
-        testRunner = TestRunners.newTestRunner(AzureAdxIngestProcessor.class);
+        testRunner = TestRunners.newTestRunner(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.class);
 
-        testRunner.setProperty(AzureAdxIngestProcessor.TABLE_NAME,MOCK_TABLE_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.DB_NAME,MOCK_DB_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.DATA_FORMAT,"CSV");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_LEVEL,"IRL_FAS");
-        testRunner.setProperty(AzureAdxIngestProcessor.WAIT_FOR_STATUS,"ST_SUCCESS");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_METHOD,"IRM_TABLE");
-        testRunner.setProperty(AzureAdxIngestProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.TABLE_NAME,MOCK_TABLE_NAME);
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME,MOCK_DB_NAME);
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT,"CSV");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE,"adx-connection-service");
 
 
-        List<PropertyDescriptor> pd = azureAdxIngestProcessor.getSupportedPropertyDescriptors();
-        assertTrue(pd.contains(AzureAdxIngestProcessor.ADX_SERVICE));
-        assertTrue(pd.contains(AzureAdxIngestProcessor.DATA_FORMAT));
-        assertTrue(pd.contains(AzureAdxIngestProcessor.DB_NAME));
-        assertTrue(pd.contains(AzureAdxIngestProcessor.IR_METHOD));
-        assertTrue(pd.contains(AzureAdxIngestProcessor.FLUSH_IMMEDIATE));
-        assertTrue(pd.contains(AzureAdxIngestProcessor.MAPPING_NAME));
-        assertTrue(pd.contains(AzureAdxIngestProcessor.IR_LEVEL));
-        assertTrue(pd.contains(AzureAdxIngestProcessor.TABLE_NAME));
-        assertTrue(pd.contains(AzureAdxIngestProcessor.WAIT_FOR_STATUS));
+        List<PropertyDescriptor> pd = azureAdxSinkProcessor.getSupportedPropertyDescriptors();
+        assertTrue(pd.contains(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE));
+        assertTrue(pd.contains(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT));
+        assertTrue(pd.contains(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME));
+        assertTrue(pd.contains(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.FLUSH_IMMEDIATE));
+        assertTrue(pd.contains(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.MAPPING_NAME));
+        assertTrue(pd.contains(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.TABLE_NAME));
     }
 
     @Test
     public void testMissingPropertyValuesOfAdxIngestProcessor() throws InitializationException {
 
-        testRunner = TestRunners.newTestRunner(AzureAdxIngestProcessor.class);
+        testRunner = TestRunners.newTestRunner(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.class);
 
         //missing property tableName
         //testRunner.setProperty(AzureAdxIngestProcessor.IM_KIND,AzureAdxIngestProcessor.IM_KIND_CSV);
-        testRunner.setProperty(AzureAdxIngestProcessor.DB_NAME,MOCK_DB_NAME);
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME,MOCK_DB_NAME);
         //testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.DATA_FORMAT,"CSV");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_LEVEL,"IRL_FAS");
-        testRunner.setProperty(AzureAdxIngestProcessor.WAIT_FOR_STATUS,"ST_SUCCESS");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_METHOD,"IRM_TABLE");
-        testRunner.setProperty(AzureAdxIngestProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT,"CSV");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE,"adx-connection-service");
 
 
         testRunner.setValidateExpressionUsage(false);
@@ -274,16 +256,13 @@ public class AzureAdxIngestProcessorTest {
     @Test
     public void testMissingPropertyValuesOfAdxConnectionService() throws InitializationException {
 
-        testRunner = TestRunners.newTestRunner(AzureAdxIngestProcessor.class);
+        testRunner = TestRunners.newTestRunner(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.class);
 
         //missing property tableName
-        testRunner.setProperty(AzureAdxIngestProcessor.DB_NAME,MOCK_DB_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.DATA_FORMAT,"CSV");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_LEVEL,"IRL_FAS");
-        testRunner.setProperty(AzureAdxIngestProcessor.WAIT_FOR_STATUS,"ST_SUCCESS");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_METHOD,"IRM_TABLE");
-        testRunner.setProperty(AzureAdxIngestProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME,MOCK_DB_NAME);
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT,"CSV");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE,"adx-connection-service");
 
 
         testRunner.setValidateExpressionUsage(false);
@@ -309,16 +288,13 @@ public class AzureAdxIngestProcessorTest {
     @Test
     public void testIngestionFailure() throws InitializationException, IngestionClientException, IngestionServiceException {
 
-        testRunner = TestRunners.newTestRunner(AzureAdxIngestProcessor.class);
+        testRunner = TestRunners.newTestRunner(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.class);
 
-        testRunner.setProperty(AzureAdxIngestProcessor.TABLE_NAME,MOCK_TABLE_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.DB_NAME,MOCK_DB_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
-        testRunner.setProperty(AzureAdxIngestProcessor.DATA_FORMAT,"CSV");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_LEVEL,"IRL_FAS");
-        testRunner.setProperty(AzureAdxIngestProcessor.WAIT_FOR_STATUS,"ST_SUCCESS");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_METHOD,"IRM_TABLE");
-        testRunner.setProperty(AzureAdxIngestProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.TABLE_NAME,MOCK_TABLE_NAME);
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME,MOCK_DB_NAME);
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.MAPPING_NAME,MOCK_MAPPING_NAME);
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT,"CSV");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE,"adx-connection-service");
 
 
         testRunner.setValidateExpressionUsage(false);
@@ -349,7 +325,7 @@ public class AzureAdxIngestProcessorTest {
             Assertions.assertNotNull(e.getMessage());
             Assertions.assertTrue(e.getCause() instanceof  ProcessException);
         }
-        testRunner.assertAllFlowFilesTransferred(AzureAdxIngestProcessor.RL_FAILED);
+        testRunner.assertAllFlowFilesTransferred(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.RL_FAILED);
 
 
     }

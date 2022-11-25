@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.adx;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
@@ -54,19 +52,16 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.adx.enums.AzureAdxIngestProcessorParamsEnum;
+import org.apache.nifi.processors.adx.enums.AzureAdxSinkProcessorParamsEnum;
 import org.apache.nifi.processors.adx.enums.DataFormatEnum;
 import org.apache.nifi.processors.adx.enums.IngestionIgnoreFirstRecordEnum;
-import org.apache.nifi.processors.adx.enums.IngestionReportLevelEnum;
-import org.apache.nifi.processors.adx.enums.IngestionReportMethodEnum;
-import org.apache.nifi.processors.adx.enums.IngestionStatusEnum;
 import org.apache.nifi.processors.adx.enums.RelationshipStatusEnum;
 import org.apache.nifi.processors.adx.enums.TransactionalIngestionEnum;
-import org.apache.nifi.processors.adx.model.IngestionBatchingPolicy;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -82,7 +77,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.regex.Pattern;
 
 @Tags({"azure", "adx", "microsoft", "data", "explorer"})
 @CapabilityDescription("The Azure ADX Ingest Processor acts as a ADX sink connector which sends flowFiles using the ADX-Service to the provided Azure Data" +
@@ -98,22 +92,15 @@ import java.util.regex.Pattern;
         @ReadsAttribute(attribute = "FLUSH_IMMEDIATE", description = "In case of queued ingestion, this property determines whether the data should be flushed immediately to the ingest endpoint."),
         @ReadsAttribute(attribute = "DATA_FORMAT", description = "Specifies the format of data that is send to Azure Data Explorer."),
         @ReadsAttribute(attribute = "IR_LEVEL", description = "ADX can report events on several levels. Ex- None, Failure and Failure & Success."),
-        @ReadsAttribute(attribute = "IR_METHOD", description = "ADX can report events on several methods. Ex- Table, Queue, Table&Queue."),
         @ReadsAttribute(attribute = "IS_TRANSACTIONAL", description = "Default : No ,Incase of any failure, whether we want all our data ingested or none. " +
                 "If set to Yes, it increases the data ingestion time significantly because inorder to maintain transactional behaviour, " +
                 "the processor first tries to ingest into temporary tables before ingesting into actual table."),
         @ReadsAttribute(attribute = "IGNORE_FIRST_RECORD", description = "Specifies whether we want to ignore ingestion of first record. " +
                 "This is primarily applicable for csv files. Default is set to NO"),
-        @ReadsAttribute(attribute = "MAX_BATCHING_TIME_SPAN", description = "Applicable only for queued ingestion, specifies the maximum batching timespan. Default = 5 min"),
-        @ReadsAttribute(attribute = "MAX_BATCHING_NO_OF_ITEMS", description = "Applicable only for queued ingestion, specifies the maximum number of items/records. Default = 1000 items/records"),
-        @ReadsAttribute(attribute = "MAX_BATCHING_RAW_DATA_SIZE_IN_MB", description = "Applicable only for queued ingestion, specifies the maximum size of uncompressed data. Default = 1000MB"),
-        @ReadsAttribute(attribute = "TEMP_TABLE_NAME", description = "Applicable only when the IS_TRANSACTIONAL attribute is set to YES. " +
-                "This attribute specifies if the user wants to assign custom name to temp table. If not specified, the processor appends _tmp to the actual table name."),
-        @ReadsAttribute(attribute = "WAIT_FOR_STATUS", description = "When ingesting data to ADX, this property specifies whether the user wants to wait till we receive the status of ingestion.")
 })
-@Stateful(scopes = Scope.CLUSTER,description = "Incase the user wants transactionality during data ingestion, " +
+@Stateful(scopes = Scope.CLUSTER,description = "In case the user wants transactional property during data ingestion, " +
         "AzureIngestProcessor uses temporary tables to attempt ingestion initially and to store the ingestion status into temp tables of various nodes, it uses nifi statemanager")
-public class AzureAdxIngestProcessor extends AbstractProcessor {
+public class AzureAdxSinkProcessor extends AbstractProcessor {
 
     public static final String FETCH_TABLE_COMMAND = "%s | count";
     public static final String STREAMING_POLICY_SHOW_COMMAND = ".show %s %s policy streamingingestion";
@@ -124,6 +111,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
     private AdxConnectionService service;
     private IngestClient ingestClient;
     private Client executionClient;
+    private boolean isStreamingEnabled;
 
     public static final AllowableValue AVRO = new AllowableValue(
             DataFormatEnum.AVRO.name(), DataFormatEnum.AVRO.getExtension(),
@@ -172,38 +160,6 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             DataFormatEnum.TXT.name(), DataFormatEnum.TXT.getExtension(),
             DataFormatEnum.TXT.getDescription());
 
-    public static final AllowableValue IRL_NONE = new AllowableValue(
-            IngestionReportLevelEnum.IRL_NONE.name(), IngestionReportLevelEnum.IRL_NONE.getIngestionReportLevel(),
-            IngestionReportLevelEnum.IRL_NONE.getDescription());
-
-    public static final AllowableValue IRL_FAIL = new AllowableValue(
-            IngestionReportLevelEnum.IRL_FAIL.name(), IngestionReportLevelEnum.IRL_FAIL.getIngestionReportLevel(),
-            IngestionReportLevelEnum.IRL_FAIL.getDescription());
-
-    public static final AllowableValue IRL_FAS = new AllowableValue(
-            IngestionReportLevelEnum.IRL_FAS.name(), IngestionReportLevelEnum.IRL_FAS.getIngestionReportLevel(),
-            IngestionReportLevelEnum.IRL_FAS.getDescription());
-
-    public static final AllowableValue IRM_QUEUE = new AllowableValue(
-            IngestionReportMethodEnum.IRM_QUEUE.name(), IngestionReportMethodEnum.IRM_QUEUE.getIngestionReportMethod(),
-            IngestionReportMethodEnum.IRM_QUEUE.getDescription());
-
-    public static final AllowableValue IRM_TABLE = new AllowableValue(
-            IngestionReportMethodEnum.IRM_TABLE.name(), IngestionReportMethodEnum.IRM_TABLE.getIngestionReportMethod(),
-            IngestionReportMethodEnum.IRM_TABLE.getDescription());
-
-    public static final AllowableValue IRM_TABLEANDQUEUE = new AllowableValue(
-            IngestionReportMethodEnum.IRM_TABLEANDQUEUE.name(), IngestionReportMethodEnum.IRM_TABLEANDQUEUE.getIngestionReportMethod(),
-            IngestionReportMethodEnum.IRM_TABLEANDQUEUE.getDescription());
-
-    public static final AllowableValue ST_SUCCESS = new AllowableValue(
-            IngestionStatusEnum.ST_SUCCESS.name(), IngestionStatusEnum.ST_SUCCESS.getIngestionStatus(),
-            IngestionStatusEnum.ST_SUCCESS.getDescription());
-
-    public static final AllowableValue ST_FIREANDFORGET = new AllowableValue(
-            IngestionStatusEnum.ST_FIREANDFORGET.name(), IngestionStatusEnum.ST_FIREANDFORGET.getIngestionStatus(),
-            IngestionStatusEnum.ST_FIREANDFORGET.getDescription());
-
     public static final AllowableValue TRANSACTIONAL_YES = new AllowableValue(
             TransactionalIngestionEnum.YES.name(), TransactionalIngestionEnum.YES.getTransactionalIngestion(),
             TransactionalIngestionEnum.YES.getDescription());
@@ -221,60 +177,62 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             IngestionIgnoreFirstRecordEnum.NO.getDescription());
 
     public static final PropertyDescriptor DB_NAME = new PropertyDescriptor
-            .Builder().name(AzureAdxIngestProcessorParamsEnum.DB_NAME.name())
-            .displayName(AzureAdxIngestProcessorParamsEnum.DB_NAME.getParamDisplayName())
-            .description(AzureAdxIngestProcessorParamsEnum.DB_NAME.getParamDescription())
+            .Builder().name(AzureAdxSinkProcessorParamsEnum.DB_NAME.name())
+            .displayName(AzureAdxSinkProcessorParamsEnum.DB_NAME.getParamDisplayName())
+            .description(AzureAdxSinkProcessorParamsEnum.DB_NAME.getParamDescription())
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor
-            .Builder().name(AzureAdxIngestProcessorParamsEnum.TABLE_NAME.name())
-            .displayName(AzureAdxIngestProcessorParamsEnum.TABLE_NAME.getParamDisplayName())
-            .description(AzureAdxIngestProcessorParamsEnum.TABLE_NAME.getParamDescription())
+            .Builder().name(AzureAdxSinkProcessorParamsEnum.TABLE_NAME.name())
+            .displayName(AzureAdxSinkProcessorParamsEnum.TABLE_NAME.getParamDisplayName())
+            .description(AzureAdxSinkProcessorParamsEnum.TABLE_NAME.getParamDescription())
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor MAPPING_NAME = new PropertyDescriptor
-            .Builder().name(AzureAdxIngestProcessorParamsEnum.MAPPING_NAME.name())
-            .displayName(AzureAdxIngestProcessorParamsEnum.MAPPING_NAME.getParamDisplayName())
-            .description(AzureAdxIngestProcessorParamsEnum.MAPPING_NAME.getParamDescription())
+            .Builder().name(AzureAdxSinkProcessorParamsEnum.MAPPING_NAME.name())
+            .displayName(AzureAdxSinkProcessorParamsEnum.MAPPING_NAME.getParamDisplayName())
+            .description(AzureAdxSinkProcessorParamsEnum.MAPPING_NAME.getParamDescription())
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor ADX_SERVICE = new PropertyDescriptor
-            .Builder().name(AzureAdxIngestProcessorParamsEnum.ADX_SERVICE.name())
-            .displayName(AzureAdxIngestProcessorParamsEnum.ADX_SERVICE.getParamDisplayName())
-            .description(AzureAdxIngestProcessorParamsEnum.ADX_SERVICE.getParamDescription())
-            .required(true)
-            .identifiesControllerService(AdxConnectionService.class)
-            .build();
-    public static final PropertyDescriptor WAIT_FOR_STATUS = new PropertyDescriptor
-            .Builder().name(AzureAdxIngestProcessorParamsEnum.WAIT_FOR_STATUS.name())
-            .displayName(AzureAdxIngestProcessorParamsEnum.WAIT_FOR_STATUS.getParamDisplayName())
-            .description(AzureAdxIngestProcessorParamsEnum.WAIT_FOR_STATUS.getParamDescription())
-            .required(true)
-            .allowableValues(ST_SUCCESS, ST_FIREANDFORGET)
-            .defaultValue(ST_SUCCESS.getValue())
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor IS_TRANSACTIONAL = new PropertyDescriptor
-            .Builder().name(AzureAdxIngestProcessorParamsEnum.IS_TRANSACTIONAL.name())
-            .displayName(AzureAdxIngestProcessorParamsEnum.IS_TRANSACTIONAL.getParamDisplayName())
-            .description(AzureAdxIngestProcessorParamsEnum.IS_TRANSACTIONAL.getParamDescription())
-            .required(false)
-            .allowableValues(TRANSACTIONAL_YES, TRANSACTIONAL_NO)
-            .defaultValue(TRANSACTIONAL_NO.getValue())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor TEMP_TABLE_NAME = new PropertyDescriptor
-            .Builder().name("TEMP_TABLE_NAME")
-            .displayName("Temporary Table Name")
-            .description("This property specifies the temporary table name when data ingestion is selected in transactional mode")
-            .dependsOn(IS_TRANSACTIONAL,TRANSACTIONAL_YES)
+    public static final PropertyDescriptor IS_STREAMING_ENABLED = new PropertyDescriptor
+            .Builder().name(AzureAdxSinkProcessorParamsEnum.IS_STREAMING_ENABLED.name())
+            .displayName(AzureAdxSinkProcessorParamsEnum.IS_STREAMING_ENABLED.getParamDisplayName())
+            .description(AzureAdxSinkProcessorParamsEnum.IS_STREAMING_ENABLED.getParamDescription())
             .required(false)
+            .allowableValues("true","false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .defaultValue("false")
+            .build();
+    public static final PropertyDescriptor ADX_SERVICE = new PropertyDescriptor
+            .Builder().name(AzureAdxSinkProcessorParamsEnum.ADX_SERVICE.name())
+            .displayName(AzureAdxSinkProcessorParamsEnum.ADX_SERVICE.getParamDisplayName())
+            .description(AzureAdxSinkProcessorParamsEnum.ADX_SERVICE.getParamDescription())
+            .required(true)
+            .identifiesControllerService(AdxConnectionService.class)
+            .build();
+    public static final PropertyDescriptor SHOW_ADVANCED_OPTIONS = new PropertyDescriptor
+            .Builder().name(AzureAdxSinkProcessorParamsEnum.SHOW_ADVANCED_OPTIONS.name())
+            .displayName(AzureAdxSinkProcessorParamsEnum.SHOW_ADVANCED_OPTIONS.getParamDisplayName())
+            .description(AzureAdxSinkProcessorParamsEnum.SHOW_ADVANCED_OPTIONS.getParamDescription())
+            .required(false)
+            .allowableValues("YES", "NO")
+            .defaultValue("NO")
+            .build();
+    public static final PropertyDescriptor IS_TRANSACTIONAL = new PropertyDescriptor
+            .Builder().name(AzureAdxSinkProcessorParamsEnum.IS_TRANSACTIONAL.name())
+            .displayName(AzureAdxSinkProcessorParamsEnum.IS_TRANSACTIONAL.getParamDisplayName())
+            .description(AzureAdxSinkProcessorParamsEnum.IS_TRANSACTIONAL.getParamDescription())
+            .required(false)
+            .allowableValues(TRANSACTIONAL_YES, TRANSACTIONAL_NO)
+            .defaultValue(TRANSACTIONAL_NO.getValue())
+            .dependsOn(SHOW_ADVANCED_OPTIONS,"YES")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor TEMP_TABLE_SOFT_DELETE_RETENTION = new PropertyDescriptor
@@ -284,6 +242,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             .dependsOn(IS_TRANSACTIONAL,TRANSACTIONAL_YES)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .dependsOn(SHOW_ADVANCED_OPTIONS,"YES")
             .defaultValue("1d")
             .build();
     public static final Relationship RL_SUCCEEDED = new Relationship.Builder()
@@ -295,73 +254,31 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             .description(RelationshipStatusEnum.RL_FAILED.getDescription())
             .build();
     static final PropertyDescriptor FLUSH_IMMEDIATE = new PropertyDescriptor.Builder()
-            .name(AzureAdxIngestProcessorParamsEnum.FLUSH_IMMEDIATE.name())
-            .displayName(AzureAdxIngestProcessorParamsEnum.FLUSH_IMMEDIATE.getParamDisplayName())
-            .description(AzureAdxIngestProcessorParamsEnum.FLUSH_IMMEDIATE.getParamDescription())
+            .name(AzureAdxSinkProcessorParamsEnum.FLUSH_IMMEDIATE.name())
+            .displayName(AzureAdxSinkProcessorParamsEnum.FLUSH_IMMEDIATE.getParamDisplayName())
+            .description(AzureAdxSinkProcessorParamsEnum.FLUSH_IMMEDIATE.getParamDescription())
             .required(true)
             .defaultValue("false")
+            .dependsOn(SHOW_ADVANCED_OPTIONS,"YES")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     static final PropertyDescriptor DATA_FORMAT = new PropertyDescriptor.Builder()
-            .name(AzureAdxIngestProcessorParamsEnum.DATA_FORMAT.name())
-            .displayName(AzureAdxIngestProcessorParamsEnum.DATA_FORMAT.getParamDisplayName())
-            .description(AzureAdxIngestProcessorParamsEnum.DATA_FORMAT.getParamDescription())
+            .name(AzureAdxSinkProcessorParamsEnum.DATA_FORMAT.name())
+            .displayName(AzureAdxSinkProcessorParamsEnum.DATA_FORMAT.getParamDisplayName())
+            .description(AzureAdxSinkProcessorParamsEnum.DATA_FORMAT.getParamDescription())
             .required(true)
             .allowableValues(AVRO, APACHEAVRO, CSV, JSON, MULTIJSON, ORC, PARQUET, PSV, SCSV, SOHSV, TSV, TSVE, TXT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-    static final PropertyDescriptor IR_LEVEL = new PropertyDescriptor.Builder()
-            .name(AzureAdxIngestProcessorParamsEnum.IR_LEVEL.name())
-            .displayName(AzureAdxIngestProcessorParamsEnum.IR_LEVEL.getParamDisplayName())
-            .description(AzureAdxIngestProcessorParamsEnum.IR_LEVEL.getParamDescription())
-            .required(true)
-            .allowableValues(IRL_NONE, IRL_FAIL, IRL_FAS)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-    static final PropertyDescriptor IR_METHOD = new PropertyDescriptor.Builder()
-            .name(AzureAdxIngestProcessorParamsEnum.IR_METHOD.name())
-            .displayName(AzureAdxIngestProcessorParamsEnum.IR_METHOD.getParamDisplayName())
-            .description(AzureAdxIngestProcessorParamsEnum.IR_METHOD.getParamDescription())
-            .required(true)
-            .allowableValues(IRM_TABLE, IRM_QUEUE, IRM_TABLEANDQUEUE)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
 
     static final PropertyDescriptor IGNORE_FIRST_RECORD = new PropertyDescriptor.Builder()
-            .name(AzureAdxIngestProcessorParamsEnum.IS_IGNORE_FIRST_RECORD.name())
-            .displayName(AzureAdxIngestProcessorParamsEnum.IS_IGNORE_FIRST_RECORD.getParamDisplayName())
-            .description(AzureAdxIngestProcessorParamsEnum.IS_IGNORE_FIRST_RECORD.getParamDescription())
+            .name(AzureAdxSinkProcessorParamsEnum.IS_IGNORE_FIRST_RECORD.name())
+            .displayName(AzureAdxSinkProcessorParamsEnum.IS_IGNORE_FIRST_RECORD.getParamDisplayName())
+            .description(AzureAdxSinkProcessorParamsEnum.IS_IGNORE_FIRST_RECORD.getParamDescription())
             .required(false)
             .allowableValues(IGNORE_FIRST_RECORD_YES, IGNORE_FIRST_RECORD_NO)
+            .dependsOn(SHOW_ADVANCED_OPTIONS,"YES")
             .defaultValue(IGNORE_FIRST_RECORD_NO.getValue())
-            .build();
-
-    static final PropertyDescriptor MAX_BATCHING_TIME_SPAN = new PropertyDescriptor.Builder()
-            .name(AzureAdxIngestProcessorParamsEnum.MAX_BATCHING_TIME_SPAN.name())
-            .displayName(AzureAdxIngestProcessorParamsEnum.MAX_BATCHING_TIME_SPAN.getParamDisplayName())
-            .description(AzureAdxIngestProcessorParamsEnum.MAX_BATCHING_TIME_SPAN.getParamDescription())
-            .required(false)
-            .defaultValue("00:05:00")
-            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^(?:(?:([01]?\\d|2[0-3]):)?([0-5]?\\d):)?([0-5]?\\d)$")))
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    static final PropertyDescriptor MAX_BATCHING_NO_OF_ITEMS = new PropertyDescriptor.Builder()
-            .name(AzureAdxIngestProcessorParamsEnum.MAX_BATCHING_NO_OF_ITEMS.name())
-            .displayName(AzureAdxIngestProcessorParamsEnum.MAX_BATCHING_NO_OF_ITEMS.getParamDisplayName())
-            .description(AzureAdxIngestProcessorParamsEnum.MAX_BATCHING_NO_OF_ITEMS.getParamDescription())
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .defaultValue(String.valueOf(1000))
-            .build();
-
-    static final PropertyDescriptor MAX_BATCHING_RAW_DATA_SIZE_IN_MB = new PropertyDescriptor.Builder()
-            .name(AzureAdxIngestProcessorParamsEnum.MAX_BATCHING_RAW_DATA_SIZE_IN_MB.name())
-            .displayName(AzureAdxIngestProcessorParamsEnum.MAX_BATCHING_RAW_DATA_SIZE_IN_MB.getParamDisplayName())
-            .description(AzureAdxIngestProcessorParamsEnum.MAX_BATCHING_RAW_DATA_SIZE_IN_MB.getParamDescription())
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .defaultValue(String.valueOf(1024))
             .build();
 
     @Override
@@ -373,16 +290,11 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
         descriptors.add(MAPPING_NAME);
         descriptors.add(FLUSH_IMMEDIATE);
         descriptors.add(DATA_FORMAT);
-        descriptors.add(IR_LEVEL);
-        descriptors.add(IR_METHOD);
-        descriptors.add(WAIT_FOR_STATUS);
         descriptors.add(IS_TRANSACTIONAL);
         descriptors.add(IGNORE_FIRST_RECORD);
-        descriptors.add(TEMP_TABLE_NAME);
         descriptors.add(TEMP_TABLE_SOFT_DELETE_RETENTION);
-        descriptors.add(MAX_BATCHING_NO_OF_ITEMS);
-        descriptors.add(MAX_BATCHING_RAW_DATA_SIZE_IN_MB);
-        descriptors.add(MAX_BATCHING_TIME_SPAN);
+        descriptors.add(IS_STREAMING_ENABLED);
+        descriptors.add(SHOW_ADVANCED_OPTIONS);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -404,14 +316,14 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         service = context.getProperty(ADX_SERVICE).asControllerService(AdxConnectionService.class);
-        ingestClient = service.getAdxClient();
         executionClient = service.getKustoExecutionClient();
-
         if (!isIngestorRole(context.getProperty(DB_NAME).getValue(), context.getProperty(TABLE_NAME).getValue(), executionClient)) {
             getLogger().error("User might not have ingestor privileges, table validation will be skipped for all table mappings.");
             throw new ProcessException("User might not have ingestor privileges, table validation will be skipped for all table mappings. ");
         }
-        if (service.isStreamingEnabled()) {
+        isStreamingEnabled = context.getProperty(IS_STREAMING_ENABLED).evaluateAttributeExpressions().asBoolean();
+        ingestClient = service.getAdxClient(isStreamingEnabled);
+        if (isStreamingEnabled) {
             try {
                 isStreamingPolicyEnabled(DATABASE, context.getProperty(DB_NAME).getValue(), executionClient, context.getProperty(DB_NAME).getValue());
             } catch (DataClientException | DataServiceException e) {
@@ -492,29 +404,9 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             ingestionProperties.setIngestionMapping(context.getProperty(MAPPING_NAME).getValue(), ingestionMappingKind);
         }
 
-        switch (IngestionReportLevelEnum.valueOf(context.getProperty(IR_LEVEL).getValue())) {
-            case IRL_NONE:
-                ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.NONE);
-                break;
-            case IRL_FAIL:
-                ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FAILURES_ONLY);
-                break;
-            case IRL_FAS:
-                ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FAILURES_AND_SUCCESSES);
-                break;
-        }
+        ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FAILURES_AND_SUCCESSES);
 
-        switch (IngestionReportMethodEnum.valueOf(context.getProperty(IR_METHOD).getValue())) {
-            case IRM_TABLE:
-                ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
-                break;
-            case IRM_QUEUE:
-                ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.QUEUE);
-                break;
-            case IRM_TABLEANDQUEUE:
-                ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.QUEUE_AND_TABLE);
-                break;
-        }
+        ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
 
         if (StringUtils.equalsIgnoreCase(context.getProperty(FLUSH_IMMEDIATE).getValue(), "true")) {
             ingestionProperties.setFlushImmediately(true);
@@ -528,21 +420,14 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
             ingestionProperties.setIgnoreFirstRecord(false);
         }
 
-        String ingestionBatchingString = addModifyBatchingPolicy(ingestionProperties, context);
-
         boolean isSingleNodeTempTableIngestionSucceeded = false;
         boolean isClusteredTempTableIngestionSucceeded = false;
         boolean isError = false;
 
         IngestionProperties ingestionPropertiesCreateTempTable;
 
-        if (StringUtils.equalsIgnoreCase(context.getProperty(IS_TRANSACTIONAL).getValue(), TRANSACTIONAL_YES.getValue()) && !service.isStreamingEnabled()) {
-            String tempTableName;
-            if (StringUtils.isNotEmpty(context.getProperty(TEMP_TABLE_NAME).getValue())) {
-                tempTableName = context.getProperty(TEMP_TABLE_NAME).getValue();
-            } else {
-                tempTableName = context.getProperty(TABLE_NAME).getValue() + "_tmp";
-            }
+        if (StringUtils.equalsIgnoreCase(context.getProperty(IS_TRANSACTIONAL).getValue(), TRANSACTIONAL_YES.getValue()) && !isStreamingEnabled) {
+            String tempTableName = context.getProperty(TABLE_NAME).getValue() + "_tmp"+ new Timestamp(System.currentTimeMillis()).getTime();
 
             ingestionPropertiesCreateTempTable = new IngestionProperties(context.getProperty(DB_NAME).getValue(), tempTableName);
             ingestionPropertiesCreateTempTable.setDataFormat(ingestionProperties.getDataFormat());
@@ -584,9 +469,6 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
                 calendar.add(Calendar.DATE, 1);
                 String expiryDate = new SimpleDateFormat("yyyy-MM-dd").format(calendar.getTime());
 
-                //drop temp table if exists
-                dropTempTableIfExists(ingestionPropertiesCreateTempTable);
-
                 //create temp table
                 createTempTable(ingestionPropertiesCreateTempTable,ingestionProperties, columnsAsSchema);
 
@@ -595,9 +477,6 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
 
                 //alter auto delete policy of temp table
                 alterTempTableAutoDeletePolicy(ingestionPropertiesCreateTempTable,expiryDate);
-
-                //apply batching policy of main table to temporary table
-                applyTempTableBatchingPolicy(ingestionPropertiesCreateTempTable, ingestionBatchingString);
 
                 //ingest data
                 IngestionResult resultFromTempTable = ingestClient.ingestFromStream(info, ingestionPropertiesCreateTempTable);
@@ -764,29 +643,24 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
 
                 IngestionResult result = ingestClient.ingestFromStream(actualTableStreamSourceInfo, ingestionProperties);
                 List<IngestionStatus> statuses = result.getIngestionStatusCollection();
-                if (StringUtils.equalsIgnoreCase(context.getProperty(WAIT_FOR_STATUS).getValue(), IngestionStatusEnum.ST_SUCCESS.name())) {
-                    CompletableFuture<List<IngestionStatus>> future = new CompletableFuture<>();
-                    ScheduledExecutorService statusScheduler = Executors.newScheduledThreadPool(1);
-                    Runnable task = () -> {
-                        try {
-                            List<IngestionStatus> statuses1 = result.getIngestionStatusCollection();
-                            if (statuses1.get(0).status == OperationStatus.Succeeded
-                                    || statuses1.get(0).status == OperationStatus.Failed
-                                    || statuses1.get(0).status == OperationStatus.PartiallySucceeded) {
-                                future.complete(statuses1);
-                            }
-                        } catch (Exception e) {
-                            future.completeExceptionally(new ProcessException("Error occurred while checking ingestion status", e));
+
+                CompletableFuture<List<IngestionStatus>> future = new CompletableFuture<>();
+                ScheduledExecutorService statusScheduler = Executors.newScheduledThreadPool(1);
+                Runnable task = () -> {
+                    try {
+                        List<IngestionStatus> statuses1 = result.getIngestionStatusCollection();
+                        if (statuses1.get(0).status == OperationStatus.Succeeded
+                                || statuses1.get(0).status == OperationStatus.Failed
+                                || statuses1.get(0).status == OperationStatus.PartiallySucceeded) {
+                            future.complete(statuses1);
                         }
-                    };
-                    statusScheduler.scheduleWithFixedDelay(task, 1, 2, TimeUnit.SECONDS);
-                    statuses = future.get(1800, TimeUnit.SECONDS);
-                    shutDownScheduler(statusScheduler);
-                } else {
-                    IngestionStatus status = new IngestionStatus();
-                    status.status = OperationStatus.Succeeded;
-                    statuses.set(0, status);
-                }
+                    } catch (Exception e) {
+                        future.completeExceptionally(new ProcessException("Error occurred while checking ingestion status", e));
+                    }
+                };
+                statusScheduler.scheduleWithFixedDelay(task, 1, 2, TimeUnit.SECONDS);
+                statuses = future.get(1800, TimeUnit.SECONDS);
+                shutDownScheduler(statusScheduler);
 
                 getLogger().info("Operation status: {} ", statuses.get(0).details);
                 if (statuses.get(0).status == OperationStatus.Succeeded) {
@@ -853,37 +727,6 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
         return true;
     }
 
-    protected String addModifyBatchingPolicy(IngestionProperties ingestionProperties, ProcessContext context) {
-        //add/modify ingestion batching policy as per user inputs
-        String showIngestionBatchingQuery = ".show table " + ingestionProperties.getTableName() + " policy ingestionbatching";
-        KustoOperationResult kustoOperationResultIngestionBatching = null;
-        String ingestionBatchingString = null;
-        try {
-            kustoOperationResultIngestionBatching = executionClient.execute(ingestionProperties.getDatabaseName(), showIngestionBatchingQuery);
-            KustoResultSetTable mainTableResultIngestionBatching = kustoOperationResultIngestionBatching.getPrimaryResults();
-            if (mainTableResultIngestionBatching.first()) {
-                int columnIndex = mainTableResultIngestionBatching.findColumn("Policy");
-                ingestionBatchingString = mainTableResultIngestionBatching.getString(columnIndex);
-            }
-            IngestionBatchingPolicy ingestionBatchingPolicy = new IngestionBatchingPolicy();
-            if (StringUtils.isNotEmpty(ingestionBatchingString)) {
-                ingestionBatchingPolicy = new ObjectMapper().readValue(ingestionBatchingString, IngestionBatchingPolicy.class);
-            }
-            ingestionBatchingPolicy.setMaximumNumberOfItems(Integer.parseInt(context.getProperty(MAX_BATCHING_NO_OF_ITEMS).getValue()));
-            ingestionBatchingPolicy.setMaximumBatchingTimeSpan(context.getProperty(MAX_BATCHING_TIME_SPAN).getValue());
-            ingestionBatchingPolicy.setMaximumRawDataSizeMB(Integer.parseInt(context.getProperty(MAX_BATCHING_RAW_DATA_SIZE_IN_MB).getValue()));
-
-            //apply batching policy
-            String batchingPolicyString = new ObjectMapper().writeValueAsString(ingestionBatchingPolicy);
-            String applyBatchingPolicy = ".alter table Storms policy ingestionbatching ``` " + batchingPolicyString + " ```";
-            executionClient.execute(ingestionProperties.getDatabaseName(), applyBatchingPolicy);
-        } catch (DataServiceException | DataClientException | JsonProcessingException e) {
-            getLogger().error("Error occurred while retrieving ingestion batching policy of main table");
-            throw new ProcessException("Error occurred while retrieving ingestion batching policy of main table");
-        }
-        return ingestionBatchingString;
-    }
-
     protected String showOriginalTableRetentionPolicy(IngestionProperties ingestionProperties) throws DataServiceException, DataClientException {
         String showTableSchema = ".show table " + ingestionProperties.getTableName() + " cslschema";
         KustoOperationResult kustoOperationResult = executionClient.execute(ingestionProperties.getDatabaseName(), showTableSchema);
@@ -905,7 +748,7 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
     protected void createTempTable(IngestionProperties ingestionPropertiesCreateTempTable, IngestionProperties ingestionProperties, String columnsAsSchema)
             throws DataServiceException, DataClientException {
         String createTempTableQuery = ".create table " + ingestionPropertiesCreateTempTable.getTableName()
-                + " based-on "+ ingestionProperties.getTableName()  +" with (docstring='sample-table', folder='TempTables') ";
+                + " based-on "+ ingestionProperties.getTableName()  +" with (docstring='sample-table', folder='TempTables', hidden=true) ";
         executionClient.execute(ingestionPropertiesCreateTempTable.getDatabaseName(), createTempTableQuery);
     }
 
@@ -922,22 +765,8 @@ public class AzureAdxIngestProcessor extends AbstractProcessor {
         executionClient.execute(ingestionPropertiesCreateTempTable.getDatabaseName(), setAutoDeleteForTempTableQuery);
     }
 
-    protected void applyTempTableBatchingPolicy(IngestionProperties ingestionProperties, String ingestionBatchingString) throws DataServiceException, DataClientException {
-        if (StringUtils.isNotEmpty(ingestionBatchingString)) {
-            String applyBatchingPolicyTempTable = ".alter table Storms policy ingestionbatching ``` " + ingestionBatchingString + " ```";
-            executionClient.execute(ingestionProperties.getDatabaseName(), applyBatchingPolicyTempTable);
-        }
-    }
-
     protected boolean isNifiClusteredSetup(NodeTypeProvider nodeTypeProvider){
         return nodeTypeProvider.isClustered() && nodeTypeProvider.isConnected();
-    }
-
-    protected int countNoOfExtents(String databaseName,String tableName) throws DataServiceException, DataClientException {
-        String countNoOfExtentsQuery = ".show table "+ tableName +" extents | count";
-        KustoResultSetTable res =executionClient.execute(databaseName, countNoOfExtentsQuery).getPrimaryResults();
-        res.next();
-        return res.getInt(0);
     }
 
     protected int showNodesCount() throws DataServiceException, DataClientException {

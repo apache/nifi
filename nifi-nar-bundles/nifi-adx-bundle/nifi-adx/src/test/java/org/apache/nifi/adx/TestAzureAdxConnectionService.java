@@ -69,20 +69,6 @@ public class TestAzureAdxConnectionService {
         configureAppTenant();
         configureClusterURL();
 
-
-        runner.assertValid(service);
-    }
-
-    @Test
-    public void testAdxConnectionControllerWithStreaming() {
-        configureIngestURL();
-        configureAppId();
-        configureAppKey();
-        configureAppTenant();
-        configureIsStreamingEnabled();
-        configureClusterURL();
-
-
         runner.assertValid(service);
     }
 
@@ -100,10 +86,6 @@ public class TestAzureAdxConnectionService {
 
     private void configureAppTenant() {
         runner.setProperty(service, AzureAdxConnectionService.APP_TENANT, MOCK_APP_TENANT);
-    }
-
-    private void configureIsStreamingEnabled() {
-        runner.setProperty(service, AzureAdxConnectionService.IS_STREAMING_ENABLED, "true");
     }
 
     private void configureClusterURL() {
@@ -124,7 +106,7 @@ public class TestAzureAdxConnectionService {
 
         runner.enableControllerService(service);
 
-        IngestClient ingestClient = service.getAdxClient();
+        IngestClient ingestClient = service.getAdxClient(false);
         Assertions.assertNotNull(ingestClient);
         Assertions.assertTrue(ingestClient instanceof QueuedIngestClient);
 
@@ -143,7 +125,6 @@ public class TestAzureAdxConnectionService {
         assertTrue(pd.contains(AzureAdxConnectionService.APP_KEY));
         assertTrue(pd.contains(AzureAdxConnectionService.INGEST_URL));
         assertTrue(pd.contains(AzureAdxConnectionService.APP_TENANT));
-        assertTrue(pd.contains(AzureAdxConnectionService.IS_STREAMING_ENABLED));
         assertTrue(pd.contains(AzureAdxConnectionService.CLUSTER_URL));
     }
 
@@ -156,14 +137,13 @@ public class TestAzureAdxConnectionService {
         configureAppKey();
         configureAppTenant();
         configureClusterURL();
-        configureIsStreamingEnabled();
 
         runner.assertValid(service);
         runner.setValidateExpressionUsage(false);
 
         runner.enableControllerService(service);
 
-        IngestClient ingestClient = service.getAdxClient();
+        IngestClient ingestClient = service.getAdxClient(true);
         Assertions.assertNotNull(ingestClient);
         Assertions.assertTrue(ingestClient instanceof ManagedStreamingIngestClient);
 

@@ -28,9 +28,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 
-public class AzureAdxIngestProcessorE2ETest {
+public class AzureAdxSinkProcessorE2ETest {
 
-    private AzureAdxIngestProcessor azureAdxIngestProcessor;
+    private org.apache.nifi.processors.adx.AzureAdxSinkProcessor azureAdxSinkProcessor;
 
     private AzureAdxConnectionService azureAdxConnectionService;
 
@@ -38,7 +38,7 @@ public class AzureAdxIngestProcessorE2ETest {
 
     @BeforeEach
     public void init() {
-        azureAdxIngestProcessor = new AzureAdxIngestProcessor();
+        azureAdxSinkProcessor = new org.apache.nifi.processors.adx.AzureAdxSinkProcessor();
     }
 
     @Test
@@ -46,16 +46,13 @@ public class AzureAdxIngestProcessorE2ETest {
 
         Assumptions.assumeTrue("true".equalsIgnoreCase(System.getProperty("executeE2ETests")));
 
-        testRunner = TestRunners.newTestRunner(azureAdxIngestProcessor);
+        testRunner = TestRunners.newTestRunner(azureAdxSinkProcessor);
 
-        testRunner.setProperty(AzureAdxIngestProcessor.TABLE_NAME,System.getProperty("tableName"));
-        testRunner.setProperty(AzureAdxIngestProcessor.DB_NAME,System.getProperty("databaseName"));
-        testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,System.getProperty("mappingName"));
-        testRunner.setProperty(AzureAdxIngestProcessor.DATA_FORMAT,"CSV");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_LEVEL,"IRL_FAS");
-        testRunner.setProperty(AzureAdxIngestProcessor.WAIT_FOR_STATUS,"ST_SUCCESS");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_METHOD,"IRM_TABLE");
-        testRunner.setProperty(AzureAdxIngestProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.TABLE_NAME,System.getProperty("tableName"));
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME,System.getProperty("databaseName"));
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.MAPPING_NAME,System.getProperty("mappingName"));
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT,"CSV");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE,"adx-connection-service");
 
         testRunner.setValidateExpressionUsage(false);
 
@@ -77,7 +74,7 @@ public class AzureAdxIngestProcessorE2ETest {
         inputStream.close();
         testRunner.run(1);
         testRunner.assertQueueEmpty();
-        testRunner.assertAllFlowFilesTransferred(AzureAdxIngestProcessor.RL_SUCCEEDED);
+        testRunner.assertAllFlowFilesTransferred(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.RL_SUCCEEDED);
 
     }
 
@@ -86,17 +83,14 @@ public class AzureAdxIngestProcessorE2ETest {
 
         Assumptions.assumeTrue("true".equalsIgnoreCase(System.getProperty("executeE2ETests")));
 
-        testRunner = TestRunners.newTestRunner(azureAdxIngestProcessor);
+        testRunner = TestRunners.newTestRunner(azureAdxSinkProcessor);
 
-        testRunner.setProperty(AzureAdxIngestProcessor.TABLE_NAME,System.getProperty("tableName"));
-        testRunner.setProperty(AzureAdxIngestProcessor.DB_NAME,System.getProperty("databaseName"));
-        testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,System.getProperty("mappingName"));
-        testRunner.setProperty(AzureAdxIngestProcessor.DATA_FORMAT,"CSV");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_LEVEL,"IRL_FAS");
-        testRunner.setProperty(AzureAdxIngestProcessor.WAIT_FOR_STATUS,"ST_SUCCESS");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_METHOD,"IRM_TABLE");
-        testRunner.setProperty(AzureAdxIngestProcessor.ADX_SERVICE,"adx-connection-service");
-        testRunner.setProperty(AzureAdxIngestProcessor.IS_TRANSACTIONAL,AzureAdxIngestProcessor.TRANSACTIONAL_YES.getValue());
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.TABLE_NAME,System.getProperty("tableName"));
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME,System.getProperty("databaseName"));
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.MAPPING_NAME,System.getProperty("mappingName"));
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT,"CSV");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.IS_TRANSACTIONAL, org.apache.nifi.processors.adx.AzureAdxSinkProcessor.TRANSACTIONAL_YES.getValue());
 
         testRunner.setValidateExpressionUsage(false);
 
@@ -118,7 +112,7 @@ public class AzureAdxIngestProcessorE2ETest {
         inputStream.close();
         testRunner.run(1);
         testRunner.assertQueueEmpty();
-        testRunner.assertAllFlowFilesTransferred(AzureAdxIngestProcessor.RL_SUCCEEDED);
+        testRunner.assertAllFlowFilesTransferred(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.RL_SUCCEEDED);
 
     }
 
@@ -127,17 +121,14 @@ public class AzureAdxIngestProcessorE2ETest {
 
         Assumptions.assumeTrue("true".equalsIgnoreCase(System.getProperty("executeE2ETests")));
 
-        testRunner = TestRunners.newTestRunner(azureAdxIngestProcessor);
+        testRunner = TestRunners.newTestRunner(azureAdxSinkProcessor);
 
-        testRunner.setProperty(AzureAdxIngestProcessor.TABLE_NAME,System.getProperty("tableName"));
-        testRunner.setProperty(AzureAdxIngestProcessor.DB_NAME,System.getProperty("databaseName"));
-        testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,System.getProperty("mappingName"));
-        testRunner.setProperty(AzureAdxIngestProcessor.DATA_FORMAT,"CSV");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_LEVEL,"IRL_FAS");
-        testRunner.setProperty(AzureAdxIngestProcessor.WAIT_FOR_STATUS,"ST_SUCCESS");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_METHOD,"IRM_TABLE");
-        testRunner.setProperty(AzureAdxIngestProcessor.ADX_SERVICE,"adx-connection-service");
-        testRunner.setProperty(AzureAdxIngestProcessor.IS_TRANSACTIONAL,AzureAdxIngestProcessor.TRANSACTIONAL_YES.getValue());
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.TABLE_NAME,System.getProperty("tableName"));
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME,System.getProperty("databaseName"));
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.MAPPING_NAME,System.getProperty("mappingName"));
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT,"CSV");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.IS_TRANSACTIONAL, org.apache.nifi.processors.adx.AzureAdxSinkProcessor.TRANSACTIONAL_YES.getValue());
 
         testRunner.setValidateExpressionUsage(false);
 
@@ -159,7 +150,7 @@ public class AzureAdxIngestProcessorE2ETest {
         inputStream.close();
         testRunner.run(1);
         testRunner.assertQueueEmpty();
-        testRunner.assertAllFlowFilesTransferred(AzureAdxIngestProcessor.RL_FAILED);
+        testRunner.assertAllFlowFilesTransferred(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.RL_FAILED);
 
     }
 
@@ -168,16 +159,14 @@ public class AzureAdxIngestProcessorE2ETest {
 
         Assumptions.assumeTrue("true".equalsIgnoreCase(System.getProperty("executeE2ETests")));
 
-        testRunner = TestRunners.newTestRunner(azureAdxIngestProcessor);
+        testRunner = TestRunners.newTestRunner(azureAdxSinkProcessor);
 
-        testRunner.setProperty(AzureAdxIngestProcessor.TABLE_NAME,System.getProperty("tableName"));
-        testRunner.setProperty(AzureAdxIngestProcessor.DB_NAME,System.getProperty("databaseName"));
-        testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,System.getProperty("mappingName"));
-        testRunner.setProperty(AzureAdxIngestProcessor.DATA_FORMAT,"CSV");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_LEVEL,"IRL_FAS");
-        testRunner.setProperty(AzureAdxIngestProcessor.WAIT_FOR_STATUS,"ST_SUCCESS");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_METHOD,"IRM_TABLE");
-        testRunner.setProperty(AzureAdxIngestProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.TABLE_NAME,System.getProperty("tableName"));
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME,System.getProperty("databaseName"));
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.MAPPING_NAME,System.getProperty("mappingName"));
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT,"CSV");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.IS_STREAMING_ENABLED, "true");
 
         testRunner.setValidateExpressionUsage(false);
 
@@ -190,7 +179,6 @@ public class AzureAdxIngestProcessorE2ETest {
         testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_KEY,System.getProperty("appKey"));
         testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_TENANT,System.getProperty("appTenant"));
         testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.CLUSTER_URL, System.getProperty("clusterUrl"));
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.IS_STREAMING_ENABLED, "true");
 
         testRunner.enableControllerService(azureAdxConnectionService);
         testRunner.assertValid(azureAdxConnectionService);
@@ -200,7 +188,7 @@ public class AzureAdxIngestProcessorE2ETest {
         inputStream.close();
         testRunner.run(1);
         testRunner.assertQueueEmpty();
-        testRunner.assertAllFlowFilesTransferred(AzureAdxIngestProcessor.RL_SUCCEEDED);
+        testRunner.assertAllFlowFilesTransferred(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.RL_SUCCEEDED);
 
     }
 
@@ -209,16 +197,14 @@ public class AzureAdxIngestProcessorE2ETest {
 
         Assumptions.assumeTrue("true".equalsIgnoreCase(System.getProperty("executeE2ETests")));
 
-        testRunner = TestRunners.newTestRunner(azureAdxIngestProcessor);
+        testRunner = TestRunners.newTestRunner(azureAdxSinkProcessor);
 
-        testRunner.setProperty(AzureAdxIngestProcessor.TABLE_NAME,System.getProperty("tableName"));
-        testRunner.setProperty(AzureAdxIngestProcessor.DB_NAME,System.getProperty("databaseName"));
-        testRunner.setProperty(AzureAdxIngestProcessor.MAPPING_NAME,System.getProperty("mappingName"));
-        testRunner.setProperty(AzureAdxIngestProcessor.DATA_FORMAT,"CSV");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_LEVEL,"IRL_FAS");
-        testRunner.setProperty(AzureAdxIngestProcessor.WAIT_FOR_STATUS,"ST_SUCCESS");
-        testRunner.setProperty(AzureAdxIngestProcessor.IR_METHOD,"IRM_TABLE");
-        testRunner.setProperty(AzureAdxIngestProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.TABLE_NAME,System.getProperty("tableName"));
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DB_NAME,System.getProperty("databaseName"));
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.MAPPING_NAME,System.getProperty("mappingName"));
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.DATA_FORMAT,"CSV");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.ADX_SERVICE,"adx-connection-service");
+        testRunner.setProperty(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.IS_STREAMING_ENABLED, "true");
 
         testRunner.setValidateExpressionUsage(false);
 
@@ -231,7 +217,6 @@ public class AzureAdxIngestProcessorE2ETest {
         testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_KEY,System.getProperty("appKey"));
         testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.APP_TENANT,System.getProperty("appTenant"));
         testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.CLUSTER_URL, System.getProperty("clusterUrl"));
-        testRunner.setProperty(azureAdxConnectionService,AzureAdxConnectionService.IS_STREAMING_ENABLED, "true");
 
         testRunner.enableControllerService(azureAdxConnectionService);
         testRunner.assertValid(azureAdxConnectionService);
@@ -241,7 +226,7 @@ public class AzureAdxIngestProcessorE2ETest {
         inputStream.close();
         testRunner.run(1);
         testRunner.assertQueueEmpty();
-        testRunner.assertAllFlowFilesTransferred(AzureAdxIngestProcessor.RL_FAILED);
+        testRunner.assertAllFlowFilesTransferred(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.RL_FAILED);
 
     }
 
