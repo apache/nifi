@@ -67,7 +67,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -94,10 +93,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.AdditionalMatchers.or;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -532,7 +532,7 @@ public class StandardVersionedComponentSynchronizerTest {
         verify(connectionAB, times(0)).setName("Hello");
 
         // Ensure that the source was stopped but not restarted. We don't restart in this situation because the intent is to drop
-        // the connection so we will leave the source stopped so that the data can eventually drain from the queue and the connection
+        // the connection, so we will leave the source stopped so that the data can eventually drain from the queue and the connection
         // can be removed.
         verifyStopped(processorA);
         verifyNotRestarted(processorA);
@@ -548,12 +548,10 @@ public class StandardVersionedComponentSynchronizerTest {
         // Use a background thread to synchronize the connection.
         final CountDownLatch completionLatch = new CountDownLatch(1);
         final Thread syncThread = new Thread(() -> {
-            try {
+            assertDoesNotThrow(() -> {
                 synchronizer.synchronize(connectionAB, null, group, synchronizationOptions);
                 completionLatch.countDown();
-            } catch (final Exception e) {
-                Assert.fail(e.toString());
-            }
+            });
         });
         syncThread.start();
 
@@ -1195,7 +1193,7 @@ public class StandardVersionedComponentSynchronizerTest {
         }
 
         void assertNumProcessorUpdates(int expectedNum) {
-            assertEquals("Expected " + expectedNum + " processor state changes", expectedNum, processorUpdates.size());
+            assertEquals(expectedNum, processorUpdates.size(), "Expected " + expectedNum + " processor state changes");
         }
 
         void assertProcessorUpdates(final ScheduledStateUpdate<ProcessorNode>... updates) {
@@ -1212,7 +1210,8 @@ public class StandardVersionedComponentSynchronizerTest {
         }
 
         void assertNumPortUpdates(int expectedNum) {
-            assertEquals("Expected " + expectedNum + " port state changes", expectedNum, portUpdates.size());
+            assertEquals(expectedNum, portUpdates.size(),
+                    "Expected " + expectedNum + " port state changes");
         }
     }
 }
