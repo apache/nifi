@@ -219,17 +219,17 @@ public class GenerateFlowFile extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         final byte[] data;
-	final boolean uniqueData = context.getProperty(UNIQUE_FLOWFILES).asBoolean(); 
-	if (uniqueData) {
-	    data = new byte[0];
-	} else {
-	    if(context.getProperty(CUSTOM_TEXT).isSet()) {
-		final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
-		data = context.getProperty(CUSTOM_TEXT).evaluateAttributeExpressions().getValue().getBytes(charset);
+        final boolean uniqueData = context.getProperty(UNIQUE_FLOWFILES).asBoolean();
+        if (uniqueData) {
+            data = new byte[0];
+        } else {
+            if (context.getProperty(CUSTOM_TEXT).isSet()) {
+                final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
+                data = context.getProperty(CUSTOM_TEXT).evaluateAttributeExpressions().getValue().getBytes(charset);
             } else {
                 data = this.data.get();
             }
-	}
+        }
 
         Map<PropertyDescriptor, String> processorProperties = context.getProperties();
         Map<String, String> generatedAttributes = new HashMap<String, String>();
@@ -246,13 +246,13 @@ public class GenerateFlowFile extends AbstractProcessor {
         }
 
         for (int i = 0; i < context.getProperty(BATCH_SIZE).asInteger(); i++) {
-	    FlowFile flowFile = session.create();
-            final byte[] writtenData = uniqueData ? generateData(context) : data; 
-	    if (writtenData.length > 0) {
+        FlowFile flowFile = session.create();
+            final byte[] writtenData = uniqueData ? generateData(context) : data;
+            if (writtenData.length > 0) {
                 flowFile = session.write(flowFile, new OutputStreamCallback() {
                     @Override
                     public void process(final OutputStream out) throws IOException {
-			out.write(writtenData);
+                        out.write(writtenData);
                     }
                 });
             }
