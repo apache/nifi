@@ -20,8 +20,10 @@ import io.netty.bootstrap.AbstractBootstrap;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.UnpooledByteBufAllocator;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.FixedRecvByteBufAllocator;
@@ -69,6 +71,8 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
     private Duration shutdownQuietPeriod = ShutdownQuietPeriod.DEFAULT.getDuration();
 
     private Duration shutdownTimeout = ShutdownTimeout.DEFAULT.getDuration();
+
+    private Duration idleTimeout = null;
 
     private BufferAllocator bufferAllocator = BufferAllocator.POOLED;
 
@@ -151,6 +155,14 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
     }
 
     /**
+     * Set an idle timeout for connections, which closes a connection when there have been no read or writes for the given timeout period.
+     * Has no default - idle connections will not be closed by the server unless this timeout is set to non-zero.
+     */
+    public void setIdleTimeout(final Duration timeout) {
+        this.idleTimeout = Objects.requireNonNull(timeout, "Timeout value required");
+    }
+
+    /**
      * Get Event Server with Channel bound to configured address and port number
      *
      * @return Event Sender
@@ -181,20 +193,24 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
         if (TransportProtocol.UDP.equals(protocol)) {
             final Bootstrap bootstrap = new Bootstrap();
             bootstrap.channel(NioDatagramChannel.class);
-            bootstrap.handler(new StandardChannelInitializer<>(handlerSupplier));
-
+            bootstrap.handler(getChannelInitializer());
             return bootstrap;
         } else {
             final ServerBootstrap bootstrap = new ServerBootstrap();
             bootstrap.channel(NioServerSocketChannel.class);
-            if (sslContext == null) {
-                bootstrap.childHandler(new StandardChannelInitializer<>(handlerSupplier));
-            } else {
-                bootstrap.childHandler(new ServerSslHandlerChannelInitializer<>(handlerSupplier, sslContext, clientAuth));
-            }
-
+            bootstrap.childHandler(getChannelInitializer());
             return bootstrap;
         }
+    }
+
+    private ChannelInitializer getChannelInitializer() {
+        final StandardChannelInitializer<Channel> channelInitializer = sslContext == null
+                ? new StandardChannelInitializer<>(handlerSupplier)
+                : new ServerSslHandlerChannelInitializer<>(handlerSupplier, sslContext, clientAuth);
+        if (idleTimeout != null) {
+            channelInitializer.setIdleTimeout(idleTimeout);
+        }
+        return channelInitializer;
     }
 
     private EventServer getBoundEventServer(final AbstractBootstrap<?, ?> bootstrap, final EventLoopGroup group) {

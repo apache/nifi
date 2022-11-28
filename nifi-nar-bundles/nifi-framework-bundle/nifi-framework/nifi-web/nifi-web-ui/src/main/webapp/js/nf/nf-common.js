@@ -132,7 +132,7 @@
     }, {
         text: 'access the controller',
         value: 'controller',
-        description: 'Allows users to view/modify the controller including Reporting Tasks, Controller Services, Parameter Contexts, and Nodes in the Cluster'
+        description: 'Allows users to view/modify the controller including Management Controller Services, Reporting Tasks, Registry Clients, Parameter Providers and nodes in the cluster'
     }, {
         text: 'access parameter contexts',
         value: 'parameter-contexts',

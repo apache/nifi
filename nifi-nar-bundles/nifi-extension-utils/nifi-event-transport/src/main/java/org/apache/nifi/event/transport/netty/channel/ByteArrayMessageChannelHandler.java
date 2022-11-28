@@ -19,11 +19,14 @@ package org.apache.nifi.event.transport.netty.channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.util.concurrent.EventExecutor;
+import org.apache.nifi.event.transport.EventDroppedException;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Channel Handler for queuing bytes received as Byte Array Messages
@@ -31,6 +34,8 @@ import java.util.concurrent.BlockingQueue;
 @ChannelHandler.Sharable
 public class ByteArrayMessageChannelHandler extends SimpleChannelInboundHandler<ByteArrayMessage> {
     private static final Logger LOGGER = LoggerFactory.getLogger(ByteArrayMessageChannelHandler.class);
+
+    private static final long OFFER_TIMEOUT = 500;
 
     private final BlockingQueue<ByteArrayMessage> messages;
 
@@ -47,6 +52,23 @@ public class ByteArrayMessageChannelHandler extends SimpleChannelInboundHandler<
     @Override
     protected void channelRead0(final ChannelHandlerContext channelHandlerContext, final ByteArrayMessage message) {
         LOGGER.debug("Message Received Length [{}] Remote Address [{}] ", message.getMessage().length, message.getSender());
-        messages.add(message);
+
+        final EventExecutor executor = channelHandlerContext.executor();
+        while (!offer(message)) {
+            if (executor.isShuttingDown()) {
+                throw new EventDroppedException(String.format("Dropped Message from Remote Address [%s] executor shutting down", message.getSender()));
+            }
+        }
+
+        LOGGER.debug("Message Queued Length [{}] Remote Address [{}] ", message.getMessage().length, message.getSender());
+    }
+
+    private boolean offer(final ByteArrayMessage message) {
+        try {
+            return messages.offer(message, OFFER_TIMEOUT, TimeUnit.MILLISECONDS);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new EventDroppedException(String.format("Dropped Message from Remote Address [%s] queue offer interrupted", message.getSender()), e);
+        }
     }
 }

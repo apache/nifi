@@ -19,14 +19,15 @@ package org.apache.nifi.toolkit.tls.status;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.GetStatusConfig;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
 import java.net.URI;
 
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TlsToolkitGetStatusCommandLineTest {
 
@@ -36,89 +37,72 @@ public class TlsToolkitGetStatusCommandLineTest {
 
     private TlsToolkitGetStatusCommandLine commandLine;
 
-    @Before
+    @BeforeEach
     public void setup() {
         commandLine = new TlsToolkitGetStatusCommandLine();
     }
 
     @Test
     public void testHelp() {
-        try {
-            commandLine.parse("-h");
-            fail("Expected usage and help exit");
-        } catch (CommandLineParseException e) {
-            Assert.assertEquals(ExitCode.HELP, e.getExitCode());
-        }
+        final CommandLineParseException e = assertThrows(CommandLineParseException.class, () -> commandLine.parse("-h"));
+
+        assertEquals(ExitCode.HELP, e.getExitCode());
     }
 
     @Test
-    public void testSuccess() {
-        try {
-            final String urlStr = "https://localhost:8443/test";
-            commandLine.parse(
-                    "-u", urlStr,
-                    "-ts", TRUSTSTORE_PATH,
-                    "-tst", JKS_TYPE,
-                    "-tsp", TRUSTSTORE_PASSWORD);
+    public void testSuccess() throws CommandLineParseException {
+        final String urlStr = "https://localhost:8443/test";
+        commandLine.parse(
+                "-u", urlStr,
+                "-ts", TRUSTSTORE_PATH,
+                "-tst", JKS_TYPE,
+                "-tsp", TRUSTSTORE_PASSWORD);
 
-            final GetStatusConfig config = commandLine.createConfig();
-            Assert.assertNotNull(config);
+        final GetStatusConfig config = commandLine.createConfig();
+        assertNotNull(config);
 
-            final URI url = config.getUrl();
-            Assert.assertNotNull(url);
-            Assert.assertEquals(urlStr, url.toString());
+        final URI url = config.getUrl();
+        assertNotNull(url);
+        assertEquals(urlStr, url.toString());
 
-            final SSLContext sslContext = config.getSslContext();
-            Assert.assertNotNull(sslContext);
-        } catch (CommandLineParseException e) {
-            fail("Expected success");
-        }
+        final SSLContext sslContext = config.getSslContext();
+        assertNotNull(sslContext);
     }
 
     @Test
     public void testMissingUrl() {
-        try {
-            commandLine.parse(
-                    "-ts", TRUSTSTORE_PATH,
-                    "-tst", JKS_TYPE,
-                    "-tsp", TRUSTSTORE_PASSWORD);
+        final CommandLineParseException e = assertThrows(CommandLineParseException.class, () -> commandLine.parse(
+                "-ts", TRUSTSTORE_PATH,
+                "-tst", JKS_TYPE,
+                "-tsp", TRUSTSTORE_PASSWORD)
+        );
 
-            fail("Expected invalid args");
-        } catch (CommandLineParseException e) {
-            Assert.assertEquals(ExitCode.INVALID_ARGS, e.getExitCode());
-        }
+        assertEquals(ExitCode.INVALID_ARGS, e.getExitCode());
     }
 
     @Test
     public void testTruststoreDoesNotExist() {
-        try {
-            final String urlStr = "https://localhost:8443/test";
-            commandLine.parse(
-                    "-u", urlStr,
-                    "-ts", "does/not/exist/truststore.jks",
-                    "-tst", JKS_TYPE,
-                    "-tsp", TRUSTSTORE_PASSWORD);
+        final CommandLineParseException e = assertThrows(CommandLineParseException.class, () -> commandLine.parse(
 
-            fail("Expected invalid args");
-        } catch (CommandLineParseException e) {
-            Assert.assertEquals(ExitCode.INVALID_ARGS, e.getExitCode());
-        }
+                "-u", "https://localhost:8443/test",
+                "-ts", "does/not/exist/truststore.jks",
+                "-tst", JKS_TYPE,
+                "-tsp", TRUSTSTORE_PASSWORD)
+        );
+
+        assertEquals(ExitCode.INVALID_ARGS, e.getExitCode());
     }
 
     @Test
     public void testInvalidTruststoreType() {
-        try {
-            final String urlStr = "https://localhost:8443/test";
-            commandLine.parse(
-                    "-u", urlStr,
-                    "-ts", TRUSTSTORE_PATH,
-                    "-tst", "INVALID",
-                    "-tsp", TRUSTSTORE_PASSWORD);
+        final CommandLineParseException e = assertThrows(CommandLineParseException.class, () -> commandLine.parse(
 
-            fail("Expected invalid args");
-        } catch (CommandLineParseException e) {
-            Assert.assertEquals(ExitCode.INVALID_ARGS, e.getExitCode());
-        }
+                "-u", "https://localhost:8443/test",
+                "-ts", TRUSTSTORE_PATH,
+                "-tst", "INVALID",
+                "-tsp", TRUSTSTORE_PASSWORD)
+        );
+
+        assertEquals(ExitCode.INVALID_ARGS, e.getExitCode());
     }
-
 }

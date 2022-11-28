@@ -42,6 +42,7 @@ import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
+import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -483,19 +484,52 @@ public class TestAvroTypeUtil {
 
     @Test
     public void testMapWithNullSchema() throws IOException {
-
         Schema recursiveSchema = new Schema.Parser().parse(getClass().getResourceAsStream("schema.json"));
 
         // Make sure the following doesn't throw an exception
         RecordSchema recordASchema = AvroTypeUtil.createSchema(recursiveSchema.getTypes().get(0));
 
         // check the fix with the proper file
-        try (DataFileStream<GenericRecord> r = new DataFileStream<>(getClass().getResourceAsStream("data.avro"),
+        try (DataFileStream<GenericRecord> dataFileStream = new DataFileStream<>(getClass().getResourceAsStream("data.avro"),
                 new GenericDatumReader<>())) {
-            GenericRecord n = r.next();
-            AvroTypeUtil.convertAvroRecordToMap(n, recordASchema, StandardCharsets.UTF_8);
+            GenericRecord record = dataFileStream.next();
+            AvroTypeUtil.convertAvroRecordToMap(record, recordASchema, StandardCharsets.UTF_8);
         }
     }
+
+    @Test
+    public void testConvertAvroRecordToMapWithAliasInSchema() throws IOException {
+        final Schema personSchema = new Schema.Parser().parse(new File("src/test/resources/person.avsc"));
+        final GenericRecord record = new GenericData.Record(personSchema);
+        record.put("name", "John Doe");
+        record.put("ssn", "111-11-1111");
+
+        final RecordSchema recordSchema = AvroTypeUtil.createSchema(personSchema);
+        final Map<String, Object> map = AvroTypeUtil.convertAvroRecordToMap(record, recordSchema);
+        assertEquals("John Doe", map.get("name"));
+        assertEquals("111-11-1111", map.get("ssn"));
+        assertNull(map.get("favoriteNumber"));
+        assertNull(map.get("favNum"));
+        assertNull(map.get("my favorite"));
+    }
+
+    @Test
+    public void testConvertAvroRecordToMapUsingAlias() throws IOException {
+        final Schema personOldSchema = new Schema.Parser().parse(new File("src/test/resources/person-old-schema.avsc"));
+        final GenericRecord record = new GenericData.Record(personOldSchema);
+        record.put("name", "John Doe");
+        record.put("id", "111-11-1111");
+        record.put("favNum", 48);
+
+        final Schema personUpdatedSchema = new Schema.Parser().parse(new File("src/test/resources/person.avsc"));
+        final RecordSchema recordSchema = AvroTypeUtil.createSchema(personUpdatedSchema);
+        final Map<String, Object> map = AvroTypeUtil.convertAvroRecordToMap(record, recordSchema);
+        assertEquals("John Doe", map.get("name"));
+        assertEquals("111-11-1111", map.get("ssn"));
+        assertEquals(48, map.get("favoriteNumber"));
+    }
+
+
 
     @Test
     public void testToDecimalConversion() {

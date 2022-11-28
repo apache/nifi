@@ -17,6 +17,11 @@
 package org.apache.nifi.reporting.sql;
 
 
+import org.apache.nifi.action.Action;
+import org.apache.nifi.action.Component;
+import org.apache.nifi.action.FlowChangeAction;
+import org.apache.nifi.action.Operation;
+import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -61,6 +66,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,6 +80,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 
 class TestQueryNiFiReportingTask {
@@ -86,6 +93,7 @@ class TestQueryNiFiReportingTask {
     private MockProvenanceRepository mockProvenanceRepository;
     private AtomicLong currentTime;
     private MockStateManager mockStateManager;
+    private List<Action> flowConfigHistory;
 
     @BeforeEach
     public void setup() {
@@ -105,6 +113,7 @@ class TestQueryNiFiReportingTask {
         // create a processor status with processing time
         ProcessorStatus procStatus = new ProcessorStatus();
         procStatus.setId("proc");
+        procStatus.setName("Processor 1");
         procStatus.setProcessingNanos(123456789);
 
         Collection<ProcessorStatus> processorStatuses = new ArrayList<>();
@@ -159,6 +168,21 @@ class TestQueryNiFiReportingTask {
         groupStatuses.add(groupStatus3);
         status.setProcessGroupStatus(groupStatuses);
 
+        // Populate flow config history
+        FlowChangeAction action1 = new FlowChangeAction();
+        action1.setId(123);
+        action1.setTimestamp(new Date());
+        action1.setUserIdentity("test");
+        action1.setSourceId("proc");
+        action1.setSourceName("Processor 1");
+        action1.setSourceType(Component.Processor);
+        action1.setOperation(Operation.Configure);
+        FlowChangeConfigureDetails configureDetails1 = new FlowChangeConfigureDetails();
+        configureDetails1.setName("property1");
+        configureDetails1.setPreviousValue("1");
+        configureDetails1.setValue("2");
+        action1.setActionDetails(configureDetails1);
+        flowConfigHistory = Collections.singletonList(action1);
     }
 
     @Test
@@ -524,6 +548,24 @@ class TestQueryNiFiReportingTask {
         assertEquals(flowFileUuid, row.get("bulletinFlowFileUuid"));
     }
 
+    @Test
+    void testFlowConfigHistoryTable() throws InitializationException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(QueryMetricsUtil.RECORD_SINK, "mock-record-sink");
+        properties.put(QueryMetricsUtil.QUERY, "select * from FLOW_CONFIG_HISTORY");
+        reportingTask = initTask(properties);
+        reportingTask.onTrigger(context);
+
+        List<Map<String, Object>> rows = mockRecordSinkService.getRows();
+        assertEquals(1, rows.size());
+        // Validate the first row
+        Map<String, Object> row = rows.get(0);
+        assertEquals(22, row.size());
+        // Verify the first row contents
+        assertEquals(123, row.get("actionId"));
+        assertEquals("Configure", row.get("actionOperation"));
+    }
+
     private MockQueryNiFiReportingTask initTask(Map<PropertyDescriptor, String> customProperties) throws InitializationException {
 
         final ComponentLog logger = mock(ComponentLog.class);
@@ -552,6 +594,7 @@ class TestQueryNiFiReportingTask {
         final EventAccess eventAccess = mock(EventAccess.class);
         Mockito.when(context.getEventAccess()).thenReturn(eventAccess);
         Mockito.when(eventAccess.getControllerStatus()).thenReturn(status);
+        Mockito.when(eventAccess.getFlowChanges(anyInt(), anyInt())).thenReturn(flowConfigHistory);
 
         final PropertyValue pValue = mock(StandardPropertyValue.class);
         mockRecordSinkService = new MockRecordSinkService();

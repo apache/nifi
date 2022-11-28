@@ -45,6 +45,8 @@ public class ExtensionComponent extends DefinedType {
     private String restrictedExplanation;
     private Set<Restriction> explicitRestrictions;
 
+    private Stateful stateful;
+
     @ApiModelProperty("The build metadata for this component")
     public BuildInfo getBuildInfo() {
         return buildInfo;
@@ -116,6 +118,14 @@ public class ExtensionComponent extends DefinedType {
 
     public void setExplicitRestrictions(Set<Restriction> explicitRestrictions) {
         this.explicitRestrictions = explicitRestrictions;
+    }
+
+    public Stateful getStateful() {
+        return stateful;
+    }
+
+    public void setStateful(Stateful stateful) {
+        this.stateful = stateful;
     }
 
     @Override

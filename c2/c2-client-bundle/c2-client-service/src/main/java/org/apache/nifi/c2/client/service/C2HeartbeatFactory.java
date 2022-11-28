@@ -23,12 +23,9 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -37,6 +34,7 @@ import org.apache.nifi.c2.client.C2ClientConfig;
 import org.apache.nifi.c2.client.PersistentUuidGenerator;
 import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
 import org.apache.nifi.c2.protocol.api.AgentInfo;
+import org.apache.nifi.c2.protocol.api.AgentManifest;
 import org.apache.nifi.c2.protocol.api.AgentRepositories;
 import org.apache.nifi.c2.protocol.api.AgentStatus;
 import org.apache.nifi.c2.protocol.api.C2Heartbeat;
@@ -44,8 +42,8 @@ import org.apache.nifi.c2.protocol.api.DeviceInfo;
 import org.apache.nifi.c2.protocol.api.FlowInfo;
 import org.apache.nifi.c2.protocol.api.FlowQueueStatus;
 import org.apache.nifi.c2.protocol.api.NetworkInfo;
+import org.apache.nifi.c2.protocol.api.SupportedOperation;
 import org.apache.nifi.c2.protocol.api.SystemInfo;
-import org.apache.nifi.c2.protocol.component.api.Bundle;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,14 +57,16 @@ public class C2HeartbeatFactory {
 
     private final C2ClientConfig clientConfig;
     private final FlowIdHolder flowIdHolder;
+    private final ManifestHashProvider manifestHashProvider;
 
     private String agentId;
     private String deviceId;
     private File confDirectory;
 
-    public C2HeartbeatFactory(C2ClientConfig clientConfig, FlowIdHolder flowIdHolder) {
+    public C2HeartbeatFactory(C2ClientConfig clientConfig, FlowIdHolder flowIdHolder, ManifestHashProvider manifestHashProvider) {
         this.clientConfig = clientConfig;
         this.flowIdHolder = flowIdHolder;
+        this.manifestHashProvider = manifestHashProvider;
     }
 
     public C2Heartbeat create(RuntimeInfoWrapper runtimeInfoWrapper) {
@@ -97,13 +97,24 @@ public class C2HeartbeatFactory {
         agentStatus.setRepositories(repos);
 
         agentInfo.setStatus(agentStatus);
-        agentInfo.setAgentManifestHash(calculateManifestHash(manifest.getBundles()));
+        agentInfo.setAgentManifestHash(manifestHashProvider.calculateManifestHash(manifest.getBundles(), getSupportedOperations(manifest)));
 
         if (clientConfig.isFullHeartbeat()) {
             agentInfo.setAgentManifest(manifest);
         }
 
         return agentInfo;
+    }
+
+    private Set<SupportedOperation> getSupportedOperations(RuntimeManifest manifest) {
+        Set<SupportedOperation> supportedOperations;
+        // supported operations has value only in case of minifi, therefore we return empty collection if
+        if (manifest instanceof AgentManifest) {
+            supportedOperations = ((AgentManifest) manifest).getSupportedOperations();
+        } else {
+            supportedOperations = Collections.emptySet();
+        }
+        return supportedOperations;
     }
 
     private String getAgentId() {
@@ -235,26 +246,4 @@ public class C2HeartbeatFactory {
         return confDirectory;
     }
 
-    private String calculateManifestHash(List<Bundle> loadedBundles) {
-        byte[] bytes;
-        try {
-            bytes = MessageDigest.getInstance("SHA-512").digest(loadedBundles.stream()
-                .map(bundle -> bundle.getGroup() + bundle.getArtifact() + bundle.getVersion())
-                .sorted()
-                .collect(Collectors.joining(","))
-                .getBytes(StandardCharsets.UTF_8));
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Unable to set up manifest hash calculation due to not having support for the chosen digest algorithm", e);
-        }
-
-        return bytesToHex(bytes);
-    }
-
-    private String bytesToHex(byte[] in) {
-        final StringBuilder builder = new StringBuilder();
-        for (byte b : in) {
-            builder.append(String.format("%02x", b));
-        }
-        return builder.toString();
-    }
 }

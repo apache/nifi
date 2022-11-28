@@ -130,6 +130,8 @@ import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_DELETE_ROWS;
 import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_WRITE_ROWS;
 import static com.github.shyiko.mysql.binlog.event.EventType.ROTATE;
 import static com.github.shyiko.mysql.binlog.event.EventType.WRITE_ROWS;
+import static com.github.shyiko.mysql.binlog.event.EventType.XID;
+
 
 /**
  * A processor to retrieve Change Data Capture (CDC) events and send them as flow files.
@@ -626,6 +628,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         } else {
             currentSequenceId.set(Long.parseLong(seqIdString));
         }
+        //get inTransaction value from state
+        inTransaction = "true".equals(stateMap.get("inTransaction"));
 
         // Get reference to Distributed Cache if one exists. If it does not, no enrichment (resolution of column names, e.g.) will be performed
         boolean createEnrichmentConnection = false;
@@ -942,6 +946,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                             currentSequenceId.set(beginEventWriter.writeEvent(currentSession, transitUri, beginEvent, currentSequenceId.get(), REL_SUCCESS));
                         }
                         inTransaction = true;
+                        //update inTransaction value to state
+                        updateState(session);
                     } else if ("COMMIT".equals(sql)) {
                         if (!inTransaction) {
                             throw new IOException("COMMIT event received while not processing a transaction (i.e. no corresponding BEGIN event). "
@@ -954,12 +960,11 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                     : new CommitTransactionEventInfo(currentDatabase, timestamp, currentBinlogFile, currentBinlogPosition);
                             currentSequenceId.set(commitEventWriter.writeEvent(currentSession, transitUri, commitTransactionEvent, currentSequenceId.get(), REL_SUCCESS));
                         }
-
+                        //update inTransaction value to state
+                        inTransaction = false;
                         updateState(session);
-
                         // Commit the NiFi session
                         session.commitAsync();
-                        inTransaction = false;
                         currentTable = null;
                     } else {
                         // Check for DDL events (alter table, e.g.). Normalize the query to do string matching on the type of change
@@ -1005,9 +1010,12 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         currentSequenceId.set(commitEventWriter.writeEvent(currentSession, transitUri, commitTransactionEvent, currentSequenceId.get(), REL_SUCCESS));
                     }
                     // Commit the NiFi session
+                    // update inTransaction value and save next position
+                    // so when restart this processor,we will not read xid event again
+                    inTransaction = false;
+                    currentBinlogPosition = header.getNextPosition();
                     updateState(session);
                     session.commitAsync();
-                    inTransaction = false;
                     currentTable = null;
                     currentDatabase = null;
                     break;
@@ -1089,7 +1097,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             // Advance the current binlog position. This way if no more events are received and the processor is stopped, it will resume after the event that was just processed.
             // We always get ROTATE and FORMAT_DESCRIPTION messages no matter where we start (even from the end), and they won't have the correct "next position" value, so only
             // advance the position if it is not that type of event.
-            if (eventType != ROTATE && eventType != FORMAT_DESCRIPTION && !useGtid) {
+            if (eventType != ROTATE && eventType != FORMAT_DESCRIPTION && !useGtid && eventType != XID) {
                 currentBinlogPosition = header.getNextPosition();
             }
         }
@@ -1133,10 +1141,10 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     }
 
     private void updateState(ProcessSession session) throws IOException {
-        updateState(session, currentBinlogFile, currentBinlogPosition, currentSequenceId.get(), currentGtidSet);
+        updateState(session, currentBinlogFile, currentBinlogPosition, currentSequenceId.get(), currentGtidSet, inTransaction);
     }
 
-    private void updateState(ProcessSession session, String binlogFile, long binlogPosition, long sequenceId, String gtidSet) throws IOException {
+    private void updateState(ProcessSession session, String binlogFile, long binlogPosition, long sequenceId, String gtidSet, boolean inTransaction) throws IOException {
         // Update state with latest values
         final Map<String, String> newStateMap = new HashMap<>(session.getState(Scope.CLUSTER).toMap());
 
@@ -1147,6 +1155,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
         newStateMap.put(BinlogEventInfo.BINLOG_POSITION_KEY, Long.toString(binlogPosition));
         newStateMap.put(EventWriter.SEQUENCE_ID_KEY, String.valueOf(sequenceId));
+        //add inTransaction value into state
+        newStateMap.put("inTransaction", inTransaction ? "true" : "false");
 
         if (gtidSet != null) {
             newStateMap.put(BinlogEventInfo.BINLOG_GTIDSET_KEY, gtidSet);
@@ -1178,7 +1188,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     }
 
 
-    BinaryLogClient createBinlogClient(String hostname, int port, String username, String password) {
+    protected BinaryLogClient createBinlogClient(String hostname, int port, String username, String password) {
         return new BinaryLogClient(hostname, port, username, password);
     }
 

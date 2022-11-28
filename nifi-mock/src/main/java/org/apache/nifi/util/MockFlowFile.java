@@ -69,7 +69,7 @@ public class MockFlowFile implements FlowFileRecord {
     public MockFlowFile(final long id, final FlowFile toCopy) {
         this.creationTime = System.nanoTime();
         this.id = id;
-        entryDate = System.currentTimeMillis();
+        entryDate = toCopy.getEntryDate();
 
         final Map<String, String> attributesToCopy = toCopy.getAttributes();
         String filename = attributesToCopy.get(CoreAttributes.FILENAME.key());

@@ -212,19 +212,22 @@ public abstract class AbstractGCPProcessor<
      */
     protected TransportOptions getTransportOptions(ProcessContext context) {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context, () -> {
-            final String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
-            final Integer proxyPort = context.getProperty(PROXY_PORT).evaluateAttributeExpressions().asInteger();
-            if (proxyHost != null && proxyPort != null && proxyPort > 0) {
-                final ProxyConfiguration componentProxyConfig = new ProxyConfiguration();
-                final String proxyUser = context.getProperty(HTTP_PROXY_USERNAME).evaluateAttributeExpressions().getValue();
-                final String proxyPassword = context.getProperty(HTTP_PROXY_PASSWORD).evaluateAttributeExpressions().getValue();
-                componentProxyConfig.setProxyType(Proxy.Type.HTTP);
-                componentProxyConfig.setProxyServerHost(proxyHost);
-                componentProxyConfig.setProxyServerPort(proxyPort);
-                componentProxyConfig.setProxyUserName(proxyUser);
-                componentProxyConfig.setProxyUserPassword(proxyPassword);
-                return componentProxyConfig;
+            if (context.getProperty(PROXY_HOST).isSet() && context.getProperty(PROXY_PORT).isSet()) {
+                final String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
+                final Integer proxyPort = context.getProperty(PROXY_PORT).evaluateAttributeExpressions().asInteger();
+                if (proxyHost != null && proxyPort != null && proxyPort > 0) {
+                    final ProxyConfiguration componentProxyConfig = new ProxyConfiguration();
+                    final String proxyUser = context.getProperty(HTTP_PROXY_USERNAME).evaluateAttributeExpressions().getValue();
+                    final String proxyPassword = context.getProperty(HTTP_PROXY_PASSWORD).evaluateAttributeExpressions().getValue();
+                    componentProxyConfig.setProxyType(Proxy.Type.HTTP);
+                    componentProxyConfig.setProxyServerHost(proxyHost);
+                    componentProxyConfig.setProxyServerPort(proxyPort);
+                    componentProxyConfig.setProxyUserName(proxyUser);
+                    componentProxyConfig.setProxyUserPassword(proxyPassword);
+                    return componentProxyConfig;
+                }
             }
+
             return ProxyConfiguration.DIRECT_CONFIGURATION;
         });
 

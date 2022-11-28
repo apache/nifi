@@ -16,11 +16,13 @@
  */
 package org.apache.nifi.lookup.script;
 
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.StringLookupService;
 
@@ -37,6 +39,9 @@ import java.util.Set;
         + "Also the scripted lookup service should implement StringLookupService, otherwise the getValueType() method must be implemented even "
         + "though it will be ignored, as SimpleScriptedLookupService returns String as the value type on the script's behalf. Please note that due to "
         + "a bug in Jython that remains unresolved, it is not possible to use Jython to write a script for this service in Python.")
+@DynamicProperty(name = "Script Engine Binding property", value = "Binding property value passed to Script Runner",
+        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+        description = "Updates a script engine property specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
 @Restricted(
         restrictions = {
                 @Restriction(

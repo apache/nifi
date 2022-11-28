@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.event.transport.netty;
 
+import org.apache.nifi.event.transport.EventDroppedException;
 import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.event.transport.EventServer;
@@ -32,11 +33,14 @@ import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.net.ssl.SSLContext;
 import java.net.InetAddress;
+import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -47,8 +51,12 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 public class StringNettyEventSenderFactoryTest {
@@ -68,6 +76,8 @@ public class StringNettyEventSenderFactoryTest {
 
     private static final int SINGLE_THREAD = 1;
 
+    private static final int SINGLE_MESSAGE = 1;
+
     static {
         try {
             ADDRESS = InetAddress.getByName("127.0.0.1");
@@ -75,6 +85,9 @@ public class StringNettyEventSenderFactoryTest {
             throw new IllegalArgumentException(e);
         }
     }
+
+    @Captor
+    private ArgumentCaptor<Exception> exceptionCaptor;
 
     @Mock
     private ComponentLog log;
@@ -113,6 +126,34 @@ public class StringNettyEventSenderFactoryTest {
     }
 
     @Test
+    public void testSendEventTcpEventDropped() throws Exception {
+        final int port = NetworkUtils.getAvailableTcpPort();
+
+        final BlockingQueue<ByteArrayMessage> messages = new LinkedBlockingQueue<>(SINGLE_MESSAGE);
+        final NettyEventServerFactory serverFactory = getEventServerFactory(port, messages);
+        final EventServer eventServer = serverFactory.getEventServer();
+        final NettyEventSenderFactory<String> senderFactory = getEventSenderFactory(port);
+        try (final EventSender<String> sender = senderFactory.getEventSender()) {
+            sender.sendEvent(MESSAGE);
+            assertMessageMatched(messages.take());
+
+            // Send event to be queued
+            sender.sendEvent(MESSAGE);
+
+            // Send event to be dropped
+            sender.sendEvent(MESSAGE);
+        } finally {
+            eventServer.shutdown();
+        }
+
+        assertEquals(SINGLE_MESSAGE, messages.size());
+
+        verify(log).warn(anyString(), any(SocketAddress.class), exceptionCaptor.capture());
+        final Exception exception = exceptionCaptor.getValue();
+        assertInstanceOf(EventDroppedException.class, exception);
+    }
+
+    @Test
     public void testSendEventTcpSslContextConfigured() throws Exception {
         final int port = NetworkUtils.getAvailableTcpPort();
 
@@ -138,6 +179,10 @@ public class StringNettyEventSenderFactoryTest {
     private void assertMessageReceived(final BlockingQueue<ByteArrayMessage> messages) throws InterruptedException {
         final ByteArrayMessage messageReceived = messages.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS);
         assertNotNull(messageReceived, "Message not received");
+        assertMessageMatched(messageReceived);
+    }
+
+    private void assertMessageMatched(final ByteArrayMessage messageReceived) {
         final String eventReceived = new String(messageReceived.getMessage(), CHARSET);
         assertEquals(MESSAGE, eventReceived, "Message not matched");
         assertEquals(ADDRESS.getHostAddress(), messageReceived.getSender(), "Sender not matched");

@@ -20,9 +20,11 @@
 package org.apache.nifi.processors.solr;
 
 import com.google.gson.stream.JsonWriter;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
@@ -40,6 +42,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -94,6 +97,8 @@ import static org.apache.nifi.processors.solr.SolrUtils.RECORD_WRITER;
 @Tags({"Apache", "Solr", "Get", "Query", "Records"})
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @CapabilityDescription("Queries Solr and outputs the results as a FlowFile in the format of XML or using a Record Writer")
+@DynamicProperty(name="A Solr request parameter name", value="A Solr request parameter value",
+        description="These parameters will be passed to Solr on the request")
 @WritesAttributes({
         @WritesAttribute(attribute = "solr.connect", description = "Solr connect string"),
         @WritesAttribute(attribute = "solr.collection", description = "Solr collection"),
@@ -108,6 +113,7 @@ import static org.apache.nifi.processors.solr.SolrUtils.RECORD_WRITER;
         @WritesAttribute(attribute = "querysolr.exeption.class", description = "The Java exception class raised when the processor fails"),
         @WritesAttribute(attribute = "querysolr.exeption.message", description = "The Java exception message raised when the processor fails")
 })
+@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class QuerySolr extends SolrProcessor {
 
     public static final AllowableValue MODE_XML = new AllowableValue("XML");

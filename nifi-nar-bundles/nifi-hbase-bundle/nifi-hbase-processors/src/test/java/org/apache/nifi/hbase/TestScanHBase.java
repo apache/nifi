@@ -24,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -127,7 +128,7 @@ public class TestScanHBase {
 
     @Test
     public void testScanToContentWithStringValues() {
-        final Map<String, String> cells = new HashMap<>();
+        final Map<String, String> cells = new LinkedHashMap<>();
         cells.put("cq1", "val1");
         cells.put("cq2", "val2");
 
@@ -292,7 +293,7 @@ public class TestScanHBase {
 
     @Test
     public void testScanToContentWithQualifierAndValueJSON() {
-        final Map<String, String> cells = new HashMap<>();
+        final Map<String, String> cells = new LinkedHashMap<>();
         cells.put("cq1", "val1");
         cells.put("cq2", "val2");
 

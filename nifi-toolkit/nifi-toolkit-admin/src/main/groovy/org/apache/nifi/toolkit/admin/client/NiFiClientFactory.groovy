@@ -18,42 +18,38 @@ package org.apache.nifi.toolkit.admin.client
 
 import org.apache.commons.lang3.StringUtils
 import org.apache.http.conn.ssl.DefaultHostnameVerifier
+import org.apache.nifi.security.ssl.StandardKeyStoreBuilder
+import org.apache.nifi.security.ssl.StandardSslContextBuilder
 import org.apache.nifi.util.NiFiProperties
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
-import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
-import javax.net.ssl.TrustManagerFactory
 import javax.ws.rs.client.Client
 import javax.ws.rs.client.ClientBuilder
 import java.security.KeyManagementException
 import java.security.KeyStore
 import java.security.KeyStoreException
 import java.security.NoSuchAlgorithmException
-import java.security.SecureRandom
 import java.security.UnrecoverableKeyException
 import java.security.cert.CertificateException
 
 class NiFiClientFactory implements ClientFactory{
 
-    private static final Logger logger = LoggerFactory.getLogger(NiFiClientFactory.class)
     static enum NiFiAuthType{ NONE, SSL }
 
-    public Client getClient(NiFiProperties niFiProperties, String nifiInstallDir) throws Exception {
+    Client getClient(NiFiProperties niFiProperties, String nifiInstallDir) throws Exception {
 
-        final String authTypeStr = StringUtils.isEmpty(niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST)) &&  StringUtils.isEmpty(niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT))  ? NiFiAuthType.NONE : NiFiAuthType.SSL;
-        final NiFiAuthType authType = NiFiAuthType.valueOf(authTypeStr);
+        final String authTypeStr = StringUtils.isEmpty(niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST)) &&  StringUtils.isEmpty(niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT))  ? NiFiAuthType.NONE : NiFiAuthType.SSL
+        final NiFiAuthType authType = NiFiAuthType.valueOf(authTypeStr)
 
-        SSLContext sslContext = null;
+        SSLContext sslContext = null
 
-        if (NiFiAuthType.SSL.equals(authType)) {
-            String keystore = niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE);
-            final String keystoreType = niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE);
-            final String keystorePassword = niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD);
-            String truststore = niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE);
-            final String truststoreType = niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE);
-            final String truststorePassword = niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD);
+        if (NiFiAuthType.SSL == authType) {
+            String keystore = niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE)
+            final String keystoreType = niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE)
+            final String keystorePassword = niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD)
+            String truststore = niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE)
+            final String truststoreType = niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE)
+            final String truststorePassword = niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD)
 
             if(keystore.startsWith("./")){
                 keystore = keystore.replace("./",nifiInstallDir+"/")
@@ -69,16 +65,16 @@ class NiFiClientFactory implements ClientFactory{
                     truststore.trim(),
                     truststorePassword.trim().toCharArray(),
                     truststoreType.trim(),
-                    "TLS");
+                    "TLS")
         }
 
-        final ClientBuilder clientBuilder = ClientBuilder.newBuilder();
+        final ClientBuilder clientBuilder = ClientBuilder.newBuilder()
 
         if (sslContext != null) {
-            clientBuilder.sslContext(sslContext).hostnameVerifier(new DefaultHostnameVerifier());
+            clientBuilder.sslContext(sslContext).hostnameVerifier(new DefaultHostnameVerifier())
         }
 
-        return clientBuilder.build();
+        return clientBuilder.build()
 
     }
 
@@ -89,29 +85,29 @@ class NiFiClientFactory implements ClientFactory{
             throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException,
                     UnrecoverableKeyException, KeyManagementException {
 
-        // prepare the keystore
-        final KeyStore keyStore = KeyStore.getInstance(keystoreType);
-        final InputStream keyStoreStream = new FileInputStream(keystore)
-            keyStore.load(keyStoreStream, keystorePasswd);
+        final KeyStore keyStore
+        try (final InputStream keyStoreStream = new FileInputStream(keystore)) {
+            keyStore = new StandardKeyStoreBuilder()
+                    .inputStream(keyStoreStream)
+                    .password(keystorePasswd)
+                    .type(keystoreType)
+                    .build()
+        }
 
+        final KeyStore trustStore
+        try (final InputStream trustStoreStream = new FileInputStream(truststore)) {
+            trustStore = new StandardKeyStoreBuilder()
+                    .inputStream(trustStoreStream)
+                    .password(truststorePasswd)
+                    .type(truststoreType)
+                    .build()
+        }
 
-        final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        keyManagerFactory.init(keyStore, keystorePasswd);
-
-        // prepare the truststore
-        final KeyStore trustStore = KeyStore.getInstance(truststoreType);
-        final InputStream trustStoreStream = new FileInputStream(truststore)
-        trustStore.load(trustStoreStream, truststorePasswd);
-
-        final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-        trustManagerFactory.init(trustStore);
-
-        // initialize the ssl context
-        final SSLContext sslContext = SSLContext.getInstance(protocol);
-        sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), new SecureRandom());
-        return sslContext;
+        return new StandardSslContextBuilder()
+                .keyPassword(keystorePasswd)
+                .keyStore(keyStore)
+                .trustStore(trustStore)
+                .protocol(protocol)
+                .build()
     }
-
-
-
 }

@@ -28,11 +28,13 @@ import org.apache.nifi.processors.mqtt.common.MqttCallback;
 import org.apache.nifi.processors.mqtt.common.MqttClient;
 import org.apache.nifi.processors.mqtt.common.MqttClientProperties;
 import org.apache.nifi.processors.mqtt.common.MqttException;
+import org.apache.nifi.processors.mqtt.common.MqttProtocolScheme;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
 import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.TlsException;
 
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -50,8 +52,8 @@ public class HiveMqV5ClientAdapter implements MqttClient {
 
     private MqttCallback callback;
 
-    public HiveMqV5ClientAdapter(MqttClientProperties clientProperties, ComponentLog logger) throws TlsException {
-        this.mqtt5BlockingClient = createClient(clientProperties, logger);
+    public HiveMqV5ClientAdapter(URI brokerUri, MqttClientProperties clientProperties, ComponentLog logger) throws TlsException {
+        this.mqtt5BlockingClient = createClient(brokerUri, clientProperties, logger);
         this.clientProperties = clientProperties;
         this.logger = logger;
     }
@@ -143,7 +145,7 @@ public class HiveMqV5ClientAdapter implements MqttClient {
         // Setting "listener" callback is only possible with async client, though sending subscribe message
         // should happen in a blocking way to make sure the processor is blocked until ack is not arrived.
         try {
-            Mqtt5SubAck ack = futureAck.get(clientProperties.getConnectionTimeout(), TimeUnit.SECONDS);
+            final Mqtt5SubAck ack = futureAck.get(clientProperties.getConnectionTimeout(), TimeUnit.SECONDS);
             logger.debug("Received mqtt5 subscribe ack: {}", ack);
         } catch (Exception e) {
             throw new MqttException("An error has occurred during sending subscribe message to broker", e);
@@ -155,24 +157,25 @@ public class HiveMqV5ClientAdapter implements MqttClient {
         this.callback = callback;
     }
 
-    private static Mqtt5BlockingClient createClient(MqttClientProperties clientProperties, ComponentLog logger) throws TlsException {
+    private static Mqtt5BlockingClient createClient(URI brokerUri, MqttClientProperties clientProperties, ComponentLog logger) throws TlsException {
         logger.debug("Creating Mqtt v5 client");
 
-        Mqtt5ClientBuilder mqtt5ClientBuilder = Mqtt5Client.builder()
+        final Mqtt5ClientBuilder mqtt5ClientBuilder = Mqtt5Client.builder()
                 .identifier(clientProperties.getClientId())
-                .serverHost(clientProperties.getBrokerUri().getHost());
+                .serverHost(brokerUri.getHost());
 
-        int port = clientProperties.getBrokerUri().getPort();
+        final int port = brokerUri.getPort();
         if (port != -1) {
             mqtt5ClientBuilder.serverPort(port);
         }
 
+        final MqttProtocolScheme scheme = MqttProtocolScheme.valueOf(brokerUri.getScheme().toUpperCase());
         // default is tcp
-        if (WS.equals(clientProperties.getScheme()) || WSS.equals(clientProperties.getScheme())) {
+        if (WS.equals(scheme) || WSS.equals(scheme)) {
             mqtt5ClientBuilder.webSocketConfig().applyWebSocketConfig();
         }
 
-        if (SSL.equals(clientProperties.getScheme())) {
+        if (SSL.equals(scheme) || WSS.equals(scheme)) {
             if (clientProperties.getTlsConfiguration().getTruststorePath() != null) {
                 mqtt5ClientBuilder
                         .sslConfig()

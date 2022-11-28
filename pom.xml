@@ -19,7 +19,7 @@
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi</artifactId>
-    <version>1.18.0-SNAPSHOT</version>
+    <version>1.19.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <modules>
@@ -100,25 +100,27 @@
         <node.version>v16.13.2</node.version>
         <frontend.mvn.plugin.version>1.12.1</frontend.mvn.plugin.version>
         <nifi.nar.maven.plugin.version>1.3.5</nifi.nar.maven.plugin.version>
-        <project.build.outputTimestamp>1658953446</project.build.outputTimestamp>
+        <project.build.outputTimestamp>1664819974</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
         <com.amazonaws.version>1.12.299</com.amazonaws.version>
         <software.amazon.awssdk.version>2.17.270</software.amazon.awssdk.version>
-        <gson.version>2.9.1</gson.version>
-        <kotlin.version>1.7.10</kotlin.version>
+        <gson.version>2.10</gson.version>
+        <kotlin.version>1.7.20</kotlin.version>
         <okhttp.version>4.10.0</okhttp.version>
+        <org.apache.commons.cli.version>1.5.0</org.apache.commons.cli.version>
         <org.apache.commons.lang3.version>3.12.0</org.apache.commons.lang3.version>
         <org.apache.commons.io.version>2.11.0</org.apache.commons.io.version>
+        <org.apache.commons.text.version>1.10.0</org.apache.commons.text.version>
         <org.apache.httpcomponents.httpclient.version>4.5.13</org.apache.httpcomponents.httpclient.version>
         <org.apache.httpcomponents.httpcore.version>4.4.15</org.apache.httpcomponents.httpcore.version>
-        <org.bouncycastle.version>1.70</org.bouncycastle.version>
-        <testcontainers.version>1.17.3</testcontainers.version>
+        <org.bouncycastle.version>1.71</org.bouncycastle.version>
+        <testcontainers.version>1.17.5</testcontainers.version>
         <org.slf4j.version>1.7.36</org.slf4j.version>
         <ranger.version>2.3.0</ranger.version>
-        <jetty.version>9.4.48.v20220622</jetty.version>
-        <jackson.bom.version>2.13.4</jackson.bom.version>
+        <jetty.version>9.4.49.v20220914</jetty.version>
+        <jackson.bom.version>2.14.0</jackson.bom.version>
         <avro.version>1.11.1</avro.version>
         <jaxb.runtime.version>2.3.5</jaxb.runtime.version>
         <javax.annotation-api.version>1.3.2</javax.annotation-api.version>
@@ -136,12 +138,12 @@
         <jersey.bom.version>2.36</jersey.bom.version>
         <log4j2.version>2.18.0</log4j2.version>
         <logback.version>1.2.11</logback.version>
-        <mockito.version>3.11.2</mockito.version>
+        <mockito.version>3.12.4</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
-        <snakeyaml.version>1.32</snakeyaml.version>
-        <netty.4.version>4.1.81.Final</netty.4.version>
+        <snakeyaml.version>1.33</snakeyaml.version>
+        <netty.4.version>4.1.85.Final</netty.4.version>
         <spring.version>5.3.23</spring.version>
-        <spring.security.version>5.7.3</spring.security.version>
+        <spring.security.version>5.7.5</spring.security.version>
         <swagger.annotations.version>1.6.6</swagger.annotations.version>
         <h2.version>2.1.214</h2.version>
         <zookeeper.version>3.8.0</zookeeper.version>
@@ -205,17 +207,27 @@
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bcprov-jdk15on</artifactId>
+                <artifactId>bcprov-jdk18on</artifactId>
                 <version>${org.bouncycastle.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bcpkix-jdk15on</artifactId>
+                <artifactId>bcpkix-jdk18on</artifactId>
                 <version>${org.bouncycastle.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bcpg-jdk15on</artifactId>
+                <artifactId>bcpg-jdk18on</artifactId>
+                <version>${org.bouncycastle.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcutil-jdk18on</artifactId>
+                <version>${org.bouncycastle.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcmail-jdk18on</artifactId>
                 <version>${org.bouncycastle.version}</version>
             </dependency>
             <dependency>
@@ -229,6 +241,11 @@
                 <version>${avro.version}</version>
             </dependency>
             <dependency>
+                <groupId>commons-cli</groupId>
+                <artifactId>commons-cli</artifactId>
+                <version>${org.apache.commons.cli.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>${org.apache.commons.io.version}</version>
@@ -237,6 +254,11 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>${org.apache.commons.lang3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-text</artifactId>
+                <version>${org.apache.commons.text.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
@@ -277,7 +299,7 @@
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
-                <version>5.9.0</version>
+                <version>5.9.1</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -332,8 +354,27 @@
             </dependency>
             <dependency>
                 <groupId>org.testcontainers</groupId>
-                <artifactId>testcontainers</artifactId>
-                <version>1.17.3</version>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>mongodb</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>neo4j</artifactId>
+                <version>${testcontainers.version}</version>
                 <scope>test</scope>
             </dependency>
             <!-- These Jetty dependencies are required for the Jetty Web Server all nars extend from it so we dont want this getting overriden -->
@@ -718,6 +759,9 @@
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>jaxb2-maven-plugin</artifactId>
                     <version>2.5.0</version>
+                    <configuration>
+                        <noGeneratedHeaderComments>true</noGeneratedHeaderComments>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -747,6 +791,7 @@
                         <releaseProfiles>apache-release</releaseProfiles>
                         <autoVersionSubmodules>true</autoVersionSubmodules>
                         <goals>deploy</goals>
+                        <!--suppress UnresolvedMavenProperty -->
                         <tagNameFormat>@{project.artifactId}-@{project.version}</tagNameFormat>
                         <pushChanges>false</pushChanges>
                         <localCheckout>true</localCheckout>
@@ -760,6 +805,19 @@
                             <configuration>
                                 <pomFileName>pom.xml</pomFileName>
                             </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>com.spotify</groupId>
+                    <artifactId>dockerfile-maven-plugin</artifactId>
+                    <version>1.4.13</version>
+                    <executions>
+                        <execution>
+                            <id>default</id>
+                            <goals>
+                                <goal>build</goal>
+                            </goals>
                         </execution>
                     </executions>
                 </plugin>
@@ -868,6 +926,7 @@
                         </goals>
                         <configuration>
                             <rules>
+                                <banDuplicatePomDependencyVersions/>
                                 <requireSameVersions>
                                     <plugins>
                                         <plugin>org.apache.maven.plugins:maven-surefire-plugin</plugin>
@@ -905,6 +964,12 @@
                                         <exclude>commons-logging:commons-logging:*</exclude>
                                         <!-- Apache Xalan is no longer maintained and is bundled in the standard JRE -->
                                         <exclude>xalan:xalan</exclude>
+                                        <!-- As of Bouncycastle 1.71 Java 8 is the minimum required so jdk15on artifacts not allowed -->
+                                        <exclude>org.bouncycastle:bcprov-jdk15on</exclude>
+                                        <exclude>org.bouncycastle:bcpg-jdk15on</exclude>
+                                        <exclude>org.bouncycastle:bcpkix-jdk15on</exclude>
+                                        <exclude>org.bouncycastle:bcutil-jdk15on</exclude>
+                                        <exclude>org.bouncycastle:bcmail-jdk15on</exclude>
                                     </excludes>
                                     <includes>
                                         <!-- Versions of JSR305 after 3.0.1 are allowed https://github.com/findbugsproject/findbugs/issues/128 -->
@@ -921,78 +986,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <configuration>
-                    <checkstyleRules>
-                        <module name="Checker">
-                            <property name="charset" value="UTF-8" />
-                            <property name="severity" value="warning" />
-                            <!-- Checks for whitespace -->
-                            <!-- See http://checkstyle.sf.net/config_whitespace.html -->
-                            <module name="FileTabCharacter">
-                                <property name="eachLine" value="true" />
-                            </module>
-                            <module name="LineLength">
-                                <!-- needs extra, because Eclipse formatter
-                                    ignores the ending left brace -->
-                                <property name="max" value="200" />
-                                <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
-                            </module>
-                            <module name="TreeWalker">
-                                <module name="RegexpSinglelineJava">
-                                    <property name="format" value="\s+$" />
-                                    <property name="message" value="Line has trailing whitespace." />
-                                </module>
-                                <module name="RegexpSinglelineJava">
-                                    <property name="format" value="[@]see\s+[{][@]link" />
-                                    <property name="message" value="Javadoc @see does not need @link: pick one or the other." />
-                                </module>
-                                <module name="OuterTypeFilename" />
-                                <module name="AvoidStarImport" />
-                                <module name="UnusedImports">
-                                    <property name="processJavadoc" value="true" />
-                                </module>
-                                <module name="NoLineWrap" />
-                                <module name="LeftCurly" />
-                                <module name="RightCurly" />
-                                <module name="RightCurly">
-                                    <property name="option" value="alone_or_singleline" />
-                                    <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, STATIC_INIT" />
-                                </module>
-                                <module name="SeparatorWrap">
-                                    <property name="tokens" value="DOT" />
-                                    <property name="option" value="nl" />
-                                </module>
-                                <module name="SeparatorWrap">
-                                    <property name="tokens" value="COMMA" />
-                                    <property name="option" value="EOL" />
-                                </module>
-                                <module name="PackageName">
-                                    <property name="format" value="^[a-z]+(\.[a-z][a-zA-Z0-9]*)*$" />
-                                </module>
-                                <module name="MethodTypeParameterName">
-                                    <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)" />
-                                </module>
-                                <module name="MethodParamPad" />
-                                <module name="OperatorWrap">
-                                    <property name="option" value="NL" />
-                                    <property name="tokens" value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, QUESTION, SL, SR, STAR " />
-                                </module>
-                                <module name="AnnotationLocation">
-                                    <property name="tokens" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF" />
-                                </module>
-                                <module name="AnnotationLocation">
-                                    <property name="tokens" value="VARIABLE_DEF" />
-                                    <property name="allowSamelineMultipleAnnotations" value="true" />
-                                </module>
-                                <module name="NonEmptyAtclauseDescription" />
-                                <module name="JavadocMethod">
-                                    <property name="allowMissingParamTags" value="true" />
-                                    <property name="allowMissingReturnTag" value="true" />
-                                    <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After" />
-                                </module>
-                                <module name="SingleLineJavadoc" />
-                            </module>
-                        </module>
-                    </checkstyleRules>
+                    <configLocation>checkstyle.xml</configLocation>
                     <violationSeverity>warning</violationSeverity>
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
                 </configuration>
@@ -1062,7 +1056,7 @@
                                 <id>check-style</id>
                                 <phase>validate</phase>
                                 <configuration>
-                                    <encoding>UTF-8</encoding>
+                                    <inputEncoding>UTF-8</inputEncoding>
                                     <excludes>**/generated-sources/**/*</excludes>
                                     <sourceDirectories>
                                         <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
@@ -1121,6 +1115,9 @@
                             <groupId>org.jvnet.jaxb2.maven2</groupId>
                             <artifactId>maven-jaxb2-plugin</artifactId>
                             <version>0.14.0</version>
+                            <configuration>
+                                <noFileHeader>true</noFileHeader>
+                            </configuration>
                         </plugin>
                     </plugins>
                 </pluginManagement>

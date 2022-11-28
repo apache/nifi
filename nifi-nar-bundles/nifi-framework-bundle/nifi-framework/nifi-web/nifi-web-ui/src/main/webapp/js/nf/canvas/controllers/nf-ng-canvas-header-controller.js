@@ -21,27 +21,27 @@
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'nf.Common',
-                'nf.Storage',
+                'nf.AuthorizationStorage',
                 'nf.Shell',
                 'nf.ErrorHandler'],
-            function ($, nfCommon, nfStorage, nfShell, nfErrorHandler) {
-                return (nf.ng.Canvas.HeaderCtrl = factory($, nfCommon, nfStorage, nfShell, nfErrorHandler));
+            function ($, nfCommon, nfAuthorizationStorage, nfShell, nfErrorHandler) {
+                return (nf.ng.Canvas.HeaderCtrl = factory($, nfCommon, nfAuthorizationStorage, nfShell, nfErrorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.Canvas.HeaderCtrl =
             factory(require('jquery'),
                 require('nf.Common'),
-                require('nf.Storage'),
+                require('nf.AuthorizationStorage'),
                 require('nf.Shell'),
                 require('nf.ErrorHandler')));
     } else {
         nf.ng.Canvas.HeaderCtrl = factory(root.$,
             root.nf.Common,
-            root.nf.Storage,
+            root.nf.AuthorizationStorage,
             root.nf.Shell,
             root.nf.ErrorHandler);
     }
-}(this, function ($, nfCommon, nfStorage, nfShell, nfErrorHandler) {
+}(this, function ($, nfCommon, nfAuthorizationStorage, nfShell, nfErrorHandler) {
     'use strict';
 
     return function (serviceProvider, toolboxCtrl, globalMenuCtrl, flowStatusCtrl) {
@@ -121,7 +121,7 @@
                         type: 'DELETE',
                         url: '../nifi-api/access/logout',
                     }).done(function () {
-                        nfStorage.removeItem("jwt");
+                        nfAuthorizationStorage.removeToken();
                         window.location = '../nifi/logout';
                     }).fail(nfErrorHandler.handleAjaxError);
                 }

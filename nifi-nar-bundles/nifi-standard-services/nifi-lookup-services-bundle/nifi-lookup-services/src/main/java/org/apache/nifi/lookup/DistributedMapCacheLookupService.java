@@ -86,6 +86,7 @@ public class DistributedMapCacheLookupService extends AbstractControllerService 
         return STANDARD_CHARSETS.stream().map(c -> c.displayName()).collect(Collectors.toSet());
     }
 
+    // TODO remove this at next major release as dynamic properties are not used by this component
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()

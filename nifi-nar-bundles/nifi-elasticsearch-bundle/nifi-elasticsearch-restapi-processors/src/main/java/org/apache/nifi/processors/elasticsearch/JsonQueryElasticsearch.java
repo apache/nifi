@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit;
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @EventDriven
-@Tags({"elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "query", "read", "get", "json"})
+@Tags({"elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "query", "read", "get", "json"})
 @CapabilityDescription("A processor that allows the user to run a query (with aggregations) written with the " +
         "Elasticsearch JSON DSL. It does not automatically paginate queries for the user. If an incoming relationship is added to this " +
         "processor, it will use the flowfile's content for the query. Care should be taken on the size of the query because the entire response " +

@@ -25,14 +25,43 @@ env:
     -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
     -Dhttp.keepAlive=false
     -Dmaven.wagon.http.pool=false
-  MAVEN_BUILD_COMMAND: >-
-    mvn package verify
-    -V
+  COMPILE_MAVEN_OPTS: >-
+    -Xmx3g
+    -Dhttp.keepAlive=false
+    -Dmaven.wagon.http.pool=false
+  MAVEN_COMPILE_COMMAND: >-
+    mvn test-compile
+    --threads 2C
+    --show-version
+    --no-snapshot-updates
+    --no-transfer-progress
+    --fail-fast
+    -pl -:minifi-c2-integration-tests
+    -pl -:minifi-integration-tests
+    -pl -:minifi-assembly
+    -pl -:nifi-assembly
+    -pl -:nifi-kafka-connector-assembly
+    -pl -:nifi-kafka-connector-tests
+    -pl -:nifi-toolkit-encrypt-config
+    -pl -:nifi-toolkit-admin
+    -pl -:nifi-toolkit-tls
+    -pl -:nifi-toolkit-assembly
+    -pl -:nifi-registry-assembly
+    -pl -:nifi-registry-toolkit-assembly
+    -pl -:nifi-runtime-manifest
+    -pl -:nifi-runtime-manifest-test
+    -pl -:nifi-stateless-assembly
+    -pl -:nifi-stateless-processor-tests
+    -pl -:nifi-stateless-system-test-suite
+    -pl -:nifi-system-test-suite
+  MAVEN_VERIFY_COMMAND: >-
+    mvn verify
+    --show-version
+    --no-snapshot-updates
+    --no-transfer-progress
+    --fail-fast
     -D dir-only
     -D disableXmlReport
-    -nsu
-    -ntp
-    -ff
   MAVEN_BUILD_PROFILES: >-
     -P include-grpc
     -P skip-nifi-bin-assembly
@@ -48,6 +77,9 @@ env:
 concurrency:
   group: ${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   static-analysis:
@@ -104,7 +136,13 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
           cache: 'maven'
-      - name: Maven Build
+      - name: Maven Compile
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.COMPILE_MAVEN_OPTS }}
+        run: >
+          ${{ env.MAVEN_COMPILE_COMMAND }}
+      - name: Maven Verify
         env:
           NIFI_CI_LOCALE: >-
             -Duser.language=en
@@ -118,7 +156,7 @@ jobs:
             ${{ env.DEFAULT_MAVEN_OPTS }}
             -DargLine=${env.SUREFIRE_OPTS}
         run: >
-          ${{ env.MAVEN_BUILD_COMMAND }}
+          ${{ env.MAVEN_VERIFY_COMMAND }}
           ${{ env.MAVEN_BUILD_PROFILES }}
           ${{ env.MAVEN_PROJECTS }}
       - name: Upload Test Reports
@@ -159,7 +197,13 @@ jobs:
           distribution: 'zulu'
           java-version: '11'
           cache: 'maven'
-      - name: Maven Build
+      - name: Maven Compile
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.COMPILE_MAVEN_OPTS }}
+        run: >
+          ${{ env.MAVEN_COMPILE_COMMAND }}
+      - name: Maven Verify
         env:
           NIFI_CI_LOCALE: >-
             -Duser.language=hi
@@ -173,7 +217,7 @@ jobs:
             ${{ env.DEFAULT_MAVEN_OPTS }}
             -DargLine=${env.SUREFIRE_OPTS}
         run: >
-          ${{ env.MAVEN_BUILD_COMMAND }}
+          ${{ env.MAVEN_VERIFY_COMMAND }}
           ${{ env.MAVEN_BUILD_PROFILES }}
           ${{ env.MAVEN_PROJECTS }}
       - name: Upload Test Reports
@@ -214,7 +258,13 @@ jobs:
           distribution: 'temurin'
           java-version: '8'
           cache: 'maven'
-      - name: Maven Build
+      - name: Maven Compile
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.COMPILE_MAVEN_OPTS }}
+        run: >
+          ${{ env.MAVEN_COMPILE_COMMAND }}
+      - name: Maven Verify
         env:
           NIFI_CI_LOCALE: >-
             -Duser.language=ja
@@ -228,7 +278,7 @@ jobs:
             ${{ env.DEFAULT_MAVEN_OPTS }}
             -DargLine=${env.SUREFIRE_OPTS}
         run: >-
-          ${{ env.MAVEN_BUILD_COMMAND }}
+          ${{ env.MAVEN_VERIFY_COMMAND }}
           ${{ env.MAVEN_BUILD_PROFILES }}
           ${{ env.MAVEN_PROJECTS }}
       - name: Upload Test Reports
@@ -258,16 +308,12 @@ jobs:
           git config --global core.longpaths true
       - name: Checkout Code
         uses: actions/checkout@v3
-      - name: Get NPM Cache Directory
-        id: npm-cache-directory
-        run: |
-          echo "::set-output name=directory::$(npm config get cache)"
       - name: Cache Node Modules
         uses: actions/cache@v3
         with:
           path: |
-            ${{ steps.npm-cache-directory.outputs.directory }}
-            **/node_modules
+            ~\AppData\npm-cache
+            **\node_modules
           key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
       - name: Set up Java 8
         uses: actions/setup-java@v3
@@ -275,7 +321,13 @@ jobs:
           distribution: 'zulu'
           java-version: '8'
           cache: 'maven'
-      - name: Maven Build
+      - name: Maven Compile
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.COMPILE_MAVEN_OPTS }}
+        run: >
+          ${{ env.MAVEN_COMPILE_COMMAND }}
+      - name: Maven Verify
         env:
           NIFI_CI_LOCALE: >-
             -Duser.language=fr
@@ -289,7 +341,7 @@ jobs:
             ${{ env.DEFAULT_MAVEN_OPTS }}
             -DargLine=${env.SUREFIRE_OPTS}
         run: >-
-          ${{ env.MAVEN_BUILD_COMMAND }}
+          ${{ env.MAVEN_VERIFY_COMMAND }}
           ${{ env.MAVEN_BUILD_PROFILES }}
           ${{ env.MAVEN_PROJECTS }}
       - name: Upload Test Reports

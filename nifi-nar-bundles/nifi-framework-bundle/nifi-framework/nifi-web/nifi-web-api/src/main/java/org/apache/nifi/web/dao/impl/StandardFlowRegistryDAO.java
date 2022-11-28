@@ -141,6 +141,20 @@ public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistr
     }
 
     @Override
+    public RegisteredFlow getFlowForUser(final FlowRegistryClientUserContext context, final String registryId, final String bucketId, final String flowId) {
+        try {
+            final FlowRegistryClientNode flowRegistry = flowController.getFlowManager().getFlowRegistryClient(registryId);
+            if (flowRegistry == null) {
+                throw new IllegalArgumentException("The specified registry id is unknown to this NiFi.");
+            }
+
+            return flowRegistry.getFlow(context, bucketId, flowId);
+        } catch (final IOException | FlowRegistryException ioe) {
+            throw new NiFiCoreException("Unable to obtain listing of flows for bucket with ID " + bucketId + ": " + ioe, ioe);
+        }
+    }
+
+    @Override
     public Set<RegisteredFlowSnapshotMetadata> getFlowVersionsForUser(final FlowRegistryClientUserContext context, final String registryId, final String bucketId, final String flowId) {
         try {
             final FlowRegistryClientNode flowRegistry = flowController.getFlowManager().getFlowRegistryClient(registryId);

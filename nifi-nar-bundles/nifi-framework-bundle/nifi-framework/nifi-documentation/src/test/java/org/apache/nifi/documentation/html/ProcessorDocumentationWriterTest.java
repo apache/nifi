@@ -54,7 +54,7 @@ public class ProcessorDocumentationWriterTest {
         writer.write(processor, baos, false);
         initializer.teardown(processor);
 
-        String results = new String(baos.toByteArray());
+        String results = baos.toString();
         XmlValidator.assertXmlValid(results);
 
         assertContains(results, FullyDocumentedProcessor.DIRECTORY.getDisplayName());
@@ -137,7 +137,7 @@ public class ProcessorDocumentationWriterTest {
         writer.write(processor, baos, false);
         initializer.teardown(processor);
 
-        String results = new String(baos.toByteArray());
+        String results = baos.toString();
         XmlValidator.assertXmlValid(results);
 
         // no description
@@ -177,7 +177,7 @@ public class ProcessorDocumentationWriterTest {
         writer.write(processor, baos, false);
         initializer.teardown(processor);
 
-        String results = new String(baos.toByteArray());
+        String results = baos.toString();
         XmlValidator.assertXmlValid(results);
 
     }
@@ -197,7 +197,7 @@ public class ProcessorDocumentationWriterTest {
         writer.write(processor, baos, false);
         initializer.teardown(processor);
 
-        String results = new String(baos.toByteArray());
+        String results = baos.toString();
         XmlValidator.assertXmlValid(results);
 
         assertContains(results, DeprecatedProcessor.DIRECTORY.getDisplayName());

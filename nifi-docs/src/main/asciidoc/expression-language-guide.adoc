@@ -569,6 +569,39 @@ the following results:
 | `${filename:isNull():not():ifElse('found', 'not_found')}` | `found`
 |===================================================================
 
+[.function]
+=== isJson
+*Description*: [.description]#The `isJson` function returns `true` if the subject is a JSON array or a JSON object, `false` otherwise. This is typically used to determine whether an attribute is JSON in order to allow for a follow-on JSONPath query. Although technically there are other valid JSON types such as string, number, boolean and null, this method is only concerned with the primary JSON objects queried with JSONPath , arrays and objects. #
+
+*Subject Type*: [.subject]#Any#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#Boolean#
+
+*Examples*: If the attribute "jsonObj" has the value {"name":"John", "age":30, "car":null}, the attribute jsonObjMissingStartingBrace has the value "name":"John", "age":30, "car":null}, the attribute jsonObjMissingEndingBrace has the value {"name":"John", "age":30, "car":null, the attribute "jsonArray" has the value ["Ford", "BMW", "Fiat"], the attribute jsonArrayMissingStartingBracket has the value "Ford", "BMW", "Fiat"], the attribute jsonArrayMissingEndingBracket has the value ["Ford", "BMW", "Fiat", the "someAttribute" attribute does not exist, the "emptyQuotedString" attribute value is "", the attribute "quotedString" has the value "someString", the attribute "integer" has the value 1234, the attribute "decimal" has the value 18.36, the attribute "trueAttr" has the value true, the attribute "falseAttr" has the value false and the "nullAttr" attribute has the value null, then the following expressions will provide the following results:
+
+
+
+.isJson Examples
+|===================================================================
+| Expression | Value
+| `${jsonObj:isJson()}` | `true`
+| `${jsonObjMissingStartingBrace:isJson()}` | `false`
+| `${jsonObjMissingEndingBrace:isJson()}` | `false`
+| `${jsonArray:isJson()}` | `true`
+| `${jsonArrayMissingStartingBracket:isJson()}` | `false`
+| `${jsonArrayMissingEndingBracket:isJson()}` | `false`
+| `${someAttribute:isJson()}` | `false`
+| `${emptyQuotedString:isJson())` | `false`
+| `${quotedString:isJson()}` | `false`
+| `${integer:isJson()}` | `false`
+| `${decimal:isJson()}` | `false`
+| `${trueAttr:isJson()}` | `false`
+| `${falseAttr:isJson()}` | `false`
+| `${nullAttr:isJson()}` | `false`
+|===================================================================
+
 
 
 

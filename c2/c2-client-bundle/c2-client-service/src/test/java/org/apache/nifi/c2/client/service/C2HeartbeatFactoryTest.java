@@ -17,7 +17,6 @@
 package org.apache.nifi.c2.client.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -26,28 +25,34 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import org.apache.nifi.c2.client.C2ClientConfig;
 import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
+import org.apache.nifi.c2.protocol.api.AgentManifest;
 import org.apache.nifi.c2.protocol.api.AgentRepositories;
 import org.apache.nifi.c2.protocol.api.C2Heartbeat;
 import org.apache.nifi.c2.protocol.api.FlowQueueStatus;
+import org.apache.nifi.c2.protocol.api.OperationType;
+import org.apache.nifi.c2.protocol.api.SupportedOperation;
 import org.apache.nifi.c2.protocol.component.api.Bundle;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class C2HeartbeatFactoryTest {
 
     private static final String AGENT_CLASS = "agentClass";
     private static final String FLOW_ID = "flowId";
+    private static final String MANIFEST_HASH = "hash";
 
     @Mock
     private C2ClientConfig clientConfig;
@@ -57,6 +62,9 @@ public class C2HeartbeatFactoryTest {
 
     @Mock
     private RuntimeInfoWrapper runtimeInfoWrapper;
+
+    @Mock
+    private ManifestHashProvider manifestHashProvider;
 
     @InjectMocks
     private C2HeartbeatFactory c2HeartbeatFactory;
@@ -129,33 +137,27 @@ public class C2HeartbeatFactoryTest {
     }
 
     @Test
-    void testManifestHashChangesWhenManifestBundleChanges() {
-        Bundle bundle1 = new Bundle("group1", "artifact1", "version1");
-        Bundle bundle2 = new Bundle("group2", "artifact2", "version2");
-        RuntimeManifest manifest1 = createManifest(bundle1);
-        RuntimeManifest manifest2 = createManifest(bundle2);
-        RuntimeManifest manifest3 = createManifest(bundle1, bundle2);
+    void testAgentManifestHashIsPopulatedInCaseOfRuntimeManifest() {
+        RuntimeManifest manifest = createManifest();
+        when(manifestHashProvider.calculateManifestHash(manifest.getBundles(), Collections.emptySet())).thenReturn(MANIFEST_HASH);
 
-        when(runtimeInfoWrapper.getManifest()).thenReturn(manifest1);
-        C2Heartbeat heartbeat1 = c2HeartbeatFactory.create(runtimeInfoWrapper);
-        String hash1 = heartbeat1.getAgentInfo().getAgentManifestHash();
-        assertNotNull(hash1);
+        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(new AgentRepositories(), manifest, new HashMap<>()));
 
-        // same manifest should result in the same hash
-        assertEquals(hash1,  c2HeartbeatFactory.create(runtimeInfoWrapper).getAgentInfo().getAgentManifestHash());
+        assertEquals(MANIFEST_HASH, heartbeat.getAgentInfo().getAgentManifestHash());
+    }
 
-        // different manifest should result in hash change
-        when(runtimeInfoWrapper.getManifest()).thenReturn(manifest2);
-        C2Heartbeat heartbeat2 = c2HeartbeatFactory.create(runtimeInfoWrapper);
-        String hash2 = heartbeat2.getAgentInfo().getAgentManifestHash();
-        assertNotEquals(hash2, hash1);
+    @Test
+    void testAgentManifestHashIsPopulatedInCaseOfAgentManifest() {
+        AgentManifest manifest = new AgentManifest(createManifest());
+        SupportedOperation supportedOperation = new SupportedOperation();
+        supportedOperation.setType(OperationType.HEARTBEAT);
+        Set<SupportedOperation> supportedOperations = Collections.singleton(supportedOperation);
+        manifest.setSupportedOperations(supportedOperations);
+        when(manifestHashProvider.calculateManifestHash(manifest.getBundles(), supportedOperations)).thenReturn(MANIFEST_HASH);
 
-        // different manifest with multiple bundles should result in hash change compared to all previous
-        when(runtimeInfoWrapper.getManifest()).thenReturn(manifest3);
-        C2Heartbeat heartbeat3 = c2HeartbeatFactory.create(runtimeInfoWrapper);
-        String hash3 = heartbeat3.getAgentInfo().getAgentManifestHash();
-        assertNotEquals(hash3, hash1);
-        assertNotEquals(hash3, hash2);
+        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(new AgentRepositories(), manifest, new HashMap<>()));
+
+        assertEquals(MANIFEST_HASH, heartbeat.getAgentInfo().getAgentManifestHash());
     }
 
     private RuntimeManifest createManifest() {

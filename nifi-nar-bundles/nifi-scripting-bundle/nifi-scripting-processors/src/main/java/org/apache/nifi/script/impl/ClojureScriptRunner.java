@@ -47,7 +47,14 @@ public class ClojureScriptRunner extends BaseScriptRunner {
                     + ")\n";
 
     public ClojureScriptRunner(ScriptEngine engine, String scriptBody, String[] modulePaths) {
-        super(engine, scriptBody, modulePaths);
+        super(engine, scriptBody, buildPreloads(engine), modulePaths);
+    }
+
+    private static String buildPreloads(ScriptEngine engine) {
+        return "(ns " + ((ClojureScriptEngine) engine).getNamespace() +
+                " " +
+                PRELOADS +
+                ")\n";
     }
 
     @Override
@@ -57,12 +64,7 @@ public class ClojureScriptRunner extends BaseScriptRunner {
 
     @Override
     public void run(Bindings bindings) throws ScriptException {
-        String sb = "(ns " + ((ClojureScriptEngine) scriptEngine).getNamespace() +
-                " " +
-                PRELOADS +
-                ")\n" +
-                scriptBody;
         scriptEngine.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
-        scriptEngine.eval(sb);
+        scriptEngine.eval(scriptBody);
     }
 }

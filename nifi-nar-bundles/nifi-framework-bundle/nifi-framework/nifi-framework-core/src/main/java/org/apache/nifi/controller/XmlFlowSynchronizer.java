@@ -33,7 +33,6 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.flow.FlowManager;
-import org.apache.nifi.controller.flowrepository.FlowRepositoryClientInstantiationException;
 import org.apache.nifi.controller.inheritance.AuthorizerCheck;
 import org.apache.nifi.controller.inheritance.BundleCompatibilityCheck;
 import org.apache.nifi.controller.inheritance.ConnectionMissingCheck;
@@ -42,7 +41,6 @@ import org.apache.nifi.controller.inheritance.FlowInheritability;
 import org.apache.nifi.controller.inheritance.FlowInheritabilityCheck;
 import org.apache.nifi.controller.inheritance.MissingComponentsCheck;
 import org.apache.nifi.controller.label.Label;
-import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
@@ -146,6 +144,7 @@ import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 /**
+ * XML implementation of Flow Synchronizer for reading configuration using XML Document Object Model
  */
 public class XmlFlowSynchronizer implements FlowSynchronizer {
 
@@ -383,7 +382,7 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
     }
 
     private void updateFlow(final FlowController controller, final Document configuration, final DataFlow existingFlow, final boolean existingFlowEmpty)
-            throws ReportingTaskInstantiationException, ParameterProviderInstantiationException, FlowRepositoryClientInstantiationException {
+            throws ReportingTaskInstantiationException {
         final boolean flowAlreadySynchronized = controller.isFlowSynchronized();
         final FlowManager flowManager = controller.getFlowManager();
 
@@ -769,8 +768,7 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
     }
 
     private ParameterProviderNode getOrCreateParameterProvider(final FlowController controller, final ParameterProviderDTO dto,
-                                                               final boolean controllerInitialized, final boolean existingFlowEmpty)
-            throws ParameterProviderInstantiationException {
+                                                               final boolean controllerInitialized, final boolean existingFlowEmpty) {
         // create a new parameter provider node when the controller is not initialized or the flow is empty
         if (!controllerInitialized || existingFlowEmpty) {
             BundleCoordinate coordinate;
@@ -818,8 +816,8 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
             registryClient.setName(dto.getName());
             registryClient.setDescription(dto.getDescription());
             registryClient.setAnnotationData(dto.getAnnotationData());
-            final Set<String> sensitiveDynamicPropertyNames = dto.getSensitiveDynamicPropertyNames();
-            registryClient.setProperties(dto.getProperties(), false, sensitiveDynamicPropertyNames == null ? Collections.emptySet() : sensitiveDynamicPropertyNames);
+            final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(dto.getSensitiveDynamicPropertyNames(), registryClient);
+            registryClient.setProperties(dto.getProperties(), false, sensitiveDynamicPropertyNames);
             return registryClient;
         } else {
             // otherwise return the existing flow registry client node
@@ -850,8 +848,8 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
             reportingTask.setSchedulingStrategy(SchedulingStrategy.valueOf(dto.getSchedulingStrategy()));
 
             reportingTask.setAnnotationData(dto.getAnnotationData());
-            final Set<String> sensitiveDynamicPropertyNames = dto.getSensitiveDynamicPropertyNames();
-            reportingTask.setProperties(dto.getProperties(), false, sensitiveDynamicPropertyNames == null ? Collections.emptySet() : sensitiveDynamicPropertyNames);
+            final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(dto.getSensitiveDynamicPropertyNames(), reportingTask);
+            reportingTask.setProperties(dto.getProperties(), false, sensitiveDynamicPropertyNames);
             return reportingTask;
         } else {
             // otherwise return the existing reporting task node
@@ -1396,8 +1394,8 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
                 procNode.setAutoTerminatedRelationships(relationships);
             }
 
-            final Set<String> sensitiveDynamicPropertyNames = config.getSensitiveDynamicPropertyNames();
-            procNode.setProperties(config.getProperties(), false, sensitiveDynamicPropertyNames == null ? Collections.emptySet() : sensitiveDynamicPropertyNames);
+            final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(config.getSensitiveDynamicPropertyNames(), procNode);
+            procNode.setProperties(config.getProperties(), false, sensitiveDynamicPropertyNames);
 
             final ScheduledState scheduledState = ScheduledState.valueOf(processorDTO.getState());
             if (ScheduledState.RUNNING.equals(scheduledState)) {
@@ -1411,6 +1409,16 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
         } finally {
             procNode.resumeValidationTrigger();
         }
+    }
+
+    private Set<String> getSensitiveDynamicPropertyNames(final Set<String> parsedSensitivePropertyNames, final ComponentNode componentNode) {
+        final Set<String> sensitivePropertyNames = parsedSensitivePropertyNames == null ? Collections.emptySet() : parsedSensitivePropertyNames;
+        return sensitivePropertyNames.stream().filter(
+                propertyName -> {
+                    final PropertyDescriptor propertyDescriptor = componentNode.getPropertyDescriptor(propertyName);
+                    return propertyDescriptor.isDynamic();
+                }
+        ).collect(Collectors.toSet());
     }
 
     private void updateNonFingerprintedProcessorSettings(final ProcessorNode procNode, final ProcessorDTO processorDTO) {

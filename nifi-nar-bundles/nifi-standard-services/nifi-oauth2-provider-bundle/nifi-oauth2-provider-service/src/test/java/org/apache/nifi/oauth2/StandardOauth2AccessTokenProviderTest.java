@@ -22,10 +22,16 @@ import okhttp3.Protocol;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.util.MockConfigurationContext;
+import org.apache.nifi.util.MockControllerServiceLookup;
+import org.apache.nifi.util.MockVariableRegistry;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -43,10 +49,14 @@ import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
+import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -160,6 +170,58 @@ public class StandardOauth2AccessTokenProviderTest {
 
         // THEN
         assertEquals(accessTokenValue, actual);
+    }
+
+    @Test
+    public void testVerifySuccess() throws Exception {
+        Processor processor = new NoOpProcessor();
+        TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.addControllerService("testSubject", testSubject);
+
+        Map<PropertyDescriptor, String> properties = ((MockControllerServiceLookup) runner.getProcessContext().getControllerServiceLookup())
+                .getControllerServices().get("testSubject").getProperties();
+
+        String accessTokenValue = "access_token_value";
+
+        // GIVEN
+        Response response = buildResponse(
+                HTTP_OK,
+                "{ \"access_token\":\"" + accessTokenValue + "\" }"
+        );
+
+        when(mockHttpClient.newCall(any(Request.class)).execute()).thenReturn(response);
+
+        final List<ConfigVerificationResult> results = ((VerifiableControllerService) testSubject).verify(
+                new MockConfigurationContext(testSubject, properties, runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
+                runner.getLogger(),
+                Collections.emptyMap()
+        );
+
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        assertEquals(SUCCESSFUL, results.get(0).getOutcome());
+    }
+
+    @Test
+    public void testVerifyError() throws Exception {
+        Processor processor = new NoOpProcessor();
+        TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.addControllerService("testSubject", testSubject);
+
+        Map<PropertyDescriptor, String> properties = ((MockControllerServiceLookup) runner.getProcessContext().getControllerServiceLookup())
+                .getControllerServices().get("testSubject").getProperties();
+
+        when(mockHttpClient.newCall(any(Request.class)).execute()).thenThrow(new IOException());
+
+        final List<ConfigVerificationResult> results = ((VerifiableControllerService) testSubject).verify(
+                new MockConfigurationContext(testSubject, properties, runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
+                runner.getLogger(),
+                Collections.emptyMap()
+        );
+
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        assertEquals(FAILED, results.get(0).getOutcome());
     }
 
     @Test

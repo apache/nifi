@@ -1,0 +1,26 @@
+{
+    "collection_listings": [
+        {
+            "collection_id": 423230505179,
+            "updated_at": "2022-08-25T14:42:49+02:00",
+            "body_html": "T-shirt collection",
+            "default_product_image": null,
+            "handle": "t-shirt-collection",
+            "image": null,
+            "title": "T-SHIRT COLLECTION",
+            "sort_order": "best-selling",
+            "published_at": "2022-08-25T14:42:49+02:00"
+        },
+        {
+            "collection_id": 418532262107,
+            "updated_at": "2022-08-25T14:42:49+02:00",
+            "body_html": null,
+            "default_product_image": null,
+            "handle": "frontpage",
+            "image": null,
+            "title": "Home page",
+            "sort_order": "best-selling",
+            "published_at": "2022-08-25T14:42:49+02:00"
+        }
+    ]
+}

@@ -35,10 +35,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestStatelessFileSystemContentRepository {
     private final File repoDirectory = new File("target/test-stateless-file-system-repository");

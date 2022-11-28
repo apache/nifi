@@ -21,6 +21,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -42,6 +43,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
 public abstract class AbstractPutElasticsearch extends AbstractProcessor implements ElasticsearchRestProcessor {
@@ -84,7 +86,7 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
     boolean notFoundIsSuccessful;
     ObjectMapper errorMapper;
 
-    volatile ElasticSearchClientService clientService;
+    final AtomicReference<ElasticSearchClientService> clientService = new AtomicReference<>(null);
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
@@ -97,15 +99,27 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
                 .build();
     }
 
+    @Override
+    public boolean isIndexNotExistSuccessful() {
+        // index can be created during _bulk index/create operation
+        return true;
+    }
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        this.clientService = context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class);
+        clientService.set(context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class));
+
         this.logErrors = context.getProperty(LOG_ERROR_RESPONSES).asBoolean();
 
         if (errorMapper == null && (logErrors || getLogger().isDebugEnabled())) {
             errorMapper = new ObjectMapper();
             errorMapper.enable(SerializationFeature.INDENT_OUTPUT);
         }
+    }
+
+    @OnStopped
+    public void onStopped() {
+        clientService.set(null);
     }
 
     @Override

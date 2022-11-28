@@ -23,7 +23,7 @@
 
     <body>
     	<p>
-    		GenerateTableFetch uses its properties and the specified database connection to generate flow files
+    		GenerateTableFetch uses its properties and the specified database connection to generate FlowFiles
 			containing SQL statements that can be used to fetch "pages" (aka "partitions") of data from a table.
             GenerateTableFetch executes a query to the database to determine the current row count and maximum value,
             and if Maximum Value Columns are specified, will collect the count of rows whose values for the Maximum
@@ -31,7 +31,7 @@
             fetching of "new" rows, rather than generating SQL to fetch the entire table each time. If no Maximum
             Value Columns are set, then the processor will generate SQL to fetch the entire table each time.
         </p>
-    	
+
     	<p>
     		In order to generate SQL that will fetch pages/partitions of data, by default GenerateTableFetch will
             generate SQL that orders the data based on the Maximum Value Columns (if present) and utilize the row
@@ -39,7 +39,7 @@
             and the partition size is 10, then the SQL for the first page might be "SELECT * FROM myTable LIMIT 10" and
             the second page might be "SELECT * FROM myTable OFFSET 10 LIMIT 10", and so on.
     	</p>
-    	
+
     	<p>
 			Ordering the data can be an expensive operation depending on the database, the number of rows, etc.
             Alternatively, it is possible to specify a column whose values will be used to determine the pages, using

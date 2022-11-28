@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -40,6 +41,7 @@ import org.apache.nifi.processors.standard.util.FileTransfer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -65,6 +67,7 @@ import java.util.List;
     + "This allows the Processor to list only files that have been added or modified after "
     + "this date the next time that the Processor is run. State is stored across the cluster so that this Processor can be run on Primary Node only and if "
     + "a new Primary Node is selected, the new node will not duplicate the data that was listed by the previous Primary Node.")
+@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class ListFTP extends ListFileTransfer {
 
     @Override

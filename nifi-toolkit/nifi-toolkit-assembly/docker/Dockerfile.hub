@@ -16,13 +16,13 @@
 # under the License.
 #
 
-FROM openjdk:8-jre-alpine
+FROM eclipse-temurin:11-jre
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 LABEL site="https://nifi.apache.org"
 
 ARG UID=1000
 ARG GID=1000
-ARG NIFI_TOOLKIT_VERSION=1.17.0
+ARG NIFI_TOOLKIT_VERSION=1.19.0
 ARG MIRROR=https://archive.apache.org/dist
 
 ENV NIFI_TOOLKIT_BASE_DIR /opt/nifi-toolkit
@@ -31,14 +31,18 @@ ENV NIFI_TOOLKIT_BINARY nifi-toolkit-${NIFI_TOOLKIT_VERSION}-bin.zip
 ENV NIFI_TOOLKIT_BINARY_PATH nifi/${NIFI_TOOLKIT_VERSION}/${NIFI_TOOLKIT_BINARY}
 ENV NIFI_TOOLKIT_BINARY_URL ${MIRROR}/${NIFI_TOOLKIT_BINARY_PATH}
 
-ADD sh/docker-entrypoint.sh /opt/sh/docker-entrypoint.sh
+ADD sh/ ${NIFI_TOOLKIT_BASE_DIR}/scripts
 
 # Setup NiFi user
 # Download, validate, and expand Apache NiFi Toolkit binary.
-RUN apk add --update curl bash jq openssl \
-    && rm -rf /var/cache/apk/* \
-    && addgroup -g $GID nifi \
-    && adduser -D -s /bin/ash -u $UID -G nifi nifi \
+RUN chmod -R +x ${NIFI_TOOLKIT_BASE_DIR}/scripts/*.sh \
+    && apt-get update \
+    && apt-get install -y unzip jq openssl \
+    && apt-get -y autoremove \
+    && apt-get clean autoclean \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -g ${GID} nifi \
+    && useradd --shell /bin/bash -u ${UID} -g ${GID} -m nifi \
     && mkdir -p ${NIFI_TOOLKIT_BASE_DIR} \
     && curl -fSL ${NIFI_TOOLKIT_BINARY_URL} -o ${NIFI_TOOLKIT_BASE_DIR}/${NIFI_TOOLKIT_BINARY} \
     && echo "$(curl ${NIFI_TOOLKIT_BINARY_URL}.sha256) *${NIFI_TOOLKIT_BASE_DIR}/${NIFI_TOOLKIT_BINARY}" | sha256sum -c - \
@@ -54,4 +58,4 @@ EXPOSE 9443
 WORKDIR ${NIFI_TOOLKIT_HOME}
 
 # Startup NiFi
-ENTRYPOINT ["/opt/sh/docker-entrypoint.sh"]
+ENTRYPOINT ["../scripts/docker-entrypoint.sh"]

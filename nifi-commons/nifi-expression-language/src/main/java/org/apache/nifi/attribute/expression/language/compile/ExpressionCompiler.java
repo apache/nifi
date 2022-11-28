@@ -68,6 +68,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.InEval
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IndexOfEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.InstantFormatEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IsEmptyEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.IsJsonEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IsNullEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathAddEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathDeleteEvaluator;
@@ -260,6 +261,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UUID5;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.WHOLE_NUMBER;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.EVALUATE_EL_STRING;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IS_JSON;
 
 public class ExpressionCompiler {
     private final Set<Evaluator<?>> evaluators = new HashSet<>();
@@ -814,6 +816,9 @@ public class ExpressionCompiler {
                 }
                 return addToken(new InEvaluator(toStringEvaluator(subjectEvaluator), list), "in");
             }
+            case IS_JSON:
+                verifyArgCount(argEvaluators, 0, "isJson");
+                return addToken(new IsJsonEvaluator(toStringEvaluator(subjectEvaluator)), "isJson");
             case FIND: {
                 verifyArgCount(argEvaluators, 1, "find");
                 return addToken(new FindEvaluator(toStringEvaluator(subjectEvaluator),
