@@ -28,7 +28,6 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 public class AuthorizerFactoryTest {
 
@@ -121,12 +120,8 @@ public class AuthorizerFactoryTest {
                 .addUser(user1.getIdentifier())
                 .build();
 
-        try {
-            accessPolicyProvider.addAccessPolicy(policy2);
-            fail("Should have thrown exception");
-        } catch (IllegalStateException e) {
-
-        }
+        assertThrows(IllegalStateException.class,
+                () -> accessPolicyProvider.addAccessPolicy(policy2));
     }
 
     @Test
@@ -144,12 +139,8 @@ public class AuthorizerFactoryTest {
 
         User user2 = new User.Builder().identifier("user-id-2").identity("user-1").build();
 
-        try {
-            userGroupProvider.addUser(user2);
-            fail("Should have thrown exception");
-        } catch (IllegalStateException e) {
-
-        }
+        assertThrows(IllegalStateException.class,
+                () -> userGroupProvider.addUser(user2));
     }
 
     @Test
@@ -167,12 +158,8 @@ public class AuthorizerFactoryTest {
 
         Group group2 = new Group.Builder().identifier("group-id-2").name("group-1").build();
 
-        try {
-            userGroupProvider.addGroup(group2);
-            fail("Should have thrown exception");
-        } catch (IllegalStateException e) {
-
-        }
+        assertThrows(IllegalStateException.class,
+                () -> userGroupProvider.addGroup(group2));
     }
 
     @Test
@@ -225,13 +212,11 @@ public class AuthorizerFactoryTest {
         User user2 = new User.Builder().identifier("user-id-2").identity("xyz").build();
         userGroupProvider.addUser(user2);
 
-        try {
-            User user1Updated = new User.Builder().identifier("user-id-1").identity("xyz").build();
-            userGroupProvider.updateUser(user1Updated);
-            fail("Should have thrown exception");
-        } catch (IllegalStateException e) {
+        User user1Updated = new User.Builder().identifier("user-id-1").identity("xyz").build();
+        userGroupProvider.updateUser(user1Updated);
 
-        }
+        assertThrows(IllegalStateException.class,
+                () -> userGroupProvider.updateUser(user1Updated));
     }
 
     @Test
@@ -250,13 +235,11 @@ public class AuthorizerFactoryTest {
         Group group2 = new Group.Builder().identifier("group-id-2").name("xyz").build();
         userGroupProvider.addGroup(group2);
 
-        try {
-            Group group1Updated = new Group.Builder().identifier("group-id-1").name("xyz").build();
-            userGroupProvider.updateGroup(group1Updated);
-            fail("Should have thrown exception");
-        } catch (IllegalStateException e) {
+        Group group1Updated = new Group.Builder().identifier("group-id-1").name("xyz").build();
+        userGroupProvider.updateGroup(group1Updated);
 
-        }
+        assertThrows(IllegalStateException.class,
+                () -> userGroupProvider.updateGroup(group1Updated));
     }
 
     @Test

@@ -230,21 +230,15 @@ public class TestStandardParameterContext {
         updatedParameters.put("foo", new Parameter(fooDescriptor, "baz"));
         updatedParameters.put("xyz", new Parameter(sensitiveXyzDescriptor, "242526"));
 
-        try {
-            context.setParameters(updatedParameters);
-            fail("Succeeded in changing parameter from non-sensitive to sensitive");
-        } catch (final IllegalStateException expected) {
-        }
+        assertThrows(IllegalStateException.class,
+                () -> context.setParameters(updatedParameters));
 
         final ParameterDescriptor insensitiveAbcDescriptor = new ParameterDescriptor.Builder().name("abc").sensitive(false).build();
         updatedParameters.clear();
         updatedParameters.put("abc", new Parameter(insensitiveAbcDescriptor, "123"));
 
-        try {
-            context.setParameters(updatedParameters);
-            fail("Succeeded in changing parameter from sensitive to non-sensitive");
-        } catch (final IllegalStateException expected) {
-        }
+        assertThrows(IllegalStateException.class,
+                () -> context.setParameters(updatedParameters));
     }
 
     @Test
@@ -280,11 +274,9 @@ public class TestStandardParameterContext {
 
         parameters.clear();
         parameters.put("abc", new Parameter(abcDescriptor, null));
-        try {
-            context.setParameters(parameters);
-            fail("Was able to remove parameter while referencing processor was running");
-        } catch (final IllegalStateException expected) {
-        }
+
+        assertThrows(IllegalStateException.class,
+                () -> context.setParameters(parameters));
 
         assertEquals("321", context.getParameter("abc").get().getValue());
     }
@@ -330,20 +322,16 @@ public class TestStandardParameterContext {
         stopProcessor(procNode);
         a.setInheritedParameterContexts(Arrays.asList(b));
         startProcessor(procNode);
-        try {
-            a.setInheritedParameterContexts(Collections.emptyList());
-            fail("Was able to remove parameter while referencing processor was running");
-        } catch (final IllegalStateException expected) {
-            assertTrue(expected.getMessage().contains("def"));
-        }
+
+        IllegalStateException illegalStateException =
+                assertThrows(IllegalStateException.class,
+                        () -> a.setInheritedParameterContexts(Collections.emptyList()));
+        assertTrue(illegalStateException.getMessage().contains("def"));
 
         // Show we can't effectively change the value by changing it in B
-        try {
-            addParameter(b, inheritedParamName, changedValue);
-            fail("Was able to change parameter while referencing processor was running");
-        } catch (final IllegalStateException expected) {
-            assertTrue(expected.getMessage().contains("def"));
-        }
+        illegalStateException = assertThrows(IllegalStateException.class,
+                        () -> a.setInheritedParameterContexts(Collections.emptyList()));
+        assertTrue(illegalStateException.getMessage().contains("def"));
         assertEquals(originalValue, a.getParameter(inheritedParamName).get().getValue());
 
         // Show we can't effectively change the value by adding Context C with 'def' ahead of 'B'
@@ -352,12 +340,9 @@ public class TestStandardParameterContext {
         addParameter(c, inheritedParamName, changedValue);
         startProcessor(procNode);
 
-        try {
-            a.setInheritedParameterContexts(Arrays.asList(c, b));
-            fail("Was able to change parameter while referencing processor was running");
-        } catch (final IllegalStateException expected) {
-            assertTrue(expected.getMessage().contains("def"));
-        }
+        illegalStateException = assertThrows(IllegalStateException.class,
+                () ->  a.setInheritedParameterContexts(Arrays.asList(c, b)));
+        assertTrue(illegalStateException.getMessage().contains("def"));
         assertEquals(originalValue, a.getParameter(inheritedParamName).get().getValue());
 
         // Show that if the effective value of 'def' doesn't change, we don't prevent updating

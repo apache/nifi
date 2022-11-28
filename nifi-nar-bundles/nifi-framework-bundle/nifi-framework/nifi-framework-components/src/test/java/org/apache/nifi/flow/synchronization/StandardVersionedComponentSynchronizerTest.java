@@ -67,7 +67,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.junit.jupiter.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -94,6 +93,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -548,12 +548,10 @@ public class StandardVersionedComponentSynchronizerTest {
         // Use a background thread to synchronize the connection.
         final CountDownLatch completionLatch = new CountDownLatch(1);
         final Thread syncThread = new Thread(() -> {
-            try {
+            assertDoesNotThrow(() -> {
                 synchronizer.synchronize(connectionAB, null, group, synchronizationOptions);
                 completionLatch.countDown();
-            } catch (final Exception e) {
-                Assertions.fail(e.toString());
-            }
+            });
         });
         syncThread.start();
 
