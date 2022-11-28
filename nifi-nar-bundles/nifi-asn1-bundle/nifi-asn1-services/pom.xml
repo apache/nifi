@@ -138,6 +138,7 @@
                         <exclude>src/test/resources/tbcd_string.asn</exclude>
                         <exclude>src/test/resources/cant_parse.asn</exclude>
                         <exclude>src/test/resources/cant_compile.asn</exclude>
+                        <exclude>src/test/resources/cant_compile_mac_windows.asn</exclude>
                         <exclude>src/test/resources/examples/basic-types.dat</exclude>
                         <exclude>src/test/resources/examples/composite.dat</exclude>
                         <exclude>src/test/resources/examples/tbcd-string.dat</exclude>

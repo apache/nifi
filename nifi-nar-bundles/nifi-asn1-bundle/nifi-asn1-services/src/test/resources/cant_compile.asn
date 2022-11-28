@@ -4,13 +4,6 @@ DEFINITIONS IMPLICIT TAGS ::=
 
 BEGIN
 
-SameNameWithDifferentCase ::= OCTET STRING
-
-SAMENAMEWithDifferentCase ::= SEQUENCE
-{
-    sameNameWithDifferentCase   [0] SameNameWithDifferentCase
-}
-
 TypeWithReservedJavaKeyword ::= SEQUENCE
 {
     length                      [0] INTEGER

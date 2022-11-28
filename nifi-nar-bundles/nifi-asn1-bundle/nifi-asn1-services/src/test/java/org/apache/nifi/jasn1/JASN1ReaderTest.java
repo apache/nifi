@@ -23,6 +23,8 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -146,36 +148,33 @@ public class JASN1ReaderTest {
         String asnFiles = Paths.get("src", "test", "resources", "cant_compile.asn").toString();
 
         List<String> expectedErrorMessages = Arrays.asList(
-                ".*SAMENAMEWithDifferentCase.*SAMENAMEWithDifferentCase.*",
-                ".*.*\n.*SameNameWithDifferentCase.*\n.*org\\.apache\\.nifi\\.jasn1\\.test\\.SAMENAMEWithDifferentCase.*",
                 ".*com\\.beanit\\.asn1bean\\.ber\\.types\\.BerInteger.*com\\.beanit\\.asn1bean\\.ber\\.BerLength.*",
                 ".*boolean.*java\\.io\\.OutputStream.*",
                 ".*-Xdiags:verbose.*"
         );
 
-        ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
-        when(context.getProperty(ASN_FILES).isSet()).thenReturn(true);
-        when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue())
-                .thenReturn(asnFiles);
-
         // WHEN
-        assertThrows(
-                ProcessException.class,
-                () -> testSubject.onEnabled(context)
+        // THEN
+        testCompileError(asnFiles, expectedErrorMessages);
+    }
+
+    @EnabledOnOs({ OS.MAC, OS.WINDOWS })
+    @Test
+    /*
+     * Checks reported messages of underlying libraries that are explained in additionalDetails.html.
+     * In case of changes to this test additionalDetails.html may need to be updated as well.
+     */
+    public void testCantCompileAsnOnMacWindows() throws Exception {
+        // GIVEN
+        String asnFiles = Paths.get("src", "test", "resources", "cant_compile_mac_windows.asn").toString();
+
+        List<String> expectedErrorMessages = Arrays.asList(
+                ".*SAMENAMEWithDifferentCase.*SAMENAMEWithDifferentCase.*"
         );
 
+        // WHEN
         // THEN
-        ArgumentCaptor<String> errorCaptor = ArgumentCaptor.forClass(String.class);
-        verify(testSubject.logger, atLeastOnce()).error(errorCaptor.capture());
-
-        List<String> actualErrorMessages = errorCaptor.getAllValues();
-        assertEquals(expectedErrorMessages.size(), actualErrorMessages.size());
-
-        for (int errorMessageIndex = 0; errorMessageIndex < actualErrorMessages.size(); errorMessageIndex++) {
-            String expectedErrorMessage = expectedErrorMessages.get(errorMessageIndex);
-            String actualErrorMessage = actualErrorMessages.get(errorMessageIndex);
-            assertTrue(actualErrorMessage.matches(expectedErrorMessage), "Expected string matching '" + expectedErrorMessage + "', got '" + actualErrorMessage + "'");
-        }
+        testCompileError(asnFiles, expectedErrorMessages);
     }
 
     private void testParseError(String asnFile, List<String> expectedErrorMessages) {
@@ -199,5 +198,32 @@ public class JASN1ReaderTest {
         List<String> actualErrorMessages = errorCaptor.getAllValues();
 
         assertEquals(expectedErrorMessages, actualErrorMessages);
+    }
+
+    private void testCompileError(String asnFiles, List<String> expectedErrorMessages) {
+        // GIVEN
+        ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
+        when(context.getProperty(ASN_FILES).isSet()).thenReturn(true);
+        when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue())
+                .thenReturn(asnFiles);
+
+        // WHEN
+        assertThrows(
+                ProcessException.class,
+                () -> testSubject.onEnabled(context)
+        );
+
+        // THEN
+        ArgumentCaptor<String> errorCaptor = ArgumentCaptor.forClass(String.class);
+        verify(testSubject.logger, atLeastOnce()).error(errorCaptor.capture());
+
+        List<String> actualErrorMessages = errorCaptor.getAllValues();
+        assertEquals(expectedErrorMessages.size(), actualErrorMessages.size());
+
+        for (int errorMessageIndex = 0; errorMessageIndex < actualErrorMessages.size(); errorMessageIndex++) {
+            String expectedErrorMessage = expectedErrorMessages.get(errorMessageIndex);
+            String actualErrorMessage = actualErrorMessages.get(errorMessageIndex);
+            assertTrue(actualErrorMessage.matches(expectedErrorMessage), "Expected string matching '" + expectedErrorMessage + "', got '" + actualErrorMessage + "'");
+        }
     }
 }

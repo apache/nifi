@@ -90,20 +90,12 @@
                     files there are some extra limitations:
                     <ul>
                         <li>
-                            Type names are treated as case-insensitive. Because of this, two types whose names only differ in the cases of their letters are going to cause errors.
-                            For example if the ASN.1 schema files define both 'SameNameWithDifferentCase' and 'SAMENAMEWithDifferentCase', the following errors will be reported:
+                            On certain systems type names are treated as case-insensitive. Because of this, two types whose names only differ in the cases of their letters may cause errors.
+                            For example if the ASN.1 schema files define both 'SameNameWithDifferentCase' and 'SAMENAMEWithDifferentCase', the following error may be reported:
                             <br />
                             <br />
                             <i>
                                 class SAMENAMEWithDifferentCase is public, should be declared in a file named SAMENAMEWithDifferentCase.java
-                            </i>
-                            <br />
-                            <i>
-                                <pre>
-cannot find symbol
-  symbol:   class SameNameWithDifferentCase
-  location: x.y.z.SAMENAMEWithDifferentCase
-                                </pre>
                             </i>
                         </li>
                         <li>
