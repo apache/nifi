@@ -249,6 +249,8 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     }
 
     private RestClient setupClient(final ConfigurationContext context) throws MalformedURLException, InitializationException {
+        final AuthorizationScheme authorizationScheme = AuthorizationScheme.valueOf(context.getProperty(AUTHORIZATION_SCHEME).getValue());
+
         final String hosts = context.getProperty(HTTP_HOSTS).evaluateAttributeExpressions().getValue();
         final String[] hostsSplit = hosts.split(",\\s*");
         this.url = hostsSplit[0];
@@ -261,7 +263,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         final String apiKey = context.getProperty(API_KEY).getValue();
 
         final Integer connectTimeout = context.getProperty(CONNECT_TIMEOUT).asInteger();
-        final Integer readTimeout    = context.getProperty(SOCKET_TIMEOUT).asInteger();
+        final Integer socketTimeout = context.getProperty(SOCKET_TIMEOUT).asInteger();
 
         final ProxyConfigurationService proxyConfigurationService = context.getProperty(PROXY_CONFIGURATION_SERVICE).asControllerService(ProxyConfigurationService.class);
 
@@ -287,11 +289,11 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                     }
 
                     CredentialsProvider credentialsProvider = null;
-                    if (username != null && password != null) {
+                    if (AuthorizationScheme.BASIC == authorizationScheme && username != null && password != null) {
                         credentialsProvider = addCredentials(null, AuthScope.ANY, username, password);
                     }
 
-                    if (apiKeyId != null && apiKey != null) {
+                    if (AuthorizationScheme.API_KEY == authorizationScheme && apiKeyId != null && apiKey != null) {
                         httpClientBuilder.setDefaultHeaders(Collections.singletonList(createApiKeyAuthorizationHeader(apiKeyId, apiKey)));
                     }
 
@@ -313,7 +315,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                 })
                 .setRequestConfigCallback(requestConfigBuilder -> {
                     requestConfigBuilder.setConnectTimeout(connectTimeout);
-                    requestConfigBuilder.setSocketTimeout(readTimeout);
+                    requestConfigBuilder.setSocketTimeout(socketTimeout);
                     return requestConfigBuilder;
                 });
 
