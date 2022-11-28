@@ -5,7 +5,7 @@ import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import org.apache.nifi.adx.AdxSinkConnectionService;
+import org.apache.nifi.adx.AdxSourceConnectionService;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -44,7 +44,7 @@ import java.util.Set;
 })
 public class AzureAdxSourceProcessor extends AbstractProcessor {
 
-    private AdxSinkConnectionService service;
+    private AdxSourceConnectionService service;
 
     private Set<Relationship> relationships;
 
@@ -87,7 +87,7 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
             .displayName(AzureAdxSourceProcessorParamsEnum.ADX_SOURCE_SERVICE.getParamDisplayName())
             .description(AzureAdxSourceProcessorParamsEnum.ADX_SOURCE_SERVICE.getParamDescription())
             .required(true)
-            .identifiesControllerService(AdxSinkConnectionService.class)
+            .identifiesControllerService(AdxSourceConnectionService.class)
             .build();
 
     @Override
@@ -117,7 +117,7 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        service = context.getProperty(ADX_SOURCE_SERVICE).asControllerService(AdxSinkConnectionService.class);
+        service = context.getProperty(ADX_SOURCE_SERVICE).asControllerService(AdxSourceConnectionService.class);
         executionClient = service.getKustoExecutionClient();
     }
 
@@ -164,7 +164,7 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
 
         try {
             //execute Query
-            kustoResultSetTable = executionClient.execute(databaseName,adxQuery).getPrimaryResults();
+            kustoResultSetTable = executeQuery(databaseName,adxQuery);
             List<List<Object>> tableData = kustoResultSetTable.getData();
 
             String json = tableData.size() == 1 ? objectMapper.writeValueAsString(tableData.get(0)) : objectMapper.writeValueAsString(tableData);
@@ -180,11 +180,18 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
             //if no error then
             outgoingFlowFile = session.putAttribute(outgoingFlowFile, ADX_EXECUTED_QUERY, String.valueOf(adxQuery));
             session.transfer(outgoingFlowFile, RL_SUCCEEDED);
+        }catch (OutOfMemoryError ex){
+            getLogger().error("Exception occurred while reading data from ADX : Query Limits exceeded : Please modify your query to fetch results below the kusto query limits ", ex);
+            session.transfer(outgoingFlowFile, RL_FAILED);
         } catch (DataServiceException | DataClientException | IOException e) {
-            getLogger().error("Exception occured while reading data from ADX ", e);
+            getLogger().error("Exception occurred while reading data from ADX ", e);
             session.transfer(outgoingFlowFile, RL_FAILED);
         }
 
+    }
+
+    protected KustoResultSetTable executeQuery(String databaseName, String adxQuery) throws DataServiceException, DataClientException, OutOfMemoryError {
+        return executionClient.execute(databaseName,adxQuery).getPrimaryResults();
     }
 
     protected String getQuery(final ProcessSession session, Charset charset, FlowFile incomingFlowFile)

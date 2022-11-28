@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.adx;
 
-import org.apache.nifi.adx.AzureAdxSinkSinkConnectionService;
+import org.apache.nifi.adx.AzureAdxSinkConnectionService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -32,7 +32,7 @@ public class AzureAdxSinkProcessorE2ETest {
 
     private org.apache.nifi.processors.adx.AzureAdxSinkProcessor azureAdxSinkProcessor;
 
-    private AzureAdxSinkSinkConnectionService azureAdxSinkConnectionService;
+    private AzureAdxSinkConnectionService azureAdxSinkConnectionService;
 
     private TestRunner testRunner;
 
@@ -56,15 +56,15 @@ public class AzureAdxSinkProcessorE2ETest {
 
         testRunner.setValidateExpressionUsage(false);
 
-        azureAdxSinkConnectionService = new AzureAdxSinkSinkConnectionService();
+        azureAdxSinkConnectionService = new AzureAdxSinkConnectionService();
 
         testRunner.addControllerService("adx-connection-service", azureAdxSinkConnectionService, new HashMap<>());
 
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.INGEST_URL,System.getProperty("ingestUrl"));
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_ID,System.getProperty("appId"));
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_KEY,System.getProperty("appKey"));
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_TENANT,System.getProperty("appTenant"));
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.CLUSTER_URL, System.getProperty("clusterUrl"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.INGEST_URL,System.getProperty("ingestUrl"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_ID,System.getProperty("appId"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_KEY,System.getProperty("appKey"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_TENANT,System.getProperty("appTenant"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.CLUSTER_URL, System.getProperty("clusterUrl"));
 
         testRunner.enableControllerService(azureAdxSinkConnectionService);
         testRunner.assertValid(azureAdxSinkConnectionService);
@@ -94,15 +94,15 @@ public class AzureAdxSinkProcessorE2ETest {
 
         testRunner.setValidateExpressionUsage(false);
 
-        azureAdxSinkConnectionService = new AzureAdxSinkSinkConnectionService();
+        azureAdxSinkConnectionService = new AzureAdxSinkConnectionService();
 
         testRunner.addControllerService("adx-connection-service", azureAdxSinkConnectionService, new HashMap<>());
 
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.INGEST_URL,System.getProperty("ingestUrl"));
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_ID,System.getProperty("appId"));
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_KEY,System.getProperty("appKey"));
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_TENANT,System.getProperty("appTenant"));
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.CLUSTER_URL, System.getProperty("clusterUrl"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.INGEST_URL,System.getProperty("ingestUrl"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_ID,System.getProperty("appId"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_KEY,System.getProperty("appKey"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_TENANT,System.getProperty("appTenant"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.CLUSTER_URL, System.getProperty("clusterUrl"));
 
         testRunner.enableControllerService(azureAdxSinkConnectionService);
         testRunner.assertValid(azureAdxSinkConnectionService);
@@ -132,15 +132,15 @@ public class AzureAdxSinkProcessorE2ETest {
 
         testRunner.setValidateExpressionUsage(false);
 
-        azureAdxSinkConnectionService = new AzureAdxSinkSinkConnectionService();
+        azureAdxSinkConnectionService = new AzureAdxSinkConnectionService();
 
         testRunner.addControllerService("adx-connection-service", azureAdxSinkConnectionService, new HashMap<>());
 
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.INGEST_URL,System.getProperty("ingestUrl"));
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_ID,System.getProperty("appId"));
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_KEY,System.getProperty("appKey"));
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_TENANT,System.getProperty("appTenant"));
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.CLUSTER_URL, System.getProperty("clusterUrl"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.INGEST_URL,System.getProperty("ingestUrl"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_ID,System.getProperty("appId"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_KEY,System.getProperty("appKey"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_TENANT,System.getProperty("appTenant"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.CLUSTER_URL, System.getProperty("clusterUrl"));
 
         testRunner.enableControllerService(azureAdxSinkConnectionService);
         testRunner.assertValid(azureAdxSinkConnectionService);
@@ -170,15 +170,15 @@ public class AzureAdxSinkProcessorE2ETest {
 
         testRunner.setValidateExpressionUsage(false);
 
-        azureAdxSinkConnectionService = new AzureAdxSinkSinkConnectionService();
+        azureAdxSinkConnectionService = new AzureAdxSinkConnectionService();
 
         testRunner.addControllerService("adx-connection-service", azureAdxSinkConnectionService, new HashMap<>());
 
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.INGEST_URL,System.getProperty("ingestUrl"));
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_ID,System.getProperty("appId"));
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_KEY,System.getProperty("appKey"));
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_TENANT,System.getProperty("appTenant"));
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.CLUSTER_URL, System.getProperty("clusterUrl"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.INGEST_URL,System.getProperty("ingestUrl"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_ID,System.getProperty("appId"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_KEY,System.getProperty("appKey"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_TENANT,System.getProperty("appTenant"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.CLUSTER_URL, System.getProperty("clusterUrl"));
 
         testRunner.enableControllerService(azureAdxSinkConnectionService);
         testRunner.assertValid(azureAdxSinkConnectionService);
@@ -208,15 +208,15 @@ public class AzureAdxSinkProcessorE2ETest {
 
         testRunner.setValidateExpressionUsage(false);
 
-        azureAdxSinkConnectionService = new AzureAdxSinkSinkConnectionService();
+        azureAdxSinkConnectionService = new AzureAdxSinkConnectionService();
 
         testRunner.addControllerService("adx-connection-service", azureAdxSinkConnectionService, new HashMap<>());
 
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.INGEST_URL,System.getProperty("ingestUrl"));
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_ID,System.getProperty("appId"));
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_KEY,System.getProperty("appKey"));
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_TENANT,System.getProperty("appTenant"));
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.CLUSTER_URL, System.getProperty("clusterUrl"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.INGEST_URL,System.getProperty("ingestUrl"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_ID,System.getProperty("appId"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_KEY,System.getProperty("appKey"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_TENANT,System.getProperty("appTenant"));
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.CLUSTER_URL, System.getProperty("clusterUrl"));
 
         testRunner.enableControllerService(azureAdxSinkConnectionService);
         testRunner.assertValid(azureAdxSinkConnectionService);

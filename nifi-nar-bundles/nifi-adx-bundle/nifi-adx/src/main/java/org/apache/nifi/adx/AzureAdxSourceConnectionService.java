@@ -20,7 +20,6 @@ import com.google.common.base.Strings;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-import com.microsoft.azure.kusto.ingest.IngestClient;
 import org.apache.nifi.adx.model.ADXConnectionParams;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
@@ -48,7 +47,7 @@ import java.util.List;
         @ReadsAttribute(attribute= "APP_TENANT", description="Azure application tenant for accessing the ADX-Cluster."),
         @ReadsAttribute(attribute= "CLUSTER_URL", description="Endpoint of ADX cluster. This is required only when streaming data to ADX cluster is enabled."),
 })
-public class AzureAdxSourceSinkConnectionService extends AbstractControllerService implements AdxSourceConnectionService {
+public class AzureAdxSourceConnectionService extends AbstractControllerService implements AdxSourceConnectionService {
 
     public static final PropertyDescriptor KUSTO_AUTH_STRATEGY = new PropertyDescriptor
             .Builder().name(AzureAdxConnectionServiceParamsEnum.AUTH_STRATEGY.name())

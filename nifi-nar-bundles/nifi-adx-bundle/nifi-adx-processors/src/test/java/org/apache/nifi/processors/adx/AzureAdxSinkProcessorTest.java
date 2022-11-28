@@ -22,7 +22,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import org.apache.nifi.adx.AdxSinkConnectionService;
-import org.apache.nifi.adx.AzureAdxSinkSinkConnectionService;
+import org.apache.nifi.adx.AzureAdxSinkConnectionService;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -68,7 +68,7 @@ public class AzureAdxSinkProcessorTest {
 
     private static final String MOCK_MAPPING_NAME= "mockMappingName";
 
-    private AzureAdxSinkSinkConnectionService azureAdxSinkConnectionService;
+    private AzureAdxSinkConnectionService azureAdxSinkConnectionService;
 
     private TestRunner testRunner;
 
@@ -106,15 +106,15 @@ public class AzureAdxSinkProcessorTest {
 
         testRunner.setValidateExpressionUsage(false);
 
-        azureAdxSinkConnectionService = new MockAzureAdxSinkSinkConnectionService();
+        azureAdxSinkConnectionService = new MockAzureAdxSinkConnectionService();
 
         testRunner.addControllerService("adx-connection-service", azureAdxSinkConnectionService, new HashMap<>());
 
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.INGEST_URL,"http://ingest-sample.com/");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_TENANT,"sample");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.CLUSTER_URL, "http://sample.com/");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.INGEST_URL,"http://ingest-sample.com/");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_ID,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_KEY,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_TENANT,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.CLUSTER_URL, "http://sample.com/");
 
         testRunner.enableControllerService(azureAdxSinkConnectionService);
         testRunner.assertValid(azureAdxSinkConnectionService);
@@ -143,15 +143,15 @@ public class AzureAdxSinkProcessorTest {
 
         testRunner.setValidateExpressionUsage(false);
 
-        azureAdxSinkConnectionService = new MockAzureAdxSinkSinkConnectionService();
+        azureAdxSinkConnectionService = new MockAzureAdxSinkConnectionService();
 
         testRunner.addControllerService("adx-connection-service", azureAdxSinkConnectionService, new HashMap<>());
 
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.INGEST_URL,"http://ingest-sample.com/");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_TENANT,"sample");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.CLUSTER_URL, "http://sample.com/");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.INGEST_URL,"http://ingest-sample.com/");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_ID,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_KEY,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_TENANT,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.CLUSTER_URL, "http://sample.com/");
         testRunner.enableControllerService(azureAdxSinkConnectionService);
         testRunner.assertValid(azureAdxSinkConnectionService);
         InputStream inputStream = this.getClass().getResourceAsStream("/fileQueuedSuccess.csv");
@@ -179,15 +179,15 @@ public class AzureAdxSinkProcessorTest {
 
         testRunner.setValidateExpressionUsage(false);
 
-        azureAdxSinkConnectionService = new MockAzureAdxSinkSinkConnectionService();
+        azureAdxSinkConnectionService = new MockAzureAdxSinkConnectionService();
 
         testRunner.addControllerService("adx-connection-service", azureAdxSinkConnectionService, new HashMap<>());
 
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.INGEST_URL,"https://ingest-sample.com/");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_TENANT,"sample");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.CLUSTER_URL,"https://sample-cluster.com/");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.INGEST_URL,"https://ingest-sample.com/");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_ID,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_KEY,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_TENANT,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.CLUSTER_URL,"https://sample-cluster.com/");
 
         testRunner.enableControllerService(azureAdxSinkConnectionService);
 
@@ -234,15 +234,15 @@ public class AzureAdxSinkProcessorTest {
 
         testRunner.setValidateExpressionUsage(false);
 
-        azureAdxSinkConnectionService = new AzureAdxSinkSinkConnectionService();
+        azureAdxSinkConnectionService = new AzureAdxSinkConnectionService();
 
         testRunner.addControllerService("adx-connection-service", azureAdxSinkConnectionService, new HashMap<>());
 
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.INGEST_URL,"http://ingest-sample.com/");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_TENANT,"sample");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.CLUSTER_URL, "http://sample.com/");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.INGEST_URL,"http://ingest-sample.com/");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_ID,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_KEY,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_TENANT,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.CLUSTER_URL, "http://sample.com/");
 
         testRunner.enableControllerService(azureAdxSinkConnectionService);
         testRunner.assertValid(azureAdxSinkConnectionService);
@@ -267,14 +267,14 @@ public class AzureAdxSinkProcessorTest {
 
         testRunner.setValidateExpressionUsage(false);
 
-        azureAdxSinkConnectionService = new AzureAdxSinkSinkConnectionService();
+        azureAdxSinkConnectionService = new AzureAdxSinkConnectionService();
 
         testRunner.addControllerService("adx-connection-service", azureAdxSinkConnectionService, new HashMap<>());
 
         //missing ingest url required for connection service
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_TENANT,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_ID,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_KEY,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_TENANT,"sample");
 
         IllegalStateException illegalStateException =Assertions.assertThrows(IllegalStateException.class, () -> {
             testRunner.enableControllerService(azureAdxSinkConnectionService);
@@ -299,15 +299,15 @@ public class AzureAdxSinkProcessorTest {
 
         testRunner.setValidateExpressionUsage(false);
 
-        azureAdxSinkConnectionService = new AzureAdxSinkSinkConnectionService();
+        azureAdxSinkConnectionService = new AzureAdxSinkConnectionService();
 
         testRunner.addControllerService("adx-connection-service", azureAdxSinkConnectionService, new HashMap<>());
 
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.INGEST_URL,"http://ingest-sample.com/");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.APP_TENANT,"sample");
-        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkSinkConnectionService.CLUSTER_URL, "http://sample.com/");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.INGEST_URL,"http://ingest-sample.com/");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_ID,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_KEY,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.APP_TENANT,"sample");
+        testRunner.setProperty(azureAdxSinkConnectionService, AzureAdxSinkConnectionService.CLUSTER_URL, "http://sample.com/");
 
         testRunner.enableControllerService(azureAdxSinkConnectionService);
         testRunner.assertValid(azureAdxSinkConnectionService);
