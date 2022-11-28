@@ -588,7 +588,7 @@ public class TestQuerySolr {
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(QuerySolr.RESULTS).get(0);
         Map<String, String> attributes = flowFile.getAttributes();
-        
+
         flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_CONNECT);
         flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_COLLECTION);
         flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_QUERY);
