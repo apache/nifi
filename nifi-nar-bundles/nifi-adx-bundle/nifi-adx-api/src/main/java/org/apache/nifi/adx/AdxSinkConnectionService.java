@@ -16,11 +16,9 @@
  */
 package org.apache.nifi.adx;
 
-import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.controller.ControllerService;
 
 @Tags({"azure", "adx"})
 @CapabilityDescription("Connection-Service to Azure ADX (Kusto) ingestion cluster.")

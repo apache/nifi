@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.adx;
 
-import org.apache.nifi.adx.AzureAdxSinkConnectionService;
 import org.apache.nifi.adx.AzureAdxSourceConnectionService;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -93,17 +92,17 @@ public class AzureAdxSourceProcessorTest {
 
         testRunner.addControllerService("adx-source-connection-service", azureAdxSourceConnectionService, new HashMap<>());
 
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSinkConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSinkConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSinkConnectionService.APP_TENANT,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSinkConnectionService.CLUSTER_URL, "http://sample.com/");
+        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_ID,"sample");
+        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_KEY,"sample");
+        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_TENANT,"sample");
+        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.CLUSTER_URL, "http://sample.com/");
 
         testRunner.enableControllerService(azureAdxSourceConnectionService);
         testRunner.assertValid(azureAdxSourceConnectionService);
         testRunner.run(1);
         testRunner.assertQueueEmpty();
-        List<MockFlowFile> results = testRunner.getFlowFilesForRelationship(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.RL_SUCCEEDED);
-        testRunner.assertAllFlowFilesTransferred(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.RL_SUCCEEDED);
+        List<MockFlowFile> results = testRunner.getFlowFilesForRelationship(org.apache.nifi.processors.adx.AzureAdxSourceProcessor.RL_SUCCEEDED);
+        testRunner.assertAllFlowFilesTransferred(org.apache.nifi.processors.adx.AzureAdxSourceProcessor.RL_SUCCEEDED);
 
     }
 
@@ -121,10 +120,10 @@ public class AzureAdxSourceProcessorTest {
 
         testRunner.addControllerService("adx-source-connection-service", azureAdxSourceConnectionService, new HashMap<>());
 
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSinkConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSinkConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSinkConnectionService.APP_TENANT,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSinkConnectionService.CLUSTER_URL, "http://sample.com/");
+        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_ID,"sample");
+        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_KEY,"sample");
+        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_TENANT,"sample");
+        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.CLUSTER_URL, "http://sample.com/");
 
         testRunner.enableControllerService(azureAdxSourceConnectionService);
         testRunner.assertValid(azureAdxSourceConnectionService);
@@ -147,10 +146,10 @@ public class AzureAdxSourceProcessorTest {
 
         testRunner.addControllerService("adx-source-connection-service", azureAdxSourceConnectionService, new HashMap<>());
 
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSinkConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSinkConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSinkConnectionService.APP_TENANT,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSinkConnectionService.CLUSTER_URL, "http://sample.com/");
+        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_ID,"sample");
+        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_KEY,"sample");
+        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_TENANT,"sample");
+        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.CLUSTER_URL, "http://sample.com/");
 
         testRunner.enableControllerService(azureAdxSourceConnectionService);
         testRunner.assertValid(azureAdxSourceConnectionService);
@@ -174,14 +173,14 @@ public class AzureAdxSourceProcessorTest {
 
         testRunner.addControllerService("adx-source-connection-service", azureAdxSourceConnectionService, new HashMap<>());
 
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSinkConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSinkConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSinkConnectionService.APP_TENANT,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSinkConnectionService.CLUSTER_URL, "http://sample.com/");
+        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_ID,"sample");
+        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_KEY,"sample");
+        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_TENANT,"sample");
+        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.CLUSTER_URL, "http://sample.com/");
 
         testRunner.enableControllerService(azureAdxSourceConnectionService);
         testRunner.assertValid(azureAdxSourceConnectionService);
         testRunner.run(1);
-        testRunner.assertAllFlowFilesTransferred(org.apache.nifi.processors.adx.AzureAdxSinkProcessor.RL_FAILED);
+        testRunner.assertAllFlowFilesTransferred(org.apache.nifi.processors.adx.AzureAdxSourceProcessor.RL_FAILED);
     }
 }

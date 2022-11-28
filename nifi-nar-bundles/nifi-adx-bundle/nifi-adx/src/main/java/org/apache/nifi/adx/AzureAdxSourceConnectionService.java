@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.adx;
 
-import com.google.common.base.Strings;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.adx.model.ADXConnectionParams;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
@@ -139,14 +139,18 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
 
     @Override
     public Client getKustoExecutionClient(){
-        return createKustoExecutionClient(adxConnectionParams.getKustoEngineURL(), adxConnectionParams.getAppId(), adxConnectionParams.getAppKey(), adxConnectionParams.getAppTenant(), adxConnectionParams.getKustoAuthStrategy());
+        return createKustoExecutionClient(adxConnectionParams.getKustoEngineURL(),
+                adxConnectionParams.getAppId(),
+                adxConnectionParams.getAppKey(),
+                adxConnectionParams.getAppTenant(),
+                adxConnectionParams.getKustoAuthStrategy());
     }
 
     public ConnectionStringBuilder createKustoEngineConnectionString(final String clusterUrl,final String appId,final String appKey,final String appTenant, final String kustoAuthStrategy) {
         final ConnectionStringBuilder kcsb;
         switch (kustoAuthStrategy) {
             case "application":
-                if (!Strings.isNullOrEmpty(appId) && !Strings.isNullOrEmpty(appKey)) {
+                if (StringUtils.isNotEmpty(appId) && StringUtils.isNotEmpty(appKey)){
                     kcsb = ConnectionStringBuilder.createWithAadApplicationCredentials(
                             clusterUrl,
                             appId,
