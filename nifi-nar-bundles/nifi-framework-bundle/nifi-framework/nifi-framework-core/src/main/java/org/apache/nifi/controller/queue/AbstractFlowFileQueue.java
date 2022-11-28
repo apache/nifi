@@ -500,4 +500,9 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
     public List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords) {
         return poll(filter, expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
+
+    @Override
+    public int hashCode() {
+        return identifier.hashCode();
+    }
 }
