@@ -104,22 +104,6 @@ class ElasticSearchClientServiceImplTest {
     }
 
     @Test
-    void testValidateBasicAndApiKeyAuth() {
-        runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY.getValue());
-        runner.setProperty(service, ElasticSearchClientService.USERNAME, "username");
-        runner.setProperty(service, ElasticSearchClientService.PASSWORD, "password");
-        runner.setProperty(service, ElasticSearchClientService.API_KEY_ID, "api-key-id");
-        runner.setProperty(service, ElasticSearchClientService.API_KEY, "api-key");
-        runner.assertNotValid(service);
-
-        final AssertionFailedError afe = assertThrows(AssertionFailedError.class, () -> runner.assertValid(service));
-        assertTrue(afe.getMessage().contains(String.format("cannot specify '%s'/'%s' and '%s'/'%s' together.",
-                ElasticSearchClientService.USERNAME.getDisplayName(), ElasticSearchClientService.PASSWORD.getDisplayName(),
-                ElasticSearchClientService.API_KEY_ID.getDisplayName(), ElasticSearchClientService.API_KEY.getDisplayName()))
-        );
-    }
-
-    @Test
     void testValidatePkiAuth() throws InitializationException {
         runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.PKI.getValue());
 
