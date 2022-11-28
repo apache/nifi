@@ -23,7 +23,7 @@
     <properties>
         <!-- files need to exist at https://archive.apache.org/dist/nifi/${docker.nifi.version}/nifi-[toolkit-]${docker.nifi.version}-bin.zip
             so this version needs to be *before* the current ${project.version} -->
-        <docker.nifi.version>1.19.0</docker.nifi.version>
+        <docker.nifi.version>1.20.0</docker.nifi.version>
     </properties>
 
     <profiles>
