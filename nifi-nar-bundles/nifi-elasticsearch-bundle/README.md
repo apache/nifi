@@ -41,6 +41,27 @@ An example using a non-Docker version of Elasticsearch:
 
 `mvn -Pintegration-tests --fail-at-end -Delasticsearch.testcontainers.enabled=false -Delasticsearch.elastic_user.password=s3cret1234 clean install`
 
+## Bash Script Example
+
+Execute the following script from the `nifi-elasticsearch-bundle` directory:
+
+```bash
+mvn --fail-at-end -Pcontrib-check clean install
+
+es_versions=(elasticsearch6 elasticsearch7 elasticsearch8)
+it_modules=(nifi-elasticsearch-client-service nifi-elasticsearch-restapi-processors)
+for v in "${es_versions[@]}"; do
+    for m in "${it_modules[@]}"; do
+        pushd "${m}"
+        if ! mvn -P "integration-tests,${v}" --fail-at-end failsafe:integration-test failsafe:verify; then
+            echo; echo; echo "Integration Tests failed for ${v} in ${m}, see Maven logs for details"
+            exit 1
+        fi
+        popd
+    done
+done
+```
+
 ## Modules with Integration Tests (using Testcontainers)
 
 - [Elasticsearch Client Service](nifi-elasticsearch-client-service)
@@ -50,6 +71,8 @@ An example using a non-Docker version of Elasticsearch:
 
 Integration Tests with Testcontainers currently only uses the `amd64` Docker Images.
 
-`elasticsearch6` is known to **not** work with `arm64` machines (e.g. Mac M1/M2), but other Elasticsearch images (e.g. 7.x and 8.x) appear to work.
+`elasticsearch6` is known to experience some problems with `arm64` machines (e.g. Mac M1/M2),
+but other Elasticsearch images (e.g. 7.x and 8.x) appear to work. Settings have been altered for the Elasticsearch
+containers in order to try and enable them on different architectures, but there may still be some inconsistencies.
 
 Explicit `arm64` architecture support may be added in future where the Elasticsearch images exist.

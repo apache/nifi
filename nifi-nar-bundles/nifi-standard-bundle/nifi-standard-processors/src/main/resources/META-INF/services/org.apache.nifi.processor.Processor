@@ -123,6 +123,7 @@ org.apache.nifi.processors.standard.TailFile
 org.apache.nifi.processors.standard.TransformXml
 org.apache.nifi.processors.standard.UnpackContent
 org.apache.nifi.processors.standard.UpdateCounter
+org.apache.nifi.processors.standard.UpdateDatabaseTable
 org.apache.nifi.processors.standard.UpdateRecord
 org.apache.nifi.processors.standard.ValidateCsv
 org.apache.nifi.processors.standard.ValidateJson

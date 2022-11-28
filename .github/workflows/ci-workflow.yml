@@ -30,12 +30,15 @@ env:
     -Dhttp.keepAlive=false
     -Dmaven.wagon.http.pool=false
   MAVEN_COMPILE_COMMAND: >-
-    mvn compile
+    mvn test-compile
     --threads 2C
     --show-version
     --no-snapshot-updates
     --no-transfer-progress
     --fail-fast
+    -pl -:minifi-c2-integration-tests
+    -pl -:minifi-integration-tests
+    -pl -:minifi-assembly
     -pl -:nifi-assembly
     -pl -:nifi-kafka-connector-assembly
     -pl -:nifi-kafka-connector-tests
@@ -47,6 +50,10 @@ env:
     -pl -:nifi-registry-toolkit-assembly
     -pl -:nifi-runtime-manifest
     -pl -:nifi-runtime-manifest-test
+    -pl -:nifi-stateless-assembly
+    -pl -:nifi-stateless-processor-tests
+    -pl -:nifi-stateless-system-test-suite
+    -pl -:nifi-system-test-suite
   MAVEN_VERIFY_COMMAND: >-
     mvn verify
     --show-version

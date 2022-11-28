@@ -178,7 +178,7 @@ public class TestInvokeAmazonGatewayApiMock {
 
         // add dynamic property
         runner.setProperty("dynamicHeader", "yes!");
-        runner.setProperty(InvokeAWSGatewayApi.PROP_QUERY_PARAMS, "apples=oranges&dogs=cats");
+        runner.setProperty(InvokeAWSGatewayApi.PROP_QUERY_PARAMS, "apples=oranges&dogs=cats&filename=${filename}");
 
         // set the regex
         runner.setProperty(InvokeAWSGatewayApi.PROP_ATTRIBUTES_TO_SEND, "F.*");
@@ -186,6 +186,7 @@ public class TestInvokeAmazonGatewayApiMock {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
         attributes.put("Foo", "Bar");
+        attributes.put("filename", "testfile");
         runner.enqueue("Hello".getBytes(StandardCharsets.UTF_8), attributes);
         // execute
         runner.assertValid();
@@ -197,7 +198,7 @@ public class TestInvokeAmazonGatewayApiMock {
                                 && argument.getFirstHeader("Authorization").getValue().startsWith("AWS4")
                                 && argument.getFirstHeader("dynamicHeader").getValue().equals("yes!")
                                 && argument.getFirstHeader("Foo").getValue().equals("Bar")
-                                && argument.getURI().toString().equals("https://foobar.execute-api.us-east-1.amazonaws.com/TEST?dogs=cats&apples=oranges")),
+                                && argument.getURI().toString().equals("https://foobar.execute-api.us-east-1.amazonaws.com/TEST?filename=testfile&dogs=cats&apples=oranges")),
                         any(HttpContext.class));
         // check
         runner.assertTransferCount(InvokeAWSGatewayApi.REL_SUCCESS_REQ, 1);

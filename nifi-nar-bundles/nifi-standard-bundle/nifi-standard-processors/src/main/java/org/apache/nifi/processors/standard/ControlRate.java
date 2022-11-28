@@ -56,6 +56,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.LongSupplier;
 import java.util.regex.Pattern;
 
 @SideEffectFree
@@ -165,7 +166,7 @@ public class ControlRate extends AbstractProcessor {
 
     private final ConcurrentMap<String, Throttle> dataThrottleMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Throttle> countThrottleMap = new ConcurrentHashMap<>();
-    private final AtomicLong lastThrottleClearTime = new AtomicLong(System.currentTimeMillis());
+    private final AtomicLong lastThrottleClearTime = new AtomicLong(getCurrentTimeMillis());
     private volatile String rateControlCriteria = null;
     private volatile String rateControlAttribute = null;
     private volatile String maximumRateStr = null;
@@ -299,7 +300,7 @@ public class ControlRate extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        List<FlowFile> flowFiles = session.get(new ThrottleFilter(MAX_FLOW_FILES_PER_BATCH));
+        List<FlowFile> flowFiles = session.get(new ThrottleFilter(MAX_FLOW_FILES_PER_BATCH, this::getCurrentTimeMillis));
         if (flowFiles.isEmpty()) {
             context.yield();
             return;
@@ -307,9 +308,9 @@ public class ControlRate extends AbstractProcessor {
 
         // Periodically clear any Throttle that has not been used in more than 2 throttling periods
         final long lastClearTime = lastThrottleClearTime.get();
-        final long throttleExpirationMillis = System.currentTimeMillis() - 2 * context.getProperty(TIME_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long throttleExpirationMillis = getCurrentTimeMillis() - 2 * context.getProperty(TIME_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS);
         if (lastClearTime < throttleExpirationMillis) {
-            if (lastThrottleClearTime.compareAndSet(lastClearTime, System.currentTimeMillis())) {
+            if (lastThrottleClearTime.compareAndSet(lastClearTime, getCurrentTimeMillis())) {
                 final Set<Map.Entry<String, Throttle>> throttleSet = new HashSet<>();
                 if (dataThrottleRequired()) {
                     throttleSet.addAll(dataThrottleMap.entrySet());
@@ -337,14 +338,23 @@ public class ControlRate extends AbstractProcessor {
         final ComponentLog logger = getLogger();
         for (FlowFile flowFile : flowFiles) {
             // call this to capture potential error
-            if (!isAccrualPossible(flowFile)) {
-                logger.error("Routing {} to 'failure' due to missing or invalid attribute", flowFile);
-                session.transfer(flowFile, REL_FAILURE);
-            } else {
+            if (isAccrualPossible(flowFile)) {
                 logger.info("transferring {} to 'success'", flowFile);
                 session.transfer(flowFile, REL_SUCCESS);
+            } else {
+                logger.error("Routing {} to 'failure' due to missing or invalid attribute", flowFile);
+                session.transfer(flowFile, REL_FAILURE);
             }
         }
+    }
+
+    /**
+     * Get current time in milliseconds
+     *
+     * @return Current time in milliseconds from System
+     */
+    protected long getCurrentTimeMillis() {
+        return System.currentTimeMillis();
     }
 
     /*
@@ -404,15 +414,17 @@ public class ControlRate extends AbstractProcessor {
         private final long timePeriodMillis;
         private final TimedBuffer<TimestampedLong> timedBuffer;
         private final ComponentLog logger;
+        private final LongSupplier currentTimeSupplier;
 
         private volatile long penalizationPeriod = 0;
         private volatile long penalizationExpired = 0;
         private volatile long lastUpdateTime;
 
-        public Throttle(final int timePeriod, final TimeUnit unit, final ComponentLog logger) {
+        private Throttle(final int timePeriod, final TimeUnit unit, final ComponentLog logger, final LongSupplier currentTimeSupplier) {
             this.timePeriodMillis = TimeUnit.MILLISECONDS.convert(timePeriod, unit);
-            this.timedBuffer = new TimedBuffer<>(unit, timePeriod, new LongEntityAccess());
+            this.timedBuffer = new TimedBuffer<>(unit, timePeriod, new LongEntityAccess(), currentTimeSupplier);
             this.logger = logger;
+            this.currentTimeSupplier = currentTimeSupplier;
         }
 
         public void setMaxRate(final long maxRate) {
@@ -428,7 +440,7 @@ public class ControlRate extends AbstractProcessor {
             if (value < 0) {
                 return false;
             }
-            final long now = System.currentTimeMillis();
+            final long now = currentTimeSupplier.getAsLong();
             if (penalizationExpired > now) {
                 return false;
             }
@@ -478,10 +490,12 @@ public class ControlRate extends AbstractProcessor {
     private class ThrottleFilter implements FlowFileFilter {
 
         private final int flowFilesPerBatch;
+        private final LongSupplier currentTimeSupplier;
         private int flowFilesInBatch = 0;
 
-        ThrottleFilter(final int maxFFPerBatch) {
-            flowFilesPerBatch = maxFFPerBatch;
+        ThrottleFilter(final int maxFFPerBatch, final LongSupplier currentTimeSupplier) {
+            this.flowFilesPerBatch = maxFFPerBatch;
+            this.currentTimeSupplier = currentTimeSupplier;
         }
 
         @Override
@@ -505,7 +519,7 @@ public class ControlRate extends AbstractProcessor {
             boolean dataThrottlingActive = false;
             if (dataThrottleRequired()) {
                 if (dataThrottle == null) {
-                    dataThrottle = new Throttle(timePeriodSeconds, TimeUnit.SECONDS, getLogger());
+                    dataThrottle = new Throttle(timePeriodSeconds, TimeUnit.SECONDS, getLogger(), currentTimeSupplier);
                     dataThrottle.setMaxRate(DataUnit.parseDataSize(maximumRateStr, DataUnit.B).longValue());
                     dataThrottleMap.put(groupName, dataThrottle);
                 }
@@ -534,7 +548,7 @@ public class ControlRate extends AbstractProcessor {
             // continue processing count throttle only if required and if data throttle is not already limiting flowfiles
             if (countThrottleRequired() && !dataThrottlingActive) {
                 if (countThrottle == null) {
-                    countThrottle = new Throttle(timePeriodSeconds, TimeUnit.SECONDS, getLogger());
+                    countThrottle = new Throttle(timePeriodSeconds, TimeUnit.SECONDS, getLogger(), currentTimeSupplier);
                     countThrottle.setMaxRate(Long.parseLong(maximumCountRateStr));
                     countThrottleMap.put(groupName, countThrottle);
                 }

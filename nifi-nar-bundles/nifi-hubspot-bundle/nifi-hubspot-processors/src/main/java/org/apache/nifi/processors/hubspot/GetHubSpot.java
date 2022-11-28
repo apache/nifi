@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -40,6 +41,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -82,6 +84,7 @@ import java.util.stream.Collectors;
         " objects can be set in the 'Result Limit' property.")
 @DefaultSettings(yieldDuration = "10 sec")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
+@WritesAttribute(attribute = "mime.type", description = "Sets the MIME type to application/json")
 public class GetHubSpot extends AbstractProcessor {
 
     static final PropertyDescriptor OBJECT_TYPE = new PropertyDescriptor.Builder()
@@ -234,6 +237,7 @@ public class GetHubSpot extends AbstractProcessor {
             FlowFile flowFile = session.create();
             flowFile = session.write(flowFile, parseHttpResponse(response, total, stateMap));
             if (total.get() > 0) {
+                flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
                 session.transfer(flowFile, REL_SUCCESS);
             } else {
                 getLogger().debug("Empty response when requested HubSpot endpoint: [{}]", endpoint);

@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.util;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CharacterFilterUtilsTest {
 
@@ -27,7 +27,6 @@ public class CharacterFilterUtilsTest {
         final String filtered = CharacterFilterUtils.filterInvalidXmlCharacters(text);
 
         final String expected = "This is an example with characters that need to be filtered  in it. ";
-        Assert.assertEquals(expected, filtered);
+        assertEquals(expected, filtered);
     }
-
 }

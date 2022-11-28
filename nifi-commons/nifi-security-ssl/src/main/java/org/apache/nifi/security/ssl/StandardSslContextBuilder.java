@@ -20,7 +20,7 @@ import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -116,7 +116,7 @@ public class StandardSslContextBuilder implements SslContextBuilder {
             final KeyManagerFactory keyManagerFactory = getKeyManagerFactory();
             try {
                 keyManagerFactory.init(keyStore, keyPassword);
-            } catch (final KeyStoreException|NoSuchAlgorithmException|UnrecoverableKeyException e) {
+            } catch (final KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
                 throw new BuilderConfigurationException("Key Manager initialization failed", e);
             }
             keyManagers = keyManagerFactory.getKeyManagers();
@@ -129,13 +129,8 @@ public class StandardSslContextBuilder implements SslContextBuilder {
         if (trustStore == null) {
             trustManagers = null;
         } else {
-            final TrustManagerFactory trustManagerFactory = getTrustManagerFactory();
-            try {
-                trustManagerFactory.init(trustStore);
-            } catch (final KeyStoreException e) {
-                throw new BuilderConfigurationException("Trust Manager initialization failed", e);
-            }
-            trustManagers = trustManagerFactory.getTrustManagers();
+            final X509TrustManager trustManager = new StandardTrustManagerBuilder().trustStore(trustStore).build();
+            trustManagers = new TrustManager[]{trustManager};
         }
         return trustManagers;
     }
@@ -146,16 +141,6 @@ public class StandardSslContextBuilder implements SslContextBuilder {
             return KeyManagerFactory.getInstance(algorithm);
         } catch (final NoSuchAlgorithmException e) {
             final String message = String.format("KeyManagerFactory creation failed with algorithm [%s]", algorithm);
-            throw new BuilderConfigurationException(message, e);
-        }
-    }
-
-    private TrustManagerFactory getTrustManagerFactory() {
-        final String algorithm = TrustManagerFactory.getDefaultAlgorithm();
-        try {
-            return TrustManagerFactory.getInstance(algorithm);
-        } catch (final NoSuchAlgorithmException e) {
-            final String message = String.format("TrustManagerFactory creation failed with algorithm [%s]", algorithm);
             throw new BuilderConfigurationException(message, e);
         }
     }

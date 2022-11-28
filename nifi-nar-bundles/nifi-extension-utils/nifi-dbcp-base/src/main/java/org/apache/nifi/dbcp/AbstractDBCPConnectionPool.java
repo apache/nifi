@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.dbcp;
 
+import java.util.HashMap;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
@@ -448,6 +449,8 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
                 dataSource.addConnectionProperty(descriptor.getName(), propertyValue.evaluateAttributeExpressions().getValue());
             }
         });
+
+        getConnectionProperties(context).forEach(dataSource::addConnectionProperty);
     }
 
     private KerberosUser getKerberosUser(final ConfigurationContext context) {
@@ -494,6 +497,15 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
                 throw new ProcessException("Creating driver instance is failed", e2);
             }
         }
+    }
+
+    /**
+     * Override in subclasses to provide connection properties to the data source
+     *
+     * @return Key-value pairs that will be added as connection properties
+     */
+    protected Map<String, String> getConnectionProperties(final ConfigurationContext context) {
+        return new HashMap<>();
     }
 
     protected Long extractMillisWithInfinite(PropertyValue prop) {

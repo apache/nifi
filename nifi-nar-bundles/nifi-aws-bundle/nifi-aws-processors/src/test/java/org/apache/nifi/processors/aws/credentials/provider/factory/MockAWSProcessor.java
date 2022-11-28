@@ -36,6 +36,7 @@ import static org.apache.nifi.processors.aws.credentials.provider.factory.Creden
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_NAME;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_HOST;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_PORT;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_REGION;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_STS_ENDPOINT;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.MAX_SESSION_TIME;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.PROFILE_NAME;
@@ -61,7 +62,8 @@ public class MockAWSProcessor extends AbstractAWSCredentialsProviderProcessor<Am
             ASSUME_ROLE_EXTERNAL_ID,
             ASSUME_ROLE_PROXY_HOST,
             ASSUME_ROLE_PROXY_PORT,
-            ASSUME_ROLE_STS_ENDPOINT
+            ASSUME_ROLE_STS_ENDPOINT,
+            ASSUME_ROLE_REGION
     );
 
     @Override

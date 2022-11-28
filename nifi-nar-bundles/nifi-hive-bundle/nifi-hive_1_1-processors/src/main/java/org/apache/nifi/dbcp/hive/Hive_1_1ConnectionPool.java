@@ -22,6 +22,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hive.jdbc.HiveDriver;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -70,6 +71,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @RequiresInstanceClassLoading
 @Tags({"hive", "dbcp", "jdbc", "database", "connection", "pooling", "store"})
 @CapabilityDescription("Provides Database Connection Pooling Service for Apache Hive 1.1.x. Connections can be asked from pool and returned after usage.")
+@DeprecationNotice(classNames = "org.apache.nifi.dbcp.hive.Hive3ConnectionPool")
 public class Hive_1_1ConnectionPool extends AbstractControllerService implements Hive_1_1DBCPService {
 
     private static final String DEFAULT_MAX_CONN_LIFETIME = "-1";

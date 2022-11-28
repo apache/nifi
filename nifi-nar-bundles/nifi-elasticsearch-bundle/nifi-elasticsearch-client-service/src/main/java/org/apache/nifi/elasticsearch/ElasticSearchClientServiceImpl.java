@@ -112,31 +112,46 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final List<ValidationResult> results = new ArrayList<>(1);
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+
+        final AuthorizationScheme authorizationScheme = AuthorizationScheme.valueOf(validationContext.getProperty(AUTHORIZATION_SCHEME).getValue());
 
         final boolean usernameSet = validationContext.getProperty(USERNAME).isSet();
         final boolean passwordSet = validationContext.getProperty(PASSWORD).isSet();
 
-        if ((usernameSet && !passwordSet) || (!usernameSet && passwordSet)) {
-            results.add(new ValidationResult.Builder().subject(String.format("%s and %s", USERNAME.getDisplayName(), PASSWORD.getDisplayName()))
-                    .valid(false).explanation(String.format("if '%s' or '%s' is set, both must be set.", USERNAME.getDisplayName(), PASSWORD.getDisplayName())).build());
-        }
-
         final boolean apiKeyIdSet = validationContext.getProperty(API_KEY_ID).isSet();
         final boolean apiKeySet = validationContext.getProperty(API_KEY).isSet();
 
-        if ((apiKeyIdSet && !apiKeySet) || (!apiKeyIdSet && apiKeySet)) {
-            results.add(new ValidationResult.Builder().subject(String.format("%s and %s", API_KEY.getDisplayName(), API_KEY_ID.getDisplayName()))
-                    .valid(false).explanation(String.format("if '%s' or '%s' is set, both must be set.", API_KEY.getDisplayName(), API_KEY_ID.getDisplayName())).build());
+        final SSLContextService sslService = validationContext.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        if (authorizationScheme == AuthorizationScheme.PKI && (sslService == null || !sslService.isKeyStoreConfigured())) {
+            results.add(new ValidationResult.Builder().subject(PROP_SSL_CONTEXT_SERVICE.getName()).valid(false)
+                    .explanation(String.format("if '%s' is '%s' then '%s' must be set and specify a Keystore for mutual TLS encryption.",
+                            AUTHORIZATION_SCHEME.getDisplayName(), authorizationScheme.getDisplayName(), PROP_SSL_CONTEXT_SERVICE.getDisplayName())
+                    ).build()
+            );
         }
 
-        if (usernameSet && apiKeyIdSet) {
-            results.add(new ValidationResult.Builder().subject(String.format("%s and %s", USERNAME.getDisplayName(), API_KEY_ID.getDisplayName()))
-                    .valid(false).explanation(String.format("'%s' and '%s' cannot be used together.", USERNAME.getDisplayName(), API_KEY_ID.getDisplayName())).build());
+        if (usernameSet && !passwordSet) {
+            addAuthorizationPropertiesValidationIssue(results, USERNAME, PASSWORD);
+        } else if (passwordSet && !usernameSet) {
+            addAuthorizationPropertiesValidationIssue(results, PASSWORD, USERNAME);
+        }
+
+        if (apiKeyIdSet && !apiKeySet) {
+            addAuthorizationPropertiesValidationIssue(results, API_KEY_ID, API_KEY);
+        } else if (apiKeySet && !apiKeyIdSet) {
+            addAuthorizationPropertiesValidationIssue(results, API_KEY, API_KEY_ID);
         }
 
         return results;
+    }
+
+    private void addAuthorizationPropertiesValidationIssue(final List<ValidationResult> results, final PropertyDescriptor presentProperty, final PropertyDescriptor missingProperty) {
+        results.add(new ValidationResult.Builder().subject(missingProperty.getName()).valid(false)
+                .explanation(String.format("if '%s' is then '%s' must be set.", presentProperty.getDisplayName(), missingProperty.getDisplayName()))
+                .build()
+        );
     }
 
     @OnEnabled
@@ -234,6 +249,8 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     }
 
     private RestClient setupClient(final ConfigurationContext context) throws MalformedURLException, InitializationException {
+        final AuthorizationScheme authorizationScheme = AuthorizationScheme.valueOf(context.getProperty(AUTHORIZATION_SCHEME).getValue());
+
         final String hosts = context.getProperty(HTTP_HOSTS).evaluateAttributeExpressions().getValue();
         final String[] hostsSplit = hosts.split(",\\s*");
         this.url = hostsSplit[0];
@@ -246,7 +263,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         final String apiKey = context.getProperty(API_KEY).getValue();
 
         final Integer connectTimeout = context.getProperty(CONNECT_TIMEOUT).asInteger();
-        final Integer readTimeout    = context.getProperty(SOCKET_TIMEOUT).asInteger();
+        final Integer socketTimeout = context.getProperty(SOCKET_TIMEOUT).asInteger();
 
         final ProxyConfigurationService proxyConfigurationService = context.getProperty(PROXY_CONFIGURATION_SERVICE).asControllerService(ProxyConfigurationService.class);
 
@@ -272,11 +289,11 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                     }
 
                     CredentialsProvider credentialsProvider = null;
-                    if (username != null && password != null) {
+                    if (AuthorizationScheme.BASIC == authorizationScheme && username != null && password != null) {
                         credentialsProvider = addCredentials(null, AuthScope.ANY, username, password);
                     }
 
-                    if (apiKeyId != null && apiKey != null) {
+                    if (AuthorizationScheme.API_KEY == authorizationScheme && apiKeyId != null && apiKey != null) {
                         httpClientBuilder.setDefaultHeaders(Collections.singletonList(createApiKeyAuthorizationHeader(apiKeyId, apiKey)));
                     }
 
@@ -298,7 +315,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                 })
                 .setRequestConfigCallback(requestConfigBuilder -> {
                     requestConfigBuilder.setConnectTimeout(connectTimeout);
-                    requestConfigBuilder.setSocketTimeout(readTimeout);
+                    requestConfigBuilder.setSocketTimeout(socketTimeout);
                     return requestConfigBuilder;
                 });
 

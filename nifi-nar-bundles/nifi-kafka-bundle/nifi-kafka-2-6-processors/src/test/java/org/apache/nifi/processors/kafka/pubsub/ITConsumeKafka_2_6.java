@@ -56,7 +56,7 @@ public class ITConsumeKafka_2_6 {
             }
         };
         final TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
+        runner.setProperty(ConsumeKafka_2_6.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
         runner.setProperty(ConsumeKafka_2_6.TOPICS, "foo,bar");
         runner.setProperty(ConsumeKafka_2_6.GROUP_ID, groupName);
         runner.setProperty(ConsumeKafka_2_6.AUTO_OFFSET_RESET, ConsumeKafka_2_6.OFFSET_EARLIEST);
@@ -86,7 +86,7 @@ public class ITConsumeKafka_2_6 {
             }
         };
         final TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
+        runner.setProperty(ConsumeKafka_2_6.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
         runner.setProperty(ConsumeKafka_2_6.TOPICS, "(fo.*)|(ba)");
         runner.setProperty(ConsumeKafka_2_6.TOPIC_TYPE, "pattern");
         runner.setProperty(ConsumeKafka_2_6.GROUP_ID, groupName);
@@ -117,7 +117,7 @@ public class ITConsumeKafka_2_6 {
             }
         };
         final TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
+        runner.setProperty(ConsumeKafka_2_6.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
         runner.setProperty(ConsumeKafka_2_6.TOPICS, "foo,bar");
         runner.setProperty(ConsumeKafka_2_6.GROUP_ID, groupName);
         runner.setProperty(ConsumeKafka_2_6.AUTO_OFFSET_RESET, ConsumeKafka_2_6.OFFSET_EARLIEST);

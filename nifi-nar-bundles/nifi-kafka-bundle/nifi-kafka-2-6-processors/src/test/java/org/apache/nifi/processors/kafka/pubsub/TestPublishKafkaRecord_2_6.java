@@ -19,6 +19,7 @@ package org.apache.nifi.processors.kafka.pubsub;
 
 import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.kafka.shared.property.FailureStrategy;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.kafka.pubsub.util.MockRecordParser;
 import org.apache.nifi.reporting.InitializationException;
@@ -155,7 +156,7 @@ public class TestPublishKafkaRecord_2_6 {
 
     @Test
     public void testSingleFailureWithRollback() throws IOException {
-        runner.setProperty(KafkaProcessorUtils.FAILURE_STRATEGY, KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK);
+        runner.setProperty(PublishKafkaRecord_2_6.FAILURE_STRATEGY, FailureStrategy.ROLLBACK.getValue());
 
         final MockFlowFile flowFile = runner.enqueue("John Doe, 48");
 
@@ -189,7 +190,7 @@ public class TestPublishKafkaRecord_2_6 {
 
     @Test
     public void testFailureWhenCreatingTransactionWithRollback() {
-        runner.setProperty(KafkaProcessorUtils.FAILURE_STRATEGY, KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK);
+        runner.setProperty(PublishKafkaRecord_2_6.FAILURE_STRATEGY, FailureStrategy.ROLLBACK.getValue());
         runner.enqueue("John Doe, 48");
 
         doAnswer((Answer<Object>) invocationOnMock -> {
@@ -224,7 +225,7 @@ public class TestPublishKafkaRecord_2_6 {
 
     @Test
     public void testMultipleFailuresWithRollback() throws IOException {
-        runner.setProperty(KafkaProcessorUtils.FAILURE_STRATEGY, KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK);
+        runner.setProperty(PublishKafkaRecord_2_6.FAILURE_STRATEGY, FailureStrategy.ROLLBACK.getValue());
         final Set<FlowFile> flowFiles = new HashSet<>();
         flowFiles.add(runner.enqueue("John Doe, 48"));
         flowFiles.add(runner.enqueue("John Doe, 48"));

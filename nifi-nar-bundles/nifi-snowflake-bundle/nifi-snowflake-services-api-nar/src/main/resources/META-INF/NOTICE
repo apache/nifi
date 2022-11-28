@@ -1,0 +1,14 @@
+nifi-snowflake-services-api-nar
+Copyright 2014-2022 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+**************************
+Apache Software License v2
+**************************
+
+  (ASLv2) Snowflake Ingest SDK
+    The following NOTICE information applies:
+      Snowflake Ingest SDK
+      Copyright (c) 2013-2016 Snowflake Computing, Inc.

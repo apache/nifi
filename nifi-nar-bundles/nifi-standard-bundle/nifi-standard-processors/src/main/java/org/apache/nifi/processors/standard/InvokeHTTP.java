@@ -1299,13 +1299,17 @@ public class InvokeHTTP extends AbstractProcessor {
     }
 
     private void logRequest(ComponentLog logger, Request request) {
-        logger.debug("\nRequest to remote service:\n\t{}\n{}",
-                request.url().url().toExternalForm(), getLogString(request.headers().toMultimap()));
+        if (logger.isDebugEnabled()) {
+            logger.debug("\nRequest to remote service:\n\t{}\n{}",
+                    request.url().url().toExternalForm(), getLogString(request.headers().toMultimap()));
+        }
     }
 
     private void logResponse(ComponentLog logger, URL url, Response response) {
-        logger.debug("\nResponse from remote service:\n\t{}\n{}",
-                url.toExternalForm(), getLogString(response.headers().toMultimap()));
+        if (logger.isDebugEnabled()) {
+            logger.debug("\nResponse from remote service:\n\t{}\n{}",
+                    url.toExternalForm(), getLogString(response.headers().toMultimap()));
+        }
     }
 
     private String getLogString(Map<String, List<String>> map) {

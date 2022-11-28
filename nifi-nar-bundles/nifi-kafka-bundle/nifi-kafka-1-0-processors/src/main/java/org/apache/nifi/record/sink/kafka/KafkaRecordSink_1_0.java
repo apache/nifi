@@ -16,14 +16,11 @@
  */
 package org.apache.nifi.record.sink.kafka;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.config.SaslConfigs;
-import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -39,10 +36,13 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.kafka.shared.component.KafkaPublishComponent;
+import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyProvider;
+import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
+import org.apache.nifi.kafka.shared.validation.DynamicPropertyValidator;
+import org.apache.nifi.kafka.shared.validation.KafkaClientCustomValidationFunction;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils;
 import org.apache.nifi.record.sink.RecordSinkService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -51,23 +51,18 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
-import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.stream.io.exception.TokenTooLargeException;
-import org.apache.nifi.util.FormatUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
 
 @Tags({"kafka", "record", "sink"})
 @CapabilityDescription("Provides a service to write records to a Kafka 1.x topic.")
@@ -76,7 +71,7 @@ import java.util.concurrent.TimeoutException;
                 + " In the event a dynamic property represents a property that was already set, its value will be ignored and WARN message logged."
                 + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration. ",
         expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
-public class KafkaRecordSink_1_0 extends AbstractControllerService implements RecordSinkService {
+public class KafkaRecordSink_1_0 extends AbstractControllerService implements RecordSinkService, KafkaPublishComponent {
 
     static final AllowableValue DELIVERY_REPLICATED = new AllowableValue("all", "Guarantee Replicated Delivery",
             "Records are considered 'transmitted unsuccessfully' unless the message is replicated to the appropriate "
@@ -88,10 +83,6 @@ public class KafkaRecordSink_1_0 extends AbstractControllerService implements Re
     static final AllowableValue DELIVERY_BEST_EFFORT = new AllowableValue("0", "Best Effort",
             "Records are considered 'transmitted successfully' after successfully writing the content to a Kafka node, "
                     + "without waiting for a response. This provides the best performance but may result in data loss.");
-
-    static final AllowableValue UTF8_ENCODING = new AllowableValue("utf-8", "UTF-8 Encoded", "The key is interpreted as a UTF-8 Encoded string.");
-    static final AllowableValue HEX_ENCODING = new AllowableValue("hex", "Hex Encoded",
-            "The key is interpreted as arbitrary binary data that is encoded using hexadecimal characters with uppercase letters.");
 
     static final PropertyDescriptor TOPIC = new PropertyDescriptor.Builder()
             .name("topic")
@@ -171,17 +162,18 @@ public class KafkaRecordSink_1_0 extends AbstractControllerService implements Re
     private volatile Producer<byte[], byte[]> producer;
 
     @Override
-    protected void init(final ControllerServiceInitializationContext context) throws InitializationException {
+    protected void init(final ControllerServiceInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(KafkaProcessorUtils.BOOTSTRAP_SERVERS);
+        properties.add(BOOTSTRAP_SERVERS);
         properties.add(TOPIC);
         properties.add(RecordSinkService.RECORD_WRITER_FACTORY);
         properties.add(DELIVERY_GUARANTEE);
         properties.add(MESSAGE_HEADER_ENCODING);
-        properties.add(KafkaProcessorUtils.SECURITY_PROTOCOL);
-        properties.add(KafkaProcessorUtils.KERBEROS_CREDENTIALS_SERVICE);
-        properties.add(KafkaProcessorUtils.JAAS_SERVICE_NAME);
-        properties.add(KafkaProcessorUtils.SSL_CONTEXT_SERVICE);
+        properties.add(SECURITY_PROTOCOL);
+        properties.add(SASL_MECHANISM);
+        properties.add(KERBEROS_CREDENTIALS_SERVICE);
+        properties.add(KERBEROS_SERVICE_NAME);
+        properties.add(SSL_CONTEXT_SERVICE);
         properties.add(MAX_REQUEST_SIZE);
         properties.add(ACK_WAIT_TIME);
         properties.add(METADATA_WAIT_TIME);
@@ -199,7 +191,7 @@ public class KafkaRecordSink_1_0 extends AbstractControllerService implements Re
         return new PropertyDescriptor.Builder()
                 .description("Specifies the value for '" + propertyDescriptorName + "' Kafka Configuration.")
                 .name(propertyDescriptorName)
-                .addValidator(new KafkaProcessorUtils.KafkaConfigValidator(ProducerConfig.class))
+                .addValidator(new DynamicPropertyValidator(ProducerConfig.class))
                 .dynamic(true)
                 .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                 .build();
@@ -207,7 +199,7 @@ public class KafkaRecordSink_1_0 extends AbstractControllerService implements Re
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        return KafkaProcessorUtils.validateCommonProperties(validationContext);
+        return new KafkaClientCustomValidationFunction().apply(validationContext);
     }
 
     @OnEnabled
@@ -216,12 +208,10 @@ public class KafkaRecordSink_1_0 extends AbstractControllerService implements Re
         writerFactory = context.getProperty(RecordSinkService.RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
         maxMessageSize = context.getProperty(MAX_REQUEST_SIZE).asDataSize(DataUnit.B).intValue();
         maxAckWaitMillis = context.getProperty(ACK_WAIT_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
+        maxAckWaitMillis = context.getProperty(ACK_WAIT_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
 
-        final String charsetName = context.getProperty(MESSAGE_HEADER_ENCODING).evaluateAttributeExpressions().getValue();
-        final Charset charset = Charset.forName(charsetName);
-
-        final Map<String, Object> kafkaProperties = new HashMap<>();
-        buildCommonKafkaProperties(context, ProducerConfig.class, kafkaProperties);
+        final KafkaPropertyProvider kafkaPropertyProvider = new StandardKafkaPropertyProvider(ConsumerConfig.class);
+        final Map<String, Object> kafkaProperties = kafkaPropertyProvider.getProperties(context);
         kafkaProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
         kafkaProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
         kafkaProperties.put("max.request.size", String.valueOf(maxMessageSize));
@@ -299,90 +289,9 @@ public class KafkaRecordSink_1_0 extends AbstractControllerService implements Re
     }
 
     @OnDisabled
-    public void stop() throws IOException {
+    public void stop() {
         if (producer != null) {
             producer.close(maxAckWaitMillis, TimeUnit.MILLISECONDS);
-        }
-    }
-
-    static void buildCommonKafkaProperties(final ConfigurationContext context, final Class<?> kafkaConfigClass, final Map<String, Object> mapToPopulate) {
-        for (PropertyDescriptor propertyDescriptor : context.getProperties().keySet()) {
-            if (propertyDescriptor.equals(KafkaProcessorUtils.SSL_CONTEXT_SERVICE)) {
-                // Translate SSLContext Service configuration into Kafka properties
-                final SSLContextService sslContextService = context.getProperty(KafkaProcessorUtils.SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-                if (sslContextService != null && sslContextService.isKeyStoreConfigured()) {
-                    mapToPopulate.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, sslContextService.getKeyStoreFile());
-                    mapToPopulate.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, sslContextService.getKeyStorePassword());
-                    final String keyPass = sslContextService.getKeyPassword() == null ? sslContextService.getKeyStorePassword() : sslContextService.getKeyPassword();
-                    mapToPopulate.put(SslConfigs.SSL_KEY_PASSWORD_CONFIG, keyPass);
-                    mapToPopulate.put(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, sslContextService.getKeyStoreType());
-                }
-
-                if (sslContextService != null && sslContextService.isTrustStoreConfigured()) {
-                    mapToPopulate.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, sslContextService.getTrustStoreFile());
-                    mapToPopulate.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, sslContextService.getTrustStorePassword());
-                    mapToPopulate.put(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, sslContextService.getTrustStoreType());
-                }
-            }
-
-            String propertyName = propertyDescriptor.getName();
-            String propertyValue = propertyDescriptor.isExpressionLanguageSupported()
-                    ? context.getProperty(propertyDescriptor).evaluateAttributeExpressions().getValue()
-                    : context.getProperty(propertyDescriptor).getValue();
-
-            if (propertyValue != null) {
-                // If the property name ends in ".ms" then it is a time period. We want to accept either an integer as number of milliseconds
-                // or the standard NiFi time period such as "5 secs"
-                if (propertyName.endsWith(".ms") && !StringUtils.isNumeric(propertyValue.trim())) { // kafka standard time notation
-                    propertyValue = String.valueOf(FormatUtils.getTimeDuration(propertyValue.trim(), TimeUnit.MILLISECONDS));
-                }
-
-                if (KafkaProcessorUtils.isStaticStringFieldNamePresent(propertyName, kafkaConfigClass, CommonClientConfigs.class, SslConfigs.class, SaslConfigs.class)) {
-                    mapToPopulate.put(propertyName, propertyValue);
-                }
-            }
-        }
-
-        String securityProtocol = context.getProperty(KafkaProcessorUtils.SECURITY_PROTOCOL).getValue();
-        if (KafkaProcessorUtils.SEC_SASL_PLAINTEXT.getValue().equals(securityProtocol) || KafkaProcessorUtils.SEC_SASL_SSL.getValue().equals(securityProtocol)) {
-            setJaasConfig(mapToPopulate, context);
-        }
-    }
-
-    /**
-     * Method used to configure the 'sasl.jaas.config' property based on KAFKA-4259<br />
-     * https://cwiki.apache.org/confluence/display/KAFKA/KIP-85%3A+Dynamic+JAAS+configuration+for+Kafka+clients<br />
-     * <br />
-     * It expects something with the following format: <br />
-     * <br />
-     * &lt;LoginModuleClass&gt; &lt;ControlFlag&gt; *(&lt;OptionName&gt;=&lt;OptionValue&gt;); <br />
-     * ControlFlag = required / requisite / sufficient / optional
-     *
-     * @param mapToPopulate Map of configuration properties
-     * @param context       Context
-     */
-    private static void setJaasConfig(Map<String, Object> mapToPopulate, ConfigurationContext context) {
-        String keytab = null;
-        String principal = null;
-
-        // If the Kerberos Credentials Service is specified, we need to use its configuration, not the explicit properties for principal/keytab.
-        // The customValidate method ensures that only one can be set, so we know that the principal & keytab above are null.
-        final KerberosCredentialsService credentialsService = context.getProperty(KafkaProcessorUtils.KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
-        if (credentialsService != null) {
-            principal = credentialsService.getPrincipal();
-            keytab = credentialsService.getKeytab();
-        }
-
-
-        String serviceName = context.getProperty(KafkaProcessorUtils.JAAS_SERVICE_NAME).evaluateAttributeExpressions().getValue();
-        if (StringUtils.isNotBlank(keytab) && StringUtils.isNotBlank(principal) && StringUtils.isNotBlank(serviceName)) {
-            mapToPopulate.put(SaslConfigs.SASL_JAAS_CONFIG, "com.sun.security.auth.module.Krb5LoginModule required "
-                    + "useTicketCache=false "
-                    + "renewTicket=true "
-                    + "serviceName=\"" + serviceName + "\" "
-                    + "useKeyTab=true "
-                    + "keyTab=\"" + keytab + "\" "
-                    + "principal=\"" + principal + "\";");
         }
     }
 

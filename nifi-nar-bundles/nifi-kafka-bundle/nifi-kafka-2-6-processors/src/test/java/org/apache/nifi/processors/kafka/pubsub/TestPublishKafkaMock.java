@@ -27,6 +27,8 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.Headers;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
+import org.apache.nifi.kafka.shared.property.PublishStrategy;
+import org.apache.nifi.kafka.shared.transaction.TransactionIdSupplier;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -315,7 +317,7 @@ public class TestPublishKafkaMock {
         final Pattern attributeNamePattern = attributeNameRegex == null ? null : Pattern.compile(attributeNameRegex);
         final boolean useTransactions = context.getProperty("use-transactions").asBoolean();
         final String transactionalIdPrefix = context.getProperty("transactional-id-prefix").evaluateAttributeExpressions().getValue();
-        Supplier<String> transactionalIdSupplier = KafkaProcessorUtils.getTransactionalIdSupplier(transactionalIdPrefix);
+        Supplier<String> transactionalIdSupplier = new TransactionIdSupplier(transactionalIdPrefix);
         final PublishStrategy publishStrategy = PublishStrategy.valueOf(context.getProperty("publish-strategy").getValue());
         final String charsetName = context.getProperty("message-header-encoding").evaluateAttributeExpressions().getValue();
         final Charset charset = Charset.forName(charsetName);
