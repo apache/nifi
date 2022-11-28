@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.adx;
+package org.apache.nifi.processors.adx.mock;
 
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import org.apache.nifi.processors.adx.AzureAdxSourceProcessor;
 
-public class MockAzureAdxSourceProcessor extends AzureAdxSourceProcessor{
+public class MockAzureAdxSourceProcessor extends AzureAdxSourceProcessor {
 
     @Override
     protected KustoResultSetTable executeQuery(String databaseName, String adxQuery) throws OutOfMemoryError {

@@ -20,6 +20,8 @@ import org.apache.nifi.adx.AzureAdxSinkConnectionService;
 import org.apache.nifi.adx.AzureAdxSourceConnectionService;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processors.adx.mock.MockAzureAdxSourceConnectionService;
+import org.apache.nifi.processors.adx.mock.MockAzureAdxSourceProcessor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
