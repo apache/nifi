@@ -314,7 +314,8 @@ public class AzureAdxSinkProcessorTest {
         testRunner.enableControllerService(azureAdxSinkConnectionService);
         testRunner.assertValid(azureAdxSinkConnectionService);
 
-        AdxSinkConnectionService adxSinkConnectionServiceFromProcessContext = (AdxSinkConnectionService) testRunner.getProcessContext().getControllerServiceLookup().getControllerService("adx-connection-service");
+        AdxSinkConnectionService adxSinkConnectionServiceFromProcessContext =
+                (AdxSinkConnectionService) testRunner.getProcessContext().getControllerServiceLookup().getControllerService("adx-connection-service");
         assertNotNull(adxSinkConnectionServiceFromProcessContext);
 
         InputStream stream = new ByteArrayInputStream("exampleString".getBytes(StandardCharsets.UTF_8));

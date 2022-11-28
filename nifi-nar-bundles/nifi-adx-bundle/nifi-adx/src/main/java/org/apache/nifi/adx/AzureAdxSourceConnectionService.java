@@ -139,7 +139,11 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
 
     @Override
     public Client getKustoExecutionClient(){
-        return createKustoExecutionClient(adxConnectionParams.getKustoEngineURL(), adxConnectionParams.getAppId(), adxConnectionParams.getAppKey(), adxConnectionParams.getAppTenant(), adxConnectionParams.getKustoAuthStrategy());
+        return createKustoExecutionClient(adxConnectionParams.getKustoEngineURL(),
+                adxConnectionParams.getAppId(),
+                adxConnectionParams.getAppKey(),
+                adxConnectionParams.getAppTenant(),
+                adxConnectionParams.getKustoAuthStrategy());
     }
 
     public ConnectionStringBuilder createKustoEngineConnectionString(final String clusterUrl,final String appId,final String appKey,final String appTenant, final String kustoAuthStrategy) {

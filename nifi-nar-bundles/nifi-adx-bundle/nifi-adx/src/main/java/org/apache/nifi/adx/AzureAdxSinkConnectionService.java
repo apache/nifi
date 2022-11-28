@@ -176,12 +176,21 @@ public class AzureAdxSinkConnectionService extends AbstractControllerService imp
     }
     @Override
     public IngestClient getAdxClient(boolean isStreamingEnabled) {
-        return createAdxClient(adxConnectionParams.getIngestURL(), adxConnectionParams.getAppId(), adxConnectionParams.getAppKey(), adxConnectionParams.getAppTenant(), isStreamingEnabled, adxConnectionParams.getKustoEngineURL(), adxConnectionParams.getKustoAuthStrategy());
+        return createAdxClient(adxConnectionParams.getIngestURL(),
+                adxConnectionParams.getAppId(),
+                adxConnectionParams.getAppKey(),
+                adxConnectionParams.getAppTenant(),
+                isStreamingEnabled, adxConnectionParams.getKustoEngineURL(),
+                adxConnectionParams.getKustoAuthStrategy());
     }
 
     @Override
     public Client getKustoExecutionClient(){
-        return createKustoExecutionClient(adxConnectionParams.getKustoEngineURL(), adxConnectionParams.getAppId(), adxConnectionParams.getAppKey(), adxConnectionParams.getAppTenant(), adxConnectionParams.getKustoAuthStrategy());
+        return createKustoExecutionClient(adxConnectionParams.getKustoEngineURL(),
+                adxConnectionParams.getAppId(),
+                adxConnectionParams.getAppKey(),
+                adxConnectionParams.getAppTenant(),
+                adxConnectionParams.getKustoAuthStrategy());
     }
 
 
