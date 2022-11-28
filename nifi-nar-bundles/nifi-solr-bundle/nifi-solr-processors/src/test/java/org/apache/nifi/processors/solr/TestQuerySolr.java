@@ -588,7 +588,7 @@ public class TestQuerySolr {
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(QuerySolr.RESULTS).get(0);
         Map<String, String> attributes = flowFile.getAttributes();
-
+        
         flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_CONNECT);
         flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_COLLECTION);
         flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_QUERY);
@@ -602,8 +602,12 @@ public class TestQuerySolr {
 
         assertEquals(SOLR_CONNECT, attributes.get(QuerySolr.ATTRIBUTE_SOLR_CONNECT));
         assertEquals(DEFAULT_SOLR_CORE, attributes.get(QuerySolr.ATTRIBUTE_SOLR_COLLECTION));
-        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).equals("q=*:*&qt=/select&start=0&rows=10&stats=true&facet=true") ||
-            attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).equals("q=*:*&qt=/select&start=0&rows=10&facet=true&stats=true"));
+        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).contains("q=*:*"));
+        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).contains("qt=/select"));
+        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).contains("start=0"));
+        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).contains("rows=10"));
+        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).contains("stats=true"));
+        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).contains("facet=true"));
         assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_STATUS));
         assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_START));
         assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_ROWS));
@@ -626,8 +630,12 @@ public class TestQuerySolr {
 
         assertEquals(SOLR_CONNECT, attributes.get(QuerySolr.ATTRIBUTE_SOLR_CONNECT));
         assertEquals(DEFAULT_SOLR_CORE, attributes.get(QuerySolr.ATTRIBUTE_SOLR_COLLECTION));
-        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).equals("q=*:*&qt=/select&start=0&rows=10&stats=true&facet=true") ||
-            attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).equals("q=*:*&qt=/select&start=0&rows=10&facet=true&stats=true"));
+        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).contains("q=*:*"));
+        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).contains("qt=/select"));
+        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).contains("start=0"));
+        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).contains("rows=10"));
+        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).contains("stats=true"));
+        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).contains("facet=true"));
         assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_STATUS));
         assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_START));
         assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_ROWS));
@@ -650,8 +658,12 @@ public class TestQuerySolr {
 
         assertEquals(SOLR_CONNECT, attributes.get(QuerySolr.ATTRIBUTE_SOLR_CONNECT));
         assertEquals(DEFAULT_SOLR_CORE, attributes.get(QuerySolr.ATTRIBUTE_SOLR_COLLECTION));
-        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).equals("q=*:*&qt=/select&start=0&rows=10&stats=true&facet=true") ||
-            attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).equals("q=*:*&qt=/select&start=0&rows=10&facet=true&stats=true"));
+        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).contains("q=*:*"));
+        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).contains("qt=/select"));
+        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).contains("start=0"));
+        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).contains("rows=10"));
+        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).contains("stats=true"));
+        assertTrue(attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY).contains("facet=true"));
         assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_STATUS));
         assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_START));
         assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_ROWS));
