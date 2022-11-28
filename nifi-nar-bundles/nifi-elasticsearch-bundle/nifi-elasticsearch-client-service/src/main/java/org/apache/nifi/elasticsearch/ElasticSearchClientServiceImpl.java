@@ -144,6 +144,15 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             addAuthorizationPropertiesValidationIssue(results, API_KEY, API_KEY_ID);
         }
 
+        if ((usernameSet || passwordSet) && (apiKeyIdSet || apiKeySet)) {
+            results.add(new ValidationResult.Builder().subject(AuthorizationScheme.API_KEY == authorizationScheme ? USERNAME.getName() : API_KEY_ID.getName()).valid(false)
+                    .explanation(String.format("cannot specify '%s'/'%s' and '%s'/'%s' together.",
+                            USERNAME.getDisplayName(), PASSWORD.getDisplayName(),
+                            API_KEY_ID.getDisplayName(), API_KEY.getDisplayName())
+                    ).build()
+            );
+        }
+
         return results;
     }
 
