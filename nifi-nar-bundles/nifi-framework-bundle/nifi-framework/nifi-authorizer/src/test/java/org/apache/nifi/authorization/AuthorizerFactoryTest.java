@@ -213,7 +213,6 @@ public class AuthorizerFactoryTest {
         userGroupProvider.addUser(user2);
 
         User user1Updated = new User.Builder().identifier("user-id-1").identity("xyz").build();
-        userGroupProvider.updateUser(user1Updated);
 
         assertThrows(IllegalStateException.class,
                 () -> userGroupProvider.updateUser(user1Updated));
@@ -236,7 +235,6 @@ public class AuthorizerFactoryTest {
         userGroupProvider.addGroup(group2);
 
         Group group1Updated = new Group.Builder().identifier("group-id-1").name("xyz").build();
-        userGroupProvider.updateGroup(group1Updated);
 
         assertThrows(IllegalStateException.class,
                 () -> userGroupProvider.updateGroup(group1Updated));
