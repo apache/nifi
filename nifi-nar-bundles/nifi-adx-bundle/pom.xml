@@ -19,15 +19,15 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.18.0-SNAPSHOT</version>
+        <version>1.19.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-adx-bundle</artifactId>
-    <version>1.18.0-SNAPSHOT</version>
+    <version>1.19.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>
-        <nifi-release-version>1.18.0-SNAPSHOT</nifi-release-version>
+        <nifi-release-version>1.19.0-SNAPSHOT</nifi-release-version>
         <azure-kusto-java-sdk-version>3.3.0</azure-kusto-java-sdk-version>
     </properties>
 
