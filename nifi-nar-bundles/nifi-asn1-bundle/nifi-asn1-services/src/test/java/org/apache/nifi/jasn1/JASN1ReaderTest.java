@@ -42,6 +42,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -122,7 +124,7 @@ public class JASN1ReaderTest {
      */
     public void testCantParseAsn() throws Exception {
         // GIVEN
-        String asnFiles = Paths.get("src", "test", "resources", "cant_parse.asn").toString();
+        String asnFile = Paths.get("src", "test", "resources", "cant_parse.asn").toString();
 
         List<String> expectedErrorMessages = Arrays.asList(
                 "line 11:5: unexpected token: field3",
@@ -131,7 +133,7 @@ public class JASN1ReaderTest {
 
         // WHEN
         // THEN
-        testError(asnFiles, expectedErrorMessages);
+        testParseError(asnFile, expectedErrorMessages);
     }
 
     @Test
@@ -144,27 +146,17 @@ public class JASN1ReaderTest {
         String asnFiles = Paths.get("src", "test", "resources", "cant_compile.asn").toString();
 
         List<String> expectedErrorMessages = Arrays.asList(
-                "class SAMENAMEWithDifferentCase is public, should be declared in a file named SAMENAMEWithDifferentCase.java",
-                "cannot find symbol\n" +
-                        "  symbol:   class SameNameWithDifferentCase\n" +
-                        "  location: class org.apache.nifi.jasn1.test.SAMENAMEWithDifferentCase",
-                "incompatible types: com.beanit.asn1bean.ber.types.BerInteger cannot be converted to com.beanit.asn1bean.ber.BerLength",
-                "incompatible types: boolean cannot be converted to java.io.OutputStream",
-                "Some messages have been simplified; recompile with -Xdiags:verbose to get full output"
+                ".*SAMENAMEWithDifferentCase.*SAMENAMEWithDifferentCase.*",
+                ".*.*\n.*SameNameWithDifferentCase.*\n.*org\\.apache\\.nifi\\.jasn1\\.test\\.SAMENAMEWithDifferentCase.*",
+                ".*com\\.beanit\\.asn1bean\\.ber\\.types\\.BerInteger.*com\\.beanit\\.asn1bean\\.ber\\.BerLength.*",
+                ".*boolean.*java\\.io\\.OutputStream.*",
+                ".*-Xdiags:verbose.*"
         );
 
-        // WHEN
-        // THEN
-        testError(asnFiles, expectedErrorMessages);
-    }
-
-    private void testError(String asnFiles, List<String> expectedErrorMessages) {
-        // GIVEN
         ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
         when(context.getProperty(ASN_FILES).isSet()).thenReturn(true);
         when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue())
                 .thenReturn(asnFiles);
-
 
         // WHEN
         assertThrows(
@@ -175,6 +167,34 @@ public class JASN1ReaderTest {
         // THEN
         ArgumentCaptor<String> errorCaptor = ArgumentCaptor.forClass(String.class);
         verify(testSubject.logger, atLeastOnce()).error(errorCaptor.capture());
+
+        List<String> actualErrorMessages = errorCaptor.getAllValues();
+        assertEquals(expectedErrorMessages.size(), actualErrorMessages.size());
+
+        for (int errorMessageIndex = 0; errorMessageIndex < actualErrorMessages.size(); errorMessageIndex++) {
+            String expectedErrorMessage = expectedErrorMessages.get(errorMessageIndex);
+            String actualErrorMessage = actualErrorMessages.get(errorMessageIndex);
+            assertTrue(actualErrorMessage.matches(expectedErrorMessage), "Expected string matching '" + expectedErrorMessage + "', got '" + actualErrorMessage + "'");
+        }
+    }
+
+    private void testParseError(String asnFile, List<String> expectedErrorMessages) {
+        // GIVEN
+        ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
+        when(context.getProperty(ASN_FILES).isSet()).thenReturn(true);
+        when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue())
+                .thenReturn(asnFile);
+
+
+        // WHEN
+        assertThrows(
+                ProcessException.class,
+                () -> testSubject.onEnabled(context)
+        );
+
+        // THEN
+        ArgumentCaptor<String> errorCaptor = ArgumentCaptor.forClass(String.class);
+        verify(testSubject.logger, atLeastOnce()).error(eq("{} - {}"), anyString(), errorCaptor.capture());
 
         List<String> actualErrorMessages = errorCaptor.getAllValues();
 

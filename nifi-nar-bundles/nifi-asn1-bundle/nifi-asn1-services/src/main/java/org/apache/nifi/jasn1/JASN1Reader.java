@@ -355,13 +355,13 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
         ASNParser parser = new ASNParser(lexer) {
             @Override
             public void reportError(String s) {
-                logger.error(s);
+                logger.error("{} - {}", inputFileName, s);
                 parseError.set(true);
             }
 
             @Override
             public void reportError(RecognitionException e) {
-                logger.error(e.toString());
+                logger.error("{} - {}", inputFileName, e.toString());
                 parseError.set(true);
             }
         };
