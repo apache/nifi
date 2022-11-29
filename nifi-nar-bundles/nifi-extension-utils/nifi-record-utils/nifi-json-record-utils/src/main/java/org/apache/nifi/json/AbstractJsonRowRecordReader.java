@@ -43,7 +43,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.DateFormat;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -120,7 +119,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
 
         this.strategy = strategy;
         this.captureFieldPredicate = captureFieldPredicate;
-        capturedFields = new HashMap<>();
+        capturedFields = new LinkedHashMap<>();
 
         try {
             jsonParser = jsonFactory.createParser(in);
@@ -307,7 +306,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         final MapDataType mapDataType = (MapDataType) dataType;
         final DataType valueType = mapDataType.getValueType();
 
-        final Map<String, Object> mapValue = new HashMap<>();
+        final Map<String, Object> mapValue = new LinkedHashMap<>();
 
         final Iterator<Map.Entry<String, JsonNode>> fieldItr = fieldNode.fields();
         while (fieldItr.hasNext()) {
