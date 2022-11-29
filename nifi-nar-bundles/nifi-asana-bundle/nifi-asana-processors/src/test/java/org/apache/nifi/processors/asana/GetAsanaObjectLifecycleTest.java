@@ -25,6 +25,7 @@ import static org.apache.nifi.processors.asana.GetAsanaObject.ASANA_GID;
 import static org.apache.nifi.processors.asana.GetAsanaObject.PROP_ASANA_CLIENT_SERVICE;
 import static org.apache.nifi.processors.asana.GetAsanaObject.PROP_ASANA_OBJECT_TYPE;
 import static org.apache.nifi.processors.asana.GetAsanaObject.PROP_ASANA_OUTPUT_BATCH_SIZE;
+import static org.apache.nifi.processors.asana.GetAsanaObject.PROP_DISTRIBUTED_CACHE_SERVICE;
 import static org.apache.nifi.processors.asana.GetAsanaObject.REL_NEW;
 import static org.apache.nifi.processors.asana.GetAsanaObject.REL_REMOVED;
 import static org.apache.nifi.processors.asana.GetAsanaObject.REL_UPDATED;
@@ -39,13 +40,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.gson.Gson;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import org.apache.groovy.util.Maps;
-import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.asana.AsanaClientProviderService;
+import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.processors.asana.mocks.MockAsanaClientProviderService;
+import org.apache.nifi.processors.asana.mocks.MockDistributedMapCacheClient;
 import org.apache.nifi.processors.asana.mocks.MockGetAsanaObject;
 import org.apache.nifi.processors.asana.utils.AsanaObject;
 import org.apache.nifi.processors.asana.utils.AsanaObjectFetcher;
@@ -63,18 +64,21 @@ public class GetAsanaObjectLifecycleTest {
     private static final Gson GSON = new Gson();
     private TestRunner runner;
     private MockAsanaClientProviderService mockService;
+    private MockDistributedMapCacheClient mockDistributedMapCacheClient;
     private AsanaObjectFetcher mockObjectFetcher;
 
     @BeforeEach
     public void init() {
         runner = newTestRunner(MockGetAsanaObject.class);
         mockService = new MockAsanaClientProviderService();
+        mockDistributedMapCacheClient = new MockDistributedMapCacheClient();
         mockObjectFetcher = ((MockGetAsanaObject)runner.getProcessor()).objectFetcher;
     }
 
     @Test
     public void testYieldIsCalledWhenNoAsanaObjectsFetched() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS.getValue());
 
         when(mockObjectFetcher.fetchNext()).thenReturn(null);
@@ -93,6 +97,7 @@ public class GetAsanaObjectLifecycleTest {
     @Test
     public void testCollectObjectsFromAsanaThenYield() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS.getValue());
 
         when(mockObjectFetcher.fetchNext())
@@ -145,6 +150,7 @@ public class GetAsanaObjectLifecycleTest {
     @Test
     public void testCollectObjectsFromAsanaWithBatchSizeConfigured() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS.getValue());
         runner.setProperty(PROP_ASANA_OUTPUT_BATCH_SIZE, "2");
 
@@ -191,6 +197,7 @@ public class GetAsanaObjectLifecycleTest {
     @Test
     public void testAttemptLoadStateButNoStatePresent() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS.getValue());
 
         when(mockObjectFetcher.fetchNext()).thenReturn(null);
@@ -202,8 +209,9 @@ public class GetAsanaObjectLifecycleTest {
     }
 
     @Test
-    public void testLoadValidState() throws InitializationException, IOException {
+    public void testLoadValidState() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS.getValue());
 
         final Map<String, String> validState = Maps.of(
@@ -211,7 +219,7 @@ public class GetAsanaObjectLifecycleTest {
             "Key2", "Value2"
         );
 
-        runner.getStateManager().setState(validState, Scope.CLUSTER);
+        mockDistributedMapCacheClient.put(runner.getProcessor().getIdentifier(), validState);
 
         when(mockObjectFetcher.fetchNext()).thenReturn(null);
 
@@ -222,13 +230,14 @@ public class GetAsanaObjectLifecycleTest {
     }
 
     @Test
-    public void testAttemptLoadInvalidStateThenClear() throws InitializationException, IOException {
+    public void testAttemptLoadInvalidStateThenClear() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS.getValue());
 
         final Map<String, String> invalidState = singletonMap("Key", "Value");
 
-        runner.getStateManager().setState(invalidState, Scope.CLUSTER);
+        mockDistributedMapCacheClient.put(runner.getProcessor().getIdentifier(), invalidState);
 
         doThrow(new AsanaObjectFetcherException()).when(mockObjectFetcher).loadState(invalidState);
         when(mockObjectFetcher.fetchNext()).thenReturn(null);
@@ -240,8 +249,9 @@ public class GetAsanaObjectLifecycleTest {
     }
 
     @Test
-    public void testStateIsSavedIfProcessorYields() throws InitializationException, IOException {
+    public void testStateIsSavedIfProcessorYields() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS.getValue());
 
         final Map<String, String> state = singletonMap("Key", "Value");
@@ -251,12 +261,13 @@ public class GetAsanaObjectLifecycleTest {
 
         runner.run(1);
 
-        assertEquals(state, runner.getStateManager().getState(Scope.CLUSTER).toMap());
+        assertEquals(state, mockDistributedMapCacheClient.get(runner.getProcessor().getIdentifier()));
     }
 
     @Test
-    public void testStateIsSavedIfThereAreObjectsFetched() throws InitializationException, IOException {
+    public void testStateIsSavedIfThereAreObjectsFetched() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS.getValue());
 
         final Map<String, String> state = singletonMap("Key", "Value");
@@ -268,7 +279,7 @@ public class GetAsanaObjectLifecycleTest {
 
         runner.run(1);
 
-        assertEquals(state, runner.getStateManager().getState(Scope.CLUSTER).toMap());
+        assertEquals(state, mockDistributedMapCacheClient.get(runner.getProcessor().getIdentifier()));
     }
 
     private void withMockAsanaClientService() throws InitializationException {
@@ -276,5 +287,12 @@ public class GetAsanaObjectLifecycleTest {
         runner.addControllerService(serviceIdentifier, mockService);
         runner.enableControllerService(mockService);
         runner.setProperty(PROP_ASANA_CLIENT_SERVICE, serviceIdentifier);
+    }
+
+    private void withMockDistributedMapCacheClient() throws InitializationException {
+        final String serviceIdentifier = DistributedMapCacheClient.class.getName();
+        runner.addControllerService(serviceIdentifier, mockDistributedMapCacheClient);
+        runner.enableControllerService(mockDistributedMapCacheClient);
+        runner.setProperty(PROP_DISTRIBUTED_CACHE_SERVICE, serviceIdentifier);
     }
 }

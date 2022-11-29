@@ -47,17 +47,16 @@ import java.util.Set;
 import org.apache.http.entity.ContentType;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
-import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.controller.asana.AsanaClient;
 import org.apache.nifi.controller.asana.AsanaClientProviderService;
+import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -85,7 +84,6 @@ import org.apache.nifi.reporting.InitializationException;
 
 @TriggerSerially
 @PrimaryNodeOnly
-@Stateful(scopes = {Scope.CLUSTER}, description = "Fingerprints of items in the last successful query are stored in order to enable incremental loading and change detection.")
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @WritesAttribute(attribute = GetAsanaObject.ASANA_GID, description = "Global ID of the object in Asana.")
 @Tags({"asana", "source", "ingest"})
@@ -94,6 +92,7 @@ public class GetAsanaObject extends AbstractProcessor {
 
     protected static final String ASANA_GID = "asana.gid";
     protected static final String ASANA_CLIENT_SERVICE = "asana-controller-service";
+    protected static final String DISTRIBUTED_CACHE_SERVICE = "distributed-cache-service";
     protected static final String ASANA_OBJECT_TYPE = "asana-object-type";
     protected static final String ASANA_PROJECT_NAME = "asana-project-name";
     protected static final String ASANA_SECTION_NAME = "asana-section-name";
@@ -110,6 +109,15 @@ public class GetAsanaObject extends AbstractProcessor {
             .description("Specify which controller service to use for accessing Asana.")
             .required(true)
             .identifiesControllerService(AsanaClientProviderService.class)
+            .build();
+
+    protected static final PropertyDescriptor PROP_DISTRIBUTED_CACHE_SERVICE = new Builder()
+            .name(DISTRIBUTED_CACHE_SERVICE)
+            .displayName("Distributed Cache Service")
+            .description("Cache service to store fetched item fingerprints. These, from the last successful query"
+                    + " are stored, in order to enable incremental loading and change detection.")
+            .required(true)
+            .identifiesControllerService(DistributedMapCacheClient.class)
             .build();
 
     protected static final PropertyDescriptor PROP_ASANA_OBJECT_TYPE = new PropertyDescriptor.Builder()
@@ -183,6 +191,7 @@ public class GetAsanaObject extends AbstractProcessor {
 
     protected static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
             PROP_ASANA_CLIENT_SERVICE,
+            PROP_DISTRIBUTED_CACHE_SERVICE,
             PROP_ASANA_OBJECT_TYPE,
             PROP_ASANA_PROJECT,
             PROP_ASANA_SECTION,
@@ -213,8 +222,6 @@ public class GetAsanaObject extends AbstractProcessor {
             REL_UPDATED,
             REL_REMOVED
     )));
-
-    private static final Scope STATE_STORAGE_SCOPE = Scope.CLUSTER;
 
     private volatile AsanaObjectFetcher objectFetcher;
     private volatile Integer batchSize;
@@ -310,7 +317,7 @@ public class GetAsanaObject extends AbstractProcessor {
         }
 
         Map<String, String> state = objectFetcher.saveState();
-        persistState(state, session);
+        persistState(state, context);
 
         getLogger().debug(
                 "New state after transferring {} new, {} updated, and {} removed items: {}",
@@ -356,12 +363,14 @@ public class GetAsanaObject extends AbstractProcessor {
         throw new ProcessException("Cannot fetch objects of type: " + objectType);
     }
 
-    private Optional<Map<String, String>> recoverState(final ProcessContext context) throws IOException {
-        final StateMap stateMap = context.getStateManager().getState(STATE_STORAGE_SCOPE);
-        if (stateMap.getVersion() == -1L || stateMap.toMap().isEmpty()) {
-            return Optional.empty();
+    private Optional<Map<String, String>> recoverState(final ProcessContext context) {
+        final DistributedMapCacheClient client = getDistributedMapCacheClient(context);
+        try {
+            final Map<String, String> result = client.get(getIdentifier(), new GenericObjectSerDe<>(), new GenericObjectSerDe<>());
+            return Optional.ofNullable(result);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
-        return Optional.ofNullable(stateMap.toMap());
     }
 
     private FlowFile createFlowFileWithStringPayload(ProcessSession session, String payload) {
@@ -369,11 +378,16 @@ public class GetAsanaObject extends AbstractProcessor {
         return session.importFrom(new ByteArrayInputStream(data), session.create());
     }
 
-    private void persistState(final Map<String, String> state, final ProcessSession session) {
+    private void persistState(final Map<String, String> state, final ProcessContext context) {
+        final DistributedMapCacheClient client = getDistributedMapCacheClient(context);
         try {
-            session.setState(state, STATE_STORAGE_SCOPE);
+            client.put(getIdentifier(), state, new GenericObjectSerDe<>(), new GenericObjectSerDe<>());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private static DistributedMapCacheClient getDistributedMapCacheClient(ProcessContext context) {
+        return context.getProperty(DISTRIBUTED_CACHE_SERVICE).asControllerService(DistributedMapCacheClient.class);
     }
 }

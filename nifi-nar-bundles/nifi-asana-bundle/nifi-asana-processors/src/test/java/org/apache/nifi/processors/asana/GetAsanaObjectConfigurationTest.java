@@ -26,7 +26,9 @@ import com.google.api.client.util.DateTime;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.asana.AsanaClientProviderService;
 import org.apache.nifi.controller.asana.AsanaEventsCollection;
+import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.processors.asana.mocks.MockAsanaClientProviderService;
+import org.apache.nifi.processors.asana.mocks.MockDistributedMapCacheClient;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,6 +54,7 @@ import static org.apache.nifi.processors.asana.GetAsanaObject.PROP_ASANA_OBJECT_
 import static org.apache.nifi.processors.asana.GetAsanaObject.PROP_ASANA_OUTPUT_BATCH_SIZE;
 import static org.apache.nifi.processors.asana.GetAsanaObject.PROP_ASANA_PROJECT;
 import static org.apache.nifi.processors.asana.GetAsanaObject.PROP_ASANA_TEAM_NAME;
+import static org.apache.nifi.processors.asana.GetAsanaObject.PROP_DISTRIBUTED_CACHE_SERVICE;
 import static org.apache.nifi.processors.asana.GetAsanaObject.REL_NEW;
 import static org.apache.nifi.util.TestRunners.newTestRunner;
 import static org.mockito.ArgumentMatchers.any;
@@ -64,21 +67,32 @@ public class GetAsanaObjectConfigurationTest {
 
     private TestRunner runner;
     private MockAsanaClientProviderService mockService;
+    private MockDistributedMapCacheClient mockDistributedMapCacheClient;
 
     @BeforeEach
     public void init() {
         runner = newTestRunner(GetAsanaObject.class);
         mockService = new MockAsanaClientProviderService();
+        mockDistributedMapCacheClient = new MockDistributedMapCacheClient();
     }
 
     @Test
     public void testNotValidWithoutControllerService() {
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS.getValue());
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testNotValidWithoutDistributedMapCacheClient() throws InitializationException {
+        withMockAsanaClientService();
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS.getValue());
         runner.assertNotValid();
     }
 
     @Test
     public void testBatchSizeMustBePositiveInteger() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS.getValue());
 
         runner.setProperty(PROP_ASANA_OUTPUT_BATCH_SIZE, StringUtils.EMPTY);
@@ -100,6 +114,7 @@ public class GetAsanaObjectConfigurationTest {
     @Test
     public void testValidConfigurations() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS.getValue());
         runner.assertValid();
 
@@ -115,6 +130,7 @@ public class GetAsanaObjectConfigurationTest {
     @Test
     public void testConfigurationInvalidWithoutProjectName() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TASKS.getValue());
         runner.assertNotValid();
 
@@ -140,12 +156,14 @@ public class GetAsanaObjectConfigurationTest {
     @Test
     public void testConfigurationInvalidWithoutTeamName() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TEAM_MEMBERS.getValue());
     }
 
     @Test
     public void testCollectProjects() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS.getValue());
 
         final Project project = new Project();
@@ -164,6 +182,7 @@ public class GetAsanaObjectConfigurationTest {
     @Test
     public void testCollectTeams() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TEAMS.getValue());
 
         final Team team = new Team();
@@ -181,6 +200,7 @@ public class GetAsanaObjectConfigurationTest {
     @Test
     public void testCollectTeamMembers() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TEAM_MEMBERS.getValue());
         runner.setProperty(PROP_ASANA_TEAM_NAME, "A team");
 
@@ -201,6 +221,7 @@ public class GetAsanaObjectConfigurationTest {
     @Test
     public void testCollectUsers() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_USERS.getValue());
 
         final User user = new User();
@@ -218,6 +239,7 @@ public class GetAsanaObjectConfigurationTest {
     @Test
     public void testCollectTags() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TAGS.getValue());
 
         final Tag tag = new Tag();
@@ -235,6 +257,7 @@ public class GetAsanaObjectConfigurationTest {
     @Test
     public void testCollectProjectEvents() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECT_EVENTS.getValue());
         runner.setProperty(PROP_ASANA_PROJECT, "My Project");
 
@@ -258,6 +281,7 @@ public class GetAsanaObjectConfigurationTest {
     @Test
     public void testCollectProjectMembers() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECT_MEMBERS.getValue());
         runner.setProperty(PROP_ASANA_PROJECT, "My Project");
 
@@ -279,6 +303,7 @@ public class GetAsanaObjectConfigurationTest {
     @Test
     public void testCollectProjectStatusUpdates() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECT_STATUS_UPDATES.getValue());
         runner.setProperty(PROP_ASANA_PROJECT, "My Project");
 
@@ -300,6 +325,7 @@ public class GetAsanaObjectConfigurationTest {
     @Test
     public void testCollectProjectStatusAttachments() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECT_STATUS_ATTACHMENTS.getValue());
         runner.setProperty(PROP_ASANA_PROJECT, "My Project");
 
@@ -326,6 +352,7 @@ public class GetAsanaObjectConfigurationTest {
     @Test
     public void testCollectTasks() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TASKS.getValue());
         runner.setProperty(PROP_ASANA_PROJECT, "My Project");
 
@@ -351,6 +378,7 @@ public class GetAsanaObjectConfigurationTest {
     @Test
     public void testCollectTaskAttachments() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TASK_ATTACHMENTS.getValue());
         runner.setProperty(PROP_ASANA_PROJECT, "My Project");
 
@@ -378,6 +406,7 @@ public class GetAsanaObjectConfigurationTest {
     @Test
     public void testCollectStories() throws InitializationException {
         withMockAsanaClientService();
+        withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_STORIES.getValue());
         runner.setProperty(PROP_ASANA_PROJECT, "My Project");
 
@@ -407,6 +436,13 @@ public class GetAsanaObjectConfigurationTest {
         runner.addControllerService(serviceIdentifier, mockService);
         runner.enableControllerService(mockService);
         runner.setProperty(PROP_ASANA_CLIENT_SERVICE, serviceIdentifier);
+    }
+
+    private void withMockDistributedMapCacheClient() throws InitializationException {
+        final String serviceIdentifier = DistributedMapCacheClient.class.getName();
+        runner.addControllerService(serviceIdentifier, mockDistributedMapCacheClient);
+        runner.enableControllerService(mockDistributedMapCacheClient);
+        runner.setProperty(PROP_DISTRIBUTED_CACHE_SERVICE, serviceIdentifier);
     }
 
 }
