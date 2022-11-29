@@ -22,21 +22,35 @@ import org.apache.nifi.web.security.http.SecurityCookieName;
  * Application Cookie Names
  */
 public enum ApplicationCookieName {
-    AUTHORIZATION_BEARER(SecurityCookieName.AUTHORIZATION_BEARER.getName()),
+    /** Authorization Bearer contains signed JSON Web Token and requires Strict Same Site handling */
+    AUTHORIZATION_BEARER(SecurityCookieName.AUTHORIZATION_BEARER.getName(), SameSitePolicy.STRICT),
 
-    LOGOUT_REQUEST_IDENTIFIER("nifi-logout-request-identifier"),
+    /** Cross-Site Request Forgery mitigation token requires Strict Same Site handling */
+    REQUEST_TOKEN(SecurityCookieName.REQUEST_TOKEN.getName(), SameSitePolicy.STRICT),
 
-    OIDC_REQUEST_IDENTIFIER("nifi-oidc-request-identifier"),
+    /** Logout Requests can interact with external identity providers requiring no Same Site restrictions */
+    LOGOUT_REQUEST_IDENTIFIER("__Secure-Logout-Request-Identifier", SameSitePolicy.NONE),
 
-    SAML_REQUEST_IDENTIFIER("nifi-saml-request-identifier");
+    /** OpenID Connect Requests use external identity providers requiring no Same Site restrictions */
+    OIDC_REQUEST_IDENTIFIER("__Secure-OIDC-Request-Identifier", SameSitePolicy.NONE),
+
+    /** SAML Requests use external identity providers requiring no Same Site restrictions */
+    SAML_REQUEST_IDENTIFIER("__Secure-SAML-Request-Identifier", SameSitePolicy.NONE);
 
     private final String cookieName;
 
-    ApplicationCookieName(final String cookieName) {
+    private final SameSitePolicy sameSitePolicy;
+
+    ApplicationCookieName(final String cookieName, final SameSitePolicy sameSitePolicy) {
         this.cookieName = cookieName;
+        this.sameSitePolicy = sameSitePolicy;
     }
 
     public String getCookieName() {
         return cookieName;
+    }
+
+    public SameSitePolicy getSameSitePolicy() {
+        return sameSitePolicy;
     }
 }
