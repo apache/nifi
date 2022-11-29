@@ -36,7 +36,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -280,7 +280,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
                 break;
             }
 
-            final Map<String, List<FlowFile>> flowFileGroups = new HashMap<>();
+            final Map<String, List<FlowFile>> flowFileGroups = new LinkedHashMap<>();
             for (FlowFile flowFile : flowFiles) {
                 flowFile = this.preprocessFlowFile(context, session, flowFile);
 
