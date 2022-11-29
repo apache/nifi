@@ -48,7 +48,10 @@
                                 <descriptor>src/main/assembly/dependencies.xml</descriptor>
                             </descriptors>
                             <tarLongFileMode>posix</tarLongFileMode>
-                            <formats>zip</formats>
+                            <formats>
+                                <format>dir</format>
+                                <format>zip</format>
+                            </formats>
                         </configuration>
                     </execution>
                 </executions>
@@ -499,7 +502,9 @@
                                         <descriptor>src/main/assembly/dependencies.xml</descriptor>
                                     </descriptors>
                                     <tarLongFileMode>posix</tarLongFileMode>
-                                    <formats>tar.gz</formats>
+                                    <formats>
+                                        <format>tar.gz</format>
+                                    </formats>
                                 </configuration>
                             </execution>
                         </executions>
@@ -536,7 +541,9 @@
                                     <descriptors>
                                         <descriptor>src/main/assembly/dependencies.xml</descriptor>
                                     </descriptors>
-                                    <formats>dir</formats>
+                                    <formats>
+                                        <format>dir</format>
+                                    </formats>
                                 </configuration>
                             </execution>
                         </executions>
