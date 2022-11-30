@@ -222,6 +222,8 @@ public class GetAsanaObject extends AbstractProcessor {
             REL_UPDATED,
             REL_REMOVED
     )));
+    protected static final GenericObjectSerDe<String> STATE_MAP_KEY_SERIALIZER = new GenericObjectSerDe<>();
+    protected static final GenericObjectSerDe<Map<String, String>> STATE_MAP_VALUE_DESERIALIZER = new GenericObjectSerDe<>();
 
     private volatile AsanaObjectFetcher objectFetcher;
     private volatile Integer batchSize;
@@ -316,6 +318,7 @@ public class GetAsanaObject extends AbstractProcessor {
             session.transfer(removedItems, REL_REMOVED);
         }
 
+        session.commitAsync();
         Map<String, String> state = objectFetcher.saveState();
         persistState(state, context);
 
@@ -323,7 +326,6 @@ public class GetAsanaObject extends AbstractProcessor {
                 "New state after transferring {} new, {} updated, and {} removed items: {}",
                 newItems.size(), updatedItems.size(), removedItems.size(), state);
 
-        session.commitAsync();
     }
 
     protected AsanaObjectFetcher createObjectFetcher(final ProcessContext context, AsanaClient client) {
@@ -366,7 +368,8 @@ public class GetAsanaObject extends AbstractProcessor {
     private Optional<Map<String, String>> recoverState(final ProcessContext context) {
         final DistributedMapCacheClient client = getDistributedMapCacheClient(context);
         try {
-            final Map<String, String> result = client.get(getIdentifier(), new GenericObjectSerDe<>(), new GenericObjectSerDe<>());
+            final Map<String, String> result = client.get(getIdentifier(), STATE_MAP_KEY_SERIALIZER,
+                    STATE_MAP_VALUE_DESERIALIZER);
             return Optional.ofNullable(result);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -381,7 +384,7 @@ public class GetAsanaObject extends AbstractProcessor {
     private void persistState(final Map<String, String> state, final ProcessContext context) {
         final DistributedMapCacheClient client = getDistributedMapCacheClient(context);
         try {
-            client.put(getIdentifier(), state, new GenericObjectSerDe<>(), new GenericObjectSerDe<>());
+            client.put(getIdentifier(), state, STATE_MAP_KEY_SERIALIZER, STATE_MAP_VALUE_DESERIALIZER);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
