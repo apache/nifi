@@ -14,3 +14,4 @@
 # limitations under the License.
 org.apache.nifi.processors.dropbox.ListDropbox
 org.apache.nifi.processors.dropbox.FetchDropbox
+org.apache.nifi.processors.dropbox.PutDropbox
