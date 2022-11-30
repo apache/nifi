@@ -92,9 +92,9 @@ public class FlowDifferenceFilters {
         final VersionedFlowCoordinates coordinatesA = (VersionedFlowCoordinates) difference.getValueA();
         final VersionedFlowCoordinates coordinatesB = (VersionedFlowCoordinates) difference.getValueB();
 
-        if (Objects.equals(coordinatesA.getBucketId(), coordinatesB.getBucketId()) &&
-            Objects.equals(coordinatesA.getFlowId(), coordinatesB.getFlowId()) &&
-            Objects.equals(coordinatesA.getVersion(), coordinatesB.getVersion())) {
+        if (Objects.equals(coordinatesA.getBucketId(), coordinatesB.getBucketId())
+            && Objects.equals(coordinatesA.getFlowId(), coordinatesB.getFlowId())
+            && Objects.equals(coordinatesA.getVersion(), coordinatesB.getVersion())) {
 
             return true;
         }
