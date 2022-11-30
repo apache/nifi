@@ -4225,7 +4225,6 @@ public final class DtoFactory {
             } else {
                 final List<AllowableValueEntity> allowableValues = new ArrayList<>();
                 final List<String> controllerServiceIdentifiers = new ArrayList<>(controllerServiceProvider.getControllerServiceIdentifiers(serviceDefinition, groupId));
-                Collections.sort(controllerServiceIdentifiers, Collator.getInstance(Locale.US));
                 for (final String serviceIdentifier : controllerServiceIdentifiers) {
                     final ControllerServiceNode service = controllerServiceProvider.getControllerServiceNode(serviceIdentifier);
                     final boolean isServiceAuthorized = service.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
@@ -4236,6 +4235,7 @@ public final class DtoFactory {
                     allowableValue.setValue(serviceIdentifier);
                     allowableValues.add(entityFactory.createAllowableValueEntity(allowableValue, isServiceAuthorized));
                 }
+                allowableValues.sort(Comparator.comparing(e -> e.getAllowableValue().getDisplayName()));
                 dto.setAllowableValues(allowableValues);
             }
         } else {
@@ -4247,7 +4247,7 @@ public final class DtoFactory {
                 allowableValueDto.setDescription(allowableValue.getDescription());
                 allowableValues.add(entityFactory.createAllowableValueEntity(allowableValueDto, true));
             }
-
+            allowableValues.sort(Comparator.comparing(e -> e.getAllowableValue().getDisplayName()));
             dto.setAllowableValues(allowableValues);
         }
 
