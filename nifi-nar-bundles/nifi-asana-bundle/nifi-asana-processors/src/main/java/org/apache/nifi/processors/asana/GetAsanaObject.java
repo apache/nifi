@@ -262,7 +262,9 @@ public class GetAsanaObject extends AbstractProcessor {
             getLogger().info("Failed to recover state. Falling back to clean start.");
             objectFetcher.clearState();
         }
-        getLogger().debug("Initial state: {}", objectFetcher.saveState());
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("Initial state: {}", objectFetcher.saveState());
+        }
 
         Collection<FlowFile> newItems = new ArrayList<>();
         Collection<FlowFile> updatedItems = new ArrayList<>();
