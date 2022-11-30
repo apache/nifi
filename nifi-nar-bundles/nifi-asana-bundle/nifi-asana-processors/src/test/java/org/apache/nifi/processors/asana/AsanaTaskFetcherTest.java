@@ -25,6 +25,7 @@ import org.apache.groovy.util.Maps;
 import org.apache.nifi.controller.asana.AsanaClient;
 import org.apache.nifi.processors.asana.utils.AsanaObject;
 import org.apache.nifi.processors.asana.utils.AsanaObjectFetcher;
+import org.apache.nifi.processors.asana.utils.AsanaObjectFetcherException;
 import org.apache.nifi.processors.asana.utils.AsanaObjectState;
 import org.apache.nifi.processors.asana.utils.AsanaTaskFetcher;
 import org.junit.jupiter.api.BeforeEach;
@@ -416,21 +417,21 @@ public class AsanaTaskFetcherTest {
 
         final AsanaObjectFetcher fetcher1 = new AsanaTaskFetcher(client, project.name, null, null);
         final AsanaObjectFetcher fetcher2 = new AsanaTaskFetcher(client, otherProject.name, null, null);
-        assertThrows(RuntimeException.class, () -> fetcher2.loadState(fetcher1.saveState()));
+        assertThrows(AsanaObjectFetcherException.class, () -> fetcher2.loadState(fetcher1.saveState()));
 
         final AsanaObjectFetcher fetcher3 = new AsanaTaskFetcher(client, project.name, section.name, null);
-        assertThrows(RuntimeException.class, () -> fetcher3.loadState(fetcher1.saveState()));
+        assertThrows(AsanaObjectFetcherException.class, () -> fetcher3.loadState(fetcher1.saveState()));
 
         final AsanaObjectFetcher fetcher4 = new AsanaTaskFetcher(client, project.name, null, tag.name);
-        assertThrows(RuntimeException.class, () -> fetcher4.loadState(fetcher1.saveState()));
+        assertThrows(AsanaObjectFetcherException.class, () -> fetcher4.loadState(fetcher1.saveState()));
 
         final AsanaObjectFetcher fetcher5 = new AsanaTaskFetcher(client, project.name, section.name, tag.name);
-        assertThrows(RuntimeException.class, () -> fetcher5.loadState(fetcher1.saveState()));
+        assertThrows(AsanaObjectFetcherException.class, () -> fetcher5.loadState(fetcher1.saveState()));
 
         final AsanaObjectFetcher fetcher6 = new AsanaTaskFetcher(client, project.name, otherSection.name, null);
-        assertThrows(RuntimeException.class, () -> fetcher6.loadState(fetcher3.saveState()));
+        assertThrows(AsanaObjectFetcherException.class, () -> fetcher6.loadState(fetcher3.saveState()));
 
         final AsanaObjectFetcher fetcher7 = new AsanaTaskFetcher(client, project.name, section.name, otherTag.name);
-        assertThrows(RuntimeException.class, () -> fetcher7.loadState(fetcher5.saveState()));
+        assertThrows(AsanaObjectFetcherException.class, () -> fetcher7.loadState(fetcher5.saveState()));
     }
 }

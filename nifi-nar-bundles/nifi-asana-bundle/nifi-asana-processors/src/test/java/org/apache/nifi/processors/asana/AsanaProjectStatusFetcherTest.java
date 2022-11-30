@@ -22,6 +22,7 @@ import com.google.api.client.util.DateTime;
 import org.apache.nifi.controller.asana.AsanaClient;
 import org.apache.nifi.processors.asana.utils.AsanaObject;
 import org.apache.nifi.processors.asana.utils.AsanaObjectFetcher;
+import org.apache.nifi.processors.asana.utils.AsanaObjectFetcherException;
 import org.apache.nifi.processors.asana.utils.AsanaObjectState;
 import org.apache.nifi.processors.asana.utils.AsanaProjectStatusFetcher;
 import org.junit.jupiter.api.BeforeEach;
@@ -176,6 +177,6 @@ public class AsanaProjectStatusFetcherTest {
 
         final AsanaObjectFetcher fetcher1 = new AsanaProjectStatusFetcher(client, project.name);
         final AsanaObjectFetcher fetcher2 = new AsanaProjectStatusFetcher(client, otherProject.name);
-        assertThrows(RuntimeException.class, () -> fetcher2.loadState(fetcher1.saveState()));
+        assertThrows(AsanaObjectFetcherException.class, () -> fetcher2.loadState(fetcher1.saveState()));
     }
 }

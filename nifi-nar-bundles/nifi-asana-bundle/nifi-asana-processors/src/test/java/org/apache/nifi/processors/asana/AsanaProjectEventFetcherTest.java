@@ -23,6 +23,7 @@ import org.apache.nifi.controller.asana.AsanaClient;
 import org.apache.nifi.controller.asana.AsanaEventsCollection;
 import org.apache.nifi.processors.asana.utils.AsanaObject;
 import org.apache.nifi.processors.asana.utils.AsanaObjectFetcher;
+import org.apache.nifi.processors.asana.utils.AsanaObjectFetcherException;
 import org.apache.nifi.processors.asana.utils.AsanaObjectState;
 import org.apache.nifi.processors.asana.utils.AsanaProjectEventFetcher;
 import org.junit.jupiter.api.BeforeEach;
@@ -156,6 +157,6 @@ public class AsanaProjectEventFetcherTest {
         when(client.getProjectByName(otherProject.name)).thenReturn(otherProject);
 
         final AsanaObjectFetcher fetcher2 = new AsanaProjectEventFetcher(client, otherProject.name);
-        assertThrows(RuntimeException.class, () -> fetcher2.loadState(fetcher1.saveState()));
+        assertThrows(AsanaObjectFetcherException.class, () -> fetcher2.loadState(fetcher1.saveState()));
     }
 }
