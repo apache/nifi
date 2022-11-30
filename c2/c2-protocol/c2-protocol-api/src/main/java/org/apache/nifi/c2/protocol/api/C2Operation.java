@@ -23,6 +23,7 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 @ApiModel
@@ -104,4 +105,32 @@ public class C2Operation implements Serializable {
         this.dependencies = dependencies;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        C2Operation operation1 = (C2Operation) o;
+        return Objects.equals(identifier, operation1.identifier) && operation == operation1.operation && operand == operation1.operand && Objects.equals(args,
+            operation1.args) && Objects.equals(dependencies, operation1.dependencies);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(identifier, operation, operand, args, dependencies);
+    }
+
+    @Override
+    public String toString() {
+        return "C2Operation{" +
+            "identifier='" + identifier + '\'' +
+            ", operation=" + operation +
+            ", operand=" + operand +
+            ", args=" + args +
+            ", dependencies=" + dependencies +
+            '}';
+    }
 }

@@ -111,7 +111,7 @@ public class RestChangeIngestor implements ChangeIngestor {
         } else {
             differentiator = WholeConfigDifferentiator.getByteBufferDifferentiator();
         }
-        differentiator.initialize(properties, configurationFileHolder);
+        differentiator.initialize(configurationFileHolder);
 
         // create the secure connector if keystore location is specified
         if (properties.getProperty(KEYSTORE_LOCATION_KEY) != null) {

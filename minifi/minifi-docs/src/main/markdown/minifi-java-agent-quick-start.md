@@ -126,15 +126,8 @@ c2.agent.heartbeat.period=5000
 #(Optional) c2.rest.callTimeout=10 sec
 #(Optional) c2.agent.identifier=123-456-789
 c2.agent.class=agentClassName
-```
-3. Configure MiNiFi to recognize _config.yml_ changes
-```
-nifi.minifi.notifier.ingestors=org.apache.nifi.minifi.bootstrap.configuration.ingestors.FileChangeIngestor
-nifi.minifi.notifier.ingestors.file.config.path=./conf/config-new.yml
-nifi.minifi.notifier.ingestors.file.polling.period.seconds=5
-```
-4. Start MiNiFi
-5. When a new flow is available on the C2 server, MiNiFi will download it via C2 and restart itself to pick up the changes
+3. Start MiNiFi
+4. When a new flow is available on the C2 server, MiNiFi will download it via C2 and restart itself to pick up the changes
 
 **Note:** Flow definitions are class based. Each class has one flow defined for it. As a result, all the agents belonging to the same class will get the flow at update.<br>
 **Note:** Compression can be turned on for C2 requests by setting `c2.request.compression=gzip`. Compression is turned off by default when the parameter is omitted, or when `c2.request.compression=none` is given. It can be beneficial to turn compression on to prevent network saturation.

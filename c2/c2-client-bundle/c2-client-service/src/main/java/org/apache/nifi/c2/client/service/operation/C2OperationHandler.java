@@ -49,6 +49,14 @@ public interface C2OperationHandler {
     Map<String, Object> getProperties();
 
     /**
+     * Determines if the given operation requires to restart the MiNiFi process
+     * @return true if it requires restart, false otherwise
+     */
+    default boolean requiresRestart() {
+        return false;
+    }
+
+    /**
      * Handler logic for the specific C2Operation
      *
      * @param operation the C2Operation to be handled

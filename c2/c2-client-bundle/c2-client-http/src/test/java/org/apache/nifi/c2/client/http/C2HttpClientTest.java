@@ -39,7 +39,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -51,6 +50,8 @@ public class C2HttpClientTest {
     private static final String ACK_PATH = "c2/acknowledge";
     private static final int HTTP_STATUS_OK = 200;
     private static final int HTTP_STATUS_BAD_REQUEST = 400;
+    private static final long KEEP_ALIVE_DURATION = 5000l;
+    private static final int MAX_IDLE_CONNECTIONS = 5;
 
     @Mock
     private C2ClientConfig c2ClientConfig;
@@ -58,7 +59,6 @@ public class C2HttpClientTest {
     @Mock
     private C2Serializer serializer;
 
-    @InjectMocks
     private C2HttpClient c2HttpClient;
 
     private MockWebServer mockWebServer;
@@ -69,6 +69,9 @@ public class C2HttpClientTest {
     public void startServer() {
         mockWebServer = new MockWebServer();
         baseUrl = mockWebServer.url("/").newBuilder().host("localhost").build().toString();
+        when(c2ClientConfig.getKeepAliveDuration()).thenReturn(KEEP_ALIVE_DURATION);
+        when(c2ClientConfig.getMaxIdleConnections()).thenReturn(MAX_IDLE_CONNECTIONS);
+        c2HttpClient = new C2HttpClient(c2ClientConfig, serializer);
     }
 
     @AfterEach

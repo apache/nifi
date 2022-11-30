@@ -28,5 +28,6 @@ limitations under the License.
     <modules>
         <module>minifi-commons-schema</module>
         <module>minifi-utils</module>
+        <module>minifi-commons-api</module>
     </modules>
 </project>
