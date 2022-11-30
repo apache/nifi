@@ -169,6 +169,7 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
                     BlockBlobItem blob = response.getValue();
                     long length = flowFile.getSize();
                     applyUploadResultAttributes(attributes, blob, BlobType.BLOCK_BLOB, length);
+                    applyBlobMetadata(attributes, blobClient);
                     if (ignore) {
                         attributes.put(ATTR_NAME_IGNORED, "false");
                     }
