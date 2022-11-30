@@ -27,7 +27,6 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 import okhttp3.Request;
 import org.apache.commons.io.FileUtils;
@@ -43,7 +42,6 @@ public class WholeConfigDifferentiatorTest {
 
     public static ByteBuffer defaultConfigBuffer;
     public static ByteBuffer newConfigBuffer;
-    public static Properties properties = new Properties();
     public static ConfigurationFileHolder configurationFileHolder;
 
     public static Request dummyRequest;
@@ -68,7 +66,7 @@ public class WholeConfigDifferentiatorTest {
     @Test
     public void TestSameInputStream() throws IOException {
         Differentiator<InputStream> differentiator = WholeConfigDifferentiator.getInputStreamDifferentiator();
-        differentiator.initialize(properties, configurationFileHolder);
+        differentiator.initialize(configurationFileHolder);
 
         FileInputStream fileInputStream = new FileInputStream(defaultConfigPath.toFile());
         assertFalse(differentiator.isNew(fileInputStream));
@@ -77,7 +75,7 @@ public class WholeConfigDifferentiatorTest {
     @Test
     public void TestNewInputStream() throws IOException {
         Differentiator<InputStream> differentiator = WholeConfigDifferentiator.getInputStreamDifferentiator();
-        differentiator.initialize(properties, configurationFileHolder);
+        differentiator.initialize(configurationFileHolder);
 
         FileInputStream fileInputStream = new FileInputStream(newConfigPath.toFile());
         assertTrue(differentiator.isNew(fileInputStream));
@@ -88,7 +86,7 @@ public class WholeConfigDifferentiatorTest {
     @Test
     public void TestSameByteBuffer() throws IOException {
         Differentiator<ByteBuffer> differentiator = WholeConfigDifferentiator.getByteBufferDifferentiator();
-        differentiator.initialize(properties, configurationFileHolder);
+        differentiator.initialize(configurationFileHolder);
 
         assertFalse(differentiator.isNew(defaultConfigBuffer));
     }
@@ -96,7 +94,7 @@ public class WholeConfigDifferentiatorTest {
     @Test
     public void TestNewByteBuffer() throws IOException {
         Differentiator<ByteBuffer> differentiator = WholeConfigDifferentiator.getByteBufferDifferentiator();
-        differentiator.initialize(properties, configurationFileHolder);
+        differentiator.initialize(configurationFileHolder);
 
         assertTrue(differentiator.isNew(newConfigBuffer));
     }

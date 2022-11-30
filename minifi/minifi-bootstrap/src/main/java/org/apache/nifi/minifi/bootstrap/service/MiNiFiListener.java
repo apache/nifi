@@ -26,6 +26,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
+import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
 import org.apache.nifi.minifi.bootstrap.util.LimitingInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,11 +38,11 @@ public class MiNiFiListener {
     private Listener listener;
     private ServerSocket serverSocket;
 
-    public int start(RunMiNiFi runner) throws IOException {
+    public int start(RunMiNiFi runner, BootstrapFileProvider bootstrapFileProvider, ConfigurationChangeListener configurationChangeListener) throws IOException {
         serverSocket = new ServerSocket();
         serverSocket.bind(new InetSocketAddress("localhost", 0));
 
-        listener = new Listener(serverSocket, runner);
+        listener = new Listener(serverSocket, new BootstrapCodec(runner, bootstrapFileProvider, configurationChangeListener));
         Thread listenThread = new Thread(listener);
         listenThread.setName("MiNiFi listener");
         listenThread.setDaemon(true);
@@ -64,19 +65,18 @@ public class MiNiFiListener {
 
         private final ServerSocket serverSocket;
         private final ExecutorService executor;
-        private final RunMiNiFi runner;
         private volatile boolean stopped = false;
+        private final BootstrapCodec codec;
 
-        public Listener(ServerSocket serverSocket, RunMiNiFi runner) {
+        public Listener(ServerSocket serverSocket, BootstrapCodec bootstrapCodec) {
             this.serverSocket = serverSocket;
+            this.codec = bootstrapCodec;
             this.executor = Executors.newFixedThreadPool(2, runnable -> {
                 Thread t = Executors.defaultThreadFactory().newThread(runnable);
                 t.setDaemon(true);
                 t.setName("MiNiFi Bootstrap Command Listener");
                 return t;
             });
-
-            this.runner = runner;
         }
 
         public void stop() {
@@ -126,8 +126,7 @@ public class MiNiFiListener {
                         // which in turn may cause the Shutdown Hook to shutdown MiNiFi.
                         // So we will limit the amount of data to read to 4 KB
                         try (InputStream limitingIn = new LimitingInputStream(socket.getInputStream(), 4096)) {
-                            BootstrapCodec codec = new BootstrapCodec(runner, limitingIn, socket.getOutputStream());
-                            codec.communicate();
+                            codec.communicate(limitingIn, socket.getOutputStream());
                         } catch (Exception t) {
                             LOGGER.error("Failed to communicate with MiNiFi due to exception: ", t);
                         } finally {

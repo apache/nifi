@@ -17,17 +17,15 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.differentiators;
 
-import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class WholeConfigDifferentiator {
 
@@ -59,7 +57,7 @@ public abstract class WholeConfigDifferentiator {
         }
     }
 
-    public void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder) {
+    public void initialize(ConfigurationFileHolder configurationFileHolder) {
         this.configurationFileHolder = configurationFileHolder;
     }
 

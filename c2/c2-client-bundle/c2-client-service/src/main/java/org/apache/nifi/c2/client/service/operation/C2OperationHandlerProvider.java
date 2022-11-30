@@ -22,30 +22,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.nifi.c2.protocol.api.C2Operation;
-import org.apache.nifi.c2.protocol.api.C2OperationAck;
 import org.apache.nifi.c2.protocol.api.OperandType;
 import org.apache.nifi.c2.protocol.api.OperationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class C2OperationService {
+public class C2OperationHandlerProvider {
 
-    private static final Logger logger = LoggerFactory.getLogger(C2OperationService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(C2OperationHandlerProvider.class);
 
     private final Map<OperationType, Map<OperandType, C2OperationHandler>> handlerMap = new HashMap<>();
 
-    public C2OperationService(List<C2OperationHandler> handlers) {
+    public C2OperationHandlerProvider(List<C2OperationHandler> handlers) {
         for (C2OperationHandler handler : handlers) {
             handlerMap.computeIfAbsent(handler.getOperationType(), x -> new HashMap<>()).put(handler.getOperandType(), handler);
         }
-    }
-
-    public Optional<C2OperationAck> handleOperation(C2Operation operation) {
-        return getHandlerForOperation(operation)
-            .map(handler -> {
-                logger.info("Handling {} {} operation", operation.getOperation(), operation.getOperand());
-                return handler.handle(operation);
-            });
     }
 
     public Map<OperationType, Map<OperandType, C2OperationHandler>> getHandlers() {
@@ -61,8 +52,11 @@ public class C2OperationService {
         return Collections.unmodifiableMap(handlers);
     }
 
-    private Optional<C2OperationHandler> getHandlerForOperation(C2Operation operation) {
-        return Optional.ofNullable(handlerMap.get(operation.getOperation()))
-            .map(operandMap -> operandMap.get(operation.getOperand()));
+    public Optional<C2OperationHandler> getHandlerForOperation(C2Operation operation) {
+        Optional<C2OperationHandler> handler = Optional.ofNullable(handlerMap.get(operation.getOperation())).map(operandMap -> operandMap.get(operation.getOperand()));
+        if (!handler.isPresent()) {
+            LOGGER.warn("No handler found for {} {} operation", operation.getOperation(), operation.getOperand());
+        }
+        return handler;
     }
 }

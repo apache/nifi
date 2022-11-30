@@ -173,7 +173,7 @@ public class FileChangeIngestor implements Runnable, ChangeIngestor {
         } else {
             differentiator = WholeConfigDifferentiator.getByteBufferDifferentiator();
         }
-        differentiator.initialize(properties, configurationFileHolder);
+        differentiator.initialize(configurationFileHolder);
     }
 
     protected void setConfigFilePath(Path configFilePath) {

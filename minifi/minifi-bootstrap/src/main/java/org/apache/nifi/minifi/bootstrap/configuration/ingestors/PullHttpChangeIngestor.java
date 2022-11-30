@@ -196,7 +196,7 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
         } else {
             differentiator = WholeConfigDifferentiator.getByteBufferDifferentiator();
         }
-        differentiator.initialize(properties, configurationFileHolder);
+        differentiator.initialize(configurationFileHolder);
     }
 
 

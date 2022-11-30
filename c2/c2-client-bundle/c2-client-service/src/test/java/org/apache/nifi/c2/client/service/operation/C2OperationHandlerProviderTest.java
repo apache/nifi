@@ -34,7 +34,7 @@ import org.apache.nifi.c2.protocol.api.OperationType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class C2OperationServiceTest {
+public class C2OperationHandlerProviderTest {
 
     private static C2OperationAck operationAck;
 
@@ -45,45 +45,46 @@ public class C2OperationServiceTest {
     }
 
     @Test
-    void testHandleOperationReturnsEmptyForUnrecognisedOperationType() {
-        C2OperationService service = new C2OperationService(Collections.emptyList());
+    void testGetHandlerForReturnsEmptyForUnrecognisedOperationType() {
+        C2OperationHandlerProvider service = new C2OperationHandlerProvider(Collections.emptyList());
 
         C2Operation operation = new C2Operation();
-        operation.setOperation(OperationType.UPDATE);
-        operation.setOperand(CONFIGURATION);
-        Optional<C2OperationAck> ack = service.handleOperation(operation);
+        operation.setOperation(DESCRIBE);
+        operation.setOperand(MANIFEST);
+        Optional<C2OperationHandler> handler = service.getHandlerForOperation(operation);
 
-        assertFalse(ack.isPresent());
+        assertFalse(handler.isPresent());
+    }
+
+    @Test
+    void testGetHandlerForOperationReturnsEmptyForOperandMismatch() {
+        C2OperationHandlerProvider service = new C2OperationHandlerProvider(Collections.singletonList(new TestInvalidOperationHandler()));
+
+        C2Operation operation = new C2Operation();
+        operation.setOperation(DESCRIBE);
+        operation.setOperand(MANIFEST);
+        Optional<C2OperationHandler> handler = service.getHandlerForOperation(operation);
+
+        assertFalse(handler.isPresent());
     }
 
     @Test
     void testHandleOperation() {
-        C2OperationService service = new C2OperationService(Collections.singletonList(new TestDescribeOperationHandler()));
+        TestDescribeOperationHandler describeOperationHandler = new TestDescribeOperationHandler();
+        C2OperationHandlerProvider service = new C2OperationHandlerProvider(Collections.singletonList(describeOperationHandler));
 
         C2Operation operation = new C2Operation();
         operation.setOperation(DESCRIBE);
         operation.setOperand(MANIFEST);
-        Optional<C2OperationAck> ack = service.handleOperation(operation);
+        Optional<C2OperationHandler> handler = service.getHandlerForOperation(operation);
 
-        assertTrue(ack.isPresent());
-        assertEquals(operationAck, ack.get());
-    }
-
-    @Test
-    void testHandleOperationReturnsEmptyForOperandMismatch() {
-        C2OperationService service = new C2OperationService(Collections.singletonList(new TestInvalidOperationHandler()));
-
-        C2Operation operation = new C2Operation();
-        operation.setOperation(DESCRIBE);
-        operation.setOperand(MANIFEST);
-        Optional<C2OperationAck> ack = service.handleOperation(operation);
-
-        assertFalse(ack.isPresent());
+        assertTrue(handler.isPresent());
+        assertEquals(describeOperationHandler, handler.get());
     }
 
     @Test
     void testHandlersAreReturned() {
-        C2OperationService service = new C2OperationService(Arrays.asList(new TestDescribeOperationHandler(), new TestInvalidOperationHandler()));
+        C2OperationHandlerProvider service = new C2OperationHandlerProvider(Arrays.asList(new TestDescribeOperationHandler(), new TestInvalidOperationHandler()));
 
         Map<OperationType, Map<OperandType, C2OperationHandler>> handlers = service.getHandlers();
 
