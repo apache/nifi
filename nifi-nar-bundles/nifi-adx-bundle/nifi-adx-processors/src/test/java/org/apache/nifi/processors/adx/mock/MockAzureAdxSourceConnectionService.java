@@ -23,12 +23,19 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.nifi.adx.AzureAdxSourceConnectionService;
 
+import java.io.IOException;
+
 
 public class MockAzureAdxSourceConnectionService extends AzureAdxSourceConnectionService {
 
     @Override
     public Client getKustoExecutionClient(){
         return new Client() {
+            @Override
+            public void close() throws IOException {
+
+            }
+
             @Override
             public KustoOperationResult execute(String command) throws DataServiceException, DataClientException {
                 return null;

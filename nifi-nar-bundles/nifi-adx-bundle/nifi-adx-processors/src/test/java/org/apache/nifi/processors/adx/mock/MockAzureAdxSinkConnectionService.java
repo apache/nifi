@@ -44,6 +44,10 @@ public class MockAzureAdxSinkConnectionService extends AzureAdxSinkConnectionSer
     public Client getKustoExecutionClient(){
         return new Client() {
             @Override
+            public void close() throws IOException {
+            }
+
+            @Override
             public KustoOperationResult execute(String command) throws DataServiceException, DataClientException {
                 return null;
             }

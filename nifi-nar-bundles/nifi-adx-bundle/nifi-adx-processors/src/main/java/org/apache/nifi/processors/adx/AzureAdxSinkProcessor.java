@@ -32,7 +32,6 @@ import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-import com.microsoft.azure.storage.StorageException;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -676,7 +675,7 @@ public class AzureAdxSinkProcessor extends AbstractProcessor {
                     getLogger().error("Operation status Partially succeeded - {}", statuses.get(0).status.toString());
                     isError = true;
                 }
-            } catch (IngestionClientException | IngestionServiceException | StorageException | URISyntaxException
+            } catch (IngestionClientException | IngestionServiceException | URISyntaxException
                      | InterruptedException | ExecutionException | TimeoutException | IOException e) {
                 getLogger().error("Non Transactional/Streaming Ingestion mode : Exception occurred while ingesting data into ADX with exception {} ", e);
                 isError =true;
