@@ -37,7 +37,7 @@
             <dependency>
                 <groupId>com.schibsted.spt.data</groupId>
                 <artifactId>jslt</artifactId>
-                <version>0.1.13</version>
+                <version>0.1.14</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
