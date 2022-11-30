@@ -431,7 +431,8 @@ public class PublisherLease implements Closeable {
     }
 
     protected void publish(final FlowFile flowFile, final byte[] messageKey, final byte[] messageContent, final String topic, final InFlightMessageTracker tracker, final Integer partition) {
-        publish(flowFile, Collections.emptyList(), messageKey, messageContent, topic, tracker, partition);
+        final List<Header> headers = toHeaders(flowFile, Collections.emptyMap());
+        publish(flowFile, headers, messageKey, messageContent, topic, tracker, partition);
     }
 
     protected void publish(final FlowFile flowFile, final List<Header> headers, final byte[] messageKey, final byte[] messageContent,
