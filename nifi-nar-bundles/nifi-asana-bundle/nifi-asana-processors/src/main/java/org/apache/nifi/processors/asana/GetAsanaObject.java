@@ -223,7 +223,7 @@ public class GetAsanaObject extends AbstractProcessor {
             REL_REMOVED
     )));
     protected static final GenericObjectSerDe<String> STATE_MAP_KEY_SERIALIZER = new GenericObjectSerDe<>();
-    protected static final GenericObjectSerDe<Map<String, String>> STATE_MAP_VALUE_DESERIALIZER = new GenericObjectSerDe<>();
+    protected static final GenericObjectSerDe<Map<String, String>> STATE_MAP_VALUE_SERIALIZER = new GenericObjectSerDe<>();
 
     private volatile AsanaObjectFetcher objectFetcher;
     private volatile Integer batchSize;
@@ -371,7 +371,7 @@ public class GetAsanaObject extends AbstractProcessor {
         final DistributedMapCacheClient client = getDistributedMapCacheClient(context);
         try {
             final Map<String, String> result = client.get(getIdentifier(), STATE_MAP_KEY_SERIALIZER,
-                    STATE_MAP_VALUE_DESERIALIZER);
+                    STATE_MAP_VALUE_SERIALIZER);
             return Optional.ofNullable(result);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -386,7 +386,7 @@ public class GetAsanaObject extends AbstractProcessor {
     private void persistState(final Map<String, String> state, final ProcessContext context) {
         final DistributedMapCacheClient client = getDistributedMapCacheClient(context);
         try {
-            client.put(getIdentifier(), state, STATE_MAP_KEY_SERIALIZER, STATE_MAP_VALUE_DESERIALIZER);
+            client.put(getIdentifier(), state, STATE_MAP_KEY_SERIALIZER, STATE_MAP_VALUE_SERIALIZER);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
