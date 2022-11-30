@@ -137,13 +137,13 @@ public class GetAsanaObject extends AbstractProcessor {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .dependsOn(
                 PROP_ASANA_OBJECT_TYPE,
-                    AV_COLLECT_TASKS.getValue(),
-                    AV_COLLECT_TASK_ATTACHMENTS.getValue(),
-                    AV_COLLECT_PROJECT_MEMBERS.getValue(),
-                    AV_COLLECT_STORIES.getValue(),
-                    AV_COLLECT_PROJECT_STATUS_UPDATES.getValue(),
-                    AV_COLLECT_PROJECT_STATUS_ATTACHMENTS.getValue(),
-                    AV_COLLECT_PROJECT_EVENTS.getValue())
+                    AV_COLLECT_TASKS,
+                    AV_COLLECT_TASK_ATTACHMENTS,
+                    AV_COLLECT_PROJECT_MEMBERS,
+                    AV_COLLECT_STORIES,
+                    AV_COLLECT_PROJECT_STATUS_UPDATES,
+                    AV_COLLECT_PROJECT_STATUS_ATTACHMENTS,
+                    AV_COLLECT_PROJECT_EVENTS)
             .build();
 
     protected static final PropertyDescriptor PROP_ASANA_SECTION = new PropertyDescriptor.Builder()
@@ -152,9 +152,9 @@ public class GetAsanaObject extends AbstractProcessor {
             .description("Fetch only objects in this section. Case sensitive.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .dependsOn(PROP_ASANA_OBJECT_TYPE,
-                    AV_COLLECT_TASKS.getValue(),
-                    AV_COLLECT_TASK_ATTACHMENTS.getValue(),
-                    AV_COLLECT_STORIES.getValue())
+                    AV_COLLECT_TASKS,
+                    AV_COLLECT_TASK_ATTACHMENTS,
+                    AV_COLLECT_STORIES)
             .build();
 
     protected static final PropertyDescriptor PROP_ASANA_TAG = new PropertyDescriptor.Builder()
@@ -163,9 +163,9 @@ public class GetAsanaObject extends AbstractProcessor {
             .description("Fetch only objects having this tag. Case sensitive.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .dependsOn(PROP_ASANA_OBJECT_TYPE,
-                    AV_COLLECT_TASKS.getValue(),
-                    AV_COLLECT_TASK_ATTACHMENTS.getValue(),
-                    AV_COLLECT_STORIES.getValue())
+                    AV_COLLECT_TASKS,
+                    AV_COLLECT_TASK_ATTACHMENTS,
+                    AV_COLLECT_STORIES)
             .build();
 
     protected static final PropertyDescriptor PROP_ASANA_TEAM_NAME = new PropertyDescriptor.Builder()
@@ -173,7 +173,7 @@ public class GetAsanaObject extends AbstractProcessor {
             .displayName("Team")
             .description("Team name. Case sensitive.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .dependsOn(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TEAM_MEMBERS.getValue())
+            .dependsOn(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TEAM_MEMBERS)
             .build();
 
     protected static final PropertyDescriptor PROP_ASANA_OUTPUT_BATCH_SIZE = new PropertyDescriptor.Builder()
