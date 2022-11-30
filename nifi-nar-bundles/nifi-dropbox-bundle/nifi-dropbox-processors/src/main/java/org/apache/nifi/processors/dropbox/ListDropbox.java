@@ -274,7 +274,4 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
         return "".equals(parentPath) ? "/" : parentPath;
     }
 
-    private String convertFolderName(String folderName) {
-        return "/".equals(folderName) ? "" : folderName;
-    }
 }

@@ -70,4 +70,8 @@ public interface DropboxTrait {
         return new DbxClientV2(config, new DbxCredential(credential.getAccessToken(), -1L,
                 credential.getRefreshToken(), credential.getAppKey(), credential.getAppSecret()));
     }
+
+    default String convertFolderName(String folderName) {
+        return "/".equals(folderName) ? "" : folderName;
+    }
 }
