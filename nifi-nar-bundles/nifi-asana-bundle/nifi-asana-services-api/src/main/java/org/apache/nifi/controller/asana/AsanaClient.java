@@ -35,7 +35,7 @@ import java.util.Map;
 public interface AsanaClient {
     /**
      * Find & retrieve an Asana project by its name. If multiple projects match, returns the first.
-     * If there is no match, then {@link RuntimeException} is thrown. Note that constant ordering
+     * If there is no match, then {@link AsanaClientException} is thrown. Note that constant ordering
      * is not guaranteed by Asana.
      *
      * @param projectName The name of the project you would like to retrieve. Case-sensitive.
@@ -69,7 +69,7 @@ public interface AsanaClient {
 
     /**
      * Find & retrieve an Asana team by its name. If multiple teams match, returns the first.
-     * If there is no match, then {@link RuntimeException} is thrown. Note that constant ordering
+     * If there is no match, then {@link AsanaClientException} is thrown. Note that constant ordering
      * is not guaranteed by Asana.
      *
      * @param teamName The name of the team you would like to retrieve. Case-sensitive.
@@ -96,7 +96,7 @@ public interface AsanaClient {
 
     /**
      * Find & retrieve an Asana project's section (board column) by its name. If multiple sections
-     * match, returns the first. If there is no match, then {@link RuntimeException} is thrown.
+     * match, returns the first. If there is no match, then {@link AsanaClientException} is thrown.
      * Note that constant ordering is not guaranteed by Asana.
      *
      * @param project The object representing the project. Returned earlier by {@code getProjects()}
