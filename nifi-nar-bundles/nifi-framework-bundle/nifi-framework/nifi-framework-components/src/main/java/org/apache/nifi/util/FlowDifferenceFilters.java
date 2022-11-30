@@ -72,7 +72,34 @@ public class FlowDifferenceFilters {
             || isNewRetryConfigWithDefaultValue(difference, flowManager)
             || isNewZIndexLabelConfigWithDefaultValue(difference, flowManager)
             || isNewZIndexConnectionConfigWithDefaultValue(difference, flowManager)
+            || isRegistryUrlChange(difference)
             || isParameterContextChange(difference);
+    }
+
+    // The Registry URL may change if, for instance, a registry is moved to a new host, or is made secure, the port changes, etc.
+    // Since this can be handled by the client anyway, there's no need to flag this as a 'local modification'
+    private static boolean isRegistryUrlChange(final FlowDifference difference) {
+        if (difference.getDifferenceType() != DifferenceType.VERSIONED_FLOW_COORDINATES_CHANGED) {
+            return false;
+        }
+        if (!(difference.getValueA() instanceof VersionedFlowCoordinates)) {
+            return false;
+        }
+        if (!(difference.getValueB() instanceof VersionedFlowCoordinates)) {
+            return false;
+        }
+
+        final VersionedFlowCoordinates coordinatesA = (VersionedFlowCoordinates) difference.getValueA();
+        final VersionedFlowCoordinates coordinatesB = (VersionedFlowCoordinates) difference.getValueB();
+
+        if (Objects.equals(coordinatesA.getBucketId(), coordinatesB.getBucketId())
+            && Objects.equals(coordinatesA.getFlowId(), coordinatesB.getFlowId())
+            && Objects.equals(coordinatesA.getVersion(), coordinatesB.getVersion())) {
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
