@@ -35,6 +35,7 @@
     <properties>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
         <jolt.version>0.1.7</jolt.version>
+        <org.apache.sshd.version>2.9.2</org.apache.sshd.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -303,12 +304,12 @@
             <dependency>
                 <groupId>org.apache.sshd</groupId>
                 <artifactId>sshd-core</artifactId>
-                <version>2.8.0</version>
+                <version>${org.apache.sshd.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.sshd</groupId>
                 <artifactId>sshd-sftp</artifactId>
-                <version>2.8.0</version>
+                <version>${org.apache.sshd.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
