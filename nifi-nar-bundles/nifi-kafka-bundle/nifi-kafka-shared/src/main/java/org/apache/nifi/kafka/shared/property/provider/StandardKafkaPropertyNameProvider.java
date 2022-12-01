@@ -19,6 +19,7 @@ package org.apache.nifi.kafka.shared.property.provider;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.LinkedHashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -58,9 +59,12 @@ public class StandardKafkaPropertyNameProvider implements KafkaPropertyNameProvi
         final Set<String> propertyNames = new LinkedHashSet<>();
 
         for (final String propertyClassName : PROPERTY_CLASSES) {
-            final Class<?> propertyClass = getClass(propertyClassName);
-            final Set<String> classPropertyNames = getStaticStringPropertyNames(propertyClass);
-            propertyNames.addAll(classPropertyNames);
+            final Optional<Class<?>> propertyClassFound = findClass(propertyClassName);
+            if (propertyClassFound.isPresent()) {
+                final Class<?> propertyClass = propertyClassFound.get();
+                final Set<String> classPropertyNames = getStaticStringPropertyNames(propertyClass);
+                propertyNames.addAll(classPropertyNames);
+            }
         }
 
         return propertyNames;
@@ -93,11 +97,11 @@ public class StandardKafkaPropertyNameProvider implements KafkaPropertyNameProvi
         }
     }
 
-    private static Class<?> getClass(final String className) {
+    private static Optional<Class<?>> findClass(final String className) {
         try {
-            return Class.forName(className);
+            return Optional.of(Class.forName(className));
         } catch (final ClassNotFoundException e) {
-            throw new IllegalStateException("Kafka Configuration Class not found", e);
+            return Optional.empty();
         }
     }
 }
