@@ -17,11 +17,10 @@
 package org.apache.nifi.processors.asana.utils;
 
 import com.asana.models.Attachment;
-import org.apache.nifi.controller.asana.AsanaClient;
-
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.nifi.controller.asana.AsanaClient;
 
 public class AsanaTaskAttachmentFetcher extends GenericAsanaObjectFetcher<Attachment> {
     private final AsanaClient client;
@@ -48,7 +47,7 @@ public class AsanaTaskAttachmentFetcher extends GenericAsanaObjectFetcher<Attach
     }
 
     @Override
-    protected Map<String, Attachment> refreshObjects() {
+    protected Stream<Attachment> refreshObjects() {
         return fetchTaskAttachments();
     }
 
@@ -57,10 +56,7 @@ public class AsanaTaskAttachmentFetcher extends GenericAsanaObjectFetcher<Attach
         return Long.toString(object.createdAt.getValue());
     }
 
-    private Map<String, Attachment> fetchTaskAttachments() {
-        return taskFetcher.fetchTasks().values().stream()
-            .map(client::getAttachments)
-            .flatMap(attachments -> attachments.entrySet().stream())
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    private Stream<Attachment> fetchTaskAttachments() {
+        return taskFetcher.fetchTasks().flatMap(client::getAttachments);
     }
 }

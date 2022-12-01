@@ -16,8 +16,17 @@
  */
 package org.apache.nifi.processors.asana;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
 import com.asana.models.Project;
 import com.google.api.client.util.DateTime;
+import java.util.stream.Stream;
 import org.apache.nifi.controller.asana.AsanaClient;
 import org.apache.nifi.processors.asana.utils.AsanaObject;
 import org.apache.nifi.processors.asana.utils.AsanaObjectFetcher;
@@ -28,16 +37,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonMap;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-
 @ExtendWith(MockitoExtension.class)
 public class AsanaProjectFetcherTest {
 
@@ -46,7 +45,7 @@ public class AsanaProjectFetcherTest {
 
     @Test
     public void testNoProjectsFetchedWhenNoProjectsReturned() {
-        when(client.getProjects()).thenReturn(emptyMap());
+        when(client.getProjects()).then(invocation -> Stream.empty());
 
         final AsanaObjectFetcher fetcher = new AsanaProjectFetcher(client);
         assertNull(fetcher.fetchNext());
@@ -62,7 +61,7 @@ public class AsanaProjectFetcherTest {
         project.name = "My Project";
         project.modifiedAt = new DateTime(123456789);
 
-        when(client.getProjects()).thenReturn(singletonMap(project.gid, project));
+        when(client.getProjects()).then(invocation -> Stream.of(project));
 
         final AsanaObjectFetcher fetcher = new AsanaProjectFetcher(client);
         final AsanaObject object = fetcher.fetchNext();
@@ -80,7 +79,7 @@ public class AsanaProjectFetcherTest {
         project.name = "My Project";
         project.modifiedAt = new DateTime(123456789);
 
-        when(client.getProjects()).thenReturn(singletonMap(project.gid, project));
+        when(client.getProjects()).then(invocation -> Stream.of(project));
 
         final AsanaObjectFetcher fetcher = new AsanaProjectFetcher(client);
         assertNotNull(fetcher.fetchNext());
@@ -105,7 +104,7 @@ public class AsanaProjectFetcherTest {
         project.name = "My Project";
         project.modifiedAt = new DateTime(123456789);
 
-        when(client.getProjects()).thenReturn(singletonMap(project.gid, project));
+        when(client.getProjects()).then(invocation -> Stream.of(project));
 
         final AsanaObjectFetcher fetcher = new AsanaProjectFetcher(client);
         assertNotNull(fetcher.fetchNext());
@@ -128,7 +127,7 @@ public class AsanaProjectFetcherTest {
         project.name = "My Project";
         project.modifiedAt = new DateTime(123456789);
 
-        when(client.getProjects()).thenReturn(singletonMap(project.gid, project));
+        when(client.getProjects()).then(invocation -> Stream.of(project));
 
         final AsanaObjectFetcher fetcher1 = new AsanaProjectFetcher(client);
         assertNotNull(fetcher1.fetchNext());

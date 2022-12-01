@@ -16,10 +16,22 @@
  */
 package org.apache.nifi.processors.asana;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
 import com.asana.models.Attachment;
 import com.asana.models.Project;
 import com.asana.models.ProjectStatus;
 import com.google.api.client.util.DateTime;
+import java.util.stream.Stream;
 import org.apache.nifi.controller.asana.AsanaClient;
 import org.apache.nifi.processors.asana.utils.AsanaObject;
 import org.apache.nifi.processors.asana.utils.AsanaObjectFetcher;
@@ -31,19 +43,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonMap;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class AsanaProjectStatusAttachmentFetcherTest {
@@ -64,7 +63,7 @@ public class AsanaProjectStatusAttachmentFetcherTest {
 
     @Test
     public void testNoAttachmentsFetchedWhenNoStatusUpdatesReturned() {
-        when(client.getProjectStatusUpdates(any())).thenReturn(emptyMap());
+        when(client.getProjectStatusUpdates(any())).then(invocation -> Stream.empty());
 
         final AsanaObjectFetcher fetcher = new AsanaProjectStatusAttachmentFetcher(client, project.name);
         assertNull(fetcher.fetchNext());
@@ -79,8 +78,8 @@ public class AsanaProjectStatusAttachmentFetcherTest {
         final ProjectStatus status = new ProjectStatus();
         status.gid = "123";
 
-        when(client.getProjectStatusUpdates(any())).thenReturn(singletonMap(status.gid, status));
-        when(client.getAttachments(any(ProjectStatus.class))).thenReturn(emptyMap());
+        when(client.getProjectStatusUpdates(any())).then(invocation -> Stream.of(status));
+        when(client.getAttachments(any(ProjectStatus.class))).then(invocation -> Stream.empty());
 
         final AsanaObjectFetcher fetcher = new AsanaProjectStatusAttachmentFetcher(client, project.name);
         assertNull(fetcher.fetchNext());
@@ -101,8 +100,8 @@ public class AsanaProjectStatusAttachmentFetcherTest {
         attachment.createdAt = new DateTime(123456789);
         attachment.name = "foo.txt";
 
-        when(client.getProjectStatusUpdates(any())).thenReturn(singletonMap(status.gid, status));
-        when(client.getAttachments(any(ProjectStatus.class))).thenReturn(singletonMap(attachment.gid, attachment));
+        when(client.getProjectStatusUpdates(any())).then(invocation -> Stream.of(status));
+        when(client.getAttachments(any(ProjectStatus.class))).then(invocation -> Stream.of(attachment));
 
         final AsanaObjectFetcher fetcher = new AsanaProjectStatusAttachmentFetcher(client, project.name);
         final AsanaObject object = fetcher.fetchNext();
@@ -126,8 +125,8 @@ public class AsanaProjectStatusAttachmentFetcherTest {
         attachment.createdAt = new DateTime(123456789);
         attachment.name = "foo.txt";
 
-        when(client.getProjectStatusUpdates(any())).thenReturn(singletonMap(status.gid, status));
-        when(client.getAttachments(any(ProjectStatus.class))).thenReturn(singletonMap(attachment.gid, attachment));
+        when(client.getProjectStatusUpdates(any())).then(invocation -> Stream.of(status));
+        when(client.getAttachments(any(ProjectStatus.class))).then(invocation -> Stream.of(attachment));
 
         final AsanaObjectFetcher fetcher = new AsanaProjectStatusAttachmentFetcher(client, project.name);
         assertNotNull(fetcher.fetchNext());
@@ -152,14 +151,14 @@ public class AsanaProjectStatusAttachmentFetcherTest {
         attachment.createdAt = new DateTime(123456789);
         attachment.name = "foo.txt";
 
-        when(client.getProjectStatusUpdates(any())).thenReturn(singletonMap(status.gid, status));
-        when(client.getAttachments(any(ProjectStatus.class))).thenReturn(singletonMap(attachment.gid, attachment));
+        when(client.getProjectStatusUpdates(any())).then(invocation -> Stream.of(status));
+        when(client.getAttachments(any(ProjectStatus.class))).then(invocation -> Stream.of(attachment));
 
         final AsanaObjectFetcher fetcher = new AsanaProjectStatusAttachmentFetcher(client, project.name);
         assertNotNull(fetcher.fetchNext());
         assertNull(fetcher.fetchNext());
 
-        when(client.getAttachments(any(ProjectStatus.class))).thenReturn(emptyMap());
+        when(client.getAttachments(any(ProjectStatus.class))).then(invocation -> Stream.empty());
         AsanaObject object = fetcher.fetchNext();
 
         assertEquals(AsanaObjectState.REMOVED, object.getState());
@@ -181,8 +180,8 @@ public class AsanaProjectStatusAttachmentFetcherTest {
         attachment.createdAt = new DateTime(123456789);
         attachment.name = "foo.txt";
 
-        when(client.getProjectStatusUpdates(any())).thenReturn(singletonMap(status.gid, status));
-        when(client.getAttachments(any(ProjectStatus.class))).thenReturn(singletonMap(attachment.gid, attachment));
+        when(client.getProjectStatusUpdates(any())).then(invocation -> Stream.of(status));
+        when(client.getAttachments(any(ProjectStatus.class))).then(invocation -> Stream.of(attachment));
 
         final AsanaObjectFetcher fetcher1 = new AsanaProjectStatusAttachmentFetcher(client, project.name);
         assertNotNull(fetcher1.fetchNext());
@@ -191,7 +190,7 @@ public class AsanaProjectStatusAttachmentFetcherTest {
         final AsanaObjectFetcher fetcher2 = new AsanaProjectStatusAttachmentFetcher(client, project.name);
         fetcher2.loadState(fetcher1.saveState());
 
-        when(client.getAttachments(any(ProjectStatus.class))).thenReturn(emptyMap());
+        when(client.getAttachments(any(ProjectStatus.class))).then(invocation -> Stream.empty());
         AsanaObject object = fetcher2.fetchNext();
 
         assertEquals(AsanaObjectState.REMOVED, object.getState());
@@ -213,8 +212,8 @@ public class AsanaProjectStatusAttachmentFetcherTest {
         attachment.createdAt = new DateTime(123456789);
         attachment.name = "foo.txt";
 
-        when(client.getProjectStatusUpdates(any())).thenReturn(singletonMap(status.gid, status));
-        when(client.getAttachments(any(ProjectStatus.class))).thenReturn(singletonMap(attachment.gid, attachment));
+        when(client.getProjectStatusUpdates(any())).then(invocation -> Stream.of(status));
+        when(client.getAttachments(any(ProjectStatus.class))).then(invocation -> Stream.of(attachment));
 
         final AsanaObjectFetcher fetcher = new AsanaProjectStatusAttachmentFetcher(client, project.name);
         assertNotNull(fetcher.fetchNext());

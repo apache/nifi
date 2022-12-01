@@ -16,7 +16,16 @@
  */
 package org.apache.nifi.processors.asana;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
 import com.asana.models.Tag;
+import java.util.stream.Stream;
 import org.apache.nifi.controller.asana.AsanaClient;
 import org.apache.nifi.processors.asana.utils.AsanaObject;
 import org.apache.nifi.processors.asana.utils.AsanaObjectFetcher;
@@ -27,16 +36,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonMap;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-
 @ExtendWith(MockitoExtension.class)
 public class AsanaTagFetcherTest {
 
@@ -45,7 +44,7 @@ public class AsanaTagFetcherTest {
 
     @Test
     public void testNoTagsFetchedWhenNoTagsReturned() {
-        when(client.getTags()).thenReturn(emptyMap());
+        when(client.getTags()).then(invocation -> Stream.empty());
 
         final AsanaObjectFetcher fetcher = new AsanaTagFetcher(client);
         assertNull(fetcher.fetchNext());
@@ -60,7 +59,7 @@ public class AsanaTagFetcherTest {
         tag.gid = "123";
         tag.name = "My Tag";
 
-        when(client.getTags()).thenReturn(singletonMap(tag.gid, tag));
+        when(client.getTags()).then(invocation -> Stream.of(tag));
 
         final AsanaObjectFetcher fetcher = new AsanaTagFetcher(client);
         final AsanaObject object = fetcher.fetchNext();
@@ -77,7 +76,7 @@ public class AsanaTagFetcherTest {
         tag.gid = "123";
         tag.name = "My Tag";
 
-        when(client.getTags()).thenReturn(singletonMap(tag.gid, tag));
+        when(client.getTags()).then(invocation -> Stream.of(tag));
 
         final AsanaObjectFetcher fetcher = new AsanaTagFetcher(client);
         assertNotNull(fetcher.fetchNext());
@@ -98,7 +97,7 @@ public class AsanaTagFetcherTest {
         tag.gid = "123";
         tag.name = "My Tag";
 
-        when(client.getTags()).thenReturn(singletonMap(tag.gid, tag));
+        when(client.getTags()).then(invocation -> Stream.of(tag));
 
         final AsanaObjectFetcher fetcher = new AsanaTagFetcher(client);
         assertNotNull(fetcher.fetchNext());
@@ -121,7 +120,7 @@ public class AsanaTagFetcherTest {
         tag.gid = "123";
         tag.name = "My Tag";
 
-        when(client.getTags()).thenReturn(singletonMap(tag.gid, tag));
+        when(client.getTags()).then(invocation -> Stream.of(tag));
 
         final AsanaObjectFetcher fetcher1 = new AsanaTagFetcher(client);
         assertNotNull(fetcher1.fetchNext());

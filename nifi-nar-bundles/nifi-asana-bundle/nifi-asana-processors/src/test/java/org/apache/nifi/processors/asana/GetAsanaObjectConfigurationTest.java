@@ -16,27 +16,7 @@
  */
 package org.apache.nifi.processors.asana;
 
-import com.asana.models.Project;
-import com.asana.models.ProjectStatus;
-import com.asana.models.Tag;
-import com.asana.models.Task;
-import com.asana.models.Team;
-import com.asana.models.User;
-import com.google.api.client.util.DateTime;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.controller.asana.AsanaClientProviderService;
-import org.apache.nifi.controller.asana.AsanaEventsCollection;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
-import org.apache.nifi.processors.asana.mocks.MockAsanaClientProviderService;
-import org.apache.nifi.processors.asana.mocks.MockDistributedMapCacheClient;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.TestRunner;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonMap;
 import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_PROJECTS;
 import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_PROJECT_EVENTS;
 import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_PROJECT_MEMBERS;
@@ -62,6 +42,25 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+
+import com.asana.models.Project;
+import com.asana.models.ProjectStatus;
+import com.asana.models.Tag;
+import com.asana.models.Task;
+import com.asana.models.Team;
+import com.asana.models.User;
+import com.google.api.client.util.DateTime;
+import java.util.stream.Stream;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.controller.asana.AsanaClientProviderService;
+import org.apache.nifi.controller.asana.AsanaEventsCollection;
+import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
+import org.apache.nifi.processors.asana.mocks.MockAsanaClientProviderService;
+import org.apache.nifi.processors.asana.mocks.MockDistributedMapCacheClient;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.TestRunner;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class GetAsanaObjectConfigurationTest {
 
@@ -170,7 +169,7 @@ public class GetAsanaObjectConfigurationTest {
         project.gid = "12345";
         project.modifiedAt = new DateTime(123456789);
 
-        when(mockService.client.getProjects()).thenReturn(singletonMap(project.gid, project));
+        when(mockService.client.getProjects()).then(invocation -> Stream.of(project));
 
         runner.run(1);
 
@@ -188,7 +187,7 @@ public class GetAsanaObjectConfigurationTest {
         final Team team = new Team();
         team.gid = "12345";
 
-        when(mockService.client.getTeams()).thenReturn(singletonMap(team.gid, team));
+        when(mockService.client.getTeams()).then(invocation -> Stream.of(team));
 
         runner.run(1);
 
@@ -208,7 +207,7 @@ public class GetAsanaObjectConfigurationTest {
         team.gid = "12345";
 
         when(mockService.client.getTeamByName("A team")).thenReturn(team);
-        when(mockService.client.getTeamMembers(any())).thenReturn(emptyMap());
+        when(mockService.client.getTeamMembers(any())).then(invocation -> Stream.empty());
 
         runner.run(1);
 
@@ -227,7 +226,7 @@ public class GetAsanaObjectConfigurationTest {
         final User user = new User();
         user.gid = "12345";
 
-        when(mockService.client.getUsers()).thenReturn(singletonMap(user.gid, user));
+        when(mockService.client.getUsers()).then(invocation -> Stream.of(user));
 
         runner.run(1);
 
@@ -245,7 +244,7 @@ public class GetAsanaObjectConfigurationTest {
         final Tag tag = new Tag();
         tag.gid = "12345";
 
-        when(mockService.client.getTags()).thenReturn(singletonMap(tag.gid, tag));
+        when(mockService.client.getTags()).then(invocation -> Stream.of(tag));
 
         runner.run(1);
 
@@ -290,7 +289,7 @@ public class GetAsanaObjectConfigurationTest {
         project.modifiedAt = new DateTime(123456789);
 
         when(mockService.client.getProjectByName("My Project")).thenReturn(project);
-        when(mockService.client.getProjectMemberships(any())).thenReturn(emptyMap());
+        when(mockService.client.getProjectMemberships(any())).then(invocation -> Stream.empty());
 
         runner.run(1);
 
@@ -312,7 +311,7 @@ public class GetAsanaObjectConfigurationTest {
         project.modifiedAt = new DateTime(123456789);
 
         when(mockService.client.getProjectByName("My Project")).thenReturn(project);
-        when(mockService.client.getProjectStatusUpdates(any())).thenReturn(emptyMap());
+        when(mockService.client.getProjectStatusUpdates(any())).then(invocation -> Stream.empty());
 
         runner.run(1);
 
@@ -337,8 +336,8 @@ public class GetAsanaObjectConfigurationTest {
         projectStatus.gid = "12345";
 
         when(mockService.client.getProjectByName("My Project")).thenReturn(project);
-        when(mockService.client.getProjectStatusUpdates(any())).thenReturn(singletonMap(projectStatus.gid, projectStatus));
-        when(mockService.client.getAttachments(any(ProjectStatus.class))).thenReturn(emptyMap());
+        when(mockService.client.getProjectStatusUpdates(any())).then(invocation -> Stream.of(projectStatus));
+        when(mockService.client.getAttachments(any(ProjectStatus.class))).then(invocation -> Stream.empty());
 
         runner.run(1);
 
@@ -365,7 +364,7 @@ public class GetAsanaObjectConfigurationTest {
         task.modifiedAt = new DateTime(123456789);
 
         when(mockService.client.getProjectByName("My Project")).thenReturn(project);
-        when(mockService.client.getTasks(any(Project.class))).thenReturn(singletonMap(task.gid, task));
+        when(mockService.client.getTasks(any(Project.class))).then(invocation -> Stream.of(task));
 
         runner.run(1);
 
@@ -391,8 +390,8 @@ public class GetAsanaObjectConfigurationTest {
         task.modifiedAt = new DateTime(123456789);
 
         when(mockService.client.getProjectByName("My Project")).thenReturn(project);
-        when(mockService.client.getTasks(any(Project.class))).thenReturn(singletonMap(task.gid, task));
-        when(mockService.client.getAttachments(any(Task.class))).thenReturn(emptyMap());
+        when(mockService.client.getTasks(any(Project.class))).then(invocation -> Stream.of(task));
+        when(mockService.client.getAttachments(any(Task.class))).then(invocation -> Stream.empty());
 
         runner.run(1);
 
@@ -419,8 +418,8 @@ public class GetAsanaObjectConfigurationTest {
         task.modifiedAt = new DateTime(123456789);
 
         when(mockService.client.getProjectByName("My Project")).thenReturn(project);
-        when(mockService.client.getTasks(any(Project.class))).thenReturn(singletonMap(task.gid, task));
-        when(mockService.client.getStories(any())).thenReturn(emptyMap());
+        when(mockService.client.getTasks(any(Project.class))).then(invocation -> Stream.of(task));
+        when(mockService.client.getStories(any())).then(invocation -> Stream.empty());
 
         runner.run(1);
 

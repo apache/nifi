@@ -41,8 +41,8 @@ import java.io.UncheckedIOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class StandardAsanaClient implements AsanaClient {
@@ -63,17 +63,15 @@ public class StandardAsanaClient implements AsanaClient {
     @Override
     public Project getProjectByName(String projectName) {
         return getProjects()
-                .values()
-                .stream()
                 .filter(p -> p.name.equals(projectName))
                 .findFirst()
                 .orElseThrow(() -> new AsanaClientException("No such project: " + projectName));
     }
 
     @Override
-    public Map<String, Project> getProjects() {
+    public Stream<Project> getProjects() {
         try {
-            return collectionRequestToMap(
+            return collectionRequestToStream(
                     client.projects.getProjects(null, null, workspace.gid, null, null, getSerializedFieldNames(Project.class), false)
             );
         } catch (IOException e) {
@@ -82,9 +80,9 @@ public class StandardAsanaClient implements AsanaClient {
     }
 
     @Override
-    public Map<String, User> getUsers() {
+    public Stream<User> getUsers() {
         try {
-            return collectionRequestToMap(
+            return collectionRequestToStream(
                     client.users.getUsersForWorkspace(workspace.gid, null, getSerializedFieldNames(User.class), false)
             );
         } catch (IOException e) {
@@ -92,9 +90,9 @@ public class StandardAsanaClient implements AsanaClient {
         }
     }
 
-    public Map<String, ProjectMembership> getProjectMemberships(Project project) {
+    public Stream<ProjectMembership> getProjectMemberships(Project project) {
         try {
-            return collectionRequestToMap(
+            return collectionRequestToStream(
                     client.projectMemberships.getProjectMembershipsForProject(project.gid, null, null, null, getSerializedFieldNames(ProjectMembership.class), false)
             );
         } catch (IOException e) {
@@ -105,17 +103,15 @@ public class StandardAsanaClient implements AsanaClient {
     @Override
     public Team getTeamByName(String teamName) {
         return getTeams()
-                .values()
-                .stream()
                 .filter(t -> t.name.equals(teamName))
                 .findFirst()
                 .orElseThrow(() -> new AsanaClientException("No such team: " + teamName));
     }
 
     @Override
-    public Map<String, Team> getTeams() {
+    public Stream<Team> getTeams() {
         try {
-            return collectionRequestToMap(
+            return collectionRequestToStream(
                     client.teams.getTeamsForWorkspace(workspace.gid, null, null, getSerializedFieldNames(Team.class), false)
             );
         } catch (IOException e) {
@@ -124,9 +120,9 @@ public class StandardAsanaClient implements AsanaClient {
     }
 
     @Override
-    public Map<String, User> getTeamMembers(Team team) {
+    public Stream<User> getTeamMembers(Team team) {
         try {
-            return collectionRequestToMap(
+            return collectionRequestToStream(
                     client.users.getUsersForTeam(team.gid, null, getSerializedFieldNames(User.class), false)
             );
         } catch (IOException e) {
@@ -137,17 +133,15 @@ public class StandardAsanaClient implements AsanaClient {
     @Override
     public Section getSectionByName(Project project, String sectionName) {
         return getSections(project)
-                .values()
-                .stream()
                 .filter(s -> s.name.equals(sectionName))
                 .findFirst()
                 .orElseThrow(() -> new AsanaClientException("No such section: " + sectionName + " in project: " + project.name));
     }
 
     @Override
-    public Map<String, Section> getSections(Project project) {
+    public Stream<Section> getSections(Project project) {
         try {
-            return collectionRequestToMap(
+            return collectionRequestToStream(
                     client.sections.getSectionsForProject(project.gid, null, null, getSerializedFieldNames(Section.class), false)
             );
         } catch (IOException e) {
@@ -156,9 +150,9 @@ public class StandardAsanaClient implements AsanaClient {
     }
 
     @Override
-    public Map<String, Task> getTasks(Project project) {
+    public Stream<Task> getTasks(Project project) {
         try {
-            return collectionRequestToMap(
+            return collectionRequestToStream(
                     client.tasks.getTasksForProject(project.gid, null, null, null, getSerializedFieldNames(Task.class), false)
             );
         } catch (IOException e) {
@@ -167,9 +161,9 @@ public class StandardAsanaClient implements AsanaClient {
     }
 
     @Override
-    public Map<String, Task> getTasks(Tag tag) {
+    public Stream<Task> getTasks(Tag tag) {
         try {
-            return collectionRequestToMap(
+            return collectionRequestToStream(
                     client.tasks.getTasksForTag(tag.gid, null, null, getSerializedFieldNames(Task.class), false)
             );
         } catch (IOException e) {
@@ -178,9 +172,9 @@ public class StandardAsanaClient implements AsanaClient {
     }
 
     @Override
-    public Map<String, Task> getTasks(Section section) {
+    public Stream<Task> getTasks(Section section) {
         try {
-            return collectionRequestToMap(
+            return collectionRequestToStream(
                     client.tasks.getTasksForSection(section.gid, null, null, getSerializedFieldNames(Task.class), false)
             );
         } catch (IOException e) {
@@ -189,9 +183,9 @@ public class StandardAsanaClient implements AsanaClient {
     }
 
     @Override
-    public Map<String, Tag> getTags() {
+    public Stream<Tag> getTags() {
         try {
-            return collectionRequestToMap(
+            return collectionRequestToStream(
                     client.tags.getTags(workspace.gid, null, null, getSerializedFieldNames(Tag.class), false)
             );
         } catch (IOException e) {
@@ -200,9 +194,9 @@ public class StandardAsanaClient implements AsanaClient {
     }
 
     @Override
-    public Map<String, ProjectStatus> getProjectStatusUpdates(Project project) {
+    public Stream<ProjectStatus> getProjectStatusUpdates(Project project) {
         try {
-            return collectionRequestToMap(
+            return collectionRequestToStream(
                     client.projectStatuses.getProjectStatusesForProject(project.gid, null, null, getSerializedFieldNames(ProjectStatus.class), false)
             );
         } catch (IOException e) {
@@ -211,9 +205,9 @@ public class StandardAsanaClient implements AsanaClient {
     }
 
     @Override
-    public Map<String, Story> getStories(Task task) {
+    public Stream<Story> getStories(Task task) {
         try {
-            return collectionRequestToMap(
+            return collectionRequestToStream(
                     client.stories.getStoriesForTask(task.gid, null, null, getSerializedFieldNames(Story.class), false)
             );
         } catch (IOException e) {
@@ -222,9 +216,9 @@ public class StandardAsanaClient implements AsanaClient {
     }
 
     @Override
-    public Map<String, Attachment> getAttachments(Task task) {
+    public Stream<Attachment> getAttachments(Task task) {
         try {
-            return collectionRequestToMap(
+            return collectionRequestToStream(
                     client.attachments.getAttachmentsForObject(task.gid, null, null, getSerializedFieldNames(Attachment.class), false)
             );
         } catch (IOException e) {
@@ -233,9 +227,9 @@ public class StandardAsanaClient implements AsanaClient {
     }
 
     @Override
-    public Map<String, Attachment> getAttachments(ProjectStatus projectStatus) {
+    public Stream<Attachment> getAttachments(ProjectStatus projectStatus) {
         try {
-            return collectionRequestToMap(
+            return collectionRequestToStream(
                     client.attachments.getAttachmentsForObject(projectStatus.gid, null, null, getSerializedFieldNames(Attachment.class), false)
             );
         } catch (IOException e) {
@@ -246,9 +240,7 @@ public class StandardAsanaClient implements AsanaClient {
     private Workspace getWorkspaceByName(String workspaceName) {
         List<Workspace> results;
         try {
-            results = collectionRequestToMap(client.workspaces.getWorkspaces(null, null, getSerializedFieldNames(Workspace.class), false))
-                    .values()
-                    .stream()
+            results = collectionRequestToStream(client.workspaces.getWorkspaces(null, null, getSerializedFieldNames(Workspace.class), false))
                     .filter(w -> w.name.equals(workspaceName))
                     .collect(Collectors.toList());
         } catch (IOException e) {
@@ -297,8 +289,7 @@ public class StandardAsanaClient implements AsanaClient {
         return result;
     }
 
-    private static <T extends Resource> Map<String, T> collectionRequestToMap(CollectionRequest<T> asanaCollectionRequest) {
-        return StreamSupport.stream(asanaCollectionRequest.spliterator(), false)
-            .collect(Collectors.toMap(item -> item.gid, item -> item));
+    private static <T extends Resource> Stream<T> collectionRequestToStream(CollectionRequest<T> asanaCollectionRequest) {
+        return StreamSupport.stream(asanaCollectionRequest.spliterator(), false);
     }
 }

@@ -18,11 +18,10 @@ package org.apache.nifi.processors.asana.utils;
 
 import com.asana.models.Attachment;
 import com.asana.models.Project;
-import org.apache.nifi.controller.asana.AsanaClient;
-
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.nifi.controller.asana.AsanaClient;
 
 public class AsanaProjectStatusAttachmentFetcher extends GenericAsanaObjectFetcher<Attachment> {
     private static final String PROJECT_GID = ".project.gid";
@@ -52,7 +51,7 @@ public class AsanaProjectStatusAttachmentFetcher extends GenericAsanaObjectFetch
     }
 
     @Override
-    protected Map<String, Attachment> refreshObjects() {
+    protected Stream<Attachment> refreshObjects() {
         return fetchProjectStatusAttachments();
     }
 
@@ -61,10 +60,7 @@ public class AsanaProjectStatusAttachmentFetcher extends GenericAsanaObjectFetch
         return Long.toString(object.createdAt.getValue());
     }
 
-    private Map<String, Attachment> fetchProjectStatusAttachments() {
-        return client.getProjectStatusUpdates(project).values().stream()
-            .map(client::getAttachments)
-            .flatMap(attachments -> attachments.entrySet().stream())
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    private Stream<Attachment> fetchProjectStatusAttachments() {
+        return client.getProjectStatusUpdates(project).flatMap(client::getAttachments);
     }
 }

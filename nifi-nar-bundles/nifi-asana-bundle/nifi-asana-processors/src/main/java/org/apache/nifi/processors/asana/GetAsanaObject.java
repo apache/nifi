@@ -17,10 +17,8 @@
 package org.apache.nifi.processors.asana;
 
 import static java.lang.String.format;
+import static java.lang.String.join;
 import static java.util.Collections.singletonMap;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.joining;
-import static org.apache.commons.collections4.ListUtils.partition;
 import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_PROJECT_EVENTS;
 import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_PROJECT_MEMBERS;
 import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_PROJECT_STATUS_ATTACHMENTS;
@@ -42,6 +40,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.http.entity.ContentType;
@@ -266,68 +265,76 @@ public class GetAsanaObject extends AbstractProcessor {
             getLogger().debug("Initial state: {}", objectFetcher.saveState());
         }
 
-        Collection<FlowFile> newItems = new ArrayList<>();
-        Collection<FlowFile> updatedItems = new ArrayList<>();
-        Collection<FlowFile> removedItems = new ArrayList<>();
-        Map<AsanaObjectState, Collection<FlowFile>> flowFiles = new HashMap<>();
-        flowFiles.put(AsanaObjectState.NEW, newItems);
-        flowFiles.put(AsanaObjectState.UPDATED, updatedItems);
-        flowFiles.put(AsanaObjectState.REMOVED, removedItems);
-
-        List<AsanaObject> allObjects = new ArrayList<>();
-
-        AsanaObject nextObject;
-        while ((nextObject = objectFetcher.fetchNext()) != null) {
-            allObjects.add(nextObject);
-        }
-
-        Map<AsanaObjectState, List<AsanaObject>> allObjectsByState = allObjects.stream()
-                .collect(groupingBy(AsanaObject::getState));
+        int transferCount = 0;
 
         if (batchSize == 1) {
-            allObjectsByState
-                    .forEach((asanaObjectState, asanaObjects) -> asanaObjects.forEach(
-                            asanaObject -> {
-                                final Map<String, String> attributes = new HashMap<>(2);
-                                attributes.put(CoreAttributes.MIME_TYPE.key(), ContentType.APPLICATION_JSON.getMimeType());
-                                attributes.put(ASANA_GID, asanaObject.getGid());
-                                FlowFile flowFile = createFlowFileWithStringPayload(session, asanaObject.getContent());
-                                flowFile = session.putAllAttributes(flowFile, attributes);
-                                flowFiles.get(asanaObject.getState()).add(flowFile);
-                            }
-                    ));
+            AsanaObject asanaObject;
+            while ((asanaObject = objectFetcher.fetchNext()) != null) {
+                final Map<String, String> attributes = new HashMap<>(2);
+                attributes.put(CoreAttributes.MIME_TYPE.key(), ContentType.APPLICATION_JSON.getMimeType());
+                attributes.put(ASANA_GID, asanaObject.getGid());
+                FlowFile flowFile = createFlowFileWithStringPayload(session, asanaObject.getContent());
+                flowFile = session.putAllAttributes(flowFile, attributes);
+                transferFlowFileByAsanaObjectState(session, asanaObject.getState(), flowFile);
+                transferCount++;
+            }
         } else {
-            allObjectsByState
-                    .forEach((asanaObjectState, asanaObjects) -> partition(asanaObjects, batchSize).forEach(
-                            asanaObjectsInPartition -> {
-                                FlowFile flowFile = createFlowFileWithStringPayload(session, format("[%s]",
-                                        asanaObjectsInPartition.stream().map(AsanaObject::getContent)
-                                                .collect(joining(","))));
-                                flowFile = session.putAllAttributes(flowFile,
-                                        singletonMap(CoreAttributes.MIME_TYPE.key(),
-                                                ContentType.APPLICATION_JSON.getMimeType()));
-                                flowFiles.get(asanaObjectState).add(flowFile);
-                            }
-                    ));
+            final Map<AsanaObjectState, Collection<String>> flowFileContents = new HashMap<>();
+            flowFileContents.put(AsanaObjectState.NEW, new ArrayList<>());
+            flowFileContents.put(AsanaObjectState.UPDATED, new ArrayList<>());
+            flowFileContents.put(AsanaObjectState.REMOVED, new ArrayList<>());
+
+            AsanaObject asanaObject;
+            while ((asanaObject = objectFetcher.fetchNext()) != null) {
+                AsanaObjectState state = asanaObject.getState();
+                Collection<String> buffer = flowFileContents.get(state);
+                buffer.add(asanaObject.getContent());
+                if (buffer.size() == batchSize) {
+                    transferBatchedItemsFromBuffer(session, state, buffer);
+                    transferCount++;
+                    buffer.clear();
+                }
+            }
+            for (Entry<AsanaObjectState, Collection<String>> entry : flowFileContents.entrySet()) {
+                if (!entry.getValue().isEmpty()) {
+                    transferBatchedItemsFromBuffer(session, entry.getKey(), entry.getValue());
+                    transferCount++;
+                }
+            }
         }
 
-        if (flowFiles.values().stream().allMatch(Collection::isEmpty)) {
+        if (transferCount == 0) {
             context.yield();
             getLogger().debug("Yielding, as there are no new FlowFiles.");
-        } else {
-            session.transfer(newItems, REL_NEW);
-            session.transfer(updatedItems, REL_UPDATED);
-            session.transfer(removedItems, REL_REMOVED);
         }
 
         session.commitAsync();
         Map<String, String> state = objectFetcher.saveState();
         persistState(state, context);
 
-        getLogger().debug(
-                "New state after transferring {} new, {} updated, and {} removed items: {}",
-                newItems.size(), updatedItems.size(), removedItems.size(), state);
+        getLogger().debug("New state after transferring {} FlowFiles: {}", transferCount, state);
+    }
 
+    private void transferBatchedItemsFromBuffer(ProcessSession session, AsanaObjectState state, Collection<String> buffer) {
+        FlowFile flowFile = createFlowFileWithStringPayload(session, format("[%s]", join(",", buffer)));
+        flowFile = session.putAllAttributes(flowFile,
+                singletonMap(CoreAttributes.MIME_TYPE.key(),
+                        ContentType.APPLICATION_JSON.getMimeType()));
+        transferFlowFileByAsanaObjectState(session, state, flowFile);
+    }
+
+    private static void transferFlowFileByAsanaObjectState(ProcessSession session, AsanaObjectState state, FlowFile flowFile) {
+        switch (state) {
+            case NEW:
+                session.transfer(flowFile, REL_NEW);
+                break;
+            case UPDATED:
+                session.transfer(flowFile, REL_UPDATED);
+                break;
+            case REMOVED:
+                session.transfer(flowFile, REL_REMOVED);
+                break;
+        }
     }
 
     protected AsanaObjectFetcher createObjectFetcher(final ProcessContext context, AsanaClient client) {

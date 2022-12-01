@@ -17,7 +17,6 @@
 package org.apache.nifi.controller.asana;
 
 import com.asana.models.Event;
-
 import java.util.Collection;
 import java.util.Iterator;
 

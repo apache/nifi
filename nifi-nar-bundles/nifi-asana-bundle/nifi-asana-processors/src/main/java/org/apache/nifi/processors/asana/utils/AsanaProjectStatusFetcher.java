@@ -18,6 +18,7 @@ package org.apache.nifi.processors.asana.utils;
 
 import com.asana.models.Project;
 import com.asana.models.ProjectStatus;
+import java.util.stream.Stream;
 import org.apache.nifi.controller.asana.AsanaClient;
 
 import java.util.HashMap;
@@ -51,7 +52,7 @@ public class AsanaProjectStatusFetcher extends GenericAsanaObjectFetcher<Project
     }
 
     @Override
-    protected Map<String, ProjectStatus> refreshObjects() {
+    protected Stream<ProjectStatus> refreshObjects() {
         return client.getProjectStatusUpdates(project);
     }
 }

@@ -16,10 +16,22 @@
  */
 package org.apache.nifi.processors.asana;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
 import com.asana.models.Project;
 import com.asana.models.ProjectMembership;
 import com.asana.models.User;
 import com.google.api.client.util.DateTime;
+import java.util.stream.Stream;
 import org.apache.nifi.controller.asana.AsanaClient;
 import org.apache.nifi.processors.asana.utils.AsanaObject;
 import org.apache.nifi.processors.asana.utils.AsanaObjectFetcher;
@@ -31,19 +43,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonMap;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class AsanaProjectMembershipFetcherTest {
@@ -64,7 +63,7 @@ public class AsanaProjectMembershipFetcherTest {
 
     @Test
     public void testNoObjectsFetchedWhenNoProjectMembershipsReturned() {
-        when(client.getProjectMemberships(any())).thenReturn(emptyMap());
+        when(client.getProjectMemberships(any())).then(invocation -> Stream.empty());
 
         final AsanaObjectFetcher fetcher = new AsanaProjectMembershipFetcher(client, project.name);
         assertNull(fetcher.fetchNext());
@@ -83,7 +82,7 @@ public class AsanaProjectMembershipFetcherTest {
         membership.user.gid = "456";
         membership.user.name = "Foo Bar";
 
-        when(client.getProjectMemberships(any())).thenReturn(singletonMap(membership.gid, membership));
+        when(client.getProjectMemberships(any())).then(invocation -> Stream.of(membership));
 
         final AsanaObjectFetcher fetcher = new AsanaProjectMembershipFetcher(client, project.name);
         final AsanaObject object = fetcher.fetchNext();
@@ -105,7 +104,7 @@ public class AsanaProjectMembershipFetcherTest {
         membership.user.gid = "456";
         membership.user.name = "Foo Bar";
 
-        when(client.getProjectMemberships(any())).thenReturn(singletonMap(membership.gid, membership));
+        when(client.getProjectMemberships(any())).then(invocation -> Stream.of(membership));
 
         final AsanaObjectFetcher fetcher = new AsanaProjectMembershipFetcher(client, project.name);
         assertNotNull(fetcher.fetchNext());
@@ -131,7 +130,7 @@ public class AsanaProjectMembershipFetcherTest {
         membership.user.gid = "456";
         membership.user.name = "Foo Bar";
 
-        when(client.getProjectMemberships(any())).thenReturn(singletonMap(membership.gid, membership));
+        when(client.getProjectMemberships(any())).then(invocation -> Stream.of(membership));
 
         final AsanaObjectFetcher fetcher1 = new AsanaProjectMembershipFetcher(client, project.name);
         assertNotNull(fetcher1.fetchNext());
@@ -159,7 +158,7 @@ public class AsanaProjectMembershipFetcherTest {
         membership.user.gid = "456";
         membership.user.name = "Foo Bar";
 
-        when(client.getProjectMemberships(any())).thenReturn(singletonMap(membership.gid, membership));
+        when(client.getProjectMemberships(any())).then(invocation -> Stream.of(membership));
 
         final AsanaObjectFetcher fetcher = new AsanaProjectMembershipFetcher(client, project.name);
         assertNotNull(fetcher.fetchNext());

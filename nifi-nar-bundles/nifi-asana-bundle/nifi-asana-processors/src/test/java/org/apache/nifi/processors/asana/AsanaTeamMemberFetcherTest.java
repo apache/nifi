@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.asana;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -31,6 +29,7 @@ import static org.mockito.Mockito.when;
 
 import com.asana.models.Team;
 import com.asana.models.User;
+import java.util.stream.Stream;
 import org.apache.nifi.controller.asana.AsanaClient;
 import org.apache.nifi.processors.asana.utils.AsanaObject;
 import org.apache.nifi.processors.asana.utils.AsanaObjectFetcher;
@@ -64,7 +63,7 @@ public class AsanaTeamMemberFetcherTest {
 
     @Test
     public void testNoObjectsFetchedWhenNoTeamMembersReturned() {
-        when(client.getTeamMembers(any())).thenReturn(emptyMap());
+        when(client.getTeamMembers(any())).then(invocation -> Stream.empty());
 
         final AsanaObjectFetcher fetcher = new AsanaTeamMemberFetcher(client, team.name);
         assertNull(fetcher.fetchNext());
@@ -81,7 +80,7 @@ public class AsanaTeamMemberFetcherTest {
         user.name = "My User";
         user.email = "myuser@example.com";
 
-        when(client.getTeamMembers(any())).thenReturn(singletonMap(user.gid, user));
+        when(client.getTeamMembers(any())).then(invocation -> Stream.of(user));
 
         final AsanaObjectFetcher fetcher = new AsanaTeamMemberFetcher(client, team.name);
         final AsanaObject object = fetcher.fetchNext();
@@ -101,7 +100,7 @@ public class AsanaTeamMemberFetcherTest {
         user.name = "My User";
         user.email = "myuser@example.com";
 
-        when(client.getTeamMembers(any())).thenReturn(singletonMap(user.gid, user));
+        when(client.getTeamMembers(any())).then(invocation -> Stream.of(user));
 
         final AsanaObjectFetcher fetcher = new AsanaTeamMemberFetcher(client, team.name);
         assertNotNull(fetcher.fetchNext());
@@ -125,7 +124,7 @@ public class AsanaTeamMemberFetcherTest {
         user.name = "My User";
         user.email = "myuser@example.com";
 
-        when(client.getTeamMembers(any())).thenReturn(singletonMap(user.gid, user));
+        when(client.getTeamMembers(any())).then(invocation -> Stream.of(user));
 
         final AsanaObjectFetcher fetcher1 = new AsanaTeamMemberFetcher(client, team.name);
         assertNotNull(fetcher1.fetchNext());
@@ -151,7 +150,7 @@ public class AsanaTeamMemberFetcherTest {
         user.name = "My User";
         user.email = "myuser@example.com";
 
-        when(client.getTeamMembers(any())).thenReturn(singletonMap(user.gid, user));
+        when(client.getTeamMembers(any())).then(invocation -> Stream.of(user));
 
         final AsanaObjectFetcher fetcher = new AsanaTeamMemberFetcher(client, team.name);
         assertNotNull(fetcher.fetchNext());

@@ -17,11 +17,10 @@
 package org.apache.nifi.processors.asana.utils;
 
 import com.asana.models.Story;
-import org.apache.nifi.controller.asana.AsanaClient;
-
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.nifi.controller.asana.AsanaClient;
 
 public class AsanaStoryFetcher extends GenericAsanaObjectFetcher<Story> {
     private final AsanaClient client;
@@ -48,14 +47,11 @@ public class AsanaStoryFetcher extends GenericAsanaObjectFetcher<Story> {
     }
 
     @Override
-    protected Map<String, Story> refreshObjects() {
+    protected Stream<Story> refreshObjects() {
         return fetchStories();
     }
 
-    private Map<String, Story> fetchStories() {
-        return taskFetcher.fetchTasks().values().stream()
-            .map(client::getStories)
-            .flatMap(stories -> stories.entrySet().stream())
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    private Stream<Story> fetchStories() {
+        return taskFetcher.fetchTasks().flatMap(client::getStories);
     }
 }

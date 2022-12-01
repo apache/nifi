@@ -16,12 +16,24 @@
  */
 package org.apache.nifi.processors.asana;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
 import com.asana.models.Project;
 import com.asana.models.Section;
 import com.asana.models.Tag;
 import com.asana.models.Task;
 import com.google.api.client.util.DateTime;
-import org.apache.groovy.util.Maps;
+import java.util.stream.Stream;
 import org.apache.nifi.controller.asana.AsanaClient;
 import org.apache.nifi.processors.asana.utils.AsanaObject;
 import org.apache.nifi.processors.asana.utils.AsanaObjectFetcher;
@@ -35,20 +47,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonMap;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -75,7 +73,7 @@ public class AsanaTaskFetcherTest {
         section.name = "Some section";
         section.createdAt = new DateTime(123456789);
 
-        when(client.getSections(project)).thenReturn(singletonMap(section.gid, section));
+        when(client.getSections(project)).then(invocation -> Stream.of(section));
         when(client.getSectionByName(project, section.name)).thenReturn(section);
 
         tag = new Tag();
@@ -83,12 +81,12 @@ public class AsanaTaskFetcherTest {
         tag.name = "Foo";
         tag.createdAt = new DateTime(123456789);
 
-        when(client.getTags()).thenReturn(singletonMap(tag.gid, tag));
+        when(client.getTags()).then(invocation -> Stream.of(tag));
     }
 
     @Test
     public void testNoObjectsFetchedWhenNoTasksReturned() {
-        when(client.getTasks(any(Project.class))).thenReturn(emptyMap());
+        when(client.getTasks(any(Project.class))).then(invocation -> Stream.empty());
 
         final AsanaObjectFetcher fetcher = new AsanaTaskFetcher(client, project.name, null, null);
         assertNull(fetcher.fetchNext());
@@ -100,7 +98,7 @@ public class AsanaTaskFetcherTest {
 
     @Test
     public void testNoObjectsFetchedWhenNoTasksReturnedBySection() {
-        when(client.getTasks(any(Section.class))).thenReturn(emptyMap());
+        when(client.getTasks(any(Section.class))).then(invocation -> Stream.empty());
 
         final AsanaObjectFetcher fetcher = new AsanaTaskFetcher(client, project.name, section.name, null);
         assertNull(fetcher.fetchNext());
@@ -113,7 +111,7 @@ public class AsanaTaskFetcherTest {
 
     @Test
     public void testNoObjectsFetchedWhenNoTasksReturnedByTag() {
-        when(client.getTasks(any(Project.class))).thenReturn(emptyMap());
+        when(client.getTasks(any(Project.class))).then(invocation -> Stream.empty());
 
         final AsanaObjectFetcher fetcher = new AsanaTaskFetcher(client, project.name, null, tag.name);
         assertNull(fetcher.fetchNext());
@@ -132,7 +130,7 @@ public class AsanaTaskFetcherTest {
         task.name = "My first task";
         task.modifiedAt = new DateTime(123456789);
 
-        when(client.getTasks(any(Project.class))).thenReturn(singletonMap(task.gid, task));
+        when(client.getTasks(any(Project.class))).then(invocation -> Stream.of(task));
 
         final AsanaObjectFetcher fetcher = new AsanaTaskFetcher(client, project.name, null, null);
         final AsanaObject object = fetcher.fetchNext();
@@ -152,7 +150,7 @@ public class AsanaTaskFetcherTest {
         task.name = "My first task";
         task.modifiedAt = new DateTime(123456789);
 
-        when(client.getTasks(any(Section.class))).thenReturn(singletonMap(task.gid, task));
+        when(client.getTasks(any(Section.class))).then(invocation -> Stream.of(task));
 
         final AsanaObjectFetcher fetcher = new AsanaTaskFetcher(client, project.name, section.name, null);
         final AsanaObject object = fetcher.fetchNext();
@@ -173,8 +171,8 @@ public class AsanaTaskFetcherTest {
         task.name = "My first task";
         task.modifiedAt = new DateTime(123456789);
 
-        when(client.getTasks(any(Project.class))).thenReturn(singletonMap(task.gid, task));
-        when(client.getTasks(any(Tag.class))).thenReturn(singletonMap(task.gid, task));
+        when(client.getTasks(any(Project.class))).then(invocation -> Stream.of(task));
+        when(client.getTasks(any(Tag.class))).then(invocation -> Stream.of(task));
 
         final AsanaObjectFetcher fetcher = new AsanaTaskFetcher(client, project.name, null, tag.name);
         final AsanaObject object = fetcher.fetchNext();
@@ -201,8 +199,8 @@ public class AsanaTaskFetcherTest {
         task2.name = "My other task";
         task2.modifiedAt = new DateTime(123456789);
 
-        when(client.getTasks(any(Project.class))).thenReturn(singletonMap(task1.gid, task1));
-        when(client.getTasks(any(Tag.class))).thenReturn(singletonMap(task2.gid, task2));
+        when(client.getTasks(any(Project.class))).then(invocation -> Stream.of(task1));
+        when(client.getTasks(any(Tag.class))).then(invocation -> Stream.of(task2));
 
         final AsanaObjectFetcher fetcher = new AsanaTaskFetcher(client, project.name, null, tag.name);
         assertNull(fetcher.fetchNext());
@@ -221,12 +219,12 @@ public class AsanaTaskFetcherTest {
         task.name = "My first task";
         task.modifiedAt = new DateTime(123456789);
 
-        when(client.getTasks(any(Section.class))).thenReturn(singletonMap(task.gid, task));
+        when(client.getTasks(any(Section.class))).then(invocation -> Stream.of(task));
 
         final AsanaObjectFetcher fetcher = new AsanaTaskFetcher(client, project.name, section.name, null);
         assertNotNull(fetcher.fetchNext());
 
-        when(client.getTasks(any(Section.class))).thenReturn(emptyMap());
+        when(client.getTasks(any(Section.class))).then(invocation -> Stream.empty());
 
         final AsanaObject object = fetcher.fetchNext();
         assertEquals(AsanaObjectState.REMOVED, object.getState());
@@ -245,13 +243,13 @@ public class AsanaTaskFetcherTest {
         task.name = "My first task";
         task.modifiedAt = new DateTime(123456789);
 
-        when(client.getTasks(any(Project.class))).thenReturn(singletonMap(task.gid, task));
-        when(client.getTasks(any(Tag.class))).thenReturn(singletonMap(task.gid, task));
+        when(client.getTasks(any(Project.class))).then(invocation -> Stream.of(task));
+        when(client.getTasks(any(Tag.class))).then(invocation -> Stream.of(task));
 
         final AsanaObjectFetcher fetcher = new AsanaTaskFetcher(client, project.name, null, tag.name);
         assertNotNull(fetcher.fetchNext());
 
-        when(client.getTasks(any(Tag.class))).thenReturn(emptyMap());
+        when(client.getTasks(any(Tag.class))).then(invocation -> Stream.empty());
 
         final AsanaObject object = fetcher.fetchNext();
         assertEquals(AsanaObjectState.REMOVED, object.getState());
@@ -270,7 +268,7 @@ public class AsanaTaskFetcherTest {
         anotherTagWithSameName.gid = "555";
         anotherTagWithSameName.name = tag.name;
 
-        when(client.getTags()).thenReturn(Maps.of(tag.gid, tag, anotherTagWithSameName.gid, anotherTagWithSameName));
+        when(client.getTags()).then(invocation -> Stream.of(tag, anotherTagWithSameName));
 
         final Task task1 = new Task();
         task1.gid = "1234";
@@ -292,9 +290,9 @@ public class AsanaTaskFetcherTest {
         task4.name = "A task without tag";
         task4.modifiedAt = new DateTime(456789123);
 
-        when(client.getTasks(any(Project.class))).thenReturn(Maps.of(task1.gid, task1, task2.gid, task2, task3.gid, task3, task4.gid, task4));
-        when(client.getTasks(tag)).thenReturn(singletonMap(task1.gid, task1));
-        when(client.getTasks(anotherTagWithSameName)).thenReturn(Maps.of(task1.gid, task1, task2.gid, task2, task3.gid, task3));
+        when(client.getTasks(any(Project.class))).then(invocation -> Stream.of(task1, task2, task3, task4));
+        when(client.getTasks(tag)).then(invocation -> Stream.of(task1));
+        when(client.getTasks(anotherTagWithSameName)).then(invocation -> Stream.of(task1, task2, task3));
 
         final AsanaObjectFetcher fetcher = new AsanaTaskFetcher(client, project.name, null, tag.name);
 
@@ -327,7 +325,7 @@ public class AsanaTaskFetcherTest {
         task.name = "My first task";
         task.modifiedAt = new DateTime(123456789);
 
-        when(client.getTasks(any(Project.class))).thenReturn(singletonMap(task.gid, task));
+        when(client.getTasks(any(Project.class))).then(invocation -> Stream.of(task));
 
         final AsanaObjectFetcher fetcher = new AsanaTaskFetcher(client, project.name, null, null);
         assertNotNull(fetcher.fetchNext());
@@ -354,7 +352,7 @@ public class AsanaTaskFetcherTest {
         task.name = "My first task";
         task.modifiedAt = new DateTime(123456789);
 
-        when(client.getTasks(any(Project.class))).thenReturn(singletonMap(task.gid, task));
+        when(client.getTasks(any(Project.class))).then(invocation -> Stream.of(task));
 
         final AsanaObjectFetcher fetcher1 = new AsanaTaskFetcher(client, project.name, null, null);
         assertNotNull(fetcher1.fetchNext());
@@ -380,7 +378,7 @@ public class AsanaTaskFetcherTest {
         task.name = "My first task";
         task.modifiedAt = new DateTime(123456789);
 
-        when(client.getTasks(any(Project.class))).thenReturn(singletonMap(task.gid, task));
+        when(client.getTasks(any(Project.class))).then(invocation -> Stream.of(task));
 
         final AsanaObjectFetcher fetcher = new AsanaTaskFetcher(client, project.name, null, null);
         assertNotNull(fetcher.fetchNext());

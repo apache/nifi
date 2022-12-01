@@ -17,9 +17,8 @@
 package org.apache.nifi.processors.asana.utils;
 
 import com.asana.models.Project;
+import java.util.stream.Stream;
 import org.apache.nifi.controller.asana.AsanaClient;
-
-import java.util.Map;
 
 public class AsanaProjectFetcher extends GenericAsanaObjectFetcher<Project> {
     private final AsanaClient client;
@@ -30,7 +29,7 @@ public class AsanaProjectFetcher extends GenericAsanaObjectFetcher<Project> {
     }
 
     @Override
-    protected Map<String, Project> refreshObjects() {
+    protected Stream<Project> refreshObjects() {
         return client.getProjects();
     }
 

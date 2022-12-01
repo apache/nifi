@@ -17,9 +17,8 @@
 package org.apache.nifi.processors.asana.utils;
 
 import com.asana.models.Tag;
+import java.util.stream.Stream;
 import org.apache.nifi.controller.asana.AsanaClient;
-
-import java.util.Map;
 
 public class AsanaTagFetcher extends GenericAsanaObjectFetcher<Tag> {
     private final AsanaClient client;
@@ -30,7 +29,7 @@ public class AsanaTagFetcher extends GenericAsanaObjectFetcher<Tag> {
     }
 
     @Override
-    protected Map<String, Tag> refreshObjects() {
+    protected Stream<Tag> refreshObjects() {
         return client.getTags();
     }
 }

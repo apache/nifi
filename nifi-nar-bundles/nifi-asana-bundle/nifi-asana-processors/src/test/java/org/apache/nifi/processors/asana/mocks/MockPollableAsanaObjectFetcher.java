@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.processors.asana.mocks;
 
-import org.apache.nifi.processors.asana.utils.AsanaObject;
-import org.apache.nifi.processors.asana.utils.PollableAsanaObjectFetcher;
+import static java.util.Collections.emptyList;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
-
-import static java.util.Collections.emptyList;
+import org.apache.nifi.processors.asana.utils.AsanaObject;
+import org.apache.nifi.processors.asana.utils.PollableAsanaObjectFetcher;
 
 public class MockPollableAsanaObjectFetcher extends PollableAsanaObjectFetcher {
 
@@ -31,11 +31,11 @@ public class MockPollableAsanaObjectFetcher extends PollableAsanaObjectFetcher {
     public int pollCount = 0;
 
     @Override
-    protected Collection<AsanaObject> poll() {
+    protected Iterator<AsanaObject> poll() {
         pollCount++;
         Collection<AsanaObject> result = new ArrayList<>(items);
         items = emptyList();
-        return result;
+        return result.iterator();
     }
 
     @Override

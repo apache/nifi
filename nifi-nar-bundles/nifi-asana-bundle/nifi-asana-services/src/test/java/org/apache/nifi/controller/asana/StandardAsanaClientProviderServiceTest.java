@@ -16,7 +16,18 @@
  */
 package org.apache.nifi.controller.asana;
 
+import static java.util.stream.Collectors.toMap;
+import static org.apache.nifi.controller.asana.StandardAsanaClientProviderService.PROP_ASANA_API_BASE_URL;
+import static org.apache.nifi.controller.asana.StandardAsanaClientProviderService.PROP_ASANA_PERSONAL_ACCESS_TOKEN;
+import static org.apache.nifi.controller.asana.StandardAsanaClientProviderService.PROP_ASANA_WORKSPACE_NAME;
+import static org.apache.nifi.util.TestRunners.newTestRunner;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.asana.models.Project;
+import java.io.IOException;
+import java.util.Map;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.apache.nifi.reporting.InitializationException;
@@ -26,17 +37,6 @@ import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-import java.util.Map;
-
-import static org.apache.nifi.controller.asana.StandardAsanaClientProviderService.PROP_ASANA_API_BASE_URL;
-import static org.apache.nifi.controller.asana.StandardAsanaClientProviderService.PROP_ASANA_PERSONAL_ACCESS_TOKEN;
-import static org.apache.nifi.controller.asana.StandardAsanaClientProviderService.PROP_ASANA_WORKSPACE_NAME;
-import static org.apache.nifi.util.TestRunners.newTestRunner;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StandardAsanaClientProviderServiceTest {
 
@@ -146,7 +146,8 @@ public class StandardAsanaClientProviderServiceTest {
         mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(PROJECTS));
 
         runner.enableControllerService(service);
-        final Map<String, Project> projects = service.createClient().getProjects();
+        final Map<String, Project> projects = service.createClient().getProjects()
+                .collect(toMap(project -> project.gid, project -> project));
 
         assertEquals(2, projects.size());
         assertEquals("Our First Project", projects.get("1202898619637000").name);

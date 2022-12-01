@@ -16,19 +16,17 @@
  */
 package org.apache.nifi.processors.asana.utils;
 
+import static java.lang.String.format;
+
 import com.asana.Json;
 import com.asana.models.Project;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.stream.StreamSupport;
 import org.apache.nifi.controller.asana.AsanaClient;
 import org.apache.nifi.controller.asana.AsanaEventsCollection;
 import org.apache.nifi.util.StringUtils;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import static java.lang.String.format;
 
 public class AsanaProjectEventFetcher extends PollableAsanaObjectFetcher {
 
@@ -68,13 +66,14 @@ public class AsanaProjectEventFetcher extends PollableAsanaObjectFetcher {
     }
 
     @Override
-    protected Collection<AsanaObject> poll() {
+    protected Iterator<AsanaObject> poll() {
         AsanaEventsCollection events = client.getEvents(project, nextSyncToken);
-        Collection<AsanaObject> result = StreamSupport.stream(events.spliterator(), false)
+        Iterator<AsanaObject> result = StreamSupport.stream(events.spliterator(), false)
             .map(e -> new AsanaObject(
                 AsanaObjectState.NEW,
                 format("%s.%s.%s.%d", e.type, e.resource.resourceType, e.resource.gid, e.createdAt.getValue()),
-                Json.getInstance().toJson(e))).collect(Collectors.toList());
+                Json.getInstance().toJson(e)))
+            .iterator();
         nextSyncToken = events.getNextSyncToken();
         return result;
     }

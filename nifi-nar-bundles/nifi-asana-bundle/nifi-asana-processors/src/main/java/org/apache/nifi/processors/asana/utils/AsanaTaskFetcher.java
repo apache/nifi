@@ -19,6 +19,7 @@ package org.apache.nifi.processors.asana.utils;
 import com.asana.models.Project;
 import com.asana.models.Section;
 import com.asana.models.Task;
+import java.util.stream.Stream;
 import org.apache.nifi.controller.asana.AsanaClient;
 
 import java.util.Arrays;
@@ -63,8 +64,8 @@ public class AsanaTaskFetcher extends GenericAsanaObjectFetcher<Task> {
         super.loadState(state);
     }
 
-    public Map<String, Task> fetchTasks() {
-        Map<String, Task> result;
+    public Stream<Task> fetchTasks() {
+        Stream<Task> result;
         if (section != null) {
             result = client.getTasks(section);
         } else {
@@ -73,25 +74,19 @@ public class AsanaTaskFetcher extends GenericAsanaObjectFetcher<Task> {
 
         if (tagName != null) {
             Set<String> taskIdsWithTag = client.getTags()
-                .values()
-                .stream()
                 .filter(tag -> tag.name.equals(tagName))
-                .map(client::getTasks)
-                .flatMap(t -> t.keySet().stream())
+                .flatMap(client::getTasks)
+                .map(t -> t.gid)
                 .collect(Collectors.toSet());
 
-            taskIdsWithTag.retainAll(result.keySet());
-
-            return taskIdsWithTag.stream()
-                .map(result::get)
-                .collect(Collectors.toMap(task -> task.gid, task -> task));
+            result = result.filter(task -> taskIdsWithTag.contains(task.gid));
         }
 
         return result;
     }
 
     @Override
-    protected Map<String, Task> refreshObjects() {
+    protected Stream<Task> refreshObjects() {
         return fetchTasks();
     }
 

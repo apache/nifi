@@ -16,7 +16,16 @@
  */
 package org.apache.nifi.processors.asana;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
 import com.asana.models.User;
+import java.util.stream.Stream;
 import org.apache.nifi.controller.asana.AsanaClient;
 import org.apache.nifi.processors.asana.utils.AsanaObject;
 import org.apache.nifi.processors.asana.utils.AsanaObjectFetcher;
@@ -27,16 +36,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonMap;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-
 @ExtendWith(MockitoExtension.class)
 public class AsanaUserFetcherTest {
 
@@ -45,7 +44,7 @@ public class AsanaUserFetcherTest {
 
     @Test
     public void testNoObjectsFetchedWhenNoTeamsReturned() {
-        when(client.getUsers()).thenReturn(emptyMap());
+        when(client.getUsers()).then(invocation -> Stream.empty());
 
         final AsanaObjectFetcher fetcher = new AsanaUserFetcher(client);
         assertNull(fetcher.fetchNext());
@@ -61,7 +60,7 @@ public class AsanaUserFetcherTest {
         user.name = "My User";
         user.email = "myuser@example.com";
 
-        when(client.getUsers()).thenReturn(singletonMap(user.gid, user));
+        when(client.getUsers()).then(invocation -> Stream.of(user));
 
         final AsanaObjectFetcher fetcher = new AsanaUserFetcher(client);
         final AsanaObject object = fetcher.fetchNext();
@@ -79,7 +78,7 @@ public class AsanaUserFetcherTest {
         user.name = "My User";
         user.email = "myuser@example.com";
 
-        when(client.getUsers()).thenReturn(singletonMap(user.gid, user));
+        when(client.getUsers()).then(invocation -> Stream.of(user));
 
         final AsanaObjectFetcher fetcher = new AsanaUserFetcher(client);
         assertNotNull(fetcher.fetchNext());
@@ -101,7 +100,7 @@ public class AsanaUserFetcherTest {
         user.name = "My User";
         user.email = "myuser@example.com";
 
-        when(client.getUsers()).thenReturn(singletonMap(user.gid, user));
+        when(client.getUsers()).then(invocation -> Stream.of(user));
 
         final AsanaObjectFetcher fetcher = new AsanaUserFetcher(client);
         assertNotNull(fetcher.fetchNext());
@@ -124,7 +123,7 @@ public class AsanaUserFetcherTest {
         user.name = "My User";
         user.email = "myuser@example.com";
 
-        when(client.getUsers()).thenReturn(singletonMap(user.gid, user));
+        when(client.getUsers()).then(invocation -> Stream.of(user));
 
         final AsanaObjectFetcher fetcher1 = new AsanaUserFetcher(client);
         assertNotNull(fetcher1.fetchNext());

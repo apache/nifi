@@ -16,25 +16,25 @@
  */
 package org.apache.nifi.processors.asana.utils;
 
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Deque;
+import static java.util.Collections.emptyIterator;
+
+import java.util.Iterator;
 
 public abstract class PollableAsanaObjectFetcher implements AsanaObjectFetcher {
 
-    private final Deque<AsanaObject> pending;
+    private Iterator<AsanaObject> pending;
 
     public PollableAsanaObjectFetcher() {
-        pending = new ArrayDeque<>();
+        pending = emptyIterator();
     }
 
     @Override
     public AsanaObject fetchNext() {
-        if (pending.isEmpty()) {
-            pending.addAll(poll());
+        if (!pending.hasNext()) {
+            pending = poll();
         }
-        return pending.poll();
+        return pending.hasNext() ? pending.next() : null;
     }
 
-    protected abstract Collection<AsanaObject> poll();
+    protected abstract Iterator<AsanaObject> poll();
 }

@@ -16,9 +16,21 @@
  */
 package org.apache.nifi.processors.asana;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
 import com.asana.models.Project;
 import com.asana.models.ProjectStatus;
 import com.google.api.client.util.DateTime;
+import java.util.stream.Stream;
 import org.apache.nifi.controller.asana.AsanaClient;
 import org.apache.nifi.processors.asana.utils.AsanaObject;
 import org.apache.nifi.processors.asana.utils.AsanaObjectFetcher;
@@ -30,19 +42,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonMap;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class AsanaProjectStatusFetcherTest {
@@ -63,7 +62,7 @@ public class AsanaProjectStatusFetcherTest {
 
     @Test
     public void testNoObjectsFetchedWhenNoStatusUpdatesReturned() {
-        when(client.getProjectStatusUpdates(any())).thenReturn(emptyMap());
+        when(client.getProjectStatusUpdates(any())).then(invocation -> Stream.empty());
 
         final AsanaObjectFetcher fetcher = new AsanaProjectStatusFetcher(client, project.name);
         assertNull(fetcher.fetchNext());
@@ -80,7 +79,7 @@ public class AsanaProjectStatusFetcherTest {
         status.createdAt = new DateTime(123456789);
         status.title = "Some title";
 
-        when(client.getProjectStatusUpdates(any())).thenReturn(singletonMap(status.gid, status));
+        when(client.getProjectStatusUpdates(any())).then(invocation -> Stream.of(status));
 
         final AsanaObjectFetcher fetcher = new AsanaProjectStatusFetcher(client, project.name);
         final AsanaObject object = fetcher.fetchNext();
@@ -100,7 +99,7 @@ public class AsanaProjectStatusFetcherTest {
         status.createdAt = new DateTime(123456789);
         status.title = "Some title";
 
-        when(client.getProjectStatusUpdates(any())).thenReturn(singletonMap(status.gid, status));
+        when(client.getProjectStatusUpdates(any())).then(invocation -> Stream.of(status));
 
         final AsanaObjectFetcher fetcher = new AsanaProjectStatusFetcher(client, project.name);
         assertNotNull(fetcher.fetchNext());
@@ -124,7 +123,7 @@ public class AsanaProjectStatusFetcherTest {
         status.createdAt = new DateTime(123456789);
         status.title = "Some title";
 
-        when(client.getProjectStatusUpdates(any())).thenReturn(singletonMap(status.gid, status));
+        when(client.getProjectStatusUpdates(any())).then(invocation -> Stream.of(status));
 
         final AsanaObjectFetcher fetcher1 = new AsanaProjectStatusFetcher(client, project.name);
         assertNotNull(fetcher1.fetchNext());
@@ -150,7 +149,7 @@ public class AsanaProjectStatusFetcherTest {
         status.createdAt = new DateTime(123456789);
         status.title = "Some title";
 
-        when(client.getProjectStatusUpdates(any())).thenReturn(singletonMap(status.gid, status));
+        when(client.getProjectStatusUpdates(any())).then(invocation -> Stream.of(status));
 
         final AsanaObjectFetcher fetcher = new AsanaProjectStatusFetcher(client, project.name);
         assertNotNull(fetcher.fetchNext());

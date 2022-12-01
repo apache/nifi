@@ -16,14 +16,12 @@
  */
 package org.apache.nifi.processors.asana.mocks;
 
-import com.asana.models.Resource;
-import org.apache.nifi.processors.asana.utils.GenericAsanaObjectFetcher;
-
-import java.util.Collection;
-import java.util.Map;
-
 import static java.util.Collections.emptyList;
-import static java.util.stream.Collectors.toMap;
+
+import com.asana.models.Resource;
+import java.util.Collection;
+import java.util.stream.Stream;
+import org.apache.nifi.processors.asana.utils.GenericAsanaObjectFetcher;
 
 public class MockGenericAsanaObjectFetcher extends GenericAsanaObjectFetcher<Resource> {
 
@@ -31,8 +29,8 @@ public class MockGenericAsanaObjectFetcher extends GenericAsanaObjectFetcher<Res
     public int refreshCount = 0;
 
     @Override
-    protected Map<String, Resource> refreshObjects() {
+    protected Stream<Resource> refreshObjects() {
         refreshCount++;
-        return items.stream().collect(toMap(item -> item.gid, item -> item));
+        return items.stream();
     }
 }

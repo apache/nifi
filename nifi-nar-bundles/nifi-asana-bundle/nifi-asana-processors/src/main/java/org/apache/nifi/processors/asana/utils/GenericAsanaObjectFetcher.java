@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.processors.asana.utils;
 
-import com.asana.Json;
-import com.google.gson.reflect.TypeToken;
+import static java.util.Collections.emptySet;
 
+import com.asana.Json;
+import com.asana.models.Resource;
+import com.google.gson.reflect.TypeToken;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -28,17 +30,19 @@ import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+import org.apache.commons.collections4.iterators.FilterIterator;
 
-public abstract class GenericAsanaObjectFetcher<T> extends PollableAsanaObjectFetcher {
+public abstract class GenericAsanaObjectFetcher<T extends Resource> extends PollableAsanaObjectFetcher {
     private static final String LAST_FINGERPRINTS = ".lastFingerprints";
 
     private Map<String, String> lastFingerprints;
@@ -90,26 +94,45 @@ public abstract class GenericAsanaObjectFetcher<T> extends PollableAsanaObjectFe
     }
 
     @Override
-    protected Collection<AsanaObject> poll() {
-        List<AsanaObject> pending = new ArrayList<>();
-        Map<String, T> currentObjects = refreshObjects();
+    protected Iterator<AsanaObject> poll() {
+        Stream<AsanaObject> currentObjects = refreshObjects()
+                .map(item -> {
+                    String payload = transformObjectToPayload(item);
+                    return new AsanaObject(
+                            lastFingerprints.containsKey(item.gid) ? AsanaObjectState.UPDATED : AsanaObjectState.NEW,
+                            item.gid,
+                            payload,
+                            Optional.ofNullable(createObjectFingerprint(item)).orElseGet(() -> calculateSecureHash(payload)));
+                });
 
-        lastFingerprints.keySet().stream()
-                .filter(gid -> !currentObjects.containsKey(gid))
-                .map(gid -> new AsanaObject(AsanaObjectState.REMOVED, gid, Json.getInstance().toJson(gid)))
-                .forEach(pending::add);
+        return new FilterIterator<>(
+                new Iterator<AsanaObject>() {
+                    Iterator<AsanaObject> it = currentObjects.iterator();
+                    Set<String> unseenIds = new HashSet<>(lastFingerprints.keySet()); // copy all previously seen ids.
 
-        for (Map.Entry<String, T> entry : currentObjects.entrySet()) {
-            String payload = transformObjectToPayload(entry.getValue());
-            String fingerprint = Optional.ofNullable(createObjectFingerprint(entry.getValue())).orElseGet(() -> calculateSecureHash(payload));
-            if (!lastFingerprints.containsKey(entry.getKey())) {
-                pending.add(new AsanaObject(AsanaObjectState.NEW, entry.getKey(), payload, fingerprint));
-            } else if (!lastFingerprints.get(entry.getKey()).equals(fingerprint)) {
-                pending.add(new AsanaObject(AsanaObjectState.UPDATED, entry.getKey(), payload, fingerprint));
-            }
-        }
+                    @Override
+                    public boolean hasNext() {
+                        return it.hasNext() || !unseenIds.isEmpty();
+                    }
 
-        return pending;
+                    @Override
+                    public AsanaObject next() {
+                        if (it.hasNext()) {
+                            AsanaObject next = it.next();
+                            unseenIds.remove(next.getGid());
+                            return next;
+                        }
+                        it = unseenIds.stream()
+                                .map(gid -> new AsanaObject(AsanaObjectState.REMOVED, gid,
+                                        Json.getInstance().toJson(gid)))
+                                .iterator();
+                        unseenIds = emptySet();
+                        return it.next();
+                    }
+                },
+                item -> !item.getState().equals(AsanaObjectState.UPDATED) || !lastFingerprints.get(item.getGid())
+                        .equals(item.getFingerprint())
+        );
     }
 
     protected String transformObjectToPayload(T object) {
@@ -120,7 +143,7 @@ public abstract class GenericAsanaObjectFetcher<T> extends PollableAsanaObjectFe
         return null;
     }
 
-    protected abstract Map<String, T> refreshObjects();
+    protected abstract Stream<T> refreshObjects();
 
     private static String compress(String str) throws IOException {
         ByteArrayOutputStream compressedBytes = new ByteArrayOutputStream(str.length());
