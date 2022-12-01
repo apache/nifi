@@ -109,7 +109,7 @@ public class StatelessNiFiSinkTaskIT {
         sinkTask.initialize(Mockito.mock(SinkTaskContext.class));
 
         final Map<String, String> properties = createDefaultProperties(testInfo);
-        properties.put(StatelessNiFiSinkConnector.FAILURE_PORTS, "Success, Failure");
+        properties.put(StatelessNiFiSinkConfig.FAILURE_PORTS, "Success, Failure");
         sinkTask.start(properties);
 
         final SinkRecord record = new SinkRecord("topic", 0, null, "key", null, "Hello World", 0L);
@@ -129,12 +129,12 @@ public class StatelessNiFiSinkTaskIT {
 
     private Map<String, String> createDefaultProperties(TestInfo testInfo) {
         final Map<String, String> properties = new HashMap<>();
-        properties.put(StatelessKafkaConnectorUtil.DATAFLOW_TIMEOUT, "30 sec");
-        properties.put(StatelessNiFiSinkConnector.INPUT_PORT_NAME, "In");
-        properties.put(StatelessKafkaConnectorUtil.FLOW_SNAPSHOT, "src/test/resources/flows/Write_To_File.json");
-        properties.put(StatelessKafkaConnectorUtil.NAR_DIRECTORY, "target/nifi-kafka-connector-bin/nars");
-        properties.put(StatelessKafkaConnectorUtil.WORKING_DIRECTORY, "target/nifi-kafka-connector-bin/working");
-        properties.put(StatelessKafkaConnectorUtil.DATAFLOW_NAME, testInfo.getTestMethod().get().getName());
+        properties.put(StatelessNiFiCommonConfig.DATAFLOW_TIMEOUT, "30 sec");
+        properties.put(StatelessNiFiSinkConfig.INPUT_PORT_NAME, "In");
+        properties.put(StatelessNiFiCommonConfig.FLOW_SNAPSHOT, "src/test/resources/flows/Write_To_File.json");
+        properties.put(StatelessNiFiCommonConfig.NAR_DIRECTORY, "target/nifi-kafka-connector-bin/nars");
+        properties.put(StatelessNiFiCommonConfig.WORKING_DIRECTORY, "target/nifi-kafka-connector-bin/working");
+        properties.put(StatelessNiFiCommonConfig.DATAFLOW_NAME, testInfo.getTestMethod().get().getName());
         return properties;
     }
 }

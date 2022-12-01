@@ -45,7 +45,7 @@ public class ConnectDirectoryExistsValidator implements ConfigDef.Validator {
         final File[] files = file.listFiles();
         if (files == null) {
             throw new ConfigException("The value " + value + " configured for the property " + name + " is not valid because could not obtain a listing of files in directory "
-                + file.getAbsolutePath());
+                    + file.getAbsolutePath());
         }
     }
 }
