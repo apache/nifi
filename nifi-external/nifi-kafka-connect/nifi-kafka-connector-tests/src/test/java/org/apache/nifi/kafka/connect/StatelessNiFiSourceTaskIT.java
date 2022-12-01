@@ -68,7 +68,7 @@ public class StatelessNiFiSourceTaskIT {
         sourceTask.initialize(createContext());
 
         final Map<String, String> properties = createDefaultProperties(testInfo);
-        properties.put(StatelessNiFiSourceConnector.KEY_ATTRIBUTE, "greeting");
+        properties.put(StatelessNiFiSourceConfig.KEY_ATTRIBUTE, "greeting");
         sourceTask.start(properties);
 
         final List<SourceRecord> sourceRecords = sourceTask.poll();
@@ -88,7 +88,7 @@ public class StatelessNiFiSourceTaskIT {
         sourceTask.initialize(createContext());
 
         final Map<String, String> properties = createDefaultProperties(testInfo);
-        properties.put(StatelessNiFiSourceConnector.TOPIC_NAME_ATTRIBUTE, "greeting");
+        properties.put(StatelessNiFiSourceConfig.TOPIC_NAME_ATTRIBUTE, "greeting");
         sourceTask.start(properties);
 
         final List<SourceRecord> sourceRecords = sourceTask.poll();
@@ -106,7 +106,7 @@ public class StatelessNiFiSourceTaskIT {
         sourceTask.initialize(createContext());
 
         final Map<String, String> properties = createDefaultProperties(testInfo);
-        properties.put(StatelessNiFiSourceConnector.HEADER_REGEX, "uuid|greeting|num.*");
+        properties.put(StatelessNiFiSourceConfig.HEADER_REGEX, "uuid|greeting|num.*");
         sourceTask.start(properties);
 
         final List<SourceRecord> sourceRecords = sourceTask.poll();
@@ -134,7 +134,7 @@ public class StatelessNiFiSourceTaskIT {
         sourceTask.initialize(createContext());
 
         final Map<String, String> properties = createDefaultProperties(testInfo);
-        properties.put(StatelessNiFiSourceConnector.OUTPUT_PORT_NAME, "Another");
+        properties.put(StatelessNiFiSourceConfig.OUTPUT_PORT_NAME, "Another");
         sourceTask.start(properties);
 
         assertThrows(RetriableException.class, () -> sourceTask.poll(), "Expected RetriableException to be thrown");
@@ -145,7 +145,7 @@ public class StatelessNiFiSourceTaskIT {
         final OffsetStorageReader offsetStorageReader = new OffsetStorageReader() {
             @Override
             public <T> Map<String, Object> offset(final Map<String, T> partition) {
-                if ("CLUSTER".equals(partition.get(StatelessNiFiSourceTask.STATE_MAP_KEY))) {
+                if ("CLUSTER".equals(partition.get(StatelessNiFiSourceConfig.STATE_MAP_KEY))) {
                     final String serializedStateMap = "{\"version\":4,\"stateValues\":{\"abc\":\"123\"}}";
                     return Collections.singletonMap("c6562d38-4994-3fcc-ac98-1da34de1916f", serializedStateMap);
                 }
@@ -163,7 +163,7 @@ public class StatelessNiFiSourceTaskIT {
         sourceTask.initialize(createContext(offsetStorageReader));
 
         final Map<String, String> properties = createDefaultProperties(testInfo);
-        properties.put(StatelessNiFiSourceConnector.OUTPUT_PORT_NAME, "Another");
+        properties.put(StatelessNiFiSourceConfig.OUTPUT_PORT_NAME, "Another");
         sourceTask.start(properties);
 
         final StatelessDataflow dataflow = sourceTask.getDataflow();
@@ -239,15 +239,15 @@ public class StatelessNiFiSourceTaskIT {
 
     private Map<String, String> createDefaultProperties(TestInfo testInfo) {
         final Map<String, String> properties = new HashMap<>();
-        properties.put(StatelessKafkaConnectorUtil.DATAFLOW_TIMEOUT, "30 sec");
-        properties.put(StatelessNiFiSourceConnector.OUTPUT_PORT_NAME, "Out");
-        properties.put(StatelessNiFiSourceConnector.TOPIC_NAME, "my-topic");
-        properties.put(StatelessNiFiSourceConnector.KEY_ATTRIBUTE, "kafka.key");
-        properties.put(StatelessKafkaConnectorUtil.FLOW_SNAPSHOT, "src/test/resources/flows/Generate_Data.json");
-        properties.put(StatelessKafkaConnectorUtil.NAR_DIRECTORY, "target/nifi-kafka-connector-bin/nars");
-        properties.put(StatelessKafkaConnectorUtil.WORKING_DIRECTORY, "target/nifi-kafka-connector-bin/working");
-        properties.put(StatelessKafkaConnectorUtil.DATAFLOW_NAME, testInfo.getTestMethod().get().getName());
-        properties.put(StatelessNiFiSourceTask.STATE_MAP_KEY, "1");
+        properties.put(StatelessNiFiCommonConfig.DATAFLOW_TIMEOUT, "30 sec");
+        properties.put(StatelessNiFiSourceConfig.OUTPUT_PORT_NAME, "Out");
+        properties.put(StatelessNiFiSourceConfig.TOPIC_NAME, "my-topic");
+        properties.put(StatelessNiFiSourceConfig.KEY_ATTRIBUTE, "kafka.key");
+        properties.put(StatelessNiFiCommonConfig.FLOW_SNAPSHOT, "src/test/resources/flows/Generate_Data.json");
+        properties.put(StatelessNiFiCommonConfig.NAR_DIRECTORY, "target/nifi-kafka-connector-bin/nars");
+        properties.put(StatelessNiFiCommonConfig.WORKING_DIRECTORY, "target/nifi-kafka-connector-bin/working");
+        properties.put(StatelessNiFiCommonConfig.DATAFLOW_NAME, testInfo.getTestMethod().get().getName());
+        properties.put(StatelessNiFiSourceConfig.STATE_MAP_KEY, "1");
 
         return properties;
     }

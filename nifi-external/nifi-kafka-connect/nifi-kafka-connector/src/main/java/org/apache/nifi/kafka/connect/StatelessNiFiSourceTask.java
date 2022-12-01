@@ -45,7 +45,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
 public class StatelessNiFiSourceTask extends SourceTask {
-    public static final String STATE_MAP_KEY = "task.index";
     private static final Logger logger = LoggerFactory.getLogger(StatelessNiFiSourceTask.class);
     private static final long FAILURE_YIELD_MILLIS = 1000L;
 
@@ -60,7 +59,7 @@ public class StatelessNiFiSourceTask extends SourceTask {
     private String dataflowName;
     private long failureYieldExpiration = 0L;
 
-    private final Map<String, String> clusterStatePartitionMap = Collections.singletonMap(STATE_MAP_KEY, "CLUSTER");
+    private final Map<String, String> clusterStatePartitionMap = Collections.singletonMap(StatelessNiFiSourceConfig.STATE_MAP_KEY, "CLUSTER");
     private Map<String, String> localStatePartitionMap = new HashMap<>();
 
     private final AtomicLong unacknowledgedRecords = new AtomicLong(0L);
@@ -72,28 +71,29 @@ public class StatelessNiFiSourceTask extends SourceTask {
 
     @Override
     public void start(final Map<String, String> properties) {
-        logger.info("Starting Source Task with properties {}", StatelessKafkaConnectorUtil.getLoggableProperties(properties));
+        logger.info("Starting Source Task");
+        StatelessNiFiSourceConfig config = createConfig(properties);
 
-        final String timeout = properties.getOrDefault(StatelessKafkaConnectorUtil.DATAFLOW_TIMEOUT, StatelessKafkaConnectorUtil.DEFAULT_DATAFLOW_TIMEOUT);
+        final String timeout = config.getDataflowTimeout();
         timeoutMillis = (long) FormatUtils.getPreciseTimeDuration(timeout, TimeUnit.MILLISECONDS);
 
-        topicName = properties.get(StatelessNiFiSourceConnector.TOPIC_NAME);
-        topicNameAttribute = properties.get(StatelessNiFiSourceConnector.TOPIC_NAME_ATTRIBUTE);
-        keyAttributeName = properties.get(StatelessNiFiSourceConnector.KEY_ATTRIBUTE);
+        topicName = config.getTopicName();
+        topicNameAttribute = config.getTopicNameAttribute();
+        keyAttributeName = config.getKeyAttribute();
 
         if (topicName == null && topicNameAttribute == null) {
             throw new ConfigException("Either the topic.name or topic.name.attribute configuration must be specified");
         }
 
-        final String headerRegex = properties.get(StatelessNiFiSourceConnector.HEADER_REGEX);
+        final String headerRegex = config.getHeaderRegex();
         headerAttributeNamePattern = headerRegex == null ? null : Pattern.compile(headerRegex);
 
-        dataflow = StatelessKafkaConnectorUtil.createDataflow(properties);
+        dataflow = StatelessKafkaConnectorUtil.createDataflow(config);
         dataflow.initialize();
 
         // Determine the name of the Output Port to retrieve data from
-        dataflowName = properties.get(StatelessKafkaConnectorUtil.DATAFLOW_NAME);
-        outputPortName = properties.get(StatelessNiFiSourceConnector.OUTPUT_PORT_NAME);
+        dataflowName = config.getDataflowName();
+        outputPortName = config.getOutputPortName();
         if (outputPortName == null) {
             final Set<String> outputPorts = dataflow.getOutputPortNames();
             if (outputPorts.isEmpty()) {
@@ -103,14 +103,14 @@ public class StatelessNiFiSourceTask extends SourceTask {
 
             if (outputPorts.size() > 1) {
                 throw new ConfigException("The dataflow specified for <" + dataflowName + "> has multiple Output Ports at the root level (" + outputPorts.toString()
-                    + "). The " + StatelessNiFiSourceConnector.OUTPUT_PORT_NAME + " property must be set to indicate which of these Ports Kafka records should be retrieved from.");
+                    + "). The " + StatelessNiFiSourceConfig.OUTPUT_PORT_NAME + " property must be set to indicate which of these Ports Kafka records should be retrieved from.");
             }
 
             outputPortName = outputPorts.iterator().next();
         }
 
-        final String taskIndex = properties.get(STATE_MAP_KEY);
-        localStatePartitionMap.put(STATE_MAP_KEY, taskIndex);
+        final String taskIndex = config.getStateMapKey();
+        localStatePartitionMap.put(StatelessNiFiSourceConfig.STATE_MAP_KEY, taskIndex);
 
         final Map<String, String> localStateMap = (Map<String, String>) (Map) context.offsetStorageReader().offset(localStatePartitionMap);
         final Map<String, String> clusterStateMap = (Map<String, String>) (Map) context.offsetStorageReader().offset(clusterStatePartitionMap);
@@ -203,6 +203,15 @@ public class StatelessNiFiSourceTask extends SourceTask {
         }
 
         return sourceRecords;
+    }
+
+    /**
+     * Creates a config instance to be used by the task.
+     * @param properties
+     * @return
+     */
+    protected StatelessNiFiSourceConfig createConfig(Map<String, String> properties) {
+        return new StatelessNiFiSourceConfig(properties);
     }
 
     private void verifyFlowFilesTransferredToProperPort(final TriggerResult triggerResult, final String expectedPortName, final DataflowTrigger trigger) {

@@ -35,9 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -66,23 +64,26 @@ public class StatelessNiFiSinkTask extends SinkTask {
 
     @Override
     public void start(final Map<String, String> properties) {
-        logger.info("Starting Sink Task with properties {}", StatelessKafkaConnectorUtil.getLoggableProperties(properties));
+        logger.info("Starting Sink Task");
+        StatelessNiFiSinkConfig config = createConfig(properties);
 
-        final String timeout = properties.getOrDefault(StatelessKafkaConnectorUtil.DATAFLOW_TIMEOUT, StatelessKafkaConnectorUtil.DEFAULT_DATAFLOW_TIMEOUT);
+        final String timeout = config.getDataflowTimeout();
         timeoutMillis = (long) FormatUtils.getPreciseTimeDuration(timeout, TimeUnit.MILLISECONDS);
 
-        dataflowName = properties.get(StatelessKafkaConnectorUtil.DATAFLOW_NAME);
+        dataflowName = config.getDataflowName();
 
-        final String regex = properties.get(StatelessNiFiSinkConnector.HEADERS_AS_ATTRIBUTES_REGEX);
+        final String regex = config.getHeadersAsAttributesRegex();
         headerNameRegex = regex == null ? null : Pattern.compile(regex);
-        headerNamePrefix = properties.getOrDefault(StatelessNiFiSinkConnector.HEADER_ATTRIBUTE_NAME_PREFIX, "");
+        headerNamePrefix = config.getHeaderAttributeNamePrefix();
+        if (headerNamePrefix == null) {
+            headerNamePrefix = "";
+        }
 
-        dataflow = StatelessKafkaConnectorUtil.createDataflow(properties);
+        dataflow = StatelessKafkaConnectorUtil.createDataflow(config);
         dataflow.initialize();
 
         // Determine input port name. If input port is explicitly set, use the value given. Otherwise, if only one port exists, use that. Otherwise, throw ConfigException.
-        final String dataflowName = properties.get(StatelessKafkaConnectorUtil.DATAFLOW_NAME);
-        inputPortName = properties.get(StatelessNiFiSinkConnector.INPUT_PORT_NAME);
+        inputPortName = config.getInputPortName();
         if (inputPortName == null) {
             final Set<String> inputPorts = dataflow.getInputPortNames();
             if (inputPorts.isEmpty()) {
@@ -92,7 +93,7 @@ public class StatelessNiFiSinkTask extends SinkTask {
 
             if (inputPorts.size() > 1) {
                 throw new ConfigException("The dataflow specified for <" + dataflowName + "> has multiple Input Ports at the root level (" + inputPorts.toString()
-                    + "). The " + StatelessNiFiSinkConnector.INPUT_PORT_NAME + " property must be set to indicate which of these Ports Kafka records should be sent to.");
+                    + "). The " + StatelessNiFiSinkConfig.INPUT_PORT_NAME + " property must be set to indicate which of these Ports Kafka records should be sent to.");
             }
 
             inputPortName = inputPorts.iterator().next();
@@ -105,18 +106,7 @@ public class StatelessNiFiSinkTask extends SinkTask {
         }
 
         // Determine the failure Ports, if any are given.
-        final String failurePortList = properties.get(StatelessNiFiSinkConnector.FAILURE_PORTS);
-        if (failurePortList == null || failurePortList.trim().isEmpty()) {
-            failurePortNames = Collections.emptySet();
-        } else {
-            failurePortNames = new HashSet<>();
-
-            final String[] names = failurePortList.split(",");
-            for (final String name : names) {
-                final String trimmed = name.trim();
-                failurePortNames.add(trimmed);
-            }
-        }
+        failurePortNames = config.getFailurePorts();
 
         // Validate the failure ports
         final Set<String> outputPortNames = dataflow.getOutputPortNames();
@@ -138,6 +128,15 @@ public class StatelessNiFiSinkTask extends SinkTask {
 
             queueSize = dataflow.enqueue(contents, attributes, inputPortName);
         }
+    }
+
+    /**
+     * Creates a config instance to be used by the task.
+     * @param properties
+     * @return
+     */
+    protected StatelessNiFiSinkConfig createConfig(Map<String, String> properties) {
+        return new StatelessNiFiSinkConfig(properties);
     }
 
     private void backoff() {
