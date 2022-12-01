@@ -2015,9 +2015,11 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             final RegisteredFlowSnapshot flowSnapshot = getFlowFromRegistry(versionControlInfo);
 
             // Step 3: Enrich version control info came from UI
-            if (flowSnapshot.getFlowContents() != null && flowSnapshot.getFlowContents().getVersionedFlowCoordinates() != null) {
+            if (flowSnapshot.getFlowContents() != null) {
                 final VersionedFlowCoordinates versionedFlowCoordinates = flowSnapshot.getFlowContents().getVersionedFlowCoordinates();
-                flowSnapshot.getFlowContents().getVersionedFlowCoordinates().setStorageLocation(versionedFlowCoordinates.getStorageLocation());
+                if (versionedFlowCoordinates != null) {
+                    versionControlInfo.setStorageLocation(versionedFlowCoordinates.getStorageLocation());
+                }
             }
 
             // Step 4: Resolve Bundle info
