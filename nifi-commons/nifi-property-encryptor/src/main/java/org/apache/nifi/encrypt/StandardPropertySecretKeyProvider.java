@@ -42,7 +42,7 @@ class StandardPropertySecretKeyProvider implements PropertySecretKeyProvider {
 
     private static final int MINIMUM_PASSWORD_LENGTH = 12;
 
-    private static final String PASSWORD_LENGTH_MESSAGE = String.format("Key Password length less than required [%d]", MINIMUM_PASSWORD_LENGTH);
+    private static final String PASSWORD_LENGTH_MESSAGE = String.format("The Key Password provided is shorter than the required [%d] characters", MINIMUM_PASSWORD_LENGTH);
 
     private static final String SECRET_KEY_ALGORITHM = "AES";
 

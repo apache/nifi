@@ -28,7 +28,7 @@ import picocli.CommandLine;
 import java.io.IOException;
 
 @CommandLine.Command(name = "config",
-        description = "Operate on application configs (nifi.properties etc)",
+        description = "Operate on application configs (nifi.properties, login-identity-providers.xml etc)",
         usageHelpWidth=140
 )
 class ConfigSubcommand extends BaseCommandParameters implements Runnable {
@@ -50,7 +50,7 @@ class ConfigSubcommand extends BaseCommandParameters implements Runnable {
         if (parent instanceof PropertyEncryptorEncrypt) {
             encryptConfiguration(propertyEncryptorCommand);
         } else if (parent instanceof PropertyEncryptorDecrypt) {
-            logger.info(RUN_LOG_MESSAGE, DECRYPT, baseDirectory);
+            decryptConfiguration(propertyEncryptorCommand);
         } else if (parent instanceof PropertyEncryptorMigrate) {
             logger.info(RUN_LOG_MESSAGE, MIGRATE, baseDirectory);
         }
@@ -64,6 +64,17 @@ class ConfigSubcommand extends BaseCommandParameters implements Runnable {
             propertyEncryptorCommand.outputKeyToBootstrap();
         } catch (IOException e) {
             logger.error("Encrypting configuration files has failed due to: ", e);
+        }
+    }
+
+    private void decryptConfiguration(final PropertyEncryptorCommand propertyDecryptorCommand) {
+        logger.info(RUN_LOG_MESSAGE, DECRYPT, baseDirectory);
+        propertyDecryptorCommand.decryptXmlConfigurationFiles(baseDirectory, scheme);
+        try {
+            propertyDecryptorCommand.decryptPropertiesFile(scheme);
+            propertyDecryptorCommand.outputKeyToBootstrap();
+        } catch (IOException e) {
+            logger.error("Decrypting configuration files has failed due to: ", e);
         }
     }
 }

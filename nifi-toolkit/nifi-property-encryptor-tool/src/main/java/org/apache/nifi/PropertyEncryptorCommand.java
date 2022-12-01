@@ -30,6 +30,7 @@ import org.apache.nifi.properties.PropertiesLoader;
 import org.apache.nifi.properties.ProtectedPropertyContext;
 import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
+import org.apache.nifi.properties.StandardReadableProperties;
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory;
 import org.apache.nifi.properties.scheme.ProtectionScheme;
 import org.apache.nifi.registry.properties.NiFiRegistryPropertiesLoader;
@@ -37,6 +38,7 @@ import org.apache.nifi.registry.properties.util.NiFiRegistryBootstrapPropertiesL
 import org.apache.nifi.security.util.KeyDerivationFunction;
 import org.apache.nifi.security.util.crypto.SecureHasherFactory;
 import org.apache.nifi.serde.StandardPropertiesWriter;
+import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.util.NiFiBootstrapPropertiesLoader;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.ConfigurationFileResolver;
@@ -72,8 +74,6 @@ public class PropertyEncryptorCommand {
     private final List<File> configurationFiles;
     private String inputHexKey;
     private String outputHexKey;
-    private String inputSensitivePropertyKey;
-    private String outputSensitivePropertyKey;
     private final Path confDirectory;
     private final ApplicationProperties properties;
     private final File applicationPropertiesFile;
@@ -89,8 +89,12 @@ public class PropertyEncryptorCommand {
             properties = propertiesLoader.load(applicationPropertiesFile);
             configurationFiles = fileResolver.resolveFilesFromApplicationProperties(properties);
             sensitivePropertyResolver = getSensitivePropertyResolver(confDirectory);
-            inputHexKey = getExistingRootKey(confDirectory, passphrase);
-            outputHexKey = deriveOutputKey(passphrase);
+            inputHexKey = getExistingRootKey(confDirectory).isEmpty() ? deriveKeyFromPassphrase(passphrase) : getExistingRootKey(confDirectory);
+            outputHexKey = deriveKeyFromPassphrase(passphrase);
+            /** What should happen with keys
+             * If not encrypted, derive a key from the passphrase and insert this into the bootstrap
+             * If encrypted, load the existing key to decrypt, and derive a new key from password
+             */
             outputDirectory = ConfigurationFileUtils.getOutputDirectory(baseDirectory);
             logger.info("Output directory created at [{}]", outputDirectory.toAbsolutePath());
         } catch (final Exception e) {
@@ -105,7 +109,6 @@ public class PropertyEncryptorCommand {
         XmlEncryptor encryptor = getXmlEncryptor(scheme);
         try {
             encryptXmlConfigurationFiles(configurationFiles, encryptor);
-            logger.info("The Property Encryptor successfully encrypted configuration files in the [{}] directory with the scheme [{}]", baseDirectory, scheme.getPath());
         } catch (Exception e) {
             logger.error("The Property Encryptor failed to encrypt configuration files in the [{}] directory with the scheme [{}]", baseDirectory, scheme.getPath(), e);
         }
@@ -123,10 +126,44 @@ public class PropertyEncryptorCommand {
             }
         }
 
-        final File outputPropertiesFile = ConfigurationFileUtils.getOutputFile(outputDirectory, applicationPropertiesFile);
-        try (FileInputStream inputStream = new FileInputStream(applicationPropertiesFile);
-             FileOutputStream outputStream = new FileOutputStream(outputPropertiesFile)) {
-            new StandardPropertiesWriter().writePropertiesFile(inputStream, outputStream, encryptedProperties);
+        writePropertiesToOutputDirectory(encryptedProperties, applicationPropertiesFile);
+    }
+
+    public void decryptXmlConfigurationFiles(final Path baseDirectory, final ProtectionScheme scheme) {
+        XmlDecryptor decryptor = getXmlDecryptor(scheme);
+        try {
+            decryptXmlConfigurationFiles(configurationFiles, decryptor);
+            logger.info("The Property Decryptor successfully decrypted configuration files in the [{}] directory with the scheme [{}]", baseDirectory, scheme.getPath());
+        } catch (Exception e) {
+            logger.error("The Property Decryptor failed to decrypt configuration files in the [{}] directory with the scheme [{}]", baseDirectory, scheme.getPath(), e);
+        }
+    }
+
+    public void decryptPropertiesFile(final ProtectionScheme scheme) throws IOException {
+        List<String> sensitivePropertyKeys = sensitivePropertyResolver.resolveSensitivePropertyKeys(properties);
+        final MutableApplicationProperties decryptedProperties = new MutableApplicationProperties(new Properties());
+        final SensitivePropertyProvider provider = StandardSensitivePropertyProviderFactory.withKey(inputHexKey).getProvider(scheme);
+
+        for (String key : sensitivePropertyKeys) {
+            if (properties.getProperty(key) != null) {
+                String decryptedValue = provider.unprotect(properties.getProperty(key), ProtectedPropertyContext.defaultContext(key));
+                decryptedProperties.setProperty(key, decryptedValue);
+            }
+        }
+
+        writePropertiesToOutputDirectory(decryptedProperties, applicationPropertiesFile);
+    }
+
+    private void decryptXmlConfigurationFiles(final List<File> configurationFiles, final XmlDecryptor decryptor) {
+        for (final File configurationFile : configurationFiles) {
+            File outputFile = ConfigurationFileUtils.getOutputFile(outputDirectory, configurationFile);
+            try (InputStream inputStream = new FileInputStream(configurationFile);
+                 FileOutputStream outputStream = new FileOutputStream(outputFile)) {
+                decryptor.decrypt(inputStream, outputStream);
+                logger.info("Successfully decrypted file at [{}], and output to [{}]", configurationFile.getAbsolutePath(), outputFile.getAbsolutePath());
+            } catch (Exception e) {
+                throw new PropertyEncryptorException(String.format("Failed to decrypt configuration file: [%s]", configurationFile.getAbsolutePath()), e);
+            }
         }
     }
 
@@ -162,28 +199,23 @@ public class PropertyEncryptorCommand {
                 try {
                     File output = ConfigurationFileUtils.getOutputFile(outputDirectory, absoluteFlowDefinition);
                     try (InputStream inputStream = new GZIPInputStream(new FileInputStream(absoluteFlowDefinition));
-                         FileOutputStream outputStream = new FileOutputStream(output)) {
+                         GZIPOutputStream outputStream = new GZIPOutputStream(new FileOutputStream(output))) {
                         flowEncryptor.processFlow(inputStream, outputStream, inputEncryptor, outputEncryptor);
                     }
                 } catch (IOException e) {
-                    logger.error("Failed to encrypt flow definition file: [{}]", flow.getAbsolutePath(), e);
+                    logger.error("Failed to encrypt flow definition file: [{}]", absoluteFlowDefinition.getAbsolutePath(), e);
                 }
             }
         }
     }
 
     public void outputSensitiveProperties(final PropertyEncryptionMethod algorithm, final String sensitivePropertyKey) {
-        final File outputPropertiesFile = ConfigurationFileUtils.getOutputFile(outputDirectory, applicationPropertiesFile);
         final MutableApplicationProperties updatedProperties = new MutableApplicationProperties(new Properties());
         updatedProperties.setProperty(NiFiProperties.SENSITIVE_PROPS_KEY, sensitivePropertyKey);
         updatedProperties.setProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM, algorithm.name());
 
         try {
-            try (InputStream inputStream = new FileInputStream(applicationPropertiesFile);
-                 FileOutputStream outputStream = new FileOutputStream(outputPropertiesFile)) {
-                new StandardPropertiesWriter().writePropertiesFile(inputStream, outputStream, updatedProperties);
-            }
-            logger.info("Output sensitive properties key to {}", applicationPropertiesFile.getAbsolutePath());
+            writePropertiesToOutputDirectory(updatedProperties, applicationPropertiesFile);
         } catch (IOException e) {
             logger.error("Failed to output sensitive property keys after encrypting flow", e);
         }
@@ -191,14 +223,9 @@ public class PropertyEncryptorCommand {
 
     public void outputKeyToBootstrap() throws IOException {
         final File bootstrapFile = bootstrapLoader.getBootstrapFileWithinConfDirectory(confDirectory);
-        final File outputBootstrapFile = ConfigurationFileUtils.getOutputFile(outputDirectory, bootstrapFile);
         final MutableBootstrapProperties bootstrapProperties = bootstrapLoader.loadMutableBootstrapProperties(bootstrapFile.getPath());
         bootstrapProperties.setProperty(BootstrapProperties.BootstrapPropertyKey.SENSITIVE_KEY.getKey(), outputHexKey);
-        try (InputStream inputStream = new FileInputStream(bootstrapFile);
-             FileOutputStream outputStream = new FileOutputStream(outputBootstrapFile)) {
-            new StandardPropertiesWriter().writePropertiesFile(inputStream, outputStream, bootstrapProperties);
-            logger.info("Output the bootstrap key to {}", outputBootstrapFile);
-        }
+        writePropertiesToOutputDirectory(bootstrapProperties, bootstrapFile);
     }
 
     private XmlEncryptor getXmlEncryptor(final ProtectionScheme scheme) {
@@ -206,11 +233,12 @@ public class PropertyEncryptorCommand {
         return new XmlEncryptor(providerFactory, scheme);
     }
 
-    private XmlDecryptor getXmlDecryptor(final SensitivePropertyProviderFactory providerFactory, final ProtectionScheme scheme) {
+    private XmlDecryptor getXmlDecryptor(final ProtectionScheme scheme) {
+        final SensitivePropertyProviderFactory providerFactory = StandardSensitivePropertyProviderFactory.withKey(inputHexKey);
         return new XmlDecryptor(providerFactory, scheme);
     }
 
-    private String getExistingRootKey(final Path confDirectory, final String passphrase) {
+    private String getExistingRootKey(final Path confDirectory) {
         String encodedRootKey;
 
         try {
@@ -223,7 +251,7 @@ public class PropertyEncryptorCommand {
         return encodedRootKey;
     }
 
-    private String deriveOutputKey(final String passphrase) {
+    private String deriveKeyFromPassphrase(final String passphrase) {
         try {
             return SecureHasherFactory.getSecureHasher(KeyDerivationFunction.SCRYPT.getKdfName()).hashHex(passphrase).toUpperCase();
         } catch (Exception e) {
@@ -277,5 +305,14 @@ public class PropertyEncryptorCommand {
 
     private String getSensitivePropertyEncryptionAlgorithm() {
         return properties.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM, "");
+    }
+
+    private void writePropertiesToOutputDirectory(final StandardReadableProperties properties, final File inputPropertiesFile) throws IOException {
+        final File outputPropertiesFile = ConfigurationFileUtils.getOutputFile(outputDirectory, inputPropertiesFile);
+        try (FileInputStream inputStream = new FileInputStream(inputPropertiesFile);
+             FileOutputStream outputStream = new FileOutputStream(outputPropertiesFile)) {
+            new StandardPropertiesWriter().writePropertiesFile(inputStream, outputStream, properties);
+            logger.info("Output properties {} to {}", properties.getPropertyKeys(), outputPropertiesFile.getAbsolutePath());
+        }
     }
 }

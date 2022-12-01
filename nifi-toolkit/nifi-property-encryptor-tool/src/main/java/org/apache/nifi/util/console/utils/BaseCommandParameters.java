@@ -24,7 +24,7 @@ public class BaseCommandParameters {
     protected static final String DECRYPT = "decrypt";
     protected static final String ENCRYPT = "encrypt";
     protected static final String MIGRATE = "migrate";
-    protected static final String RUN_LOG_MESSAGE = "The property encryptor is running to [{}] configuration files in [{}]";
+    protected static final String RUN_LOG_MESSAGE = "The property encryptor is running to [{}] configuration files from [{}]";
 
     @CommandLine.Parameters(description="The base directory of NiFi/NiFi Registry/MiNiFi which contains the 'conf' directory (eg. /var/lib/nifi)")
     protected Path baseDirectory;

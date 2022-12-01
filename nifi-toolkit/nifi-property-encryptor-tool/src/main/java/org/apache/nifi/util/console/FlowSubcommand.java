@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "flow",
-        description = "Operate on flow definition (flow.xml)",
+        description = "Operate on flow definition (flow.xml.gz/flow.json.gz)",
         usageHelpWidth=140
 )
 class FlowSubcommand extends BaseCommandParameters implements Runnable {

@@ -49,4 +49,10 @@ public class StandardProtectionSchemeResolver implements ProtectionSchemeResolve
                 .map(PropertyProtectionScheme::name)
                 .collect(Collectors.toList());
     }
+
+    public List<String> getSupportedProtectionSchemePaths() {
+        return Arrays.stream(PropertyProtectionScheme.values())
+                .map(PropertyProtectionScheme::getPath)
+                .collect(Collectors.toList());
+    }
 }
