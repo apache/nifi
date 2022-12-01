@@ -18,6 +18,9 @@ package org.apache.nifi.kafka.shared.property;
 
 import org.apache.nifi.components.DescribedValue;
 
+import java.util.Arrays;
+import java.util.Optional;
+
 /**
  * Enumeration of supported Kafka SASL Mechanisms
  */
@@ -40,6 +43,13 @@ public enum SaslMechanism implements DescribedValue {
         this.value = value;
         this.displayName = displayName;
         this.description = description;
+    }
+
+    public static SaslMechanism getSaslMechanism(final String value) {
+        final Optional<SaslMechanism> foundSaslMechanism = Arrays.stream(SaslMechanism.values())
+                .filter(saslMechanism -> saslMechanism.getValue().equals(value))
+                .findFirst();
+        return foundSaslMechanism.orElseThrow(() -> new IllegalArgumentException(String.format("SaslMechanism value [%s] not found", value)));
     }
 
     @Override
