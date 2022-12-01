@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-toolkit</artifactId>
-        <version>1.19.1</version>
+        <version>1.19.2-SNAPSHOT</version>
     </parent>
     <properties>
         <curator.version>5.4.0</curator.version>
