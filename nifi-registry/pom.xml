@@ -43,6 +43,7 @@
         <groovy.eclipse.compiler.version>3.4.0-01</groovy.eclipse.compiler.version>
         <jaxb.version>2.3.2</jaxb.version>
         <jgit.version>5.13.1.202206130422-r</jgit.version>
+        <org.apache.sshd.version>2.9.2</org.apache.sshd.version>
     </properties>
 
     <dependencyManagement>
@@ -240,6 +241,17 @@
                         <artifactId>jcl-over-slf4j</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <!-- Override transitive SSHD version from JGit -->
+            <dependency>
+                <groupId>org.apache.sshd</groupId>
+                <artifactId>sshd-osgi</artifactId>
+                <version>${org.apache.sshd.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.sshd</groupId>
+                <artifactId>sshd-sftp</artifactId>
+                <version>${org.apache.sshd.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

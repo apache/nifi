@@ -970,6 +970,8 @@
                                         <exclude>org.bouncycastle:bcpkix-jdk15on</exclude>
                                         <exclude>org.bouncycastle:bcutil-jdk15on</exclude>
                                         <exclude>org.bouncycastle:bcmail-jdk15on</exclude>
+                                        <!-- Exclude SSHD 2.9.1 and earlier due to CVE-2022-45047 -->
+                                        <exclude>org.apache.sshd:*:[,2.9.1]</exclude>
                                     </excludes>
                                     <includes>
                                         <!-- Versions of JSR305 after 3.0.1 are allowed https://github.com/findbugsproject/findbugs/issues/128 -->
