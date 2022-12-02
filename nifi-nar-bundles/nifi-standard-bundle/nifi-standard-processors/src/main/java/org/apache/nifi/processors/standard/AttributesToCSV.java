@@ -271,7 +271,7 @@ public class AttributesToCSV extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(ProcessContext context) {
         includeCoreAttributes = context.getProperty(INCLUDE_CORE_ATTRIBUTES).asBoolean();
-        coreAttributes = Arrays.stream(CoreAttributes.values()).map(CoreAttributes::key).collect(Collectors.toSet());
+        coreAttributes = Arrays.stream(CoreAttributes.values()).map(CoreAttributes::key).collect(Collectors.toCollection(LinkedHashSet::new));
         destinationContent = OUTPUT_OVERWRITE_CONTENT.getValue().equals(context.getProperty(DESTINATION).getValue());
         nullValForEmptyString = context.getProperty(NULL_VALUE_FOR_EMPTY_STRING).asBoolean();
         includeSchema = context.getProperty(INCLUDE_SCHEMA).asBoolean();
