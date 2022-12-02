@@ -92,7 +92,7 @@ public class StatelessNiFiSinkTask extends SinkTask {
             }
 
             if (inputPorts.size() > 1) {
-                throw new ConfigException("The dataflow specified for <" + dataflowName + "> has multiple Input Ports at the root level (" + inputPorts.toString()
+                throw new ConfigException("The dataflow specified for <" + dataflowName + "> has multiple Input Ports at the root level (" + inputPorts
                     + "). The " + StatelessNiFiSinkConfig.INPUT_PORT_NAME + " property must be set to indicate which of these Ports Kafka records should be sent to.");
             }
 
@@ -132,8 +132,8 @@ public class StatelessNiFiSinkTask extends SinkTask {
 
     /**
      * Creates a config instance to be used by the task.
-     * @param properties
-     * @return
+     * @param properties The properties to use in the config.
+     * @return The config instance.
      */
     protected StatelessNiFiSinkConfig createConfig(Map<String, String> properties) {
         return new StatelessNiFiSinkConfig(properties);

@@ -76,7 +76,7 @@ public class StatelessNiFiSinkConfig extends StatelessNiFiCommonConfig {
 
   /**
    * Add the flow definition related common configs to a config definition.
-   * @param configDef
+   * @param configDef The config def to extend.
    */
   protected static void addFlowConfigs(ConfigDef configDef) {
     StatelessNiFiCommonConfig.addFlowConfigElements(configDef);
@@ -91,7 +91,7 @@ public class StatelessNiFiSinkConfig extends StatelessNiFiCommonConfig {
 
   /**
    * Add sink configs to a config definition.
-   * @param configDef
+   * @param configDef The config def to extend.
    */
   protected static void addSinkConfigs(ConfigDef configDef) {
     configDef.define(

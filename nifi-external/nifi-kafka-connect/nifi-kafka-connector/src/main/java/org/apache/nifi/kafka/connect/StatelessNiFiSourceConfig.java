@@ -76,7 +76,7 @@ public class StatelessNiFiSourceConfig extends StatelessNiFiCommonConfig {
 
   /**
    * Add the flow definition related common configs to a config definition.
-   * @param configDef
+   * @param configDef The config def to extend.
    */
   protected static void addFlowConfigs(ConfigDef configDef) {
     StatelessNiFiCommonConfig.addFlowConfigElements(configDef);
@@ -87,7 +87,7 @@ public class StatelessNiFiSourceConfig extends StatelessNiFiCommonConfig {
 
   /**
    * Add sink configs to a config definition.
-   * @param configDef
+   * @param configDef The config def to extend.
    */
   protected static void addSourceConfigs(ConfigDef configDef) {
     configDef.define(
@@ -97,11 +97,14 @@ public class StatelessNiFiSourceConfig extends StatelessNiFiCommonConfig {
     configDef.define(
         StatelessNiFiSourceConfig.TOPIC_NAME_ATTRIBUTE, ConfigDef.Type.STRING, null, ConfigDef.Importance.MEDIUM,
         "Specifies the name of a FlowFile attribute to use for determining which Kafka Topic a FlowFile"
-            + " will be sent to. Either the " + StatelessNiFiSourceConfig.TOPIC_NAME + " or " + StatelessNiFiSourceConfig.TOPIC_NAME_ATTRIBUTE + " configuration must be specified. If both are specified, the " + StatelessNiFiSourceConfig.TOPIC_NAME_ATTRIBUTE
-            + " will be preferred, but if a FlowFile does not have the specified attribute name, then the " + StatelessNiFiSourceConfig.TOPIC_NAME + " property will serve as the default topic name to use.",
+            + " will be sent to. Either the " + StatelessNiFiSourceConfig.TOPIC_NAME + " or " + StatelessNiFiSourceConfig.TOPIC_NAME_ATTRIBUTE +
+            " configuration must be specified. If both are specified, the " + StatelessNiFiSourceConfig.TOPIC_NAME_ATTRIBUTE
+            + " will be preferred, but if a FlowFile does not have the specified attribute name, then the " + StatelessNiFiSourceConfig.TOPIC_NAME +
+            " property will serve as the default topic name to use.",
         RECORD_GROUP, 1, ConfigDef.Width.NONE, "Topic name attribute");
 
-    configDef.define(StatelessNiFiSourceConfig.KEY_ATTRIBUTE, ConfigDef.Type.STRING, null, ConfigDef.Importance.MEDIUM, "Specifies the name of a FlowFile attribute to use for determining the Kafka Message key. If not"
+    configDef.define(StatelessNiFiSourceConfig.KEY_ATTRIBUTE, ConfigDef.Type.STRING, null, ConfigDef.Importance.MEDIUM,
+        "Specifies the name of a FlowFile attribute to use for determining the Kafka Message key. If not"
             + " specified, the message key will be null. If specified, the value of the attribute with the given name will be used as the message key.",
         RECORD_GROUP, 100, ConfigDef.Width.NONE, "Record key attribute");
 

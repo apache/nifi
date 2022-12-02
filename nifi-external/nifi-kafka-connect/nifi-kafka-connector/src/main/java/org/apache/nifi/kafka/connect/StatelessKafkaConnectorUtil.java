@@ -229,7 +229,9 @@ public class StatelessKafkaConnectorUtil {
     private static URLClassLoader getConnectClassLoader() {
         final ClassLoader classLoader = StatelessKafkaConnectorUtil.class.getClassLoader();
         if (!(classLoader instanceof URLClassLoader)) {
-            throw new IllegalStateException("No configuration value was set for the " + StatelessNiFiCommonConfig.NAR_DIRECTORY + " configuration property, and was unable to determine the NAR directory automatically");
+            throw new IllegalStateException("No configuration value was set for the " +
+                StatelessNiFiCommonConfig.NAR_DIRECTORY +
+                " configuration property, and was unable to determine the NAR directory automatically");
         }
 
         return (URLClassLoader) classLoader;
@@ -256,8 +258,11 @@ public class StatelessKafkaConnectorUtil {
         final File bootstrapJar = detectBootstrapJar();
         if (bootstrapJar == null) {
             final URLClassLoader urlClassLoader = getConnectClassLoader();
-            logger.error("ClassLoader that loaded Stateless Kafka Connector did not contain nifi-stateless-bootstrap. URLs that were present: {}", Arrays.asList(urlClassLoader.getURLs()));
-            throw new IllegalStateException("No configuration value was set for the " + StatelessNiFiCommonConfig.NAR_DIRECTORY + " configuration property, and was unable to determine the NAR directory automatically");
+            logger.error("ClassLoader that loaded Stateless Kafka Connector did not contain nifi-stateless-bootstrap." +
+                " URLs that were present: {}", Arrays.asList(urlClassLoader.getURLs()));
+            throw new IllegalStateException("No configuration value was set for the " +
+                StatelessNiFiCommonConfig.NAR_DIRECTORY +
+                " configuration property, and was unable to determine the NAR directory automatically");
         }
 
         final File narDirectory = bootstrapJar.getParentFile();

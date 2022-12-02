@@ -77,8 +77,8 @@ public class StatelessNiFiSourceConnector extends SourceConnector {
 
     /**
      * Creates a config instance to be used by the Connector.
-     * @param properties
-     * @return
+     * @param properties Properties to use in the config.
+     * @return The config instance.
      */
     protected StatelessNiFiSourceConfig createConfig(Map<String, String> properties) {
         return new StatelessNiFiSourceConfig(properties);

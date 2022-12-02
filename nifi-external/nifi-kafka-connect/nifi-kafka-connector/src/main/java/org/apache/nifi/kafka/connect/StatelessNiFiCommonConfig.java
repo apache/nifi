@@ -203,7 +203,7 @@ public abstract class StatelessNiFiCommonConfig extends AbstractConfig {
 
   /**
    * Adds the flow definition related common configs to a config definition.
-   * @param configDef
+   * @param configDef The config def to extend.
    */
   protected static void addFlowConfigElements(final ConfigDef configDef) {
     configDef.define(FLOW_SNAPSHOT, ConfigDef.Type.STRING, null, new FlowSnapshotValidator(), ConfigDef.Importance.HIGH,
@@ -213,7 +213,7 @@ public abstract class StatelessNiFiCommonConfig extends AbstractConfig {
 
   /**
    * Adds the directory, NAR, kerberos and TLS common configs to a config definition.
-   * @param configDef
+   * @param configDef The config def to extend.
    */
   protected static void addCommonConfigElements(final ConfigDef configDef) {
     configDef.define(NAR_DIRECTORY, ConfigDef.Type.STRING, null, new ConnectDirectoryExistsValidator(), ConfigDef.Importance.HIGH,

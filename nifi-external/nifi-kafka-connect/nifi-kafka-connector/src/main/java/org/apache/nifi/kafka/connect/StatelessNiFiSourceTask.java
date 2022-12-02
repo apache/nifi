@@ -102,7 +102,7 @@ public class StatelessNiFiSourceTask extends SourceTask {
             }
 
             if (outputPorts.size() > 1) {
-                throw new ConfigException("The dataflow specified for <" + dataflowName + "> has multiple Output Ports at the root level (" + outputPorts.toString()
+                throw new ConfigException("The dataflow specified for <" + dataflowName + "> has multiple Output Ports at the root level (" + outputPorts
                     + "). The " + StatelessNiFiSourceConfig.OUTPUT_PORT_NAME + " property must be set to indicate which of these Ports Kafka records should be retrieved from.");
             }
 
@@ -207,8 +207,8 @@ public class StatelessNiFiSourceTask extends SourceTask {
 
     /**
      * Creates a config instance to be used by the task.
-     * @param properties
-     * @return
+     * @param properties The properties to use in the config.
+     * @return The config instance.
      */
     protected StatelessNiFiSourceConfig createConfig(Map<String, String> properties) {
         return new StatelessNiFiSourceConfig(properties);
