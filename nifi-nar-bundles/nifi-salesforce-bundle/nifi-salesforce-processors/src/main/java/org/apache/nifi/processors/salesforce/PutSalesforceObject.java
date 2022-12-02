@@ -40,7 +40,6 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
-import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -151,7 +150,7 @@ public class PutSalesforceObject extends AbstractProcessor {
         try (InputStream in = session.read(flowFile);
              RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger());
              ByteArrayOutputStream out = new ByteArrayOutputStream();
-             WriteJsonResult writer = getWriter(reader.getSchema(), extender = new RecordExtender(reader.getSchema()), out)) {
+             WriteJsonResult writer = getWriter(extender = new RecordExtender(reader.getSchema()), out)) {
 
             int count = 0;
             Record record;
@@ -175,17 +174,18 @@ public class PutSalesforceObject extends AbstractProcessor {
             if (writer.isActiveRecordSet()) {
                 processRecords(objectType, out, writer, extender);
             }
+            session.transfer(flowFile, REL_SUCCESS);
 
         } catch (MalformedRecordException e) {
             getLogger().error("Couldn't read records from input", e);
             session.transfer(flowFile, REL_FAILURE);
         } catch (SchemaNotFoundException e) {
             getLogger().error("Couldn't create record writer", e);
+            session.transfer(flowFile, REL_FAILURE);
         } catch (IOException e) {
             getLogger().error("Failed to put records to Salesforce.", e);
+            session.transfer(flowFile, REL_FAILURE);
         }
-
-        session.transfer(flowFile, REL_SUCCESS);
     }
 
     private void processRecords(String objectType, ByteArrayOutputStream out, WriteJsonResult writer, RecordExtender extender) throws IOException {
@@ -195,8 +195,8 @@ public class PutSalesforceObject extends AbstractProcessor {
         salesforceRestService.postRecord(objectType, wrappedJson.toPrettyString());
     }
 
-    private WriteJsonResult getWriter(RecordSchema originalSchema, RecordExtender extender, ByteArrayOutputStream out) throws IOException {
-        final SimpleRecordSchema extendedSchema = extender.getExtendedSchema(originalSchema);
+    private WriteJsonResult getWriter(RecordExtender extender, ByteArrayOutputStream out) throws IOException {
+        final RecordSchema extendedSchema = extender.getExtendedSchema();
         return new WriteJsonResult(getLogger(), extendedSchema, new NopSchemaAccessWriter(), out,
                 true, NullSuppression.NEVER_SUPPRESS, OutputGrouping.OUTPUT_ARRAY, null, null, null);
     }

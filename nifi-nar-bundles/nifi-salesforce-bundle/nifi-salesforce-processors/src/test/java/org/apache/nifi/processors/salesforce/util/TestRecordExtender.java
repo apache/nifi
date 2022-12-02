@@ -84,7 +84,7 @@ class TestRecordExtender {
 
     @Test
     void testGetExtendedSchema() {
-        final SimpleRecordSchema actualExtendedSchema = testSubject.getExtendedSchema(ORIGINAL_SCHEMA);
+        final RecordSchema actualExtendedSchema = testSubject.getExtendedSchema();
 
         assertEquals(EXPECTED_EXTENDED_SCHEMA, actualExtendedSchema);
     }

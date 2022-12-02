@@ -49,7 +49,12 @@ public class RecordExtender {
     private final RecordSchema extendedSchema;
 
     public RecordExtender(final RecordSchema originalSchema) {
-        extendedSchema = getExtendedSchema(originalSchema);
+        List<RecordField> recordFields = new ArrayList<>(originalSchema.getFields());
+        recordFields.add(new RecordField("attributes", RecordFieldType.RECORD.getRecordDataType(
+                ATTRIBUTES_RECORD_SCHEMA
+        )));
+
+        extendedSchema = new SimpleRecordSchema(recordFields);
     }
 
     public ObjectNode getWrappedRecordsJson(ByteArrayOutputStream out) throws IOException {
@@ -74,14 +79,6 @@ public class RecordExtender {
         objectMap.put("attributes", attributesRecord);
 
         return new MapRecord(extendedSchema, objectMap);
-    }
-
-    public SimpleRecordSchema getExtendedSchema(RecordSchema original) {
-        List<RecordField> recordFields = new ArrayList<>(original.getFields());
-        recordFields.add(new RecordField("attributes", RecordFieldType.RECORD.getRecordDataType(
-                ATTRIBUTES_RECORD_SCHEMA
-        )));
-        return new SimpleRecordSchema(recordFields);
     }
 
     public RecordSchema getExtendedSchema() {
