@@ -77,7 +77,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
         @WritesAttribute(attribute = DropboxFileInfo.REVISION, description = "Revision of the file")})
 @Stateful(scopes = {Scope.CLUSTER}, description = "The processor stores necessary data to be able to keep track what files have been listed already. " +
         "What exactly needs to be stored depends on the 'Listing Strategy'.")
-@SeeAlso(FetchDropbox.class)
+@SeeAlso({FetchDropbox.class, PutDropbox.class})
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implements DropboxTrait {
     public static final PropertyDescriptor FOLDER = new PropertyDescriptor.Builder()
@@ -148,9 +148,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
-        String dropboxClientId = format("%s-%s", getClass().getSimpleName(), getIdentifier());
-        dropboxApiClient = getDropboxApiClient(context, proxyConfiguration, dropboxClientId);
+        dropboxApiClient = getDropboxApiClient(context, getIdentifier());
     }
 
     @Override

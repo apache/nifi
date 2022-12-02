@@ -17,8 +17,7 @@
 
 package org.apache.nifi.processors.dropbox;
 
-import static java.lang.String.format;
-
+import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxUploader;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.CommitInfo;
@@ -43,7 +42,6 @@ import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -69,7 +67,7 @@ import org.apache.nifi.proxy.ProxySpec;
 @ReadsAttribute(attribute = "filename", description = "Uses the FlowFile's filename as the filename for the Dropbox object.")
 public class PutDropbox extends AbstractProcessor implements DropboxTrait {
 
-    public static final int UPLOAD_FILE_SIZE_LIMIT_IN_BYTES = 150 * 1024 * 1024;
+    public static final int SINGLE_UPLOAD_LIMIT_IN_BYTES = 150 * 1024 * 1024;
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -84,17 +82,17 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
     public static final PropertyDescriptor FOLDER = new PropertyDescriptor.Builder()
             .name("folder")
             .displayName("Folder")
-            .description("The Dropbox identifier or path of the folder to upload files to. "
+            .description("The path of the Dropbox folder to upload files to. "
                     + "The folder will be created if it does not exist yet.")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
-            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("/.*|id:.*")))
+            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("/.*")))
             .defaultValue("/")
             .build();
 
     public static final PropertyDescriptor FILE_NAME = new PropertyDescriptor.Builder()
             .name("file-name")
-            .displayName("File Name")
+            .displayName("Filename")
             .description("The full name of the file to upload.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("${filename}")
@@ -105,11 +103,20 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
     public static final PropertyDescriptor UPLOAD_CHUNK_SIZE = new PropertyDescriptor.Builder()
             .name("upload-chunk-size")
             .displayName("Upload Chunk Size")
-            .description("The chunk size used to upload files larger than 150 MB in smaller parts (chunks). "
+            .description("Defines the size of a chunk. Used when a FlowFile's size exceeds CHUNK_UPLOAD_LIMIT and content is uploaded in smaller chunks. "
                     + "It is recommended to specify chunk size as multiples of 4 MB.")
             .defaultValue("8 MB")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.createDataSizeBoundsValidator(1, UPLOAD_FILE_SIZE_LIMIT_IN_BYTES))
+            .addValidator(StandardValidators.createDataSizeBoundsValidator(1, SINGLE_UPLOAD_LIMIT_IN_BYTES))
+            .required(false)
+            .build();
+
+    public static final PropertyDescriptor CHUNK_UPLOAD_LIMIT = new PropertyDescriptor.Builder()
+            .name("chunk-upload-limit")
+            .displayName("Chunk Upload Limit")
+            .description("The maximum size of the content which is uploaded at once. FlowFiles larger than this limit are uploaded in chunks. "
+                    + "Maximum allowed value is 150 MB.")
+            .defaultValue("150 MB")
+            .addValidator(StandardValidators.createDataSizeBoundsValidator(1, SINGLE_UPLOAD_LIMIT_IN_BYTES))
             .required(false)
             .build();
 
@@ -118,31 +125,32 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
             FOLDER,
             FILE_NAME,
             UPLOAD_CHUNK_SIZE,
+            CHUNK_UPLOAD_LIMIT,
             ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxySpec.HTTP_AUTH)
     ));
 
-    private static final Set<Relationship> relationships;
+
+    private static final Set<Relationship> RELATIONSHIPS;
 
     static {
         final Set<Relationship> rels = new HashSet<>();
         rels.add(REL_SUCCESS);
         rels.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(rels);
+        RELATIONSHIPS = Collections.unmodifiableSet(rels);
     }
 
     private DbxClientV2 dropboxApiClient;
-    private DbxUploader dbxUploader;
 
-    @OnScheduled
-    public void onScheduled(final ProcessContext context) {
-        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
-        String dropboxClientId = format("%s-%s", getClass().getSimpleName(), getIdentifier());
-        dropboxApiClient = getDropboxApiClient(context, proxyConfiguration, dropboxClientId);
-    }
+    private DbxUploader dbxUploader;
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
+    }
+
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        dropboxApiClient = getDropboxApiClient(context, getIdentifier());
     }
 
     @Override
@@ -152,43 +160,42 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
             return;
         }
 
-        String folder = context.getProperty(FOLDER).evaluateAttributeExpressions().getValue();
-        String filename = context.getProperty(FILE_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String folder = context.getProperty(FOLDER).evaluateAttributeExpressions(flowFile).getValue();
+        final String filename = context.getProperty(FILE_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final long uploadFileSizeLimit = context.getProperty(CHUNK_UPLOAD_LIMIT)
+                .asDataSize(DataUnit.B)
+                .longValue();
 
         FileMetadata uploadedFileMetadata = null;
 
         long size = flowFile.getSize();
-        String uploadPath = convertFolderName(folder) + "/" + filename;
+        final String uploadPath = convertFolderName(folder) + "/" + filename;
 
-        if (size > 0) {
-            try (final InputStream rawIn = session.read(flowFile)) {
-                if (size <= getUploadFileSizeLimit()) {
-                    dbxUploader = dropboxApiClient.files()
-                            .upload(uploadPath);
-                    uploadedFileMetadata = ((UploadUploader) dbxUploader).uploadAndFinish(rawIn);
-                } else {
-                    long chunkSize = context.getProperty(UPLOAD_CHUNK_SIZE)
-                            .evaluateAttributeExpressions()
-                            .asDataSize(DataUnit.B)
-                            .longValue();
-
-                    uploadedFileMetadata = uploadLargeFileInChunks(rawIn, size, chunkSize, uploadPath);
-                }
-            } catch (Exception e) {
-                getLogger().error("Exception occurred while uploading file '{}' to Dropbox folder '{}'", filename, folder, e);
-            }
-
-            if (uploadedFileMetadata != null) {
-                session.transfer(flowFile, REL_SUCCESS);
+        try (final InputStream rawIn = session.read(flowFile)) {
+            if (size <= uploadFileSizeLimit) {
+                uploadedFileMetadata = createUploadUploader(uploadPath).uploadAndFinish(rawIn);
             } else {
-                session.transfer(flowFile, REL_FAILURE);
+                long chunkSize = context.getProperty(UPLOAD_CHUNK_SIZE)
+                        .asDataSize(DataUnit.B)
+                        .longValue();
+
+                uploadedFileMetadata = uploadLargeFileInChunks(rawIn, size, chunkSize, uploadPath);
             }
+        } catch (Exception e) {
+            getLogger().error("Exception occurred while uploading file '{}' to Dropbox folder '{}'", filename, folder, e);
+        } finally {
+            dbxUploader.close();
+        }
+
+        if (uploadedFileMetadata != null) {
+            session.transfer(flowFile, REL_SUCCESS);
+        } else {
+            session.transfer(flowFile, REL_FAILURE);
         }
     }
 
     @OnUnscheduled
-    @OnDisabled
-    public synchronized void shutdown() {
+    public void shutdown() {
         if (dbxUploader != null) {
             dbxUploader.close();
         }
@@ -199,40 +206,62 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
         return PROPERTIES;
     }
 
-    protected long getUploadFileSizeLimit() {
-        return UPLOAD_FILE_SIZE_LIMIT_IN_BYTES;
-    }
-
     private FileMetadata uploadLargeFileInChunks(InputStream rawIn, long size, long uploadChunkSize, String path) throws Exception {
-        dbxUploader = dropboxApiClient
-                .files()
-                .uploadSessionStart();
-        String sessionId = ((UploadSessionStartUploader) dbxUploader)
+        final String sessionId = createUploadSessionStartUploader()
                 .uploadAndFinish(rawIn, uploadChunkSize)
                 .getSessionId();
+
         long uploadedBytes = uploadChunkSize;
 
         UploadSessionCursor cursor = new UploadSessionCursor(sessionId, uploadedBytes);
 
         while (size - uploadedBytes > uploadChunkSize) {
-            dbxUploader = dropboxApiClient
-                    .files()
-                    .uploadSessionAppendV2(cursor);
-
-            ((UploadSessionAppendV2Uploader) dbxUploader).uploadAndFinish(rawIn, uploadChunkSize);
+            createUploadSessionAppendV2Uploader(cursor).uploadAndFinish(rawIn, uploadChunkSize);
             uploadedBytes += uploadChunkSize;
             cursor = new UploadSessionCursor(sessionId, uploadedBytes);
         }
 
-        long remainingBytes = size - uploadedBytes;
+        final long remainingBytes = size - uploadedBytes;
 
-        CommitInfo commitInfo = CommitInfo.newBuilder(path)
+        final CommitInfo commitInfo = CommitInfo.newBuilder(path)
                 .withMode(WriteMode.ADD)
                 .withClientModified(new Date(System.currentTimeMillis()))
                 .build();
-        dbxUploader = dropboxApiClient
+
+        return createUploadSessionFinishUploader(cursor, commitInfo).uploadAndFinish(rawIn, remainingBytes);
+    }
+
+    private UploadUploader createUploadUploader(String path) throws DbxException {
+        final UploadUploader uploadUploader = dropboxApiClient
+                .files()
+                .uploadBuilder(path)
+                .withMode(WriteMode.ADD)
+                .start();
+        dbxUploader = uploadUploader;
+        return uploadUploader;
+    }
+
+    private UploadSessionStartUploader createUploadSessionStartUploader() throws DbxException {
+        final UploadSessionStartUploader sessionStartUploader = dropboxApiClient
+                .files()
+                .uploadSessionStart();
+        dbxUploader = sessionStartUploader;
+        return sessionStartUploader;
+    }
+
+    private UploadSessionAppendV2Uploader createUploadSessionAppendV2Uploader(UploadSessionCursor cursor) throws DbxException {
+        final UploadSessionAppendV2Uploader sessionAppendV2Uploader = dropboxApiClient
+                .files()
+                .uploadSessionAppendV2(cursor);
+        dbxUploader = sessionAppendV2Uploader;
+        return sessionAppendV2Uploader;
+    }
+
+    private UploadSessionFinishUploader createUploadSessionFinishUploader(UploadSessionCursor cursor, CommitInfo commitInfo) throws DbxException {
+        final UploadSessionFinishUploader sessionFinishUploader = dropboxApiClient
                 .files()
                 .uploadSessionFinish(cursor, commitInfo);
-        return  ((UploadSessionFinishUploader) dbxUploader).uploadAndFinish(rawIn, remainingBytes);
+        dbxUploader = sessionFinishUploader;
+        return sessionFinishUploader;
     }
 }

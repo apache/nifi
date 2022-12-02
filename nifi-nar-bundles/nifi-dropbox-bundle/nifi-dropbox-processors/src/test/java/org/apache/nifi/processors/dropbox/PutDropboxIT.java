@@ -66,10 +66,10 @@ public class PutDropboxIT extends AbstractDropboxIT<PutDropbox> {
     }
 
     @Test
-    void testUploadFileToFolderSpecifiedById()  {
-        testRunner.setProperty(PutDropbox.FOLDER, mainFolderId);
+    void testEmptyFileIsUpladed()  {
+        testRunner.setProperty(PutDropbox.FOLDER, MAIN_FOLDER);
 
-        testRunner.enqueue(CONTENT);
+        testRunner.enqueue("");
         testRunner.run();
 
         testRunner.assertTransferCount(PutDropbox.REL_FAILURE, 0);

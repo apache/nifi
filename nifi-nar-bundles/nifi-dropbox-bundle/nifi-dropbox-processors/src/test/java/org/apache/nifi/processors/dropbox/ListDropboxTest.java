@@ -44,7 +44,6 @@ import java.util.stream.StreamSupport;
 import org.apache.nifi.dropbox.credentials.service.DropboxCredentialService;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.util.MockFlowFile;
@@ -76,7 +75,7 @@ public class ListDropboxTest {
     private DbxClientV2 mockDropboxClient;
 
     @Mock
-    private DropboxCredentialService credentialService;
+    private DropboxCredentialService mockCredentialService;
 
     @Mock
     private DbxUserFilesRequests mockDbxUserFilesRequest;
@@ -91,7 +90,7 @@ public class ListDropboxTest {
     void setUp() throws Exception {
         ListDropbox testSubject = new ListDropbox() {
             @Override
-            public DbxClientV2 getDropboxApiClient(ProcessContext context, ProxyConfiguration proxyConfiguration, String clientId) {
+            public DbxClientV2 getDropboxApiClient(ProcessContext context, String id) {
                 return mockDropboxClient;
             }
 
@@ -256,9 +255,9 @@ public class ListDropboxTest {
 
     private void mockStandardDropboxCredentialService() throws Exception {
         String credentialServiceId = "dropbox_credentials";
-        when(credentialService.getIdentifier()).thenReturn(credentialServiceId);
-        testRunner.addControllerService(credentialServiceId, credentialService);
-        testRunner.enableControllerService(credentialService);
+        when(mockCredentialService.getIdentifier()).thenReturn(credentialServiceId);
+        testRunner.addControllerService(credentialServiceId, mockCredentialService);
+        testRunner.enableControllerService(mockCredentialService);
         testRunner.setProperty(ListDropbox.CREDENTIAL_SERVICE, credentialServiceId);
     }
 

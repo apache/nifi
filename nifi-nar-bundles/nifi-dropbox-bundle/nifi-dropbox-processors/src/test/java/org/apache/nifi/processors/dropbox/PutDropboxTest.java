@@ -18,6 +18,7 @@
 package org.apache.nifi.processors.dropbox;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.mockito.Answers.RETURNS_DEEP_STUBS;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -43,7 +44,6 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.nifi.dropbox.credentials.service.DropboxCredentialService;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -63,16 +63,16 @@ public class PutDropboxTest {
     private static final String LARGE_CONTENT_30B = "123456789012345678901234567890";
     private static final String SESSION_ID = "sessionId";
     public static final long CHUNK_SIZE_IN_BYTES = 8;
-    public static final long MAX_FILE_SIZE_IN_BYTES = 15;
+    public static final long CHUNK_UPLOAD_LIMIT_IN_BYTES = 15;
     private TestRunner testRunner;
 
     @Mock
     private DbxClientV2 mockDropboxClient;
 
     @Mock
-    private DropboxCredentialService credentialService;
+    private DropboxCredentialService mockCredentialService;
 
-    @Mock
+    @Mock(answer = RETURNS_DEEP_STUBS)
     private DbxUserFilesRequests mockDbxUserFilesRequest;
 
     @Mock
@@ -97,13 +97,8 @@ public class PutDropboxTest {
     void setUp() throws Exception {
         PutDropbox testSubject = new PutDropbox() {
             @Override
-            public DbxClientV2 getDropboxApiClient(ProcessContext context, ProxyConfiguration proxyConfiguration, String clientId) {
+            public DbxClientV2 getDropboxApiClient(ProcessContext context, String id) {
                 return mockDropboxClient;
-            }
-
-            @Override
-            protected long getUploadFileSizeLimit() {
-                return MAX_FILE_SIZE_IN_BYTES;
             }
         };
 
@@ -116,8 +111,6 @@ public class PutDropboxTest {
 
     @Test
     void testFolderValidity() {
-        testRunner.setProperty(PutDropbox.FOLDER, "id:odTlUvbpIEAAAAAAAAABmw");
-        testRunner.assertValid();
         testRunner.setProperty(PutDropbox.FOLDER, "/");
         testRunner.assertValid();
         testRunner.setProperty(PutDropbox.FOLDER, "/tempFolder");
@@ -182,6 +175,7 @@ public class PutDropboxTest {
 
         testRunner.setProperty(PutDropbox.FILE_NAME, FILENAME_1);
         testRunner.setProperty(PutDropbox.UPLOAD_CHUNK_SIZE, CHUNK_SIZE_IN_BYTES + " B");
+        testRunner.setProperty(PutDropbox.CHUNK_UPLOAD_LIMIT, CHUNK_UPLOAD_LIMIT_IN_BYTES +" B");
 
         when(mockDropboxClient.files())
                 .thenReturn(mockDbxUserFilesRequest);
@@ -228,9 +222,9 @@ public class PutDropboxTest {
 
     private void mockStandardDropboxCredentialService() throws Exception {
         String credentialServiceId = "dropbox_credentials";
-        when(credentialService.getIdentifier()).thenReturn(credentialServiceId);
-        testRunner.addControllerService(credentialServiceId, credentialService);
-        testRunner.enableControllerService(credentialService);
+        when(mockCredentialService.getIdentifier()).thenReturn(credentialServiceId);
+        testRunner.addControllerService(credentialServiceId, mockCredentialService);
+        testRunner.enableControllerService(mockCredentialService);
         testRunner.setProperty(PutDropbox.CREDENTIAL_SERVICE, credentialServiceId);
     }
 
@@ -239,7 +233,9 @@ public class PutDropboxTest {
                 .thenReturn(mockDbxUserFilesRequest);
 
         when(mockDbxUserFilesRequest
-                .upload(path))
+                .uploadBuilder(path)
+                .withMode(WriteMode.ADD)
+                .start())
                 .thenReturn(mockUploadUploader);
 
         when(mockUploadUploader

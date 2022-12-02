@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import org.apache.nifi.dropbox.credentials.service.DropboxCredentialService;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -58,7 +57,7 @@ public class FetchDropboxTest {
     private DbxClientV2 mockDropboxClient;
 
     @Mock
-    private DropboxCredentialService credentialService;
+    private DropboxCredentialService mockCredentialService;
 
     @Mock
     private DbxUserFilesRequests mockDbxUserFilesRequest;
@@ -71,7 +70,7 @@ public class FetchDropboxTest {
     void setUp() throws Exception {
         FetchDropbox testSubject = new FetchDropbox() {
             @Override
-            public DbxClientV2 getDropboxApiClient(ProcessContext context, ProxyConfiguration proxyConfiguration, String clientId) {
+            public DbxClientV2 getDropboxApiClient(ProcessContext context, String id) {
                 return mockDropboxClient;
             }
         };
@@ -139,9 +138,9 @@ public class FetchDropboxTest {
 
     private void mockStandardDropboxCredentialService() throws InitializationException {
         String credentialServiceId = "dropbox_credentials";
-        when(credentialService.getIdentifier()).thenReturn(credentialServiceId);
-        testRunner.addControllerService(credentialServiceId, credentialService);
-        testRunner.enableControllerService(credentialService);
+        when(mockCredentialService.getIdentifier()).thenReturn(credentialServiceId);
+        testRunner.addControllerService(credentialServiceId, mockCredentialService);
+        testRunner.enableControllerService(mockCredentialService);
         testRunner.setProperty(FetchDropbox.CREDENTIAL_SERVICE, credentialServiceId);
     }
 

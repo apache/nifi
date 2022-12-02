@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.dropbox;
 
+import static java.lang.String.format;
+
 import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.http.HttpRequestor;
 import com.dropbox.core.http.OkHttp3Requestor;
@@ -42,7 +44,10 @@ public interface DropboxTrait {
             .build();
 
 
-    default DbxClientV2 getDropboxApiClient(ProcessContext context, ProxyConfiguration proxyConfiguration, String clientId) {
+
+    default DbxClientV2 getDropboxApiClient(ProcessContext context, String identifier) {
+        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
+        String dropboxClientId = format("%s-%s", getClass().getSimpleName(), identifier);
         OkHttpClient.Builder okHttpClientBuilder = OkHttp3Requestor.defaultOkHttpClientBuilder();
 
         if (!Proxy.Type.DIRECT.equals(proxyConfiguration.getProxyType())) {
@@ -59,7 +64,7 @@ public interface DropboxTrait {
         }
 
         HttpRequestor httpRequestor = new OkHttp3Requestor(okHttpClientBuilder.build());
-        DbxRequestConfig config = DbxRequestConfig.newBuilder(clientId)
+        DbxRequestConfig config = DbxRequestConfig.newBuilder(dropboxClientId)
                 .withHttpRequestor(httpRequestor)
                 .build();
 

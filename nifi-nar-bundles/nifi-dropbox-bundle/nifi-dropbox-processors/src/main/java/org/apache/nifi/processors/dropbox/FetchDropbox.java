@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.dropbox;
 
-import static java.lang.String.format;
-
 import com.dropbox.core.DbxException;
 import com.dropbox.core.v2.DbxClientV2;
 import java.io.InputStream;
@@ -51,7 +49,7 @@ import org.apache.nifi.proxy.ProxySpec;
 @CapabilityDescription("Fetches files from Dropbox. Designed to be used in tandem with ListDropbox.")
 @WritesAttribute(attribute = "error.message", description = "When a FlowFile is routed to 'failure', this attribute is added indicating why the file could "
         + "not be fetched from Dropbox.")
-@SeeAlso(ListDropbox.class)
+@SeeAlso({PutDropbox.class, ListDropbox.class})
 @WritesAttributes(
         @WritesAttribute(attribute = FetchDropbox.ERROR_MESSAGE_ATTRIBUTE, description = "The error message returned by Dropbox when the fetch of a file fails."))
 public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
@@ -83,7 +81,7 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
                     .description("A FlowFile will be routed here for each File for which fetch was attempted but failed.")
                     .build();
 
-    public static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             REL_SUCCESS,
             REL_FAILURE
     )));
@@ -98,7 +96,7 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
@@ -108,9 +106,7 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
-        String dropboxClientId = format("%s-%s", getClass().getSimpleName(), getIdentifier());
-        dropboxApiClient = getDropboxApiClient(context, proxyConfiguration, dropboxClientId);
+        dropboxApiClient = getDropboxApiClient(context, getIdentifier());
     }
 
     @Override
