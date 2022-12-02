@@ -22,15 +22,16 @@ import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
 import org.apache.nifi.flow.encryptor.StandardFlowEncryptor;
 import org.apache.nifi.properties.AbstractBootstrapPropertiesLoader;
 import org.apache.nifi.properties.ApplicationProperties;
+import org.apache.nifi.properties.ApplicationPropertiesProtector;
 import org.apache.nifi.properties.BootstrapProperties;
 import org.apache.nifi.properties.MutableApplicationProperties;
 import org.apache.nifi.properties.MutableBootstrapProperties;
 import org.apache.nifi.properties.NiFiPropertiesLoader;
 import org.apache.nifi.properties.PropertiesLoader;
 import org.apache.nifi.properties.ProtectedPropertyContext;
+import org.apache.nifi.properties.ReadableProperties;
 import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
-import org.apache.nifi.properties.StandardReadableProperties;
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory;
 import org.apache.nifi.properties.scheme.ProtectionScheme;
 import org.apache.nifi.registry.properties.NiFiRegistryPropertiesLoader;
@@ -123,6 +124,7 @@ public class PropertyEncryptorCommand {
             if (properties.getProperty(key) != null) {
                 String encryptedValue = provider.protect(properties.getProperty(key), ProtectedPropertyContext.defaultContext(key));
                 encryptedProperties.setProperty(key, encryptedValue);
+                encryptedProperties.setProperty(ApplicationPropertiesProtector.getProtectionKey(key), provider.getIdentifierKey());
             }
         }
 
@@ -307,7 +309,7 @@ public class PropertyEncryptorCommand {
         return properties.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM, "");
     }
 
-    private void writePropertiesToOutputDirectory(final StandardReadableProperties properties, final File inputPropertiesFile) throws IOException {
+    private void writePropertiesToOutputDirectory(final ReadableProperties properties, final File inputPropertiesFile) throws IOException {
         final File outputPropertiesFile = ConfigurationFileUtils.getOutputFile(outputDirectory, inputPropertiesFile);
         try (FileInputStream inputStream = new FileInputStream(inputPropertiesFile);
              FileOutputStream outputStream = new FileOutputStream(outputPropertiesFile)) {

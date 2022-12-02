@@ -25,6 +25,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -38,13 +39,27 @@ public class StandardPropertiesWriter implements PropertiesWriter {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
              BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream))) {
             String line;
+            Set<String> propertyKeys = properties.getPropertyKeys();
+            Set<String> remainingKeys = properties.getPropertyKeys();
             while ((line = reader.readLine()) != null) {
-                Set<String> keys = properties.getPropertyKeys();
-                for (final String key : keys) {
+                for (final String key : propertyKeys) {
                     Pattern regex = Pattern.compile(String.format(PROPERTY_REGEX, key));
                     Matcher m = regex.matcher(line);
                     if (m.matches()) {
-                        line = String.format(PROPERTY_FORMAT, key, properties.getProperty(key));
+                        remainingKeys.remove(key);
+
+                        StringBuilder updatedLine = new StringBuilder();
+                        updatedLine.append(String.format(PROPERTY_FORMAT, key, properties.getProperty(key)));
+
+                        Optional<String> similarKey = remainingKeys.stream()
+                                .filter(remainingKey -> remainingKey.contains(key))
+                                .findFirst();
+                        if (similarKey.isPresent()) {
+                            updatedLine.append(System.getProperty("line.separator"));
+                            updatedLine.append(String.format(PROPERTY_FORMAT, similarKey.get(), properties.getProperty(similarKey.get())));
+                        }
+
+                        line = updatedLine.toString();
                     }
                 }
                 writer.write(line);

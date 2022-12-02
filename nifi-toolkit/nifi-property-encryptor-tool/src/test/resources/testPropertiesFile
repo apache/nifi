@@ -1,0 +1,2 @@
+nifi.sensitive.property.one=valueBefore
+nifi.sensitive.property.two=valueBefore
