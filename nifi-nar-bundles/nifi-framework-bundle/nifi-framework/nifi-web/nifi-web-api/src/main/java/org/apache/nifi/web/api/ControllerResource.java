@@ -83,6 +83,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * RESTful endpoint for managing a Flow Controller.
@@ -494,22 +495,26 @@ public class ControllerResource extends ApplicationResource {
         preprocessObsoleteRequest(requestFlowRegistryClientEntity);
 
         if (requestFlowRegistryClientEntity == null || requestFlowRegistryClientEntity.getComponent() == null) {
-            throw new IllegalArgumentException("Flow registry client details must be specified.");
+            throw new IllegalArgumentException("Flow Registry client details must be specified.");
         }
 
         if (requestFlowRegistryClientEntity.getRevision() == null
                 || (requestFlowRegistryClientEntity.getRevision().getVersion() == null
                 || requestFlowRegistryClientEntity.getRevision().getVersion() != 0)) {
-            throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Registry.");
+            throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Flow Registry.");
         }
 
         final FlowRegistryClientDTO requestRegistryClient = requestFlowRegistryClientEntity.getComponent();
         if (requestRegistryClient.getId() != null) {
-            throw new IllegalArgumentException("Registry ID cannot be specified.");
+            throw new IllegalArgumentException("Flow Registry ID cannot be specified.");
         }
 
         if (StringUtils.isBlank(requestRegistryClient.getName())) {
-            throw new IllegalArgumentException("Registry name must be specified.");
+            throw new IllegalArgumentException("Flow Registry name must be specified.");
+        }
+
+        if (serviceFacade.getRegistryClients().stream().map(rce -> rce.getComponent().getName()).collect(Collectors.toSet()).contains(requestRegistryClient.getName())) {
+            throw new IllegalArgumentException("A Flow Registry already exists with the name " + requestRegistryClient.getName());
         }
 
         if (isReplicateRequest()) {
