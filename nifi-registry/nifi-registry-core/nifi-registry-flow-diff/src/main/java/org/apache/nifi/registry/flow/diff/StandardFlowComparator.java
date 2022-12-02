@@ -52,6 +52,7 @@ public class StandardFlowComparator implements FlowComparator {
 
     private static final String ENCRYPTED_VALUE_PREFIX = "enc{";
     private static final String ENCRYPTED_VALUE_SUFFIX = "}";
+    private static final String FLOW_VERSION = "Flow Version";
 
     private static final String DEFAULT_LOAD_BALANCE_STRATEGY = "DO_NOT_LOAD_BALANCE";
     private static final String DEFAULT_PARTITIONING_ATTRIBUTE = "";
@@ -526,8 +527,10 @@ public class StandardFlowComparator implements FlowComparator {
         // - both versions say the group is not under version control
         // OR
         // - both versions say the group IS under version control but disagree about the coordinates
+        final boolean coordinatesDifferOtherThanVersion = flowCoordinateDifferences.stream()
+            .anyMatch(diff -> !diff.getFieldName().isPresent() || !diff.getFieldName().get().equals(FLOW_VERSION));
         final boolean compareGroupContents = (groupACoordinates == null && groupBCoordinates == null)
-            || (groupACoordinates != null && groupBCoordinates != null && !flowCoordinateDifferences.isEmpty());
+            || (groupACoordinates != null && groupBCoordinates != null && coordinatesDifferOtherThanVersion);
 
         if (compareGroupContents) {
             differences.addAll(compareComponents(groupA.getConnections(), groupB.getConnections(), this::compare));
@@ -557,10 +560,17 @@ public class StandardFlowComparator implements FlowComparator {
             return;
         }
 
-        if (!Objects.equals(coordinatesA.getBucketId(), coordinatesB.getBucketId()) || !Objects.equals(coordinatesA.getFlowId(), coordinatesB.getFlowId())
-                || !Objects.equals(coordinatesA.getVersion(), coordinatesB.getVersion())) {
-
+        if (!Objects.equals(coordinatesA.getBucketId(), coordinatesB.getBucketId())) {
             differences.add(difference(DifferenceType.VERSIONED_FLOW_COORDINATES_CHANGED, groupA, groupB, coordinatesA, coordinatesB));
+            return;
+        }
+        if (!Objects.equals(coordinatesA.getFlowId(), coordinatesB.getFlowId())) {
+            differences.add(difference(DifferenceType.VERSIONED_FLOW_COORDINATES_CHANGED, groupA, groupB, coordinatesA, coordinatesB));
+            return;
+        }
+
+        if (!Objects.equals(coordinatesA.getVersion(), coordinatesB.getVersion())) {
+            differences.add(difference(DifferenceType.VERSIONED_FLOW_COORDINATES_CHANGED, groupA, groupB, FLOW_VERSION, FLOW_VERSION, coordinatesA, coordinatesB));
             return;
         }
 

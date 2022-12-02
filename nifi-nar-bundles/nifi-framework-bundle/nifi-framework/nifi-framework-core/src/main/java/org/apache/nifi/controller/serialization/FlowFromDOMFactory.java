@@ -161,7 +161,7 @@ public class FlowFromDOMFactory {
             return getFlowRegistryClientFromOldStyleConfig(element);
         }
 
-        dto.setId(getString(element, "identifier"));
+        dto.setId(getString(element, "id"));
         dto.setName(getString(element, "name"));
         dto.setDescription(getString(element, "description"));
         dto.setUri(getString(element, "uri"));
