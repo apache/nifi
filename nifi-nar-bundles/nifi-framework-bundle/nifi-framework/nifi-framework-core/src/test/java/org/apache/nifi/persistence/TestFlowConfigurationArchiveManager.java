@@ -17,8 +17,8 @@
 package org.apache.nifi.persistence;
 
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,18 +35,20 @@ import java.nio.file.attribute.FileTime;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.testng.Assert.assertNull;
 
 public class TestFlowConfigurationArchiveManager {
 
     private final File flowXmlFile = new File("./target/flow-archive/flow.xml.gz");
     private final File archiveDir = new File("./target/flow-archive");
 
-    @Before
+    @BeforeEach
     public void before() throws Exception {
 
         // Clean up old files.
@@ -141,8 +143,8 @@ public class TestFlowConfigurationArchiveManager {
         assertNull(getPrivateFieldValue(archiveManager, "maxStorageBytes"));
     }
 
-    @Test(expected = NoSuchFileException.class)
-    public void testArchiveWithoutOriginalFile() throws Exception {
+    @Test
+    public void testArchiveWithoutOriginalFile() {
         final NiFiProperties properties = mock(NiFiProperties.class);
         when(properties.getFlowConfigurationArchiveDir()).thenReturn(archiveDir.getPath());
         when(properties.getFlowConfigurationFile()).thenReturn(flowXmlFile);
@@ -151,7 +153,7 @@ public class TestFlowConfigurationArchiveManager {
         final File flowXmlFile = new File("does-not-exist");
         final FlowConfigurationArchiveManager archiveManager = new FlowConfigurationArchiveManager(properties);
 
-        archiveManager.archive(flowXmlFile);
+        assertThrows(NoSuchFileException.class, () -> archiveManager.archive(flowXmlFile));
     }
 
     private void createSimulatedOldArchives(final File[] oldArchives, final long intervalMillis) throws Exception {
@@ -202,14 +204,14 @@ public class TestFlowConfigurationArchiveManager {
 
         final File archive = archiveManager.archive(flowXmlFile);
 
-        assertTrue(!oldArchives[0].exists()); // -5 min
-        assertTrue(!oldArchives[1].exists()); // -4 min
+        assertFalse(oldArchives[0].exists()); // -5 min
+        assertFalse(oldArchives[1].exists()); // -4 min
         assertTrue(oldArchives[2].isFile()); // -3 min
         assertTrue(oldArchives[3].isFile()); // -2 min
         assertTrue(oldArchives[4].isFile()); // -1 min
         assertTrue(archive.exists()); // new archive
 
-        assertTrue("Original file should remain intact", flowXmlFile.isFile());
+        assertTrue(flowXmlFile.isFile(), "Original file should remain intact");
     }
 
     @Test
@@ -225,14 +227,14 @@ public class TestFlowConfigurationArchiveManager {
 
         final File archive = archiveManager.archive(flowXmlFile);
 
-        assertTrue(!oldArchives[0].exists()); // -5 min
-        assertTrue(!oldArchives[1].exists()); // -4 min
-        assertTrue(!oldArchives[2].exists()); // -3 min
-        assertTrue(!oldArchives[3].exists()); // -2 min
+        assertFalse(oldArchives[0].exists()); // -5 min
+        assertFalse(oldArchives[1].exists()); // -4 min
+        assertFalse(oldArchives[2].exists()); // -3 min
+        assertFalse(oldArchives[3].exists()); // -2 min
         assertTrue(oldArchives[4].exists()); // -1 min
         assertTrue(archive.exists()); // new archive
 
-        assertTrue("Original file should remain intact", flowXmlFile.isFile());
+        assertTrue(flowXmlFile.isFile(), "Original file should remain intact");
     }
 
     @Test
@@ -248,14 +250,14 @@ public class TestFlowConfigurationArchiveManager {
 
         final File archive = archiveManager.archive(flowXmlFile);
 
-        assertTrue(!oldArchives[0].exists()); // -5 min
-        assertTrue(!oldArchives[1].exists()); // -4 min
-        assertTrue(!oldArchives[2].exists()); // -3 min
-        assertTrue(!oldArchives[3].exists()); // -2 min
+        assertFalse(oldArchives[0].exists()); // -5 min
+        assertFalse(oldArchives[1].exists()); // -4 min
+        assertFalse(oldArchives[2].exists()); // -3 min
+        assertFalse(oldArchives[3].exists()); // -2 min
         assertTrue(oldArchives[4].exists()); // -1 min
         assertTrue(archive.exists()); // new archive
 
-        assertTrue("Original file should remain intact", flowXmlFile.isFile());
+        assertTrue(flowXmlFile.isFile(), "Original file should remain intact");
     }
 
     @Test
@@ -270,14 +272,14 @@ public class TestFlowConfigurationArchiveManager {
 
         final File archive = archiveManager.archive(flowXmlFile);
 
-        assertTrue(!oldArchives[0].exists()); // -5 min
-        assertTrue(!oldArchives[1].exists()); // -4 min
-        assertTrue(!oldArchives[2].exists()); // -3 min
-        assertTrue(!oldArchives[3].exists()); // -2 min
-        assertTrue(!oldArchives[4].exists()); // -1 min
-        assertTrue("Even if flow config file is larger than maxStorage file, it can be archived", archive.exists()); // new archive
+        assertFalse(oldArchives[0].exists()); // -5 min
+        assertFalse(oldArchives[1].exists()); // -4 min
+        assertFalse(oldArchives[2].exists()); // -3 min
+        assertFalse(oldArchives[3].exists()); // -2 min
+        assertFalse(oldArchives[4].exists()); // -1 min
+        assertTrue(archive.exists(), "Even if flow config file is larger than maxStorage file, it can be archived"); // new archive
 
-        assertTrue("Original file should remain intact", flowXmlFile.isFile());
+        assertTrue(flowXmlFile.isFile(), "Original file should remain intact");
     }
 
 }

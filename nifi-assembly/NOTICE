@@ -1164,7 +1164,6 @@ The following binary components are provided under the Apache Software License v
         groovy-templates
         groovy-test
         groovy-test-junit5
-        groovy-testng
         groovy-xml
     The following NOTICE information applies:
       Groovy Language
@@ -1969,12 +1968,6 @@ The following binary components are provided under the Apache Software License v
               * https://github.com/metamx/java-util
             * COMMIT TAG:
               * https://github.com/metamx/java-util/commit/826021f
-
-          This product contains a modified version of TestNG 6.8.7
-            * LICENSE:
-              * http://testng.org/license/ (Apache License, Version 2.0)
-            * HOMEPAGE:
-              * http://testng.org/
 
           This product contains a modified version of Metamarkets bytebuffer-collections library
             * LICENSE:
