@@ -25,10 +25,9 @@ import org.apache.zookeeper.client.FourLetterWordMain;
 import org.apache.zookeeper.common.X509Exception.SSLContextException;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.testng.Assert;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -39,6 +38,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 public class TestZooKeeperStateServer {
 
     private static ZooKeeperStateServer zkServer;
@@ -47,7 +49,7 @@ public class TestZooKeeperStateServer {
     private static Path zkServerConfig;
     private static int clientPort;
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() throws IOException, ConfigException {
         tempDir = Paths.get("target", "TestZooKeeperStateServer");
         dataDir = tempDir.resolve("state");
@@ -74,7 +76,7 @@ public class TestZooKeeperStateServer {
         if (zkServer != null) zkServer.start();
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanup() throws IOException {
         if (zkServer != null) {
             try {
@@ -103,14 +105,14 @@ public class TestZooKeeperStateServer {
 
     @Test
     public void testServerCreated() {
-        Assert.assertNotNull(zkServer);
+        assertNotNull(zkServer);
     }
 
     @Test
     public void testServerOk() throws IOException, SSLContextException {
         final String imok = FourLetterWordMain.send4LetterWord("localhost",
             clientPort, "ruok", false, 1000);
-        Assert.assertEquals(imok, "imok\n");
+        assertEquals(imok, "imok\n");
     }
 
     @Test
@@ -125,8 +127,7 @@ public class TestZooKeeperStateServer {
         final String createResult = client.create().forPath(testPath, new byte[0]);
         final Stat checkExistsResult = client.checkExists().forPath(testPath);
 
-        Assert.assertEquals(createResult, testPath);
-        Assert.assertNotNull(checkExistsResult);
+        assertEquals(createResult, testPath);
+        assertNotNull(checkExistsResult);
     }
-
 }

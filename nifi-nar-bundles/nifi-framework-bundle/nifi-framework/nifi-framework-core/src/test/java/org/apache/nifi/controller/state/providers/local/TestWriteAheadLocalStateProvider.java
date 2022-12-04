@@ -26,8 +26,8 @@ import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.controller.state.StateMapUpdate;
 import org.apache.nifi.controller.state.providers.AbstractTestStateProvider;
 import org.apache.nifi.logging.ComponentLog;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.wali.WriteAheadRepository;
 
 import javax.net.ssl.SSLContext;
@@ -42,7 +42,7 @@ public class TestWriteAheadLocalStateProvider extends AbstractTestStateProvider 
     private StateProvider provider;
     private WriteAheadRepository<StateMapUpdate> wal;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         provider = new WriteAheadLocalStateProvider();
         final Map<PropertyDescriptor, PropertyValue> properties = new HashMap<>();
@@ -92,7 +92,7 @@ public class TestWriteAheadLocalStateProvider extends AbstractTestStateProvider 
         });
     }
 
-    @After
+    @AfterEach
     public void cleanup() throws IOException {
         provider.onComponentRemoved(componentId);
 

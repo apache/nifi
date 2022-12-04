@@ -24,18 +24,20 @@ import org.apache.nifi.controller.queue.QueueDiagnostics;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.integration.FrameworkIntegrationTest;
 import org.apache.nifi.integration.processors.GenerateProcessor;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 
-import static org.junit.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
-import static org.testng.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class StandaloneSwapFileIT extends FrameworkIntegrationTest {
-    @Test(timeout=60_000)
+    @Timeout(60)
+    @Test
     public void testSwapOnRestart() throws ExecutionException, InterruptedException, IOException {
         final ProcessorNode generator = createProcessorNode(GenerateProcessor.class);
         generator.setProperties(Collections.singletonMap(GenerateProcessor.COUNT.getName(), "60000"));
