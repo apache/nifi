@@ -455,10 +455,11 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
 
     private KerberosUser getKerberosUser(final ConfigurationContext context) {
         KerberosUser kerberosUser = null;
-        final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
-        final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
-        final String kerberosPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
-        final String kerberosPassword = context.getProperty(KERBEROS_PASSWORD).getValue();
+        KerberosContext kerberosContext = getKerberosContext(context);
+        final KerberosCredentialsService kerberosCredentialsService = kerberosContext.getKerberosCredentialsService();
+        final KerberosUserService kerberosUserService = kerberosContext.getKerberosUserService();
+        final String kerberosPrincipal = kerberosContext.getKerberosPrincipal();
+        final String kerberosPassword = kerberosContext.getKerberosPassword();
 
         if (kerberosUserService != null) {
             kerberosUser = kerberosUserService.createKerberosUser();
@@ -468,6 +469,14 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
             kerberosUser = new KerberosPasswordUser(kerberosPrincipal, kerberosPassword);
         }
         return kerberosUser;
+    }
+
+    protected KerberosContext getKerberosContext(final ConfigurationContext context) {
+        final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
+        final String kerberosPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        final String kerberosPassword = context.getProperty(KERBEROS_PASSWORD).getValue();
+        return new KerberosContext(kerberosCredentialsService, kerberosUserService, kerberosPrincipal, kerberosPassword);
     }
 
     protected String getUrl(ConfigurationContext context) {
