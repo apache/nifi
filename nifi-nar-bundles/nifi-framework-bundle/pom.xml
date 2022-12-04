@@ -458,12 +458,6 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>org.testng</groupId>
-                <artifactId>testng</artifactId>
-                <version>6.8.8</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
                 <groupId>cglib</groupId>
                 <artifactId>cglib-nodep</artifactId>
                 <version>3.3.0</version>

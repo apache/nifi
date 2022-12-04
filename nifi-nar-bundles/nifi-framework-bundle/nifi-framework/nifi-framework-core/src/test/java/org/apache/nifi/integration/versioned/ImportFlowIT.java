@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.integration.versioned;
 
-import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connection;
@@ -26,7 +25,6 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.StandardSnippet;
 import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedExternalFlow;
@@ -47,8 +45,6 @@ import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterReferenceManager;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.registry.bucket.Bucket;
-import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.ConciseEvolvingDifferenceDescriptor;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
@@ -74,11 +70,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.testng.Assert.assertNotNull;
-import static org.testng.AssertJUnit.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class ImportFlowIT extends FrameworkIntegrationTest {
     @Override
@@ -319,7 +315,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
 
         final ProcessorNode initialImportedProcessor = innerGroup.getProcessors().iterator().next();
         assertEquals("user", initialImportedProcessor.getProperty(UsernamePasswordProcessor.USERNAME).getRawValue());
-        assertNull("pass", initialImportedProcessor.getProperty(UsernamePasswordProcessor.PASSWORD).getRawValue());
+        assertNull(initialImportedProcessor.getProperty(UsernamePasswordProcessor.PASSWORD).getRawValue());
 
         // Update the sensitive property to "pass"
         initialImportedProcessor.setProperties(initialProperties);
@@ -669,7 +665,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
     }
 
     @Test
-    public void testExportImportFlowSwitchesVersionedIdToAndFromInstanceIdOfParameterReferencedControllerService() throws ExecutionException, InterruptedException {
+    public void testExportImportFlowSwitchesVersionedIdToAndFromInstanceIdOfParameterReferencedControllerService() {
         ControllerServiceNode controllerService = createControllerServiceNode(NopControllerService.class);
 
         ProcessorNode processor = createProcessorNode(NopServiceReferencingProcessor.class);
@@ -761,8 +757,6 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
     }
 
     private VersionedExternalFlow createFlowSnapshot(final ProcessGroup group) {
-        createBundle();
-
         final NiFiRegistryFlowMapper flowMapper = new NiFiRegistryFlowMapper(getExtensionManager());
 
         InstantiatedVersionedProcessGroup instantiatedVersionedProcessGroup = flowMapper.mapNonVersionedProcessGroup(group, getFlowController().getControllerServiceProvider());
@@ -783,38 +777,4 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
 
         return flow;
     }
-
-    private VersionedProcessGroup createFlowContents() {
-        final VersionedProcessGroup flowContents = new VersionedProcessGroup();
-        flowContents.setIdentifier("unit-test-flow-contents");
-        flowContents.setName("Unit Test");
-        return flowContents;
-    }
-
-    private void createBundle() {
-        final BundleCoordinate coordinate = getSystemBundle().getBundleDetails().getCoordinate();
-        final Bundle bundle = new Bundle();
-        bundle.setArtifact(coordinate.getId());
-        bundle.setGroup(coordinate.getGroup());
-        bundle.setVersion(coordinate.getVersion());
-    }
-
-    private VersionedFlow createVersionedFlow() {
-        final VersionedFlow flow = new VersionedFlow();
-        flow.setBucketIdentifier("unit-test-bucket");
-        flow.setBucketName("Unit Test Bucket");
-        flow.setCreatedTimestamp(System.currentTimeMillis());
-        flow.setIdentifier("unit-test-flow");
-        flow.setName("Unit Test Flow");
-        return flow;
-    }
-
-    private Bucket createBucket() {
-        final Bucket bucket = new Bucket();
-        bucket.setCreatedTimestamp(System.currentTimeMillis());
-        bucket.setIdentifier("unit-test-bucket");
-        bucket.setName("Unit Test Bucket");
-        return bucket;
-    }
-
 }

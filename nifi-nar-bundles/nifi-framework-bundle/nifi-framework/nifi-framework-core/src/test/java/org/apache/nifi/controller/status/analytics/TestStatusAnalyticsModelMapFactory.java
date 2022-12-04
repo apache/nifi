@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.controller.status.analytics;
 
-import static org.junit.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,15 +29,15 @@ import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.Tuple;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestStatusAnalyticsModelMapFactory {
 
     protected NiFiProperties nifiProperties;
     protected ExtensionManager extensionManager;
 
-    @Before
+    @BeforeEach
     public void setup() {
         final Map<String, String> otherProps = new HashMap<>();
         final String propsFile = "src/test/resources/conf/nifi.properties";
