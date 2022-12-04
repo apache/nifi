@@ -1467,9 +1467,7 @@ public class TestGenerateTableFetch {
 
 
         // Remove one element from columnTypeMap to simulate it's re-cache partial state
-        Map.Entry<String, Integer> entry = processor.columnTypeMap.entrySet().iterator().next();
-        String key = entry.getKey();
-        processor.columnTypeMap.remove(key);
+        processor.columnTypeMap.remove("TEST_QUERY_DB_TABLE");
 
         // Insert new records
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (2, 0)");
