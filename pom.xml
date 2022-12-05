@@ -111,6 +111,7 @@
         <okhttp.version>4.10.0</okhttp.version>
         <org.apache.commons.cli.version>1.5.0</org.apache.commons.cli.version>
         <org.apache.commons.lang3.version>3.12.0</org.apache.commons.lang3.version>
+        <org.apache.commons.net.version>3.9.0</org.apache.commons.net.version>
         <org.apache.commons.io.version>2.11.0</org.apache.commons.io.version>
         <org.apache.commons.text.version>1.10.0</org.apache.commons.text.version>
         <org.apache.httpcomponents.httpclient.version>4.5.13</org.apache.httpcomponents.httpclient.version>
@@ -254,6 +255,11 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>${org.apache.commons.lang3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-net</groupId>
+                <artifactId>commons-net</artifactId>
+                <version>${org.apache.commons.net.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
