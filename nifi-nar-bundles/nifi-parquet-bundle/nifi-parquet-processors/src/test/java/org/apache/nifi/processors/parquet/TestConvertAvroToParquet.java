@@ -240,7 +240,7 @@ public class TestConvertAvroToParquet {
         Map<String,Integer> inputData = new HashMap<String,Integer>();
         inputData.put("a",1);
         inputData.put("b",2);
-        assertEquals(inputData, mymap);
+        assertEquals(inputData, recordData);
 
         // Fixed
         assertEquals(firstRecord.getString("myfixed",0), "A");
