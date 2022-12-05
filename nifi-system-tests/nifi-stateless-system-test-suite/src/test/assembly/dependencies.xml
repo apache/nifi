@@ -29,8 +29,8 @@
             <useTransitiveFiltering>true</useTransitiveFiltering>
 
             <excludes>
-                <exclude>jackson-core</exclude>
-                <exclude>jackson-databind</exclude>
+                <exclude>*:jackson-core</exclude>
+                <exclude>*:jackson-databind</exclude>
 
                 <!-- TODO: remove these once minimum Java version is 11 -->
                 <exclude>org.glassfish.jaxb:jaxb-runtime</exclude>

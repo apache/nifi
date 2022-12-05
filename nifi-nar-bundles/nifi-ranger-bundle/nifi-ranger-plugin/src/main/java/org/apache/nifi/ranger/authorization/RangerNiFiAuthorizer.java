@@ -48,9 +48,12 @@ import java.io.File;
 import java.net.MalformedURLException;
 import java.text.NumberFormat;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Authorizer implementation that uses Apache Ranger to make authorization decisions.
@@ -61,9 +64,10 @@ public class RangerNiFiAuthorizer implements Authorizer, AuthorizationAuditor {
     static final String RANGER_AUDIT_PATH_PROP = "Ranger Audit Config Path";
     static final String RANGER_SECURITY_PATH_PROP = "Ranger Security Config Path";
     static final String RANGER_KERBEROS_ENABLED_PROP = "Ranger Kerberos Enabled";
-    static final String RANGER_ADMIN_IDENTITY_PROP = "Ranger Admin Identity";
     static final String RANGER_SERVICE_TYPE_PROP = "Ranger Service Type";
     static final String RANGER_APP_ID_PROP = "Ranger Application Id";
+    static final String RANGER_ADMIN_IDENTITY_PROP_PREFIX = "Ranger Admin Identity";
+    static final Pattern RANGER_ADMIN_IDENTITY_PATTERN = Pattern.compile(RANGER_ADMIN_IDENTITY_PROP_PREFIX + "\\s?\\S*");
 
     static final String RANGER_NIFI_RESOURCE_NAME = "nifi-resource";
     static final String DEFAULT_SERVICE_TYPE = "nifi";
@@ -76,7 +80,7 @@ public class RangerNiFiAuthorizer implements Authorizer, AuthorizationAuditor {
 
     private volatile RangerBasePluginWithPolicies nifiPlugin = null;
     private volatile RangerDefaultAuditHandler defaultAuditHandler = null;
-    private volatile String rangerAdminIdentity = null;
+    private volatile Set<String> rangerAdminIdentity = null;
     private volatile boolean rangerKerberosEnabled = false;
     private volatile NiFiProperties nifiProperties;
     private final NumberFormat numberFormat = NumberFormat.getInstance();
@@ -129,7 +133,7 @@ public class RangerNiFiAuthorizer implements Authorizer, AuthorizationAuditor {
                 nifiPlugin.init();
 
                 defaultAuditHandler = new RangerDefaultAuditHandler();
-                rangerAdminIdentity = getConfigValue(configurationContext, RANGER_ADMIN_IDENTITY_PROP, null);
+                rangerAdminIdentity = getConfigValues(configurationContext, RANGER_ADMIN_IDENTITY_PATTERN, null);
 
             } else {
                 logger.info("RangerNiFiAuthorizer(): base plugin already initialized");
@@ -149,9 +153,9 @@ public class RangerNiFiAuthorizer implements Authorizer, AuthorizationAuditor {
         final Set<String> userGroups = request.getGroups();
         final String resourceIdentifier = request.getResource().getIdentifier();
 
-        // if a ranger admin identity was provided, and it equals the identity making the request,
+        // if a ranger admin identity was provided, and it contains the identity making the request,
         // and the request is to retrieve the resources, then allow it through
-        if (StringUtils.isNotBlank(rangerAdminIdentity) && rangerAdminIdentity.equals(identity)
+        if (rangerAdminIdentity != null && rangerAdminIdentity.contains(identity)
                 && resourceIdentifier.equals(RESOURCES_RESOURCE)) {
             return AuthorizationResult.approved();
         }
@@ -287,4 +291,20 @@ public class RangerNiFiAuthorizer implements Authorizer, AuthorizationAuditor {
         return retValue;
     }
 
+    private Set<String> getConfigValues(final AuthorizerConfigurationContext context, final Pattern namePattern, final String defaultValue) {
+        final Set<String> configValues = new HashSet<>();
+
+        for (Map.Entry<String,String> entry : context.getProperties().entrySet()) {
+            Matcher matcher = namePattern.matcher(entry.getKey());
+            if (matcher.matches() && !StringUtils.isBlank(entry.getValue())) {
+                configValues.add(entry.getValue());
+            }
+        }
+
+        if (configValues.isEmpty() && (defaultValue != null)) {
+            configValues.add(defaultValue);
+        }
+
+        return configValues;
+    }
 }

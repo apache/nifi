@@ -25,7 +25,7 @@ import javax.ws.rs.core.Response;
 import static org.junit.Assert.assertEquals;
 
 /**
- * Access control test for funnels.
+ * Access control test for flows.
  */
 public class ITFlowAccessControl {
 
@@ -87,6 +87,16 @@ public class ITFlowAccessControl {
     @Test
     public void testGetReportingTasks() throws Exception {
         helper.testGenericGetUri(helper.getBaseUrl() + "/flow/reporting-tasks");
+    }
+
+    /**
+     * Test get parameter providers.
+     *
+     * @throws Exception exception
+     */
+    @Test
+    public void testGetParameterProviders() throws Exception {
+        helper.testGenericGetUri(helper.getBaseUrl() + "/flow/parameter-providers");
     }
 
     /**

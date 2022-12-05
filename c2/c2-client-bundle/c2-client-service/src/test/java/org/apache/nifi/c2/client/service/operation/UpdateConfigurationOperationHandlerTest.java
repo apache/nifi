@@ -17,13 +17,14 @@
 package org.apache.nifi.c2.client.service.operation;
 
 import static org.apache.commons.lang3.StringUtils.EMPTY;
+import static org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler.FLOW_ID;
 import static org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler.LOCATION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -41,8 +42,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class UpdateConfigurationOperationHandlerTest {
-
-    private static final String FLOW_ID = "flowId";
     private static final String OPERATION_ID = "operationId";
     private static final Map<String, String> CORRECT_LOCATION_MAP = Collections.singletonMap(LOCATION, "/path/for/the/" + FLOW_ID);
     private static final Map<String, String> INCORRECT_LOCATION_MAP = Collections.singletonMap(LOCATION, "incorrect/location");
@@ -52,29 +51,53 @@ public class UpdateConfigurationOperationHandlerTest {
 
     @Mock
     private FlowIdHolder flowIdHolder;
+    @Mock
+    private OperandPropertiesProvider operandPropertiesProvider;
 
     @Test
     void testUpdateConfigurationOperationHandlerCreateSuccess() {
-        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(null, null, null);
+        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(null, null, null, operandPropertiesProvider);
 
         assertEquals(OperationType.UPDATE, handler.getOperationType());
         assertEquals(OperandType.CONFIGURATION, handler.getOperandType());
     }
 
     @Test
-    void testHandleThrowsExceptionForIncorrectArg() {
-        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(null, null, null);
+    void testHandleIncorrectArg() {
+        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(null, null, null, operandPropertiesProvider);
         C2Operation operation = new C2Operation();
         operation.setArgs(INCORRECT_LOCATION_MAP);
 
-        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> handler.handle(operation));
+        C2OperationAck response = handler.handle(operation);
+
+        assertEquals(C2OperationState.OperationState.NOT_APPLIED, response.getOperationState().getState());
+    }
+
+    @Test
+    void testHandleFlowIdInArg() {
+        Function<byte[], Boolean> successUpdate = x -> true;
+        when(flowIdHolder.getFlowId()).thenReturn(FLOW_ID);
+        when(client.retrieveUpdateContent(any())).thenReturn(Optional.of("content".getBytes()));
+        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, successUpdate, operandPropertiesProvider);
+        C2Operation operation = new C2Operation();
+        operation.setIdentifier(OPERATION_ID);
+
+        Map<String, String> args = new HashMap<>();
+        args.putAll(INCORRECT_LOCATION_MAP);
+        args.put(FLOW_ID, "argsFlowId");
+        operation.setArgs(args);
+
+        C2OperationAck response = handler.handle(operation);
+
+        assertEquals(OPERATION_ID, response.getOperationId());
+        assertEquals(C2OperationState.OperationState.FULLY_APPLIED, response.getOperationState().getState());
     }
 
     @Test
     void testHandleReturnsNotAppliedWithNoContent() {
         when(flowIdHolder.getFlowId()).thenReturn(FLOW_ID);
         when(client.retrieveUpdateContent(any())).thenReturn(Optional.empty());
-        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, null);
+        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, null, operandPropertiesProvider);
         C2Operation operation = new C2Operation();
         operation.setArgs(CORRECT_LOCATION_MAP);
 
@@ -89,7 +112,7 @@ public class UpdateConfigurationOperationHandlerTest {
         Function<byte[], Boolean> failedToUpdate = x -> false;
         when(flowIdHolder.getFlowId()).thenReturn(FLOW_ID);
         when(client.retrieveUpdateContent(any())).thenReturn(Optional.of("content".getBytes()));
-        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, failedToUpdate);
+        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, failedToUpdate, operandPropertiesProvider);
         C2Operation operation = new C2Operation();
         operation.setIdentifier(OPERATION_ID);
         operation.setArgs(CORRECT_LOCATION_MAP);
@@ -105,7 +128,7 @@ public class UpdateConfigurationOperationHandlerTest {
         Function<byte[], Boolean> successUpdate = x -> true;
         when(flowIdHolder.getFlowId()).thenReturn(FLOW_ID);
         when(client.retrieveUpdateContent(any())).thenReturn(Optional.of("content".getBytes()));
-        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, successUpdate);
+        UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, successUpdate, operandPropertiesProvider);
         C2Operation operation = new C2Operation();
         operation.setIdentifier(OPERATION_ID);
         operation.setArgs(CORRECT_LOCATION_MAP);

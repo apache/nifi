@@ -28,14 +28,14 @@ import org.apache.nifi.documentation.example.ProcessorWithLogger;
 import org.apache.nifi.init.ProcessorInitializer;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import static org.apache.nifi.documentation.html.XmlValidator.assertContains;
 import static org.apache.nifi.documentation.html.XmlValidator.assertNotContains;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ProcessorDocumentationWriterTest {
 
@@ -54,7 +54,7 @@ public class ProcessorDocumentationWriterTest {
         writer.write(processor, baos, false);
         initializer.teardown(processor);
 
-        String results = new String(baos.toByteArray());
+        String results = baos.toString();
         XmlValidator.assertXmlValid(results);
 
         assertContains(results, FullyDocumentedProcessor.DIRECTORY.getDisplayName());
@@ -115,11 +115,11 @@ public class ProcessorDocumentationWriterTest {
         assertContains(results, "Not Specified");
 
         // verify the right OnRemoved and OnShutdown methods were called
-        Assert.assertEquals(0, processor.getOnRemovedArgs());
-        Assert.assertEquals(0, processor.getOnRemovedNoArgs());
+        assertEquals(0, processor.getOnRemovedArgs());
+        assertEquals(0, processor.getOnRemovedNoArgs());
 
-        Assert.assertEquals(1, processor.getOnShutdownArgs());
-        Assert.assertEquals(1, processor.getOnShutdownNoArgs());
+        assertEquals(1, processor.getOnShutdownArgs());
+        assertEquals(1, processor.getOnShutdownNoArgs());
     }
 
     @Test
@@ -137,7 +137,7 @@ public class ProcessorDocumentationWriterTest {
         writer.write(processor, baos, false);
         initializer.teardown(processor);
 
-        String results = new String(baos.toByteArray());
+        String results = baos.toString();
         XmlValidator.assertXmlValid(results);
 
         // no description
@@ -177,7 +177,7 @@ public class ProcessorDocumentationWriterTest {
         writer.write(processor, baos, false);
         initializer.teardown(processor);
 
-        String results = new String(baos.toByteArray());
+        String results = baos.toString();
         XmlValidator.assertXmlValid(results);
 
     }
@@ -197,7 +197,7 @@ public class ProcessorDocumentationWriterTest {
         writer.write(processor, baos, false);
         initializer.teardown(processor);
 
-        String results = new String(baos.toByteArray());
+        String results = baos.toString();
         XmlValidator.assertXmlValid(results);
 
         assertContains(results, DeprecatedProcessor.DIRECTORY.getDisplayName());
@@ -236,10 +236,10 @@ public class ProcessorDocumentationWriterTest {
         assertNotContains(results, "Additional Details...");
 
         // verify the right OnRemoved and OnShutdown methods were called
-        Assert.assertEquals(0, processor.getOnRemovedArgs());
-        Assert.assertEquals(0, processor.getOnRemovedNoArgs());
+        assertEquals(0, processor.getOnRemovedArgs());
+        assertEquals(0, processor.getOnRemovedNoArgs());
 
-        Assert.assertEquals(1, processor.getOnShutdownArgs());
-        Assert.assertEquals(1, processor.getOnShutdownNoArgs());
+        assertEquals(1, processor.getOnShutdownArgs());
+        assertEquals(1, processor.getOnShutdownNoArgs());
     }
 }

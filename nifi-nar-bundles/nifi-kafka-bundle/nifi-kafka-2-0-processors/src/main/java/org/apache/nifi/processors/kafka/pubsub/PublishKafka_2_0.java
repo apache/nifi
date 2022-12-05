@@ -34,26 +34,33 @@ import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
+import org.apache.nifi.kafka.shared.attribute.StandardTransitUriProvider;
+import org.apache.nifi.kafka.shared.component.KafkaPublishComponent;
+import org.apache.nifi.kafka.shared.property.FailureStrategy;
+import org.apache.nifi.kafka.shared.property.KeyEncoding;
+import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyProvider;
+import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
+import org.apache.nifi.kafka.shared.transaction.TransactionIdSupplier;
+import org.apache.nifi.kafka.shared.validation.DynamicPropertyValidator;
+import org.apache.nifi.kafka.shared.validation.KafkaClientCustomValidationFunction;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.FlowFileFilters;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import javax.xml.bind.DatatypeConverter;
 import java.io.BufferedInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -66,8 +73,6 @@ import java.util.regex.Pattern;
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILURE_STRATEGY;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK;
 
 @Tags({"Apache", "Kafka", "Put", "Send", "Message", "PubSub", "2.0"})
 @CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka using the Kafka 2.0 Producer API."
@@ -83,7 +88,7 @@ import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILUR
 @WritesAttribute(attribute = "msg.count", description = "The number of messages that were sent to Kafka for this FlowFile. This attribute is added only to "
     + "FlowFiles that are routed to success. If the <Message Demarcator> Property is not set, this will always be 1, but if the Property is set, it may "
     + "be greater than 1.")
-public class PublishKafka_2_0 extends AbstractProcessor {
+public class PublishKafka_2_0 extends AbstractProcessor implements KafkaPublishComponent {
     protected static final String MSG_COUNT = "msg.count";
 
     static final AllowableValue DELIVERY_REPLICATED = new AllowableValue("all", "Guarantee Replicated Delivery",
@@ -106,10 +111,6 @@ public class PublishKafka_2_0 extends AbstractProcessor {
     static final AllowableValue EXPRESSION_LANGUAGE_PARTITIONING = new AllowableValue(Partitioners.ExpressionLanguagePartitioner.class.getName(), "Expression Language Partitioner",
         "Interprets the <Partition> property as Expression Language that will be evaluated against each FlowFile. This Expression will be evaluated once against the FlowFile, " +
             "so all Records in a given FlowFile will go to the same partition.");
-
-    static final AllowableValue UTF8_ENCODING = new AllowableValue("utf-8", "UTF-8 Encoded", "The key is interpreted as a UTF-8 Encoded string.");
-    static final AllowableValue HEX_ENCODING = new AllowableValue("hex", "Hex Encoded",
-        "The key is interpreted as arbitrary binary data that is encoded using hexadecimal characters with uppercase letters.");
 
     static final PropertyDescriptor TOPIC = new Builder()
         .name("topic")
@@ -177,10 +178,10 @@ public class PublishKafka_2_0 extends AbstractProcessor {
     static final PropertyDescriptor KEY_ATTRIBUTE_ENCODING = new Builder()
         .name("key-attribute-encoding")
         .displayName("Key Attribute Encoding")
-        .description("FlowFiles that are emitted have an attribute named '" + KafkaProcessorUtils.KAFKA_KEY + "'. This property dictates how the value of the attribute should be encoded.")
+        .description("FlowFiles that are emitted have an attribute named '" + KafkaFlowFileAttribute.KAFKA_KEY + "'. This property dictates how the value of the attribute should be encoded.")
         .required(true)
-        .defaultValue(UTF8_ENCODING.getValue())
-        .allowableValues(UTF8_ENCODING, HEX_ENCODING)
+        .defaultValue(KeyEncoding.UTF8.getValue())
+        .allowableValues(KeyEncoding.class)
         .build();
 
     static final PropertyDescriptor MESSAGE_DEMARCATOR = new Builder()
@@ -280,7 +281,17 @@ public class PublishKafka_2_0 extends AbstractProcessor {
 
     static {
         final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.addAll(KafkaProcessorUtils.getCommonPropertyDescriptors());
+        properties.add(BOOTSTRAP_SERVERS);
+        properties.add(SECURITY_PROTOCOL);
+        properties.add(SASL_MECHANISM);
+        properties.add(KERBEROS_SERVICE_NAME);
+        properties.add(KERBEROS_CREDENTIALS_SERVICE);
+        properties.add(KERBEROS_PRINCIPAL);
+        properties.add(KERBEROS_KEYTAB);
+        properties.add(SASL_USERNAME);
+        properties.add(SASL_PASSWORD);
+        properties.add(TOKEN_AUTHENTICATION);
+        properties.add(SSL_CONTEXT_SERVICE);
         properties.add(TOPIC);
         properties.add(DELIVERY_GUARANTEE);
         properties.add(FAILURE_STRATEGY);
@@ -321,7 +332,7 @@ public class PublishKafka_2_0 extends AbstractProcessor {
         return new Builder()
             .description("Specifies the value for '" + propertyDescriptorName + "' Kafka Configuration.")
             .name(propertyDescriptorName)
-            .addValidator(new KafkaProcessorUtils.KafkaConfigValidator(ProducerConfig.class))
+            .addValidator(new DynamicPropertyValidator(ProducerConfig.class))
             .dynamic(true)
             .expressionLanguageSupported(VARIABLE_REGISTRY)
             .build();
@@ -329,8 +340,7 @@ public class PublishKafka_2_0 extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final List<ValidationResult> results = new ArrayList<>();
-        results.addAll(KafkaProcessorUtils.validateCommonProperties(validationContext));
+        final List<ValidationResult> results = new ArrayList<>(new KafkaClientCustomValidationFunction().apply(validationContext));
 
         final boolean useTransactions = validationContext.getProperty(USE_TRANSACTIONS).asBoolean();
         if (useTransactions) {
@@ -371,19 +381,19 @@ public class PublishKafka_2_0 extends AbstractProcessor {
 
     protected PublisherPool createPublisherPool(final ProcessContext context) {
         final int maxMessageSize = context.getProperty(MAX_REQUEST_SIZE).asDataSize(DataUnit.B).intValue();
-        final long maxAckWaitMillis = context.getProperty(ACK_WAIT_TIME).asTimePeriod(TimeUnit.MILLISECONDS).longValue();
+        final long maxAckWaitMillis = context.getProperty(ACK_WAIT_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
 
         final String attributeNameRegex = context.getProperty(ATTRIBUTE_NAME_REGEX).getValue();
         final Pattern attributeNamePattern = attributeNameRegex == null ? null : Pattern.compile(attributeNameRegex);
         final boolean useTransactions = context.getProperty(USE_TRANSACTIONS).asBoolean();
         final String transactionalIdPrefix = context.getProperty(TRANSACTIONAL_ID_PREFIX).evaluateAttributeExpressions().getValue();
-        Supplier<String> transactionalIdSupplier = KafkaProcessorUtils.getTransactionalIdSupplier(transactionalIdPrefix);
+        Supplier<String> transactionalIdSupplier = new TransactionIdSupplier(transactionalIdPrefix);
 
         final String charsetName = context.getProperty(MESSAGE_HEADER_ENCODING).evaluateAttributeExpressions().getValue();
         final Charset charset = Charset.forName(charsetName);
 
-        final Map<String, Object> kafkaProperties = new HashMap<>();
-        KafkaProcessorUtils.buildCommonKafkaProperties(context, ProducerConfig.class, kafkaProperties);
+        final KafkaPropertyProvider propertyProvider = new StandardKafkaPropertyProvider(ProducerConfig.class);
+        final Map<String, Object> kafkaProperties = propertyProvider.getProperties(context);
         kafkaProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
         kafkaProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
         kafkaProperties.put("max.request.size", String.valueOf(maxMessageSize));
@@ -415,8 +425,8 @@ public class PublishKafka_2_0 extends AbstractProcessor {
             return;
         }
 
-        final String securityProtocol = context.getProperty(KafkaProcessorUtils.SECURITY_PROTOCOL).getValue();
-        final String bootstrapServers = context.getProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue();
+        final String securityProtocol = context.getProperty(SECURITY_PROTOCOL).getValue();
+        final String bootstrapServers = context.getProperty(BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue();
         final boolean useTransactions = context.getProperty(USE_TRANSACTIONS).asBoolean();
         final PublishFailureStrategy failureStrategy = getFailureStrategy(context);
 
@@ -451,12 +461,9 @@ public class PublishKafka_2_0 extends AbstractProcessor {
                     }
 
                     final Integer partition = getPartition(context, flowFile);
-                    session.read(flowFile, new InputStreamCallback() {
-                        @Override
-                        public void process(final InputStream rawIn) throws IOException {
-                            try (final InputStream in = new BufferedInputStream(rawIn)) {
-                                lease.publish(flowFile, in, messageKey, demarcatorBytes, topic, partition);
-                            }
+                    session.read(flowFile, rawIn -> {
+                        try (final InputStream in = new BufferedInputStream(rawIn)) {
+                            lease.publish(flowFile, in, messageKey, demarcatorBytes, topic, partition);
                         }
                     });
                 }
@@ -479,7 +486,7 @@ public class PublishKafka_2_0 extends AbstractProcessor {
                     success = session.putAttribute(success, MSG_COUNT, String.valueOf(msgCount));
                     session.adjustCounter("Messages Sent", msgCount, true);
 
-                    final String transitUri = KafkaProcessorUtils.buildTransitURI(securityProtocol, bootstrapServers, topic);
+                    final String transitUri = StandardTransitUriProvider.getTransitUri(securityProtocol, bootstrapServers, topic);
                     session.getProvenanceReporter().send(success, transitUri, "Sent " + msgCount + " messages", transmissionMillis);
                     session.transfer(success, REL_SUCCESS);
                 }
@@ -494,7 +501,7 @@ public class PublishKafka_2_0 extends AbstractProcessor {
 
     private PublishFailureStrategy getFailureStrategy(final ProcessContext context) {
         final String strategy = context.getProperty(FAILURE_STRATEGY).getValue();
-        if (FAILURE_STRATEGY_ROLLBACK.getValue().equals(strategy)) {
+        if (FailureStrategy.ROLLBACK.getValue().equals(strategy)) {
             return (session, flowFiles) -> session.rollback();
         } else {
             return (session, flowFiles) -> session.transfer(flowFiles, REL_FAILURE);
@@ -507,7 +514,7 @@ public class PublishKafka_2_0 extends AbstractProcessor {
         if (context.getProperty(KEY).isSet()) {
             uninterpretedKey = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
         } else {
-            uninterpretedKey = flowFile.getAttribute(KafkaProcessorUtils.KAFKA_KEY);
+            uninterpretedKey = flowFile.getAttribute(KafkaFlowFileAttribute.KAFKA_KEY);
         }
 
         if (uninterpretedKey == null) {
@@ -515,7 +522,7 @@ public class PublishKafka_2_0 extends AbstractProcessor {
         }
 
         final String keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).getValue();
-        if (UTF8_ENCODING.getValue().equals(keyEncoding)) {
+        if (KeyEncoding.UTF8.getValue().equals(keyEncoding)) {
             return uninterpretedKey.getBytes(StandardCharsets.UTF_8);
         }
 

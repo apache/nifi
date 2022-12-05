@@ -29,6 +29,14 @@ import org.apache.nifi.distributed.cache.protocol.ProtocolVersion;
 import org.apache.nifi.distributed.cache.server.CacheServer;
 import org.apache.nifi.distributed.cache.server.DistributedCacheServer;
 import org.apache.nifi.distributed.cache.server.EvictionPolicy;
+import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
+import org.apache.nifi.event.transport.configuration.TransportProtocol;
+import org.apache.nifi.event.transport.message.ByteArrayMessage;
+import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.remote.StandardVersionNegotiator;
@@ -44,6 +52,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
@@ -52,6 +63,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -296,6 +309,44 @@ public class TestDistributedMapServerAndClient {
         } finally {
             client.close();
         }
+    }
+
+    @Test
+    public void testIncompleteHandshakeScenario() throws InitializationException, IOException {
+        // Default port used by Distributed Server and Client
+        final int port = NetworkUtils.getAvailableTcpPort();
+
+        // This is used to simulate a DistributedCacheServer that does not complete the handshake response
+        final BlockingQueue<ByteArrayMessage> messages = new LinkedBlockingQueue<>();
+        final NettyEventServerFactory serverFactory = getEventServerFactory(port, messages);
+        final EventServer eventServer = serverFactory.getEventServer();
+
+        DistributedMapCacheClientService client = new DistributedMapCacheClientService();
+
+        runner.addControllerService("client", client);
+        runner.setProperty(client, DistributedMapCacheClientService.HOSTNAME, "localhost");
+        runner.setProperty(client, DistributedMapCacheClientService.PORT, String.valueOf(port));
+        runner.setProperty(client, DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "250 ms");
+        runner.enableControllerService(client);
+
+        final Serializer<String> valueSerializer = new StringSerializer();
+        final Serializer<String> keySerializer = new StringSerializer();
+        final Deserializer<String> deserializer = new StringDeserializer();
+
+        try {
+            assertThrows(IOException.class, () -> client.getAndPutIfAbsent("testKey", "test", keySerializer, valueSerializer, deserializer));
+        } finally {
+            eventServer.shutdown();
+        }
+    }
+
+    private NettyEventServerFactory getEventServerFactory(final int port, final BlockingQueue<ByteArrayMessage> messages) throws UnknownHostException {
+        final ByteArrayMessageNettyEventServerFactory factory = new ByteArrayMessageNettyEventServerFactory(Mockito.mock(ComponentLog.class),
+                InetAddress.getByName("127.0.0.1"), port, TransportProtocol.TCP, "\n".getBytes(), 1024, messages);
+        factory.setWorkerThreads(1);
+        factory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        factory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
+        return factory;
     }
 
     private DistributedMapCacheClientService createClient(final int port) throws InitializationException {

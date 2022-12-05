@@ -26,7 +26,8 @@ public enum OperandType {
     CONNECTION,
     DEBUG,
     MANIFEST,
-    REPOSITORY;
+    REPOSITORY,
+    ASSET;
 
     public static Optional<OperandType> fromString(String value) {
         return Arrays.stream(values())
@@ -39,4 +40,3 @@ public enum OperandType {
         return super.toString().toLowerCase();
     }
 }
-

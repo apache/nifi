@@ -25,11 +25,12 @@
     height : 32px;
 }
 
-.dialog-status-bar[state] + .dialog-content {
+.dialog-status-bar[state] + .dialog-content,
+.dialog-status-bar[alerts] + .dialog-content {
     top: 104px;
 }
 
-.dialog-status-bar:not([state]),
+.dialog-status-bar:not([state]):not([alerts]),
 .dialog-status-bar:not([state]) text.run-status-icon,
 .dialog-status-bar-bulletins-content,
 .dialog-status-bar-bulletins[count="0"],
@@ -123,11 +124,12 @@
     float : right;
     margin-left : 22px;
     margin-top : 5px;
-    background-color : rgba(36,36,36,0.75);
-    font-family: Arial;
+    background-color: rgba(0, 0, 0, 0.80) !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+    font-family: Roboto;
     font-weight : bold;
-    font-size : 12px;
-    padding  : 10px 10px 10px 20px;
+    font-size : 13px;
+    padding  : 10px;
     width : auto;
     max-width : 490px;
 }

@@ -23,6 +23,7 @@ import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPro
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 
 /**
@@ -40,9 +41,14 @@ public class NamedProfileCredentialsStrategy extends AbstractCredentialsStrategy
     }
 
     @Override
-    public AWSCredentialsProvider getCredentialsProvider(Map<PropertyDescriptor, String> properties) {
-        String profileName = properties.get(CredentialPropertyDescriptors.PROFILE_NAME);
+    public AWSCredentialsProvider getCredentialsProvider(final Map<PropertyDescriptor, String> properties) {
+        final String profileName = properties.get(CredentialPropertyDescriptors.PROFILE_NAME);
         return new ProfileCredentialsProvider(profileName);
     }
 
+    @Override
+    public AwsCredentialsProvider getAwsCredentialsProvider(final Map<PropertyDescriptor, String> properties) {
+        final String profileName = properties.get(CredentialPropertyDescriptors.PROFILE_NAME);
+        return software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider.create(profileName);
+    }
 }

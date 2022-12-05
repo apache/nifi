@@ -22,6 +22,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -33,7 +34,7 @@ import java.util.Map;
 
 @Tags({"elasticsearch", "client"})
 @CapabilityDescription("A controller service for accessing an Elasticsearch client.")
-public interface ElasticSearchClientService extends ControllerService {
+public interface ElasticSearchClientService extends ControllerService, VerifiableControllerService {
     PropertyDescriptor HTTP_HOSTS = new PropertyDescriptor.Builder()
             .name("el-cs-http-hosts")
             .displayName("HTTP Hosts")
@@ -42,6 +43,7 @@ public interface ElasticSearchClientService extends ControllerService {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+
     PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("el-cs-ssl-context-service")
             .displayName("SSL Context Service")
@@ -52,23 +54,58 @@ public interface ElasticSearchClientService extends ControllerService {
             .addValidator(Validator.VALID)
             .build();
     PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxySpec.HTTP);
+
+    PropertyDescriptor AUTHORIZATION_SCHEME = new PropertyDescriptor.Builder()
+            .name("authorization-scheme")
+            .displayName("Authorization Scheme")
+            .description("Authorization Scheme used for optional authentication to Elasticsearch.")
+            .allowableValues(AuthorizationScheme.class)
+            .defaultValue(AuthorizationScheme.BASIC.getValue())
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .name("el-cs-username")
             .displayName("Username")
             .description("The username to use with XPack security.")
+            .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.BASIC)
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+
     PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("el-cs-password")
             .displayName("Password")
             .description("The password to use with XPack security.")
+            .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.BASIC)
             .required(false)
             .sensitive(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+
+    PropertyDescriptor API_KEY_ID = new PropertyDescriptor.Builder()
+            .name("api-key-id")
+            .displayName("API Key ID")
+            .description("Unique identifier of the API key.")
+            .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY)
+            .required(false)
+            .sensitive(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    PropertyDescriptor API_KEY = new PropertyDescriptor.Builder()
+            .name("api-key")
+            .displayName("API Key")
+            .description("Encoded API key.")
+            .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY)
+            .required(false)
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
             .name("el-cs-connect-timeout")
             .displayName("Connect timeout")
@@ -77,6 +114,7 @@ public interface ElasticSearchClientService extends ControllerService {
             .defaultValue("5000")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
+
     PropertyDescriptor SOCKET_TIMEOUT = new PropertyDescriptor.Builder()
             .name("el-cs-socket-timeout")
             .displayName("Read timeout")
@@ -98,6 +136,7 @@ public interface ElasticSearchClientService extends ControllerService {
             .defaultValue("60000")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
+
     PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("el-cs-charset")
             .displayName("Charset")
@@ -202,6 +241,14 @@ public interface ElasticSearchClientService extends ControllerService {
      * @param requestParameters A collection of URL request parameters. Optional.
      */
     void refresh(final String index, final Map<String, String> requestParameters);
+
+    /**
+     * Check whether an index exists.
+     *
+     * @param index The index to target, if omitted then all indices will be updated.
+     * @param requestParameters A collection of URL request parameters. Optional.
+     */
+    boolean exists(final String index, final Map<String, String> requestParameters);
 
     /**
      * Get a document by ID.

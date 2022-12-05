@@ -32,8 +32,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
@@ -114,6 +116,82 @@ public class TestSampleRecord {
         final MockFlowFile out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
 
         out.assertAttributeEquals("record.count", "0");
+    }
+
+    @Test
+    public void testRangeSampling() throws InitializationException {
+        final MockRecordParser readerService = new MockRecordParser();
+        final MockRecordWriter writerService = new MockRecordWriter("header", false);
+
+        final TestRunner runner = TestRunners.newTestRunner(SampleRecord.class);
+        runner.addControllerService("reader", readerService);
+        runner.enableControllerService(readerService);
+        runner.addControllerService("writer", writerService);
+        runner.enableControllerService(writerService);
+
+        runner.setProperty(SampleRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(SampleRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(SampleRecord.SAMPLING_STRATEGY, SampleRecord.RANGE_SAMPLING_KEY);
+        runner.assertNotValid();
+        runner.setProperty(SampleRecord.SAMPLING_RANGE, "1,4-5,98-"); // 1, 4, 5, 98, 99, 100 -- one-based not zero based
+
+        readerService.addSchemaField("name", RecordFieldType.STRING);
+        readerService.addSchemaField("age", RecordFieldType.INT);
+
+        for (int i = 1; i <= 100; i++) {
+            readerService.addRecord(i, 5 + i);
+        }
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
+        MockFlowFile out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        out.assertAttributeEquals("record.count", "6");
+
+        runner.clearTransferState();
+        runner.setProperty(SampleRecord.SAMPLING_RANGE, "3");
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
+        out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        out.assertAttributeEquals("record.count", "1");
+        out.assertContentEquals("header\n3,8\n");
+
+        runner.clearTransferState();
+        runner.setProperty(SampleRecord.SAMPLING_RANGE, "-2");
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
+        out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        out.assertAttributeEquals("record.count", "2");
+        out.assertContentEquals("header\n1,6\n2,7\n");
+
+        runner.clearTransferState();
+        runner.setProperty(SampleRecord.SAMPLING_RANGE, "${range}");
+        Map<String, String> attrs = Collections.singletonMap("range", "8,20");
+        runner.enqueue("", attrs);
+        runner.run();
+
+        runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
+        out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        out.assertAttributeEquals("record.count", "2");
+        out.assertContentEquals("header\n8,13\n20,25\n");
+
+        runner.clearTransferState();
+        runner.setProperty(SampleRecord.SAMPLING_RANGE, "");
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
+        out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        out.assertAttributeEquals("record.count", "100");
     }
 
     @Test

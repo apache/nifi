@@ -19,6 +19,7 @@ package org.apache.nifi.elasticsearch;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -51,6 +52,8 @@ import java.util.stream.Collectors;
 @CapabilityDescription("Lookup a record from Elasticsearch Server associated with the specified document ID. " +
         "The coordinates that are passed to the lookup must contain the key 'id'.")
 @Tags({"lookup", "enrich", "record", "elasticsearch"})
+@DynamicProperty(name = "A JSONPath expression", value = "A Record Path expression",
+        description = "Retrieves an object using JSONPath from the result document and places it in the return Record at the specified Record Path.")
 public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryService implements LookupService<Record> {
     public static final PropertyDescriptor CLIENT_SERVICE = new PropertyDescriptor.Builder()
         .name("el-rest-client-service")

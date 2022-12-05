@@ -358,7 +358,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.parameterContext = parameterContext;
     }
 
-    @ApiModelProperty(value = "The FlowFile Concurrency for this Process Group.", allowableValues = "UNBOUNDED, SINGLE_FLOWFILE_PER_NODE")
+    @ApiModelProperty(value = "The FlowFile Concurrency for this Process Group.", allowableValues = "UNBOUNDED, SINGLE_FLOWFILE_PER_NODE, SINGLE_BATCH_PER_NODE")
     public String getFlowfileConcurrency() {
         return flowfileConcurrency;
     }

@@ -17,6 +17,7 @@
 package org.apache.nifi.schemaregistry.services;
 
 import org.apache.avro.Schema;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.avro.AvroTypeUtil;
@@ -49,6 +50,9 @@ import java.util.concurrent.ConcurrentMap;
 @CapabilityDescription("Provides a service for registering and accessing schemas. You can register a schema "
     + "as a dynamic property where 'name' represents the schema name and 'value' represents the textual "
     + "representation of the actual schema following the syntax and semantics of Avro's Schema format.")
+@DynamicProperty(name = "Schema name", value = "Schema Content",
+        description = "Adds a named schema using the JSON string representation of an Avro schema",
+        expressionLanguageScope = ExpressionLanguageScope.NONE)
 public class AvroSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
     private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME, SchemaField.SCHEMA_TEXT, SchemaField.SCHEMA_TEXT_FORMAT);
     private final ConcurrentMap<String, RecordSchema> recordSchemas = new ConcurrentHashMap<>();
@@ -149,7 +153,7 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .dynamic(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
     }
 

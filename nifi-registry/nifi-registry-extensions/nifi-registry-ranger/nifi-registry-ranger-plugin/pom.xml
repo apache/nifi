@@ -17,7 +17,7 @@
     <parent>
         <artifactId>nifi-registry-ranger</artifactId>
         <groupId>org.apache.nifi.registry</groupId>
-        <version>1.18.0-SNAPSHOT</version>
+        <version>1.20.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -34,7 +34,7 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-data-model</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
+            <version>1.20.0-SNAPSHOT</version>
             <!--
             Since using the one in the war causes class loading issue between war and ranger/lib,
             this needs to be in ranger/lib.
@@ -43,26 +43,26 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-security-api</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
+            <version>1.20.0-SNAPSHOT</version>
             <!-- The one in registry/lib can be used -->
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-properties</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
+            <version>1.20.0-SNAPSHOT</version>
             <!-- The one in registry/lib can be used -->
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-xml-processing</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
+            <version>1.20.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-ranger-jersey-bundle</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
+            <version>1.20.0-SNAPSHOT</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.sun.jersey</groupId>
@@ -279,18 +279,23 @@
         <dependency>
             <groupId>org.codehaus.jettison</groupId>
             <artifactId>jettison</artifactId>
-            <version>1.3.8</version>
-        </dependency>
-
-        <!-- Test dependencies -->
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <scope>test</scope>
+            <version>1.5.1</version>
         </dependency>
     </dependencies>
 
     <profiles>
+        <!-- Disable tests on AArch64 which does not have necessary platform-specific libraries -->
+        <profile>
+            <id>disable-ranger-tests</id>
+            <activation>
+                <os>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <properties>
+                <skipTests>true</skipTests>
+            </properties>
+        </profile>
         <!-- Includes hadoop-aws for accessing HDFS with an s3a:// filesystem -->
         <profile>
             <id>include-hadoop-aws</id>
@@ -380,7 +385,23 @@
                           <groupId>org.apache.logging.log4j</groupId>
                           <artifactId>log4j-core</artifactId>
                       </exclusion>
+                        <exclusion>
+                            <groupId>org.bouncycastle</groupId>
+                            <artifactId>bcprov-jdk15on</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.bouncycastle</groupId>
+                            <artifactId>bcpkix-jdk15on</artifactId>
+                        </exclusion>
                     </exclusions>
+                </dependency>
+                <dependency>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcprov-jdk18on</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcpkix-jdk18on</artifactId>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.ozone</groupId>

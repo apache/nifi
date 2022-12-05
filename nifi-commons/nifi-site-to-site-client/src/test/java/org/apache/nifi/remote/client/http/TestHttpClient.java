@@ -1377,6 +1377,6 @@ public class TestHttpClient {
     }
 
     private static void setTlsConfiguration() {
-        tlsConfiguration = new TemporaryKeyStoreBuilder().build();
+        tlsConfiguration = new TemporaryKeyStoreBuilder().trustStoreType(KeystoreType.JKS.name()).build();
     }
 }

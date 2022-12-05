@@ -462,17 +462,17 @@ public abstract class AbstractComponentNode implements ComponentNode {
     // Keep setProperty/removeProperty private so that all calls go through setProperties
     private void setProperty(final PropertyDescriptor descriptor, final PropertyConfiguration propertyConfiguration, final Function<PropertyDescriptor, PropertyConfiguration> valueToCompareFunction) {
         // Remove current PropertyDescriptor to force updated instance references
-        properties.remove(descriptor);
+        final PropertyConfiguration removed = properties.remove(descriptor);
 
         final PropertyConfiguration propertyModComparisonValue = valueToCompareFunction.apply(descriptor);
-        final PropertyConfiguration oldConfiguration = properties.put(descriptor, propertyConfiguration);
+        properties.put(descriptor, propertyConfiguration);
         final String effectiveValue = propertyConfiguration.getEffectiveValue(getParameterContext());
 
         // If the property references a Controller Service, we need to register this component & property descriptor as a reference.
         // If it previously referenced a Controller Service, we need to also remove that reference.
         // It is okay if the new & old values are the same - we just unregister the component/descriptor and re-register it.
         if (descriptor.getControllerServiceDefinition() != null) {
-            Optional.ofNullable(oldConfiguration)
+            Optional.ofNullable(removed)
                 .map(_oldConfiguration -> _oldConfiguration.getEffectiveValue(getParameterContext()))
                 .map(oldEffectiveValue -> serviceProvider.getControllerServiceNode(oldEffectiveValue))
                 .ifPresent(oldNode -> oldNode.removeReference(this, descriptor));
@@ -580,11 +580,15 @@ public abstract class AbstractComponentNode implements ComponentNode {
             final Map<PropertyDescriptor, String> props = new LinkedHashMap<>();
             for (final PropertyDescriptor descriptor : supported) {
                 if (descriptor != null) {
-                    props.put(descriptor, descriptor.getDefaultValue());
+                    final PropertyDescriptor upToDateDescriptor = getPropertyDescriptor(descriptor.getName());
+                    props.put(upToDateDescriptor, upToDateDescriptor.getDefaultValue());
                 }
             }
 
-            properties.forEach((descriptor, config) -> props.put(getPropertyDescriptor(descriptor.getName()), valueFunction.apply(descriptor, config)));
+            properties.forEach((descriptor, config) -> {
+                final PropertyDescriptor upToDateDescriptor = getPropertyDescriptor(descriptor.getName());
+                props.put(upToDateDescriptor, valueFunction.apply(upToDateDescriptor, config));
+            });
             return props;
         }
     }
@@ -705,6 +709,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
     public String toString() {
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getComponent().getIdentifier())) {
             return getComponent().toString();
+        } catch (final Throwable t) {
+            return getClass().getSimpleName() + "[id=" + getIdentifier() + "]";
         }
     }
 
@@ -1129,17 +1135,21 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
                 // There is an update to the parameter. We want to return the previous value of the Parameter.
                 final ParameterDescriptor parameterDescriptor;
+                final boolean isProvided;
                 if (optionalParameter.isPresent()) {
-                    parameterDescriptor = optionalParameter.get().getDescriptor();
+                    final Parameter previousParameter = optionalParameter.get();
+                    parameterDescriptor = previousParameter.getDescriptor();
+                    isProvided = previousParameter.isProvided();
                 } else {
                     parameterDescriptor = new ParameterDescriptor.Builder()
                         .name(parameterName)
                         .description("")
                         .sensitive(true)
                         .build();
+                    isProvided = false;
                 }
 
-                final Parameter updatedParameter = new Parameter(parameterDescriptor, parameterUpdate.getPreviousValue());
+                final Parameter updatedParameter = new Parameter(parameterDescriptor, parameterUpdate.getPreviousValue(), null, isProvided);
                 return Optional.of(updatedParameter);
             }
 

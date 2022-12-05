@@ -25,4 +25,6 @@ import org.apache.nifi.minifi.status.StatusRequestException;
  */
 public interface MiNiFiServer extends NiFiServer {
     FlowStatusReport getStatusReport(String requestString) throws StatusRequestException;
+
+    void stop(boolean reload);
 }

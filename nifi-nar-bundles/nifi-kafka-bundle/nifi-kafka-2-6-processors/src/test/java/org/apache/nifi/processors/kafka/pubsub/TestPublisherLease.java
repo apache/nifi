@@ -247,7 +247,7 @@ public class TestPublisherLease {
 
         Mockito.when(writerFactory.createWriter(eq(logger), eq(schema), any(), eq(flowFile))).thenReturn(writer);
 
-        lease.publish(flowFile, recordSet, writerFactory, schema, keyField, topic, null);
+        lease.publish(flowFile, recordSet, writerFactory, schema, keyField, topic, null, PublishMetadataStrategy.USE_CONFIGURED_VALUES);
 
         verify(writerFactory, times(2)).createWriter(eq(logger), eq(schema), any(), eq(flowFile));
         verify(writer, times(2)).write(any(Record.class));
@@ -259,7 +259,7 @@ public class TestPublisherLease {
         private final AtomicInteger poisonCount  = new AtomicInteger(0);
 
         public PoisonCountingLease() {
-            super(producer, 1024 * 1024, 1000L, logger, true, null, StandardCharsets.UTF_8);
+            super(producer, 1024 * 1024, 1000L, logger, true, null, StandardCharsets.UTF_8, null, null);
         }
 
         @Override

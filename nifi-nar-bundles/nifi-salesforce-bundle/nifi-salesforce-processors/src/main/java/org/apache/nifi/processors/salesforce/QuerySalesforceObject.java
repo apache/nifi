@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -47,6 +48,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.salesforce.util.SalesforceRestService;
 import org.apache.nifi.processors.salesforce.util.SalesforceToRecordSchemaConverter;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -75,6 +77,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiPredicate;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -94,6 +98,7 @@ import java.util.concurrent.atomic.AtomicInteger;
         @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer."),
         @WritesAttribute(attribute = "record.count", description = "Sets the number of records in the FlowFile.")
 })
+@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class QuerySalesforceObject extends AbstractProcessor {
 
     static final PropertyDescriptor API_URL = new PropertyDescriptor.Builder()
@@ -220,6 +225,8 @@ public class QuerySalesforceObject extends AbstractProcessor {
     private static final String DATE_FORMAT = "yyyy-MM-dd";
     private static final String TIME_FORMAT = "HH:mm:ss.SSSX";
     private static final String DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZ";
+    private static final String NEXT_RECORDS_URL = "nextRecordsUrl";
+    private static final BiPredicate<String, String> CAPTURE_PREDICATE = (fieldName, fieldValue) -> NEXT_RECORDS_URL.equals(fieldName);
 
     private volatile SalesforceToRecordSchemaConverter salesForceToRecordSchemaConverter;
     private volatile SalesforceRestService salesforceRestService;
@@ -330,76 +337,93 @@ public class QuerySalesforceObject extends AbstractProcessor {
                 ageFilterUpper
         );
 
-        FlowFile flowFile = session.create();
+        AtomicReference<String> nextRecordsUrl = new AtomicReference<>();
 
-        Map<String, String> originalAttributes = flowFile.getAttributes();
-        Map<String, String> attributes = new HashMap<>();
+        do {
 
-        AtomicInteger recordCountHolder = new AtomicInteger();
+            FlowFile flowFile = session.create();
+            Map<String, String> originalAttributes = flowFile.getAttributes();
+            Map<String, String> attributes = new HashMap<>();
 
-        flowFile = session.write(flowFile, out -> {
-            try (
-                    InputStream querySObjectResultInputStream = salesforceRestService.query(querySObject);
-                    JsonTreeRowRecordReader jsonReader = new JsonTreeRowRecordReader(
-                            querySObjectResultInputStream,
-                            getLogger(),
-                            convertedSalesforceSchema.recordSchema,
-                            DATE_FORMAT,
-                            TIME_FORMAT,
-                            DATE_TIME_FORMAT,
-                            StartingFieldStrategy.NESTED_FIELD,
-                            STARTING_FIELD_NAME,
-                            SchemaApplicationStrategy.SELECTED_PART
-                    );
+            AtomicInteger recordCountHolder = new AtomicInteger();
 
-                    RecordSetWriter writer = writerFactory.createWriter(
-                            getLogger(),
-                            writerFactory.getSchema(
-                                    originalAttributes,
-                                    convertedSalesforceSchema.recordSchema
-                            ),
-                            out,
-                            originalAttributes
-                    )
-            ) {
-                writer.beginRecordSet();
+            flowFile = session.write(flowFile, out -> {
+                try (
+                        InputStream querySObjectResultInputStream = getResultInputStream(nextRecordsUrl, querySObject);
 
-                Record querySObjectRecord;
-                while ((querySObjectRecord = jsonReader.nextRecord()) != null) {
-                    writer.write(querySObjectRecord);
+                        JsonTreeRowRecordReader jsonReader = new JsonTreeRowRecordReader(
+                                querySObjectResultInputStream,
+                                getLogger(),
+                                convertedSalesforceSchema.recordSchema,
+                                DATE_FORMAT,
+                                TIME_FORMAT,
+                                DATE_TIME_FORMAT,
+                                StartingFieldStrategy.NESTED_FIELD,
+                                STARTING_FIELD_NAME,
+                                SchemaApplicationStrategy.SELECTED_PART,
+                                CAPTURE_PREDICATE
+                        );
+
+                        RecordSetWriter writer = writerFactory.createWriter(
+                                getLogger(),
+                                writerFactory.getSchema(
+                                        originalAttributes,
+                                        convertedSalesforceSchema.recordSchema
+                                ),
+                                out,
+                                originalAttributes
+                        )
+                ) {
+                    writer.beginRecordSet();
+
+                    Record querySObjectRecord;
+                    while ((querySObjectRecord = jsonReader.nextRecord()) != null) {
+                        writer.write(querySObjectRecord);
+                    }
+
+                    WriteResult writeResult = writer.finishRecordSet();
+
+                    Map<String, String> capturedFields = jsonReader.getCapturedFields();
+
+                    nextRecordsUrl.set(capturedFields.getOrDefault(NEXT_RECORDS_URL, null));
+
+                    attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                    attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+                    attributes.putAll(writeResult.getAttributes());
+
+                    recordCountHolder.set(writeResult.getRecordCount());
+
+                    if (ageFilterUpper != null) {
+                        Map<String, String> newState = new HashMap<>(state.toMap());
+                        newState.put(LAST_AGE_FILTER, ageFilterUpper);
+                        updateState(context, newState);
+                    }
+                } catch (SchemaNotFoundException e) {
+                    throw new ProcessException("Couldn't create record writer", e);
+                } catch (MalformedRecordException e) {
+                    throw new ProcessException("Couldn't read records from input", e);
                 }
+            });
 
-                WriteResult writeResult = writer.finishRecordSet();
+            int recordCount = recordCountHolder.get();
 
-                attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
-                attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
-                attributes.putAll(writeResult.getAttributes());
+            if (!createZeroRecordFlowFiles && recordCount == 0) {
+                session.remove(flowFile);
+            } else {
+                flowFile = session.putAllAttributes(flowFile, attributes);
+                session.transfer(flowFile, REL_SUCCESS);
 
-                recordCountHolder.set(writeResult.getRecordCount());
-
-                if (ageFilterUpper != null) {
-                    Map<String, String> newState = new HashMap<>(state.toMap());
-                    newState.put(LAST_AGE_FILTER, ageFilterUpper);
-                    updateState(context, newState);
-                }
-            } catch (SchemaNotFoundException e) {
-                throw new ProcessException("Couldn't create record writer", e);
-            } catch (MalformedRecordException e) {
-                throw new ProcessException("Couldn't read records from input", e);
+                session.adjustCounter("Records Processed", recordCount, false);
+                getLogger().info("Successfully written {} records for {}", recordCount, flowFile);
             }
-        });
+        } while (nextRecordsUrl.get() != null);
+    }
 
-        int recordCount = recordCountHolder.get();
-
-        if (!createZeroRecordFlowFiles && recordCount == 0) {
-            session.remove(flowFile);
-        } else {
-            flowFile = session.putAllAttributes(flowFile, attributes);
-            session.transfer(flowFile, REL_SUCCESS);
-
-            session.adjustCounter("Records Processed", recordCount, false);
-            getLogger().info("Successfully written {} records for {}", recordCount, flowFile);
+    private InputStream getResultInputStream(AtomicReference<String> nextRecordsUrl, String querySObject) {
+        if (nextRecordsUrl.get() == null) {
+            return salesforceRestService.query(querySObject);
         }
+        return salesforceRestService.getNextRecords(nextRecordsUrl.get());
     }
 
     private ConvertedSalesforceSchema getConvertedSalesforceSchema(String sObject, String fields) {

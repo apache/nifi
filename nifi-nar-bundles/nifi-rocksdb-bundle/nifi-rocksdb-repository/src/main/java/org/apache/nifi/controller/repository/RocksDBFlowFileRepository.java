@@ -21,6 +21,8 @@ import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -78,6 +80,7 @@ import java.util.stream.Collectors;
 public class RocksDBFlowFileRepository implements FlowFileRepository {
 
     private static final Logger logger = LoggerFactory.getLogger(RocksDBFlowFileRepository.class);
+    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(RocksDBFlowFileRepository.class);
 
     private static final String FLOWFILE_PROPERTY_PREFIX = "nifi.flowfile.repository.";
     private static final String FLOWFILE_REPOSITORY_DIRECTORY_PREFIX = FLOWFILE_PROPERTY_PREFIX + "directory";
@@ -286,7 +289,10 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
     }
 
     public RocksDBFlowFileRepository(final NiFiProperties niFiProperties) {
-        logger.warn("*** " + RocksDBFlowFileRepository.class.getSimpleName() + " is deprecated and will be removed in future versions of Apache NiFi. ***");
+        deprecationLogger.warn("{} should be replaced with WriteAheadFlowFileRepository for [{}] in nifi.properties",
+                getClass().getSimpleName(),
+                NiFiProperties.FLOWFILE_REPOSITORY_IMPLEMENTATION
+        );
 
         deserializationThreads = RocksDbProperty.DESERIALIZATION_THREADS.getIntValue(niFiProperties);
         deserializationBufferSize = RocksDbProperty.DESERIALIZATION_BUFFER_SIZE.getIntValue(niFiProperties);

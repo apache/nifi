@@ -1,0 +1,17 @@
+[
+  {
+    "pattern": "200 OK https://c2-authoritative:10443/c2/config/heartbeat"
+  },
+  {
+    "pattern": "\"operation\":\"UPDATE\",\"operand\":\"CONFIGURATION\""
+  },
+  {
+    "pattern": "200 OK https://c2-authoritative:10443/c2/config\\?class=raspi3"
+  },
+  {
+    "pattern": "200 OK https://c2-authoritative:10443/c2/config/acknowledge"
+  },
+  {
+    "pattern": "^__testTextRaspi3__$"
+  }
+]

@@ -120,7 +120,7 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * @return type of reference this is (Processor, ControllerService, or ReportingTask)
+     * @return type of reference this is (Processor, ControllerService, ParameterProvider, or ReportingTask)
      */
     @ApiModelProperty(
             value = "The type of reference this is.",

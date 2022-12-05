@@ -89,10 +89,21 @@ Start a NiFi instance if one isn't already running and bring up the UI.  Go to  
 
 image::controller-settings-selection.png["Global Menu - Controller Settings"]
 
-Select the Registry Clients tab and add a new Registry Client giving it a name and the URL of link:http://localhost:18080[`http://localhost:18080`^]:
+Select the Registry Clients tab and add a new Registry Client giving it a name and selecting a type:
+
+image::add-registry-client.png["Add Registry Client Dialog"]
+
+Click "Add".
+
+image::registry-client-added.png["Registry Client Added"]
+
+Once a Registry Client has been added, configure it by clicking the "Edit" button (image:iconEdit.png["Edit Button"]) in the far-right column. In the Edit Registry Client window, select the Properties tab and enter a URL of link:http://localhost:18080[`http://localhost:18080`^]:
+
+image::configure-registry-client-properties.png["Configure Registry Client Properties"]
+
+Click "Update" to save the configuration and close the window:
 
 image::local_registry.png["Local Registry Client"]
-
 
 === Start Version Control on a Process Group
 With NiFi connected to a NiFi Registry, dataflows can be version controlled on the *process group level*.

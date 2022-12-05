@@ -16,11 +16,12 @@
 # under the License.
 #
 
-ARG IMAGE_NAME=openjdk
-ARG IMAGE_TAG=8-jre
+ARG IMAGE_NAME=eclipse-temurin
+ARG IMAGE_TAG=11-jre
 FROM ${IMAGE_NAME}:${IMAGE_TAG} AS artifactbase
 ARG MAINTAINER="Apache NiFi <dev@nifi.apache.org>"
 LABEL maintainer="${MAINTAINER}"
+LABEL site="https://nifi.apache.org"
 
 ARG NIFI_VERSION
 ARG NIFI_BINARY
@@ -34,7 +35,9 @@ ENV NIFI_PID_DIR=${NIFI_HOME}/run
 ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 
 ADD ${NIFI_SCRIPTS} ${NIFI_BASE_DIR}/scripts/
-RUN chmod -R +x ${NIFI_BASE_DIR}/scripts/*.sh
+RUN chmod -R +x ${NIFI_BASE_DIR}/scripts/*.sh \
+   && apt-get update \
+   && apt-get install -y unzip
 
 COPY $NIFI_BINARY $NIFI_BASE_DIR
 RUN unzip ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.zip -d ${NIFI_BASE_DIR} \
@@ -74,7 +77,10 @@ ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -f1` \
     && useradd --shell /bin/bash -u ${UID} -g ${GID} -m nifi \
     && apt-get update \
-    && apt-get install -y jq xmlstarlet procps
+    && apt-get install -y jq xmlstarlet procps \
+    && apt-get -y autoremove \
+    && apt-get clean autoclean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 COPY --chown=nifi:nifi --from=artifactbase $NIFI_BASE_DIR $NIFI_BASE_DIR
 

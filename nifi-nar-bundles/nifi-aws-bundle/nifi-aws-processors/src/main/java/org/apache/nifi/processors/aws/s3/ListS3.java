@@ -40,6 +40,7 @@ import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -69,6 +70,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.ListableEntityWrapper;
 import org.apache.nifi.processor.util.list.ListedEntity;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -79,6 +81,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.FormatUtils;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -102,6 +105,7 @@ import java.util.stream.Collectors;
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"Amazon", "S3", "AWS", "list"})
+@SeeAlso({FetchS3Object.class, PutS3Object.class, DeleteS3Object.class})
 @CapabilityDescription("Retrieves a listing of objects from an S3 bucket. For each object that is listed, creates a FlowFile that represents "
         + "the object so that it can be fetched in conjunction with FetchS3Object. This Processor is designed to run on Primary Node only "
         + "in a cluster. If the primary node changes, the new Primary Node will pick up where the previous node left off without duplicating "
@@ -123,7 +127,7 @@ import java.util.stream.Collectors;
                 "will be written as part of the flowfile attributes"),
         @WritesAttribute(attribute = "s3.user.metadata.___", description = "If 'Write User Metadata' is set to 'True', the user defined metadata associated to the S3 object that is being listed " +
                 "will be written as part of the flowfile attributes")})
-@SeeAlso({FetchS3Object.class, PutS3Object.class, DeleteS3Object.class})
+@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
     public static final AllowableValue BY_TIMESTAMPS = new AllowableValue("timestamps", "Tracking Timestamps",
@@ -181,7 +185,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .description("The prefix used to filter the object list. In most cases, it should end with a forward slash ('/').")
+            .description("The prefix used to filter the object list. Do not begin with a forward slash '/'. In most cases, it should end with a forward slash '/'.")
             .build();
 
     public static final PropertyDescriptor USE_VERSIONS = new Builder()
@@ -215,6 +219,15 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("0 sec")
+            .build();
+
+    public static final PropertyDescriptor MAX_AGE = new Builder()
+            .name("max-age")
+            .displayName("Maximum Object Age")
+            .description("The maximum age that an S3 object can be in order to be considered; any object older than this amount of time (according to last modification date) will be ignored")
+            .required(false)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .addValidator(createMaxAgeValidator())
             .build();
 
     public static final PropertyDescriptor WRITE_OBJECT_TAGS = new Builder()
@@ -281,6 +294,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         SECRET_KEY,
         RECORD_WRITER,
         MIN_AGE,
+        MAX_AGE,
         BATCH_SIZE,
         WRITE_OBJECT_TAGS,
         WRITE_USER_METADATA,
@@ -355,6 +369,22 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                         .subject(subject)
                         .valid(valid)
                         .explanation(valid ? null : "'Requester Pays' cannot be used when listing object versions.")
+                        .build();
+            }
+        };
+    }
+    private static Validator createMaxAgeValidator() {
+        return new Validator() {
+            @Override
+            public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+                Double  maxAge = input != null ? FormatUtils.getPreciseTimeDuration(input, TimeUnit.MILLISECONDS) : null;
+                long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+                boolean valid = input != null && maxAge > minAge;
+                return new ValidationResult.Builder()
+                        .input(input)
+                        .subject(subject)
+                        .valid(valid)
+                        .explanation(valid ? null : "'Maximum Age' must be greater than 'Minimum Age' ")
                         .build();
             }
         };
@@ -446,6 +476,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
         final long startNanos = System.nanoTime();
         final long minAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final Long maxAgeMilliseconds = context.getProperty(MAX_AGE) != null ? context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS) : null;
         final long listingTimestamp = System.currentTimeMillis();
 
         final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
@@ -478,6 +509,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                     long lastModified = versionSummary.getLastModified().getTime();
                     if (lastModified < currentTimestamp
                         || lastModified == currentTimestamp && currentKeys.contains(versionSummary.getKey())
+                        || (maxAgeMilliseconds != null && (lastModified < (listingTimestamp - maxAgeMilliseconds)))
                         || lastModified > (listingTimestamp - minAgeMilliseconds)) {
                         continue;
                     }
@@ -1100,6 +1132,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         final List<ConfigVerificationResult> results = new ArrayList<>(super.verify(context, logger, attributes));
         final String bucketName = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
         final long minAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final Long maxAgeMilliseconds = context.getProperty(MAX_AGE) != null ? context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS) : null;
 
         if (bucketName == null || bucketName.trim().isEmpty()) {
             results.add(new ConfigVerificationResult.Builder()
@@ -1123,7 +1156,8 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                 versionListing = bucketLister.listVersions();
                 for (final S3VersionSummary versionSummary : versionListing.getVersionSummaries()) {
                     long lastModified = versionSummary.getLastModified().getTime();
-                    if (lastModified > (listingTimestamp - minAgeMilliseconds)) {
+                    if ((maxAgeMilliseconds != null && (lastModified < (listingTimestamp - maxAgeMilliseconds)))
+                    || lastModified > (listingTimestamp - minAgeMilliseconds)) {
                         continue;
                     }
 

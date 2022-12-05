@@ -40,13 +40,12 @@ public class LogoutFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
         final boolean supportsOidc = Boolean.parseBoolean(servletContext.getInitParameter("oidc-supported"));
-
         if (supportsOidc) {
             final ServletContext apiContext = servletContext.getContext("/nifi-registry-api");
             apiContext.getRequestDispatcher("/access/oidc/logout").forward(request, response);
         } else {
             final ServletContext apiContext = servletContext.getContext("/nifi-registry-api");
-            apiContext.getRequestDispatcher("/access/logout").forward(request, response);
+            apiContext.getRequestDispatcher("/access/logout/complete").forward(request, response);
         }
     }
 

@@ -509,7 +509,7 @@ public class ControllerSearchServiceIntegrationTest extends AbstractControllerSe
         final Connection connection = getConnection("connection", "connectionName", getBasicRelationships(), processor1, processor2, AUTHORIZED);
 
         final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
-        Mockito.when(flowFileQueue.getFlowFileExpiration(TimeUnit.MILLISECONDS)).thenReturn(5);
+        Mockito.when(flowFileQueue.getFlowFileExpiration(TimeUnit.MILLISECONDS)).thenReturn(5L);
         Mockito.when(flowFileQueue.getFlowFileExpiration()).thenReturn("5");
         Mockito.when(connection.getFlowFileQueue()).thenReturn(flowFileQueue);
 

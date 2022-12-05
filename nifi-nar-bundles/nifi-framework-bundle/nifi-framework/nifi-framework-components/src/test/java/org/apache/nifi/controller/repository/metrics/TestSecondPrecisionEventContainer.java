@@ -17,9 +17,9 @@
 package org.apache.nifi.controller.repository.metrics;
 
 import org.apache.nifi.controller.repository.FlowFileEvent;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestSecondPrecisionEventContainer {
 
@@ -39,8 +39,8 @@ public class TestSecondPrecisionEventContainer {
 
             final long timestamp = startTime + 300_000 * i + 300_000;
             final FlowFileEvent result = container.generateReport(timestamp);
-            assertEquals("Failure at i=" + i, 300 * 100, result.getBytesRead());
-            assertEquals("Failure at i=" + i, 300 * 100, result.getBytesWritten());
+            assertEquals(300 * 100, result.getBytesRead(), "Failure at i=" + i);
+            assertEquals( 300 * 100, result.getBytesWritten(), "Failure at i=" + i);
         }
     }
 

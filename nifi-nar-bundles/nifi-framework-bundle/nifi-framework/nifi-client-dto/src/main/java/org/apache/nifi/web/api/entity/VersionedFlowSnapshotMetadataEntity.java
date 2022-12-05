@@ -18,21 +18,21 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "versionedFlowSnapshotMetadataEntity")
 public class VersionedFlowSnapshotMetadataEntity extends Entity {
-    private VersionedFlowSnapshotMetadata versionedFlowSnapshotMetadata;
+    private RegisteredFlowSnapshotMetadata versionedFlowSnapshotMetadata;
     private String registryId;
 
-    @ApiModelProperty("The collection of versioned flow snapshot metadata")
-    public VersionedFlowSnapshotMetadata getVersionedFlowSnapshotMetadata() {
+    @ApiModelProperty("The collection of registered flow snapshot metadata")
+    public RegisteredFlowSnapshotMetadata getVersionedFlowSnapshotMetadata() {
         return versionedFlowSnapshotMetadata;
     }
 
-    public void setVersionedFlowMetadata(VersionedFlowSnapshotMetadata versionedFlowSnapshotMetadata) {
+    public void setVersionedFlowSnapshotMetadata(RegisteredFlowSnapshotMetadata versionedFlowSnapshotMetadata) {
         this.versionedFlowSnapshotMetadata = versionedFlowSnapshotMetadata;
     }
 

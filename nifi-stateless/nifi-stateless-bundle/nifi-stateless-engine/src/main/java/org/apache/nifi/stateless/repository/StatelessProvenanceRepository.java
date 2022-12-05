@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -150,6 +151,11 @@ public class StatelessProvenanceRepository implements ProvenanceRepository {
     @Override
     public QuerySubmission submitQuery(final Query query, final NiFiUser user) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Optional<ProvenanceEventRecord> getLatestCachedEvent(final String componentId) throws IOException {
+        return Optional.empty();
     }
 
     @Override

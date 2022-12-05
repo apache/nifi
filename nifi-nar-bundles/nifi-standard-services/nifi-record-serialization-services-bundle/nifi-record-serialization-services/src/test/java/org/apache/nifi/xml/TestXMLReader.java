@@ -147,10 +147,10 @@ public class TestXMLReader {
         List<String> records = Arrays.asList(new String(runner.getContentAsByteArray(flowFile.get(0))).split("\n"));
 
         assertEquals(4, records.size());
-        assertEquals("MapRecord[{COUNTRY=USA, ATTR_ID=P1, NAME=Cleve Butler, AGE=42}]", records.get(0));
-        assertEquals("MapRecord[{COUNTRY=UK, ATTR_ID=P2, NAME=Ainslie Fletcher, AGE=33}]", records.get(1));
-        assertEquals("MapRecord[{COUNTRY=FR, ATTR_ID=P3, NAME=Amélie Bonfils, AGE=74}]", records.get(2));
-        assertEquals("MapRecord[{COUNTRY=USA, ATTR_ID=P4, NAME=Elenora Scrivens, AGE=16}]", records.get(3));
+        assertEquals("MapRecord[{ATTR_ID=P1, NAME=Cleve Butler, AGE=42, COUNTRY=USA}]", records.get(0));
+        assertEquals("MapRecord[{ATTR_ID=P2, NAME=Ainslie Fletcher, AGE=33, COUNTRY=UK}]", records.get(1));
+        assertEquals("MapRecord[{ATTR_ID=P3, NAME=Amélie Bonfils, AGE=74, COUNTRY=FR}]", records.get(2));
+        assertEquals("MapRecord[{ATTR_ID=P4, NAME=Elenora Scrivens, AGE=16, COUNTRY=USA}]", records.get(3));
     }
 
     @Test
@@ -174,16 +174,16 @@ public class TestXMLReader {
         List<String> records = Arrays.asList(new String(runner.getContentAsByteArray(flowFile.get(0))).split("\n"));
 
         assertEquals(5, records.size());
-        assertEquals("MapRecord[{ID=P1, NAME=MapRecord[{CONTENT=Cleve Butler, ATTR=attr content, INNER=inner content}], AGE=42}]", records.get(0));
-        assertEquals("MapRecord[{ID=P2, NAME=MapRecord[{CONTENT=Ainslie Fletcher, ATTR=attr content, INNER=inner content}], AGE=33}]", records.get(1));
-        assertEquals("MapRecord[{ID=P3, NAME=MapRecord[{CONTENT=Amélie Bonfils, ATTR=attr content, INNER=inner content}], AGE=74}]", records.get(2));
-        assertEquals("MapRecord[{ID=P4, NAME=MapRecord[{CONTENT=Elenora Scrivens, ATTR=attr content, INNER=inner content}], AGE=16}]", records.get(3));
+        assertEquals("MapRecord[{ID=P1, NAME=MapRecord[{ATTR=attr content, INNER=inner content, CONTENT=Cleve Butler}], AGE=42}]", records.get(0));
+        assertEquals("MapRecord[{ID=P2, NAME=MapRecord[{ATTR=attr content, INNER=inner content, CONTENT=Ainslie Fletcher}], AGE=33}]", records.get(1));
+        assertEquals("MapRecord[{ID=P3, NAME=MapRecord[{ATTR=attr content, INNER=inner content, CONTENT=Amélie Bonfils}], AGE=74}]", records.get(2));
+        assertEquals("MapRecord[{ID=P4, NAME=MapRecord[{ATTR=attr content, INNER=inner content, CONTENT=Elenora Scrivens}], AGE=16}]", records.get(3));
         assertEquals("MapRecord[{ID=P5, NAME=MapRecord[{INNER=inner content}]}]", records.get(4));
     }
 
     @Test
     public void testInferSchema() throws InitializationException, IOException {
-        String expectedContent = "MapRecord[{software=MapRecord[{" + CONTENT_NAME + "=Apache NiFi, favorite=true}], num=123, name=John Doe}]";
+        String expectedContent = "MapRecord[{num=123, name=John Doe, software=MapRecord[{favorite=true, " + CONTENT_NAME + "=Apache NiFi}]}]";
 
         Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
         xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
@@ -203,7 +203,7 @@ public class TestXMLReader {
 
     @Test
     public void testInferSchemaContentFieldNameNotSet() throws InitializationException, IOException {
-        String expectedContent = "MapRecord[{software=MapRecord[{favorite=true}], num=123, name=John Doe}]";
+        String expectedContent = "MapRecord[{num=123, name=John Doe, software=MapRecord[{favorite=true}]}]";
 
         Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
         xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
@@ -261,8 +261,8 @@ public class TestXMLReader {
 
     @Test
     public void testInferSchemaContentFieldNameSetSubElementExistsNoNameClash() throws InitializationException, IOException {
-        String expectedContent = "MapRecord[{field_with_attribute=MapRecord[{" +CONTENT_NAME + "=content of field, " +
-                "attr=attr_content, value=123}]}]";
+        String expectedContent = "MapRecord[{field_with_attribute=MapRecord[{attr=attr_content, value=123, " +CONTENT_NAME + "=content of field" +
+                "}]}]";
 
         Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
         xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
@@ -282,7 +282,7 @@ public class TestXMLReader {
 
     @Test
     public void testInferSchemaIgnoreAttributes() throws InitializationException, IOException {
-        String expectedContent = "MapRecord[{software=Apache NiFi, num=123, name=John Doe}]";
+        String expectedContent = "MapRecord[{num=123, name=John Doe, software=Apache NiFi}]";
 
         Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
         xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());

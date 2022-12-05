@@ -22,12 +22,12 @@ import org.apache.nifi.authorization.MockPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.User;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.nifi.authorization.RequestAction.READ;
 import static org.apache.nifi.authorization.RequestAction.WRITE;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class OperationAuthorizableTest {
 

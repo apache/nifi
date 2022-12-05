@@ -283,13 +283,13 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     }
 
     @Override
-    public int getFlowFileExpiration(final TimeUnit timeUnit) {
-        return (int) timeUnit.convert(expirationMillis, TimeUnit.MILLISECONDS);
+    public long getFlowFileExpiration(final TimeUnit timeUnit) {
+        return timeUnit.convert(expirationMillis, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void setFlowFileExpiration(final String flowExpirationPeriod) {
-        expirationMillis = (int) FormatUtils.getPreciseTimeDuration(flowExpirationPeriod, TimeUnit.MILLISECONDS);
+        expirationMillis = Math.round(FormatUtils.getPreciseTimeDuration(flowExpirationPeriod, TimeUnit.MILLISECONDS));
     }
 
     @Override
@@ -393,5 +393,15 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     @Override
     public void drainTo(final List<FlowFileRecord> destination) {
         this.flowFiles.drainTo(destination);
+    }
+
+    @Override
+    public int hashCode() {
+        return identifier.hashCode();
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        return this == obj;
     }
 }

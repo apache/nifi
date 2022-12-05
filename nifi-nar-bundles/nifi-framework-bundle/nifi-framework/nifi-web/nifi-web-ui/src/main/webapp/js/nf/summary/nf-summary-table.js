@@ -67,6 +67,8 @@
         }
     };
 
+    var showOnlyPrimaryNodeProcessors = false;
+
     var DATA_SEPARATOR = '&nbsp;&nbsp;|&nbsp;&nbsp;';
 
     /**
@@ -177,6 +179,8 @@
             select: function () {
                 var tab = $(this).text();
                 if (tab === 'Processors') {
+                    $('#summary-filter-status-dropdown').show();
+                    $('#summary-filter-primary-node-container').show();
                     // ensure the processor table is sized properly
                     var processorsGrid = $('#processor-summary-table').data('gridInstance');
                     if (nfCommon.isDefinedAndNotNull(processorsGrid)) {
@@ -200,7 +204,41 @@
                             applyFilter();
                         }
                     });
+
+                    // update the combo for processors
+                    $('#summary-filter-status-dropdown').combo({
+                        options: [{
+                            text: 'All Statuses',
+                            value: 'all-statuses'
+                        },{
+                            text: 'Running',
+                            value: 'Running'
+                        }, {
+                            text: 'Stopped',
+                            value: 'Stopped'
+                        }, {
+                            text: 'Validating',
+                            value: 'Validating'
+                        }, {
+                            text: 'Disabled',
+                            value: 'Disabled'
+                        }, {
+                            text: 'Invalid',
+                            value: 'Invalid'
+                        }],
+                        select: function (option) {
+                            applyFilter();
+                        }
+                    });
+
+                    $('#summary-filter-primary-node').on('change', function (event, args) {
+                        showOnlyPrimaryNodeProcessors = args.isChecked;
+                        applyFilter()
+                    });
                 } else if (tab === 'Connections') {
+                    $('#summary-filter-status-dropdown').hide();
+                    $('#summary-filter-primary-node-container').hide();
+                    resetPrimaryNodeCheckbox();
                     // ensure the connection table is size properly
                     var connectionsGrid = $('#connection-summary-table').data('gridInstance');
                     if (nfCommon.isDefinedAndNotNull(connectionsGrid)) {
@@ -228,6 +266,9 @@
                         }
                     });
                 } else if (tab === 'Input Ports') {
+                    $('#summary-filter-status-dropdown').show();
+                    $('#summary-filter-primary-node-container').hide();
+                    resetPrimaryNodeCheckbox();
                     // ensure the connection table is size properly
                     var inputPortsGrid = $('#input-port-summary-table').data('gridInstance');
                     if (nfCommon.isDefinedAndNotNull(inputPortsGrid)) {
@@ -249,6 +290,9 @@
                         }
                     });
                 } else if (tab === 'Output Ports') {
+                    $('#summary-filter-status-dropdown').show();
+                    $('#summary-filter-primary-node-container').hide();
+                    resetPrimaryNodeCheckbox();
                     // ensure the connection table is size properly
                     var outputPortsGrid = $('#output-port-summary-table').data('gridInstance');
                     if (nfCommon.isDefinedAndNotNull(outputPortsGrid)) {
@@ -270,6 +314,9 @@
                         }
                     });
                 } else if (tab === 'Remote Process Groups') {
+                    $('#summary-filter-status-dropdown').hide();
+                    $('#summary-filter-primary-node-container').hide();
+                    resetPrimaryNodeCheckbox();
                     // ensure the connection table is size properly
                     var remoteProcessGroupsGrid = $('#remote-process-group-summary-table').data('gridInstance');
                     if (nfCommon.isDefinedAndNotNull(remoteProcessGroupsGrid)) {
@@ -294,6 +341,9 @@
                         }
                     });
                 } else {
+                    $('#summary-filter-status-dropdown').hide();
+                    $('#summary-filter-primary-node-container').hide();
+                    resetPrimaryNodeCheckbox();
                     // ensure the connection table is size properly
                     var processGroupGrid = $('#process-group-summary-table').data('gridInstance');
                     if (nfCommon.isDefinedAndNotNull(processGroupGrid)) {
@@ -2481,6 +2531,17 @@
      * @returns {Boolean}       Whether or not to include the item
      */
     var filter = function (item, args) {
+        if (args.showOnlyPrimaryNode) {
+            if (item.executionNode !== 'PRIMARY') {
+                return false;
+            }
+        }
+        if (args.filterByStatus && args.filterByStatus !== 'all-statuses') {
+            if (item.runStatus !== args.filterByStatus) {
+                return false;
+            }
+        }
+
         if (args.searchString === '') {
             return true;
         }
@@ -2494,6 +2555,17 @@
         }
 
         return item[args.property].search(filterExp) >= 0;
+    };
+
+    /**
+     * Returns primary node checkbox to original unchecked state
+     */
+    var resetPrimaryNodeCheckbox = function () {
+        var isChecked = $('#summary-filter-primary-node').hasClass('checkbox-checked');
+        if (isChecked) {
+            $('#summary-filter-primary-node').removeClass('checkbox-checked').addClass('checkbox-unchecked');
+        };
+        showOnlyPrimaryNodeProcessors = false;
     };
 
     /**
@@ -2770,7 +2842,9 @@
             // update the search criteria
             data.setFilterArgs({
                 searchString: getFilterText(),
-                property: $('#summary-filter-type').combo('getSelectedOption').value
+                property: $('#summary-filter-type').combo('getSelectedOption').value,
+                filterByStatus: $('#summary-filter-status-dropdown').combo('getSelectedOption').value,
+                showOnlyPrimaryNode: showOnlyPrimaryNodeProcessors
             });
             data.refresh();
         }

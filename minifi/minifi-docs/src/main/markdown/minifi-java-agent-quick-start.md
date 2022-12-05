@@ -136,7 +136,8 @@ nifi.minifi.notifier.ingestors.file.polling.period.seconds=5
 4. Start MiNiFi
 5. When a new flow is available on the C2 server, MiNiFi will download it via C2 and restart itself to pick up the changes
 
-**Note:** Flow definitions are class based. Each class has one flow defined for it. As a result, all the agents belonging to the same class will get the flow at update.
+**Note:** Flow definitions are class based. Each class has one flow defined for it. As a result, all the agents belonging to the same class will get the flow at update.<br>
+**Note:** Compression can be turned on for C2 requests by setting `c2.request.compression=gzip`. Compression is turned off by default when the parameter is omitted, or when `c2.request.compression=none` is given. It can be beneficial to turn compression on to prevent network saturation.
 
 ## Loading a New Dataflow
 
@@ -150,6 +151,21 @@ To load a new dataflow for a MiNiFi instance to run:
 ### Utilizing C2 protocol
 1. Change the flow definition on the C2 Server
 2. When a new flow is available on the C2 server, MiNiFi will download it via C2 and restart itself to pick up the changes
+
+## C2 Heartbeat
+Heartbeat provides status(agent, flowm device) and operational capabilities to C2 server(s)
+
+### Agent manifest
+The agent manifest is the descriptor of the available extensions. The size of the heartbeat
+might increase depending on the added extensions.
+
+With the `c2.full.heartbeat` parameter you can control whether to always include the manifest in the heartbeat or not.
+
+The `agentInfo.agentManifestHash` node can be used to detect in the C2 server whether the manifest changed compared to the previous heartbeat.
+
+If change is detected, a full heartbeat can be retrieved by sending a DESCRIBE MANIFEST Operation in the `requestedOperations` node of the C2 Heartbeat response.
+
+For more details about the C2 protocol please visit [Apache NiFi - MiNiFi C2 wiki page](https://cwiki.apache.org/confluence/display/MINIFI/C2).
 
 ## Using Processors Not Packaged with MiNiFi
 MiNiFi is able to use the following processors out of the box:

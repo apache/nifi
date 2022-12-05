@@ -33,6 +33,7 @@ import org.apache.nifi.c2.protocol.component.api.SchedulingDefaults;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.junit.jupiter.api.Test;
 
@@ -49,10 +50,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class TestRuntimeManifest {
+class TestRuntimeManifest {
+
+    public static final String LIST_HDFS_DEFAULT_SCHEDULE_TIME = "1 min";
 
     @Test
-    public void testRuntimeManifest() throws IOException {
+    void testRuntimeManifest() throws IOException {
         final ObjectMapper objectMapper = new ObjectMapper();
 
         final RuntimeManifest runtimeManifest;
@@ -126,7 +129,7 @@ public class TestRuntimeManifest {
         final Map<String, String> listHdfsDefaultSchedulingPeriods = listHdfsDefinition.getDefaultSchedulingPeriodBySchedulingStrategy();
         assertNotNull(listHdfsDefaultSchedulingPeriods);
         assertEquals(2, listHdfsDefaultSchedulingPeriods.size());
-        assertEquals(SchedulingStrategy.TIMER_DRIVEN.getDefaultSchedulingPeriod(), listHdfsDefaultSchedulingPeriods.get(SchedulingStrategy.TIMER_DRIVEN.name()));
+        assertEquals("1 min", listHdfsDefaultSchedulingPeriods.get(SchedulingStrategy.TIMER_DRIVEN.name()));
         assertEquals(SchedulingStrategy.CRON_DRIVEN.getDefaultSchedulingPeriod(), listHdfsDefaultSchedulingPeriods.get(SchedulingStrategy.CRON_DRIVEN.name()));
 
         final List<Relationship> relationships = listHdfsDefinition.getSupportedRelationships();
@@ -146,6 +149,10 @@ public class TestRuntimeManifest {
         assertNull(listHdfsDefinition.isRestricted());
         assertNull(listHdfsDefinition.getRestrictedExplanation());
         assertNull(listHdfsDefinition.getExplicitRestrictions());
+        assertNotNull(listHdfsDefinition.getStateful());
+        assertNotNull(listHdfsDefinition.getStateful().getDescription());
+        assertNotNull(listHdfsDefinition.getStateful().getScopes());
+        assertEquals(Scope.CLUSTER, listHdfsDefinition.getStateful().getScopes().stream().findFirst().get());
 
         // Verify FetchHDFS definition has restrictions
         final ProcessorDefinition fetchHdfsDefinition = getProcessorDefinition(bundles, "nifi-hadoop-nar",
@@ -192,7 +199,7 @@ public class TestRuntimeManifest {
         assertNotNull(ambariDefaultSchedulingPeriods);
         assertEquals(2, ambariDefaultSchedulingPeriods.size());
         // TIMER_DRIVEN period should come from the @DefaultSchedule annotation that overrides the default value
-        assertEquals("1 min", ambariDefaultSchedulingPeriods.get(SchedulingStrategy.TIMER_DRIVEN.name()));
+        assertEquals(LIST_HDFS_DEFAULT_SCHEDULE_TIME, ambariDefaultSchedulingPeriods.get(SchedulingStrategy.TIMER_DRIVEN.name()));
         assertEquals(SchedulingStrategy.CRON_DRIVEN.getDefaultSchedulingPeriod(), ambariDefaultSchedulingPeriods.get(SchedulingStrategy.CRON_DRIVEN.name()));
 
         // Verify JoltTransformRecord which has @EventDriven
@@ -218,7 +225,7 @@ public class TestRuntimeManifest {
         final Map<String, String> joltTransformDefaultSchedulingPeriods = listHdfsDefinition.getDefaultSchedulingPeriodBySchedulingStrategy();
         assertNotNull(joltTransformDefaultSchedulingPeriods);
         assertEquals(2, joltTransformDefaultSchedulingPeriods.size());
-        assertEquals(SchedulingStrategy.TIMER_DRIVEN.getDefaultSchedulingPeriod(), joltTransformDefaultSchedulingPeriods.get(SchedulingStrategy.TIMER_DRIVEN.name()));
+        assertEquals(LIST_HDFS_DEFAULT_SCHEDULE_TIME, joltTransformDefaultSchedulingPeriods.get(SchedulingStrategy.TIMER_DRIVEN.name()));
         assertEquals(SchedulingStrategy.CRON_DRIVEN.getDefaultSchedulingPeriod(), joltTransformDefaultSchedulingPeriods.get(SchedulingStrategy.CRON_DRIVEN.name()));
     }
 

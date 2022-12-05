@@ -25,6 +25,7 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -67,6 +68,7 @@ public class ControllerSearchService {
     private ComponentMatcher<Parameter> matcherForParameter;
     private ComponentMatcher<Label> matcherForLabel;
     private ComponentMatcher<ControllerServiceNode> matcherForControllerServiceNode;
+    private ComponentMatcher<ParameterProviderNode> matcherForParameterProviderNode;
 
     /**
      * Searches all parameter contexts and parameters.
@@ -98,6 +100,8 @@ public class ControllerSearchService {
             searchComponentType(scope.getFunnels(), user, searchQuery, matcherForFunnel, resultEnricher, results.getFunnelResults());
             searchComponentType(scope.getLabels(), user, searchQuery, matcherForLabel, resultEnricher, results.getLabelResults());
             searchComponentType(scope.getControllerServices(false), user, searchQuery, matcherForControllerServiceNode, resultEnricher, results.getControllerServiceNodeResults());
+            searchComponentType(flowController.getFlowManager().getAllParameterProviders(), user, searchQuery, matcherForParameterProviderNode, resultEnricher,
+                    results.getParameterProviderNodeResults());
         }
 
         scope.getProcessGroups().forEach(processGroup -> searchInProcessGroup(results, searchQuery, processGroup));
@@ -230,5 +234,9 @@ public class ControllerSearchService {
 
     public void setMatcherForControllerServiceNode(ComponentMatcher<ControllerServiceNode> matcherForControllerServiceNode) {
         this.matcherForControllerServiceNode = matcherForControllerServiceNode;
+    }
+
+    public void setMatcherForParameterProviderNode(ComponentMatcher<ParameterProviderNode> matcherForParameterProviderNode) {
+        this.matcherForParameterProviderNode = matcherForParameterProviderNode;
     }
 }

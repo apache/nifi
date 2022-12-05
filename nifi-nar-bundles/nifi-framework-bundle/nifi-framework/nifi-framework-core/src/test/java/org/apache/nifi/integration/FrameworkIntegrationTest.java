@@ -63,6 +63,8 @@ import org.apache.nifi.controller.scheduling.SchedulingAgent;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.scheduling.TimerDrivenSchedulingAgent;
 import org.apache.nifi.controller.serialization.FlowSynchronizer;
+import org.apache.nifi.controller.serialization.StandardFlowSynchronizer;
+import org.apache.nifi.controller.serialization.VersionedFlowSynchronizer;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.controller.state.providers.local.WriteAheadLocalStateProvider;
@@ -83,6 +85,7 @@ import org.apache.nifi.integration.processors.UsernamePasswordProcessor;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.SystemBundle;
+import org.apache.nifi.persistence.FlowConfigurationArchiveManager;
 import org.apache.nifi.persistence.FlowConfigurationDAO;
 import org.apache.nifi.persistence.StandardFlowConfigurationDAO;
 import org.apache.nifi.processor.ProcessContext;
@@ -95,8 +98,6 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.provenance.WriteAheadProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.registry.flow.StandardFlowRegistryClient;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.services.FlowService;
@@ -148,7 +149,6 @@ public class FrameworkIntegrationTest {
 
     private FlowEngine flowEngine;
     private FlowController flowController;
-    private FlowRegistryClient flowRegistryClient = createFlowRegistryClient();
     private ProcessorNode nopProcessor;
     private ProcessorNode terminateProcessor;
     private ProcessorNode terminateAllProcessor;
@@ -193,19 +193,11 @@ public class FrameworkIntegrationTest {
         final Map<String, String> propertyOverrides = new HashMap<>(getNiFiPropertiesOverrides());
         if (isClusteredTest()) {
             propertyOverrides.put(NiFiProperties.CLUSTER_IS_NODE, "true");
-            // TODO: Update to use JSON
             propertyOverrides.put(NiFiProperties.FLOW_CONFIGURATION_FILE, "target/int-tests/flow.xml.gz");
         }
 
         final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(getNiFiPropertiesFilename(), propertyOverrides);
         initialize(nifiProperties);
-    }
-
-    /**
-     * This method exists for subclasses to override and return a different implementation.
-     */
-    protected FlowRegistryClient createFlowRegistryClient() {
-        return new StandardFlowRegistryClient();
     }
 
     protected final void initialize(final NiFiProperties nifiProperties) throws IOException {
@@ -273,7 +265,7 @@ public class FrameworkIntegrationTest {
             Mockito.when(clusterCoordinator.getLocalNodeIdentifier()).thenReturn(localNodeId);
 
             flowController = FlowController.createClusteredInstance(flowFileEventRepository, nifiProperties, authorizer, auditService, encryptor, protocolSender,
-                    bulletinRepo, clusterCoordinator, heartbeatMonitor, leaderElectionManager, VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY, flowRegistryClient,
+                    bulletinRepo, clusterCoordinator, heartbeatMonitor, leaderElectionManager, VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY,
                     extensionManager, Mockito.mock(RevisionManager.class), statusHistoryRepository);
 
             flowController.setClustered(true, UUID.randomUUID().toString());
@@ -282,7 +274,7 @@ public class FrameworkIntegrationTest {
             flowController.setConnectionStatus(new NodeConnectionStatus(localNodeId, NodeConnectionState.CONNECTED));
         } else {
             flowController = FlowController.createStandaloneInstance(flowFileEventRepository, nifiProperties, authorizer, auditService, encryptor, bulletinRepo,
-                VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY, flowRegistryClient, extensionManager, statusHistoryRepository);
+                VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY, extensionManager, statusHistoryRepository);
         }
 
         processScheduler = new StandardProcessScheduler(flowEngine, flowController, flowController.getStateManagerProvider(), nifiProperties);
@@ -354,7 +346,10 @@ public class FrameworkIntegrationTest {
         initialize();
 
         // Reload the flow
-        final FlowSynchronizer flowSynchronizer = new XmlFlowSynchronizer(nifiProperties, extensionManager);
+        final XmlFlowSynchronizer xmlFlowSynchronizer = new XmlFlowSynchronizer(nifiProperties, extensionManager);
+        final File storageFile = new File("target/int-tests/flow.json.gz");
+        final VersionedFlowSynchronizer versionedFlowSynchronizer = new VersionedFlowSynchronizer(extensionManager, storageFile, new FlowConfigurationArchiveManager(nifiProperties));
+        final FlowSynchronizer flowSynchronizer = new StandardFlowSynchronizer(xmlFlowSynchronizer, versionedFlowSynchronizer);
         flowController.synchronize(flowSynchronizer, new StandardDataFlow(flowBytes, null, null, Collections.emptySet()), Mockito.mock(FlowService.class),
             BundleUpdateStrategy.USE_SPECIFIED_OR_COMPATIBLE_OR_GHOST);
 

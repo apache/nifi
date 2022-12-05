@@ -26,7 +26,6 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
-import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,11 +33,8 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import okhttp3.Credentials;
 import okhttp3.HttpUrl;
@@ -52,6 +48,9 @@ import org.apache.nifi.minifi.bootstrap.configuration.differentiators.Differenti
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator;
 import org.apache.nifi.minifi.bootstrap.util.ConfigTransformer;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
+import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
+import org.apache.nifi.security.ssl.StandardSslContextBuilder;
+import org.apache.nifi.security.ssl.StandardTrustManagerBuilder;
 import org.slf4j.LoggerFactory;
 
 
@@ -273,51 +272,40 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
         final String keystoreLocation = properties.getProperty(KEYSTORE_LOCATION_KEY);
         final String keystorePass = properties.getProperty(KEYSTORE_PASSWORD_KEY);
         final String keystoreType = properties.getProperty(KEYSTORE_TYPE_KEY);
-
         assertKeystorePropertiesSet(keystoreLocation, keystorePass, keystoreType);
 
-        // prepare the keystore
-        final KeyStore keyStore = KeyStore.getInstance(keystoreType);
-
-        try (FileInputStream keyStoreStream = new FileInputStream(keystoreLocation)) {
-            keyStore.load(keyStoreStream, keystorePass.toCharArray());
+        final KeyStore keyStore;
+        try (final FileInputStream keyStoreStream = new FileInputStream(keystoreLocation)) {
+            keyStore = new StandardKeyStoreBuilder()
+                    .type(keystoreType)
+                    .inputStream(keyStoreStream)
+                    .password(keystorePass.toCharArray())
+                    .build();
         }
 
-        final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        keyManagerFactory.init(keyStore, keystorePass.toCharArray());
-
-        // load truststore
         final String truststoreLocation = properties.getProperty(TRUSTSTORE_LOCATION_KEY);
         final String truststorePass = properties.getProperty(TRUSTSTORE_PASSWORD_KEY);
         final String truststoreType = properties.getProperty(TRUSTSTORE_TYPE_KEY);
         assertTruststorePropertiesSet(truststoreLocation, truststorePass, truststoreType);
 
-        KeyStore truststore = KeyStore.getInstance(truststoreType);
-        final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("X509");
-        truststore.load(new FileInputStream(truststoreLocation), truststorePass.toCharArray());
-        trustManagerFactory.init(truststore);
-
-        final X509TrustManager x509TrustManager;
-        TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
-        if (trustManagers[0] != null) {
-            x509TrustManager = (X509TrustManager) trustManagers[0];
-        } else {
-            throw new IllegalStateException("List of trust managers is null");
+        final KeyStore truststore;
+        try (final FileInputStream trustStoreStream = new FileInputStream(truststoreLocation)) {
+            truststore = new StandardKeyStoreBuilder()
+                    .type(truststoreType)
+                    .inputStream(trustStoreStream)
+                    .password(truststorePass.toCharArray())
+                    .build();
         }
 
-        SSLContext tempSslContext;
-        try {
-            tempSslContext = SSLContext.getInstance("TLS");
-        } catch (NoSuchAlgorithmException e) {
-            logger.warn("Unable to use 'TLS' for the PullHttpChangeIngestor due to NoSuchAlgorithmException. Will attempt to use the default algorithm.", e);
-            tempSslContext = SSLContext.getDefault();
-        }
-
-        final SSLContext sslContext = tempSslContext;
-        sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
-
+        final X509TrustManager trustManager = new StandardTrustManagerBuilder().trustStore(truststore).build();
+        final SSLContext sslContext = new StandardSslContextBuilder()
+                .keyStore(keyStore)
+                .keyPassword(keystorePass.toCharArray())
+                .trustStore(truststore)
+                .build();
         final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-        okHttpClientBuilder.sslSocketFactory(sslSocketFactory, x509TrustManager);
+
+        okHttpClientBuilder.sslSocketFactory(sslSocketFactory, trustManager);
     }
 
     private void assertKeystorePropertiesSet(String location, String password, String type) {

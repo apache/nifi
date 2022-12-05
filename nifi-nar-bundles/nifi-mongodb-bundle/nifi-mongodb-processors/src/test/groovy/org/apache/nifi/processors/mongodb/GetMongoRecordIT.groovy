@@ -35,17 +35,20 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.testcontainers.containers.MongoDBContainer
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
+import org.testcontainers.utility.DockerImageName
 
 import static groovy.json.JsonOutput.*
 
-class GetMongoRecordIT {
+class GetMongoRecordIT extends AbstractMongoIT {
     TestRunner runner
     MongoDBClientService service
 
     static RecordSchema SCHEMA
     static final String DB_NAME = GetMongoRecord.class.simpleName + Calendar.instance.timeInMillis
     static final String COL_NAME = "test"
-    static final String URI = "mongodb://localhost:27017"
 
     static {
         def fields = [
@@ -67,7 +70,7 @@ class GetMongoRecordIT {
         runner = TestRunners.newTestRunner(GetMongoRecord.class)
         service = new MongoDBControllerService()
         runner.addControllerService("client", service)
-        runner.setProperty(service, MongoDBControllerService.URI, URI)
+        runner.setProperty(service, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString())
         runner.enableControllerService(service)
 
         def writer = new JsonRecordSetWriter()

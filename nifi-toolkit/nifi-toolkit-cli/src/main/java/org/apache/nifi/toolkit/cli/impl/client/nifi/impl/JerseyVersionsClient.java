@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
+import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowUpdateRequestEntity;
 
@@ -115,6 +116,84 @@ public class JerseyVersionsClient extends AbstractJerseyClient implements Versio
             final WebTarget target = versionsTarget
                     .path("update-requests/{id}")
                     .resolveTemplate("id", updateRequestId);
+
+            return getRequestBuilder(target).delete(VersionedFlowUpdateRequestEntity.class);
+        });
+    }
+
+    @Override
+    public VersionControlInformationEntity startVersionControl(final String processGroupId, final StartVersionControlRequestEntity startVersionControlRequestEntity)
+                throws IOException, NiFiClientException {
+
+        if (startVersionControlRequestEntity == null) {
+            throw new IllegalArgumentException("Request Entity cannot be null");
+        }
+
+        return executeAction("Error starting version control", () -> {
+            final WebTarget target = versionsTarget
+                .path("process-groups/{id}")
+                .resolveTemplate("id", processGroupId);
+
+            return getRequestBuilder(target).post(Entity.entity(startVersionControlRequestEntity, MediaType.APPLICATION_JSON_TYPE),
+                VersionControlInformationEntity.class);
+        });
+    }
+
+    // POST /versions/revert-requests/process-groups/id
+
+    @Override
+    public VersionedFlowUpdateRequestEntity initiateRevertFlowVersion(final String processGroupId, final VersionControlInformationEntity versionControlInformation)
+        throws IOException, NiFiClientException {
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+
+        if (versionControlInformation == null) {
+            throw new IllegalArgumentException("Version control information entity cannot be null");
+        }
+
+        return executeAction("Error reverting flow version", () -> {
+            final WebTarget target = versionsTarget
+                .path("revert-requests/process-groups/{id}")
+                .resolveTemplate("id", processGroupId);
+
+            return getRequestBuilder(target).post(
+                Entity.entity(versionControlInformation, MediaType.APPLICATION_JSON_TYPE),
+                VersionedFlowUpdateRequestEntity.class
+            );
+        });
+    }
+
+    // GET /versions/revert-requests/process-groups/id
+
+    @Override
+    public VersionedFlowUpdateRequestEntity getRevertFlowVersionRequest(final String requestId) throws IOException, NiFiClientException {
+        if (StringUtils.isBlank(requestId)) {
+            throw new IllegalArgumentException("Update request id cannot be null or blank");
+        }
+
+        return executeAction("Error getting revert request", () -> {
+            final WebTarget target = versionsTarget
+                .path("revert-requests/{id}")
+                .resolveTemplate("id", requestId);
+
+            return getRequestBuilder(target).get(VersionedFlowUpdateRequestEntity.class);
+        });
+
+    }
+
+    // DELETE /versions/revert-requests/process-groups/id
+
+    @Override
+    public VersionedFlowUpdateRequestEntity deleteRevertFlowVersionRequest(final String requestId) throws IOException, NiFiClientException {
+        if (StringUtils.isBlank(requestId)) {
+            throw new IllegalArgumentException("Update request id cannot be null or blank");
+        }
+
+        return executeAction("Error deleting revert request", () -> {
+            final WebTarget target = versionsTarget
+                .path("revert-requests/{id}")
+                .resolveTemplate("id", requestId);
 
             return getRequestBuilder(target).delete(VersionedFlowUpdateRequestEntity.class);
         });

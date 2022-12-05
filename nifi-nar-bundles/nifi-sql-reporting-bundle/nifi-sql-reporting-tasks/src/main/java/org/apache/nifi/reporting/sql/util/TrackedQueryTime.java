@@ -21,7 +21,9 @@ public enum TrackedQueryTime {
     BULLETIN_START_TIME("$bulletinStartTime"),
     BULLETIN_END_TIME("$bulletinEndTime"),
     PROVENANCE_START_TIME("$provenanceStartTime"),
-    PROVENANCE_END_TIME("$provenanceEndTime");
+    PROVENANCE_END_TIME("$provenanceEndTime"),
+    FLOW_CONFIG_HISTORY_START_TIME("$flowConfigHistoryStartTime"),
+    FLOW_CONFIG_HISTORY_END_TIME("$flowConfigHistoryEndTime");
 
     private final String sqlPlaceholder;
 

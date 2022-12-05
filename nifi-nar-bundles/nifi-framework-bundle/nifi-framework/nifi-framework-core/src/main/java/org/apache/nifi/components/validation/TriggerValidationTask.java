@@ -46,7 +46,15 @@ public class TriggerValidationTask implements Runnable {
                 validationTrigger.trigger(node);
             }
 
+            for (final ComponentNode node : flowManager.getAllParameterProviders()) {
+                validationTrigger.trigger(node);
+            }
+
             for (final ComponentNode node : flowManager.getRootGroup().findAllProcessors()) {
+                validationTrigger.trigger(node);
+            }
+
+            for (final ComponentNode node : flowManager.getAllFlowRegistryClients()) {
                 validationTrigger.trigger(node);
             }
         } catch (final Throwable t) {

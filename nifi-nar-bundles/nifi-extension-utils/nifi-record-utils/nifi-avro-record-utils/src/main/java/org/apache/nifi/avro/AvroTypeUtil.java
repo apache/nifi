@@ -905,36 +905,45 @@ public class AvroTypeUtil {
         return convertAvroRecordToMap(avroRecord, recordSchema, StandardCharsets.UTF_8);
     }
 
+    private static String getMatchingFieldName(final GenericRecord record, final RecordField field) {
+        final Schema schema = record.getSchema();
+        Field avroField = schema.getField(field.getFieldName());
+        if (avroField != null) {
+            return field.getFieldName();
+        }
+
+        for (final String alias : field.getAliases()) {
+            avroField = schema.getField(alias);
+            if (avroField != null) {
+                return alias;
+            }
+        }
+
+        return null;
+    }
+
     public static Map<String, Object> convertAvroRecordToMap(final GenericRecord avroRecord, final RecordSchema recordSchema, final Charset charset) {
         final Map<String, Object> values = new HashMap<>(recordSchema.getFieldCount());
 
         for (final RecordField recordField : recordSchema.getFields()) {
-
-            Object value = avroRecord.get(recordField.getFieldName());
-            if (value == null) {
-                for (final String alias : recordField.getAliases()) {
-                    value = avroRecord.get(alias);
-                    if (value != null) {
-                        break;
-                    }
-                }
-            }
+            final String relevantFieldName = getMatchingFieldName(avroRecord, recordField);
+            final Object value = (relevantFieldName == null) ? null : avroRecord.get(relevantFieldName);
 
             final String fieldName = recordField.getFieldName();
             try {
-            final Field avroField = avroRecord.getSchema().getField(fieldName);
-            if (avroField == null) {
-                values.put(fieldName, null);
-                continue;
-            }
+                final Field avroField = avroRecord.getSchema().getField(relevantFieldName);
+                if (avroField == null) {
+                    values.put(fieldName, null);
+                    continue;
+                }
 
-            final Schema fieldSchema = avroField.schema();
-            final Object rawValue = normalizeValue(value, fieldSchema, fieldName);
+                final Schema fieldSchema = avroField.schema();
+                final Object rawValue = normalizeValue(value, fieldSchema, fieldName);
 
-            final DataType desiredType = recordField.getDataType();
-            final Object coercedValue = DataTypeUtils.convertType(rawValue, desiredType, fieldName, charset);
+                final DataType desiredType = recordField.getDataType();
+                final Object coercedValue = DataTypeUtils.convertType(rawValue, desiredType, fieldName, charset);
 
-            values.put(fieldName, coercedValue);
+                values.put(fieldName, coercedValue);
             } catch (Exception ex) {
                 logger.debug("fail to convert field " + fieldName, ex );
                 throw ex;

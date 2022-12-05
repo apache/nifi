@@ -47,6 +47,7 @@ public class VersionedFlowConverter {
         externalFlow.setFlowContents(flowSnapshot.getFlowContents());
         externalFlow.setExternalControllerServices(flowSnapshot.getExternalControllerServices());
         externalFlow.setParameterContexts(flowSnapshot.getParameterContexts());
+        externalFlow.setParameterProviders(flowSnapshot.getParameterProviders());
         externalFlow.setMetadata(externalFlowMetadata);
 
         return externalFlow;

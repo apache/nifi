@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -63,10 +64,12 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * A processor for batch loading data into a Google BigQuery table
+ * @deprecated use {@link PutBigQuery} instead which uses the Write API
  */
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@DeprecationNotice(alternatives = {PutBigQuery.class}, reason = "This processor is deprecated and may be removed in future releases.")
 @Tags({ "google", "google cloud", "bq", "bigquery" })
-@CapabilityDescription("Batch loads flow files content to a Google BigQuery table.")
+@CapabilityDescription("Please be aware this processor is deprecated and may be removed in the near future. Use PutBigQuery instead. Batch loads flow files content to a Google BigQuery table.")
 @SeeAlso({ PutGCSObject.class, DeleteGCSObject.class })
 @WritesAttributes({
         @WritesAttribute(attribute = BigQueryAttributes.JOB_CREATE_TIME_ATTR, description = BigQueryAttributes.JOB_CREATE_TIME_DESC),
@@ -79,6 +82,7 @@ import java.util.concurrent.TimeUnit;
         @WritesAttribute(attribute = BigQueryAttributes.JOB_ERROR_LOCATION_ATTR, description = BigQueryAttributes.JOB_ERROR_LOCATION_DESC),
         @WritesAttribute(attribute = BigQueryAttributes.JOB_NB_RECORDS_ATTR, description = BigQueryAttributes.JOB_NB_RECORDS_DESC)
 })
+@Deprecated
 public class PutBigQueryBatch extends AbstractBigQueryProcessor {
 
     private static final List<String> TYPES = Arrays.asList(FormatOptions.json().getType(), FormatOptions.csv().getType(), FormatOptions.avro().getType());

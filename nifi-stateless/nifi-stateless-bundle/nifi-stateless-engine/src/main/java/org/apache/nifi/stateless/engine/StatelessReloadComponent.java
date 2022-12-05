@@ -23,12 +23,14 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.LoggableComponent;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.TerminationAwareLogger;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.flowrepository.FlowRepositoryClientInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceInvocationHandler;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
@@ -36,9 +38,12 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessContext;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
@@ -203,6 +208,89 @@ public class StatelessReloadComponent implements ReloadComponent {
 
         final LoggableComponent<ReportingTask> newReportingTask = new LoggableComponent<>(newNode.getReportingTask(), newNode.getBundleCoordinate(), terminationAwareLogger);
         existingNode.setReportingTask(newReportingTask);
+        existingNode.setExtensionMissing(newNode.isExtensionMissing());
+
+        // need to refresh the properties in case we are changing from ghost component to real component
+        existingNode.refreshProperties();
+
+        logger.debug("Successfully reloaded {}", existingNode);
+    }
+
+    @Override
+    public void reload(final ParameterProviderNode existingNode, final String newType, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls) {
+        if (existingNode == null) {
+            throw new IllegalStateException("Existing ParameterProviderNode cannot be null");
+        }
+
+        final String id = existingNode.getParameterProvider().getIdentifier();
+
+        // ghost components will have a null logger
+        if (existingNode.getLogger() != null) {
+            existingNode.getLogger().debug("Reloading component {} to type {} from bundle {}", new Object[]{id, newType, bundleCoordinate});
+        }
+
+        final ExtensionManager extensionManager = statelessEngine.getExtensionManager();
+
+        // createParameterProvider will create a new instance class loader for the same id so
+        // save the instance class loader to use it for calling OnRemoved on the existing processor
+        final ClassLoader existingInstanceClassLoader = extensionManager.getInstanceClassLoader(id);
+
+        // set firstTimeAdded to true so lifecycle annotations get fired, but don't register this node
+        // attempt the creation to make sure it works before firing the OnRemoved methods below
+        final ParameterProviderNode newNode = statelessEngine.getFlowManager().createParameterProvider(newType, id, bundleCoordinate, additionalUrls, true, false);
+
+        // call OnRemoved for the existing reporting task using the previous instance class loader
+        try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getParameterProvider(), existingNode.getConfigurationContext());
+        } finally {
+            extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
+        }
+
+        // set the new reporting task into the existing node
+        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getParameterProvider());
+        final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
+        LogRepositoryFactory.getRepository(id).setLogger(terminationAwareLogger);
+
+        final LoggableComponent<ParameterProvider> newParameterProvider = new LoggableComponent<>(newNode.getParameterProvider(), newNode.getBundleCoordinate(), terminationAwareLogger);
+        existingNode.setParameterProvider(newParameterProvider);
+        existingNode.setExtensionMissing(newNode.isExtensionMissing());
+
+        // need to refresh the properties in case we are changing from ghost component to real component
+        existingNode.refreshProperties();
+
+        logger.debug("Successfully reloaded {}", existingNode);
+    }
+
+    @Override
+    public void reload(FlowRegistryClientNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) throws FlowRepositoryClientInstantiationException {
+        if (existingNode == null) {
+            throw new IllegalStateException("Existing ParameterProviderNode cannot be null");
+        }
+
+        final String id = existingNode.getComponent().getIdentifier();
+
+        // ghost components will have a null logger
+        if (existingNode.getLogger() != null) {
+            existingNode.getLogger().debug("Reloading component {} to type {} from bundle {}", new Object[]{id, newType, bundleCoordinate});
+        }
+
+        final ExtensionManager extensionManager = statelessEngine.getExtensionManager();
+
+        // createFlowRegistryClient will create a new instance class loader for the same id so
+        // save the instance class loader to use it for calling OnRemoved on the existing processor
+        final ClassLoader existingInstanceClassLoader = extensionManager.getInstanceClassLoader(id);
+
+        final FlowRegistryClientNode newNode = statelessEngine.getFlowManager().createFlowRegistryClient(newType, id, bundleCoordinate, additionalUrls, true, false, null);
+
+        extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
+
+        // set the new flow registry client into the existing node
+        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getComponent());
+        final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
+        LogRepositoryFactory.getRepository(id).setLogger(terminationAwareLogger);
+
+        final LoggableComponent<FlowRegistryClient> newClient = new LoggableComponent(newNode.getComponent(), newNode.getBundleCoordinate(), terminationAwareLogger);
+        existingNode.setComponent(newClient);
         existingNode.setExtensionMissing(newNode.isExtensionMissing());
 
         // need to refresh the properties in case we are changing from ghost component to real component

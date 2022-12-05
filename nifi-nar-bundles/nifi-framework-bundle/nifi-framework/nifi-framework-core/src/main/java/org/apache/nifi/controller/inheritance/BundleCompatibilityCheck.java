@@ -20,9 +20,11 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.VersionedDataflow;
+import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedReportingTask;
@@ -87,6 +89,37 @@ public class BundleCompatibilityCheck implements FlowInheritabilityCheck {
                         task.getInstanceIdentifier(), task.getType(), task.getBundle()));
                 }
             }
+        }
+
+        if (dataflow.getParameterProviders() != null) {
+            for (final VersionedParameterProvider task : dataflow.getParameterProviders()) {
+                if (missingComponents.contains(task.getInstanceIdentifier())) {
+                    continue;
+                }
+
+                if (isMissing(task.getBundle(), extensionManager)) {
+                    return FlowInheritability.notInheritable(String.format("Parameter Provider with ID %s and type %s requires bundle %s, but that bundle cannot be found in this NiFi instance",
+                            task.getInstanceIdentifier(), task.getType(), task.getBundle()));
+                }
+            }
+        }
+
+        if (dataflow.getRegistries() != null) {
+            for (final VersionedFlowRegistryClient registryClient : dataflow.getRegistries()) {
+                if (registryClient.getBundle() == null) {
+                    // Bundle will be missing if dataflow is using an older format, before Registry Clients became extension points.
+                    continue;
+                }
+                if (missingComponents.contains(registryClient.getInstanceIdentifier())) {
+                    continue;
+                }
+
+                if (isMissing(registryClient.getBundle(), extensionManager)) {
+                    return FlowInheritability.notInheritable(String.format("Flow Registry Client with ID %s and type %s requires bundle %s, but that bundle cannot be found in this NiFi instance",
+                            registryClient.getInstanceIdentifier(), registryClient.getType(), registryClient.getBundle()));
+                }
+            }
+
         }
 
         return checkBundles(dataflow.getRootGroup(), extensionManager, missingComponents);

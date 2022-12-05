@@ -26,6 +26,7 @@ import org.apache.nifi.provenance.search.SearchableField;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static java.util.Collections.EMPTY_SET;
@@ -100,6 +101,11 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
   @Override
   public QuerySubmission submitQuery(Query query, NiFiUser niFiUser) {
     return null;
+  }
+
+  @Override
+  public Optional<ProvenanceEventRecord> getLatestCachedEvent(final String componentId) throws IOException {
+    return Optional.empty();
   }
 
   @Override

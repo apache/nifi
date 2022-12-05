@@ -29,13 +29,16 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
@@ -50,12 +53,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Tags({"oauth2", "provider", "authorization", "access token", "http"})
 @CapabilityDescription("Provides OAuth 2.0 access tokens that can be used as Bearer authorization header in HTTP requests." +
     " Uses Resource Owner Password Credentials Grant.")
-public class StandardOauth2AccessTokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider {
+public class StandardOauth2AccessTokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider, VerifiableControllerService {
     public static final PropertyDescriptor AUTHORIZATION_SERVER_URL = new PropertyDescriptor.Builder()
         .name("authorization-server-url")
         .displayName("Authorization Server URL")
@@ -70,6 +74,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         "User Password",
         "Resource Owner Password Credentials Grant. Used to access resources available to users. Requires username and password and usually Client ID and Client Secret"
     );
+
     public static AllowableValue CLIENT_CREDENTIALS_GRANT_TYPE = new AllowableValue(
         "client_credentials",
         "Client Credentials",
@@ -147,6 +152,15 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .required(false)
         .build();
 
+    public static final PropertyDescriptor HTTP_PROTOCOL_STRATEGY = new PropertyDescriptor.Builder()
+        .name("HTTP Protocols")
+        .description("HTTP Protocols supported for Application Layer Protocol Negotiation with TLS")
+        .required(true)
+        .allowableValues(HttpProtocolStrategy.class)
+        .defaultValue(HttpProtocolStrategy.H2_HTTP_1_1.getValue())
+        .dependsOn(SSL_CONTEXT)
+        .build();
+
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
         AUTHORIZATION_SERVER_URL,
         GRANT_TYPE,
@@ -156,7 +170,8 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         CLIENT_SECRET,
         SCOPE,
         REFRESH_WINDOW,
-        SSL_CONTEXT
+        SSL_CONTEXT,
+        HTTP_PROTOCOL_STRATEGY
     ));
 
     public static final ObjectMapper ACCESS_DETAILS_MAPPER = new ObjectMapper()
@@ -233,6 +248,9 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
             SSLContext sslContext = sslService.createContext();
             clientBuilder.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
         }
+
+        final HttpProtocolStrategy httpProtocolStrategy = HttpProtocolStrategy.valueOf(context.getProperty(HTTP_PROTOCOL_STRATEGY).getValue());
+        clientBuilder.protocols(httpProtocolStrategy.getProtocols());
 
         return clientBuilder.build();
     }
@@ -337,5 +355,21 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
                 .minusSeconds(refreshWindowSeconds);
 
         return Instant.now().isAfter(expirationRefreshTime);
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(ConfigurationContext context, ComponentLog verificationLogger, Map<String, String> variables) {
+        ConfigVerificationResult.Builder builder = new ConfigVerificationResult.Builder()
+                .verificationStepName("Can acquire token");
+
+        try {
+            getAccessDetails();
+            builder.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL);
+        } catch (Exception ex) {
+            builder.outcome(ConfigVerificationResult.Outcome.FAILED)
+                    .explanation(ex.getMessage());
+        }
+
+        return Arrays.asList(builder.build());
     }
 }

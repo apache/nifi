@@ -63,7 +63,11 @@
                 <div id="reporting-tasks-table" class="settings-table"></div>
             </div>
             <div id="registries-tab-content" class="configuration-tab controller-settings-table">
+                <div class="registry-properties"></div>
                 <div id="registries-table" class="settings-table"></div>
+            </div>
+            <div id="parameter-providers-tab-content" class="configuration-tab controller-settings-table">
+                <div id="parameter-providers-table" class="settings-table"></div>
             </div>
         </div>
     </div>
@@ -73,7 +77,7 @@
             Last updated:&nbsp;<span id="settings-last-refreshed" class="value-color"></span>
         </div>
         <div id="settings-loading-container" class="loading-container"></div>
-        <div id="controller-cs-availability" class="hidden">Listed services are available to all Reporting Tasks and services defined in the Controller Settings.</div>
+        <div id="controller-cs-availability" class="hidden">Listed services are available to all Reporting Tasks, Registry Clients, Parameter Providers, and services defined in the Controller Settings.</div>
         <div class="clear"></div>
     </div>
 </div>

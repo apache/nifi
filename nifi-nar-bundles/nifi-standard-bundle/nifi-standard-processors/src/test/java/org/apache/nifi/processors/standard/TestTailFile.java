@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Map.Entry;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.processors.standard.TailFile.TailFileState;
@@ -1093,6 +1098,38 @@ public class TestTailFile {
     }
 
     @Test
+    public void testHandleRemovedFile() throws IOException {
+        runner.setProperty(TailFile.BASE_DIRECTORY, "target");
+        runner.setProperty(TailFile.MODE, TailFile.MODE_MULTIFILE);
+        runner.setProperty(TailFile.LOOKUP_FREQUENCY, "1 sec");
+        runner.setProperty(TailFile.FILENAME, "log_[0-9]*\\.txt");
+        runner.setProperty(TailFile.RECURSIVE, "false");
+
+        String logFile1 = Paths.get("target", "log_1.txt").toString();
+        String logFile2 = Paths.get("target", "log_2.txt").toString();
+
+        initializeFile(logFile1, "firstLine\n");
+        initializeFile(logFile2, "secondLine\n");
+
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 2);
+        assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("firstLine\n")));
+        assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("secondLine\n")));
+        assertNumberOfStateMapEntries(2);
+        assertFilenamesInStateMap(Arrays.asList(logFile1,logFile2));
+
+        deleteFile(logFile2);
+
+        runner.run(1);
+
+        assertNumberOfStateMapEntries(1);
+        assertFilenamesInStateMap(Collections.singletonList(logFile1));
+
+        runner.shutdown();
+    }
+
+    @Test
     public void testMultipleFilesWithBasedirAndFilenameEL() throws IOException, InterruptedException {
         runner.setVariable("vrBaseDirectory", "target");
         runner.setProperty(TailFile.BASE_DIRECTORY, "${vrBaseDirectory}");
@@ -1338,6 +1375,21 @@ public class TestTailFile {
         runner.assertTransferCount(TailFile.REL_SUCCESS, 0);
     }
 
+    private void assertNumberOfStateMapEntries(int expectedNumberOfLogFiles) throws IOException {
+        final int numberOfStateKeysPerFile = 6;
+        StateMap states = runner.getStateManager().getState(Scope.LOCAL);
+        assertEquals(numberOfStateKeysPerFile * expectedNumberOfLogFiles, states.toMap().size());
+    }
+
+    private void assertFilenamesInStateMap(Collection<String> expectedFilenames) throws IOException {
+        StateMap states = runner.getStateManager().getState(Scope.LOCAL);
+        Set<String> filenames = states.toMap().entrySet().stream()
+                .filter(entry -> entry.getKey().endsWith("filename"))
+                .map(Entry::getValue)
+                .collect(Collectors.toSet());
+        assertEquals(new HashSet<>(expectedFilenames), filenames);
+    }
+
     private void cleanFiles(String directory) {
         final File targetDir = new File(directory);
         if(targetDir.exists()) {
@@ -1369,6 +1421,11 @@ public class TestTailFile {
         randomAccessFile.write(data.getBytes());
         randomAccessFile.close();
         return randomAccessFile;
+    }
+
+    private void deleteFile(String path) throws IOException {
+        File file = new File(path);
+        assertTrue(file.delete());
     }
 
 }

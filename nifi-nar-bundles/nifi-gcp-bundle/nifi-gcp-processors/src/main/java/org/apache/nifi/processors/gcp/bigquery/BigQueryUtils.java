@@ -28,7 +28,6 @@ import com.google.cloud.bigquery.Schema;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-
 /**
  * Util class for schema manipulation
  */

@@ -15,18 +15,15 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-docker</artifactId>
-        <version>1.18.0-SNAPSHOT</version>
+        <version>1.20.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>dockerhub</artifactId>
 
     <properties>
-        <docker.image.name>openjdk</docker.image.name>
-        <docker.image.tag>8-jre</docker.image.tag>
-        <docker.maintainer><![CDATA[Apache NiFi <dev@nifi.apache.org>]]></docker.maintainer>
         <!-- files need to exist at https://archive.apache.org/dist/nifi/${docker.nifi.version}/nifi-[toolkit-]${docker.nifi.version}-bin.zip
             so this version needs to be *before* the current ${project.version} -->
-        <docker.nifi.version>1.14.0</docker.nifi.version>
+        <docker.nifi.version>1.20.0</docker.nifi.version>
     </properties>
 
     <profiles>

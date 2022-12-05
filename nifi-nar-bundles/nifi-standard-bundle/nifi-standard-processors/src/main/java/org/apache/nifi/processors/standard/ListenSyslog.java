@@ -31,9 +31,11 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.FilteringStrategy;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.DataUnit;
@@ -267,15 +269,6 @@ public class ListenSyslog extends AbstractSyslogProcessor {
                 .explanation("Cannot set Parse Messages to 'true' if Batch Size is greater than 1").build());
         }
 
-        final String protocol = validationContext.getProperty(PROTOCOL).getValue();
-        final SSLContextService sslContextService = validationContext.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-
-        if (UDP_VALUE.getValue().equals(protocol) && sslContextService != null) {
-            results.add(new ValidationResult.Builder()
-                    .explanation("SSL can not be used with UDP")
-                    .valid(false).subject("SSL Context").build());
-        }
-
         return results;
     }
 
@@ -285,7 +278,8 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         final int receiveBufferSize = context.getProperty(RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxSocketBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxMessageQueueSize = context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger();
-        final TransportProtocol protocol = TransportProtocol.valueOf(context.getProperty(PROTOCOL).getValue());
+        final String protocol = context.getProperty(PROTOCOL).getValue();
+        final TransportProtocol transportProtocol = TransportProtocol.valueOf(protocol);
         final String networkInterfaceName = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
         final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions().getValue());
         final String msgDemarcator = context.getProperty(MESSAGE_DELIMITER).getValue().replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
@@ -295,7 +289,8 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
         final InetAddress address = getListenAddress(networkInterfaceName);
         final ByteArrayMessageNettyEventServerFactory factory = new ByteArrayMessageNettyEventServerFactory(getLogger(),
-                address, port, protocol, messageDemarcatorBytes, receiveBufferSize, syslogEvents);
+                address, port, transportProtocol, messageDemarcatorBytes, receiveBufferSize, syslogEvents, FilteringStrategy.EMPTY);
+        factory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         factory.setThreadNamePrefix(String.format("%s[%s]", ListenSyslog.class.getSimpleName(), getIdentifier()));
         final int maxConnections = context.getProperty(MAX_CONNECTIONS).asLong().intValue();
         factory.setWorkerThreads(maxConnections);
@@ -305,7 +300,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         factory.setSocketKeepAlive(socketKeepAlive);
 
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        if (sslContextService != null) {
+        if (sslContextService != null && TCP_VALUE.getValue().equals(protocol)) {
             final SSLContext sslContext = sslContextService.createContext();
             ClientAuth clientAuth = ClientAuth.REQUIRED;
             final PropertyValue clientAuthProperty = context.getProperty(CLIENT_AUTH);

@@ -74,6 +74,7 @@ public class C2OperationState implements Serializable {
         FULLY_APPLIED,
         PARTIALLY_APPLIED,
         OPERATION_NOT_UNDERSTOOD,
+        NO_OPERATION,
         NOT_APPLIED;
 
         /**
@@ -93,6 +94,8 @@ public class C2OperationState implements Serializable {
                 case 2:
                     return OPERATION_NOT_UNDERSTOOD;
                 case 3:
+                    return NO_OPERATION;
+                case 4:
                 default:
                     return NOT_APPLIED;
             }
@@ -114,9 +117,11 @@ public class C2OperationState implements Serializable {
                     return 1;
                 case OPERATION_NOT_UNDERSTOOD:
                     return 2;
+                case NO_OPERATION:
+                    return 3;
                 case NOT_APPLIED:
                 default:
-                    return 3;
+                    return 4;
             }
         }
     }

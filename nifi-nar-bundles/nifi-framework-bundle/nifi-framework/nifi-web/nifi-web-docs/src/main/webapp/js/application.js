@@ -102,6 +102,7 @@ $(document).ready(function () {
         var matchingProcessors = applyComponentFilter($('#processor-links'));
         var matchingControllerServices = applyComponentFilter($('#controller-service-links'));
         var matchingReportingTasks = applyComponentFilter($('#reporting-task-links'));
+        var matchingParameterProviders = applyComponentFilter($('#parameter-provider-links'));
         var matchingDeveloper = applyComponentFilter($('#developer-links'));
 
         // update the rule count

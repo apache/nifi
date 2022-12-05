@@ -26,6 +26,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReloadComponent;
+import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
@@ -50,25 +51,27 @@ import org.apache.nifi.groups.ComponentIdGenerator;
 import org.apache.nifi.groups.ComponentScheduler;
 import org.apache.nifi.groups.FlowSynchronizationOptions;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.ScheduledStateChangeListener;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -76,6 +79,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -89,10 +93,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.AdditionalMatchers.or;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyCollection;
@@ -101,9 +107,11 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -123,6 +131,9 @@ public class StandardVersionedComponentSynchronizerTest {
     private ControllerServiceProvider controllerServiceProvider;
     private ParameterContextManager parameterContextManager;
     private ParameterReferenceManager parameterReferenceManager;
+    private CapturingScheduledStateChangeListener scheduledStateChangeListener;
+    private ControllerServiceNode controllerServiceNode;
+    private BundleCoordinate bundleCoordinate;
 
     private final Set<String> queuesWithData = Collections.synchronizedSet(new HashSet<>());
     private final Bundle bundle = new Bundle("group", "artifact", "version 1.0");
@@ -134,14 +145,16 @@ public class StandardVersionedComponentSynchronizerTest {
         controllerServiceProvider = Mockito.mock(ControllerServiceProvider.class);
         final Function<ProcessorNode, ProcessContext> processContextFactory = proc -> Mockito.mock(ProcessContext.class);
         final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
-        final FlowRegistryClient flowRegistryClient = Mockito.mock(FlowRegistryClient.class);
         componentIdGenerator = (proposed, instance, group) -> proposed == null ? instance : proposed;
         componentScheduler = Mockito.mock(ComponentScheduler.class);
         parameterContextManager = new StandardParameterContextManager();
         parameterReferenceManager = Mockito.mock(ParameterReferenceManager.class);
 
+        bundleCoordinate = new BundleCoordinate("org.apache.nifi", "nifi-standard-nar", "1.18.0");
+        controllerServiceNode = Mockito.mock(ControllerServiceNode.class);
+        when(controllerServiceNode.getBundleCoordinate()).thenReturn(bundleCoordinate);
         when(flowManager.createControllerService(anyString(), anyString(), any(BundleCoordinate.class), anySet(), anyBoolean(), anyBoolean(), nullable(String.class)))
-            .thenReturn(Mockito.mock(ControllerServiceNode.class));
+            .thenReturn(controllerServiceNode);
         when(flowManager.getParameterContextManager()).thenReturn(parameterContextManager);
         doAnswer(invocation -> {
             invocation.getArgument(0, Runnable.class).run();
@@ -150,7 +163,11 @@ public class StandardVersionedComponentSynchronizerTest {
         doAnswer(invocation -> {
             final String id = invocation.getArgument(0, String.class);
             final String name = invocation.getArgument(1, String.class);
-            final ParameterContext parameterContext = new StandardParameterContext(id, name, parameterReferenceManager, null);
+            final ParameterContext parameterContext = new StandardParameterContext.Builder()
+                    .id(id)
+                    .name(name)
+                    .parameterReferenceManager(parameterReferenceManager)
+                    .build();
 
             final Map<String, Parameter> parameterMap = invocation.getArgument(2, Map.class);
             parameterContext.setParameters(parameterMap);
@@ -164,7 +181,7 @@ public class StandardVersionedComponentSynchronizerTest {
             parameterContextManager.addParameterContext(parameterContext);
 
             return parameterContext;
-        }).when(flowManager).createParameterContext(anyString(), anyString(), anyMap(), anyList());
+        }).when(flowManager).createParameterContext(anyString(), anyString(), anyMap(), anyList(), or(any(ParameterProviderConfiguration.class), isNull()));
 
         final VersionedFlowSynchronizationContext context = new VersionedFlowSynchronizationContext.Builder()
             .componentIdGenerator(componentIdGenerator)
@@ -175,7 +192,6 @@ public class StandardVersionedComponentSynchronizerTest {
             .flowMappingOptions(FlowMappingOptions.DEFAULT_OPTIONS)
             .processContextFactory(processContextFactory)
             .reloadComponent(reloadComponent)
-            .flowRegistryClient(flowRegistryClient)
             .build();
 
         group = Mockito.mock(ProcessGroup.class);
@@ -190,10 +206,13 @@ public class StandardVersionedComponentSynchronizerTest {
         when(group.getInputPorts()).thenReturn(Collections.singleton(inputPort));
         when(group.getOutputPorts()).thenReturn(Collections.singleton(outputPort));
 
+        scheduledStateChangeListener = new CapturingScheduledStateChangeListener();
+
         synchronizationOptions = new FlowSynchronizationOptions.Builder()
             .componentIdGenerator(componentIdGenerator)
             .componentComparisonIdLookup(VersionedComponent::getIdentifier)
             .componentScheduler(componentScheduler)
+            .scheduledStateChangeListener(scheduledStateChangeListener)
             .build();
 
         synchronizer = new StandardVersionedComponentSynchronizer(context);
@@ -206,6 +225,7 @@ public class StandardVersionedComponentSynchronizerTest {
             .componentIdGenerator(componentIdGenerator)
             .componentComparisonIdLookup(VersionedComponent::getIdentifier)
             .componentScheduler(componentScheduler)
+            .scheduledStateChangeListener(scheduledStateChangeListener)
             .componentStopTimeout(Duration.ofMillis(10))
             .componentStopTimeoutAction(timeoutAction)
             .build();
@@ -332,6 +352,22 @@ public class StandardVersionedComponentSynchronizerTest {
     }
 
     @Test
+    public void testStartingProcessorRestarted() throws FlowSynchronizationException, TimeoutException, InterruptedException {
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setScheduledState(ScheduledState.RUNNING);
+
+        when(processorA.isRunning()).thenReturn(false);
+        when(processorA.getPhysicalScheduledState()).thenReturn(org.apache.nifi.controller.ScheduledState.STARTING);
+        when(group.stopProcessor(processorA)).thenReturn(CompletableFuture.completedFuture(null));
+
+        synchronizer.synchronize(processorA, versionedProcessor, group, synchronizationOptions);
+
+        verify(group, times(1)).stopProcessor(processorA);
+        verify(processorA).setProperties(versionedProcessor.getProperties(), true, Collections.emptySet());
+        verify(componentScheduler, atLeast(1)).startComponent(any(Connectable.class));
+    }
+
+    @Test
     public void testTimeoutWhenProcessorDoesNotStop() {
         final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
         versionedProcessor.setScheduledState(ScheduledState.RUNNING);
@@ -375,6 +411,8 @@ public class StandardVersionedComponentSynchronizerTest {
 
         verify(connectionAB, times(1)).setName("Hello");
         verify(connectionAB, times(1)).setRelationships(Collections.singleton(new Relationship.Builder().name("success").build()));
+
+        scheduledStateChangeListener.assertNumProcessorUpdates(0);
     }
 
     @Test
@@ -392,6 +430,8 @@ public class StandardVersionedComponentSynchronizerTest {
         // Ensure that the source was stopped and restarted
         verifyStopped(processorA);
         verifyRestarted(processorA);
+
+        verifyCallbackIndicatedRestart(processorA);
     }
 
     @Test
@@ -413,6 +453,8 @@ public class StandardVersionedComponentSynchronizerTest {
         // Ensure that the source was stopped and restarted
         verifyStopped(processorA);
         verifyRestarted(processorA);
+
+        verifyCallbackIndicatedRestart(processorA);
     }
 
     @Test
@@ -437,6 +479,29 @@ public class StandardVersionedComponentSynchronizerTest {
         // Ensure that the source was stopped and restarted
         verifyStopped(processorA);
         verifyNotRestarted(processorA);
+        verifyCallbackIndicatedStopOnly(processorA);
+    }
+
+    private void verifyCallbackIndicatedRestart(final ProcessorNode... processors) {
+        for (final ProcessorNode processor : processors) {
+            scheduledStateChangeListener.assertProcessorUpdates(new ScheduledStateUpdate<>(processor, org.apache.nifi.controller.ScheduledState.STOPPED),
+                    new ScheduledStateUpdate<>(processor, org.apache.nifi.controller.ScheduledState.RUNNING));
+        }
+        scheduledStateChangeListener.assertNumProcessorUpdates(processors.length * 2);
+    }
+
+    private void verifyCallbackIndicatedStopOnly(final ProcessorNode... processors) {
+        for (final ProcessorNode processor : processors) {
+            scheduledStateChangeListener.assertProcessorUpdates(new ScheduledStateUpdate<>(processor, org.apache.nifi.controller.ScheduledState.STOPPED));
+        }
+        scheduledStateChangeListener.assertNumProcessorUpdates(processors.length);
+    }
+
+    private void verifyCallbackIndicatedStartOnly(final ProcessorNode... processors) {
+        for (final ProcessorNode processor : processors) {
+            scheduledStateChangeListener.assertProcessorUpdates(new ScheduledStateUpdate<>(processor, org.apache.nifi.controller.ScheduledState.RUNNING));
+        }
+        scheduledStateChangeListener.assertNumProcessorUpdates(processors.length);
     }
 
     @Test
@@ -449,6 +514,7 @@ public class StandardVersionedComponentSynchronizerTest {
         verifyStopped(processorA);
         verifyNotRestarted(processorA);
         verify(group).removeConnection(connectionAB);
+        verifyCallbackIndicatedStopOnly(processorA);
     }
 
     @Test
@@ -466,10 +532,11 @@ public class StandardVersionedComponentSynchronizerTest {
         verify(connectionAB, times(0)).setName("Hello");
 
         // Ensure that the source was stopped but not restarted. We don't restart in this situation because the intent is to drop
-        // the connection so we will leave the source stopped so that the data can eventually drain from the queue and the connection
+        // the connection, so we will leave the source stopped so that the data can eventually drain from the queue and the connection
         // can be removed.
         verifyStopped(processorA);
         verifyNotRestarted(processorA);
+        verifyCallbackIndicatedStopOnly(processorA);
     }
 
     @Test
@@ -481,12 +548,10 @@ public class StandardVersionedComponentSynchronizerTest {
         // Use a background thread to synchronize the connection.
         final CountDownLatch completionLatch = new CountDownLatch(1);
         final Thread syncThread = new Thread(() -> {
-            try {
+            assertDoesNotThrow(() -> {
                 synchronizer.synchronize(connectionAB, null, group, synchronizationOptions);
                 completionLatch.countDown();
-            } catch (final Exception e) {
-                Assert.fail(e.toString());
-            }
+            });
         });
         syncThread.start();
 
@@ -506,6 +571,7 @@ public class StandardVersionedComponentSynchronizerTest {
         // Ensure that the source was stopped, destination was stopped, and the connection was removed.
         verifyStopped(processorA);
         verifyNotRestarted(processorA);
+        verifyCallbackIndicatedStopOnly(processorB, processorA);
         verifyStopped(processorB);
         verifyNotRestarted(processorB);
         verify(group, times(1)).removeConnection(connectionAB);
@@ -540,9 +606,27 @@ public class StandardVersionedComponentSynchronizerTest {
     public void testPortRestarted() throws FlowSynchronizationException, InterruptedException, TimeoutException {
         final VersionedPort versionedInputPort = createMinimalVersionedPort(ComponentType.INPUT_PORT);
         versionedInputPort.setScheduledState(ScheduledState.RUNNING);
+
+        when(inputPort.isRunning()).thenReturn(true);
+
         synchronizer.synchronize(inputPort, versionedInputPort, group, synchronizationOptions);
 
         verify(componentScheduler, atLeast(1)).transitionComponentState(inputPort, ScheduledState.RUNNING);
+        verify(componentScheduler, times(1)).startComponent(inputPort);
+        verify(inputPort).setName("Input");
+    }
+
+    @Test
+    public void testStoppedPortNotRestarted() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        final VersionedPort versionedInputPort = createMinimalVersionedPort(ComponentType.INPUT_PORT);
+        versionedInputPort.setScheduledState(ScheduledState.ENABLED);
+
+        when(inputPort.isRunning()).thenReturn(true);
+
+        synchronizer.synchronize(inputPort, versionedInputPort, group, synchronizationOptions);
+
+        verify(componentScheduler, times(1)).transitionComponentState(inputPort, ScheduledState.ENABLED);
+        verify(componentScheduler, never()).startComponent(inputPort);
         verify(inputPort).setName("Input");
     }
 
@@ -578,13 +662,13 @@ public class StandardVersionedComponentSynchronizerTest {
         });
     }
 
-
     @Test
     public void testAddsControllerService() throws FlowSynchronizationException, InterruptedException, TimeoutException {
         final VersionedControllerService versionedService = createMinimalVersionedControllerService();
         synchronizer.synchronize(null, versionedService, group, synchronizationOptions);
 
         verify(group).addControllerService(any(ControllerServiceNode.class));
+        verify(controllerServiceNode).setName(eq(versionedService.getName()));
     }
 
     @Test
@@ -628,6 +712,40 @@ public class StandardVersionedComponentSynchronizerTest {
         verify(controllerServiceProvider).enableControllerServicesAsync(Collections.singleton(service));
         verify(controllerServiceProvider).scheduleReferencingComponents(service, Collections.singleton(processorB), componentScheduler);
         verify(service).setName("Hello");
+    }
+
+    @Test
+    public void testReferencesNotRestartedWhenServiceStopped() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        final ControllerServiceNode service = createMockControllerService();
+        when(service.isActive()).thenReturn(true);
+        when(service.getState()).thenReturn(ControllerServiceState.ENABLED);
+
+        // Make Processors A and B reference the controller service and start them
+        setReferences(service, processorA, processorB);
+        startProcessor(processorB);
+
+        when(controllerServiceProvider.unscheduleReferencingComponents(service)).thenReturn(Collections.singletonMap(processorB, CompletableFuture.completedFuture(null)));
+        when(controllerServiceProvider.disableControllerServicesAsync(anyCollection())).thenReturn(CompletableFuture.completedFuture(null));
+
+        final VersionedControllerService versionedControllerService = createMinimalVersionedControllerService();
+        versionedControllerService.setName("Hello");
+        versionedControllerService.setScheduledState(ScheduledState.DISABLED);
+
+        synchronizer.synchronize(service, versionedControllerService, group, synchronizationOptions);
+
+        verify(controllerServiceProvider).unscheduleReferencingComponents(service);
+        verify(controllerServiceProvider).disableControllerServicesAsync(Collections.singleton(service));
+
+        Mockito.doAnswer(new Answer<Void>() {
+            @Override
+            public Void answer(final InvocationOnMock invocationOnMock) {
+                final Set<?> services = invocationOnMock.getArgument(0);
+                assertTrue(services.isEmpty());
+                return null;
+            }
+        }).when(controllerServiceProvider).enableControllerServicesAsync(Mockito.anySet());
+
+        verify(controllerServiceProvider, times(0)).scheduleReferencingComponents(Mockito.any(ControllerServiceNode.class), Mockito.anySet(), Mockito.any(ComponentScheduler.class));
     }
 
     @Test
@@ -1009,6 +1127,7 @@ public class StandardVersionedComponentSynchronizerTest {
         versionedService.setProperties(Collections.singletonMap("abc", "123"));
         versionedService.setPosition(new Position(0D, 0D));
         versionedService.setType("ControllerServiceImpl");
+        versionedService.setBundle(new Bundle(bundleCoordinate.getGroup(), bundleCoordinate.getId(), bundleCoordinate.getVersion()));
 
         return versionedService;
     }
@@ -1024,5 +1143,75 @@ public class StandardVersionedComponentSynchronizerTest {
         versionedPort.setConcurrentlySchedulableTaskCount(1);
 
         return versionedPort;
+    }
+
+    private class ScheduledStateUpdate<T> {
+        private T component;
+        private org.apache.nifi.controller.ScheduledState state;
+
+        public ScheduledStateUpdate(T component, org.apache.nifi.controller.ScheduledState state) {
+            this.component = component;
+            this.state = state;
+        }
+    }
+
+    private class ControllerServiceStateUpdate {
+        private ControllerServiceNode controllerService;
+        private ControllerServiceState state;
+
+        public ControllerServiceStateUpdate(ControllerServiceNode controllerService, ControllerServiceState state) {
+            this.controllerService = controllerService;
+            this.state = state;
+        }
+    }
+
+    private class CapturingScheduledStateChangeListener implements ScheduledStateChangeListener {
+
+        private List<ScheduledStateUpdate<ProcessorNode>> processorUpdates = new ArrayList<>();
+        private List<ScheduledStateUpdate<Port>> portUpdates = new ArrayList<>();
+        private List<ControllerServiceStateUpdate> serviceUpdates = new ArrayList<>();
+        private List<ScheduledStateUpdate<ReportingTaskNode>> reportingTaskUpdates = new ArrayList<>();
+
+        @Override
+        public void onScheduledStateChange(final ProcessorNode processor, final ScheduledState intendedState) {
+            processorUpdates.add(new ScheduledStateUpdate<>(processor, processor.getScheduledState()));
+        }
+
+        @Override
+        public void onScheduledStateChange(ControllerServiceNode controllerService, final ScheduledState intendedState) {
+            serviceUpdates.add(new ControllerServiceStateUpdate(controllerService, controllerService.getState()));
+        }
+
+        @Override
+        public void onScheduledStateChange(ReportingTaskNode reportingTask, final ScheduledState intendedState) {
+            reportingTaskUpdates.add(new ScheduledStateUpdate<>(reportingTask, reportingTask.getScheduledState()));
+        }
+
+        @Override
+        public void onScheduledStateChange(final Port port, final ScheduledState intendedState) {
+            portUpdates.add(new ScheduledStateUpdate<>(port, port.getScheduledState()));
+        }
+
+        void assertNumProcessorUpdates(int expectedNum) {
+            assertEquals(expectedNum, processorUpdates.size(), "Expected " + expectedNum + " processor state changes");
+        }
+
+        void assertProcessorUpdates(final ScheduledStateUpdate<ProcessorNode>... updates) {
+            final Iterator<ScheduledStateUpdate<ProcessorNode>> it = processorUpdates.iterator();
+            for (final ScheduledStateUpdate<ProcessorNode> expectedUpdate : updates) {
+                final ScheduledStateUpdate<ProcessorNode> capturedUpdate = it.next();
+                assertEquals(expectedUpdate.component.getName(), capturedUpdate.component.getName());
+                if (expectedUpdate.state == org.apache.nifi.controller.ScheduledState.RUNNING) {
+                    verifyRestarted(capturedUpdate.component);
+                } else if (expectedUpdate.state == org.apache.nifi.controller.ScheduledState.STOPPED) {
+                    verifyStopped(capturedUpdate.component);
+                }
+            }
+        }
+
+        void assertNumPortUpdates(int expectedNum) {
+            assertEquals(expectedNum, portUpdates.size(),
+                    "Expected " + expectedNum + " port state changes");
+        }
     }
 }

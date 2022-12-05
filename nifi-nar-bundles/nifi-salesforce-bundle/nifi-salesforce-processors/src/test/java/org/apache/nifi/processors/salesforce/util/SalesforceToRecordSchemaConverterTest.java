@@ -17,17 +17,17 @@
 package org.apache.nifi.processors.salesforce.util;
 
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -141,7 +141,7 @@ class SalesforceToRecordSchemaConverterTest {
 
     @Test
     void testConvertEmptySchema() throws IOException {
-        try (final InputStream sfSchema = IOUtils.toInputStream("", Charset.defaultCharset())) {
+        try (final InputStream sfSchema = new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8))) {
             assertThrows(MismatchedInputException.class, () -> converter.convertSchema(sfSchema, "ExampleField"));
         }
     }

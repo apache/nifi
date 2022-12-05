@@ -30,11 +30,13 @@ import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.provenance.ProvenanceRepository;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.NiFiProperties;
 
@@ -67,6 +69,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         narSpecificClasses.add(Processor.class);
         narSpecificClasses.add(FlowFilePrioritizer.class);
         narSpecificClasses.add(ReportingTask.class);
+        narSpecificClasses.add(ParameterProvider.class);
         narSpecificClasses.add(Validator.class);
         narSpecificClasses.add(InputStreamCallback.class);
         narSpecificClasses.add(OutputStreamCallback.class);
@@ -82,6 +85,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         narSpecificClasses.add(FlowFileSwapManager.class);
         narSpecificClasses.add(ContentRepository.class);
         narSpecificClasses.add(StateProvider.class);
+        narSpecificClasses.add(FlowRegistryClient.class);
     }
 
     private NarThreadContextClassLoader() {

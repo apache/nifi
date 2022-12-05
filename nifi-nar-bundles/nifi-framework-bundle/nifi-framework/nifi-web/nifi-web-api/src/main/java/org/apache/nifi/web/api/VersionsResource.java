@@ -32,10 +32,10 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.controller.flow.FlowManager;
-import org.apache.nifi.registry.bucket.Bucket;
-import org.apache.nifi.registry.flow.VersionedFlow;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
+import org.apache.nifi.registry.flow.FlowRegistryBucket;
+import org.apache.nifi.registry.flow.RegisteredFlow;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.web.Revision;
@@ -164,7 +164,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
         });
 
         // get the versioned flow
-        final VersionedFlowSnapshot versionedFlowSnapshot = serviceFacade.getVersionedFlowSnapshotByGroupId(groupId);
+        final RegisteredFlowSnapshot versionedFlowSnapshot = serviceFacade.getVersionedFlowSnapshotByGroupId(groupId);
 
         final VersionedProcessGroup versionedProcessGroup = versionedFlowSnapshot.getFlowContents();
         final String flowName = versionedProcessGroup.getName();
@@ -804,12 +804,12 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
             throw new IllegalArgumentException("Process Group Revision must be specified.");
         }
 
-        final VersionedFlowSnapshot requestFlowSnapshot = requestEntity.getVersionedFlowSnapshot();
+        final RegisteredFlowSnapshot requestFlowSnapshot = requestEntity.getVersionedFlowSnapshot();
         if (requestFlowSnapshot == null) {
             throw new IllegalArgumentException("Versioned Flow Snapshot must be supplied.");
         }
 
-        final VersionedFlowSnapshotMetadata requestSnapshotMetadata = requestFlowSnapshot.getSnapshotMetadata();
+        final RegisteredFlowSnapshotMetadata requestSnapshotMetadata = requestFlowSnapshot.getSnapshotMetadata();
         if (requestSnapshotMetadata == null) {
             throw new IllegalArgumentException("Snapshot Metadata must be supplied.");
         }
@@ -1082,7 +1082,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
     public Response initiateRevertFlowVersion(@ApiParam("The process group id.") @PathParam("id") final String groupId,
-        @ApiParam(value = "The controller service configuration details.", required = true) final VersionControlInformationEntity requestEntity) {
+        @ApiParam(value = "The Version Control Information to revert to.", required = true) final VersionControlInformationEntity requestEntity) {
 
         if (requestEntity == null) {
             throw new IllegalArgumentException("Version control information must be specified.");
@@ -1129,7 +1129,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         // Step 0: Get the Versioned Flow Snapshot from the Flow Registry
-        final VersionedFlowSnapshot flowSnapshot = serviceFacade.getVersionedFlowSnapshot(requestEntity.getVersionControlInformation(), true);
+        final RegisteredFlowSnapshot flowSnapshot = serviceFacade.getVersionedFlowSnapshot(requestEntity.getVersionControlInformation(), true);
 
         // The flow in the registry may not contain the same versions of components that we have in our flow. As a result, we need to update
         // the flow snapshot to contain compatible bundles.
@@ -1137,6 +1137,9 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
 
         // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
         serviceFacade.resolveInheritedControllerServices(flowSnapshot, groupId, NiFiUserUtils.getNiFiUser());
+
+        // If there are any Parameter Providers referenced by Parameter Contexts, resolve these to point to the appropriate Parameter Provider, if we are able to.
+        serviceFacade.resolveParameterProviders(flowSnapshot, NiFiUserUtils.getNiFiUser());
 
         // Step 1: Determine which components will be affected by updating the version
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByFlowUpdate(groupId, flowSnapshot);
@@ -1191,17 +1194,17 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
     @Override
     protected ProcessGroupEntity performUpdateFlow(final String groupId, final Revision revision,
                                                    final VersionControlInformationEntity requestEntity,
-                                                   final VersionedFlowSnapshot flowSnapshot, final String idGenerationSeed,
+                                                   final RegisteredFlowSnapshot flowSnapshot, final String idGenerationSeed,
                                                    final boolean verifyNotModified, final boolean updateDescendantVersionedFlows) {
         logger.info("Updating Process Group with ID {} to version {} of the Versioned Flow", groupId, flowSnapshot.getSnapshotMetadata().getVersion());
 
         // Step 10-11. Update Process Group to the new flow and update variable registry with any Variables that were added or removed
         final VersionControlInformationDTO requestVci = requestEntity.getVersionControlInformation();
 
-        final Bucket bucket = flowSnapshot.getBucket();
-        final VersionedFlow flow = flowSnapshot.getFlow();
+        final FlowRegistryBucket bucket = flowSnapshot.getBucket();
+        final RegisteredFlow flow = flowSnapshot.getFlow();
 
-        final VersionedFlowSnapshotMetadata metadata = flowSnapshot.getSnapshotMetadata();
+        final RegisteredFlowSnapshotMetadata metadata = flowSnapshot.getSnapshotMetadata();
         final VersionControlInformationDTO versionControlInfo = new VersionControlInformationDTO();
         versionControlInfo.setBucketId(metadata.getBucketIdentifier());
         versionControlInfo.setBucketName(bucket.getName());
@@ -1224,7 +1227,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
      */
     @Override
     protected Entity createReplicateUpdateFlowEntity(final Revision revision, final VersionControlInformationEntity requestEntity,
-                                                     final VersionedFlowSnapshot flowSnapshot) {
+                                                     final RegisteredFlowSnapshot flowSnapshot) {
         final VersionedFlowSnapshotEntity snapshotEntity = new VersionedFlowSnapshotEntity();
         snapshotEntity.setProcessGroupRevision(dtoFactory.createRevisionDTO(revision));
         snapshotEntity.setRegistryId(requestEntity.getVersionControlInformation().getRegistryId());

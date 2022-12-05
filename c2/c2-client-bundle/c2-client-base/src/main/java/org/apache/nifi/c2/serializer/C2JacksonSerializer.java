@@ -21,6 +21,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Optional;
+
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import org.apache.nifi.c2.protocol.api.OperandType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +38,10 @@ public class C2JacksonSerializer implements C2Serializer {
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         objectMapper.enable(DeserializationFeature.READ_ENUMS_USING_TO_STRING);
+
+        SimpleModule module = new SimpleModule();
+        module.addDeserializer(OperandType.class, new OperandTypeDeserializer());
+        objectMapper.registerModule(module);
     }
 
     @Override

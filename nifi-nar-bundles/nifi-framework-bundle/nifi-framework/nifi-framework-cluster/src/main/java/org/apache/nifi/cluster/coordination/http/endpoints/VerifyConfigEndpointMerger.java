@@ -33,6 +33,7 @@ public class VerifyConfigEndpointMerger extends AbstractSingleEntityEndpoint<Ver
     public static final Pattern VERIFY_PROCESSOR_CONFIG_URI_PATTERN = Pattern.compile("/nifi-api/processors/[a-f0-9\\-]{36}/config/verification-requests(/[a-f0-9\\-]{36})?");
     public static final Pattern VERIFY_CONTROLLER_SERVICE_CONFIG_URI_PATTERN = Pattern.compile("/nifi-api/controller-services/[a-f0-9\\-]{36}/config/verification-requests(/[a-f0-9\\-]{36})?");
     public static final Pattern VERIFY_REPORTING_TASK_CONFIG_URI_PATTERN = Pattern.compile("/nifi-api/reporting-tasks/[a-f0-9\\-]{36}/config/verification-requests(/[a-f0-9\\-]{36})?");
+    public static final Pattern VERIFY_PARAMETER_PROVIDER_CONFIG_URI_PATTERN = Pattern.compile("/nifi-api/parameter-providers/[a-f0-9\\-]{36}/config/verification-requests(/[a-f0-9\\-]{36})?");
 
     @Override
     protected Class<VerifyConfigRequestEntity> getEntityClass() {
@@ -43,7 +44,8 @@ public class VerifyConfigEndpointMerger extends AbstractSingleEntityEndpoint<Ver
     public boolean canHandle(final URI uri, final String method) {
         return VERIFY_PROCESSOR_CONFIG_URI_PATTERN.matcher(uri.getPath()).matches()
             || VERIFY_CONTROLLER_SERVICE_CONFIG_URI_PATTERN.matcher(uri.getPath()).matches()
-            || VERIFY_REPORTING_TASK_CONFIG_URI_PATTERN.matcher(uri.getPath()).matches();
+            || VERIFY_REPORTING_TASK_CONFIG_URI_PATTERN.matcher(uri.getPath()).matches()
+            || VERIFY_PARAMETER_PROVIDER_CONFIG_URI_PATTERN.matcher(uri.getPath()).matches();
     }
 
     @Override

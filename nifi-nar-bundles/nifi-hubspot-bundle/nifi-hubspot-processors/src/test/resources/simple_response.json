@@ -1,0 +1,36 @@
+{
+  "total": 8,
+  "results": [
+    {
+      "id": "5918809044",
+      "properties": {
+        "createdate": "2022-07-19T13:18:22.646Z",
+        "domain": "hubspot.com",
+        "hs_lastmodifieddate": "2022-07-19T13:18:33.337Z",
+        "hs_object_id": "5918809044",
+        "name": "Hubspot, Inc."
+      },
+      "createdAt": "2022-07-19T13:18:22.646Z",
+      "updatedAt": "2022-07-19T13:18:33.337Z",
+      "archived": false
+    },
+    {
+      "id": "5935019230",
+      "properties": {
+        "createdate": "2022-07-24T19:35:59.337Z",
+        "domain": "algida.com",
+        "hs_lastmodifieddate": "2022-08-31T20:50:04.438Z",
+        "hs_object_id": "5935019230",
+        "name": "Algida"
+      },
+      "createdAt": "2022-07-24T19:35:59.337Z",
+      "updatedAt": "2022-08-31T20:50:04.438Z",
+      "archived": false
+    }
+  ],
+  "paging": {
+    "next": {
+      "after": "2"
+    }
+  }
+}

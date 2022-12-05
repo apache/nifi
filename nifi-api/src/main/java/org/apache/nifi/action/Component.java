@@ -31,7 +31,9 @@ public enum Component {
     Connection,
     ControllerService,
     ReportingTask,
+    FlowRegistryClient,
     ParameterContext,
+    ParameterProvider,
     AccessPolicy,
     User,
     UserGroup;

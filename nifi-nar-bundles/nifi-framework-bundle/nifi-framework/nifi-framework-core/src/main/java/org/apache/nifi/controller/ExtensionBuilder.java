@@ -19,6 +19,7 @@ package org.apache.nifi.controller;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
@@ -28,7 +29,10 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.flowrepository.FlowRepositoryClientInstantiationException;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
+import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
+import org.apache.nifi.controller.parameter.StandardParameterProviderNode;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.reporting.StandardReportingInitializationContext;
 import org.apache.nifi.controller.reporting.StandardReportingTaskNode;
@@ -42,6 +46,10 @@ import org.apache.nifi.controller.service.StandardControllerServiceNode;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.parameter.GhostParameterProvider;
+import org.apache.nifi.parameter.ParameterProvider;
+import org.apache.nifi.parameter.ParameterProviderInitializationContext;
+import org.apache.nifi.parameter.StandardParameterProviderInitializationContext;
 import org.apache.nifi.processor.GhostProcessor;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -50,6 +58,12 @@ import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.FlowRegistryClientInitializationContext;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
+import org.apache.nifi.registry.flow.GhostFlowRegistryClient;
+import org.apache.nifi.registry.flow.StandardFlowRegistryClientInitializationContext;
+import org.apache.nifi.registry.flow.StandardFlowRegistryClientNode;
 import org.apache.nifi.registry.variable.StandardComponentVariableRegistry;
 import org.apache.nifi.reporting.GhostReportingTask;
 import org.apache.nifi.reporting.InitializationException;
@@ -59,12 +73,14 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLContext;
 import java.lang.reflect.Proxy;
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class ExtensionBuilder {
@@ -85,6 +101,7 @@ public class ExtensionBuilder {
     private FlowController flowController;
     private StateManagerProvider stateManagerProvider;
     private String classloaderIsolationKey;
+    private SSLContext systemSslContext;
 
     public ExtensionBuilder type(final String type) {
         this.type = type;
@@ -169,6 +186,11 @@ public class ExtensionBuilder {
         return this;
     }
 
+    public ExtensionBuilder systemSslContext(final SSLContext systemSslContext) {
+        this.systemSslContext = systemSslContext;
+        return this;
+    }
+
     public ProcessorNode buildProcessor() {
         if (identifier == null) {
             throw new IllegalStateException("Processor ID must be specified");
@@ -216,6 +238,50 @@ public class ExtensionBuilder {
         return processorNode;
     }
 
+    public FlowRegistryClientNode buildFlowRegistryClient() {
+        if (identifier == null) {
+            throw new IllegalStateException("ReportingTask ID must be specified");
+        }
+        if (type == null) {
+            throw new IllegalStateException("ReportingTask Type must be specified");
+        }
+        if (bundleCoordinate == null) {
+            throw new IllegalStateException("Bundle Coordinate must be specified");
+        }
+        if (serviceProvider == null) {
+            throw new IllegalStateException("Controller Service Provider must be specified");
+        }
+        if (extensionManager == null) {
+            throw new IllegalStateException("Extension Manager must be specified");
+        }
+        if (nodeTypeProvider == null) {
+            throw new IllegalStateException("Node Type Provider must be specified");
+        }
+        if (variableRegistry == null) {
+            throw new IllegalStateException("Variable Registry must be specified");
+        }
+        if (reloadComponent == null) {
+            throw new IllegalStateException("Reload Component must be specified");
+        }
+        if (flowController == null) {
+            throw new IllegalStateException("FlowController must be specified");
+        }
+
+        boolean creationSuccessful = true;
+        LoggableComponent<FlowRegistryClient> loggableComponent;
+        try {
+            loggableComponent = createLoggableFlowRegistryClient();
+        } catch (final FlowRepositoryClientInstantiationException e) {
+            logger.error("Could not create Flow Registry Component of type " + type + " for ID " + identifier + "; creating \"Ghost\" implementation", e);
+            final GhostFlowRegistryClient ghostFlowRegistryClient = new GhostFlowRegistryClient(identifier, type);
+            loggableComponent = new LoggableComponent<>(ghostFlowRegistryClient, bundleCoordinate, null);
+            creationSuccessful = false;
+        }
+
+        final FlowRegistryClientNode clientNode = createFlowRegistryClientNode(loggableComponent, creationSuccessful);
+        return clientNode;
+    }
+
     public ReportingTaskNode buildReportingTask() {
         if (identifier == null) {
             throw new IllegalStateException("ReportingTask ID must be specified");
@@ -259,6 +325,52 @@ public class ExtensionBuilder {
         }
 
         final ReportingTaskNode taskNode = createReportingTaskNode(loggableComponent, creationSuccessful);
+        return taskNode;
+    }
+
+    public ParameterProviderNode buildParameterProvider() {
+        if (identifier == null) {
+            throw new IllegalStateException("ParameterProvider ID must be specified");
+        }
+        if (type == null) {
+            throw new IllegalStateException("ParameterProvider Type must be specified");
+        }
+        if (bundleCoordinate == null) {
+            throw new IllegalStateException("Bundle Coordinate must be specified");
+        }
+        if (extensionManager == null) {
+            throw new IllegalStateException("Extension Manager must be specified");
+        }
+        if (serviceProvider == null) {
+            throw new IllegalStateException("Controller Service Provider must be specified");
+        }
+        if (nodeTypeProvider == null) {
+            throw new IllegalStateException("Node Type Provider must be specified");
+        }
+        if (variableRegistry == null) {
+            throw new IllegalStateException("Variable Registry must be specified");
+        }
+        if (reloadComponent == null) {
+            throw new IllegalStateException("Reload Component must be specified");
+        }
+        if (flowController == null) {
+            throw new IllegalStateException("FlowController must be specified");
+        }
+
+        boolean creationSuccessful = true;
+        LoggableComponent<ParameterProvider> loggableComponent;
+        try {
+            loggableComponent = createLoggableParameterProvider();
+        } catch (final ParameterProviderInstantiationException rtie) {
+            logger.error("Could not create ParameterProvider of type " + type + " for ID " + identifier + "; creating \"Ghost\" implementation", rtie);
+            final GhostParameterProvider ghostParameterProvider = new GhostParameterProvider();
+            ghostParameterProvider.setIdentifier(identifier);
+            ghostParameterProvider.setCanonicalClassName(type);
+            loggableComponent = new LoggableComponent<>(ghostParameterProvider, bundleCoordinate, null);
+            creationSuccessful = false;
+        }
+
+        final ParameterProviderNode taskNode = createParameterProviderNode(loggableComponent, creationSuccessful);
         return taskNode;
     }
 
@@ -320,6 +432,8 @@ public class ExtensionBuilder {
         }
 
         applyDefaultSettings(procNode);
+        applyDefaultRunDuration(procNode);
+
         return procNode;
     }
 
@@ -344,6 +458,72 @@ public class ExtensionBuilder {
         return taskNode;
     }
 
+    private ParameterProviderNode createParameterProviderNode(final LoggableComponent<ParameterProvider> parameterProvider, final boolean creationSuccessful) {
+        final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
+        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(serviceProvider, componentVarRegistry);
+        final ParameterProviderNode parameterProviderNode;
+        if (creationSuccessful) {
+            parameterProviderNode = new StandardParameterProviderNode(parameterProvider, identifier, flowController,
+                    flowController.getControllerServiceProvider(), validationContextFactory, componentVarRegistry, reloadComponent, extensionManager,
+                    validationTrigger);
+            parameterProviderNode.setName(parameterProviderNode.getParameterProvider().getClass().getSimpleName());
+        } else {
+            final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
+            final String componentType = "(Missing) " + simpleClassName;
+
+            parameterProviderNode = new StandardParameterProviderNode(parameterProvider, identifier, flowController,
+                    flowController.getControllerServiceProvider(), validationContextFactory, componentType, type, componentVarRegistry, reloadComponent,
+                    extensionManager, validationTrigger, true);
+            parameterProviderNode.setName(componentType);
+        }
+
+        return parameterProviderNode;
+    }
+
+    private FlowRegistryClientNode createFlowRegistryClientNode(final LoggableComponent<FlowRegistryClient> client, final boolean creationSuccessful) {
+        final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
+        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(serviceProvider, componentVarRegistry);
+        final FlowRegistryClientNode clientNode;
+
+        if (creationSuccessful) {
+            clientNode = new StandardFlowRegistryClientNode(
+                    flowController,
+                    flowController.getFlowManager(),
+                    client,
+                    identifier,
+                    validationContextFactory,
+                    serviceProvider,
+                    type,
+                    client.getComponent().getClass().getCanonicalName(),
+                    componentVarRegistry,
+                    reloadComponent,
+                    extensionManager,
+                    validationTrigger,
+                    false
+            );
+        } else {
+            final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
+            final String componentType = "(Missing) " + simpleClassName;
+
+            clientNode = new StandardFlowRegistryClientNode(
+                    flowController,
+                    flowController.getFlowManager(),
+                    client,
+                    identifier,
+                    validationContextFactory,
+                    serviceProvider,
+                    componentType,
+                    simpleClassName,
+                    componentVarRegistry,
+                    reloadComponent,
+                    extensionManager,
+                    validationTrigger,
+                    true);
+        }
+
+        return clientNode;
+    }
+
     private void applyDefaultSettings(final ProcessorNode processorNode) {
         try {
             final Class<?> procClass = processorNode.getProcessor().getClass();
@@ -356,6 +536,19 @@ public class ExtensionBuilder {
             }
         } catch (final Exception ex) {
             logger.error("Error while setting default settings from DefaultSettings annotation: {}", ex.toString(), ex);
+        }
+    }
+
+    private void applyDefaultRunDuration(final ProcessorNode processorNode) {
+        try {
+            final Class<?> procClass = processorNode.getProcessor().getClass();
+
+            final SupportsBatching sb = procClass.getAnnotation(SupportsBatching.class);
+            if (sb != null) {
+                processorNode.setRunDuration(sb.defaultDuration().getDuration().toMillis(), TimeUnit.MILLISECONDS);
+            }
+        } catch (final Exception ex) {
+            logger.error("Set Default Run Duration failed", ex);
         }
     }
 
@@ -530,6 +723,41 @@ public class ExtensionBuilder {
             return taskComponent;
         } catch (final Exception e) {
             throw new ReportingTaskInstantiationException(type, e);
+        }
+    }
+
+    private LoggableComponent<FlowRegistryClient> createLoggableFlowRegistryClient() throws FlowRepositoryClientInstantiationException {
+        try {
+            final LoggableComponent<FlowRegistryClient> clientComponent = createLoggableComponent(FlowRegistryClient.class);
+
+            final FlowRegistryClientInitializationContext context = new StandardFlowRegistryClientInitializationContext(
+                    identifier, clientComponent.getLogger(), systemSslContext);
+
+            clientComponent.getComponent().initialize(context);
+            return clientComponent;
+
+
+        } catch (final Exception e) {
+            throw new FlowRepositoryClientInstantiationException(type, e);
+        }
+    }
+
+    private LoggableComponent<ParameterProvider> createLoggableParameterProvider() throws ParameterProviderInstantiationException {
+        try {
+            final LoggableComponent<ParameterProvider> providerComponent = createLoggableComponent(ParameterProvider.class);
+
+            final String taskName = providerComponent.getComponent().getClass().getSimpleName();
+            final ParameterProviderInitializationContext config = new StandardParameterProviderInitializationContext(identifier, taskName,
+                    providerComponent.getLogger(), kerberosConfig, nodeTypeProvider);
+
+            providerComponent.getComponent().initialize(config);
+
+            final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
+            verifyControllerServiceReferences(providerComponent.getComponent(), bundle.getClassLoader());
+
+            return providerComponent;
+        } catch (final Exception e) {
+            throw new ParameterProviderInstantiationException(type, e);
         }
     }
 

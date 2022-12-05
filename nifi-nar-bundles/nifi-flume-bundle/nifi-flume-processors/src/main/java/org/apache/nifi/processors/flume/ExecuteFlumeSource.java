@@ -32,6 +32,7 @@ import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -64,6 +65,7 @@ import java.util.concurrent.atomic.AtomicReference;
                         explanation = "Provides operator the ability to execute arbitrary Flume configurations assuming all permissions that NiFi has.")
         }
 )
+@DeprecationNotice(reason = "Apache Flume pipelines should be implemented using Apache NiFi components")
 public class ExecuteFlumeSource extends AbstractFlumeProcessor {
 
     public static final PropertyDescriptor SOURCE_TYPE = new PropertyDescriptor.Builder()

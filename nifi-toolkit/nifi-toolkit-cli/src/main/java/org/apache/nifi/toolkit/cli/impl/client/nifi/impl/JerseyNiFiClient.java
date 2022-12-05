@@ -33,6 +33,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.OutputPortClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamProviderClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.PoliciesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessorClient;
@@ -40,6 +41,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ProvenanceClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RemoteProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.SnippetClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TemplatesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
@@ -217,6 +219,16 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
+    public ParamProviderClient getParamProviderClient() {
+        return new JerseyParamProviderClient(baseTarget);
+    }
+
+    @Override
+    public ParamProviderClient getParamProviderClient(RequestConfig requestConfig) {
+        return new JerseyParamProviderClient(baseTarget, requestConfig);
+    }
+
+    @Override
     public ParamContextClient getParamContextClient() {
         return new JerseyParamContextClient(baseTarget);
     }
@@ -289,6 +301,16 @@ public class JerseyNiFiClient implements NiFiClient {
     @Override
     public AccessClient getAccessClient() {
         return new JerseyAccessClient(baseTarget);
+    }
+
+    @Override
+    public SnippetClient getSnippetClient() {
+        return new JerseySnippetClient(baseTarget);
+    }
+
+    @Override
+    public SnippetClient getSnippetClient(final RequestConfig requestConfig) {
+        return new JerseySnippetClient(baseTarget, requestConfig);
     }
 
     @Override

@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -46,6 +47,7 @@ import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
 import org.apache.nifi.processors.gcp.util.GoogleUtils;
 import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
@@ -71,7 +73,8 @@ import java.util.concurrent.TimeUnit;
         "Each listed file may result in one flowfile, the metadata being written as flowfile attributes. " +
         "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single flowfile. " +
         "This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the " +
-        "previous node left off without duplicating all of the data.")
+        "previous node left off without duplicating all of the data. " +
+        "For how to setup access to Google Drive please see additional details.")
 @SeeAlso({FetchGoogleDrive.class})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @WritesAttributes({@WritesAttribute(attribute = GoogleDriveFileInfo.ID, description = "The id of the file"),
@@ -85,13 +88,15 @@ import java.util.concurrent.TimeUnit;
         " What exactly needs to be stored depends on the 'Listing Strategy'." +
         " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up" +
         " where the previous node left off, without duplicating the data.")
+@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> implements GoogleDriveTrait {
     public static final PropertyDescriptor FOLDER_ID = new PropertyDescriptor.Builder()
             .name("folder-id")
             .displayName("Folder ID")
-            .description("The ID of the folder from which to pull list of files. Needs to be shared with a Service Account." +
+            .description("The ID of the folder from which to pull list of files." +
+                    " For how to setup access to Google Drive and obtain Folder ID please see additional details." +
                     " WARNING: Unauthorized access to the folder is treated as if the folder was empty." +
-                    " This results in the processor not creating result flowfiles. No additional error message is provided.")
+                    " This results in the processor not creating outgoing FlowFiles. No additional error message is provided.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)

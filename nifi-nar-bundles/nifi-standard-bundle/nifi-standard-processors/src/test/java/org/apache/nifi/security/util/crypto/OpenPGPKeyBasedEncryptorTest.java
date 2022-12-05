@@ -25,7 +25,7 @@ import org.bouncycastle.openpgp.PGPEncryptedData;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 public class OpenPGPKeyBasedEncryptorTest {
     private static final String FILENAME = OpenPGPKeyBasedEncryptorTest.class.getSimpleName();

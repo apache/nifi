@@ -42,7 +42,7 @@ public class TestConsumerPartitionsUtil {
 
     @BeforeEach
     public void setup() throws UnknownHostException {
-        hostname = InetAddress.getLocalHost().getHostName();;
+        hostname = InetAddress.getLocalHost().getHostName();
     }
 
     @Test

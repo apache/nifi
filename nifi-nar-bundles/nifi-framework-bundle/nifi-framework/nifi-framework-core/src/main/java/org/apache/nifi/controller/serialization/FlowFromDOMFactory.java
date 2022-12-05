@@ -33,11 +33,14 @@ import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
+import org.apache.nifi.web.api.dto.ParameterProviderConfigurationDTO;
+import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
@@ -48,12 +51,14 @@ import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderConfigurationEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -65,6 +70,7 @@ import java.util.concurrent.TimeUnit;
 
 public class FlowFromDOMFactory {
     private static final Logger logger = LoggerFactory.getLogger(FlowFromDOMFactory.class);
+    private static final String DEPRECATED_FLOW_REGISTRY_CLIENT_TYPE = "org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient";
 
     public static BundleDTO getBundle(final Element bundleElement) {
         if (bundleElement == null) {
@@ -148,6 +154,73 @@ public class FlowFromDOMFactory {
         return dto;
     }
 
+    public static FlowRegistryClientDTO getFlowRegistryClient(final Element element, final PropertyEncryptor encryptor, final FlowEncodingVersion flowEncodingVersion) {
+        final FlowRegistryClientDTO dto = new FlowRegistryClientDTO();
+
+        if (isOldStyleRegistryClient(element)) {
+            return getFlowRegistryClientFromOldStyleConfig(element);
+        }
+
+        dto.setId(getString(element, "id"));
+        dto.setName(getString(element, "name"));
+        dto.setDescription(getString(element, "description"));
+        dto.setUri(getString(element, "uri"));
+
+        dto.setType(getString(element, "class"));
+        dto.setBundle(getBundle(DomUtils.getChild(element, "bundle")));
+
+        dto.setSensitiveDynamicPropertyNames(getSensitivePropertyNames(element));
+        dto.setProperties(getProperties(element, encryptor, flowEncodingVersion));
+        dto.setAnnotationData(getString(element, "annotationData"));
+
+        return dto;
+    }
+
+    private static FlowRegistryClientDTO getFlowRegistryClientFromOldStyleConfig(final Element element) {
+        final String id = getString(element, "id");
+        final String name = getString(element, "name");
+        final String url = getString(element, "url");
+        final String description = getString(element, "description");
+
+        final FlowRegistryClientDTO dto = new FlowRegistryClientDTO();
+        dto.setId(id);
+        dto.setName(name);
+        dto.setDescription(description);
+        dto.setUri(url);
+
+        dto.setType(DEPRECATED_FLOW_REGISTRY_CLIENT_TYPE);
+        dto.setBundle(new BundleDTO("org.apache.nifi", "nifi-flow-registry-client-nar", "1.18.0"));
+
+        dto.setSensitiveDynamicPropertyNames(Collections.emptySet());
+        dto.setProperties(Collections.singletonMap("url", url));
+        dto.setAnnotationData(null);
+
+        return dto;
+    }
+
+    private static boolean isOldStyleRegistryClient(final Element element) {
+        final String id = getString(element, "id");
+        final String identifier = getString(element, "identifier");
+        final List<Element> bundleElements = getChildrenByTagName(element, "bundle");
+
+        return id != null && identifier == null && bundleElements.isEmpty();
+    }
+
+    public static ParameterProviderDTO getParameterProvider(final Element element, final PropertyEncryptor encryptor, final FlowEncodingVersion flowEncodingVersion) {
+        final ParameterProviderDTO dto = new ParameterProviderDTO();
+
+        dto.setId(getString(element, "id"));
+        dto.setName(getString(element, "name"));
+        dto.setComments(getString(element, "comment"));
+        dto.setType(getString(element, "class"));
+        dto.setBundle(getBundle(DomUtils.getChild(element, "bundle")));
+
+        dto.setProperties(getProperties(element, encryptor, flowEncodingVersion));
+        dto.setAnnotationData(getString(element, "annotationData"));
+
+        return dto;
+    }
+
     public static ParameterContextDTO getParameterContext(final Element element, final PropertyEncryptor encryptor) {
         final ParameterContextDTO dto = new ParameterContextDTO();
 
@@ -163,6 +236,7 @@ public class FlowFromDOMFactory {
             parameterDto.setName(getString(parameterElement, "name"));
             parameterDto.setDescription(getString(parameterElement, "description"));
             parameterDto.setSensitive(getBoolean(parameterElement, "sensitive"));
+            parameterDto.setProvided(getBoolean(parameterElement, "provided"));
 
             final String value = decrypt(getString(parameterElement, "value"), encryptor);
             parameterDto.setValue(value);
@@ -180,9 +254,32 @@ public class FlowFromDOMFactory {
         }
         dto.setInheritedParameterContexts(parameterContexts);
 
+        final ParameterProviderConfigurationEntity parameterProviderConfiguration = getParameterProviderConfiguration(element);
+        if (parameterProviderConfiguration != null) {
+            dto.setParameterProviderConfiguration(parameterProviderConfiguration);
+        }
+
         dto.setParameters(parameterDtos);
 
         return dto;
+    }
+
+    private static ParameterProviderConfigurationEntity getParameterProviderConfiguration(final Element parameterContextElement) {
+        final String parameterProviderId = getString(parameterContextElement, "parameterProviderId");
+        if (parameterProviderId != null) {
+            final ParameterProviderConfigurationEntity entity = new ParameterProviderConfigurationEntity();
+            entity.setId(parameterProviderId);
+            final ParameterProviderConfigurationDTO dto = new ParameterProviderConfigurationDTO();
+            final String parameterGroupName = getString(parameterContextElement, "parameterGroupName");
+            final Boolean isSynchronized = getBoolean(parameterContextElement, "isSynchronized");
+            dto.setParameterProviderId(parameterProviderId);
+            dto.setParameterGroupName(parameterGroupName);
+            dto.setSynchronized(isSynchronized);
+            entity.setComponent(dto);
+
+            return entity;
+        }
+        return null;
     }
 
     public static ProcessGroupDTO getProcessGroup(final String parentId, final Element element, final PropertyEncryptor encryptor, final FlowEncodingVersion encodingVersion) {
@@ -301,6 +398,7 @@ public class FlowFromDOMFactory {
         dto.setFlowName(getString(versionControlInfoElement, "flowName"));
         dto.setFlowDescription(getString(versionControlInfoElement, "flowDescription"));
         dto.setVersion(getInt(versionControlInfoElement, "version"));
+        dto.setStorageLocation(getString(versionControlInfoElement, "storageLocation"));
         return dto;
     }
 

@@ -25,14 +25,14 @@ import java.util.Set;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 public class TestStandardProvenanceReporter {
 
     @Test
-    @Ignore
+    @Disabled
     public void testDuplicatesIgnored() {
         final ProvenanceEventRepository mockRepo = Mockito.mock(ProvenanceEventRepository.class);
         final StandardProvenanceReporter reporter = new StandardProvenanceReporter(null, "1234", "TestProc", mockRepo, null);

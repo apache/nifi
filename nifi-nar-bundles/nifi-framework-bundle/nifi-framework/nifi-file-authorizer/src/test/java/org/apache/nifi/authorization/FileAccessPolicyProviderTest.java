@@ -24,9 +24,9 @@ import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -41,11 +41,12 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -151,7 +152,7 @@ public class FileAccessPolicyProviderTest {
 
     private AuthorizerConfigurationContext configurationContext;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         // primary authorizations
         primaryAuthorizations = new File("target/authorizations/authorizations.xml");
@@ -271,7 +272,7 @@ public class FileAccessPolicyProviderTest {
         accessPolicyProvider.initialize(initializationContext);
     }
 
-    @After
+    @AfterEach
     public void cleanup() throws Exception {
         deleteFile(primaryAuthorizations);
         deleteFile(primaryTenants);
@@ -507,17 +508,19 @@ public class FileAccessPolicyProviderTest {
         assertTrue(outputPortPolicy.getUsers().contains(user4.getIdentifier()));
     }
 
-    @Test(expected = AuthorizerCreationException.class)
+    @Test
     public void testOnConfiguredWhenBadLegacyUsersFileProvided() throws Exception {
         when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
                 .thenReturn(new StandardPropertyValue("src/test/resources/does-not-exist.xml", null, ParameterLookup.EMPTY));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
-        accessPolicyProvider.onConfigured(configurationContext);
+
+        assertThrows(AuthorizerCreationException.class,
+                () -> accessPolicyProvider.onConfigured(configurationContext));
     }
 
-    @Test(expected = AuthorizerCreationException.class)
+    @Test
     public void testOnConfiguredWhenInitialAdminAndLegacyUsersProvided() throws Exception {
         final String adminIdentity = "admin-user";
         when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
@@ -528,7 +531,9 @@ public class FileAccessPolicyProviderTest {
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
-        accessPolicyProvider.onConfigured(configurationContext);
+
+        assertThrows(AuthorizerCreationException.class,
+                () -> accessPolicyProvider.onConfigured(configurationContext));
     }
 
     @Test
@@ -806,7 +811,7 @@ public class FileAccessPolicyProviderTest {
         assertNull(accessPolicyProvider.getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.WRITE));
     }
 
-    @Test(expected = AuthorizerCreationException.class)
+    @Test
     public void testOnConfiguredWhenNodeGroupDoesNotExist() throws Exception {
         final String adminIdentity = "admin-user";
 
@@ -819,7 +824,9 @@ public class FileAccessPolicyProviderTest {
         writeFile(primaryTenants, TENANTS_FOR_ADMIN_AND_NODE_GROUP);
 
         userGroupProvider.onConfigured(configurationContext);
-        accessPolicyProvider.onConfigured(configurationContext);
+
+        assertThrows(AuthorizerCreationException.class,
+                () -> accessPolicyProvider.onConfigured(configurationContext));
     }
 
     @Test
@@ -857,26 +864,32 @@ public class FileAccessPolicyProviderTest {
         assertEquals(primaryTenants.length(), restoreTenants.length());
     }
 
-    @Test(expected = AuthorizerCreationException.class)
+    @Test
     public void testOnConfiguredWhenPrimaryDoesNotExist() throws Exception {
         writeFile(restoreAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         userGroupProvider.onConfigured(configurationContext);
-        accessPolicyProvider.onConfigured(configurationContext);
+
+        assertThrows(AuthorizerCreationException.class, () ->
+                accessPolicyProvider.onConfigured(configurationContext));
     }
 
-    @Test(expected = AuthorizerCreationException.class)
+    @Test
     public void testOnConfiguredWhenPrimaryAuthorizationsDifferentThanRestore() throws Exception {
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS);
         writeFile(restoreAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         userGroupProvider.onConfigured(configurationContext);
-        accessPolicyProvider.onConfigured(configurationContext);
+
+        assertThrows(AuthorizerCreationException.class,
+                () -> accessPolicyProvider.onConfigured(configurationContext));
     }
 
-    @Test(expected = AuthorizerCreationException.class)
+    @Test
     public void testOnConfiguredWithBadAuthorizationsSchema() throws Exception {
         writeFile(primaryAuthorizations, BAD_SCHEMA_AUTHORIZATIONS);
         userGroupProvider.onConfigured(configurationContext);
-        accessPolicyProvider.onConfigured(configurationContext);
+
+        assertThrows(AuthorizerCreationException.class,
+                () -> accessPolicyProvider.onConfigured(configurationContext));
     }
 
     @Test

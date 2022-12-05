@@ -16,13 +16,14 @@
  */
 package org.apache.nifi.reporting;
 
-import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AbstractConfigurableComponent;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
+
+import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractReportingTask extends AbstractConfigurableComponent implements ReportingTask {
 

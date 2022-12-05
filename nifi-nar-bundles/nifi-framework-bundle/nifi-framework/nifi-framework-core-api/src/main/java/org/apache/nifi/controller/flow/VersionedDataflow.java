@@ -18,6 +18,8 @@
 package org.apache.nifi.controller.flow;
 
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedFlowRegistryClient;
+import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.flow.VersionedParameterContext;
@@ -28,12 +30,16 @@ import java.util.Set;
 public class VersionedDataflow {
     private VersionedFlowEncodingVersion encodingVersion;
     private int maxTimerDrivenThreadCount;
-    private List<VersionedRegistry> registries;
+    private int maxEventDrivenThreadCount;
+    private List<VersionedFlowRegistryClient> registries;
     private List<VersionedParameterContext> parameterContexts;
+    private List<VersionedParameterProvider> parameterProviders;
     private List<VersionedControllerService> controllerServices;
     private List<VersionedReportingTask> reportingTasks;
     private Set<VersionedTemplate> templates;
     private VersionedProcessGroup rootGroup;
+
+    private final static int DEFAULT_MAX_EVENT_DRIVEN_THREAD_COUNT = 1;
 
     public VersionedFlowEncodingVersion getEncodingVersion() {
         return encodingVersion;
@@ -51,11 +57,19 @@ public class VersionedDataflow {
         this.maxTimerDrivenThreadCount = maxTimerDrivenThreadCount;
     }
 
-    public List<VersionedRegistry> getRegistries() {
+    public int getMaxEventDrivenThreadCount() {
+        return maxEventDrivenThreadCount < 1 ? DEFAULT_MAX_EVENT_DRIVEN_THREAD_COUNT : maxEventDrivenThreadCount;
+    }
+
+    public void setMaxEventDrivenThreadCount(final int maxEventDrivenThreadCount) {
+        this.maxEventDrivenThreadCount = maxEventDrivenThreadCount;
+    }
+
+    public List<VersionedFlowRegistryClient> getRegistries() {
         return registries;
     }
 
-    public void setRegistries(final List<VersionedRegistry> registries) {
+    public void setRegistries(final List<VersionedFlowRegistryClient> registries) {
         this.registries = registries;
     }
 
@@ -81,6 +95,14 @@ public class VersionedDataflow {
 
     public void setReportingTasks(final List<VersionedReportingTask> reportingTasks) {
         this.reportingTasks = reportingTasks;
+    }
+
+    public List<VersionedParameterProvider> getParameterProviders() {
+        return parameterProviders;
+    }
+
+    public void setParameterProviders(final List<VersionedParameterProvider> parameterProviders) {
+        this.parameterProviders = parameterProviders;
     }
 
     public VersionedProcessGroup getRootGroup() {

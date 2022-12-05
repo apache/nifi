@@ -17,8 +17,8 @@
 package org.apache.nifi.record.script;
 
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.script.ScriptingComponentHelper;
 import org.apache.nifi.script.AbstractScriptedControllerService;
+import org.apache.nifi.script.ScriptingComponentHelper;
 
 import java.util.concurrent.atomic.AtomicReference;
 

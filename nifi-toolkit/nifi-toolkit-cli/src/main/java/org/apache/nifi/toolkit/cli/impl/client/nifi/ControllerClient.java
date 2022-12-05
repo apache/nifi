@@ -19,8 +19,9 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi;
 import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
-import org.apache.nifi.web.api.entity.RegistryClientEntity;
-import org.apache.nifi.web.api.entity.RegistryClientsEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 
 import java.io.IOException;
@@ -30,13 +31,13 @@ import java.io.IOException;
  */
 public interface ControllerClient {
 
-    RegistryClientsEntity getRegistryClients() throws NiFiClientException, IOException;
+    FlowRegistryClientsEntity getRegistryClients() throws NiFiClientException, IOException;
 
-    RegistryClientEntity getRegistryClient(String id) throws NiFiClientException, IOException;
+    FlowRegistryClientEntity getRegistryClient(String id) throws NiFiClientException, IOException;
 
-    RegistryClientEntity createRegistryClient(RegistryClientEntity registryClientEntity) throws NiFiClientException, IOException;
+    FlowRegistryClientEntity createRegistryClient(FlowRegistryClientEntity flowRegistryClientEntity) throws NiFiClientException, IOException;
 
-    RegistryClientEntity updateRegistryClient(RegistryClientEntity registryClientEntity) throws NiFiClientException, IOException;
+    FlowRegistryClientEntity updateRegistryClient(FlowRegistryClientEntity flowRegistryClientEntity) throws NiFiClientException, IOException;
 
     NodeEntity connectNode(String nodeId, NodeEntity nodeEntity) throws NiFiClientException, IOException;
 
@@ -53,5 +54,7 @@ public interface ControllerClient {
     ControllerServiceEntity createControllerService(ControllerServiceEntity controllerService) throws NiFiClientException, IOException;
 
     ReportingTaskEntity createReportingTask(ReportingTaskEntity reportingTask) throws NiFiClientException, IOException;
+
+    ParameterProviderEntity createParamProvider(ParameterProviderEntity paramProvider) throws NiFiClientException, IOException;
 
 }

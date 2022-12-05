@@ -18,6 +18,9 @@ package org.apache.nifi.registry.bootstrap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bootstrap.util.OSUtils;
+import org.apache.nifi.bootstrap.util.RuntimeVersionProvider;
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.registry.util.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,7 +122,7 @@ public class RunNiFiRegistry {
     private final Logger cmdLogger = LoggerFactory.getLogger("org.apache.nifi.registry.bootstrap.Command");
     // used for logging all info. These by default will be written to the log file
     private final Logger defaultLogger = LoggerFactory.getLogger(RunNiFiRegistry.class);
-
+    private final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(RunNiFiRegistry.class);
 
     private final ExecutorService loggingExecutor;
     private volatile Set<Future<?>> loggingFutures = new HashSet<>(2);
@@ -923,7 +926,8 @@ public class RunNiFiRegistry {
 
         final String runtimeJavaVersion = System.getProperty("java.version");
         defaultLogger.info("Runtime Java version: {}", runtimeJavaVersion);
-        if (Integer.parseInt(runtimeJavaVersion.substring(0, runtimeJavaVersion.indexOf('.'))) >= 11) {
+        final int javaMajorVersion = RuntimeVersionProvider.getMajorVersion();
+        if (javaMajorVersion >= 11) {
             // If running on Java 11 or greater, add lib/java11 to the classpath.
             // TODO: Once the minimum Java version requirement of NiFi Registry is 11, this processing should be removed.
             final String libJava11Filename = replaceNull(props.get("lib.dir"), "./lib").trim() + "/java11";
@@ -933,6 +937,10 @@ public class RunNiFiRegistry {
                     cpFiles.add(file.getAbsolutePath());
                 }
             }
+        }
+
+        if (RuntimeVersionProvider.isMajorVersionDeprecated(javaMajorVersion)) {
+            deprecationLogger.warn("Support for Java {} is deprecated. Java {} is the minimum recommended version", javaMajorVersion, RuntimeVersionProvider.getMinimumMajorVersion());
         }
 
         final StringBuilder classPathBuilder = new StringBuilder();

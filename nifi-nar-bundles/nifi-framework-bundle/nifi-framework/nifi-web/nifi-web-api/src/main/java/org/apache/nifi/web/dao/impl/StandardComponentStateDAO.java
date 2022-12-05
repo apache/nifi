@@ -20,6 +20,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -62,43 +63,53 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
     }
 
     @Override
-    public StateMap getState(ProcessorNode processor, Scope scope) {
+    public StateMap getState(final ProcessorNode processor, final Scope scope) {
         return getState(processor.getIdentifier(), scope);
     }
 
     @Override
-    public void clearState(ProcessorNode processor) {
+    public void clearState(final ProcessorNode processor) {
         clearState(processor.getIdentifier());
     }
 
     @Override
-    public StateMap getState(ControllerServiceNode controllerService, Scope scope) {
+    public StateMap getState(final ControllerServiceNode controllerService, final Scope scope) {
         return getState(controllerService.getIdentifier(), scope);
     }
 
     @Override
-    public void clearState(ControllerServiceNode controllerService) {
+    public void clearState(final ControllerServiceNode controllerService) {
         clearState(controllerService.getIdentifier());
     }
 
     @Override
-    public StateMap getState(ReportingTaskNode reportingTask, Scope scope) {
+    public StateMap getState(final ReportingTaskNode reportingTask, final Scope scope) {
         return getState(reportingTask.getIdentifier(), scope);
     }
 
     @Override
-    public void clearState(ReportingTaskNode reportingTask) {
+    public void clearState(final ReportingTaskNode reportingTask) {
         clearState(reportingTask.getIdentifier());
     }
 
     @Override
-    public StateMap getState(RemoteProcessGroup remoteProcessGroup, Scope scope) {
+    public StateMap getState(final ParameterProviderNode parameterProvider, final Scope scope) {
+        return getState(parameterProvider.getIdentifier(), scope);
+    }
+
+    @Override
+    public void clearState(final ParameterProviderNode parameterProvider) {
+        clearState(parameterProvider.getIdentifier());
+    }
+
+    @Override
+    public StateMap getState(final RemoteProcessGroup remoteProcessGroup, final Scope scope) {
         return getState(remoteProcessGroup.getIdentifier(), scope);
     }
 
     /* setters */
 
-    public void setStateManagerProvider(StateManagerProvider stateManagerProvider) {
+    public void setStateManagerProvider(final StateManagerProvider stateManagerProvider) {
         this.stateManagerProvider = stateManagerProvider;
     }
 }

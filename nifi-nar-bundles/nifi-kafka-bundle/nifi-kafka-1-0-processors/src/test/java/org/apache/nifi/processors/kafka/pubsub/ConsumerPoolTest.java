@@ -51,8 +51,7 @@ public class ConsumerPoolTest {
 
     private Consumer<byte[], byte[]> consumer = null;
     private ProcessSession mockSession = null;
-    private ProcessContext mockContext = Mockito.mock(ProcessContext.class);
-    private ProvenanceReporter mockReporter = null;
+    private final ProcessContext mockContext = Mockito.mock(ProcessContext.class);
     private ConsumerPool testPool = null;
     private ConsumerPool testDemarcatedPool = null;
     private ComponentLog logger = null;
@@ -63,7 +62,7 @@ public class ConsumerPoolTest {
         consumer = mock(Consumer.class);
         logger = mock(ComponentLog.class);
         mockSession = mock(ProcessSession.class);
-        mockReporter = mock(ProvenanceReporter.class);
+        final ProvenanceReporter mockReporter = mock(ProvenanceReporter.class);
         when(mockSession.getProvenanceReporter()).thenReturn(mockReporter);
         testPool = new ConsumerPool(
                 1,
@@ -104,7 +103,7 @@ public class ConsumerPoolTest {
     }
 
     @Test
-    public void validatePoolSimpleCreateClose() throws Exception {
+    public void validatePoolSimpleCreateClose() {
 
         when(consumer.poll(anyLong())).thenReturn(createConsumerRecords("nifi", 0, 0L, new byte[][]{}));
         try (final ConsumerLease lease = testPool.obtainConsumer(mockSession, mockContext)) {
@@ -130,7 +129,7 @@ public class ConsumerPoolTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void validatePoolSimpleCreatePollClose() throws Exception {
+    public void validatePoolSimpleCreatePollClose() {
         final byte[][] firstPassValues = new byte[][]{
             "Hello-1".getBytes(StandardCharsets.UTF_8),
             "Hello-2".getBytes(StandardCharsets.UTF_8),
@@ -153,7 +152,7 @@ public class ConsumerPoolTest {
     }
 
     @Test
-    public void validatePoolSimpleBatchCreateClose() throws Exception {
+    public void validatePoolSimpleBatchCreateClose() {
         when(consumer.poll(anyLong())).thenReturn(createConsumerRecords("nifi", 0, 0L, new byte[][]{}));
         for (int i = 0; i < 100; i++) {
             try (final ConsumerLease lease = testPool.obtainConsumer(mockSession, mockContext)) {
@@ -173,7 +172,7 @@ public class ConsumerPoolTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void validatePoolBatchCreatePollClose() throws Exception {
+    public void validatePoolBatchCreatePollClose() {
         final byte[][] firstPassValues = new byte[][]{
             "Hello-1".getBytes(StandardCharsets.UTF_8),
             "Hello-2".getBytes(StandardCharsets.UTF_8),
@@ -200,7 +199,7 @@ public class ConsumerPoolTest {
 
         when(consumer.poll(anyLong())).thenThrow(new KafkaException("oops"));
         try (final ConsumerLease lease = testPool.obtainConsumer(mockSession, mockContext)) {
-            assertThrows(KafkaException.class, () -> lease.poll());
+            assertThrows(KafkaException.class, lease::poll);
         }
         testPool.close();
         verify(mockSession, times(0)).create();

@@ -83,13 +83,19 @@ public interface NiFiClient extends Closeable {
 
     ReportingTasksClient getReportingTasksClient(RequestConfig requestConfig);
 
+    // ----- ParamProviderClient -----
+
+    ParamProviderClient getParamProviderClient();
+
+    ParamProviderClient getParamProviderClient(RequestConfig requestConfig);
+
     // ----- ParamContextClient -----
 
     ParamContextClient getParamContextClient();
 
     ParamContextClient getParamContextClient(RequestConfig requestConfig);
 
-    // ----- ParamContextClient -----
+    // ----- CountersClient -----
 
     CountersClient getCountersClient();
 
@@ -128,6 +134,12 @@ public interface NiFiClient extends Closeable {
     // ----- AccessClient -----
 
     AccessClient getAccessClient();
+
+    // ----- SnippetClient -----
+
+    SnippetClient getSnippetClient();
+
+    SnippetClient getSnippetClient(RequestConfig requestConfig);
 
     /**
      * The builder interface that implementations should provide for obtaining the client.

@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -67,10 +68,14 @@ import java.util.Map;
  * output table to periodically clean these rare duplicates. Alternatively, using the Batch insert
  * method does guarantee no duplicates, though the latency for the insert into BigQuery will be much
  * higher.
+ *
+ * @deprecated use {@link PutBigQuery} instead which uses the Write API
  */
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@DeprecationNotice(alternatives = {PutBigQuery.class}, reason = "This processor is deprecated and may be removed in future releases.")
 @Tags({ "google", "google cloud", "bq", "gcp", "bigquery", "record" })
-@CapabilityDescription("Load data into Google BigQuery table using the streaming API. This processor "
+@CapabilityDescription("Please be aware this processor is deprecated and may be removed in the near future. Use PutBigQuery instead. "
+        + "Load data into Google BigQuery table using the streaming API. This processor "
         + "is not intended to load large flow files as it will load the full content into memory. If "
         + "you need to insert large flow files, consider using PutBigQueryBatch instead.")
 @SeeAlso({ PutBigQueryBatch.class })
@@ -78,7 +83,11 @@ import java.util.Map;
 @WritesAttributes({
         @WritesAttribute(attribute = BigQueryAttributes.JOB_NB_RECORDS_ATTR, description = BigQueryAttributes.JOB_NB_RECORDS_DESC)
 })
+@Deprecated
 public class PutBigQueryStreaming extends AbstractBigQueryProcessor {
+
+    private static final DateTimeFormatter timestampFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
+    private static final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSS");
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name(BigQueryAttributes.RECORD_READER_ATTR)
@@ -97,9 +106,6 @@ public class PutBigQueryStreaming extends AbstractBigQueryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("false")
             .build();
-
-    private static final DateTimeFormatter timestampFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
-    private static final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSS");
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -182,8 +188,8 @@ public class PutBigQueryStreaming extends AbstractBigQueryProcessor {
             if (obj instanceof MapRecord) {
                 result.put(key, convertMapRecord(((MapRecord) obj).toMap()));
             } else if (obj instanceof Object[]
-                    && ((Object[]) obj).length > 0
-                    && ((Object[]) obj)[0] instanceof MapRecord) {
+                && ((Object[]) obj).length > 0
+                && ((Object[]) obj)[0] instanceof MapRecord) {
                 List<Map<String, Object>> lmapr = new ArrayList<Map<String, Object>>();
                 for (Object mapr : ((Object[]) obj)) {
                     lmapr.add(convertMapRecord(((MapRecord) mapr).toMap()));
@@ -198,7 +204,7 @@ public class PutBigQueryStreaming extends AbstractBigQueryProcessor {
                 // ZoneOffset.UTC time zone is necessary due to implicit time zone conversion in Record Readers from
                 // the local system time zone to the GMT time zone
                 LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(((Time) obj).getTime()), ZoneOffset.UTC);
-                result.put(key, dateTime.format(timeFormatter) );
+                result.put(key, dateTime.format(timeFormatter));
             } else if (obj instanceof Date) {
                 result.put(key, obj.toString());
             } else {

@@ -24,15 +24,15 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.parameter.StandardParameterTokenList;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.registry.VariableRegistry;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class TestStandardValidationContext {
@@ -77,5 +77,4 @@ public class TestStandardValidationContext {
         // Property A's dependency should still (always) satisfied b/c no dependency
         assertTrue(context.isDependencySatisfied(descriptorA, propertyLookup));
     }
-
 }

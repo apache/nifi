@@ -22,6 +22,7 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 
 public interface ScriptRunner {
+    String getScript();
 
     String getScriptEngineName();
 

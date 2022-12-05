@@ -43,6 +43,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Tags({"amqp", "rabbit", "get", "message", "receive", "consume"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -170,7 +171,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
             final BasicProperties amqpProperties = response.getProps();
             final Envelope envelope = response.getEnvelope();
             final Map<String, String> attributes = buildAttributes(amqpProperties, envelope, context.getProperty(REMOVE_CURLY_BRACES).asBoolean(),
-                    context.getProperty(HEADER_SEPARATOR).toString().charAt(0));
+                    context.getProperty(HEADER_SEPARATOR).toString());
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             session.getProvenanceReporter().receive(flowFile, connection.toString() + "/" + context.getProperty(QUEUE).getValue());
@@ -184,12 +185,12 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         }
     }
 
-    private Map<String, String> buildAttributes(final BasicProperties properties, final Envelope envelope, boolean removeCurlyBraces,  Character valueSeperatorForHeaders) {
+    private Map<String, String> buildAttributes(final BasicProperties properties, final Envelope envelope, boolean removeCurlyBraces, String valueSeperatorForHeaders) {
         final Map<String, String> attributes = new HashMap<>();
         addAttribute(attributes, ATTRIBUTES_PREFIX + "appId", properties.getAppId());
         addAttribute(attributes, ATTRIBUTES_PREFIX + "contentEncoding", properties.getContentEncoding());
         addAttribute(attributes, ATTRIBUTES_PREFIX + "contentType", properties.getContentType());
-        addAttribute(attributes, ATTRIBUTES_PREFIX + "headers", buildHeaders(properties.getHeaders(), removeCurlyBraces,valueSeperatorForHeaders));
+        addAttribute(attributes, ATTRIBUTES_PREFIX + "headers", buildHeaders(properties.getHeaders(), removeCurlyBraces, valueSeperatorForHeaders));
         addAttribute(attributes, ATTRIBUTES_PREFIX + "deliveryMode", properties.getDeliveryMode());
         addAttribute(attributes, ATTRIBUTES_PREFIX + "priority", properties.getPriority());
         addAttribute(attributes, ATTRIBUTES_PREFIX + "correlationId", properties.getCorrelationId());
@@ -213,31 +214,21 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         attributes.put(attributeName, value.toString());
     }
 
-    private String buildHeaders(Map<String, Object> headers,  boolean removeCurlyBraces,Character valueSeparatorForHeaders) {
+    private String buildHeaders(Map<String, Object> headers,  boolean removeCurlyBraces, String valueSeparatorForHeaders) {
         if (headers == null) {
             return null;
         }
         String headerString = convertMapToString(headers,valueSeparatorForHeaders);
 
         if (!removeCurlyBraces) {
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append("{").append(headerString).append("}");
-            headerString = stringBuilder.toString();
+            headerString = "{" + headerString + "}";
         }
         return headerString;
     }
 
-    public static String convertMapToString(Map<String, Object> headers,Character valueSeparatorForHeaders) {
-        StringBuilder stringBuilder = new StringBuilder();
-        boolean notFirst = false;
-        for (Map.Entry<String, Object> entry : headers.entrySet()) {
-            if (notFirst) {
-                stringBuilder.append(valueSeparatorForHeaders);
-            }
-            stringBuilder.append(entry.getKey()).append("=").append(entry.getValue().toString());
-            notFirst = true;
-        }
-        return stringBuilder.toString();
+    private static String convertMapToString(Map<String, Object> headers, String valueSeparatorForHeaders) {
+        return headers.entrySet().stream().map(e -> (e.getValue()!= null) ? e.getKey() + "=" + e.getValue(): e.getKey())
+                .collect(Collectors.joining(valueSeparatorForHeaders));
     }
 
     @Override

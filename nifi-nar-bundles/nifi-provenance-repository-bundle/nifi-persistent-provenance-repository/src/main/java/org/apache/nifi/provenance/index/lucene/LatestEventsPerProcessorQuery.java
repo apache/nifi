@@ -17,17 +17,18 @@
 
 package org.apache.nifi.provenance.index.lucene;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.SearchableFields;
 import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.SearchTerm;
 import org.apache.nifi.provenance.serialization.StorageSummary;
 import org.apache.nifi.util.RingBuffer;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class LatestEventsPerProcessorQuery implements CachedQuery {
     private static final String COMPONENT_ID_FIELD_NAME = SearchableFields.ComponentID.getSearchableFieldName();
@@ -38,6 +39,15 @@ public class LatestEventsPerProcessorQuery implements CachedQuery {
         final String componentId = event.getComponentId();
         final RingBuffer<Long> ringBuffer = latestRecords.computeIfAbsent(componentId, id -> new RingBuffer<>(1000));
         ringBuffer.add(storageSummary.getEventId());
+    }
+
+    public List<Long> getLatestEventIds(final String componentId) {
+        final RingBuffer<Long> ringBuffer = latestRecords.get(componentId);
+        if (ringBuffer == null) {
+            return Collections.emptyList();
+        }
+
+        return ringBuffer.asList();
     }
 
     @Override

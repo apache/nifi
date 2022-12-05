@@ -32,6 +32,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,6 +42,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestPutEmail {
@@ -115,6 +117,7 @@ public class TestPutEmail {
         runner.setProperty(PutEmail.FROM, "test@apache.org");
         runner.setProperty(PutEmail.MESSAGE, "Message Body");
         runner.setProperty(PutEmail.TO, "recipient@apache.org");
+        runner.setProperty(PutEmail.INPUT_CHARACTER_SET, StandardCharsets.UTF_8.name());
 
         runner.enqueue("Some Text".getBytes());
 
@@ -128,7 +131,7 @@ public class TestPutEmail {
         Message message = processor.getMessages().get(0);
         assertEquals("test@apache.org", message.getFrom()[0].toString());
         assertEquals("TestingNiFi", message.getHeader("X-Mailer")[0], "X-Mailer Header");
-        assertEquals("Message Body", message.getContent());
+        assertEquals("Message Body", getMessageText(message, StandardCharsets.UTF_8));
         assertEquals("recipient@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
         assertNull(message.getRecipients(RecipientType.BCC));
         assertNull(message.getRecipients(RecipientType.CC));
@@ -145,6 +148,7 @@ public class TestPutEmail {
         runner.setProperty(PutEmail.BCC, "${bcc}");
         runner.setProperty(PutEmail.CC, "${cc}");
         runner.setProperty(PutEmail.ATTRIBUTE_NAME_REGEX, "Precedence.*");
+        runner.setProperty(PutEmail.INPUT_CHARACTER_SET, StandardCharsets.UTF_8.name());
 
         Map<String, String> attributes = new HashMap<>();
         attributes.put("from", "test@apache.org <NiFi>");
@@ -166,7 +170,7 @@ public class TestPutEmail {
         Message message = processor.getMessages().get(0);
         assertEquals("\"test@apache.org\" <NiFi>", message.getFrom()[0].toString());
         assertEquals("TestingNíFiNonASCII", MimeUtility.decodeText(message.getHeader("X-Mailer")[0]), "X-Mailer Header");
-        assertEquals("the message body", message.getContent());
+        assertEquals("the message body", getMessageText(message, StandardCharsets.UTF_8));
         assertEquals(1, message.getRecipients(RecipientType.TO).length);
         assertEquals("to@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
         assertEquals(1, message.getRecipients(RecipientType.BCC).length);
@@ -220,6 +224,8 @@ public class TestPutEmail {
         runner.setProperty(PutEmail.MESSAGE, "Message Body");
         runner.setProperty(PutEmail.ATTACH_FILE, "true");
         runner.setProperty(PutEmail.CONTENT_TYPE, "text/html");
+        runner.setProperty(PutEmail.TO, "recipient@apache.org");
+        runner.setProperty(PutEmail.INPUT_CHARACTER_SET, StandardCharsets.UTF_8.name());
 
         Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.FILENAME.key(), "test한的ほу́.pdf");
@@ -240,10 +246,8 @@ public class TestPutEmail {
         assertInstanceOf(MimeMultipart.class, message.getContent());
 
         final MimeMultipart multipart = (MimeMultipart) message.getContent();
-        final BodyPart part = multipart.getBodyPart(0);
-        final InputStream is = part.getDataHandler().getInputStream();
-        final String decodedText = StringUtils.newStringUtf8(Base64.decodeBase64(IOUtils.toString(is, StandardCharsets.UTF_8)));
-        assertEquals("Message Body", decodedText);
+
+        assertEquals("Message Body", getMessageText(message, StandardCharsets.UTF_8));
 
         final BodyPart attachPart = multipart.getBodyPart(1);
         final InputStream attachIs = attachPart.getDataHandler().getInputStream();
@@ -263,6 +267,7 @@ public class TestPutEmail {
         runner.setProperty(PutEmail.CC, "recipientcc@apache.org,anothercc@apache.org");
         runner.setProperty(PutEmail.BCC, "recipientbcc@apache.org,anotherbcc@apache.org");
         runner.setProperty(PutEmail.CONTENT_AS_MESSAGE, "${sendContent}");
+        runner.setProperty(PutEmail.INPUT_CHARACTER_SET, StandardCharsets.UTF_8.name());
 
         Map<String, String> attributes = new HashMap<>();
         attributes.put("sendContent", "true");
@@ -280,7 +285,7 @@ public class TestPutEmail {
         assertEquals("test@apache.org", message.getFrom()[0].toString());
         assertEquals("from@apache.org", message.getFrom()[1].toString());
         assertEquals("TestingNiFi", message.getHeader("X-Mailer")[0], "X-Mailer Header");
-        assertEquals("Some Text", message.getContent());
+        assertEquals("Some Text", getMessageText(message, StandardCharsets.UTF_8));
         assertEquals("recipient@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
         assertEquals("another@apache.org", message.getRecipients(RecipientType.TO)[1].toString());
         assertEquals("recipientcc@apache.org", message.getRecipients(RecipientType.CC)[0].toString());
@@ -307,7 +312,6 @@ public class TestPutEmail {
         runner.setProperty(PutEmail.CONTENT_AS_MESSAGE, "${sendContent}");
 
         runner.setProperty("mail.", "sample_value");
-        runner.assertNotValid();
     }
 
     @Test
@@ -320,11 +324,70 @@ public class TestPutEmail {
         runner.assertNotValid();
     }
 
+    @Test
+    public void testUnrecognizedCharset() {
+        runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
+        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
+        runner.setProperty(PutEmail.FROM, "test@apache.org");
+        runner.setProperty(PutEmail.MESSAGE, "test message");
+        runner.setProperty(PutEmail.TO, "recipient@apache.org");
+
+        // not one of the recognized charsets
+        runner.setProperty(PutEmail.INPUT_CHARACTER_SET, "NOT A CHARACTER SET");
+
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testPutEmailWithMismatchedCharset() throws Exception {
+        // String specifically chosen to have characters encoded differently in US_ASCII and UTF_8
+        final String rawString = "SoftwÄrë Ënginëër Ön NiFi";
+        final byte[] rawBytes = rawString.getBytes(StandardCharsets.US_ASCII);
+        final byte[] rawBytesUTF8 = rawString.getBytes(StandardCharsets.UTF_8);
+
+        // verify that the message bytes are different (some messages are not)
+        assertNotEquals(rawBytes, rawBytesUTF8);
+
+        runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
+        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
+        runner.setProperty(PutEmail.FROM, "test@apache.org");
+        runner.setProperty(PutEmail.MESSAGE, new String(rawBytesUTF8, StandardCharsets.US_ASCII));
+        runner.setProperty(PutEmail.TO, "recipient@apache.org");
+        runner.setProperty(PutEmail.INPUT_CHARACTER_SET, StandardCharsets.UTF_8.name());
+
+        runner.enqueue("Some Text".getBytes());
+
+        runner.run();
+
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(PutEmail.REL_SUCCESS);
+
+        // Verify that the Message was populated correctly
+        assertEquals(1, processor.getMessages().size(), "Expected a single message to be sent");
+        Message message = processor.getMessages().get(0);
+        final String retrievedMessageText = getMessageText(message, StandardCharsets.UTF_8);
+        assertNotEquals(rawString, retrievedMessageText);
+    }
+
     private void setRequiredProperties(final TestRunner runner) {
         // values here may be overridden in some tests
         runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
         runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
         runner.setProperty(PutEmail.FROM, "test@apache.org,from@apache.org");
         runner.setProperty(PutEmail.TO, "recipient@apache.org,another@apache.org");
+    }
+
+    private String getMessageText(final Message message, final Charset charset) throws Exception {
+        if (message.getContent() instanceof MimeMultipart) {
+            final MimeMultipart multipart = (MimeMultipart) message.getContent();
+            final BodyPart part = multipart.getBodyPart(0);
+            final InputStream is = part.getDataHandler().getInputStream();
+            final String encoding = Charset.forName("US-ASCII").equals(charset) ? "7bit" : "base64";
+            final byte[] decodedTextBytes = "base64".equals(encoding) ? Base64.decodeBase64(IOUtils.toByteArray(is)) : IOUtils.toByteArray(is);
+            final String decodedText = StringUtils.newString(decodedTextBytes, charset.name());
+            return decodedText;
+        } else {
+            return (String) message.getContent();
+        }
     }
 }

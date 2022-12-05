@@ -19,7 +19,7 @@
   <parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-commons</artifactId>
-    <version>1.18.0-SNAPSHOT</version>
+    <version>1.20.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>nifi-record-path</artifactId>
@@ -35,6 +35,36 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin><!-- workaround for https://github.com/antlr/antlr3/pull/209 -->
+              <groupId>com.google.code.maven-replacer-plugin</groupId>
+                <artifactId>replacer</artifactId>
+                <version>1.5.3</version>
+                <executions>
+                    <execution>
+                        <phase>process-sources</phase>
+                        <goals>
+                            <goal>replace</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <basedir>${project.build.directory}/generated-sources/antlr3/org/apache/nifi/record/path</basedir>
+                    <includes>
+                        <include>*.java</include>
+                    </includes>
+                    <replacements>
+                        <replacement>
+                            <token>(// .ANTLR .+) ....-..-.. ..:..:..</token>
+                            <value>$1</value>
+                        </replacement>
+                        <replacement>
+                            <token>(// elements: ).*</token>
+                            <value>$1</value>
+                        </replacement>
+                    </replacements>
+                    <regex>true</regex>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -59,22 +89,22 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
+            <version>1.20.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
+            <version>1.20.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-properties</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
+            <version>1.20.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-uuid5</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
+            <version>1.20.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.antlr</groupId>

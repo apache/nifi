@@ -34,6 +34,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -63,6 +64,7 @@ import com.microsoft.azure.storage.blob.BlobRequestOptions;
 @WritesAttributes({
     @WritesAttribute(attribute = "azure.length", description = "The length of the blob fetched")
 })
+@DeprecationNotice(alternatives = FetchAzureBlobStorage_v12.class, reason = "Processor depends on legacy Microsoft Azure SDK")
 public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
 
     public static final PropertyDescriptor RANGE_START = new PropertyDescriptor.Builder()

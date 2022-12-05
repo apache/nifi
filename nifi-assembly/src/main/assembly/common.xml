@@ -24,12 +24,12 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-                <include>nifi-bootstrap-utils</include>
-                <include>nifi-bootstrap</include>
-                <include>slf4j-api</include>
-                <include>logback-classic</include>
-                <include>nifi-api</include>
-                <include>nifi-property-protection-api</include>
+                <include>*:nifi-bootstrap-utils</include>
+                <include>*:nifi-bootstrap</include>
+                <include>*:slf4j-api</include>
+                <include>*:logback-classic</include>
+                <include>*:nifi-api</include>
+                <include>*:nifi-property-protection-api</include>
             </includes>
         </dependencySet>
 
@@ -74,7 +74,7 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-                <include>nifi-property-protection-factory</include>
+                <include>*:nifi-property-protection-factory</include>
             </includes>
         </dependencySet>
 
@@ -87,7 +87,7 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-                <include>nifi-resources</include>
+                <include>*:nifi-resources</include>
             </includes>
             <unpack>true</unpack>
             <unpackOptions>
@@ -107,7 +107,7 @@
             <fileMode>0770</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-                <include>nifi-resources</include>
+                <include>*:nifi-resources</include>
             </includes>
             <unpack>true</unpack>
             <unpackOptions>
@@ -125,7 +125,7 @@
             <outputDirectory>docs/</outputDirectory>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-                <include>nifi-docs</include>
+                <include>*:nifi-docs</include>
             </includes>
             <unpack>true</unpack>
             <unpackOptions>

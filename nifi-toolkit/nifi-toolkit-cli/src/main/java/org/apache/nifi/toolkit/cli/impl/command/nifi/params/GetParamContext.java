@@ -38,7 +38,7 @@ public class GetParamContext extends AbstractNiFiCommand<ParamContextResult> {
 
     @Override
     public String getDescription() {
-        return "Retrieves a parameter context by id and list each parameter and it's value.";
+        return "Retrieves a parameter context by id and lists each parameter and its value.";
     }
 
     @Override

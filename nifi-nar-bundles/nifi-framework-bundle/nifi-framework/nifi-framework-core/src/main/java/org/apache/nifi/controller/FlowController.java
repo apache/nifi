@@ -154,6 +154,7 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterLookup;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -167,7 +168,6 @@ import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.provenance.StandardProvenanceAuthorizableFactory;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
@@ -311,7 +311,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     private final Set<RemoteGroupPort> startRemoteGroupPortsAfterInitialization;
     private final LeaderElectionManager leaderElectionManager;
     private final ClusterCoordinator clusterCoordinator;
-    private final FlowRegistryClient flowRegistryClient;
     private final FlowEngine validationThreadPool;
     private final ValidationTrigger validationTrigger;
     private final ReloadComponent reloadComponent;
@@ -396,7 +395,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final PropertyEncryptor encryptor,
             final BulletinRepository bulletinRepo,
             final VariableRegistry variableRegistry,
-            final FlowRegistryClient flowRegistryClient,
             final ExtensionManager extensionManager,
             final StatusHistoryRepository statusHistoryRepository) {
 
@@ -413,7 +411,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 /* heartbeat monitor */ null,
                 /* leader election manager */ null,
                 /* variable registry */ variableRegistry,
-                flowRegistryClient,
                 extensionManager,
                 null,
                 statusHistoryRepository);
@@ -431,7 +428,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final HeartbeatMonitor heartbeatMonitor,
             final LeaderElectionManager leaderElectionManager,
             final VariableRegistry variableRegistry,
-            final FlowRegistryClient flowRegistryClient,
             final ExtensionManager extensionManager,
             final RevisionManager revisionManager,
             final StatusHistoryRepository statusHistoryRepository) {
@@ -449,7 +445,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 heartbeatMonitor,
                 leaderElectionManager,
                 variableRegistry,
-                flowRegistryClient,
                 extensionManager,
                 revisionManager,
                 statusHistoryRepository);
@@ -471,7 +466,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final HeartbeatMonitor heartbeatMonitor,
             final LeaderElectionManager leaderElectionManager,
             final VariableRegistry variableRegistry,
-            final FlowRegistryClient flowRegistryClient,
             final ExtensionManager extensionManager,
             final RevisionManager revisionManager,
             final StatusHistoryRepository statusHistoryRepository) {
@@ -488,7 +482,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         this.authorizer = authorizer;
         this.auditService = auditService;
         this.configuredForClustering = configuredForClustering;
-        this.flowRegistryClient = flowRegistryClient;
         this.revisionManager = revisionManager;
         this.statusHistoryRepository = statusHistoryRepository;
 
@@ -595,7 +588,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         this.reloadComponent = new StandardReloadComponent(this);
 
         final ProcessGroup rootGroup = new StandardProcessGroup(ComponentIdGenerator.generateId().toString(), controllerServiceProvider, processScheduler,
-                encryptor, extensionManager, stateManagerProvider, flowManager, flowRegistryClient, reloadComponent, new MutableVariableRegistry(this.variableRegistry), this,
+                encryptor, extensionManager, stateManagerProvider, flowManager, reloadComponent, new MutableVariableRegistry(this.variableRegistry), this,
                 nifiProperties);
         rootGroup.setName(FlowManager.DEFAULT_ROOT_GROUP_NAME);
         setRootGroup(rootGroup);
@@ -972,7 +965,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
                     for (final ProcessGroup group : allGroups) {
                         try {
-                            group.synchronizeWithFlowRegistry(flowRegistryClient);
+                            group.synchronizeWithFlowRegistry(flowManager);
                         } catch (final Exception e) {
                             LOG.error("Failed to synchronize {} with Flow Registry", group, e);
                         }
@@ -1010,6 +1003,14 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
             try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, task.getClass(), task.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, task, taskNode.getConfigurationContext());
+            }
+        }
+
+        for (final ParameterProviderNode parameterProviderNode : flowManager.getAllParameterProviders()) {
+            final ParameterProvider provider = parameterProviderNode.getParameterProvider();
+
+            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, provider.getClass(), provider.getIdentifier())) {
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, provider);
             }
         }
     }
@@ -1590,7 +1591,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
      */
     private void setMaxThreadCount(final int maxThreadCount, final FlowEngine engine, final AtomicInteger maxThreads) {
         if (maxThreadCount < 1) {
-            throw new IllegalArgumentException("Cannot set max number of threads to less than 2");
+            throw new IllegalArgumentException("Cannot set max number of threads to less than 1");
         }
 
         maxThreads.getAndSet(maxThreadCount);
@@ -2082,11 +2083,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     @Override
     public void removeReportingTask(final ReportingTaskNode reportingTaskNode) {
         flowManager.removeReportingTask(reportingTaskNode);
-    }
-
-
-    public FlowRegistryClient getFlowRegistryClient() {
-        return flowRegistryClient;
     }
 
     public ControllerServiceProvider getControllerServiceProvider() {
@@ -2781,16 +2777,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             return "Cannot replay data from Provenance Event because the event does not specify the Source FlowFile Queue";
         }
 
-        final Set<Connection> connections = flowManager.findAllConnections();
-        FlowFileQueue queue = null;
-        for (final Connection connection : connections) {
-            if (event.getSourceQueueIdentifier().equals(connection.getIdentifier())) {
-                queue = connection.getFlowFileQueue();
-                break;
-            }
-        }
-
-        if (queue == null) {
+        final Connection connection = flowManager.getConnection(event.getSourceQueueIdentifier());
+        if (connection == null) {
             return "Cannot replay data from Provenance Event because the Source FlowFile Queue with ID " + event.getSourceQueueIdentifier() + " no longer exists";
         }
 
@@ -2818,10 +2806,28 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         }
 
         // Make sure event has the Content Claim info
-        final Long contentSize = event.getPreviousFileSize();
-        final String contentClaimId = event.getPreviousContentClaimIdentifier();
-        final String contentClaimSection = event.getPreviousContentClaimSection();
-        final String contentClaimContainer = event.getPreviousContentClaimContainer();
+        boolean usePrevious = true;
+        Long contentSize = event.getPreviousFileSize();
+        String contentClaimId = event.getPreviousContentClaimIdentifier();
+        String contentClaimSection = event.getPreviousContentClaimSection();
+        String contentClaimContainer = event.getPreviousContentClaimContainer();
+        Long contentClaimOffset = event.getPreviousContentClaimOffset();
+
+        final int previousClaimNulls = countNulls(contentSize, contentClaimId, contentClaimSection, contentClaimContainer);
+        if (previousClaimNulls == 4) {
+            contentClaimId = event.getContentClaimIdentifier();
+            contentClaimSection = event.getContentClaimSection();
+            contentClaimContainer = event.getContentClaimContainer();
+
+            final int currentClaimNullCounts = countNulls(contentClaimId, contentClaimSection, contentClaimContainer);
+
+            // If the current claim is also all null, we will stick with using the previous. Otherwise, we'll denote that we're using the current claim
+            usePrevious = currentClaimNullCounts == 3;
+            if (!usePrevious) {
+                contentSize = event.getFileSize();
+                contentClaimOffset = event.getContentClaimOffset();
+            }
+        }
 
         // All content fields must be null or no content fields can be null.
         final int nullCount = countNulls(contentSize, contentClaimId, contentClaimSection, contentClaimContainer);
@@ -2834,16 +2840,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             throw new IllegalArgumentException("Cannot replay data from Provenance Event because the event does not specify the Source FlowFile Queue");
         }
 
-        final Set<Connection> connections = flowManager.findAllConnections();
-        FlowFileQueue queue = null;
-        for (final Connection connection : connections) {
-            if (event.getSourceQueueIdentifier().equals(connection.getIdentifier())) {
-                queue = connection.getFlowFileQueue();
-                break;
-            }
-        }
-
-        if (queue == null) {
+        final Connection connection = flowManager.getConnection(event.getSourceQueueIdentifier());
+        if (connection == null) {
             throw new IllegalStateException("Cannot replay data from Provenance Event because the Source FlowFile Queue with ID " + event.getSourceQueueIdentifier() + " no longer exists");
         }
 
@@ -2859,18 +2857,17 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             // being written to by the Content Repository. This is important only because we are creating a FlowFile with this Resource
             // Claim. If, for instance, we are simply creating the claim to request its content, as in #getContentAvailability, etc.
             // then this is not necessary.
-            ResourceClaim resourceClaim = resourceClaimManager.getResourceClaim(event.getPreviousContentClaimContainer(),
-                event.getPreviousContentClaimSection(), event.getPreviousContentClaimIdentifier());
+            ResourceClaim resourceClaim = resourceClaimManager.getResourceClaim(contentClaimContainer, contentClaimSection, contentClaimId);
             if (resourceClaim == null) {
-                resourceClaim = resourceClaimManager.newResourceClaim(event.getPreviousContentClaimContainer(),
-                    event.getPreviousContentClaimSection(), event.getPreviousContentClaimIdentifier(), false, false);
+                resourceClaim = resourceClaimManager.newResourceClaim(contentClaimContainer,
+                    contentClaimSection, contentClaimId, false, false);
             }
 
             // Increment Claimant Count, since we will now be referencing the Content Claim
             resourceClaimManager.incrementClaimantCount(resourceClaim);
-            final long claimOffset = event.getPreviousContentClaimOffset() == null ? 0L : event.getPreviousContentClaimOffset();
+            final long claimOffset = contentClaimOffset == null ? 0L : contentClaimOffset;
             contentClaim = new StandardContentClaim(resourceClaim, claimOffset);
-            contentClaim.setLength(event.getPreviousFileSize() == null ? -1L : event.getPreviousFileSize());
+            contentClaim.setLength(contentSize == null ? -1L : contentSize);
 
             if (!contentRepository.isAccessible(contentClaim)) {
                 resourceClaimManager.decrementClaimantCount(resourceClaim);
@@ -2893,7 +2890,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         // FlowFileRecord's contentClaimOffset to 0.
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
                 // Copy relevant info from source FlowFile
-                .addAttributes(event.getPreviousAttributes())
+                .addAttributes(usePrevious ? event.getPreviousAttributes() : event.getAttributes())
                 .contentClaim(contentClaim)
                 .contentClaimOffset(0L) // use 0 because we used the content claim offset in the Content Claim itself
                 .entryDate(System.currentTimeMillis())
@@ -2923,10 +2920,12 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 .setLineageStartDate(event.getLineageStartDate())
                 .setComponentType(event.getComponentType())
                 .setComponentId(event.getComponentId())
+                .setSourceQueueIdentifier(event.getSourceQueueIdentifier())
                 .build();
         provenanceRepository.registerEvent(replayEvent);
 
         // Update the FlowFile Repository to indicate that we have added the FlowFile to the flow
+        final FlowFileQueue queue = connection.getFlowFileQueue();
         final StandardRepositoryRecord record = new StandardRepositoryRecord(queue);
         record.setWorking(flowFileRecord, false);
         record.setDestination(queue);

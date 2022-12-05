@@ -68,7 +68,7 @@ import java.util.EnumSet;
 @CapabilityDescription("Writes the contents of a FlowFile to a samba network location. " +
     "Use this processor instead of a cifs mounts if share access control is important." +
     "Configure the Hostname, Share and Directory accordingly: \\\\[Hostname]\\[Share]\\[path\\to\\Directory]")
-@SeeAlso({GetSmbFile.class})
+@SeeAlso({GetSmbFile.class, ListSmb.class, FetchSmb.class})
 @ReadsAttributes({@ReadsAttribute(attribute="filename", description="The filename to use when writing the FlowFile to the network folder.")})
 public class PutSmbFile extends AbstractProcessor {
     public static final String SHARE_ACCESS_NONE = "none";
@@ -401,6 +401,7 @@ public class PutSmbFile extends AbstractProcessor {
         } catch (Exception e) {
             session.transfer(flowFiles, REL_FAILURE);
             logger.error("Could not establish smb connection because of error {}", new Object[]{e});
+            smbClient.getServerList().unregister(hostname);
         }
     }
 }

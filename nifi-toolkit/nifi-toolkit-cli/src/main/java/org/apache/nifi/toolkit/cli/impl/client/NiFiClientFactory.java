@@ -32,6 +32,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.OutputPortClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamProviderClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.PoliciesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessorClient;
@@ -39,6 +40,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ProvenanceClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RemoteProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.SnippetClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TemplatesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
@@ -297,6 +299,16 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         }
 
         @Override
+        public ParamProviderClient getParamProviderClient() {
+            return wrappedClient.getParamProviderClient();
+        }
+
+        @Override
+        public ParamProviderClient getParamProviderClient(RequestConfig requestConfig) {
+            return wrappedClient.getParamProviderClient(requestConfig);
+        }
+
+        @Override
         public ParamContextClient getParamContextClient() {
             return wrappedClient.getParamContextClient(requestConfig);
         }
@@ -369,6 +381,16 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         @Override
         public AccessClient getAccessClient() {
             return wrappedClient.getAccessClient();
+        }
+
+        @Override
+        public SnippetClient getSnippetClient() {
+            return wrappedClient.getSnippetClient();
+        }
+
+        @Override
+        public SnippetClient getSnippetClient(final RequestConfig requestConfig) {
+            return wrappedClient.getSnippetClient(requestConfig);
         }
 
         @Override

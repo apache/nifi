@@ -1,0 +1,436 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+    Parameter provider configuration styles.
+*/
+
+#parameter-provider-configuration {
+    position: absolute;
+    overflow: hidden;
+    width: 800px;
+    height: 450px;
+    font-size: 10px;
+    z-index: 1301;
+    display: none;
+}
+
+#parameter-provider-configuration-advanced {
+    display: none;
+}
+
+#parameter-provider-configuration div.configuration-tab {
+    display: none;
+}
+
+.parameter-provider-editable.setting-field {
+    height: 32px;
+}
+
+#parameter-provider-referencing-components {
+    padding: 2px;
+}
+
+/* parameter-provider settings */
+
+#parameter-provider-name {
+    width: 250px;
+    float: left;
+}
+
+#parameter-provider-bundle {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/*
+    Comments
+*/
+
+#parameter-provider-comments {
+    height: 100%;
+}
+
+#read-only-parameter-provider-comments {
+    height: 100%;
+    white-space: pre-wrap;
+}
+
+/*
+    Fetch parameters dialog
+*/
+
+#fetch-parameters-dialog {
+    position: absolute;
+    overflow: hidden;
+    min-width: 1048px;
+    height: 62%;
+    font-size: 10px;
+    z-index: 1301;
+    display: none;
+}
+
+#fetch-parameters-dialog .dialog-content {
+    bottom: 48px;
+}
+
+#fetch-parameters-dialog div.create-parameter-context-label {
+    display: inline-block;
+    line-height: normal;
+}
+
+#fetch-parameters-dialog .dialog-content div.settings-left {
+    float: left;
+    width: 33%;
+}
+
+#fetch-parameters-dialog .dialog-content div.settings-center {
+    float: left;
+    width: 33%;
+}
+
+#fetch-parameters-dialog .dialog-content div.settings-right {
+    float: left;
+    width: 30%;
+    height: 100%;
+    position: absolute;
+    left: calc(72% - 20px);
+}
+
+#parameter-groups-table {
+    position: relative;
+    height: 300px;
+}
+
+#fetch-parameters-referencing-components {
+    border: 0 solid #CCCCCC;
+    overflow: auto;
+    padding: 2px;
+}
+
+#fetch-parameters-update-steps li {
+    width: 300px;
+    margin-bottom: 2px;
+}
+
+#fetched-parameters-listing-container {
+    position: relative;
+    overflow-x: auto;
+    border: 0 solid #CCCCCC;
+    padding: 2px;
+    min-height: 100px;
+    max-height: 343px;
+    min-width: 150px;
+    max-width: 326px;
+}
+
+#fetched-parameters-listing li,
+#fetched-parameters-listing span {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+ol#fetched-parameters-listing ul {
+    padding-bottom: 4px;
+}
+
+ul.fetched-parameters {
+    padding: 0 0 2px 0;
+    list-style-type: disc;
+}
+
+div.referencing-component-block {
+    margin-bottom: 6px;
+}
+
+span.referencing-component-title {
+    margin-left: 5px;
+    font-weight: bold
+}
+
+span.referencing-component-count {
+    margin-left: 5px;
+    color: #aaa;
+}
+
+ul.referencing-component-listing {
+    margin-left: 20px;
+    margin-bottom: 6px;
+}
+
+ul.referencing-component-listing li {
+    margin-bottom: 6px;
+    white-space: nowrap;
+}
+
+div.referencing-component-state {
+    width: 13px;
+}
+
+div.referencing-component-state.disabled:before {
+    content: '\e802';
+    font-family: flowfont;
+}
+
+div.referencing-component-state.enabled:before {
+    content: '\f0e7';
+    font-family: FontAwesome;
+}
+
+div.referencing-component-bulletins {
+    float: left;
+    margin-left: 5px;
+    width: 12px;
+    height: 12px;
+    background-color: transparent;
+    display: none;
+}
+
+div.referencing-component-bulletins:before {
+    font-family: FontAwesome;
+    content: "\f24a";
+    font-size: 16px;
+    color: #004849;
+}
+
+div.service.expansion-button {
+    float: left;
+    margin-right: 4px;
+    width: 10px;
+    height: 10px;
+}
+
+span.referencing-component-active-thread-count {
+    margin-left: 5px;
+    float: left;
+}
+
+span.referencing-component-name {
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+span.referencing-component-type {
+    color: #aaa;
+    font-style: italic;
+}
+
+div.referencing-component-references {
+    margin-left: 2px;
+    margin-top: 0;
+    clear: left;
+}
+
+.fetch-parameters-referencing-components-template {
+    padding-left: 14px;
+}
+
+div.fetch-parameters-canceling {
+    position: absolute;
+    bottom: 10px;
+    right: 8px;
+}
+
+#fetch-parameters-name {
+    float: left;
+    max-width: 280px;
+    text-overflow: ellipsis;
+}
+
+#fetch-parameters-bulletins {
+    float: left;
+    margin-left: 5px;
+    width: 12px;
+    height: 12px;
+    background-color: transparent;
+    display: none;
+}
+
+#fetch-parameters-referencing-components {
+    border: 0 solid #CCCCCC;
+    padding: 2px;
+    overflow: auto;
+    white-space: nowrap;
+}
+
+div.fetch-parameters-referencing-components {
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    float: right;
+}
+
+#fetch-parameters-progress {
+    margin-top: 2px;
+}
+
+#fetch-parameters-progress li {
+    line-height: 16px;
+}
+
+#affected-referencing-components-container,
+#fetch-parameter-referencing-components-container {
+    position: absolute;
+    bottom: 10px;
+    top: 108px;
+    width: calc(100% - 6px);
+    overflow: auto;
+    border: 0 solid #CCCCCC;
+    padding: 2px;
+}
+
+#affected-referencing-components-container div.referencing-component-references {
+    margin: 0;
+}
+
+.affected-referencing-components-template {
+    position: relative;
+    left: 15px;
+    width: calc(100% - 15px);
+}
+
+span.parameter-provider-referencing-component-name {
+    margin-left: 5px;
+    max-width: calc(100% - 30px);
+}
+
+#checkbox-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+/*
+    Slickgrid selectable parameters table
+*/
+#selectable-parameters-table {
+    position: absolute;
+    height: 267px;
+    width: 332px;
+}
+
+#selectable-parameters-table .slick-column-name input {
+    margin: 5px 3px 3px 4px;
+}
+
+#selectable-parameters-table .slick-pane-left .slick-viewport {
+    overflow-x: hidden;
+}
+
+#parameter-groups-table .slick-pane-top .slick-viewport-top .grid-canvas-top,
+#selectable-parameters-table .slick-pane-top .slick-viewport .grid-canvas-top {
+    width: 100% !important;
+}
+
+#selectable-parameters-table .slick-pane-top .slick-viewport-top .grid-canvas-top .slick-cell.l1 {
+    padding-top: 1px;
+}
+
+#selectable-parameters-table .slick-pane-top .slick-viewport-top .slick-cell.l1:not(.selected) .table-cell {
+    margin-top: 5px;
+}
+
+.slick-columnpicker {
+    border: 1px solid #718BB7;
+    background: #f0f0f0;
+    padding: 6px;
+    -moz-box-shadow: 2px 2px 2px silver;
+    -webkit-box-shadow: 2px 2px 2px silver;
+    box-shadow: 2px 2px 2px silver;
+    min-width: 100px;
+    cursor: default;
+}
+
+.slick-columnpicker li {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background: none;
+}
+
+.slick-columnpicker input {
+    margin: 4px;
+}
+
+.slick-columnpicker li a {
+    display: block;
+    padding: 4px;
+    font-weight: bold;
+}
+
+.slick-columnpicker li a:hover {
+    background: white;
+}
+
+#selectable-parameters-buttons {
+    position: relative;
+    padding-bottom: 4px;
+}
+
+.selectable-parameters-buttons {
+    line-height: 30px;
+    border: 1px solid #CCDADB;
+    background-color: rgba(249,250,251,1);
+    color: #004849;
+    padding: 0 7px;
+    float: left;
+    width: inherit;
+    margin-right: 8px;
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+}
+
+.selectable-parameters-buttons span {
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.selectable-parameters-buttons .fa {
+    font-size: 14px;
+    margin-left: -2px;
+    margin-right: 4px;
+}
+
+button.selectable-parameters-buttons:hover {
+    border: 1px solid #004849;
+}
+
+#create-parameter-context-container {
+    line-height: 12px;
+}
+
+.fetch-parameters-dialog-message {
+    position: absolute;
+    top: 537px;
+    left: 20px;
+    font-size: 13px;
+    line-height: normal;
+    color: #775351;
+    max-width: calc(100% - 230px);
+    z-index: 999;
+}
+
+#selectable-parameters-table .slick-cell-checkbox.selected {
+    padding-top: 1px;
+}
+
+.slick-cell-checkbox .nf-checkbox {
+    margin-top: 5px;
+}

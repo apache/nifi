@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.c2.client.service.operation;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,8 +25,12 @@ import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
 import org.apache.nifi.c2.protocol.api.OperandType;
 import org.apache.nifi.c2.protocol.api.OperationType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class C2OperationService {
+
+    private static final Logger logger = LoggerFactory.getLogger(C2OperationService.class);
 
     private final Map<OperationType, Map<OperandType, C2OperationHandler>> handlerMap = new HashMap<>();
 
@@ -37,7 +42,23 @@ public class C2OperationService {
 
     public Optional<C2OperationAck> handleOperation(C2Operation operation) {
         return getHandlerForOperation(operation)
-            .map(handler -> handler.handle(operation));
+            .map(handler -> {
+                logger.info("Handling {} {} operation", operation.getOperation(), operation.getOperand());
+                return handler.handle(operation);
+            });
+    }
+
+    public Map<OperationType, Map<OperandType, C2OperationHandler>> getHandlers() {
+        Map<OperationType, Map<OperandType, C2OperationHandler>> handlers = new HashMap<>();
+        handlerMap.entrySet()
+            .forEach(operationEntry -> {
+                Map<OperandType, C2OperationHandler> operands = new HashMap<>();
+                operationEntry.getValue()
+                    .entrySet()
+                    .forEach(o -> operands.put(o.getKey(), o.getValue()));
+                handlers.put(operationEntry.getKey(), Collections.unmodifiableMap(operands));
+            });
+        return Collections.unmodifiableMap(handlers);
     }
 
     private Optional<C2OperationHandler> getHandlerForOperation(C2Operation operation) {

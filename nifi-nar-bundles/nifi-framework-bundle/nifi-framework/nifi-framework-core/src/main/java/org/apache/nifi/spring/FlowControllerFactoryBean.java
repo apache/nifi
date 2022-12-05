@@ -28,7 +28,6 @@ import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.revision.RevisionManager;
@@ -53,7 +52,6 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
     private ClusterCoordinator clusterCoordinator;
     private VariableRegistry variableRegistry;
     private LeaderElectionManager leaderElectionManager;
-    private FlowRegistryClient flowRegistryClient;
     private ExtensionManager extensionManager;
     private RevisionManager revisionManager;
     private StatusHistoryRepository statusHistoryRepository;
@@ -78,7 +76,6 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                     heartbeatMonitor,
                     leaderElectionManager,
                     variableRegistry,
-                    flowRegistryClient,
                     extensionManager,
                     revisionManager,
                     statusHistoryRepository);
@@ -91,7 +88,6 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                     encryptor,
                     bulletinRepository,
                     variableRegistry,
-                    flowRegistryClient,
                     extensionManager,
                     statusHistoryRepository);
             }
@@ -148,10 +144,6 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
 
     public void setLeaderElectionManager(final LeaderElectionManager leaderElectionManager) {
         this.leaderElectionManager = leaderElectionManager;
-    }
-
-    public void setFlowRegistryClient(final FlowRegistryClient flowRegistryClient) {
-        this.flowRegistryClient = flowRegistryClient;
     }
 
     public void setExtensionManager(ExtensionManager extensionManager) {

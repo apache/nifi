@@ -28,6 +28,7 @@
                             <div id="parameter-context-id-field" class="ellipsis"></div>
                         </div>
                     </div>
+                    <div id="parameter-context-provider-setting" class="setting hidden"></div>
                     <div class="setting">
                         <div class="setting-name">Name</div>
                         <div id="parameter-context-name-container" class="setting-field">

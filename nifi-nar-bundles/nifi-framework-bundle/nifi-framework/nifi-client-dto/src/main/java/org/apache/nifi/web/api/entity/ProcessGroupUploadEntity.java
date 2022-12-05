@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a ProcessGroupUploadDTO.
@@ -30,7 +31,7 @@ public class ProcessGroupUploadEntity extends Entity {
     private String id;
     private String groupName;
     private Boolean disconnectedNodeAcknowledged;
-    private VersionedFlowSnapshot versionedFlowSnapshot;
+    private RegisteredFlowSnapshot versionedFlowSnapshot;
     private PositionDTO positionDTO;
     private RevisionDTO revisionDTO;
 
@@ -70,11 +71,11 @@ public class ProcessGroupUploadEntity extends Entity {
     /**
      * @return The uploaded file of a VersionedFlowSnapshot
      */
-    public VersionedFlowSnapshot getFlowSnapshot() {
+    public RegisteredFlowSnapshot getFlowSnapshot() {
         return versionedFlowSnapshot;
     }
 
-    public void setFlowSnapshot(VersionedFlowSnapshot versionedFlowSnapshot) {
+    public void setFlowSnapshot(RegisteredFlowSnapshot versionedFlowSnapshot) {
         this.versionedFlowSnapshot = versionedFlowSnapshot;
     }
 
