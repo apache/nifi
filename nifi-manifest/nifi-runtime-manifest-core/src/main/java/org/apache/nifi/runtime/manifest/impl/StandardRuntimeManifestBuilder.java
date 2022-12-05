@@ -52,6 +52,7 @@ import org.apache.nifi.extension.manifest.Restricted;
 import org.apache.nifi.extension.manifest.Stateful;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.runtime.manifest.ComponentManifestBuilder;
+import org.apache.nifi.runtime.manifest.ExtensionManifestContainer;
 import org.apache.nifi.runtime.manifest.RuntimeManifestBuilder;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
@@ -105,7 +106,12 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
     }
 
     @Override
-    public RuntimeManifestBuilder addBundle(final ExtensionManifest extensionManifest) {
+    public RuntimeManifestBuilder addBundle(final ExtensionManifestContainer extensionManifestContainer) {
+        if (extensionManifestContainer == null) {
+            throw new IllegalArgumentException("Extension manifest container is required");
+        }
+
+        final ExtensionManifest extensionManifest = extensionManifestContainer.getManifest();
         if (extensionManifest == null) {
             throw new IllegalArgumentException("Extension manifest is required");
         }
@@ -125,8 +131,12 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         bundle.setVersion(extensionManifest.getVersion());
 
         if (extensionManifest.getExtensions() != null) {
+            final Map<String, String> additionalDetailsMap = extensionManifestContainer.getAdditionalDetails();
             final ComponentManifestBuilder componentManifestBuilder = new StandardComponentManifestBuilder();
-            extensionManifest.getExtensions().forEach(extension -> addExtension(extensionManifest, extension, componentManifestBuilder));
+            extensionManifest.getExtensions().forEach(extension -> {
+                final String additionalDetails = additionalDetailsMap.get(extension.getName());
+                addExtension(extensionManifest, extension, additionalDetails, componentManifestBuilder);
+            });
             bundle.setComponentManifest(componentManifestBuilder.build());
         }
         bundles.add(bundle);
@@ -135,7 +145,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
     }
 
     @Override
-    public RuntimeManifestBuilder addBundles(final Iterable<ExtensionManifest> extensionManifests) {
+    public RuntimeManifestBuilder addBundles(final Iterable<ExtensionManifestContainer> extensionManifests) {
         extensionManifests.forEach(em -> addBundle(em));
         return this;
     }
@@ -167,30 +177,32 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         return runtimeManifest;
     }
 
-    private void addExtension(final ExtensionManifest extensionManifest, final Extension extension, final ComponentManifestBuilder componentManifestBuilder) {
+    private void addExtension(final ExtensionManifest extensionManifest, final Extension extension, final String additionalDetails,
+                              final ComponentManifestBuilder componentManifestBuilder) {
         if (extension == null) {
             throw new IllegalArgumentException("Extension cannot be null");
         }
 
         switch(extension.getType()) {
             case PROCESSOR:
-                addProcessorDefinition(extensionManifest, extension, componentManifestBuilder);
+                addProcessorDefinition(extensionManifest, extension, additionalDetails, componentManifestBuilder);
                 break;
             case CONTROLLER_SERVICE:
-                addControllerServiceDefinition(extensionManifest, extension, componentManifestBuilder);
+                addControllerServiceDefinition(extensionManifest, extension, additionalDetails, componentManifestBuilder);
                 break;
             case REPORTING_TASK:
-                addReportingTaskDefinition(extensionManifest, extension, componentManifestBuilder);
+                addReportingTaskDefinition(extensionManifest, extension, additionalDetails, componentManifestBuilder);
                 break;
             default:
                 throw new IllegalArgumentException("Unknown extension type: " + extension.getType());
         }
     }
 
-    private void addProcessorDefinition(final ExtensionManifest extensionManifest, final Extension extension, final ComponentManifestBuilder componentManifestBuilder) {
+    private void addProcessorDefinition(final ExtensionManifest extensionManifest, final Extension extension, final String additionalDetails,
+                                        final ComponentManifestBuilder componentManifestBuilder) {
         final ProcessorDefinition processorDefinition = new ProcessorDefinition();
         populateDefinedType(extensionManifest, extension, processorDefinition);
-        populateExtensionComponent(extensionManifest, extension, processorDefinition);
+        populateExtensionComponent(extensionManifest, extension, additionalDetails, processorDefinition);
         populateConfigurableComponent(extension, processorDefinition);
 
         // processor specific fields
@@ -279,18 +291,20 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         return componentRelationships;
     }
 
-    private void addControllerServiceDefinition(final ExtensionManifest extensionManifest, final Extension extension, final ComponentManifestBuilder componentManifestBuilder) {
+    private void addControllerServiceDefinition(final ExtensionManifest extensionManifest, final Extension extension, final String additionalDetails,
+                                                final ComponentManifestBuilder componentManifestBuilder) {
         final ControllerServiceDefinition controllerServiceDefinition = new ControllerServiceDefinition();
         populateDefinedType(extensionManifest, extension, controllerServiceDefinition);
-        populateExtensionComponent(extensionManifest, extension, controllerServiceDefinition);
+        populateExtensionComponent(extensionManifest, extension, additionalDetails, controllerServiceDefinition);
         populateConfigurableComponent(extension, controllerServiceDefinition);
         componentManifestBuilder.addControllerService(controllerServiceDefinition);
     }
 
-    private void addReportingTaskDefinition(final ExtensionManifest extensionManifest, final Extension extension, final ComponentManifestBuilder componentManifestBuilder) {
+    private void addReportingTaskDefinition(final ExtensionManifest extensionManifest, final Extension extension, final String additionalDetails,
+                                            final ComponentManifestBuilder componentManifestBuilder) {
         final ReportingTaskDefinition reportingTaskDefinition = new ReportingTaskDefinition();
         populateDefinedType(extensionManifest, extension, reportingTaskDefinition);
-        populateDefinedType(extensionManifest, extension, reportingTaskDefinition);
+        populateExtensionComponent(extensionManifest, extension, additionalDetails, reportingTaskDefinition);
         populateConfigurableComponent(extension, reportingTaskDefinition);
 
         final List<String> schedulingStrategies = new ArrayList<>();
@@ -326,7 +340,8 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         definedType.setVersion(extensionManifest.getVersion());
     }
 
-    private void populateExtensionComponent(final ExtensionManifest extensionManifest, final Extension extension, final ExtensionComponent extensionComponent) {
+    private void populateExtensionComponent(final ExtensionManifest extensionManifest, final Extension extension, final String additionalDetails,
+                                            final ExtensionComponent extensionComponent) {
         final org.apache.nifi.extension.manifest.BuildInfo buildInfo = extensionManifest.getBuildInfo();
         if (buildInfo != null) {
             final BuildInfo componentBuildInfo = new BuildInfo();
@@ -377,7 +392,10 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
                 );
                 extensionComponent.setStateful(componentStateful);
             }
+        }
 
+        if (additionalDetails != null) {
+            extensionComponent.setAdditionalDetails(true);
         }
     }
 

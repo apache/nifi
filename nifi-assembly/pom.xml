@@ -32,16 +32,13 @@ language governing permissions and limitations under the License. -->
                         <phase>generate-resources</phase>
                         <configuration>
                             <includeTypes>nar</includeTypes>
-                            <includes>**/extension-manifest.xml</includes>
+                            <includes>**/docs/**</includes>
                             <excludeTransitive>false</excludeTransitive>
                             <outputDirectory>${project.build.directory}/extension-manifests</outputDirectory>
                             <useSubDirectoryPerArtifact>true</useSubDirectoryPerArtifact>
                             <stripClassifier>true</stripClassifier>
                             <stripVersion>true</stripVersion>
                             <silent>true</silent>
-                            <fileMappers>
-                                <org.codehaus.plexus.components.io.filemappers.FlattenFileMapper />
-                            </fileMappers>
                         </configuration>
                     </execution>
                 </executions>

@@ -21,8 +21,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import org.apache.nifi.c2.protocol.component.api.BuildInfo;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
+import org.apache.nifi.extension.manifest.Extension;
+import org.apache.nifi.extension.manifest.ExtensionManifest;
 import org.apache.nifi.extension.manifest.parser.ExtensionManifestParser;
 import org.apache.nifi.extension.manifest.parser.jaxb.JAXBExtensionManifestParser;
+import org.apache.nifi.runtime.manifest.ExtensionManifestContainer;
 import org.apache.nifi.runtime.manifest.ExtensionManifestProvider;
 import org.apache.nifi.runtime.manifest.RuntimeManifestSerializer;
 import org.slf4j.Logger;
@@ -34,8 +37,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -93,18 +100,44 @@ public class RuntimeManifestGenerator {
         buildInfo.setTimestamp(buildTimestampMillis);
         buildInfo.setCompiler(buildJdkVendor + " " + buildJdk);
 
+        final List<ExtensionManifestContainer> extensionsManifests = extensionManifestProvider.getExtensionManifests();
+
         final RuntimeManifest runtimeManifest = new StandardRuntimeManifestBuilder()
                 .identifier(runtimeManifestId)
                 .version(runtimeVersion)
                 .runtimeType("nifi")
                 .buildInfo(buildInfo)
-                .addBundles(extensionManifestProvider.getExtensionManifests())
+                .addBundles(extensionsManifests)
                 .schedulingDefaults(SchedulingDefaultsFactory.getNifiSchedulingDefaults())
                 .build();
 
         final RuntimeManifestSerializer runtimeManifestSerializer = createRuntimeManifestSerializer();
         try (final OutputStream outputStream = new FileOutputStream(runtimeManifestFile)) {
             runtimeManifestSerializer.write(runtimeManifest, outputStream);
+        }
+
+        final File docsDir = new File(runtimeManifestFile.getParent(), "docs");
+        docsDir.mkdirs();
+
+        for (final ExtensionManifestContainer manifestContainer : extensionsManifests) {
+            final ExtensionManifest extensionManifest = manifestContainer.getManifest();
+            final Map<String, String> additionalDetailsMap = manifestContainer.getAdditionalDetails();
+
+            final File bundleDir = new File(docsDir, extensionManifest.getGroupId()
+                    + "/" + extensionManifest.getArtifactId()
+                    + "/" + extensionManifest.getVersion());
+
+            for (final Extension extension : extensionManifest.getExtensions()) {
+                final String extensionType = extension.getName();
+                final File extensionDir = new File(bundleDir, extensionType);
+
+                final String additionalDetails = additionalDetailsMap.get(extensionType);
+                if (additionalDetails != null) {
+                    extensionDir.mkdirs();
+                    final File additionalDetailsFile = new File(extensionDir, "additionalDetails.html");
+                    Files.write(additionalDetailsFile.toPath(), additionalDetails.getBytes(StandardCharsets.UTF_8));
+                }
+            }
         }
     }
 

@@ -92,7 +92,6 @@
                         <configuration>
                             <includeArtifactIds>nifi-assembly</includeArtifactIds>
                             <includeClassifiers>manifests</includeClassifiers>
-                            <includes>**/extension-manifest.xml</includes>
                             <excludeTransitive>true</excludeTransitive>
                             <outputDirectory>${extension.manifest.unpack.dir}</outputDirectory>
                             <silent>true</silent>
