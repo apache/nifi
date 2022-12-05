@@ -35,11 +35,16 @@
     </modules>
 
     <properties>
-        <mongo.driver.version>4.7.2</mongo.driver.version>
+        <mongo.driver.version>4.8.0</mongo.driver.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.mongodb</groupId>
+                <artifactId>mongodb-driver-sync</artifactId>
+                <version>${mongo.driver.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mongodb-processors</artifactId>

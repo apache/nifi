@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.processors.mongodb;
 
-import com.mongodb.MongoClientOptions;
-import com.mongodb.MongoClientOptions.Builder;
+import com.mongodb.MongoClientSettings;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -32,7 +31,7 @@ import javax.net.ssl.SSLContext;
 
 import java.util.List;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -42,7 +41,7 @@ public class AbstractMongoProcessorTest {
     private TestRunner testRunner;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         processor = new MockAbstractMongoProcessor();
         testRunner = TestRunners.newTestRunner(processor);
     }
@@ -80,8 +79,8 @@ public class AbstractMongoProcessorTest {
         }
 
         @Override
-        protected Builder getClientOptions(SSLContext sslContext) {
-            return MongoClientOptions.builder();
+        protected MongoClientSettings.Builder getClientSettings(final String uri, final SSLContext sslContext) {
+            return MongoClientSettings.builder();
         }
     }
 
