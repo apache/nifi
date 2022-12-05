@@ -47,6 +47,8 @@ public class ExtensionComponent extends DefinedType {
 
     private Stateful stateful;
 
+    private boolean additionalDetails;
+
     @ApiModelProperty("The build metadata for this component")
     public BuildInfo getBuildInfo() {
         return buildInfo;
@@ -120,12 +122,22 @@ public class ExtensionComponent extends DefinedType {
         this.explicitRestrictions = explicitRestrictions;
     }
 
+    @ApiModelProperty("Indicates if the component stores state")
     public Stateful getStateful() {
         return stateful;
     }
 
     public void setStateful(Stateful stateful) {
         this.stateful = stateful;
+    }
+
+    @ApiModelProperty("Indicates if the component has additional details documentation")
+    public boolean isAdditionalDetails() {
+        return additionalDetails;
+    }
+
+    public void setAdditionalDetails(boolean additionalDetails) {
+        this.additionalDetails = additionalDetails;
     }
 
     @Override
