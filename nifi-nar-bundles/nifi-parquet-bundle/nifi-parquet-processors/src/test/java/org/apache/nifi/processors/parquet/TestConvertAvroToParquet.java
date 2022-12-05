@@ -233,7 +233,7 @@ public class TestConvertAvroToParquet {
         String key2 = firstRecord.getGroup("mymap",0).getGroup("key_value",1).getValueToString(0,0);
         int v1 = firstRecord.getGroup("mymap",0).getGroup("key_value",0).getInteger("value", 0);
         int v2 = firstRecord.getGroup("mymap",0).getGroup("key_value",1).getInteger("value", 0);
-        Map<String,Integer> mymap = new HashMap<String,Integer>();
+        Map<String,Integer> recordData = new LinkedHashMap<String,Integer>();
         mymap.put(key1,v1);
         mymap.put(key2,v2);
          Map<String,Integer> inputData = new HashMap<String,Integer>();
