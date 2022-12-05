@@ -53,6 +53,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 import static org.apache.parquet.format.converter.ParquetMetadataConverter.NO_FILTER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -236,7 +237,7 @@ public class TestConvertAvroToParquet {
         Map<String,Integer> recordData = new LinkedHashMap<String,Integer>();
         mymap.put(key1,v1);
         mymap.put(key2,v2);
-         Map<String,Integer> inputData = new HashMap<String,Integer>();
+        Map<String,Integer> inputData = new HashMap<String,Integer>();
         inputData.put("a",1);
         inputData.put("b",2);
         assertEquals(inputData, mymap);
