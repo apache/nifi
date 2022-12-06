@@ -1,0 +1,44 @@
+ORG-APACHE-NIFI-JASN1-TEST
+
+DEFINITIONS IMPLICIT TAGS ::=
+
+BEGIN
+
+VersionBracket1LineSingleField ::= SEQUENCE {
+	integerField1		INTEGER,
+	integerField2		INTEGER,
+	...,
+[[ integerField3		INTEGER ]]
+}
+
+VersionBracketCommentMultiLine ::= SEQUENCE {
+	integerField1		INTEGER,
+	integerField2		INTEGER,
+	...,	-- comment1
+[[ -- comment2
+	integerField3		INTEGER,
+	integerField4		INTEGER,
+	integerField5		INTEGER ]]
+}
+
+VersionBracketMultiLineFirstHasField ::= SEQUENCE {
+	integerField1		INTEGER,
+	integerField2		INTEGER,
+	...,	-- comment1
+[[  integerField3		INTEGER,
+	integerField4		INTEGER,
+	integerField5		INTEGER ]]
+}
+
+TypeWithVersionBracketMultiLineBracketsAlone ::= SEQUENCE {
+	integerField1		INTEGER,
+	integerField2		INTEGER,
+	...,
+[[
+    integerField3		INTEGER,
+	integerField4		INTEGER,
+	integerField5		INTEGER
+]]
+}
+
+END
