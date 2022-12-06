@@ -122,5 +122,62 @@
                 </li>
             </ol>
         </p>
+
+        <h3>Additional Preprocessing</h3>
+
+        <p>
+            NiFi doesn't support every feature that the ASN standard allows. To alleviate problems when encountering ASN files with unsupported features,
+            NiFi can do additional preprocessing steps that creates modified versions of the provided ASN files,
+            removing unsupported features in a way that makes them less strict but otherwise should still be compatible with incoming data.
+            This feature can be switched on via the 'Do Additional Preprocessing' property.
+            The original files will remain intact and new ones will be created with the same names in a directory set in the 'Additional Preprocessing Output Directory' property.
+            Please note that this is a best-effort attempt. It is also strongly recommended to compare the resulting ASN files to the originals and make sure they are still appropriate.
+            <br />
+            <br />
+            The following modification are applied:
+            <ol>
+                <li>
+                    Constraints - Advanced constraints are not recognized as valid ASN elements by NiFi. This step will try to remove <i>all</i> types of constraints.
+                    <br />E.g.
+                    <pre>field   [3] INTEGER(SIZE(1..8,...,10|12|20)) OPTIONAL</pre>
+                    will be changed to
+                    <pre>field   [3] INTEGER  OPTIONAL</pre>
+                </li>
+                <li>
+                    Version brackets - NiFi will try to remove all version brackets and leave all defined fields as OPTIONAL.
+                    <br />E.g.
+                    <pre>
+MyType ::= SEQUENCE {
+	integerField1		INTEGER,
+	integerField2		INTEGER,
+	...,	-- comment1
+[[ -- comment2
+	integerField3		INTEGER,
+	integerField4		INTEGER,
+	integerField5		INTEGER ]]
+}
+                    </pre>
+                    will be changed to
+                    <pre>
+MyType ::= SEQUENCE {
+	integerField1		INTEGER,
+	integerField2		INTEGER,
+	...,	-- comment1
+ -- comment2
+	integerField3		INTEGER OPTIONAL,
+	integerField4		INTEGER OPTIONAL,
+	integerField5		INTEGER OPTIONAL
+}
+                    </pre>
+                </li>
+                <li>
+                    "Hugging" comments -  This is not really an ASN feature but a potential error. The double dash comment indicator "--" should be separated from ASN elements.
+                    <br />E.g.
+                    <pre>field   [0] INTEGER(1..8)--comment</pre>
+                    will be changed to
+                    <pre>field   [0] INTEGER(1..8) --comment</pre>
+                </li>
+            </ol>
+        </p>
     </body>
 </html>

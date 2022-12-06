@@ -141,6 +141,14 @@
                         <exclude>src/test/resources/examples/basic-types.dat</exclude>
                         <exclude>src/test/resources/examples/composite.dat</exclude>
                         <exclude>src/test/resources/examples/tbcd-string.dat</exclude>
+                        <exclude>src/test/resources/test_hugging_comment.asn</exclude>
+                        <exclude>src/test/resources/test_version_bracket.asn</exclude>
+                        <exclude>src/test/resources/test_constraints.asn</exclude>
+                        <exclude>src/test/resources/test_complex_for_preprocessing.asn</exclude>
+                        <exclude>src/test/resources/preprocessed_test_hugging_comment.asn</exclude>
+                        <exclude>src/test/resources/preprocessed_test_version_bracket.asn</exclude>
+                        <exclude>src/test/resources/preprocessed_test_constraints.asn</exclude>
+                        <exclude>src/test/resources/preprocessed_test_complex_for_preprocessing.asn</exclude>
                     </excludes>
                 </configuration>
             </plugin>
