@@ -1,0 +1,27 @@
+ORG-APACHE-NIFI-JASN1-TEST
+
+DEFINITIONS IMPLICIT TAGS ::=
+
+BEGIN
+
+MyTypeWithFieldConstraints := SEQUENCE {
+    field1   [0] INTEGER ,
+    field2   [1] INTEGER ,
+    field3   [2] INTEGER ,
+    field4   [3] INTEGER  OPTIONAL
+}
+
+MyTypeWithSequenceSizeConstraint ::= SEQUENCE SIZE  OF MyType
+
+
+
+MyTypeWithComponents ::=
+  MyType
+     
+
+
+
+
+
+
+END
