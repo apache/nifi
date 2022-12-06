@@ -91,8 +91,8 @@ public class TestScriptedPartitionRecord extends TestScriptedRouterProcessor {
 
         // then
         thenTheFollowingPartitionsExists(PARTITION_1, PARTITION_2);
-        thenPartitionContains(PARTITION_2, 0, 2, PARTITION_2_RECORD_1);
-        thenPartitionContains(PARTITION_1, 1, 2, PARTITION_1_RECORD_1, PARTITION_1_RECORD_2);
+        thenPartitionContains(PARTITION_2, 1, 2, PARTITION_2_RECORD_1);
+        thenPartitionContains(PARTITION_1, 0, 2, PARTITION_1_RECORD_1, PARTITION_1_RECORD_2);
     }
 
     @Test
