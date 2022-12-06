@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_ERROR_CODE;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_IGNORED;
+import static org.apache.nifi.processors.azure.storage.PutAzureBlobStorage_v12.COPY_FROM_STORAGE_CREDENTIALS_SERVICE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -158,6 +159,19 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
 
         MockFlowFile flowFile = assertFailure(BLOB_DATA, BlobErrorCode.BLOB_ALREADY_EXISTS);
         assertEquals(flowFile.getAttribute(ATTR_NAME_IGNORED), null);
+    }
+
+    @Test
+    public void testPutBlobFromUrl() throws Exception {
+        uploadBlob(BLOB_NAME, BLOB_DATA);
+        final String targetBlobName = BLOB_NAME + "-target";
+        runner.setProperty(PutAzureBlobStorage_v12.BLOB_NAME, targetBlobName);
+        runner.setProperty(COPY_FROM_STORAGE_CREDENTIALS_SERVICE, SERVICE_ID);
+        runner.setProperty(PutAzureBlobStorage_v12.COPY_FROM_BLOB_NAME, BLOB_NAME);
+
+        runProcessor(BLOB_DATA);
+
+        assertSuccess(getContainerName(), targetBlobName, BLOB_DATA);
     }
 
     @Test

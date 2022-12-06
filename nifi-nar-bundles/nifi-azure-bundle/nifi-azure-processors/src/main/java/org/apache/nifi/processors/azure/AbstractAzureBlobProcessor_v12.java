@@ -101,7 +101,9 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(ProcessContext context) {
-        storageClient = createStorageClient(context);
+        final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
+        final HttpClient nettyClient = createHttpClient(context);
+        storageClient = createStorageClient(nettyClient, credentialsService);
     }
 
     @OnStopped
@@ -113,23 +115,22 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
         return storageClient;
     }
 
-    public static BlobServiceClient createStorageClient(PropertyContext context) {
-        final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
+    public static BlobServiceClient createStorageClient(HttpClient nettyClient, AzureStorageCredentialsService_v12 credentialsService) {
         final AzureStorageCredentialsDetails_v12 credentialsDetails = credentialsService.getCredentialsDetails();
 
         final BlobServiceClientBuilder clientBuilder = new BlobServiceClientBuilder();
-        clientBuilder.endpoint(String.format("https://%s.%s", credentialsDetails.getAccountName(), credentialsDetails.getEndpointSuffix()));
-
-        final NettyAsyncHttpClientBuilder nettyClientBuilder = new NettyAsyncHttpClientBuilder();
-
-        nettyClientBuilder.proxy(getProxyOptions(context));
-
-        final HttpClient nettyClient = nettyClientBuilder.build();
+        clientBuilder.endpoint(AzureServiceEndpoints.getAzureBlobStorageEndpoint(credentialsDetails.getAccountName(), credentialsDetails.getEndpointSuffix()));
         clientBuilder.httpClient(nettyClient);
 
         configureCredential(clientBuilder, credentialsService, credentialsDetails);
 
         return clientBuilder.buildClient();
+    }
+
+    public static HttpClient createHttpClient(PropertyContext context) {
+        final NettyAsyncHttpClientBuilder nettyClientBuilder = new NettyAsyncHttpClientBuilder();
+        nettyClientBuilder.proxy(getProxyOptions(context));
+        return nettyClientBuilder.build();
     }
 
     private static void configureCredential(BlobServiceClientBuilder clientBuilder, AzureStorageCredentialsService_v12 credentialsService, AzureStorageCredentialsDetails_v12 credentialsDetails) {

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import com.azure.core.http.HttpClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
@@ -48,6 +49,7 @@ import org.apache.nifi.processors.azure.storage.utils.BlobInfo;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo.Builder;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService_v12;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -60,6 +62,7 @@ import java.util.Map;
 
 import static org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12.STORAGE_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12.createStorageClient;
+import static org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12.createHttpClient;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBTYPE;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_CONTAINER;
@@ -157,7 +160,9 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
 
     @OnScheduled
     public void onScheduled(ProcessContext context) {
-        storageClient = createStorageClient(context);
+        final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
+        final HttpClient nettyClient = createHttpClient(context);
+        storageClient = createStorageClient(nettyClient, credentialsService);
     }
 
     @OnStopped
