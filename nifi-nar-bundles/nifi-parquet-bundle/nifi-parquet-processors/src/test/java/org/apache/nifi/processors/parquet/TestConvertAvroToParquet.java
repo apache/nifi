@@ -230,17 +230,10 @@ public class TestConvertAvroToParquet {
         assertEquals(firstRecord.getGroup("myarray",0).getGroup("list",1).getInteger("element", 0), 2);
 
         // Map
-        String key1 = firstRecord.getGroup("mymap",0).getGroup("key_value",0).getValueToString(0,0);
-        String key2 = firstRecord.getGroup("mymap",0).getGroup("key_value",1).getValueToString(0,0);
         int v1 = firstRecord.getGroup("mymap",0).getGroup("key_value",0).getInteger("value", 0);
         int v2 = firstRecord.getGroup("mymap",0).getGroup("key_value",1).getInteger("value", 0);
-        Map<String,Integer> recordData = new LinkedHashMap<String,Integer>();
-        recordData.put(key1,v1);
-        recordData.put(key2,v2);
-        Map<String,Integer> inputData = new HashMap<String,Integer>();
-        inputData.put("a",1);
-        inputData.put("b",2);
-        assertEquals(inputData, recordData);
+        assertEquals(1, v1);
+        assertEquals(2, v2);
 
         // Fixed
         assertEquals(firstRecord.getString("myfixed",0), "A");
