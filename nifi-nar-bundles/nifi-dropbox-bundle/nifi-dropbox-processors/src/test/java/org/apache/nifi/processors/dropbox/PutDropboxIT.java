@@ -23,7 +23,8 @@ import org.junit.jupiter.api.Test;
 
 public class PutDropboxIT extends AbstractDropboxIT<PutDropbox> {
 
-    private static final String CONTENT = String.class.getSimpleName();
+    private static final String CONTENT = "content";
+    private static final String CHANGED_CONTENT = "changedContent";
     private static final String NON_EXISTING_FOLDER = "/doesNotExistYet";
 
     @BeforeEach
@@ -74,5 +75,62 @@ public class PutDropboxIT extends AbstractDropboxIT<PutDropbox> {
 
         testRunner.assertTransferCount(PutDropbox.REL_FAILURE, 0);
         testRunner.assertTransferCount(PutDropbox.REL_SUCCESS, 1);
+    }
+
+    @Test
+    void testUploadExistingFileFailStrategy()  {
+        testRunner.setProperty(PutDropbox.FOLDER, MAIN_FOLDER);
+        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, PutDropbox.FAIL_RESOLUTION);
+
+        testRunner.enqueue(CONTENT);
+        testRunner.run();
+
+        testRunner.assertTransferCount(PutDropbox.REL_FAILURE, 0);
+        testRunner.assertTransferCount(PutDropbox.REL_SUCCESS, 1);
+        testRunner.clearTransferState();
+
+        testRunner.enqueue(CHANGED_CONTENT);
+        testRunner.run();
+        testRunner.assertTransferCount(PutDropbox.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(PutDropbox.REL_FAILURE, 1);
+
+    }
+
+    @Test
+    void testUploadExistingFileOverwriteStrategy()  {
+        testRunner.setProperty(PutDropbox.FOLDER, MAIN_FOLDER);
+        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, PutDropbox.OVERWRITE_RESOLUTION);
+
+        testRunner.enqueue(CONTENT);
+        testRunner.run();
+
+        testRunner.assertTransferCount(PutDropbox.REL_FAILURE, 0);
+        testRunner.assertTransferCount(PutDropbox.REL_SUCCESS, 1);
+        testRunner.clearTransferState();
+
+        testRunner.enqueue(CHANGED_CONTENT);
+        testRunner.run();
+        testRunner.assertTransferCount(PutDropbox.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(PutDropbox.REL_FAILURE, 0);
+
+    }
+
+    @Test
+    void testUploadExistingFileIgnoreStrategy()  {
+        testRunner.setProperty(PutDropbox.FOLDER, MAIN_FOLDER);
+        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, PutDropbox.IGNORE_RESOLUTION);
+
+        testRunner.enqueue(CONTENT);
+        testRunner.run();
+
+        testRunner.assertTransferCount(PutDropbox.REL_FAILURE, 0);
+        testRunner.assertTransferCount(PutDropbox.REL_SUCCESS, 1);
+        testRunner.clearTransferState();
+
+        testRunner.enqueue(CHANGED_CONTENT);
+        testRunner.run();
+
+        testRunner.assertTransferCount(PutDropbox.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(PutDropbox.REL_FAILURE, 0);
     }
 }

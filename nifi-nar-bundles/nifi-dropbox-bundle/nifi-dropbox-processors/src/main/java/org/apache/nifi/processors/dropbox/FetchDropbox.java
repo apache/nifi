@@ -47,11 +47,10 @@ import org.apache.nifi.proxy.ProxySpec;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"dropbox", "storage", "fetch"})
 @CapabilityDescription("Fetches files from Dropbox. Designed to be used in tandem with ListDropbox.")
-@WritesAttribute(attribute = "error.message", description = "When a FlowFile is routed to 'failure', this attribute is added indicating why the file could "
-        + "not be fetched from Dropbox.")
 @SeeAlso({PutDropbox.class, ListDropbox.class})
 @WritesAttributes(
-        @WritesAttribute(attribute = FetchDropbox.ERROR_MESSAGE_ATTRIBUTE, description = "The error message returned by Dropbox when the fetch of a file fails."))
+        @WritesAttribute(attribute = FetchDropbox.ERROR_MESSAGE_ATTRIBUTE, description = "The error message returned by Dropbox when the fetch of a file fails.")
+)
 public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
 
     public static final String ERROR_MESSAGE_ATTRIBUTE = "error.message";
@@ -111,7 +110,7 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
@@ -119,7 +118,7 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
         String fileIdentifier = context.getProperty(FILE).evaluateAttributeExpressions(flowFile).getValue();
         fileIdentifier = correctFilePath(fileIdentifier);
 
-        FlowFile outFlowFile = flowFile;
+        final FlowFile outFlowFile = flowFile;
         try {
             fetchFile(fileIdentifier, session, outFlowFile);
             session.transfer(outFlowFile, REL_SUCCESS);
@@ -129,7 +128,7 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
     }
 
     private void fetchFile(String fileId, ProcessSession session, FlowFile outFlowFile) throws DbxException {
-        InputStream dropboxInputStream = dropboxApiClient.files()
+        final InputStream dropboxInputStream = dropboxApiClient.files()
                 .download(fileId)
                 .getInputStream();
         session.importFrom(dropboxInputStream, outFlowFile);
@@ -137,7 +136,7 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
 
     private void handleError(ProcessSession session, FlowFile flowFile, String fileId, Exception e) {
         getLogger().error("Error while fetching and processing file with id '{}'", fileId, e);
-        FlowFile outFlowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
+        final FlowFile outFlowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
         session.transfer(outFlowFile, REL_FAILURE);
     }
 

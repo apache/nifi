@@ -80,6 +80,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 @SeeAlso({FetchDropbox.class, PutDropbox.class})
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implements DropboxTrait {
+
     public static final PropertyDescriptor FOLDER = new PropertyDescriptor.Builder()
             .name("folder")
             .displayName("Folder")
@@ -187,20 +188,20 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
         try {
             Predicate<FileMetadata> metadataFilter = createMetadataFilter(minTimestamp, minAge);
 
-            ListFolderBuilder listFolderBuilder = dropboxApiClient.files().listFolderBuilder(convertFolderName(folderName));
+            final ListFolderBuilder listFolderBuilder = dropboxApiClient.files().listFolderBuilder(convertFolderName(folderName));
             ListFolderResult result = listFolderBuilder
                     .withRecursive(recursive)
                     .start();
 
-            List<FileMetadata> metadataList = new ArrayList<>(filterMetadata(result, metadataFilter));
+            final List<FileMetadata> metadataList = new ArrayList<>(filterMetadata(result, metadataFilter));
 
             while (result.getHasMore()) {
                 result = dropboxApiClient.files().listFolderContinue(result.getCursor());
                 metadataList.addAll(filterMetadata(result, metadataFilter));
             }
 
-            for (FileMetadata metadata : metadataList) {
-                DropboxFileInfo.Builder builder = new DropboxFileInfo.Builder()
+            for (final FileMetadata metadata : metadataList) {
+                final DropboxFileInfo.Builder builder = new DropboxFileInfo.Builder()
                         .id(metadata.getId())
                         .path(getParentPath(metadata.getPathDisplay()))
                         .name(metadata.getName())
@@ -267,8 +268,8 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
     }
 
     private String getParentPath(String fullPath) {
-        int idx = fullPath.lastIndexOf("/");
-        String parentPath = fullPath.substring(0, idx);
+        final int idx = fullPath.lastIndexOf("/");
+        final String parentPath = fullPath.substring(0, idx);
         return "".equals(parentPath) ? "/" : parentPath;
     }
 

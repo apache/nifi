@@ -21,7 +21,7 @@ import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxUploader;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.CommitInfo;
-import com.dropbox.core.v2.files.FileMetadata;
+import com.dropbox.core.v2.files.UploadErrorException;
 import com.dropbox.core.v2.files.UploadSessionAppendV2Uploader;
 import com.dropbox.core.v2.files.UploadSessionCursor;
 import com.dropbox.core.v2.files.UploadSessionFinishUploader;
@@ -69,6 +69,10 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
 
     public static final int SINGLE_UPLOAD_LIMIT_IN_BYTES = 150 * 1024 * 1024;
 
+    public static final String IGNORE_RESOLUTION = "ignore";
+    public static final String OVERWRITE_RESOLUTION = "overwrite";
+    public static final String FAIL_RESOLUTION = "fail";
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Files that have been successfully written to Dropbox are transferred to this relationship.")
@@ -100,20 +104,30 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor UPLOAD_CHUNK_SIZE = new PropertyDescriptor.Builder()
-            .name("upload-chunk-size")
-            .displayName("Upload Chunk Size")
-            .description("Defines the size of a chunk. Used when a FlowFile's size exceeds CHUNK_UPLOAD_LIMIT and content is uploaded in smaller chunks. "
-                    + "It is recommended to specify chunk size as multiples of 4 MB.")
+    public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
+            .name("conflict-resolution-strategy")
+            .displayName("Conflict Resolution Strategy")
+            .description("Indicates what should happen when a file with the same name already exists in the specified Dropbox folder.")
+            .required(true)
+            .defaultValue(FAIL_RESOLUTION)
+            .allowableValues(FAIL_RESOLUTION, IGNORE_RESOLUTION, OVERWRITE_RESOLUTION)
+            .build();
+
+    public static final PropertyDescriptor CHUNKED_UPLOAD_SIZE = new PropertyDescriptor.Builder()
+            .name("chunked-upload-size")
+            .displayName("Chunked Upload Size")
+            .description("Defines the size of a chunk. Used when a FlowFile's size exceeds 'Chunked Upload Threshold' and content is uploaded in smaller chunks. "
+                    + "It is recommended to specify chunked upload size smaller than 'Chunked Upload Threshold' and as multiples of 4 MB. "
+                    + "Maximum allowed value is 150 MB.")
             .defaultValue("8 MB")
             .addValidator(StandardValidators.createDataSizeBoundsValidator(1, SINGLE_UPLOAD_LIMIT_IN_BYTES))
             .required(false)
             .build();
 
-    public static final PropertyDescriptor CHUNK_UPLOAD_LIMIT = new PropertyDescriptor.Builder()
-            .name("chunk-upload-limit")
-            .displayName("Chunk Upload Limit")
-            .description("The maximum size of the content which is uploaded at once. FlowFiles larger than this limit are uploaded in chunks. "
+    public static final PropertyDescriptor CHUNKED_UPLOAD_THRESHOLD = new PropertyDescriptor.Builder()
+            .name("chunked-upload-threshold")
+            .displayName("Chunked Upload Threshold")
+            .description("The maximum size of the content which is uploaded at once. FlowFiles larger than this threshold are uploaded in chunks. "
                     + "Maximum allowed value is 150 MB.")
             .defaultValue("150 MB")
             .addValidator(StandardValidators.createDataSizeBoundsValidator(1, SINGLE_UPLOAD_LIMIT_IN_BYTES))
@@ -124,11 +138,11 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
             CREDENTIAL_SERVICE,
             FOLDER,
             FILE_NAME,
-            UPLOAD_CHUNK_SIZE,
-            CHUNK_UPLOAD_LIMIT,
+            CONFLICT_RESOLUTION,
+            CHUNKED_UPLOAD_THRESHOLD,
+            CHUNKED_UPLOAD_SIZE,
             ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxySpec.HTTP_AUTH)
     ));
-
 
     private static final Set<Relationship> RELATIONSHIPS;
 
@@ -141,7 +155,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
 
     private DbxClientV2 dropboxApiClient;
 
-    private DbxUploader dbxUploader;
+    private DbxUploader<?, ?, ?> dbxUploader;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -162,32 +176,42 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
 
         final String folder = context.getProperty(FOLDER).evaluateAttributeExpressions(flowFile).getValue();
         final String filename = context.getProperty(FILE_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        final long uploadFileSizeLimit = context.getProperty(CHUNK_UPLOAD_LIMIT)
+
+        final long chunkUploadThreshold = context.getProperty(CHUNKED_UPLOAD_THRESHOLD)
                 .asDataSize(DataUnit.B)
                 .longValue();
 
-        FileMetadata uploadedFileMetadata = null;
+        final long uploadChunkSize = context.getProperty(CHUNKED_UPLOAD_SIZE)
+                .asDataSize(DataUnit.B)
+                .longValue();
 
-        long size = flowFile.getSize();
+        final String conflictResolution = context.getProperty(CONFLICT_RESOLUTION).getValue();
+
+        boolean uploadErrorOccurred = false;
+
+        final long size = flowFile.getSize();
         final String uploadPath = convertFolderName(folder) + "/" + filename;
 
         try (final InputStream rawIn = session.read(flowFile)) {
-            if (size <= uploadFileSizeLimit) {
-                uploadedFileMetadata = createUploadUploader(uploadPath).uploadAndFinish(rawIn);
-            } else {
-                long chunkSize = context.getProperty(UPLOAD_CHUNK_SIZE)
-                        .asDataSize(DataUnit.B)
-                        .longValue();
-
-                uploadedFileMetadata = uploadLargeFileInChunks(rawIn, size, chunkSize, uploadPath);
+            try {
+                if (size <= chunkUploadThreshold) {
+                    try (UploadUploader uploader = createUploadUploader(uploadPath, conflictResolution)) {
+                        uploader.uploadAndFinish(rawIn);
+                    }
+                } else {
+                    uploadLargeFileInChunks(uploadPath, rawIn, size, uploadChunkSize, conflictResolution);
+                }
+            } catch (UploadErrorException e) {
+                uploadErrorOccurred = !isUploadErrorIgnored(conflictResolution, uploadPath, e);
             }
         } catch (Exception e) {
             getLogger().error("Exception occurred while uploading file '{}' to Dropbox folder '{}'", filename, folder, e);
+            uploadErrorOccurred = true;
         } finally {
             dbxUploader.close();
         }
 
-        if (uploadedFileMetadata != null) {
+        if (!uploadErrorOccurred) {
             session.transfer(flowFile, REL_SUCCESS);
         } else {
             session.transfer(flowFile, REL_FAILURE);
@@ -206,36 +230,64 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
         return PROPERTIES;
     }
 
-    private FileMetadata uploadLargeFileInChunks(InputStream rawIn, long size, long uploadChunkSize, String path) throws Exception {
-        final String sessionId = createUploadSessionStartUploader()
-                .uploadAndFinish(rawIn, uploadChunkSize)
-                .getSessionId();
+    private boolean isUploadErrorIgnored(final String conflictResolution, final String uploadPath, final UploadErrorException e) throws UploadErrorException {
+        if (e.errorValue.isPath() && e.errorValue.getPathValue().getReason().isConflict()) {
+
+            if (IGNORE_RESOLUTION.equals(conflictResolution)) {
+                getLogger().info("File with the same name [{}] already exists. Remote file is not modified due to {} being set to '{}'.",
+                        uploadPath, CONFLICT_RESOLUTION.getDisplayName(), conflictResolution);
+                return true;
+            } else if (conflictResolution.equals(FAIL_RESOLUTION)) {
+                getLogger().error("File with the same name [{}] already exists.", uploadPath, e);
+                return false;
+            }
+        }
+        throw e;
+    }
+
+    private void uploadLargeFileInChunks(String path, InputStream rawIn, long size, long uploadChunkSize,  String conflictResolution) throws Exception {
+        final String sessionId;
+        try (UploadSessionStartUploader uploader = createUploadSessionStartUploader()) {
+            sessionId = uploader.uploadAndFinish(rawIn, uploadChunkSize).getSessionId();
+        }
 
         long uploadedBytes = uploadChunkSize;
 
         UploadSessionCursor cursor = new UploadSessionCursor(sessionId, uploadedBytes);
 
         while (size - uploadedBytes > uploadChunkSize) {
-            createUploadSessionAppendV2Uploader(cursor).uploadAndFinish(rawIn, uploadChunkSize);
-            uploadedBytes += uploadChunkSize;
-            cursor = new UploadSessionCursor(sessionId, uploadedBytes);
+            try (UploadSessionAppendV2Uploader uploader = createUploadSessionAppendV2Uploader(cursor)) {
+                uploader.uploadAndFinish(rawIn, uploadChunkSize);
+                uploadedBytes += uploadChunkSize;
+                cursor = new UploadSessionCursor(sessionId, uploadedBytes);
+            }
         }
 
         final long remainingBytes = size - uploadedBytes;
 
         final CommitInfo commitInfo = CommitInfo.newBuilder(path)
-                .withMode(WriteMode.ADD)
+                .withMode(getWriteMode(conflictResolution))
                 .withClientModified(new Date(System.currentTimeMillis()))
                 .build();
 
-        return createUploadSessionFinishUploader(cursor, commitInfo).uploadAndFinish(rawIn, remainingBytes);
+        try (UploadSessionFinishUploader uploader = createUploadSessionFinishUploader(cursor, commitInfo)) {
+            uploader.uploadAndFinish(rawIn, remainingBytes);
+        }
     }
 
-    private UploadUploader createUploadUploader(String path) throws DbxException {
+    private WriteMode getWriteMode(String conflictResolution) {
+        if (OVERWRITE_RESOLUTION.equals(conflictResolution)) {
+            return WriteMode.OVERWRITE;
+        } else {
+            return WriteMode.ADD;
+        }
+    }
+
+    private UploadUploader createUploadUploader(String path, String conflictResolution) throws DbxException {
         final UploadUploader uploadUploader = dropboxApiClient
                 .files()
                 .uploadBuilder(path)
-                .withMode(WriteMode.ADD)
+                .withMode(getWriteMode(conflictResolution))
                 .start();
         dbxUploader = uploadUploader;
         return uploadUploader;

@@ -43,12 +43,10 @@ public interface DropboxTrait {
             .required(true)
             .build();
 
-
-
     default DbxClientV2 getDropboxApiClient(ProcessContext context, String identifier) {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
-        String dropboxClientId = format("%s-%s", getClass().getSimpleName(), identifier);
-        OkHttpClient.Builder okHttpClientBuilder = OkHttp3Requestor.defaultOkHttpClientBuilder();
+        final String dropboxClientId = format("%s-%s", getClass().getSimpleName(), identifier);
+        final OkHttpClient.Builder okHttpClientBuilder = OkHttp3Requestor.defaultOkHttpClientBuilder();
 
         if (!Proxy.Type.DIRECT.equals(proxyConfiguration.getProxyType())) {
             okHttpClientBuilder.proxy(proxyConfiguration.createProxy());
@@ -63,14 +61,14 @@ public interface DropboxTrait {
             }
         }
 
-        HttpRequestor httpRequestor = new OkHttp3Requestor(okHttpClientBuilder.build());
-        DbxRequestConfig config = DbxRequestConfig.newBuilder(dropboxClientId)
+        final HttpRequestor httpRequestor = new OkHttp3Requestor(okHttpClientBuilder.build());
+        final DbxRequestConfig config = DbxRequestConfig.newBuilder(dropboxClientId)
                 .withHttpRequestor(httpRequestor)
                 .build();
 
         final DropboxCredentialService credentialService = context.getProperty(CREDENTIAL_SERVICE)
                 .asControllerService(DropboxCredentialService.class);
-        DropboxCredentialDetails credential = credentialService.getDropboxCredential();
+        final DropboxCredentialDetails credential = credentialService.getDropboxCredential();
 
         return new DbxClientV2(config, new DbxCredential(credential.getAccessToken(), -1L,
                 credential.getRefreshToken(), credential.getAppKey(), credential.getAppSecret()));
