@@ -21,19 +21,16 @@ import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.nifi.processors.deltalake.storage.StorageAdapter;
-import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public class StorageService {
 
-    private static final String PARQUET_FILE_EXTENSION = ".parquet";
     private final List<String> partitionColumns;
 
     private StorageAdapter storageAdapter;
@@ -41,14 +38,6 @@ public class StorageService {
     public StorageService(StorageAdapter storageAdapter, List<String> columns) {
         this.storageAdapter = storageAdapter;
         this.partitionColumns = columns;
-    }
-
-    public FileStatus[] getFileStatuses() {
-        try {
-            return storageAdapter.getFileSystem().listStatus(new Path(storageAdapter.getDataPath()));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     public List<FileStatus> getParquetFilesFromDataStore() {
@@ -59,7 +48,7 @@ public class StorageService {
             List<FileStatus> fileStatuses = new ArrayList<>();
             while (statuses.hasNext()) {
                 LocatedFileStatus fileStatus = statuses.next();
-                if (fileStatus.isFile() && isDataParquetFile(fileStatus)) {
+                if (fileStatus.isFile() && isInternalParquetFile(fileStatus)) {
                     fileStatuses.add(fileStatus);
                 }
             }
@@ -72,26 +61,26 @@ public class StorageService {
     public Set<String> getParquetFileNamesFromDataStore() {
         return getParquetFilesFromDataStore().stream()
                 .map(FileStatus::getPath)
-                .map(this::getFileNameWithPartitionColumns)
+                .map(fileName -> Util.getFileNameWithPartitionColumns(fileName.toString(), partitionColumns))
                 .collect(Collectors.toSet());
     }
 
-    private String getFileNameWithPartitionColumns(Path fileName) {
-        String separator = FileSystems.getDefault().getSeparator();
-        List<String> pathElements = Arrays.stream(fileName.toString().split(separator))
-                .collect(Collectors.toList());
-        List<String> fileWithPartitionColumns = pathElements
-                .subList(pathElements.size() - partitionColumns.size() - 1, pathElements.size());
-        return StringUtils.join(fileWithPartitionColumns, separator);
+    public void moveToStorage(String inputParquetPath) {
+        String destinationFileName = Util.getFileNameWithPartitionColumns(inputParquetPath, partitionColumns);
+        if (!getParquetFileNamesFromDataStore().contains(inputParquetPath)) {
+            try {
+                Path destinationPath = new Path(storageAdapter.getDataPath()
+                        + FileSystems.getDefault().getSeparator()
+                        + destinationFileName);
+                storageAdapter.getFileSystem().moveFromLocalFile(new Path(inputParquetPath), destinationPath);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
-    private boolean isDataParquetFile(LocatedFileStatus fileStatus) {
-        String fileName = fileStatus.getPath().getName();
-        return fileName.endsWith(PARQUET_FILE_EXTENSION) && notInternalParquetFile(fileName);
-    }
-
-    private boolean notInternalParquetFile(String fileName) {
-        return !fileName.endsWith("checkpoint" + PARQUET_FILE_EXTENSION);
+    private boolean isInternalParquetFile(LocatedFileStatus fileStatus) {
+        return !fileStatus.getPath().toString().contains("_delta_log");
     }
 
 }

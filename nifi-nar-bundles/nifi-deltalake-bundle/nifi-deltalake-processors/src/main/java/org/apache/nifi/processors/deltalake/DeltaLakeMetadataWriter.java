@@ -43,7 +43,7 @@ import java.util.Set;
 
 @TriggerSerially
 @Tags({"deltalake", "deltatable", "cloud", "storage", "parquet", "writer"})
-@InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
+@InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @CapabilityDescription("Creates or updates a Delta table. Supports various storage solutions.")
 public class DeltaLakeMetadataWriter extends AbstractProcessor {
 
@@ -65,20 +65,51 @@ public class DeltaLakeMetadataWriter extends AbstractProcessor {
     public static final AllowableValue PARQUET_SCHEMA_FILE = new AllowableValue("FILE", "Local file path",
             "The parquet schema files path");
 
+    public static final AllowableValue NO_INPUT_FILE = new AllowableValue("INPUT_NO_FILE", "Don't process input file",
+            "Don't import file from other processor");
+
+    public static final AllowableValue PROCESS_INPUT_FILE = new AllowableValue("PROCESS_INPUT_FILE", "Process input file, reading path and filename from attribute",
+            "Import new file from based on the given attributes.");
 
     private List<PropertyDescriptor> descriptors;
 
     private Set<Relationship> relationships;
 
+    public static final PropertyDescriptor INPUT_FILE_SELECTOR = new PropertyDescriptor.Builder()
+            .name("input-file-selector")
+            .displayName("Input file")
+            .description("Choose to process or not process the input file")
+            .allowableValues(NO_INPUT_FILE, PROCESS_INPUT_FILE)
+            .defaultValue(NO_INPUT_FILE.getValue())
+            .required(true)
+            .build();
+
+    public static final PropertyDescriptor INPUT_FILE_PATH_ATTRIBUTE = new PropertyDescriptor.Builder()
+            .name("input-file-path-attribute")
+            .displayName("Attribute name of the input files paths")
+            .description("Different processors give different attribute names for the output files path")
+            .dependsOn(INPUT_FILE_SELECTOR, PROCESS_INPUT_FILE)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(true)
+            .build();
+
+    public static final PropertyDescriptor INPUT_FILE_NAME_ATTRIBUTE = new PropertyDescriptor.Builder()
+            .name("input-file-name-attribute")
+            .displayName("Attribute name of the input files name")
+            .description("Different processors give different attribute names for the output filenames")
+            .dependsOn(INPUT_FILE_SELECTOR, PROCESS_INPUT_FILE)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(true)
+            .build();
+
     public static final PropertyDescriptor STORAGE_SELECTOR = new PropertyDescriptor.Builder()
-            .name("storage-location")
-            .displayName("Storage Location")
+            .name("storage-location-selector")
+            .displayName("Parquet storage location")
             .description("Choose storage provider where the parquet files stored")
             .allowableValues(LOCAL_FILESYSTEM, AMAZON_S3, MICROSOFT_AZURE, GCP)
             .defaultValue(LOCAL_FILESYSTEM.getValue())
             .required(true)
             .build();
-
 
     public static final PropertyDescriptor PARQUET_SCHEMA_SELECTOR = new PropertyDescriptor.Builder()
             .name("parquet-schema-selector")
@@ -242,7 +273,8 @@ public class DeltaLakeMetadataWriter extends AbstractProcessor {
     protected void init(final ProcessorInitializationContext context) {
         this.relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILED)));
         this.descriptors = Collections.unmodifiableList(Arrays.asList(
-                STORAGE_SELECTOR, LOCAL_PATH, PARQUET_SCHEMA_SELECTOR, SCHEMA_TEXT_JSON, SCHEMA_FILE_JSON, PARTITION_COLUMNS,
+                STORAGE_SELECTOR, INPUT_FILE_SELECTOR, LOCAL_PATH, PARQUET_SCHEMA_SELECTOR, SCHEMA_TEXT_JSON, SCHEMA_FILE_JSON,
+                PARTITION_COLUMNS, INPUT_FILE_PATH_ATTRIBUTE, INPUT_FILE_NAME_ATTRIBUTE,
                 S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET, S3_PATH,
                 AZURE_ACCOUNT_KEY, AZURE_STORAGE_NAME, AZURE_STORAGE_ACCOUNT, AZURE_PATH,
                 GCP_ACCOUNT_JSON_KEYFILE_PATH, GCP_BUCKET, GCP_PATH));
@@ -260,16 +292,18 @@ public class DeltaLakeMetadataWriter extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.create();
+    public void onTrigger(final ProcessContext processContext, final ProcessSession session) throws ProcessException {
+        FlowFile file = session.get();
+        FlowFile flowFile = file == null ? session.create() : file;
         try {
+            deltalakeService.handleInputParquet(processContext, flowFile);
             Map<String, String> updateResult = updateDeltaLake();
             session.putAllAttributes(flowFile, updateResult);
             session.transfer(flowFile, REL_SUCCESS);
         } catch (Exception e) {
             session.putAttribute(flowFile, "delta table update failed with error", e.getMessage());
             session.transfer(flowFile, REL_FAILED);
-            context.yield();
+            processContext.yield();
         }
     }
 

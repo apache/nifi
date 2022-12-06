@@ -121,9 +121,17 @@ public class DeltaTableService {
                 Optional.of(System.currentTimeMillis()),
                 true,
                 false,
-                calculatePartitionColumns(file.getPath()),
+                file.getPartitionValues(),
                 Optional.of(file.getSize()),
                 null);
+    }
+
+    public boolean fileAlreadyAdded(String newFile) {
+        if (deltaTableExists()) {
+            return storageAdapter.getDeltaLog().snapshot().getAllFiles().stream()
+                    .anyMatch(file -> file.getPath().equals(Util.getFileNameWithPartitionColumns(newFile, partitionColumns)));
+        }
+        return false;
     }
 
     private Map<String, String> calculatePartitionColumns(String filePath) {
@@ -146,4 +154,5 @@ public class DeltaTableService {
                 .schema(structType)
                 .build();
     }
+
 }

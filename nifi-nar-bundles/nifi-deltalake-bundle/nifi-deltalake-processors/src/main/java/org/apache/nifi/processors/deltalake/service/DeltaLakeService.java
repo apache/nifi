@@ -20,11 +20,13 @@ import io.delta.standalone.actions.AddFile;
 import io.delta.standalone.actions.RemoveFile;
 import io.delta.standalone.types.StructType;
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.deltalake.storage.StorageAdapter;
 import org.apache.nifi.processors.deltalake.storage.StorageAdapterFactory;
 
 import java.io.IOException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -34,6 +36,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.INPUT_FILE_NAME_ATTRIBUTE;
+import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.INPUT_FILE_PATH_ATTRIBUTE;
 import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.PARQUET_SCHEMA_INPUT_TEXT;
 import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.PARQUET_SCHEMA_SELECTOR;
 import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.PARTITION_COLUMNS;
@@ -106,6 +110,26 @@ public class DeltaLakeService {
 
     public void finishTransaction() {
         deltaTableService.finishTransaction();
+    }
+
+    public void handleInputParquet(ProcessContext processContext, FlowFile flowFile) {
+        String inputParquetPath = null;
+        String pathAttributeName = processContext.getProperty(INPUT_FILE_PATH_ATTRIBUTE).getValue();
+        String filenameAttributeName = processContext.getProperty(INPUT_FILE_NAME_ATTRIBUTE).getValue();
+        if (pathAttributeName != null && filenameAttributeName != null) {
+            String pathAttributeValue = flowFile.getAttribute(pathAttributeName);
+            String filenameAttributeValue = flowFile.getAttribute(filenameAttributeName);
+            if (pathAttributeValue != null && filenameAttributeValue != null) {
+                inputParquetPath = pathAttributeValue
+                        + FileSystems.getDefault().getSeparator()
+                        + filenameAttributeValue;
+            }
+        }
+        if (inputParquetPath != null) {
+            if (!deltaTableService.fileAlreadyAdded(inputParquetPath)) {
+                storageService.moveToStorage(inputParquetPath);
+            }
+        }
     }
 
     private StructType getParquetSchema(ProcessContext processorContext) {

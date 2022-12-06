@@ -22,18 +22,43 @@
 </head>
 <body>
 	<h2>High level overview</h2>
-    <p>This processor creates or keeps up to date a Delta table within a directory full of parquet files.
-        This directory with full of parquet files can be on the local filesystem or in an Amazon S3, Azure or GCP cloud storage.
-        Under the hood this processor uses the <a href="https://commons.apache.org/proper/commons-csv/apidocs/org/apache/commons/csv/CSVFormat.html">
-        Delta Standalone</a> library.</p>
+    <p>This processors main task to create or keep up to date a Delta table within a directory full of parquet files.
+        This directory (with full of parquet files) can be on the local filesystem or in an Amazon S3, Azure or GCP cloud storage.
+        Under the hood this processor uses the <a href="https://docs.delta.io/latest/delta-standalone.html">
+        Delta Standalone</a> library to generate the delta table. This processor also capable to process other processors output file
+        and upload it to the data store.</p>
 	<h2>Concept</h2>
-    <p>The processor reads up the parquet file names and the existing file names in the delta log.
-        It compares them and creates a list of files which needs to be added or removed from the Delta table.
+    <p>First the processor checks for input file. If there is an input file, the processor copy that file into the data directory.
+        After that the processor reads up the parquet file names from the data directory and the already added file names from the delta log.
+        It compares them and creates a list of files which needs to be added or removed from the Delta log.
         At the end it commits the update in a single transaction. By this the Delta table will always be up-to-date.
-        The Delta table is located in a separate directory, _delta_log, within the directory containing te parquet files.</p>
+        The Delta table is located in a separate _delta_log directory within the directory containing te parquet files.</p>
 	<h2>Configuration</h2>
+    <h3>Partition Values</h3>
+    <p>This processor supports partition values. You can partition a Delta table by columns.
+        Partition columns can be given in the <code>Parquet partition columns</code> property. Each partition should be separated by comma.
+        It's the users' responsibility to put the parquet files into partitioned directories. <br>
+        Example value: <code>year,customer</code> </p>
+    <h3>Input file</h3>
+    <p>This processor can process other processors output file. For example, it can process the PutParquet processors output file.
+        The processor processes one file at a time.
+        To achieve that set the following properties:</p>
+    <table>
+        <tr>
+            <th>PutDeltalake input property</th>
+            <th>PutParquet output attribute name</th>
+        </tr>
+        <tr>
+            <td>Attribute name of the input files paths</td>
+            <td><code>absolute.hdfs.path</code></td>
+        </tr>
+        <tr>
+            <td>Attribute name of the input files name</td>
+            <td><code>filename</code></td>
+        </tr>
+    </table>
     <h3>Parquet structure</h3>
-    <p>The structure of the parquet files needs to be configured in a json format.</p>
+    <p>The structure of the parquet files needs to be configured in a json format. It can be declared as text or by giving a path to a json file in the local filesystem.</p>
     <p>Example of a valid json structure:</p>
     <pre>
 {
@@ -78,6 +103,137 @@
     ]
 }
     </pre>
+    <h2>Attributes</h2>
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>Default Values</th>
+            <th>Allowable Values</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>Parquet storage location</td>
+            <td>Local Filesystem</td>
+            <td>Local Filesystem<br>
+                Amazon S3<br>
+                Microsoft Azure<br>
+                GCP</td>
+            <td>Select where the data is located, on local filesystem or in the cloud</td>
+        </tr>
+        <tr>
+            <td>Input file</td>
+            <td>Don't process input file</td>
+            <td>Don't process input file<br>
+                Process input file</td>
+            <td>Whether you want to process other processors output file or not</td>
+        </tr>
+        <tr>
+            <td>Data path on local filesystem</td>
+            <td></td>
+            <td></td>
+            <td>The directory containing the parquet files. Can be absolute or relative</td>
+        </tr>
+        <tr>
+            <td>Parquet schema location</td>
+            <td>Text Input</td>
+            <td>Text Input<br>
+                Local file path</td>
+            <td>Choose which format you want to define the parquet files structure</td>
+        </tr>
+        <tr>
+            <td>Parquet schema in json</td>
+            <td></td>
+            <td></td>
+            <td>Enter the parquet files structure as text</td>
+        </tr>
+        <tr>
+            <td>Parquet schema file location</td>
+            <td></td>
+            <td></td>
+            <td>Give a relative or absolute path for the parquet files structure</td>
+        </tr>
+        <tr>
+            <td>Parquet partition columns</td>
+            <td></td>
+            <td></td>
+            <td>Partition columns separated by comma</td>
+        </tr>
+        <tr>
+            <td>Attribute name of the input files paths</td>
+            <td></td>
+            <td></td>
+            <td>If you want to process an input file from another processor, you have to define the name of the other processors output attribute, which contains the path of the file</td>
+        </tr>
+        <tr>
+            <td>Attribute name of the input files name</td>
+            <td></td>
+            <td></td>
+            <td>If you want to process an input file from another processor, you have to define the name of the other processors output attribute, which contains the name of the file</td>
+        </tr>
+        <tr>
+            <td>S3 Access Key</td>
+            <td></td>
+            <td></td>
+            <td>If you choose Amazon S3 cloud storage you have to provide your S3 access key</td>
+        </tr>
+        <tr>
+            <td>S3 Secret Key</td>
+            <td></td>
+            <td></td>
+            <td>If you choose Amazon S3 cloud storage you have to provide your S3 secret key</td>
+        </tr>
+        <tr>
+            <td>S3 bucket url</td>
+            <td></td>
+            <td></td>
+            <td>Your root buckets url in Amazon S3</td>
+        </tr>
+        <tr>
+            <td>Data path in S3 bucket</td>
+            <td></td>
+            <td></td>
+            <td>Your data directory path within your Amazon S3 bucket</td>
+        </tr>
+        <tr>
+            <td>Azure Account Key</td>
+            <td></td>
+            <td></td>
+            <td>If you choose Azure cloud storage you have to provide your Azure account key</td>
+        </tr>
+        <tr>
+            <td>Azure blob storage name</td>
+            <td></td>
+            <td></td>
+            <td>The blobs name in the Azure storage</td>
+        </tr>
+        <tr>
+            <td>Azure blob storage account</td>
+            <td></td>
+            <td></td>
+            <td>If you choose Azure cloud storage you have to provide your Azure storage account</td>
+        </tr>
+        <tr>
+            <td>Data path in Azure blob</td>
+            <td></td>
+            <td></td>
+            <td>Your data directory path within your Azure blob</td>
+        </tr>
+            <td>GCP account json keyfile path</td>
+            <td></td>
+            <td></td>
+            <td>You have to provide your GCP account json keyfile path in case of Google Cloud Storage, which has to be on the local filesystem</td>
+        </tr>
+            <td>GCP bucket url</td>
+            <td></td>
+            <td></td>
+            <td>Your root bucket url in Google Cloud Storage</td>
+        </tr>
+            <td>Data path in GCP bucket</td>
+            <td></td>
+            <td></td>
+            <td>Your data directory path within your Google Cloud Storage</td>
+        </tr>
+    </table>
     <h2>Output</h2>
     <table>
         <tr>
@@ -106,7 +262,5 @@
             <td>The error message</td>
         </tr>
     </table>
-    <h2>Known limitations</h2>
-    <p>Currently this processor does not support partition values.</p>
 </body>
 </html>
