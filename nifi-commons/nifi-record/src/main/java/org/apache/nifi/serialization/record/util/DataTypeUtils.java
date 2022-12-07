@@ -1078,7 +1078,7 @@ public class DataTypeUtils {
     }
 
     public static boolean isStringTypeCompatible(final Object value) {
-        return value != null;
+        return !(value instanceof Record);
     }
 
     public static boolean isEnumTypeCompatible(final Object value, final EnumDataType enumType) {
