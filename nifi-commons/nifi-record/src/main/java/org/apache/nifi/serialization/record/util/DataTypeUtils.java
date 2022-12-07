@@ -1998,6 +1998,25 @@ public class DataTypeUtils {
         final RecordFieldType thisFieldType = thisDataType.getFieldType();
         final RecordFieldType otherFieldType = otherDataType.getFieldType();
 
+        if (thisFieldType == RecordFieldType.ARRAY && otherFieldType == RecordFieldType.ARRAY) {
+            // Check for array<null> and return the other (or empty if they are both array<null>)
+            ArrayDataType thisArrayType = (ArrayDataType) thisDataType;
+            ArrayDataType otherArrayType = (ArrayDataType) otherDataType;
+            if (thisArrayType.getElementType() == null) {
+                if (otherArrayType.getElementType() == null) {
+                    return Optional.empty();
+                } else {
+                    return Optional.of(otherDataType);
+                }
+            } else {
+                if (otherArrayType.getElementType() == null) {
+                    return Optional.of(thisDataType);
+                } else {
+                    return Optional.empty();
+                }
+            }
+        }
+
         final int thisIntTypeValue = getIntegerTypeValue(thisFieldType);
         final int otherIntTypeValue = getIntegerTypeValue(otherFieldType);
         final boolean thisIsInt = thisIntTypeValue > -1;

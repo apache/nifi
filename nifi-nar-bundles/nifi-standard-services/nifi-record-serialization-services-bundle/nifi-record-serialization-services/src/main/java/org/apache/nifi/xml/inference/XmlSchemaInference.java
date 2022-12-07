@@ -61,6 +61,11 @@ public class XmlSchemaInference extends HierarchicalSchemaInference<XmlNode> {
     }
 
     @Override
+    protected boolean isEmptyArray(final XmlNode value) {
+        return value.getNodeType() == XmlNodeType.ARRAY && ((XmlArrayNode) value).getElements().isEmpty();
+    }
+
+    @Override
     protected void forEachFieldInRecord(final XmlNode rawRecord, final BiConsumer<String, XmlNode> fieldConsumer) {
         final XmlContainerNode container = (XmlContainerNode) rawRecord;
         container.forEach(fieldConsumer);
