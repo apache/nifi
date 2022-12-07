@@ -34,7 +34,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -205,7 +204,7 @@ public class GetAsanaObjectLifecycleTest {
         runner.run(1);
 
         verify(mockObjectFetcher, times(1)).loadState(emptyMap());
-        verify(mockObjectFetcher, never()).clearState();
+        verify(mockObjectFetcher, times(1)).clearState();
     }
 
     @Test
@@ -226,7 +225,7 @@ public class GetAsanaObjectLifecycleTest {
         runner.run(1);
 
         verify(mockObjectFetcher, times(1)).loadState(validState);
-        verify(mockObjectFetcher, never()).clearState();
+        verify(mockObjectFetcher, times(1)).clearState();
     }
 
     @Test
@@ -245,7 +244,7 @@ public class GetAsanaObjectLifecycleTest {
         runner.run(1);
 
         verify(mockObjectFetcher, times(1)).loadState(invalidState);
-        verify(mockObjectFetcher, times(1)).clearState();
+        verify(mockObjectFetcher, times(2)).clearState();
     }
 
     @Test

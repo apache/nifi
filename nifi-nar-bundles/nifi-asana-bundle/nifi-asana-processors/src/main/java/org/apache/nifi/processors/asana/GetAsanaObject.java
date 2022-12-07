@@ -311,6 +311,7 @@ public class GetAsanaObject extends AbstractProcessor {
         session.commitAsync();
         Map<String, String> state = objectFetcher.saveState();
         persistState(state, context);
+        objectFetcher.clearState();
 
         getLogger().debug("New state after transferring {} FlowFiles: {}", transferCount, state);
     }
