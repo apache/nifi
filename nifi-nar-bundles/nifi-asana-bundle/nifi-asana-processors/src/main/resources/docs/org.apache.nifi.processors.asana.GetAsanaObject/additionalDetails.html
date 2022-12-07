@@ -35,8 +35,8 @@
     This processor collects various objects (eg. tasks, comments, etc...) from Asana via the specified
     <code>AsanaClientService</code>. When the processor started for the first time with a given configuration
     it collects each of the objects matching the user specified criteria, and emits <code>FlowFile</code>s
-    of each on the <code>NEW</code> relationship. Then, it polls Asana in the frequency of the configured <em>Yield</em>
-    duration, and detects changes by comparing the object fingerprints. When there are updates, it emits them through
+    of each on the <code>NEW</code> relationship. Then, it polls Asana in the frequency of the configured <em>Run Schedule</em>
+    and detects changes by comparing the object fingerprints. When there are updates, it emits them through
     the <code>UPDATED</code> and <code>REMOVED</code> relationships, respectively.
 </p>
 
