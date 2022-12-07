@@ -233,21 +233,14 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        PropertyDescriptor.Builder propertyBuilder = new PropertyDescriptor.Builder()
+        return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .required(false)
+                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
                 .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-                .dynamic(true);
-
-        if (stateful) {
-            return propertyBuilder
-                    .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
-                    .build();
-        } else {
-            return propertyBuilder
-                    .build();
-        }
+                .dynamic(true)
+                .build();
     }
 
     @Override
