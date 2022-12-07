@@ -1999,7 +1999,8 @@ public class DataTypeUtils {
         final RecordFieldType otherFieldType = otherDataType.getFieldType();
 
         if (thisFieldType == RecordFieldType.ARRAY && otherFieldType == RecordFieldType.ARRAY) {
-            // Check for array<null> and return the other (or empty if they are both array<null>)
+            // Check for array<null> and return the other (or empty if they are both array<null>). This happens if at some point we inferred an element type of null which
+            // indicates an empty array, and then we inferred a non-null type for the same field in a different record. The non-null type should be used in that case.
             ArrayDataType thisArrayType = (ArrayDataType) thisDataType;
             ArrayDataType otherArrayType = (ArrayDataType) otherDataType;
             if (thisArrayType.getElementType() == null) {
