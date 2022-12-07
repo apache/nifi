@@ -29,7 +29,7 @@ public class AsanaUserFetcher extends GenericAsanaObjectFetcher<User> {
     }
 
     @Override
-    protected Stream<User> refreshObjects() {
+    protected Stream<User> fetchObjects() {
         return client.getUsers();
     }
 }

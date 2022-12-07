@@ -52,7 +52,7 @@ public class AsanaProjectStatusFetcher extends GenericAsanaObjectFetcher<Project
     }
 
     @Override
-    protected Stream<ProjectStatus> refreshObjects() {
+    protected Stream<ProjectStatus> fetchObjects() {
         return client.getProjectStatusUpdates(project);
     }
 }

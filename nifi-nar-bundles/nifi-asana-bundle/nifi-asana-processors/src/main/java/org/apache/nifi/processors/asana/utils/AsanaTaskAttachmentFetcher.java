@@ -47,7 +47,7 @@ public class AsanaTaskAttachmentFetcher extends GenericAsanaObjectFetcher<Attach
     }
 
     @Override
-    protected Stream<Attachment> refreshObjects() {
+    protected Stream<Attachment> fetchObjects() {
         return fetchTaskAttachments();
     }
 

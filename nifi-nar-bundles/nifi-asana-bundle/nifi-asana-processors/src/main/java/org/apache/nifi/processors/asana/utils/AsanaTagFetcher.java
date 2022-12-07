@@ -29,7 +29,7 @@ public class AsanaTagFetcher extends GenericAsanaObjectFetcher<Tag> {
     }
 
     @Override
-    protected Stream<Tag> refreshObjects() {
+    protected Stream<Tag> fetchObjects() {
         return client.getTags();
     }
 }

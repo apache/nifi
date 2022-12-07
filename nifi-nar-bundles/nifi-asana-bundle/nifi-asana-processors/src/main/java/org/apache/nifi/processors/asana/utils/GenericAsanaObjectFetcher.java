@@ -42,7 +42,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import org.apache.commons.collections4.iterators.FilterIterator;
 
-public abstract class GenericAsanaObjectFetcher<T extends Resource> extends PollableAsanaObjectFetcher {
+public abstract class GenericAsanaObjectFetcher<T extends Resource> extends AbstractAsanaObjectFetcher {
     private static final String LAST_FINGERPRINTS = ".lastFingerprints";
 
     private Map<String, String> lastFingerprints;
@@ -95,8 +95,8 @@ public abstract class GenericAsanaObjectFetcher<T extends Resource> extends Poll
     }
 
     @Override
-    protected Iterator<AsanaObject> poll() {
-        Stream<AsanaObject> currentObjects = refreshObjects()
+    protected Iterator<AsanaObject> fetch() {
+        Stream<AsanaObject> currentObjects = fetchObjects()
                 .map(item -> {
                     String payload = transformObjectToPayload(item);
                     return new AsanaObject(
@@ -144,7 +144,7 @@ public abstract class GenericAsanaObjectFetcher<T extends Resource> extends Poll
         return null;
     }
 
-    protected abstract Stream<T> refreshObjects();
+    protected abstract Stream<T> fetchObjects();
 
     private static String compress(String str) throws IOException {
         ByteArrayOutputStream compressedBytes = new ByteArrayOutputStream(str.length());

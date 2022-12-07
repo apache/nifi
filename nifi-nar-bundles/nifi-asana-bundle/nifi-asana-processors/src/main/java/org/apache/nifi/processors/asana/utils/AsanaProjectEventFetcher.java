@@ -28,7 +28,7 @@ import org.apache.nifi.controller.asana.AsanaClient;
 import org.apache.nifi.controller.asana.AsanaEventsCollection;
 import org.apache.nifi.util.StringUtils;
 
-public class AsanaProjectEventFetcher extends PollableAsanaObjectFetcher {
+public class AsanaProjectEventFetcher extends AbstractAsanaObjectFetcher {
 
     private static final String PROJECT_GID = ".project.gid";
     private static final String NEXT_SYNC_TOKEN = ".nextSyncToken";
@@ -66,7 +66,7 @@ public class AsanaProjectEventFetcher extends PollableAsanaObjectFetcher {
     }
 
     @Override
-    protected Iterator<AsanaObject> poll() {
+    protected Iterator<AsanaObject> fetch() {
         AsanaEventsCollection events = client.getEvents(project, nextSyncToken);
         Iterator<AsanaObject> result = StreamSupport.stream(events.spliterator(), false)
             .map(e -> new AsanaObject(

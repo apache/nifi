@@ -47,7 +47,7 @@ public class AsanaStoryFetcher extends GenericAsanaObjectFetcher<Story> {
     }
 
     @Override
-    protected Stream<Story> refreshObjects() {
+    protected Stream<Story> fetchObjects() {
         return fetchStories();
     }
 

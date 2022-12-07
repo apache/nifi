@@ -51,7 +51,7 @@ public class AsanaProjectStatusAttachmentFetcher extends GenericAsanaObjectFetch
     }
 
     @Override
-    protected Stream<Attachment> refreshObjects() {
+    protected Stream<Attachment> fetchObjects() {
         return fetchProjectStatusAttachments();
     }
 

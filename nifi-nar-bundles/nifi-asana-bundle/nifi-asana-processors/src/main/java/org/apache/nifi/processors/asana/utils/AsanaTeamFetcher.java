@@ -29,7 +29,7 @@ public class AsanaTeamFetcher extends GenericAsanaObjectFetcher<Team> {
     }
 
     @Override
-    protected Stream<Team> refreshObjects() {
+    protected Stream<Team> fetchObjects() {
         return client.getTeams();
     }
 }

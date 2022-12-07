@@ -29,7 +29,7 @@ public class MockGenericAsanaObjectFetcher extends GenericAsanaObjectFetcher<Res
     public int refreshCount = 0;
 
     @Override
-    protected Stream<Resource> refreshObjects() {
+    protected Stream<Resource> fetchObjects() {
         refreshCount++;
         return items.stream();
     }

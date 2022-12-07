@@ -52,7 +52,7 @@ public class AsanaProjectMembershipFetcher extends GenericAsanaObjectFetcher<Pro
     }
 
     @Override
-    protected Stream<ProjectMembership> refreshObjects() {
+    protected Stream<ProjectMembership> fetchObjects() {
         return client.getProjectMemberships(project);
     }
 }

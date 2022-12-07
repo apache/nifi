@@ -29,7 +29,7 @@ public class AsanaProjectFetcher extends GenericAsanaObjectFetcher<Project> {
     }
 
     @Override
-    protected Stream<Project> refreshObjects() {
+    protected Stream<Project> fetchObjects() {
         return client.getProjects();
     }
 

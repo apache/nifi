@@ -14,36 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.asana.utils;
+package org.apache.nifi.processors.asana.mocks;
 
+import static java.util.Collections.emptyList;
+
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map;
+import org.apache.nifi.processors.asana.utils.AsanaObject;
+import org.apache.nifi.processors.asana.utils.AbstractAsanaObjectFetcher;
 
-public abstract class PollableAsanaObjectFetcher implements AsanaObjectFetcher {
+public class MockAbstractAsanaObjectFetcher extends AbstractAsanaObjectFetcher {
 
-    private Iterator<AsanaObject> pending;
+    public Collection<AsanaObject> items = emptyList();
+    public int pollCount = 0;
 
-    public PollableAsanaObjectFetcher() {
-        pending = null;
+    @Override
+    protected Iterator<AsanaObject> fetch() {
+        pollCount++;
+        Collection<AsanaObject> result = new ArrayList<>(items);
+        items = emptyList();
+        return result.iterator();
     }
 
     @Override
-    public AsanaObject fetchNext() {
-        if (pending == null) {
-            pending = poll();
-        }
+    public Map<String, String> saveState() {
+        return null;
+    }
 
-        if (!pending.hasNext()) {
-            pending = null;
-            return null;
-        }
+    @Override
+    public void loadState(Map<String, String> state) {
 
-        return pending.next();
     }
 
     @Override
     public void clearState() {
-        pending = null;
-    }
 
-    protected abstract Iterator<AsanaObject> poll();
+    }
 }

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.asana;
 
-import org.apache.nifi.processors.asana.mocks.MockPollableAsanaObjectFetcher;
+import org.apache.nifi.processors.asana.mocks.MockAbstractAsanaObjectFetcher;
 import org.apache.nifi.processors.asana.utils.AsanaObject;
 import org.apache.nifi.processors.asana.utils.AsanaObjectState;
 import org.junit.jupiter.api.Test;
@@ -28,11 +28,11 @@ import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-public class PollableAsanaObjectFetcherTest {
+public class AbstractAsanaObjectFetcherTest {
 
     @Test
     public void testFetchNext() {
-        final MockPollableAsanaObjectFetcher fetcher = new MockPollableAsanaObjectFetcher();
+        final MockAbstractAsanaObjectFetcher fetcher = new MockAbstractAsanaObjectFetcher();
 
         fetcher.items = emptyList();
         assertNull(fetcher.fetchNext());
