@@ -46,6 +46,8 @@ import java.util.Set;
 import org.apache.http.entity.ContentType;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -87,6 +89,7 @@ import org.apache.nifi.reporting.InitializationException;
 @WritesAttribute(attribute = GetAsanaObject.ASANA_GID, description = "Global ID of the object in Asana.")
 @Tags({"asana", "source", "ingest"})
 @CapabilityDescription("This processor collects data from Asana")
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class GetAsanaObject extends AbstractProcessor {
 
     protected static final String ASANA_GID = "asana.gid";
