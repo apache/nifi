@@ -112,7 +112,7 @@ public class AsanaProjectStatusFetcherTest {
         assertEquals(status.gid, object.getGid());
 
         verify(client, atLeastOnce()).getProjectByName(project.name);
-        verify(client, times(3)).getProjectStatusUpdates(project);
+        verify(client, times(2)).getProjectStatusUpdates(project);
         verifyNoMoreInteractions(client);
     }
 

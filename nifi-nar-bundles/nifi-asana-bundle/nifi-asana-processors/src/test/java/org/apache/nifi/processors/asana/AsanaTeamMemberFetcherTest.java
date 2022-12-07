@@ -113,7 +113,7 @@ public class AsanaTeamMemberFetcherTest {
         assertEquals(user.gid, object.getGid());
 
         verify(client, atLeastOnce()).getTeamByName(team.name);
-        verify(client, times(3)).getTeamMembers(team);
+        verify(client, times(2)).getTeamMembers(team);
         verifyNoMoreInteractions(client);
     }
 
@@ -133,7 +133,7 @@ public class AsanaTeamMemberFetcherTest {
         fetcher2.loadState(fetcher1.saveState());
 
         user.name = "Bar Foo";
-        final AsanaObject object = fetcher1.fetchNext();
+        final AsanaObject object = fetcher2.fetchNext();
 
         assertEquals(AsanaObjectState.UPDATED, object.getState());
         assertEquals(user.gid, object.getGid());

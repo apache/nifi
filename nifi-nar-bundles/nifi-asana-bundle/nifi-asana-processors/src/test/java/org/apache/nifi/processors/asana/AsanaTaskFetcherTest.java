@@ -223,6 +223,7 @@ public class AsanaTaskFetcherTest {
 
         final AsanaObjectFetcher fetcher = new AsanaTaskFetcher(client, project.name, section.name, null);
         assertNotNull(fetcher.fetchNext());
+        assertNull(fetcher.fetchNext());
 
         when(client.getTasks(any(Section.class))).then(invocation -> Stream.empty());
 
@@ -248,6 +249,7 @@ public class AsanaTaskFetcherTest {
 
         final AsanaObjectFetcher fetcher = new AsanaTaskFetcher(client, project.name, null, tag.name);
         assertNotNull(fetcher.fetchNext());
+        assertNull(fetcher.fetchNext());
 
         when(client.getTasks(any(Tag.class))).then(invocation -> Stream.empty());
 
@@ -312,9 +314,9 @@ public class AsanaTaskFetcherTest {
 
         verify(client, atLeastOnce()).getProjectByName(project.name);
         verify(client, atLeastOnce()).getTags();
-        verify(client, times(2)).getTasks(project);
-        verify(client, times(2)).getTasks(tag);
-        verify(client, times(2)).getTasks(anotherTagWithSameName);
+        verify(client, times(1)).getTasks(project);
+        verify(client, times(1)).getTasks(tag);
+        verify(client, times(1)).getTasks(anotherTagWithSameName);
         verifyNoMoreInteractions(client);
     }
 
@@ -341,7 +343,7 @@ public class AsanaTaskFetcherTest {
         assertEquals(task.gid, object.getGid());
 
         verify(client, atLeastOnce()).getProjectByName(project.name);
-        verify(client, times(4)).getTasks(project);
+        verify(client, times(3)).getTasks(project);
         verifyNoMoreInteractions(client);
     }
 

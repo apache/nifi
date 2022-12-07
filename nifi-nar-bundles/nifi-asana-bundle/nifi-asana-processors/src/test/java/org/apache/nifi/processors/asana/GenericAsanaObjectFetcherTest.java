@@ -62,6 +62,7 @@ public class GenericAsanaObjectFetcherTest {
         assertEquals("123", object.getGid());
         assertFalse(object.getContent().isEmpty());
         assertEquals(1, fetcher.refreshCount);
+        assertNull(fetcher.fetchNext());
 
         assertNull(fetcher.fetchNext());
         assertEquals(2, fetcher.refreshCount);
@@ -82,6 +83,7 @@ public class GenericAsanaObjectFetcherTest {
         assertEquals("123", objectWhenNew.getGid());
         assertFalse(objectWhenNew.getContent().isEmpty());
         assertEquals(1, fetcher.refreshCount);
+        assertNull(fetcher.fetchNext());
 
         resource.resourceType = "Etwas";
         final AsanaObject objectAfterUpdate = fetcher.fetchNext();
@@ -90,6 +92,9 @@ public class GenericAsanaObjectFetcherTest {
         assertFalse(objectAfterUpdate.getContent().isEmpty());
         assertNotEquals(objectWhenNew.getContent(), objectAfterUpdate.getContent());
         assertNotEquals(objectWhenNew.getFingerprint(), objectAfterUpdate.getFingerprint());
+        assertEquals(2, fetcher.refreshCount);
+
+        assertNull(fetcher.fetchNext());
         assertEquals(2, fetcher.refreshCount);
 
         assertNull(fetcher.fetchNext());
@@ -104,11 +109,17 @@ public class GenericAsanaObjectFetcherTest {
         assertNotEquals(objectAfterUpdate.getFingerprint(), objectAfterAnotherUpdate.getFingerprint());
         assertEquals(4, fetcher.refreshCount);
 
+        assertNull(fetcher.fetchNext());
+        assertEquals(4, fetcher.refreshCount);
+
         fetcher.items = emptyList();
         final AsanaObject objectAfterRemove = fetcher.fetchNext();
         assertEquals(AsanaObjectState.REMOVED, objectAfterRemove.getState());
         assertEquals("123", objectAfterRemove.getGid());
         assertEquals(GSON.toJson(objectAfterRemove.getGid()), objectAfterRemove.getContent());
+        assertEquals(5, fetcher.refreshCount);
+
+        assertNull(fetcher.fetchNext());
         assertEquals(5, fetcher.refreshCount);
 
         assertNull(fetcher.fetchNext());
@@ -130,6 +141,7 @@ public class GenericAsanaObjectFetcherTest {
         assertEquals("123", objectBeforeIdChange.getGid());
         assertFalse(objectBeforeIdChange.getContent().isEmpty());
         assertEquals(1, fetcher.refreshCount);
+        assertNull(fetcher.fetchNext());
 
         resource.gid = "456";
 
@@ -146,7 +158,7 @@ public class GenericAsanaObjectFetcherTest {
         assertEquals(2, fetcher.refreshCount);
 
         assertNull(fetcher.fetchNext());
-        assertEquals(3, fetcher.refreshCount);
+        assertEquals(2, fetcher.refreshCount);
     }
 
     @Test

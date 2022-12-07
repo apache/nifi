@@ -87,7 +87,7 @@ public class AsanaTagFetcherTest {
 
         assertEquals(AsanaObjectState.UPDATED, object.getState());
         assertEquals(tag.gid, object.getGid());
-        verify(client, times(3)).getTags();
+        verify(client, times(2)).getTags();
         verifyNoMoreInteractions(client);
     }
 
@@ -110,7 +110,7 @@ public class AsanaTagFetcherTest {
 
         assertEquals(AsanaObjectState.NEW, object.getState());
         assertEquals(tag.gid, object.getGid());
-        verify(client, times(3)).getTags();
+        verify(client, times(2)).getTags();
         verifyNoMoreInteractions(client);
     }
 
@@ -134,7 +134,7 @@ public class AsanaTagFetcherTest {
 
         assertEquals(AsanaObjectState.UPDATED, object.getState());
         assertEquals(tag.gid, object.getGid());
-        verify(client, times(3)).getTags();
+        verify(client, times(2)).getTags();
         verifyNoMoreInteractions(client);
     }
 }

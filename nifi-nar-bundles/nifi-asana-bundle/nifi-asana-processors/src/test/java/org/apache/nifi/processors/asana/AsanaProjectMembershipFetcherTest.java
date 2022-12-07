@@ -117,7 +117,7 @@ public class AsanaProjectMembershipFetcherTest {
         assertEquals(membership.gid, object.getGid());
 
         verify(client, atLeastOnce()).getProjectByName(project.name);
-        verify(client, times(3)).getProjectMemberships(project);
+        verify(client, times(2)).getProjectMemberships(project);
         verifyNoMoreInteractions(client);
     }
 

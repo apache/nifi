@@ -89,7 +89,7 @@ public class AsanaUserFetcherTest {
 
         assertEquals(AsanaObjectState.UPDATED, object.getState());
         assertEquals(user.gid, object.getGid());
-        verify(client, times(3)).getUsers();
+        verify(client, times(2)).getUsers();
         verifyNoMoreInteractions(client);
     }
 

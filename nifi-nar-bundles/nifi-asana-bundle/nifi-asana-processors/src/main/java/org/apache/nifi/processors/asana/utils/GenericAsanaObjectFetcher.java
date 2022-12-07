@@ -90,6 +90,7 @@ public abstract class GenericAsanaObjectFetcher<T extends Resource> extends Poll
 
     @Override
     public void clearState() {
+        super.clearState();
         lastFingerprints.clear();
     }
 

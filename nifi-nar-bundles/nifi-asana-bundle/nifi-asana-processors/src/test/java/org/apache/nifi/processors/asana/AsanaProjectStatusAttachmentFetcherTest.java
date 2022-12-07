@@ -136,8 +136,8 @@ public class AsanaProjectStatusAttachmentFetcherTest {
         assertNull(fetcher.fetchNext());
 
         verify(client, atLeastOnce()).getProjectByName(project.name);
-        verify(client, times(3)).getProjectStatusUpdates(project);
-        verify(client, times(3)).getAttachments(status);
+        verify(client, times(2)).getProjectStatusUpdates(project);
+        verify(client, times(2)).getAttachments(status);
         verifyNoMoreInteractions(client);
     }
 
@@ -165,8 +165,8 @@ public class AsanaProjectStatusAttachmentFetcherTest {
         assertEquals(attachment.gid, object.getGid());
 
         verify(client, atLeastOnce()).getProjectByName(project.name);
-        verify(client, times(3)).getProjectStatusUpdates(project);
-        verify(client, times(3)).getAttachments(status);
+        verify(client, times(2)).getProjectStatusUpdates(project);
+        verify(client, times(2)).getAttachments(status);
         verifyNoMoreInteractions(client);
     }
 
@@ -197,8 +197,8 @@ public class AsanaProjectStatusAttachmentFetcherTest {
         assertEquals(attachment.gid, object.getGid());
 
         verify(client, atLeastOnce()).getProjectByName(project.name);
-        verify(client, times(3)).getProjectStatusUpdates(project);
-        verify(client, times(3)).getAttachments(status);
+        verify(client, times(2)).getProjectStatusUpdates(project);
+        verify(client, times(2)).getAttachments(status);
         verifyNoMoreInteractions(client);
     }
 
@@ -227,8 +227,8 @@ public class AsanaProjectStatusAttachmentFetcherTest {
         assertEquals(attachment.gid, object.getGid());
 
         verify(client, atLeastOnce()).getProjectByName(project.name);
-        verify(client, times(3)).getProjectStatusUpdates(project);
-        verify(client, times(3)).getAttachments(status);
+        verify(client, times(2)).getProjectStatusUpdates(project);
+        verify(client, times(2)).getAttachments(status);
         verifyNoMoreInteractions(client);
     }
 

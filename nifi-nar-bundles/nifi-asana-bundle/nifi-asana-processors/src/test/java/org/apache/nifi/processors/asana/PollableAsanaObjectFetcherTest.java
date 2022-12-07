@@ -47,6 +47,8 @@ public class PollableAsanaObjectFetcherTest {
         assertEquals(oneObject, fetcher.fetchNext());
         assertEquals(3, fetcher.pollCount);
         assertNull(fetcher.fetchNext());
+        assertEquals(3, fetcher.pollCount);
+        assertNull(fetcher.fetchNext());
         assertEquals(4, fetcher.pollCount);
         assertNull(fetcher.fetchNext());
         assertEquals(5, fetcher.pollCount);
@@ -55,6 +57,8 @@ public class PollableAsanaObjectFetcherTest {
         assertEquals(oneObject, fetcher.fetchNext());
         assertEquals(6, fetcher.pollCount);
         assertEquals(otherObject, fetcher.fetchNext());
+        assertEquals(6, fetcher.pollCount);
+        assertNull(fetcher.fetchNext());
         assertEquals(6, fetcher.pollCount);
         assertNull(fetcher.fetchNext());
         assertEquals(7, fetcher.pollCount);
@@ -67,16 +71,19 @@ public class PollableAsanaObjectFetcherTest {
         fetcher.items = Arrays.asList(oneObject, otherObject);
         assertEquals(otherObject, fetcher.fetchNext());
         assertEquals(9, fetcher.pollCount);
+        assertNull(fetcher.fetchNext());
+        assertEquals(9, fetcher.pollCount);
         assertEquals(oneObject, fetcher.fetchNext());
         assertEquals(10, fetcher.pollCount);
         assertEquals(otherObject, fetcher.fetchNext());
         assertEquals(10, fetcher.pollCount);
+        assertNull(fetcher.fetchNext());
         fetcher.items = singletonList(oneObject);
         assertEquals(oneObject, fetcher.fetchNext());
         assertEquals(11, fetcher.pollCount);
         assertNull(fetcher.fetchNext());
-        assertEquals(12, fetcher.pollCount);
+        assertEquals(11, fetcher.pollCount);
         assertNull(fetcher.fetchNext());
-        assertEquals(13, fetcher.pollCount);
+        assertEquals(12, fetcher.pollCount);
     }
 }

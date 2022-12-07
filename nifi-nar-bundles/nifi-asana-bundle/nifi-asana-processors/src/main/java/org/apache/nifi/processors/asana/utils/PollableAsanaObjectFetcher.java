@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.asana.utils;
 
-import static java.util.Collections.emptyIterator;
-
 import java.util.Iterator;
 
 public abstract class PollableAsanaObjectFetcher implements AsanaObjectFetcher {
@@ -25,15 +23,26 @@ public abstract class PollableAsanaObjectFetcher implements AsanaObjectFetcher {
     private Iterator<AsanaObject> pending;
 
     public PollableAsanaObjectFetcher() {
-        pending = emptyIterator();
+        pending = null;
     }
 
     @Override
     public AsanaObject fetchNext() {
-        if (!pending.hasNext()) {
+        if (pending == null) {
             pending = poll();
         }
-        return pending.hasNext() ? pending.next() : null;
+
+        if (!pending.hasNext()) {
+            pending = null;
+            return null;
+        }
+
+        return pending.next();
+    }
+
+    @Override
+    public void clearState() {
+        pending = null;
     }
 
     protected abstract Iterator<AsanaObject> poll();

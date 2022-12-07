@@ -93,7 +93,7 @@ public class AsanaProjectFetcherTest {
 
         assertEquals(AsanaObjectState.UPDATED, object.getState());
         assertEquals(project.gid, object.getGid());
-        verify(client, times(4)).getProjects();
+        verify(client, times(3)).getProjects();
         verifyNoMoreInteractions(client);
     }
 
@@ -144,7 +144,7 @@ public class AsanaProjectFetcherTest {
 
         assertEquals(AsanaObjectState.UPDATED, object.getState());
         assertEquals(project.gid, object.getGid());
-        verify(client, times(4)).getProjects();
+        verify(client, times(3)).getProjects();
         verifyNoMoreInteractions(client);
     }
 }

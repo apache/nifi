@@ -284,6 +284,7 @@ public class AsanaStoryFetcherTest {
 
         final AsanaObjectFetcher fetcher = new AsanaStoryFetcher(client, project.name, section.name, null);
         assertNotNull(fetcher.fetchNext());
+        assertNull(fetcher.fetchNext());
 
         when(client.getTasks(any(Section.class))).then(invocation -> Stream.empty());
 
@@ -316,6 +317,7 @@ public class AsanaStoryFetcherTest {
 
         final AsanaObjectFetcher fetcher = new AsanaStoryFetcher(client, project.name, null, tag.name);
         assertNotNull(fetcher.fetchNext());
+        assertNull(fetcher.fetchNext());
 
         when(client.getTasks(any(Tag.class))).then(invocation -> Stream.empty());
 
@@ -356,8 +358,8 @@ public class AsanaStoryFetcherTest {
         assertEquals(story.gid, object.getGid());
 
         verify(client, atLeastOnce()).getProjectByName(project.name);
-        verify(client, times(3)).getTasks(project);
-        verify(client, times(3)).getStories(task);
+        verify(client, times(2)).getTasks(project);
+        verify(client, times(2)).getStories(task);
         verifyNoMoreInteractions(client);
     }
 
@@ -383,7 +385,7 @@ public class AsanaStoryFetcherTest {
 
         story.text = "Bla bla";
 
-        final AsanaObject object = fetcher1.fetchNext();
+        final AsanaObject object = fetcher2.fetchNext();
         assertEquals(AsanaObjectState.UPDATED, object.getState());
         assertEquals(story.gid, object.getGid());
 

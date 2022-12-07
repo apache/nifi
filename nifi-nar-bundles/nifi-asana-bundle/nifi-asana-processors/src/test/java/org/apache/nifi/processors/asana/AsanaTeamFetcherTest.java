@@ -89,7 +89,7 @@ public class AsanaTeamFetcherTest {
 
         assertEquals(AsanaObjectState.UPDATED, object.getState());
         assertEquals(team.gid, object.getGid());
-        verify(client, times(3)).getTeams();
+        verify(client, times(2)).getTeams();
         verifyNoMoreInteractions(client);
     }
 
