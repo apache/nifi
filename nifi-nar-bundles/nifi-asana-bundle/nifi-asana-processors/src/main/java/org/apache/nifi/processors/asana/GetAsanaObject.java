@@ -253,10 +253,10 @@ public class GetAsanaObject extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        Map<String, String> processorState = recoverState(context).orElse(Collections.emptyMap());
         try {
-            Map<String, String> state = recoverState(context).orElse(Collections.emptyMap());
-            getLogger().debug("Attempting to load state: {}", state);
-            objectFetcher.loadState(state);
+            getLogger().debug("Attempting to load state: {}", processorState);
+            objectFetcher.loadState(processorState);
         } catch (Exception e) {
             getLogger().info("Failed to recover state. Falling back to clean start.");
             objectFetcher.clearState();
