@@ -61,8 +61,8 @@ import static org.apache.nifi.processors.salesforce.util.CommonSalesforcePropert
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"salesforce", "sobject", "put"})
-@CapabilityDescription("Posts records to a Salesforce sObject. The type of the Salesforce object must be set in the input flowfile's"
-        + " 'objectType' attribute.")
+@CapabilityDescription("Creates new records for the specified Salesforce sObject. The type of the Salesforce object must be set in the input flowfile's"
+        + " 'objectType' attribute. This processor cannot update existing records.")
 @ReadsAttribute(attribute = "objectType", description = "The Salesforce object type to upload records to. E.g. Account, Contact, Campaign.")
 public class PutSalesforceObject extends AbstractProcessor {
 
