@@ -17,7 +17,7 @@
 
 <head>
     <meta charset="utf-8"/>
-    <title>FetchGoogleDrive</title>
+    <title>PutGoogleDrive</title>
     <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
 </head>
 <body>
@@ -40,26 +40,21 @@
         <ul>
             <li>In Google Cloud Console navigate to IAM & Admin -> Service Accounts.</li>
             <li>Take a note of the email of the service account you are going to use.</li>
-            <li>Navigate to the folder to be listed in Google Drive.</li>
+            <li>Navigate to the folder in Google Drive which will be used as the base folder.</li>
             <li>Right-click on the Folder -> Share.</li>
             <li>Enter the service account email.</li>
         </ul>
     </li>
-    <li><b>Find File ID</b>
-        </br>
-        Usually FetchGoogleDrive is used with ListGoogleDrive and 'drive.id' is set.</br>
-        In case 'drive.id' is not available, you can find the Drive ID of the file in the following way:
-        </br>
+    <li><b>Find Folder ID</b>
         <ul>
-            <li>Right-click on the file and select "Get Link".</li>
-            <li>In the pop-up window click on "Copy Link".</li>
-            <li>You can obtain the file ID from the URL copied to clipboard.
-                For example, if the URL were <code>https://drive.google.com/file/d/16ALV9KIU_KKeNG557zyctqy2Fmzyqtq/view?usp=share_link</code>,<br>
-                the File ID would be <code>16ALV9KIU_KKeNG557zyctqy2Fmzyqtq</code>
+            <li>Navigate to the folder to be listed in Google Drive and enter it. The URL in your browser will include the ID at the end of
+                the URL.
+                For example, if the URL were <code>https://drive.google.com/drive/folders/1trTraPVCnX5_TNwO8d9P_bz278xWOmGm</code>, the
+                Folder ID would be <code>1trTraPVCnX5_TNwO8d9P_bz278xWOmGm</code>
             </li>
         </ul>
     </li>
-    <li><b>Set File ID in 'File ID' property</b>
+    <li><b>Set Folder ID in 'Folder ID' property</b>
     </li>
 </ol>
 

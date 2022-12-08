@@ -20,8 +20,11 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.drive.Drive;
+import com.google.api.services.drive.model.File;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.gcp.util.GoogleUtils;
@@ -30,6 +33,9 @@ import java.util.Arrays;
 import java.util.Collection;
 
 public interface GoogleDriveTrait {
+
+    String DRIVE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
+    String DRIVE_URL = "https://drive.google.com/open?id=" ;
     String APPLICATION_NAME = "NiFi";
 
     JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
@@ -65,5 +71,15 @@ public interface GoogleDriveTrait {
                 .asControllerService(GCPCredentialsService.class);
 
         return gcpCredentialsService.getGoogleCredentials();
+    }
+
+    default Map<String, String> createAttributeMap(File file) {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(GoogleDriveAttributes.ID, file.getId());
+        attributes.put(GoogleDriveAttributes.FILENAME, file.getName());
+        attributes.put(GoogleDriveAttributes.MIME_TYPE, file.getMimeType());
+        attributes.put(GoogleDriveAttributes.TIMESTAMP, String.valueOf(file.getCreatedTime()));
+        attributes.put(GoogleDriveAttributes.SIZE, String.valueOf(file.getSize()));
+        return attributes;
     }
 }

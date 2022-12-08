@@ -16,10 +16,22 @@
  */
 package org.apache.nifi.processors.gcp.drive;
 
+import static java.lang.String.valueOf;
+import static java.util.Arrays.asList;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.util.DateTime;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
@@ -32,19 +44,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-public class ListGoogleDriverTestRunnerTest implements OutputChecker {
+public class ListGoogleDriveTestRunnerTest implements OutputChecker {
     private ListGoogleDrive testSubject;
     private TestRunner testRunner;
 
@@ -126,7 +126,7 @@ public class ListGoogleDriverTestRunnerTest implements OutputChecker {
 
         mockFetchedGoogleDriveFileList(id, filename, size, createdTime, modifiedTime, mimeType);
 
-        List<String> expectedContents = Arrays.asList(
+        List<String> expectedContents = asList(
                 "[" +
                         "{" +
                         "\"drive.id\":\"" + id + "\"," +
@@ -159,7 +159,7 @@ public class ListGoogleDriverTestRunnerTest implements OutputChecker {
                 .setFields("nextPageToken, files(id, name, size, createdTime, modifiedTime, mimeType)")
                 .execute()
                 .getFiles()
-        ).thenReturn(Arrays.asList(
+        ).thenReturn(asList(
                 createFile(
                         id,
                         filename,
@@ -176,13 +176,13 @@ public class ListGoogleDriverTestRunnerTest implements OutputChecker {
         mockFetchedGoogleDriveFileList(id, filename, size, createdTime, modifiedTime, mimeType);
 
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
-        inputFlowFileAttributes.put("drive.id", id);
-        inputFlowFileAttributes.put("filename", filename);
-        inputFlowFileAttributes.put("drive.size", "" + size);
-        inputFlowFileAttributes.put("drive.timestamp", "" + expectedTimestamp);
-        inputFlowFileAttributes.put("mime.type", mimeType);
+        inputFlowFileAttributes.put(GoogleDriveAttributes.ID, id);
+        inputFlowFileAttributes.put(GoogleDriveAttributes.FILENAME, filename);
+        inputFlowFileAttributes.put(GoogleDriveAttributes.SIZE, valueOf(size));
+        inputFlowFileAttributes.put(GoogleDriveAttributes.TIMESTAMP, valueOf(expectedTimestamp));
+        inputFlowFileAttributes.put(GoogleDriveAttributes.MIME_TYPE, mimeType);
 
-        HashSet<Map<String, String>> expectedAttributes = new HashSet<>(Arrays.asList(inputFlowFileAttributes));
+        HashSet<Map<String, String>> expectedAttributes = new HashSet<>(asList(inputFlowFileAttributes));
 
         // WHEN
         testRunner.run();
