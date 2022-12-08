@@ -90,7 +90,7 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
 
     public static final PropertyDescriptor INPUT_FILE_SELECTOR = new PropertyDescriptor.Builder()
             .name("input-file-selector")
-            .displayName("Input file")
+            .displayName("Input File")
             .description("Choose to process or not process the input file")
             .allowableValues(NO_INPUT_FILE, PROCESS_INPUT_FILE)
             .defaultValue(NO_INPUT_FILE.getValue())
@@ -99,7 +99,7 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
 
     public static final PropertyDescriptor INPUT_FILE_PATH_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("input-file-path-attribute")
-            .displayName("Attribute name of the input files paths")
+            .displayName("Attribute Name Of The Input Files Path")
             .description("Different processors give different attribute names for the output files path")
             .dependsOn(INPUT_FILE_SELECTOR, PROCESS_INPUT_FILE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -108,7 +108,7 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
 
     public static final PropertyDescriptor INPUT_FILE_NAME_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("input-file-name-attribute")
-            .displayName("Attribute name of the input files name")
+            .displayName("Attribute Name Of The Input Files Name")
             .description("Different processors give different attribute names for the output filenames")
             .dependsOn(INPUT_FILE_SELECTOR, PROCESS_INPUT_FILE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -117,7 +117,7 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
 
     public static final PropertyDescriptor STORAGE_SELECTOR = new PropertyDescriptor.Builder()
             .name("storage-location-selector")
-            .displayName("Parquet storage location")
+            .displayName("Parquet Storage Location")
             .description("Choose storage provider where the parquet files stored")
             .allowableValues(LOCAL_FILESYSTEM, AMAZON_S3, MICROSOFT_AZURE, GCP)
             .defaultValue(LOCAL_FILESYSTEM.getValue())
@@ -126,7 +126,7 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
 
     public static final PropertyDescriptor PARQUET_SCHEMA_SELECTOR = new PropertyDescriptor.Builder()
             .name("parquet-schema-selector")
-            .displayName("Parquet schema location")
+            .displayName("Parquet Schema Location")
             .description("Choose parquet schema source. Text input or local file.")
             .allowableValues(PARQUET_SCHEMA_INPUT_TEXT, PARQUET_SCHEMA_FILE)
             .defaultValue(PARQUET_SCHEMA_INPUT_TEXT.getValue())
@@ -135,7 +135,7 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
 
     public static final PropertyDescriptor LOCAL_PATH = new PropertyDescriptor.Builder()
             .name("local-path")
-            .displayName("Data path on local filesystem")
+            .displayName("Data Path On Local Filesystem")
             .description("Path on the local file system, can be absolute(has to start with '/') or relative path")
             .dependsOn(STORAGE_SELECTOR, LOCAL_FILESYSTEM)
             .addValidator(StandardValidators.createDirectoryExistsValidator(false, false))
@@ -164,7 +164,7 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
 
     public static final PropertyDescriptor S3_BUCKET = new PropertyDescriptor.Builder()
             .name("s3-bucket-url")
-            .displayName("S3 bucket URL")
+            .displayName("S3 Bucket URL")
             .description("The bucket URL in S3, has to start with s3a://")
             .dependsOn(STORAGE_SELECTOR, AMAZON_S3)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -173,7 +173,7 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
 
     public static final PropertyDescriptor S3_PATH = new PropertyDescriptor.Builder()
             .name("s3-data-path")
-            .displayName("Data path in S3 bucket")
+            .displayName("Data Path In S3 Bucket")
             .description("The path to the directory containing the parquet files within the S3 bucket")
             .dependsOn(STORAGE_SELECTOR, AMAZON_S3)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -192,7 +192,7 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
 
     public static final PropertyDescriptor AZURE_STORAGE_NAME = new PropertyDescriptor.Builder()
             .name("azure-storage-name")
-            .displayName("Azure blob storage name")
+            .displayName("Azure Blob Storage Name")
             .description("The storage name of the Azure blob")
             .dependsOn(STORAGE_SELECTOR, MICROSOFT_AZURE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -201,7 +201,7 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
 
     public static final PropertyDescriptor AZURE_STORAGE_ACCOUNT = new PropertyDescriptor.Builder()
             .name("azure-storage-account")
-            .displayName("Azure blob storage account")
+            .displayName("Azure Blob Storage Account")
             .description("The storage account for the Azure blob")
             .dependsOn(STORAGE_SELECTOR, MICROSOFT_AZURE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -210,7 +210,7 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
 
     public static final PropertyDescriptor AZURE_PATH = new PropertyDescriptor.Builder()
             .name("azure-data-path")
-            .displayName("Data path in Azure blob")
+            .displayName("Data Path In Azure Blob")
             .description("The path to the directory containing the parquet files within the Azure blob")
             .dependsOn(STORAGE_SELECTOR, MICROSOFT_AZURE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -219,7 +219,7 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
 
     public static final PropertyDescriptor GCP_ACCOUNT_JSON_KEYFILE_PATH = new PropertyDescriptor.Builder()
             .name("gcp-keyfile-path")
-            .displayName("GCP account JSON keyfile path")
+            .displayName("GCP Account JSON Keyfile Path")
             .description("Local filesystem path to GCP account JSON keyfile, path has to contain the filename")
             .dependsOn(STORAGE_SELECTOR, GCP)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -229,7 +229,7 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
 
     public static final PropertyDescriptor GCP_BUCKET = new PropertyDescriptor.Builder()
             .name("gcp-bucket-url")
-            .displayName("GCP bucket URL")
+            .displayName("GCP Bucket URL")
             .description("The GCP bucket URL, has to starts with gs://")
             .dependsOn(STORAGE_SELECTOR, GCP)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -238,7 +238,7 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
 
     public static final PropertyDescriptor GCP_PATH = new PropertyDescriptor.Builder()
             .name("gcp-data-path")
-            .displayName("Data path in GCP bucket")
+            .displayName("Data Path In GCP Bucket")
             .description("The path to the directory containing the parquet files within the GCP bucket")
             .dependsOn(STORAGE_SELECTOR, GCP)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -247,10 +247,29 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
 
     public static final PropertyDescriptor PARTITION_COLUMNS = new PropertyDescriptor.Builder()
             .name("partition-columns")
-            .displayName("Parquet partition columns")
+            .displayName("Parquet Partition Columns")
             .description("Parquet file partition columns, nested columns separated by ',' ")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
+            .build();
+
+    public static final PropertyDescriptor SCHEMA_TEXT_JSON = new PropertyDescriptor.Builder()
+            .name("parquet-schema-text")
+            .displayName("Parquet Schema In JSON Format")
+            .description("Describes the data structure of the parquet file in JSON format as text")
+            .addValidator(JsonValidator.INSTANCE)
+            .dependsOn(PARQUET_SCHEMA_SELECTOR, PARQUET_SCHEMA_INPUT_TEXT)
+            .required(true)
+            .build();
+
+    public static final PropertyDescriptor SCHEMA_FILE_JSON = new PropertyDescriptor.Builder()
+            .name("parquet-schema-file")
+            .displayName("Parquet Schema File Location")
+            .description("Location of a JSON file that describes the data structure of the parquet file")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
+            .dependsOn(PARQUET_SCHEMA_SELECTOR, PARQUET_SCHEMA_FILE)
+            .required(true)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -261,25 +280,6 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("DeltaLake table update failed")
-            .build();
-
-    public static final PropertyDescriptor SCHEMA_TEXT_JSON = new PropertyDescriptor.Builder()
-            .name("parquet-schema-text")
-            .displayName("Parquet schema in JSON format")
-            .description("Describes the data structure of the parquet file in JSON format as text")
-            .addValidator(JsonValidator.INSTANCE)
-            .dependsOn(PARQUET_SCHEMA_SELECTOR, PARQUET_SCHEMA_INPUT_TEXT)
-            .required(true)
-            .build();
-
-    public static final PropertyDescriptor SCHEMA_FILE_JSON = new PropertyDescriptor.Builder()
-            .name("parquet-schema-file")
-            .displayName("Parquet schema file location")
-            .description("Location of a JSON file that describes the data structure of the parquet file")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
-            .dependsOn(PARQUET_SCHEMA_SELECTOR, PARQUET_SCHEMA_FILE)
-            .required(true)
             .build();
 
     private DeltaLakeService deltalakeService;
