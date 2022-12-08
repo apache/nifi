@@ -94,15 +94,15 @@ class TestRecordExtender {
         int referenceId = 0;
         String objectType = "Account";
 
-        MapRecord testRecord = new MapRecord(ORIGINAL_SCHEMA, new HashMap<>() {{
+        MapRecord testRecord = new MapRecord(ORIGINAL_SCHEMA, new HashMap<String, Object>() {{
             put("testRecordField1", "testRecordValue1");
             put("testRecordField2", "testRecordValue2");
         }});
 
 
-        MapRecord expectedRecord = new MapRecord(EXPECTED_EXTENDED_SCHEMA, new HashMap<>() {{
+        MapRecord expectedRecord = new MapRecord(EXPECTED_EXTENDED_SCHEMA, new HashMap<String, Object>() {{
             put("attributes",
-                    new MapRecord(ATTRIBUTES_RECORD_SCHEMA, new HashMap<>() {{
+                    new MapRecord(ATTRIBUTES_RECORD_SCHEMA, new HashMap<String, Object>() {{
                         put("type", objectType);
                         put("referenceId", referenceId);
                     }})
