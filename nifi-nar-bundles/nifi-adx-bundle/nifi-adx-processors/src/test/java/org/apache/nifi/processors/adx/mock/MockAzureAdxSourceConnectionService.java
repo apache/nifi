@@ -16,14 +16,21 @@
  */
 package org.apache.nifi.processors.adx.mock;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
+import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.apache.nifi.adx.AzureAdxSourceConnectionService;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 
 public class MockAzureAdxSourceConnectionService extends AzureAdxSourceConnectionService {
@@ -43,7 +50,26 @@ public class MockAzureAdxSourceConnectionService extends AzureAdxSourceConnectio
 
             @Override
             public KustoOperationResult execute(String database, String command) throws DataServiceException, DataClientException {
-                return null;
+                ObjectMapper objectMapper = Utils.getObjectMapper();
+                List<List<String>> valuesList = new ArrayList<>();
+                valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue"))));
+                valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue"))));
+                valuesList.add(new ArrayList<>((Arrays.asList("FailedIngestionsQueue"))));
+                valuesList.add(new ArrayList<>((Arrays.asList("SuccessfulIngestionsQueue"))));
+                valuesList.add(new ArrayList<>((Arrays.asList("TempStorage"))));
+                valuesList.add(new ArrayList<>((Arrays.asList("TempStorage"))));
+                valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable"))));
+                String listAsJson = null;
+                try {
+                    listAsJson = objectMapper.writeValueAsString(valuesList);
+                String response = "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"ResourceTypeName\"," +
+                        "\"DataType\":\"String\",\"ColumnType\":\"string\"},{\"ColumnName\":\"StorageRoot\",\"DataType\":" +
+                        "\"String\",\"ColumnType\":\"string\"}],\"Rows\":"
+                        + listAsJson + "}]}";
+                    return new KustoOperationResult(response, "v1");
+                } catch (KustoServiceQueryError | JsonProcessingException e) {
+                    throw new DataClientException("exception","exception",e);
+                }
             }
 
             @Override

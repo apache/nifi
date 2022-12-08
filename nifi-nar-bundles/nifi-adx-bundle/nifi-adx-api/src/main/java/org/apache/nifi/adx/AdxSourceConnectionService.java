@@ -22,7 +22,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ControllerService;
 
 @Tags({"azure", "adx"})
-@CapabilityDescription("Connection-Service to Azure ADX (Kusto) ingestion cluster.")
+@CapabilityDescription("Connection-Service to Azure ADX (Kusto) cluster.")
 public interface AdxSourceConnectionService extends ControllerService {
 
     Client getKustoExecutionClient();

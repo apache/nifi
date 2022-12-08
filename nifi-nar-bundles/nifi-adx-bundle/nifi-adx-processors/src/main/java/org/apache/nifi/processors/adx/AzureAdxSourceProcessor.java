@@ -22,8 +22,8 @@ import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.nifi.adx.AdxSourceConnectionService;
-import org.apache.nifi.annotation.behavior.ReadsAttribute;
-import org.apache.nifi.annotation.behavior.ReadsAttributes;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -50,13 +50,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-@Tags({"azure", "adx", "microsoft", "data", "explorer"})
+@Tags({"azure", "adx", "microsoft", "data", "explorer", "source"})
 @CapabilityDescription("This Processor acts as a ADX source connector which queries data from Azure Data Explorer."+
         "This connector can act only as a start of the data pipeline getting data from ADX."+
-        "more regarding the kusto query limits can be found here https://learn.microsoft.com/en-us/azure/data-explorer/kusto/concepts/querylimits")
-@ReadsAttributes({
-        @ReadsAttribute(attribute = "DB_NAME", description = "This attribute specifies the database in ADX cluster where the query needs to be executed."),
-        @ReadsAttribute(attribute = "ADX_QUERY", description = "This attribute specifies the source query which needs to be queried in ADX for the relevant data.")
+        "The queries which can be used further details can be found here https://learn.microsoft.com/en-us/azure/data-explorer/kusto/concepts/querylimits")
+@WritesAttributes({
+        @WritesAttribute(attribute = "ADX_QUERY_ERROR_MESSAGE", description = "Azure Data Explorer error message."),
+        @WritesAttribute(attribute = "ADX_EXECUTED_QUERY", description = "Azure Data Explorer executed query.")
 })
 public class AzureAdxSourceProcessor extends AbstractProcessor {
 

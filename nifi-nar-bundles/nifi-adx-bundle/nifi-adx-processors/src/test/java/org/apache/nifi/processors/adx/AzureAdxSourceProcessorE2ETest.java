@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.HashMap;
 
 public class AzureAdxSourceProcessorE2ETest {
@@ -41,7 +40,7 @@ public class AzureAdxSourceProcessorE2ETest {
     }
 
     @Test
-    public void testAzureAdxSourceProcessorSuccessE2E() throws InitializationException, IOException {
+    public void testAzureAdxSourceProcessorSuccessE2E() throws InitializationException {
 
         Assumptions.assumeTrue("true".equalsIgnoreCase(System.getProperty("executeE2ETests")));
 
@@ -64,6 +63,7 @@ public class AzureAdxSourceProcessorE2ETest {
 
         testRunner.enableControllerService(azureAdxSourceConnectionService);
         testRunner.assertValid(azureAdxSourceConnectionService);
+        testRunner.setIncomingConnection(false);
         testRunner.run(1);
         testRunner.assertQueueEmpty();
         testRunner.assertAllFlowFilesTransferred(org.apache.nifi.processors.adx.AzureAdxSourceProcessor.RL_SUCCEEDED);
@@ -71,7 +71,7 @@ public class AzureAdxSourceProcessorE2ETest {
     }
 
     @Test
-    public void testAzureAdxIngestProcessorFailureE2E() throws InitializationException, IOException {
+    public void testAzureAdxSourceProcessorFailureE2E() throws InitializationException {
 
         Assumptions.assumeTrue("true".equalsIgnoreCase(System.getProperty("executeE2ETests")));
 
@@ -94,36 +94,7 @@ public class AzureAdxSourceProcessorE2ETest {
 
         testRunner.enableControllerService(azureAdxSourceConnectionService);
         testRunner.assertValid(azureAdxSourceConnectionService);
-        testRunner.run(1);
-        testRunner.assertQueueEmpty();
-        testRunner.assertAllFlowFilesTransferred(AzureAdxSourceProcessor.RL_FAILED);
-
-    }
-
-    @Test
-    public void testAzureAdxIngestProcessorQueuedIngestionSingleNodeTransactionalFailureE2E() throws InitializationException, IOException {
-
-        Assumptions.assumeTrue("true".equalsIgnoreCase(System.getProperty("executeE2ETests")));
-
-        testRunner = TestRunners.newTestRunner(azureAdxSourceProcessor);
-
-        testRunner.setProperty(AzureAdxSourceProcessor.ADX_QUERY,System.getProperty("adxQuery"));
-        testRunner.setProperty(AzureAdxSourceProcessor.DB_NAME,System.getProperty("databaseName"));
-        testRunner.setProperty(AzureAdxSourceProcessor.ADX_SOURCE_SERVICE,"adx-connection-service");
-
-        testRunner.setValidateExpressionUsage(false);
-
-        azureAdxSourceConnectionService = new AzureAdxSourceConnectionService();
-
-        testRunner.addControllerService("adx-connection-service", azureAdxSourceConnectionService, new HashMap<>());
-
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_ID,System.getProperty("appId"));
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_KEY,System.getProperty("appKey"));
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_TENANT,System.getProperty("appTenant"));
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.CLUSTER_URL, System.getProperty("clusterUrl"));
-
-        testRunner.enableControllerService(azureAdxSourceConnectionService);
-        testRunner.assertValid(azureAdxSourceConnectionService);
+        testRunner.setIncomingConnection(false);
         testRunner.run(1);
         testRunner.assertQueueEmpty();
         testRunner.assertAllFlowFilesTransferred(AzureAdxSourceProcessor.RL_FAILED);
