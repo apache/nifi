@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.runtime.manifest.impl;
 
-import org.apache.nifi.extension.manifest.parser.ExtensionManifestParser;
 import org.apache.nifi.extension.manifest.ExtensionManifest;
+import org.apache.nifi.extension.manifest.parser.ExtensionManifestParser;
 import org.apache.nifi.runtime.manifest.ExtensionManifestContainer;
 import org.apache.nifi.runtime.manifest.ExtensionManifestProvider;
 import org.slf4j.Logger;
@@ -27,12 +27,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * ExtensionManifestProvider that loads extension manifests from a directory where the nifi-assembly-manifests
@@ -116,9 +116,9 @@ public class DirectoryExtensionManifestProvider implements ExtensionManifestProv
 
             try {
                 final String typeName = additionalDetailsTypeDir.getName();
-                final String additionalDetailsContent = Files.lines(additionalDetailsFile.toPath()).collect(Collectors.joining());
+                final byte[] additionalDetailsBytes = Files.readAllBytes(additionalDetailsFile.toPath());
                 LOGGER.debug("Added additionalDetails for {} from {}", typeName, additionalDetailsFile.getAbsolutePath());
-                additionalDetailsMap.put(typeName, additionalDetailsContent);
+                additionalDetailsMap.put(typeName, new String(additionalDetailsBytes, StandardCharsets.UTF_8));
             } catch (final IOException e) {
                 throw new RuntimeException("Unable to load additional details content for "
                         + additionalDetailsFile.getAbsolutePath() + " due to: " + e.getMessage(), e);
