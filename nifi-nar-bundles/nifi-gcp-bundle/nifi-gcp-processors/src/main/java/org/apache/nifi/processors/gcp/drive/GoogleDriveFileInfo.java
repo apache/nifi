@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.processors.gcp.drive;
 
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP;
+
 import org.apache.nifi.processor.util.list.ListableEntity;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -30,12 +36,6 @@ import java.util.List;
 import java.util.Map;
 
 public class GoogleDriveFileInfo implements ListableEntity {
-    public static final String ID = "drive.id";
-    public static final String FILENAME = "filename";
-    public static final String SIZE = "drive.size";
-    public static final String TIMESTAMP = "drive.timestamp";
-    public static final String MIME_TYPE = "mime.type";
-
     private  static final RecordSchema SCHEMA;
 
     static {

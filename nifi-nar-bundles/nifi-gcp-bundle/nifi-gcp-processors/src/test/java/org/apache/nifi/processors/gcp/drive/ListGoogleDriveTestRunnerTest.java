@@ -44,7 +44,7 @@ import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ListGoogleDriverTestRunnerTest implements OutputChecker {
+public class ListGoogleDriveTestRunnerTest implements OutputChecker {
     private ListGoogleDrive testSubject;
     private TestRunner testRunner;
 

@@ -16,6 +16,17 @@
  */
 package org.apache.nifi.processors.gcp.drive;
 
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP_DESC;
+
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.util.DateTime;
 import com.google.api.services.drive.Drive;
@@ -75,15 +86,14 @@ import java.util.concurrent.TimeUnit;
         "This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the " +
         "previous node left off without duplicating all of the data. " +
         "For how to setup access to Google Drive please see additional details.")
-@SeeAlso({FetchGoogleDrive.class})
+@SeeAlso({FetchGoogleDrive.class, PutGoogleDrive.class})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@WritesAttributes({@WritesAttribute(attribute = GoogleDriveFileInfo.ID, description = "The id of the file"),
-        @WritesAttribute(attribute = GoogleDriveFileInfo.FILENAME, description = "The name of the file"),
-        @WritesAttribute(attribute = GoogleDriveFileInfo.SIZE, description = "The size of the file"),
-        @WritesAttribute(attribute = GoogleDriveFileInfo.TIMESTAMP, description = "The last modified time or created time (whichever is greater) of the file." +
-                " The reason for this is that the original modified date of a file is preserved when uploaded to Google Drive." +
-                " 'Created time' takes the time when the upload occurs. However uploaded files can still be modified later."),
-        @WritesAttribute(attribute = GoogleDriveFileInfo.MIME_TYPE, description = "MimeType of the file")})
+@WritesAttributes({
+        @WritesAttribute(attribute = ID, description = ID_DESC),
+        @WritesAttribute(attribute = FILENAME, description = FILENAME_DESC),
+        @WritesAttribute(attribute = SIZE, description = SIZE_DESC),
+        @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC),
+        @WritesAttribute(attribute = MIME_TYPE, description = MIME_TYPE_DESC)})
 @Stateful(scopes = {Scope.CLUSTER}, description = "The processor stores necessary data to be able to keep track what files have been listed already." +
         " What exactly needs to be stored depends on the 'Listing Strategy'." +
         " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up" +

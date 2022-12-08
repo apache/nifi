@@ -16,17 +16,18 @@
  */
 package org.apache.nifi.processors.gcp.drive;
 
-import com.google.api.services.drive.model.File;
-import org.apache.nifi.util.MockFlowFile;
-import org.junit.jupiter.api.Test;
+import static java.lang.String.valueOf;
+import static java.util.Collections.singletonList;
 
-import java.util.Arrays;
+import com.google.api.services.drive.model.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.nifi.util.MockFlowFile;
+import org.junit.jupiter.api.Test;
 
 /**
  * See Javadoc {@link AbstractGoogleDriveIT} for instructions how to run this test.
@@ -47,9 +48,11 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
         inputFlowFileAttributes.put("drive.id", file.getId());
         inputFlowFileAttributes.put("filename", file.getName());
+        inputFlowFileAttributes.put("drive.size", valueOf(DEFAULT_FILE_CONTENT.length()));
+        inputFlowFileAttributes.put("mime.type", "text/plain");
 
-        HashSet<Map<String, String>> expectedAttributes = new HashSet<>(Arrays.asList(inputFlowFileAttributes));
-        List<String> expectedContent = Arrays.asList(DEFAULT_FILE_CONTENT);
+        HashSet<Map<String, String>> expectedAttributes = new HashSet<>(singletonList(inputFlowFileAttributes));
+        List<String> expectedContent = singletonList(DEFAULT_FILE_CONTENT);
 
         // WHEN
         testRunner.enqueue("unimportant_data", inputFlowFileAttributes);
@@ -63,13 +66,13 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
     }
 
     @Test
-    void testInputFlowFileReferencesMissingFile() throws Exception {
+    void testInputFlowFileReferencesMissingFile() {
         // GIVEN
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
         inputFlowFileAttributes.put("drive.id", "missing");
         inputFlowFileAttributes.put("filename", "missing_filename");
 
-        Set<Map<String, String>> expectedFailureAttributes = new HashSet<>(Arrays.asList(
+        Set<Map<String, String>> expectedFailureAttributes = new HashSet<>(singletonList(
                 new HashMap<String, String>() {{
                     put("drive.id", "missing");
                     put("filename", "missing_filename");
@@ -83,7 +86,6 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
 
         // THEN
         testRunner.assertTransferCount(FetchGoogleDrive.REL_SUCCESS, 0);
-
         checkAttributes(FetchGoogleDrive.REL_FAILURE, expectedFailureAttributes);
     }
 
@@ -97,7 +99,7 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
         inputFlowFileAttributes.put("filename", file.getName());
 
         MockFlowFile input = new MockFlowFile(1) {
-            AtomicBoolean throwException = new AtomicBoolean(true);
+            final AtomicBoolean throwException = new AtomicBoolean(true);
 
             @Override
             public boolean isPenalized() {
@@ -116,7 +118,7 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
             }
         };
 
-        Set<Map<String, String>> expectedFailureAttributes = new HashSet<>(Arrays.asList(
+        Set<Map<String, String>> expectedFailureAttributes = new HashSet<>(singletonList(
                 inputFlowFileAttributes
         ));
 
@@ -130,10 +132,12 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
         checkAttributes(FetchGoogleDrive.REL_FAILURE, expectedFailureAttributes);
     }
 
+    @Override
     public Set<String> getCheckedAttributeNames() {
         Set<String> checkedAttributeNames = OutputChecker.super.getCheckedAttributeNames();
 
-        checkedAttributeNames.add(FetchGoogleDrive.ERROR_CODE_ATTRIBUTE);
+        checkedAttributeNames.add(GoogleDriveAttributes.ERROR_CODE);
+        checkedAttributeNames.remove(GoogleDriveAttributes.TIMESTAMP);
 
         return checkedAttributeNames;
     }
