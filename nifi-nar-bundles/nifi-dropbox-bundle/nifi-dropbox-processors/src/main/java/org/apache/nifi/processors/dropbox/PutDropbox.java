@@ -17,8 +17,11 @@
 
 package org.apache.nifi.processors.dropbox;
 
+import static java.lang.String.format;
+
 import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxUploader;
+import com.dropbox.core.RateLimitException;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.CommitInfo;
 import com.dropbox.core.v2.files.UploadErrorException;
@@ -202,7 +205,10 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
                     uploadLargeFileInChunks(uploadPath, rawIn, size, uploadChunkSize, conflictResolution);
                 }
             } catch (UploadErrorException e) {
-                uploadErrorOccurred = !isUploadErrorIgnored(conflictResolution, uploadPath, e);
+                handleUploadError(conflictResolution, uploadPath, e);
+            } catch (RateLimitException e) {
+                context.yield();
+                throw new ProcessException("Dropbox API rate limit exceeded while uploading file", e);
             }
         } catch (Exception e) {
             getLogger().error("Exception occurred while uploading file '{}' to Dropbox folder '{}'", filename, folder, e);
@@ -230,19 +236,18 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
         return PROPERTIES;
     }
 
-    private boolean isUploadErrorIgnored(final String conflictResolution, final String uploadPath, final UploadErrorException e) throws UploadErrorException {
+    private void handleUploadError(final String conflictResolution, final String uploadPath, final UploadErrorException e) throws UploadErrorException {
         if (e.errorValue.isPath() && e.errorValue.getPathValue().getReason().isConflict()) {
 
             if (IGNORE_RESOLUTION.equals(conflictResolution)) {
                 getLogger().info("File with the same name [{}] already exists. Remote file is not modified due to {} being set to '{}'.",
                         uploadPath, CONFLICT_RESOLUTION.getDisplayName(), conflictResolution);
-                return true;
+                return;
             } else if (conflictResolution.equals(FAIL_RESOLUTION)) {
-                getLogger().error("File with the same name [{}] already exists.", uploadPath, e);
-                return false;
+                throw new ProcessException(format("File with the same name [%s] already exists.", uploadPath), e);
             }
         }
-        throw e;
+        throw new ProcessException(e);
     }
 
     private void uploadLargeFileInChunks(String path, InputStream rawIn, long size, long uploadChunkSize,  String conflictResolution) throws Exception {
