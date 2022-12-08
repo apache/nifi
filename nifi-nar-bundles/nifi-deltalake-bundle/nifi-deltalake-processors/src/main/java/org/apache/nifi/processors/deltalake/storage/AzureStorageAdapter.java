@@ -23,12 +23,13 @@ import org.apache.hadoop.fs.azure.NativeAzureFileSystem;
 import org.apache.nifi.processor.ProcessContext;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 
-import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.AZURE_ACCOUNT_KEY;
-import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.AZURE_PATH;
-import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.AZURE_STORAGE_ACCOUNT;
-import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.AZURE_STORAGE_NAME;
+import static org.apache.nifi.processors.deltalake.UpdateDeltaLakeTable.AZURE_ACCOUNT_KEY;
+import static org.apache.nifi.processors.deltalake.UpdateDeltaLakeTable.AZURE_PATH;
+import static org.apache.nifi.processors.deltalake.UpdateDeltaLakeTable.AZURE_STORAGE_ACCOUNT;
+import static org.apache.nifi.processors.deltalake.UpdateDeltaLakeTable.AZURE_STORAGE_NAME;
 
 public class AzureStorageAdapter implements StorageAdapter {
 
@@ -59,7 +60,7 @@ public class AzureStorageAdapter implements StorageAdapter {
         try {
             fileSystem.initialize(azureUri, configuration);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(String.format("Azure Filesystem URI [%s] initialization failed", azureUri), e);
         }
 
         deltaLog = DeltaLog.forTable(configuration, dataPath);

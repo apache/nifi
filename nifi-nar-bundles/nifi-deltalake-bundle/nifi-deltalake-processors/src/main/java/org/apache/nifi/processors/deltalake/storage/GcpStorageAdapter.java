@@ -23,11 +23,12 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.nifi.processor.ProcessContext;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 
-import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.GCP_ACCOUNT_JSON_KEYFILE_PATH;
-import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.GCP_BUCKET;
-import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.GCP_PATH;
+import static org.apache.nifi.processors.deltalake.UpdateDeltaLakeTable.GCP_ACCOUNT_JSON_KEYFILE_PATH;
+import static org.apache.nifi.processors.deltalake.UpdateDeltaLakeTable.GCP_BUCKET;
+import static org.apache.nifi.processors.deltalake.UpdateDeltaLakeTable.GCP_PATH;
 
 public class GcpStorageAdapter implements StorageAdapter {
 
@@ -48,7 +49,7 @@ public class GcpStorageAdapter implements StorageAdapter {
         try {
             fileSystem.initialize(gcpBucketUri, configuration);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(String.format("GCP Filesystem Bucket URI [%s] initialization failed", gcpBucketUri), e);
         }
 
         dataPath = gcpBucketUri + "/" + gcpPath;

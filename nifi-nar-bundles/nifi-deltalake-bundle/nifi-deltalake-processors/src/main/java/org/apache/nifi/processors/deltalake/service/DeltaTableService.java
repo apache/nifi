@@ -35,7 +35,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 public class DeltaTableService {
@@ -116,14 +115,13 @@ public class DeltaTableService {
     }
 
     public RemoveFile createRemoveFile(AddFile file) {
-        return new RemoveFile(
-                file.getPath(),
-                Optional.of(System.currentTimeMillis()),
+        return new AddFile(file.getPath(),
+                calculatePartitionColumns(file.getPath()),
+                file.getSize(),
+                file.getModificationTime(),
                 true,
-                false,
-                file.getPartitionValues(),
-                Optional.of(file.getSize()),
-                null);
+                null,
+                null).remove();
     }
 
     public boolean fileAlreadyAdded(String newFile) {

@@ -20,7 +20,7 @@ import org.apache.nifi.processor.ProcessContext;
 
 import java.lang.reflect.InvocationTargetException;
 
-import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.STORAGE_SELECTOR;
+import static org.apache.nifi.processors.deltalake.UpdateDeltaLakeTable.STORAGE_SELECTOR;
 
 public class StorageAdapterFactory {
 
@@ -35,7 +35,7 @@ public class StorageAdapterFactory {
                     .newInstance(processorContext, storageLocation.engineInfo);
             return storageAdapter;
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Error during StorageAdapter creation: " + storageLocation, e);
         }
 
     }

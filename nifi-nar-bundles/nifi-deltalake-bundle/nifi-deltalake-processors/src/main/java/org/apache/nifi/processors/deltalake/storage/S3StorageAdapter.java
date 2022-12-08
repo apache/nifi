@@ -22,12 +22,13 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.nifi.processor.ProcessContext;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 
-import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.S3_ACCESS_KEY;
-import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.S3_BUCKET;
-import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.S3_PATH;
-import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.S3_SECRET_KEY;
+import static org.apache.nifi.processors.deltalake.UpdateDeltaLakeTable.S3_ACCESS_KEY;
+import static org.apache.nifi.processors.deltalake.UpdateDeltaLakeTable.S3_BUCKET;
+import static org.apache.nifi.processors.deltalake.UpdateDeltaLakeTable.S3_PATH;
+import static org.apache.nifi.processors.deltalake.UpdateDeltaLakeTable.S3_SECRET_KEY;
 
 public class S3StorageAdapter implements StorageAdapter {
 
@@ -55,7 +56,7 @@ public class S3StorageAdapter implements StorageAdapter {
         try {
             fileSystem = FileSystem.get(s3uri, configuration);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(String.format("S3 Filesystem Bucket URI [%s] initialization failed", s3uri), e);
         }
 
         dataPath = bucket + "/" + path;

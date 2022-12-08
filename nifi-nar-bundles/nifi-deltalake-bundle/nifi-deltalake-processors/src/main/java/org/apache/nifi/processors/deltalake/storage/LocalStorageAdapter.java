@@ -23,8 +23,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.nifi.processor.ProcessContext;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
-import static org.apache.nifi.processors.deltalake.DeltaLakeMetadataWriter.LOCAL_PATH;
+import static org.apache.nifi.processors.deltalake.UpdateDeltaLakeTable.LOCAL_PATH;
 
 public class LocalStorageAdapter implements StorageAdapter {
 
@@ -43,7 +44,7 @@ public class LocalStorageAdapter implements StorageAdapter {
         try {
             fileSystem = source.getFileSystem(configuration);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(String.format("Local Storage Filesystem [%s] configuration failed", dataPath), e);
         }
 
         deltaLog = DeltaLog.forTable(configuration, dataPath);

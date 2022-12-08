@@ -16,7 +16,7 @@
 -->
 <head>
     <meta charset="utf-8" />
-    <title>DeltaLakeMetadataWriter</title>
+    <title>UpdateDeltaLakeTable</title>
 
     <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
 </head>
@@ -58,8 +58,8 @@
         </tr>
     </table>
     <h3>Parquet structure</h3>
-    <p>The structure of the parquet files needs to be configured in a json format. It can be declared as text or by giving a path to a json file in the local filesystem.</p>
-    <p>Example of a valid json structure:</p>
+    <p>The structure of the parquet files needs to be configured in a JSON format. It can be declared as text or by giving a path to a JSON file in the local filesystem.</p>
+    <p>Example of a valid JSON structure:</p>
     <pre>
 {
     "type": "struct",
@@ -141,7 +141,7 @@
             <td>Choose which format you want to define the parquet files structure</td>
         </tr>
         <tr>
-            <td>Parquet schema in json</td>
+            <td>Parquet schema in JSON</td>
             <td></td>
             <td></td>
             <td>Enter the parquet files structure as text</td>
@@ -183,10 +183,10 @@
             <td>If you choose Amazon S3 cloud storage you have to provide your S3 secret key</td>
         </tr>
         <tr>
-            <td>S3 bucket url</td>
+            <td>S3 bucket URL</td>
             <td></td>
             <td></td>
-            <td>Your root buckets url in Amazon S3</td>
+            <td>Your root buckets URL in Amazon S3</td>
         </tr>
         <tr>
             <td>Data path in S3 bucket</td>
@@ -218,15 +218,15 @@
             <td></td>
             <td>Your data directory path within your Azure blob</td>
         </tr>
-            <td>GCP account json keyfile path</td>
+            <td>GCP account JSON keyfile path</td>
             <td></td>
             <td></td>
-            <td>You have to provide your GCP account json keyfile path in case of Google Cloud Storage, which has to be on the local filesystem</td>
+            <td>You have to provide your GCP account JSON keyfile path in case of Google Cloud Storage, which has to be on the local filesystem</td>
         </tr>
-            <td>GCP bucket url</td>
+            <td>GCP bucket URL</td>
             <td></td>
             <td></td>
-            <td>Your root bucket url in Google Cloud Storage</td>
+            <td>Your root bucket URL in Google Cloud Storage</td>
         </tr>
             <td>Data path in GCP bucket</td>
             <td></td>
@@ -242,24 +242,19 @@
             <th>Explanation</th>
         </tr>
         <tr>
-            <td>number of new files in the Delta table</td>
+            <td>number.of.new.files</td>
             <td>success</td>
             <td>Returns how many new files has been successfully added to the Delta table</td>
         </tr>
         <tr>
-            <td>number of files removed from Delta table</td>
+            <td>number.of.files.removed</td>
             <td>success</td>
             <td>Returns how many files has been successfully removed from the Delta table</td>
         </tr>
         <tr>
-            <td>number of files in the new DeltaTable</td>
+            <td>number.of.files.in.the.new.deltatable</td>
             <td>success</td>
             <td>If there were no Delta table, a new table is created and this attribute will contain the number of files the new table has</td>
-        </tr>
-        <tr>
-            <td>delta table update failed with error</td>
-            <td>failure</td>
-            <td>The error message</td>
         </tr>
     </table>
 </body>
