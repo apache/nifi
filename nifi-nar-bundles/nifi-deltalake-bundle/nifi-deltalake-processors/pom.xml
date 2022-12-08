@@ -57,18 +57,6 @@
             <artifactId>delta-standalone_2.13</artifactId>
             <version>0.5.0</version>
         </dependency>
-
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-client</artifactId>
-            <version>3.3.4</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-reload4j</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-azure</artifactId>
@@ -101,17 +89,22 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-aws</artifactId>
             <version>3.3.4</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-core</artifactId>
-            <version>1.2.1</version>
             <exclusions>
                 <exclusion>
-                    <groupId>commons-logging</groupId>
-                    <artifactId>commons-logging</artifactId>
+                    <groupId>com.amazonaws</groupId>
+                    <artifactId>aws-java-sdk-bundle</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
+            <version>1.12.341</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-dynamodb</artifactId>
+            <version>1.12.341</version>
         </dependency>
         <dependency>
             <groupId>com.google.cloud.bigdataoss</groupId>
@@ -123,11 +116,6 @@
                     <artifactId>bcpkix-jdk15on</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.parquet</groupId>
-            <artifactId>parquet-hadoop</artifactId>
-            <version>1.10.1</version>
         </dependency>
         <dependency>
             <groupId>org.xerial.snappy</groupId>
