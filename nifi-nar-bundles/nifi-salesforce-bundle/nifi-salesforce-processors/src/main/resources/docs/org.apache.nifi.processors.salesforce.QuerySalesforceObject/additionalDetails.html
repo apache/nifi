@@ -34,8 +34,8 @@ td {text-align: left}
 
 <p>
     Objects in Salesforce are database tables, their rows are known as records, and their columns are called fields. The QuerySalesforceObject processor queries Salesforce objects and retrieves their records.
-    The processor constructs the query using SOQL (Salesforce Object Query Language) and retrieves the result record dataset using the Salesforce REST API.
-    The processor utilizes streams and NiFi record-based processing to be able to handle a large number of records and to allow arbitrary output format.
+    The processor constructs the query from parameters or executes a custom SOQL (Salesforce Object Query Language) query and retrieves the result record dataset using the Salesforce REST API.
+    The processor utilizes streams and NiFi record-based processing in case of "Query Parameters" mode to be able to handle a large number of records and to allow arbitrary output format.
 </p>
 
 <h3>OAuth2 Access Token Provider Service</h3>

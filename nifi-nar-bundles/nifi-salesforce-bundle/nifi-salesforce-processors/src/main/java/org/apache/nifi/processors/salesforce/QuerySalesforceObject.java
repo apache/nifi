@@ -18,6 +18,12 @@ package org.apache.nifi.processors.salesforce;
 
 import org.apache.camel.component.salesforce.api.dto.SObjectDescription;
 import org.apache.camel.component.salesforce.api.dto.SObjectField;
+import com.fasterxml.jackson.core.JsonEncoding;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -30,6 +36,7 @@ import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -47,6 +54,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.salesforce.util.SalesforceRestService;
 import org.apache.nifi.processors.salesforce.util.SalesforceToRecordSchemaConverter;
@@ -84,8 +92,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 
-import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.API_URL;
-import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.API_VERSION;
 import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.READ_TIMEOUT;
 import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.TOKEN_PROVIDER;
 
@@ -95,6 +101,7 @@ import static org.apache.nifi.processors.salesforce.util.CommonSalesforcePropert
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"salesforce", "sobject", "soql", "query"})
 @CapabilityDescription("Retrieves records from a Salesforce sObject. Users can add arbitrary filter conditions by setting the 'Custom WHERE Condition' property."
+        + " The processor can also run a custom query, although record processing is not supported in that case."
         + " Supports incremental retrieval: users can define a field in the 'Age Field' property that will be used to determine when the record was created."
         + " When this property is set the processor will retrieve new records. It's also possible to define an initial cutoff value for the age, filtering out all older records"
         + " even for the first run. This processor is intended to be run on the Primary Node only."
@@ -110,6 +117,46 @@ import static org.apache.nifi.processors.salesforce.util.CommonSalesforcePropert
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class QuerySalesforceObject extends AbstractProcessor {
 
+    static final AllowableValue QUERY_PARAMETERS = new AllowableValue("query-parameters", "Query Parameters", "Provide query by parameters.");
+    static final AllowableValue CUSTOM_QUERY = new AllowableValue("custom-query", "Custom Query", "Provide custom SOQL query.");
+
+    static final PropertyDescriptor API_URL = new PropertyDescriptor.Builder()
+            .name("salesforce-url")
+            .displayName("URL")
+            .description("The URL for the Salesforce REST API including the domain without additional path information, such as https://MyDomainName.my.salesforce.com")
+            .required(true)
+            .addValidator(StandardValidators.URL_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    static final PropertyDescriptor API_VERSION = new PropertyDescriptor.Builder()
+            .name("salesforce-api-version")
+            .displayName("API Version")
+            .description("The version number of the Salesforce REST API appended to the URL after the services/data path. See Salesforce documentation for supported versions")
+            .required(true)
+            .addValidator(StandardValidators.NUMBER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .defaultValue("54.0")
+            .build();
+
+    static final PropertyDescriptor QUERY_TYPE = new PropertyDescriptor.Builder()
+            .name("query-type")
+            .displayName("Query Type")
+            .description("Choose to provide the query by parameters or a full custom query.")
+            .required(true)
+            .defaultValue(QUERY_PARAMETERS.getValue())
+            .allowableValues(QUERY_PARAMETERS, CUSTOM_QUERY)
+            .build();
+
+    static final PropertyDescriptor CUSTOM_SOQL_QUERY = new PropertyDescriptor.Builder()
+            .name("custom-soql-query")
+            .displayName("Custom SOQL Query")
+            .description("Specify the SOQL query to run.")
+            .required(true)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .dependsOn(QUERY_TYPE, CUSTOM_QUERY)
+            .build();
+
     static final PropertyDescriptor SOBJECT_NAME = new PropertyDescriptor.Builder()
             .name("sobject-name")
             .displayName("sObject Name")
@@ -117,6 +164,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .dependsOn(QUERY_TYPE, QUERY_PARAMETERS)
             .build();
 
     static final PropertyDescriptor FIELD_NAMES = new PropertyDescriptor.Builder()
@@ -126,6 +174,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .dependsOn(QUERY_TYPE, QUERY_PARAMETERS)
             .build();
 
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
@@ -133,7 +182,8 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .displayName("Record Writer")
             .description("Service used for writing records returned from the Salesforce REST API")
             .identifiesControllerService(RecordSetWriterFactory.class)
-            .required(true)
+            .required(false)
+            .dependsOn(QUERY_TYPE, QUERY_PARAMETERS)
             .build();
 
     static final PropertyDescriptor CREATE_ZERO_RECORD_FILES = new PropertyDescriptor.Builder()
@@ -155,6 +205,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .dependsOn(QUERY_TYPE, QUERY_PARAMETERS)
             .build();
 
     static final PropertyDescriptor AGE_DELAY = new PropertyDescriptor.Builder()
@@ -166,6 +217,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .dependsOn(AGE_FIELD)
+            .dependsOn(QUERY_TYPE, QUERY_PARAMETERS)
             .build();
 
     static final PropertyDescriptor INITIAL_AGE_FILTER = new PropertyDescriptor.Builder()
@@ -176,6 +228,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .dependsOn(AGE_FIELD)
+            .dependsOn(QUERY_TYPE, QUERY_PARAMETERS)
             .build();
 
     static final PropertyDescriptor CUSTOM_WHERE_CONDITION = new PropertyDescriptor.Builder()
@@ -185,6 +238,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .dependsOn(QUERY_TYPE, QUERY_PARAMETERS)
             .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -198,10 +252,16 @@ public class QuerySalesforceObject extends AbstractProcessor {
     private static final String TIME_FORMAT = "HH:mm:ss.SSSX";
     private static final String DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZ";
     private static final String NEXT_RECORDS_URL = "nextRecordsUrl";
+    private static final String TOTAL_SIZE = "totalSize";
+    private static final String RECORDS = "records";
     private static final BiPredicate<String, String> CAPTURE_PREDICATE = (fieldName, fieldValue) -> NEXT_RECORDS_URL.equals(fieldName);
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonFactory JSON_FACTORY = OBJECT_MAPPER.getFactory();
+    private static final String TOTAL_RECORD_COUNT = "total.record.count";
 
     private volatile SalesforceToRecordSchemaConverter salesForceToRecordSchemaConverter;
     private volatile SalesforceRestService salesforceRestService;
+    private volatile String totalSize;
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
@@ -228,6 +288,8 @@ public class QuerySalesforceObject extends AbstractProcessor {
         return Collections.unmodifiableList(Arrays.asList(
                 API_URL,
                 API_VERSION,
+                QUERY_TYPE,
+                CUSTOM_SOQL_QUERY,
                 SOBJECT_NAME,
                 FIELD_NAMES,
                 READ_TIMEOUT,
@@ -265,6 +327,30 @@ public class QuerySalesforceObject extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        boolean isCustomQuery = CUSTOM_QUERY.getValue().equals(context.getProperty(QUERY_TYPE).getValue());
+        AtomicReference<String> nextRecordsUrl = new AtomicReference<>();
+
+        if (isCustomQuery) {
+            String customQuery = context.getProperty(CUSTOM_SOQL_QUERY).getValue();
+            do {
+                FlowFile flowFile = session.create();
+                Map<String, String> attributes = new HashMap<>();
+                try (InputStream response = getResultInputStream(nextRecordsUrl.get(), customQuery)) {
+                    flowFile = session.write(flowFile, parseHttpResponse(response, nextRecordsUrl));
+                    int recordCount = nextRecordsUrl.get() != null ? 2000 : Integer.parseInt(totalSize) % 2000;
+                    attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
+                    attributes.put(TOTAL_RECORD_COUNT, String.valueOf(recordCount));
+                    session.adjustCounter("Salesforce records processed", recordCount, false);
+                    session.putAllAttributes(flowFile, attributes);
+                    session.transfer(flowFile, REL_SUCCESS);
+                } catch (IOException e) {
+                    session.remove(flowFile);
+                    throw new ProcessException("Couldn't get Salesforce records", e);
+                }
+            } while (nextRecordsUrl.get() != null);
+            return;
+        }
+
         String sObject = context.getProperty(SOBJECT_NAME).getValue();
         String fields = context.getProperty(FIELD_NAMES).getValue();
         String customWhereClause = context.getProperty(CUSTOM_WHERE_CONDITION).getValue();
@@ -316,8 +402,6 @@ public class QuerySalesforceObject extends AbstractProcessor {
                 ageFilterUpper
         );
 
-        AtomicReference<String> nextRecordsUrl = new AtomicReference<>();
-
         do {
 
             FlowFile flowFile = session.create();
@@ -328,7 +412,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
 
             flowFile = session.write(flowFile, out -> {
                 try (
-                        InputStream querySObjectResultInputStream = getResultInputStream(nextRecordsUrl, querySObject);
+                        InputStream querySObjectResultInputStream = getResultInputStream(nextRecordsUrl.get(), querySObject);
 
                         JsonTreeRowRecordReader jsonReader = new JsonTreeRowRecordReader(
                                 querySObjectResultInputStream,
@@ -398,11 +482,35 @@ public class QuerySalesforceObject extends AbstractProcessor {
         } while (nextRecordsUrl.get() != null);
     }
 
-    private InputStream getResultInputStream(AtomicReference<String> nextRecordsUrl, String querySObject) {
-        if (nextRecordsUrl.get() == null) {
+    private OutputStreamCallback parseHttpResponse(final InputStream in, AtomicReference<String> nextRecordsUrl) {
+        nextRecordsUrl.set(null);
+        return out -> {
+            try (JsonParser jsonParser = JSON_FACTORY.createParser(in);
+                 JsonGenerator jsonGenerator = JSON_FACTORY.createGenerator(out, JsonEncoding.UTF8)) {
+                while (jsonParser.nextToken() != null) {
+                    if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName()
+                            .equals(TOTAL_SIZE)) {
+                        jsonParser.nextToken();
+                        totalSize = jsonParser.getValueAsString();
+                    } else if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName()
+                            .equals(NEXT_RECORDS_URL)) {
+                        jsonParser.nextToken();
+                        nextRecordsUrl.set(jsonParser.getValueAsString());
+                    } else if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName()
+                            .equals(RECORDS)) {
+                        jsonParser.nextToken();
+                        jsonGenerator.copyCurrentStructure(jsonParser);
+                    }
+                }
+            }
+        };
+    }
+
+    private InputStream getResultInputStream(String nextRecordsUrl, String querySObject) {
+        if (nextRecordsUrl == null) {
             return salesforceRestService.query(querySObject);
         }
-        return salesforceRestService.getNextRecords(nextRecordsUrl.get());
+        return salesforceRestService.getNextRecords(nextRecordsUrl);
     }
 
     private SalesforceSchemaHolder getConvertedSalesforceSchema(String sObject, String fields) {
