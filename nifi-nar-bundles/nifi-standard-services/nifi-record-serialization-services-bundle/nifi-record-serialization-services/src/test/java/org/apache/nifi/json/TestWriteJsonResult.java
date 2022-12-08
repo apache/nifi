@@ -21,6 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.record.NullSuppression;
 import org.apache.nifi.schema.access.SchemaNameAsAttribute;
+import org.apache.nifi.schema.inference.TimeValueInference;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -505,6 +507,48 @@ class TestWriteJsonResult {
 
         final String expected = "[{\"path\":[\"10.2.1.3\"]}]";
 
+        final String output = new String(data, StandardCharsets.UTF_8);
+        assertEquals(expected, output);
+    }
+
+    @Test
+    void testChoiceArrayOfStringsOrArrayOfRecords() throws IOException {
+        final String FILE_LOCATION = "src/test/resources/json/choice-of-array-string-or-array-record.json";
+        final JsonSchemaInference jsonSchemaInference = new JsonSchemaInference(new TimeValueInference(null, null, null));
+        final RecordSchema schema = jsonSchemaInference.inferSchema(new JsonRecordSource(new FileInputStream(FILE_LOCATION)));
+
+        final Map<String, Object> itemData1 = new HashMap<>();
+        itemData1.put("itemData", new String[]{"test"});
+
+        final Map<String, Object> quantityMap = new HashMap<>();
+        quantityMap.put("quantity", 10);
+        final List<RecordField> itemDataRecordFields = new ArrayList<>(1);
+        itemDataRecordFields.add(new RecordField("quantity", RecordFieldType.INT.getDataType(), true));
+        final RecordSchema quantityRecordSchema = new SimpleRecordSchema(itemDataRecordFields);
+        final Record quantityRecord = new MapRecord(quantityRecordSchema, quantityMap);
+
+        final Record[] quantityRecordArray = {quantityRecord};
+        final Map<String, Object> itemData2 = new HashMap<>();
+
+        itemData2.put("itemData", quantityRecordArray);
+
+        final Object[] itemDataArray = {itemData1, itemData2};
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("items", itemDataArray);
+        Record topLevelRecord = new MapRecord(schema, values);
+
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, true,
+                NullSuppression.NEVER_SUPPRESS, OutputGrouping.OUTPUT_ARRAY, null, null, null)) {
+            writer.beginRecordSet();
+            writer.writeRecord(topLevelRecord);
+            writer.finishRecordSet();
+        }
+
+        final byte[] data = baos.toByteArray();
+
+        final String expected = new String(Files.readAllBytes(Paths.get(FILE_LOCATION)), StandardCharsets.UTF_8);
         final String output = new String(data, StandardCharsets.UTF_8);
         assertEquals(expected, output);
     }

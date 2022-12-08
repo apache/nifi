@@ -205,6 +205,8 @@
                         <exclude>src/test/resources/json/bank-account-multiline.json</exclude>
                         <exclude>src/test/resources/json/bank-account-oneline.json</exclude>
                         <exclude>src/test/resources/json/similar-records.json</exclude>
+                        <exclude>src/test/resources/json/choice-of-array-empty-or-array-record.json</exclude>
+                        <exclude>src/test/resources/json/empty-arrays.json</exclude>
                         <exclude>src/test/resources/json/choice-of-embedded-similar-records.json</exclude>
                         <exclude>src/test/resources/json/choice-of-embedded-arrays-and-single-records.json</exclude>
                         <exclude>src/test/resources/json/choice-of-merged-embedded-arrays-and-single-records.json</exclude>

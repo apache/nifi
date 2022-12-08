@@ -97,6 +97,11 @@ public class JsonSchemaInference extends HierarchicalSchemaInference<JsonNode> {
     }
 
     @Override
+    protected boolean isEmptyArray(final JsonNode value) {
+        return value.isArray() && value.size() == 0;
+    }
+
+    @Override
     protected void forEachFieldInRecord(final JsonNode rawRecord, final BiConsumer<String, JsonNode> fieldConsumer) {
         final Iterator<Map.Entry<String, JsonNode>> itr = rawRecord.fields();
         while (itr.hasNext()) {
