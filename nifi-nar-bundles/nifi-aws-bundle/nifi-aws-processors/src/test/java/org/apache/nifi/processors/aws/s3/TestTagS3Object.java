@@ -244,7 +244,7 @@ public class TestTagS3Object {
     public void testGetPropertyDescriptors() throws Exception {
         TagS3Object processor = new TagS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals(20, pd.size(), "size should be eq");
+        assertEquals(22, pd.size(), "size should be eq");
         assertTrue(pd.contains(TagS3Object.ACCESS_KEY));
         assertTrue(pd.contains(TagS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(TagS3Object.BUCKET));
@@ -254,6 +254,8 @@ public class TestTagS3Object {
         assertTrue(pd.contains(TagS3Object.REGION));
         assertTrue(pd.contains(TagS3Object.SECRET_KEY));
         assertTrue(pd.contains(TagS3Object.SIGNER_OVERRIDE));
+        assertTrue(pd.contains(TagS3Object.S3_CUSTOM_SIGNER_CLASS_NAME));
+        assertTrue(pd.contains(TagS3Object.S3_CUSTOM_SIGNER_MODULE_LOCATION));
         assertTrue(pd.contains(TagS3Object.SSL_CONTEXT_SERVICE));
         assertTrue(pd.contains(TagS3Object.TIMEOUT));
         assertTrue(pd.contains(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE));

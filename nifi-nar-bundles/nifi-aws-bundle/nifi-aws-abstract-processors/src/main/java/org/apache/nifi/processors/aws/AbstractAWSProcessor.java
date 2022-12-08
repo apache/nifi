@@ -343,14 +343,21 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
                     // e.g. in case of https://vpce-***-***.sqs.{region}.vpce.amazonaws.com
                     String regionValue = parseRegionForVPCE(urlstr, region.getName());
                     client.setEndpoint(urlstr, client.getServiceName(), regionValue);
+                } else if (isCustomSignerConfigured(context)) {
+                    // handling endpoints with a user defined custom signer
+                    client.setEndpoint(urlstr, client.getServiceName(), region.getName());
                 } else {
-                    // handling non-vpce custom endpoints where the AWS library can parse the region out
+                    // handling other (non-vpce, no custom signer) custom endpoints where the AWS library can parse the region out
                     // e.g. https://sqs.{region}.***.***.***.gov
                     client.setEndpoint(urlstr);
                 }
             }
         }
         return region;
+    }
+
+    protected boolean isCustomSignerConfigured(final ProcessContext context) {
+        return false;
     }
 
     /*

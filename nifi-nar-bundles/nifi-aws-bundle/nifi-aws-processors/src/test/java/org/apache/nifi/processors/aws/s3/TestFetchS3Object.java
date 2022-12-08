@@ -362,7 +362,7 @@ public class TestFetchS3Object {
     public void testGetPropertyDescriptors() {
         FetchS3Object processor = new FetchS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 21, pd.size());
+        assertEquals("size should be eq", 23, pd.size());
         assertTrue(pd.contains(FetchS3Object.ACCESS_KEY));
         assertTrue(pd.contains(FetchS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(FetchS3Object.BUCKET));
@@ -372,6 +372,8 @@ public class TestFetchS3Object {
         assertTrue(pd.contains(FetchS3Object.REGION));
         assertTrue(pd.contains(FetchS3Object.SECRET_KEY));
         assertTrue(pd.contains(FetchS3Object.SIGNER_OVERRIDE));
+        assertTrue(pd.contains(FetchS3Object.S3_CUSTOM_SIGNER_CLASS_NAME));
+        assertTrue(pd.contains(FetchS3Object.S3_CUSTOM_SIGNER_MODULE_LOCATION));
         assertTrue(pd.contains(FetchS3Object.SSL_CONTEXT_SERVICE));
         assertTrue(pd.contains(FetchS3Object.TIMEOUT));
         assertTrue(pd.contains(FetchS3Object.VERSION_ID));

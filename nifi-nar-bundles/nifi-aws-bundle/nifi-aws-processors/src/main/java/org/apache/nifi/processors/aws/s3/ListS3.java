@@ -304,6 +304,8 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         SSL_CONTEXT_SERVICE,
         ENDPOINT_OVERRIDE,
         SIGNER_OVERRIDE,
+        S3_CUSTOM_SIGNER_CLASS_NAME,
+        S3_CUSTOM_SIGNER_MODULE_LOCATION,
         PROXY_CONFIGURATION_SERVICE,
         PROXY_HOST,
         PROXY_HOST_PORT,
