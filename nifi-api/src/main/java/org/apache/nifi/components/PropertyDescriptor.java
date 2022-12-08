@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -397,13 +398,27 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
 
         /**
          * Stores allowable values from an enum class.
-         * @param enumClass an enum class that implements the Allowable interface and contains a set of values
-         * @param <E> generic parameter for an enum class that implements the Allowable interface
+         * @param enumClass an enum class that implements the DescribedValue interface and contains a set of values
+         * @param <E> generic parameter for an enum class that implements the DescribedValue interface
          * @return the builder
          */
         public <E extends Enum<E> & DescribedValue> Builder allowableValues(final Class<E> enumClass) {
             this.allowableValues = new ArrayList<>();
             for (E enumValue : enumClass.getEnumConstants()) {
+                this.allowableValues.add(new AllowableValue(enumValue.getValue(), enumValue.getDisplayName(), enumValue.getDescription()));
+            }
+            return this;
+        }
+
+        /**
+         * Stores allowable values from a set of enum values.
+         * @param enumValues a set of enum values that implements the DescribedValue interface
+         * @param <E> generic parameter for the enum values' class that implements the DescribedValue interface
+         * @return the builder
+         */
+        public <E extends Enum<E> & DescribedValue> Builder allowableValues(final EnumSet<E> enumValues) {
+            this.allowableValues = new ArrayList<>();
+            for (E enumValue : enumValues) {
                 this.allowableValues.add(new AllowableValue(enumValue.getValue(), enumValue.getDisplayName(), enumValue.getDescription()));
             }
             return this;

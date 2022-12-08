@@ -25,10 +25,12 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -67,7 +69,7 @@ public class TestPropertyDescriptor {
     }
 
     @Test
-    void testAllowableValuesWithEnumValue() {
+    void testAllowableValuesWithEnumClass() {
         final PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder()
                 .name("enumAllowableValueDescriptor")
                 .allowableValues(EnumAllowableValue.class)
@@ -76,6 +78,24 @@ public class TestPropertyDescriptor {
         assertNotNull(propertyDescriptor);
 
         final List<AllowableValue> expectedAllowableValues = Arrays.stream(EnumAllowableValue.values())
+                .map(enumValue -> new AllowableValue(enumValue.getValue(), enumValue.getDisplayName(), enumValue.getDescription()))
+                .collect(Collectors.toList());
+        assertEquals(expectedAllowableValues, propertyDescriptor.getAllowableValues());
+    }
+
+    @Test
+    void testAllowableValuesWithEnumSet() {
+        final PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder()
+                .name("enumAllowableValueDescriptor")
+                .allowableValues(EnumSet.of(
+                        EnumAllowableValue.GREEN,
+                        EnumAllowableValue.BLUE
+                ))
+                .build();
+
+        assertNotNull(propertyDescriptor);
+
+        final List<AllowableValue> expectedAllowableValues = Stream.of(EnumAllowableValue.GREEN, EnumAllowableValue.BLUE)
                 .map(enumValue -> new AllowableValue(enumValue.getValue(), enumValue.getDisplayName(), enumValue.getDescription()))
                 .collect(Collectors.toList());
         assertEquals(expectedAllowableValues, propertyDescriptor.getAllowableValues());

@@ -22,10 +22,16 @@ import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.AwsPropertyDescriptors;
 import software.amazon.awssdk.regions.Region;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+
+import static org.apache.nifi.processors.aws.signer.AwsSignerType.AWS_V4_SIGNER;
+import static org.apache.nifi.processors.aws.signer.AwsSignerType.CUSTOM_SIGNER;
+import static org.apache.nifi.processors.aws.signer.AwsSignerType.DEFAULT_SIGNER;
 
 /**
  * Shared definitions of properties that specify various AWS credentials.
@@ -122,7 +128,7 @@ public class CredentialPropertyDescriptors {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
-            .description("The AWS Role ARN for cross account access. This is used in conjunction with role name and session timeout")
+            .description("The AWS Role ARN for cross account access. This is used in conjunction with Assume Role Session Name and other Assume Role properties.")
             .build();
 
     /**
@@ -132,10 +138,11 @@ public class CredentialPropertyDescriptors {
             .name("Assume Role Session Name")
             .displayName("Assume Role Session Name")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .required(false)
+            .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
-            .description("The AWS Role Name for cross account access. This is used in conjunction with role ARN and session time out")
+            .description("The AWS Role Session Name for cross account access. This is used in conjunction with Assume Role ARN.")
+            .dependsOn(ASSUME_ROLE_ARN)
             .build();
 
     /**
@@ -143,11 +150,13 @@ public class CredentialPropertyDescriptors {
      */
     public static final PropertyDescriptor MAX_SESSION_TIME = new PropertyDescriptor.Builder()
             .name("Session Time")
-            .description("Session time for role based session (between 900 and 3600 seconds). This is used in conjunction with role ARN and name")
+            .displayName("Assume Role Session Time")
+            .description("Session time for role based session (between 900 and 3600 seconds). This is used in conjunction with Assume Role ARN.")
             .defaultValue("3600")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .sensitive(false)
+            .dependsOn(ASSUME_ROLE_ARN)
             .build();
 
     /**
@@ -160,8 +169,8 @@ public class CredentialPropertyDescriptors {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
-            .description("External ID for cross-account access. This is used in conjunction with role arn, " +
-                "role name, and optional session time out")
+            .description("External ID for cross-account access. This is used in conjunction with Assume Role ARN.")
+            .dependsOn(ASSUME_ROLE_ARN)
             .build();
 
     /**
@@ -174,7 +183,8 @@ public class CredentialPropertyDescriptors {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
-            .description("Proxy host for cross-account access, if needed within your environment. This will configure a proxy to request for temporary access keys into another AWS account")
+            .description("Proxy host for cross-account access, if needed within your environment. This will configure a proxy to request for temporary access keys into another AWS account.")
+            .dependsOn(ASSUME_ROLE_ARN)
             .build();
 
     public static final PropertyDescriptor ASSUME_ROLE_PROXY_PORT = new PropertyDescriptor.Builder()
@@ -184,12 +194,13 @@ public class CredentialPropertyDescriptors {
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .sensitive(false)
-            .description("Proxy port for cross-account access, if needed within your environment. This will configure a proxy to request for temporary access keys into another AWS account")
+            .description("Proxy port for cross-account access, if needed within your environment. This will configure a proxy to request for temporary access keys into another AWS account.")
+            .dependsOn(ASSUME_ROLE_ARN)
             .build();
 
     public static final PropertyDescriptor ASSUME_ROLE_STS_ENDPOINT = new PropertyDescriptor.Builder()
             .name("assume-role-sts-endpoint")
-            .displayName("Assume Role STS Endpoint")
+            .displayName("Assume Role STS Endpoint Override")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -198,15 +209,39 @@ public class CredentialPropertyDescriptors {
                     "all accounts that are not for China (Beijing) region or GovCloud. You only need to set " +
                     "this property to \"sts.cn-north-1.amazonaws.com.cn\" when you are requesting session credentials " +
                     "for services in China(Beijing) region or to \"sts.us-gov-west-1.amazonaws.com\" for GovCloud.")
+            .dependsOn(ASSUME_ROLE_ARN)
             .build();
 
-    public static final PropertyDescriptor ASSUME_ROLE_REGION = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor ASSUME_ROLE_STS_REGION = new PropertyDescriptor.Builder()
             .name("assume-role-sts-region")
-            .displayName("Region")
+            .displayName("Assume Role STS Region")
             .description("The AWS Security Token Service (STS) region")
             .dependsOn(ASSUME_ROLE_ARN)
             .allowableValues(getAvailableRegions())
             .defaultValue(createAllowableValue(Region.US_WEST_2).getValue())
+            .build();
+
+    public static final PropertyDescriptor ASSUME_ROLE_STS_SIGNER_OVERRIDE = new PropertyDescriptor.Builder()
+            .name("assume-role-sts-signer-override")
+            .displayName("Assume Role STS Signer Override")
+            .description("The AWS STS library uses Signature Version 4 by default. This property allows you to plug in your own custom signer implementation.")
+            .required(false)
+            .allowableValues(EnumSet.of(
+                    DEFAULT_SIGNER,
+                    AWS_V4_SIGNER,
+                    CUSTOM_SIGNER))
+            .defaultValue(DEFAULT_SIGNER.getValue())
+            .dependsOn(ASSUME_ROLE_ARN)
+            .build();
+
+    public static final PropertyDescriptor ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AwsPropertyDescriptors.CUSTOM_SIGNER_CLASS_NAME)
+            .dependsOn(ASSUME_ROLE_STS_SIGNER_OVERRIDE, CUSTOM_SIGNER)
+            .build();
+
+    public static final PropertyDescriptor ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AwsPropertyDescriptors.CUSTOM_SIGNER_MODULE_LOCATION)
+            .dependsOn(ASSUME_ROLE_STS_SIGNER_OVERRIDE, CUSTOM_SIGNER)
             .build();
 
     public static AllowableValue createAllowableValue(final Region region) {
