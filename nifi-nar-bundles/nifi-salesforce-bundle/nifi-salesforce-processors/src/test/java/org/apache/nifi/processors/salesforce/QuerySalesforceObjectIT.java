@@ -64,6 +64,7 @@ class QuerySalesforceObjectIT implements SalesforceConfigAware {
         runner.addControllerService("writer", writer);
         runner.enableControllerService(writer);
 
+        runner.setProperty(QuerySalesforceObject.QUERY_TYPE, QuerySalesforceObject.PROPERTY_BASED_QUERY);
         runner.setProperty(QuerySalesforceObject.SOBJECT_NAME, sObjectName);
         runner.setProperty(QuerySalesforceObject.FIELD_NAMES, fieldNames);
         runner.setProperty(CommonSalesforceProperties.API_VERSION, VERSION);
@@ -78,5 +79,21 @@ class QuerySalesforceObjectIT implements SalesforceConfigAware {
 
         assertNotNull(results.get(0).getContent());
         runner.assertProvenanceEvent(ProvenanceEventType.RECEIVE);
+    }
+
+    @Test
+    void runCustomQuery() {
+        String customQuery = "SELECT Id, Name, AccountId, Account.ShippingAddress FROM Contact";
+
+        runner.setProperty(QuerySalesforceObject.QUERY_TYPE, QuerySalesforceObject.CUSTOM_QUERY);
+        runner.setProperty(QuerySalesforceObject.CUSTOM_SOQL_QUERY, customQuery);
+        runner.setProperty(CommonSalesforceProperties.API_VERSION, VERSION);
+        runner.setProperty(CommonSalesforceProperties.API_URL, BASE_URL);
+
+        runner.run();
+
+        List<MockFlowFile> results = runner.getFlowFilesForRelationship(QuerySalesforceObject.REL_SUCCESS);
+
+        assertNotNull(results.get(0).getContent());
     }
 }
