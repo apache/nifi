@@ -30,7 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -83,7 +83,7 @@ public class StandardFlowFileCodec implements FlowFileCodec {
             throw new ProtocolException("FlowFile exceeds maximum number of attributes with a total of " + numAttributes);
         }
 
-        final Map<String, String> attributes = new HashMap<>(numAttributes);
+        final Map<String, String> attributes = new LinkedHashMap<>(numAttributes);
         for (int i = 0; i < numAttributes; i++) {
             final String attrName = readString(in);
             final String attrValue = readString(in);
