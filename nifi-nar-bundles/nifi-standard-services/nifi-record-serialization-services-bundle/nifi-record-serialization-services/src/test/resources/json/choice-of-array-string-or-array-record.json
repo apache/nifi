@@ -1,9 +1,0 @@
-[ {
-  "items" : [ {
-    "itemData" : [ "test" ]
-  }, {
-    "itemData" : [ {
-      "quantity" : 10
-    } ]
-  } ]
-} ]

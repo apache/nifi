@@ -34,8 +34,8 @@ import org.apache.nifi.serialization.record.SerializedForm;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -513,9 +513,12 @@ class TestWriteJsonResult {
 
     @Test
     void testChoiceArrayOfStringsOrArrayOfRecords() throws IOException {
-        final String FILE_LOCATION = "src/test/resources/json/choice-of-array-string-or-array-record.json";
+        final String jsonFirstItem = "{\"itemData\":[\"test\"]}";
+        final String jsonSecondItem = "{\"itemData\":[{\"quantity\":10}]}";
+        final String json = String.format("[{\"items\":[%s,%s]}]", jsonFirstItem, jsonSecondItem);
+
         final JsonSchemaInference jsonSchemaInference = new JsonSchemaInference(new TimeValueInference(null, null, null));
-        final RecordSchema schema = jsonSchemaInference.inferSchema(new JsonRecordSource(new FileInputStream(FILE_LOCATION)));
+        final RecordSchema schema = jsonSchemaInference.inferSchema(new JsonRecordSource(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8))));
 
         final Map<String, Object> itemData1 = new HashMap<>();
         itemData1.put("itemData", new String[]{"test"});
@@ -539,7 +542,7 @@ class TestWriteJsonResult {
         Record topLevelRecord = new MapRecord(schema, values);
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, true,
+        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
                 NullSuppression.NEVER_SUPPRESS, OutputGrouping.OUTPUT_ARRAY, null, null, null)) {
             writer.beginRecordSet();
             writer.writeRecord(topLevelRecord);
@@ -548,8 +551,7 @@ class TestWriteJsonResult {
 
         final byte[] data = baos.toByteArray();
 
-        final String expected = new String(Files.readAllBytes(Paths.get(FILE_LOCATION)), StandardCharsets.UTF_8);
         final String output = new String(data, StandardCharsets.UTF_8);
-        assertEquals(expected, output);
+        assertEquals(json, output);
     }
 }
