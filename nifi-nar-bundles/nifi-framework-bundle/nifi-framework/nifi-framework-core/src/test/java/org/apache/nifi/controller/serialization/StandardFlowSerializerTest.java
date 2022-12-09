@@ -41,9 +41,9 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.w3c.dom.Document;
 
@@ -56,8 +56,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StandardFlowSerializerTest {
 
@@ -79,7 +79,7 @@ public class StandardFlowSerializerTest {
     private ExtensionDiscoveringManager extensionManager;
     private StandardFlowSerializer serializer;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         final FlowFileEventRepository flowFileEventRepo = Mockito.mock(FlowFileEventRepository.class);
         final AuditService auditService = Mockito.mock(AuditService.class);
@@ -105,7 +105,7 @@ public class StandardFlowSerializerTest {
         serializer = new StandardFlowSerializer();
     }
 
-    @After
+    @AfterEach
     public void after() throws Exception {
         controller.shutdown(true);
         FileUtils.deleteDirectory(new File("./target/standardflowserializertest"));

@@ -16,29 +16,27 @@
  */
 package org.apache.nifi.controller.status.analytics;
 
-import static org.junit.Assert.assertNotNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
+import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.status.history.StatusHistory;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
+import org.apache.nifi.controller.status.history.StatusSnapshot;
+import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.util.Tuple;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.mockito.stubbing.Answer;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import org.apache.nifi.controller.flow.FlowManager;
-import org.apache.nifi.controller.repository.FlowFileEventRepository;
-import org.apache.nifi.controller.status.history.StatusHistory;
-import org.apache.nifi.controller.status.history.StatusHistoryRepository;
-import org.apache.nifi.controller.status.history.StatusSnapshot;
-import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.util.Tuple;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 public abstract class TestStatusAnalyticsEngine {
 
@@ -49,10 +47,9 @@ public abstract class TestStatusAnalyticsEngine {
 
     protected StatusHistoryRepository statusRepository;
     protected FlowManager flowManager;
-    protected FlowFileEventRepository flowFileEventRepository;
     protected  StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory;
 
-    @Before
+    @BeforeEach
     public void setup() {
 
         statusRepository = Mockito.mock(StatusHistoryRepository.class);
@@ -78,12 +75,8 @@ public abstract class TestStatusAnalyticsEngine {
 
         when(statusAnalyticsModelMapFactory.getConnectionStatusModelMap()).thenReturn(modelMap);
 
-        when(extractFunction.extractMetric(anyString(),any(StatusHistory.class))).then(new Answer<Tuple<Stream<Double[]>,Stream<Double>>>() {
-            @Override
-            public Tuple<Stream<Double[]>, Stream<Double>> answer(InvocationOnMock invocationOnMock) throws Throwable {
-                return new Tuple<>(Stream.of(features), Stream.of(target));
-            }
-        });
+        when(extractFunction.extractMetric(anyString(),any(StatusHistory.class))).then((Answer<Tuple<Stream<Double[]>,
+                Stream<Double>>>) invocationOnMock -> new Tuple<>(Stream.of(features), Stream.of(target)));
 
         when(statusSnapshot.getMetricDescriptors()).thenReturn(Collections.emptySet());
         when(flowManager.getRootGroup()).thenReturn(processGroup);

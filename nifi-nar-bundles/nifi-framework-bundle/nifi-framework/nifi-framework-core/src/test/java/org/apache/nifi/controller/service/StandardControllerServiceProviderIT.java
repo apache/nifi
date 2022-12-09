@@ -48,8 +48,9 @@ import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.Mockito;
 
 public class StandardControllerServiceProviderIT {
@@ -81,7 +82,7 @@ public class StandardControllerServiceProviderIT {
         }
     };
 
-    @BeforeClass
+    @BeforeAll
     public static void setNiFiProps() {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestStandardControllerServiceProvider.class.getResource("/conf/nifi.properties").getFile());
         niFiProperties = NiFiProperties.createBasicNiFiProperties(null);
@@ -98,7 +99,8 @@ public class StandardControllerServiceProviderIT {
      * {@link PropertyDescriptor}.isDependentServiceEnableable() as well as
      * https://issues.apache.org/jira/browse/NIFI-1143
      */
-    @Test(timeout = 120000)
+    @Test
+    @Timeout(120)
     public void testConcurrencyWithEnablingReferencingServicesGraph() throws InterruptedException, ExecutionException {
         final StandardProcessScheduler scheduler = new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), Mockito.mock(FlowController.class),
                 stateManagerProvider, niFiProperties);

@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.controller.status.analytics.models;
 
-import static org.junit.Assert.assertFalse;
+import org.apache.commons.lang3.time.DateUtils;
+import org.apache.commons.math3.linear.SingularMatrixException;
+import org.junit.jupiter.api.Test;
 
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import org.apache.commons.lang3.time.DateUtils;
-import org.apache.commons.math3.linear.SingularMatrixException;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class TestOrdinaryLeastSquares {
 

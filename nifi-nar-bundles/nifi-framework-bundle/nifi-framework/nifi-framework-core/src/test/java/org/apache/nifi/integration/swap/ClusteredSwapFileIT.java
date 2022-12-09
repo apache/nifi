@@ -34,8 +34,9 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.integration.FrameworkIntegrationTest;
 import org.apache.nifi.integration.processors.GenerateProcessor;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.Mockito;
 
 import java.io.IOException;
@@ -43,11 +44,11 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
-@Ignore("Tests need to be updated")
+@Disabled("Tests need to be updated")
 public class ClusteredSwapFileIT extends FrameworkIntegrationTest {
 
     @Test
@@ -168,7 +169,8 @@ public class ClusteredSwapFileIT extends FrameworkIntegrationTest {
     }
 
 
-    @Test(timeout = 60_000)
+    @Test
+    @Timeout(60)
     public void testChangeLoadBalanceStrategyWhileDataSwapped() throws ExecutionException, InterruptedException, IOException {
         final ProcessorNode generator = createProcessorNode(GenerateProcessor.class);
         generator.setProperties(Collections.singletonMap(GenerateProcessor.COUNT.getName(), "60000"));

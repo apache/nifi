@@ -49,10 +49,10 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,8 +72,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Supplier;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -92,12 +92,12 @@ public class ProcessorLifecycleIT {
     private volatile String propsFile = "src/test/resources/lifecycletest.nifi.properties";
     private ProcessScheduler processScheduler;
 
-    @Before
+    @BeforeEach
     public void before() throws Exception {
         properties.put("P", "hello");
     }
 
-    @After
+    @AfterEach
     public void after() throws Exception {
         if (processScheduler != null) {
             processScheduler.shutdown();
@@ -224,7 +224,7 @@ public class ProcessorLifecycleIT {
      * operations can only be @OnScheduled, @OnUnscheduled, @OnStopped.
      */
     @Test
-    @Ignore
+    @Disabled
     public void validateSuccessfulAndOrderlyShutdown() throws Exception {
         final FlowManagerAndSystemBundle fcsb = this.buildFlowControllerForTest();
         flowManager = fcsb.getFlowManager();
@@ -267,7 +267,7 @@ public class ProcessorLifecycleIT {
      * operation validating their idempotency.
      */
     @Test
-    @Ignore
+    @Disabled
     public void validateLifecycleOperationOrderWithConcurrentCallsToStartStop() throws Exception {
         final FlowManagerAndSystemBundle fcsb = this.buildFlowControllerForTest();
         flowManager = fcsb.getFlowManager();

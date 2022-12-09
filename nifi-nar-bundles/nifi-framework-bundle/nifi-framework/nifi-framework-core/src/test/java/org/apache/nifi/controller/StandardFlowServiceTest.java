@@ -41,11 +41,11 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.revision.RevisionManager;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
 
 import java.io.ByteArrayOutputStream;
@@ -54,12 +54,13 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
 /**
  */
-@Ignore
+@Disabled
 public class StandardFlowServiceTest {
 
     private StandardFlowService flowService;
@@ -74,12 +75,12 @@ public class StandardFlowServiceTest {
     private ExtensionManager extensionManager;
     private StatusHistoryRepository statusHistoryRepository;
 
-    @BeforeClass
+    @BeforeAll
     public static void setupSuite() {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, StandardFlowServiceTest.class.getResource("/conf/nifi.properties").getFile());
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         properties = NiFiProperties.createBasicNiFiProperties(null);
 
@@ -111,13 +112,16 @@ public class StandardFlowServiceTest {
         String expectedFlow = new String(flowBytes).trim();
         String actualFlow = new String(baos.toByteArray()).trim();
 
-        Assert.assertEquals(expectedFlow, actualFlow);
+        Assertions.assertEquals(expectedFlow, actualFlow);
     }
 
-    @Test(expected = FlowSerializationException.class)
+    @Test
     public void testLoadWithCorruptFlow() throws IOException {
         byte[] flowBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow-corrupt.xml"));
-        flowService.load(new StandardDataFlow(flowBytes, null, null, new HashSet<>()));
+
+        assertThrows(FlowSerializationException.class, () ->
+                flowService.load(new StandardDataFlow(flowBytes, null,
+                        null, new HashSet<>())));
     }
 
     @Test
@@ -135,7 +139,7 @@ public class StandardFlowServiceTest {
 
         String expectedFlow = new String(flowBytes).trim();
         String actualFlow = new String(baos.toByteArray()).trim();
-        Assert.assertEquals(expectedFlow, actualFlow);
+        Assertions.assertEquals(expectedFlow, actualFlow);
     }
 
     @Test
@@ -156,7 +160,7 @@ public class StandardFlowServiceTest {
             String expectedFlow = new String(originalBytes).trim();
             String actualFlow = new String(baos.toByteArray()).trim();
 
-            Assert.assertEquals(expectedFlow, actualFlow);
+            Assertions.assertEquals(expectedFlow, actualFlow);
         }
     }
 
@@ -178,7 +182,7 @@ public class StandardFlowServiceTest {
             String expectedFlow = new String(originalBytes).trim();
             String actualFlow = new String(baos.toByteArray()).trim();
 
-            Assert.assertEquals(expectedFlow, actualFlow);
+            Assertions.assertEquals(expectedFlow, actualFlow);
         }
     }
 
@@ -187,7 +191,7 @@ public class StandardFlowServiceTest {
             return;
         }
 
-        Assert.assertEquals(expected.getComments(), actual.getComments());
+        Assertions.assertEquals(expected.getComments(), actual.getComments());
         assertEquals(expected.getContents(), actual.getContents());
     }
 
@@ -197,7 +201,7 @@ public class StandardFlowServiceTest {
         }
 
         // check connections
-        Assert.assertEquals(expected.getConnections().size(), actual.getConnections().size());
+        Assertions.assertEquals(expected.getConnections().size(), actual.getConnections().size());
         List<ConnectionDTO> expectedConnections = new ArrayList<>(expected.getConnections());
         List<ConnectionDTO> actualConnections = new ArrayList<>(actual.getConnections());
         for (int i = 0; i < expectedConnections.size(); i++) {
@@ -205,7 +209,7 @@ public class StandardFlowServiceTest {
         }
 
         // check groups
-        Assert.assertEquals(expected.getProcessGroups().size(), actual.getProcessGroups().size());
+        Assertions.assertEquals(expected.getProcessGroups().size(), actual.getProcessGroups().size());
         List<ProcessGroupDTO> expectedProcessGroups = new ArrayList<>(expected.getProcessGroups());
         List<ProcessGroupDTO> actualProcessGroups = new ArrayList<>(actual.getProcessGroups());
         for (int i = 0; i < expectedProcessGroups.size(); i++) {
@@ -213,7 +217,7 @@ public class StandardFlowServiceTest {
         }
 
         // check input ports
-        Assert.assertEquals(expected.getInputPorts().size(), actual.getInputPorts().size());
+        Assertions.assertEquals(expected.getInputPorts().size(), actual.getInputPorts().size());
         List<PortDTO> expectedInputPorts = new ArrayList<>(expected.getInputPorts());
         List<PortDTO> actualInputPort = new ArrayList<>(actual.getInputPorts());
         for (int i = 0; i < expectedInputPorts.size(); i++) {
@@ -221,7 +225,7 @@ public class StandardFlowServiceTest {
         }
 
         // check labels
-        Assert.assertEquals(expected.getLabels().size(), actual.getLabels().size());
+        Assertions.assertEquals(expected.getLabels().size(), actual.getLabels().size());
         List<LabelDTO> expectedLabels = new ArrayList<>(expected.getLabels());
         List<LabelDTO> actualLabels = new ArrayList<>(actual.getLabels());
         for (int i = 0; i < expectedLabels.size(); i++) {
@@ -229,7 +233,7 @@ public class StandardFlowServiceTest {
         }
 
         // check output ports
-        Assert.assertEquals(expected.getOutputPorts().size(), actual.getOutputPorts().size());
+        Assertions.assertEquals(expected.getOutputPorts().size(), actual.getOutputPorts().size());
         List<PortDTO> expectedOutputPorts = new ArrayList<>(expected.getOutputPorts());
         List<PortDTO> actualOutputPort = new ArrayList<>(actual.getOutputPorts());
         for (int i = 0; i < expectedOutputPorts.size(); i++) {
@@ -237,7 +241,7 @@ public class StandardFlowServiceTest {
         }
 
         // check processors
-        Assert.assertEquals(expected.getProcessors().size(), actual.getProcessors().size());
+        Assertions.assertEquals(expected.getProcessors().size(), actual.getProcessors().size());
         List<ProcessorDTO> expectedProcessors = new ArrayList<>(expected.getProcessors());
         List<ProcessorDTO> actualProcessors = new ArrayList<>(actual.getProcessors());
         for (int i = 0; i < expectedProcessors.size(); i++) {
@@ -250,12 +254,12 @@ public class StandardFlowServiceTest {
             return;
         }
 
-        Assert.assertEquals(expected.getAvailableRelationships(), actual.getAvailableRelationships());
+        Assertions.assertEquals(expected.getAvailableRelationships(), actual.getAvailableRelationships());
         assertEquals(expected.getDestination(), actual.getDestination());
-        Assert.assertEquals(expected.getId(), actual.getId());
-        Assert.assertEquals(expected.getName(), actual.getName());
-        Assert.assertEquals(expected.getParentGroupId(), actual.getParentGroupId());
-        Assert.assertEquals(expected.getSelectedRelationships(), actual.getSelectedRelationships());
+        Assertions.assertEquals(expected.getId(), actual.getId());
+        Assertions.assertEquals(expected.getName(), actual.getName());
+        Assertions.assertEquals(expected.getParentGroupId(), actual.getParentGroupId());
+        Assertions.assertEquals(expected.getSelectedRelationships(), actual.getSelectedRelationships());
         assertEquals(expected.getSource(), actual.getSource());
     }
 
@@ -264,10 +268,10 @@ public class StandardFlowServiceTest {
             return;
         }
 
-        Assert.assertEquals(expected.getGroupId(), actual.getGroupId());
-        Assert.assertEquals(expected.getId(), actual.getId());
-        Assert.assertEquals(expected.getName(), actual.getName());
-        Assert.assertEquals(expected.getType(), actual.getType());
+        Assertions.assertEquals(expected.getGroupId(), actual.getGroupId());
+        Assertions.assertEquals(expected.getId(), actual.getId());
+        Assertions.assertEquals(expected.getName(), actual.getName());
+        Assertions.assertEquals(expected.getType(), actual.getType());
     }
 
     private void assertEquals(PortDTO expected, PortDTO actual) {
@@ -275,9 +279,9 @@ public class StandardFlowServiceTest {
             return;
         }
 
-        Assert.assertEquals(expected.getId(), actual.getId());
-        Assert.assertEquals(expected.getName(), actual.getName());
-        Assert.assertEquals(expected.getParentGroupId(), actual.getParentGroupId());
+        Assertions.assertEquals(expected.getId(), actual.getId());
+        Assertions.assertEquals(expected.getName(), actual.getName());
+        Assertions.assertEquals(expected.getParentGroupId(), actual.getParentGroupId());
     }
 
     private void assertEquals(LabelDTO expected, LabelDTO actual) {
@@ -285,10 +289,10 @@ public class StandardFlowServiceTest {
             return;
         }
 
-        Assert.assertEquals(expected.getId(), actual.getId());
-        Assert.assertEquals(expected.getLabel(), actual.getLabel());
-        Assert.assertEquals(expected.getParentGroupId(), actual.getParentGroupId());
-        Assert.assertEquals(expected.getStyle(), actual.getStyle());
+        Assertions.assertEquals(expected.getId(), actual.getId());
+        Assertions.assertEquals(expected.getLabel(), actual.getLabel());
+        Assertions.assertEquals(expected.getParentGroupId(), actual.getParentGroupId());
+        Assertions.assertEquals(expected.getStyle(), actual.getStyle());
     }
 
     private void assertEquals(ProcessorDTO expected, ProcessorDTO actual) {
@@ -296,14 +300,14 @@ public class StandardFlowServiceTest {
             return;
         }
 
-        Assert.assertEquals(expected.getId(), actual.getId());
-        Assert.assertEquals(expected.getName(), actual.getName());
-        Assert.assertEquals(expected.getParentGroupId(), actual.getParentGroupId());
-        Assert.assertEquals(expected.getStyle(), actual.getStyle());
-        Assert.assertEquals(expected.getType(), actual.getType());
-        Assert.assertEquals(expected.getState(), actual.getState());
-        Assert.assertEquals(expected.getRelationships(), actual.getRelationships());
-        Assert.assertEquals(expected.getValidationErrors(), actual.getValidationErrors());
+        Assertions.assertEquals(expected.getId(), actual.getId());
+        Assertions.assertEquals(expected.getName(), actual.getName());
+        Assertions.assertEquals(expected.getParentGroupId(), actual.getParentGroupId());
+        Assertions.assertEquals(expected.getStyle(), actual.getStyle());
+        Assertions.assertEquals(expected.getType(), actual.getType());
+        Assertions.assertEquals(expected.getState(), actual.getState());
+        Assertions.assertEquals(expected.getRelationships(), actual.getRelationships());
+        Assertions.assertEquals(expected.getValidationErrors(), actual.getValidationErrors());
         assertEquals(expected.getConfig(), actual.getConfig());
     }
 
@@ -312,12 +316,12 @@ public class StandardFlowServiceTest {
             return;
         }
 
-        Assert.assertEquals(expected.getAnnotationData(), actual.getAnnotationData());
-        Assert.assertEquals(expected.getComments(), actual.getComments());
-        Assert.assertEquals(expected.getConcurrentlySchedulableTaskCount(), actual.getConcurrentlySchedulableTaskCount());
-        Assert.assertEquals(expected.getCustomUiUrl(), actual.getCustomUiUrl());
-        Assert.assertEquals(expected.getDescriptors(), actual.getDescriptors());
-        Assert.assertEquals(expected.getProperties(), actual.getProperties());
-        Assert.assertEquals(expected.getSchedulingPeriod(), actual.getSchedulingPeriod());
+        Assertions.assertEquals(expected.getAnnotationData(), actual.getAnnotationData());
+        Assertions.assertEquals(expected.getComments(), actual.getComments());
+        Assertions.assertEquals(expected.getConcurrentlySchedulableTaskCount(), actual.getConcurrentlySchedulableTaskCount());
+        Assertions.assertEquals(expected.getCustomUiUrl(), actual.getCustomUiUrl());
+        Assertions.assertEquals(expected.getDescriptors(), actual.getDescriptors());
+        Assertions.assertEquals(expected.getProperties(), actual.getProperties());
+        Assertions.assertEquals(expected.getSchedulingPeriod(), actual.getSchedulingPeriod());
     }
 }

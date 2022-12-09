@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.controller.status.history;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDateTime;
@@ -25,7 +24,9 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.Date;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -66,13 +67,13 @@ public class JsonNodeStatusHistoryDumpFactoryTest {
         JsonNodeStatusHistoryDumpFactory factory = new JsonNodeStatusHistoryDumpFactory();
         factory.setStatusHistoryRepository(statusHistoryRepository);
 
-        final IllegalArgumentException zeroDaysException = Assert.assertThrows(IllegalArgumentException.class,
+        final IllegalArgumentException zeroDaysException = assertThrows(IllegalArgumentException.class,
                 () -> factory.create(zeroDays)
         );
 
         assertEquals(String.format(EXPECTED_EXCEPTION_MESSAGE, zeroDays), zeroDaysException.getMessage());
 
-        final IllegalArgumentException negativeDaysException = Assert.assertThrows(IllegalArgumentException.class,
+        final IllegalArgumentException negativeDaysException = assertThrows(IllegalArgumentException.class,
                 () -> factory.create(negativeDays)
         );
 

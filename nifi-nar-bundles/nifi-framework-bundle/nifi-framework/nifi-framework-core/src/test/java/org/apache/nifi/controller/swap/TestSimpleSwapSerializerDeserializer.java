@@ -17,7 +17,7 @@
 
 package org.apache.nifi.controller.swap;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.DataInputStream;
 import java.io.File;
@@ -37,14 +37,14 @@ import org.apache.nifi.controller.repository.SwapContents;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.stream.io.NullOutputStream;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 @SuppressWarnings("deprecation")
 public class TestSimpleSwapSerializerDeserializer {
-    @Before
+    @BeforeEach
     public void setup() {
         MockFlowFile.resetIdGenerator();
     }
@@ -104,7 +104,7 @@ public class TestSimpleSwapSerializerDeserializer {
     }
 
     @Test
-    @Ignore("For manual testing only. Not intended to be run as part of the automated unit tests but can "
+    @Disabled("For manual testing only. Not intended to be run as part of the automated unit tests but can "
         + "be convenient for determining a baseline for performance if making modifications.")
     public void testWritePerformance() throws IOException, InterruptedException {
         final ResourceClaimManager resourceClaimManager = new StandardResourceClaimManager();

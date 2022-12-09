@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.cluster;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
 import org.apache.nifi.cluster.protocol.HeartbeatPayload;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
  */
@@ -36,12 +36,12 @@ public class HeartbeatPayloadTest {
     private int totalFlowFileCount;
     private ByteArrayOutputStream marshalledBytes;
 
-    @BeforeClass
+    @BeforeAll
     public static void setupSuite() {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, HeartbeatPayloadTest.class.getResource("/conf/nifi.properties").getFile());
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         payload = new HeartbeatPayload();
         activeThreadCount = 15;

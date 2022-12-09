@@ -26,11 +26,10 @@ import io.questdb.cairo.sql.RecordCursorFactory;
 import io.questdb.griffin.SqlExecutionContext;
 import org.apache.nifi.controller.status.history.questdb.QuestDbContext;
 import org.apache.nifi.util.FileUtils;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +42,10 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-@Ignore("Buggy tests depend on time of day")
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@Disabled("Buggy tests depend on time of day")
 public class EmbeddedQuestDbRolloverHandlerTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(EmbeddedQuestDbRolloverHandlerTest.class);
 
@@ -78,7 +80,7 @@ public class EmbeddedQuestDbRolloverHandlerTest {
     private String path;
     private QuestDbContext dbContext;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         path = PATH_BASE + System.currentTimeMillis();
         FileUtils.ensureDirectoryExistAndCanReadAndWrite(new File(path));
@@ -86,7 +88,7 @@ public class EmbeddedQuestDbRolloverHandlerTest {
         dbContext = givenDbContext();
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         try {
             FileUtils.deleteFile(new File(path), true);
@@ -293,10 +295,11 @@ public class EmbeddedQuestDbRolloverHandlerTest {
             existingPartitions.add(new StringBuilder(record.getStr(0)).toString());
         }
 
-        Assert.assertEquals(expectedPartitions.length, existingPartitions.size());
+        assertEquals(expectedPartitions.length, existingPartitions.size());
 
         for (final String expectedPartition : expectedPartitions) {
-            Assert.assertTrue("Partition " + expectedPartition + " is expected", existingPartitions.contains(expectedPartition));
+            assertTrue(existingPartitions.contains(expectedPartition),
+                    "Partition " + expectedPartition + " is expected");
         }
     }
 
