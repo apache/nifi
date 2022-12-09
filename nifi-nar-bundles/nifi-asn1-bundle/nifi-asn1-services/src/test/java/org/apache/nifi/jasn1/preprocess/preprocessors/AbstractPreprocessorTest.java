@@ -41,7 +41,8 @@ public abstract class AbstractPreprocessorTest {
                 .collect(Collectors.joining(System.lineSeparator()));
 
         // THEN
-        String expected = new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("preprocessed_" + input).toURI())), StandardCharsets.UTF_8);
+        String expected = new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("preprocessed_" + input).toURI())), StandardCharsets.UTF_8)
+                .replace("\n", System.lineSeparator());
 
         assertEquals(expected, actual);
     }

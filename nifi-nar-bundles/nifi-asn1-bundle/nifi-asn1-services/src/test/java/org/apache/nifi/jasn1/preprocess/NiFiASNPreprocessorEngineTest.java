@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.StringJoiner;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
@@ -75,8 +76,15 @@ public class NiFiASNPreprocessorEngineTest {
     @Test
     void testPreprocess() {
         // GIVEN
-        String asnFilesString = "/path/to/asn_file_1,/path/to/asn_file_2";
-        String outputDirectory = "/path/to/directory_for_transformed_asn_files";
+        Path asnFile1Path = Paths.get("path", "to", "asn_file_1");
+        Path asnFile2Path = Paths.get("path", "to", "asn_file_2");
+
+        String asnFilesString = new StringJoiner(",")
+                .add(asnFile1Path.toString())
+                .add(asnFile2Path.toString())
+                .toString();
+
+        String outputDirectory = Paths.get("path", "to", "directory_for_transformed_asn_files").toString();
 
         List<String> originalLines1 = Arrays.asList("original_lines_1_1","original_lines_1_2");
         List<String> preprocessedLines1_1 = Arrays.asList("preprocessed_lines_1_1_1","preprocessed_lines_1_1_2");
@@ -86,17 +94,20 @@ public class NiFiASNPreprocessorEngineTest {
         List<String> preprocessedLines2_1 = Arrays.asList("preprocessed_lines_2_1_1", "preprocessed_lines_2_1_2");
         List<String> preprocessedLines2_2 = Arrays.asList("final_lines_2_1", "final_lines_2_2");
 
-        when(helper.readAsnLines(eq(log), eq("/path/to/asn_file_1"), eq(Paths.get("/path/to/asn_file_1"))))
+        when(helper.readAsnLines(eq(log), eq(asnFile1Path.toString()), eq(asnFile1Path)))
                 .thenReturn(originalLines1);
         when(mockPreprocessor1.preprocessAsn(originalLines1)).thenReturn(preprocessedLines1_1);
         when(mockPreprocessor2.preprocessAsn(preprocessedLines1_1)).thenReturn(preprocessedLines1_2);
 
-        when(helper.readAsnLines(eq(log), eq("/path/to/asn_file_2"), eq(Paths.get("/path/to/asn_file_2"))))
+        when(helper.readAsnLines(eq(log), eq(asnFile2Path.toString()), eq(asnFile2Path)))
                 .thenReturn(originalLines2);
         when(mockPreprocessor1.preprocessAsn(originalLines2)).thenReturn(preprocessedLines2_1);
         when(mockPreprocessor2.preprocessAsn(preprocessedLines2_1)).thenReturn(preprocessedLines2_2);
 
-        String expected = "/path/to/directory_for_transformed_asn_files/asn_file_1,/path/to/directory_for_transformed_asn_files/asn_file_2";
+        String expected = new StringJoiner(",")
+                .add(Paths.get("path" , "to", "directory_for_transformed_asn_files", "asn_file_1").toString())
+                .add(Paths.get("path", "to", "directory_for_transformed_asn_files", "asn_file_2").toString())
+                .toString();
 
         // WHEN
         String actual = testSubject.preprocess(log, asnFilesString, outputDirectory);
@@ -104,8 +115,8 @@ public class NiFiASNPreprocessorEngineTest {
         // THEN
         assertEquals(expected, actual);
 
-        verify(helper).readAsnLines(eq(log), eq("/path/to/asn_file_1"), eq(Paths.get("/path/to/asn_file_1")));
-        verify(helper).readAsnLines(eq(log), eq("/path/to/asn_file_2"), eq(Paths.get("/path/to/asn_file_2")));
+        verify(helper).readAsnLines(eq(log), eq(asnFile1Path.toString()), eq(asnFile1Path));
+        verify(helper).readAsnLines(eq(log), eq(asnFile2Path.toString()), eq(asnFile2Path));
 
         verify(mockPreprocessor1).preprocessAsn(originalLines1);
         verify(mockPreprocessor2).preprocessAsn(preprocessedLines1_1);
@@ -116,13 +127,13 @@ public class NiFiASNPreprocessorEngineTest {
         verify(helper).writePreprocessedAsn(
                 eq(log),
                 eq("final_lines_1_1" + System.lineSeparator() + "final_lines_1_2"),
-                eq(Paths.get("/path/to/directory_for_transformed_asn_files/asn_file_1"))
+                eq(Paths.get("path","to", "directory_for_transformed_asn_files", "asn_file_1"))
         );
 
         verify(helper).writePreprocessedAsn(
                 eq(log),
                 eq("final_lines_2_1" + System.lineSeparator() + "final_lines_2_2"),
-                eq(Paths.get("/path/to/directory_for_transformed_asn_files/asn_file_2"))
+                eq(Paths.get("path", "to", "directory_for_transformed_asn_files", "asn_file_2"))
         );
     }
 }
