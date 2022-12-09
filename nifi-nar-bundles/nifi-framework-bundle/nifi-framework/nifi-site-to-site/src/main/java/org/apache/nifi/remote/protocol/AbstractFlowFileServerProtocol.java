@@ -48,6 +48,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -257,7 +259,13 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             session.read(flowFile, new InputStreamCallback() {
                 @Override
                 public void process(final InputStream in) throws IOException {
-                    final DataPacket dataPacket = new StandardDataPacket(toSend.getAttributes(), in, toSend.getSize());
+                    LinkedHashMap<String, String> attributes = new LinkedHashMap<>();
+                    String[] keySet = toSend.getAttributes().keySet().toArray(new String[0]);
+                    Arrays.sort(keySet);
+                    for(String key: keySet){
+                        attributes.put(key, toSend.getAttributes().get(key));
+                    }
+                    final DataPacket dataPacket = new StandardDataPacket(attributes, in, toSend.getSize());
                     codec.encode(dataPacket, checkedOutputStream);
                 }
             });
