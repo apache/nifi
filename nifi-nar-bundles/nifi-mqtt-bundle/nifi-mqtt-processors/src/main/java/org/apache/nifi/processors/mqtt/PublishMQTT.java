@@ -54,10 +54,14 @@ import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Scanner;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -109,6 +113,15 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
             .description("The Record Writer to use for serializing Records before publishing them as an MQTT Message.")
             .build();
 
+    public static final PropertyDescriptor MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(BASE_MESSAGE_DEMARCATOR)
+            .description("With this property, you have an option to publish multiple messages from a single FlowFile. "
+                    + "This property allows you to provide a string (interpreted as UTF-8) to use for demarcating apart "
+                    + "the FlowFile content. This is an optional property ; if not provided, and if not defining a "
+                    + "Record Reader/Writer, each FlowFile will be published as a single message. To enter special "
+                    + "character such as 'new line' use CTRL+Enter or Shift+Enter depending on the OS.")
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles that are sent successfully to the destination are transferred to this relationship.")
@@ -132,6 +145,7 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
             PROP_QOS,
             RECORD_READER,
             RECORD_WRITER,
+            MESSAGE_DEMARCATOR,
             PROP_CONN_TIMEOUT,
             PROP_KEEP_ALIVE_INTERVAL,
             PROP_LAST_WILL_MESSAGE,
@@ -144,10 +158,6 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
             REL_SUCCESS,
             REL_FAILURE
     )));
-
-    static final String PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE = "Publish failed after %d successfully published records.";
-    static final String PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER = "Successfully finished publishing previously failed records. Total record count: %d";
-    static final String PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS = "Successfully published all records. Total record count: %d";
 
     static final String ATTR_PUBLISH_FAILED_INDEX_SUFFIX = ".mqtt.publish.failed.index";
     private String publishFailedIndexAttributeName;
@@ -205,62 +215,31 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
         }
 
         if (context.getProperty(RECORD_READER).isSet()) {
-            processRecordSet(context, session, flowfile, topic);
+            processMultiMessageFlowFile(new ProcessRecordSetStrategy(), context, session, flowfile, topic);
+        } else if (context.getProperty(MESSAGE_DEMARCATOR).isSet()) {
+            processMultiMessageFlowFile(new ProcessDemarcatedContentStrategy(), context, session, flowfile, topic);
         } else {
             processStandardFlowFile(context, session, flowfile, topic);
         }
     }
 
-    private void processRecordSet(ProcessContext context, ProcessSession session, final FlowFile flowfile, String topic) {
+    private void processMultiMessageFlowFile(ProcessStrategy processStrategy, ProcessContext context, ProcessSession session, final FlowFile flowfile, String topic) {
         final StopWatch stopWatch = new StopWatch(true);
         final AtomicInteger processedRecords = new AtomicInteger();
 
         try {
-            final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-            final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-
             final Long previousProcessFailedAt = ofNullable(flowfile.getAttribute(publishFailedIndexAttributeName)).map(Long::valueOf).orElse(null);
 
-            session.read(flowfile, in -> {
-                try (final RecordReader reader = readerFactory.createRecordReader(flowfile, in, logger)) {
-                    final RecordSet recordSet = reader.createRecordSet();
-
-                    final RecordSchema schema = writerFactory.getSchema(flowfile.getAttributes(), recordSet.getSchema());
-
-                    final ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
-
-                    Record record;
-                    while ((record = recordSet.next()) != null) {
-                        if (previousProcessFailedAt != null && processedRecords.get() < previousProcessFailedAt) {
-                            processedRecords.getAndIncrement();
-                            continue;
-                        }
-
-                        baos.reset();
-
-                        try (final RecordSetWriter writer = writerFactory.createWriter(logger, schema, baos, flowfile)) {
-                            writer.write(record);
-                            writer.flush();
-                        }
-
-                        final byte[] messageContent = baos.toByteArray();
-
-                        publishMessage(context, flowfile, topic, messageContent);
-                        processedRecords.getAndIncrement();
-                    }
-                } catch (SchemaNotFoundException | MalformedRecordException e) {
-                    throw new ProcessException("An error happened during creating components for serialization.", e);
-                }
-            });
+            session.read(flowfile, in -> processStrategy.process(context, flowfile, in, topic, processedRecords, previousProcessFailedAt));
 
             FlowFile successFlowFile = flowfile;
 
             String provenanceEventDetails;
             if (previousProcessFailedAt != null) {
                 successFlowFile = session.removeAttribute(flowfile, publishFailedIndexAttributeName);
-                provenanceEventDetails = String.format(PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER, processedRecords.get());
+                provenanceEventDetails = String.format(processStrategy.getRecoverTemplateMessage(), processedRecords.get());
             } else {
-                provenanceEventDetails = String.format(PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS, processedRecords.get());
+                provenanceEventDetails = String.format(processStrategy.getSuccessTemplateMessage(), processedRecords.get());
             }
 
             session.getProvenanceReporter().send(flowfile, clientProperties.getRawBrokerUris(), provenanceEventDetails, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
@@ -274,7 +253,7 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
                 session.getProvenanceReporter().send(
                         failedFlowFile,
                         clientProperties.getRawBrokerUris(),
-                        String.format(PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE, processedRecords.get()),
+                        String.format(processStrategy.getFailureTemplateMessage(), processedRecords.get()),
                         stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             }
 
@@ -336,4 +315,110 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
         logger.trace("Received 'delivery complete' message from broker. Token: [{}]", token);
     }
 
+    interface ProcessStrategy {
+        void process(ProcessContext context, FlowFile flowfile, InputStream in, String topic, AtomicInteger processedRecords, Long previousProcessFailedAt) throws IOException;
+        String getFailureTemplateMessage();
+        String getRecoverTemplateMessage();
+        String getSuccessTemplateMessage();
+    }
+
+    class ProcessRecordSetStrategy implements ProcessStrategy {
+
+        static final String PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE = "Publish failed after %d successfully published records.";
+        static final String PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER = "Successfully finished publishing previously failed records. Total record count: %d";
+        static final String PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS = "Successfully published all records. Total record count: %d";
+
+        @Override
+        public void process(ProcessContext context, FlowFile flowfile, InputStream in, String topic, AtomicInteger processedRecords, Long previousProcessFailedAt) throws IOException {
+            final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+            final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+
+            try (final RecordReader reader = readerFactory.createRecordReader(flowfile, in, logger)) {
+                final RecordSet recordSet = reader.createRecordSet();
+
+                final RecordSchema schema = writerFactory.getSchema(flowfile.getAttributes(), recordSet.getSchema());
+
+                final ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
+
+                Record record;
+                while ((record = recordSet.next()) != null) {
+                    if (previousProcessFailedAt != null && processedRecords.get() < previousProcessFailedAt) {
+                        processedRecords.getAndIncrement();
+                        continue;
+                    }
+
+                    baos.reset();
+
+                    try (final RecordSetWriter writer = writerFactory.createWriter(logger, schema, baos, flowfile)) {
+                        writer.write(record);
+                        writer.flush();
+                    }
+
+                    final byte[] messageContent = baos.toByteArray();
+
+                    publishMessage(context, flowfile, topic, messageContent);
+                    processedRecords.getAndIncrement();
+                }
+            } catch (SchemaNotFoundException | MalformedRecordException e) {
+                throw new ProcessException("An error happened during creating components for serialization.", e);
+            }
+        }
+
+        @Override
+        public String getFailureTemplateMessage() {
+            return PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE;
+        }
+
+        @Override
+        public String getRecoverTemplateMessage() {
+            return PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER;
+        }
+
+        @Override
+        public String getSuccessTemplateMessage() {
+            return PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS;
+        }
+    }
+
+    class ProcessDemarcatedContentStrategy implements ProcessStrategy {
+
+        static final String PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_FAILURE = "Publish failed after %d successfully published messages.";
+        static final String PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_RECOVER = "Successfully finished publishing previously failed messages. Total message count: %d";
+        static final String PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_SUCCESS = "Successfully published all messages. Total message count: %d";
+
+        @Override
+        public void process(ProcessContext context, FlowFile flowfile, InputStream in, String topic, AtomicInteger processedRecords, Long previousProcessFailedAt) {
+            final String demarcator = context.getProperty(MESSAGE_DEMARCATOR).evaluateAttributeExpressions().getValue();
+
+            try (final Scanner scanner = new Scanner(in)) {
+                scanner.useDelimiter(demarcator);
+                while (scanner.hasNext()) {
+                    final String messageContent = scanner.next();
+
+                    if (previousProcessFailedAt != null && processedRecords.get() < previousProcessFailedAt) {
+                        processedRecords.getAndIncrement();
+                        continue;
+                    }
+
+                    publishMessage(context, flowfile, topic, messageContent.getBytes(StandardCharsets.UTF_8));
+                    processedRecords.getAndIncrement();
+                }
+            }
+        }
+
+        @Override
+        public String getFailureTemplateMessage() {
+            return PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_FAILURE;
+        }
+
+        @Override
+        public String getRecoverTemplateMessage() {
+            return PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_RECOVER;
+        }
+
+        @Override
+        public String getSuccessTemplateMessage() {
+            return PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_SUCCESS;
+        }
+    }
 }

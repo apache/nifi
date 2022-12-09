@@ -34,6 +34,7 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -52,6 +53,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 
 @SupportsBatching
 @Tags({"test", "random", "generate", "load"})
@@ -62,6 +64,7 @@ import org.apache.nifi.processor.util.StandardValidators;
         expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
         description = "Specifies an attribute on generated FlowFiles defined by the Dynamic Property's key and value." +
         " If Expression Language is used, evaluation will be performed only once per batch of generated FlowFiles.")
+@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class GenerateFlowFile extends AbstractProcessor {
 
     private final AtomicReference<byte[]> data = new AtomicReference<>();
@@ -216,13 +219,16 @@ public class GenerateFlowFile extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         final byte[] data;
-        if (context.getProperty(UNIQUE_FLOWFILES).asBoolean()) {
-            data = generateData(context);
-        } else if(context.getProperty(CUSTOM_TEXT).isSet()) {
-            final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
-            data = context.getProperty(CUSTOM_TEXT).evaluateAttributeExpressions().getValue().getBytes(charset);
+        final boolean uniqueData = context.getProperty(UNIQUE_FLOWFILES).asBoolean();
+        if (uniqueData) {
+            data = new byte[0];
         } else {
-            data = this.data.get();
+            if (context.getProperty(CUSTOM_TEXT).isSet()) {
+                final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
+                data = context.getProperty(CUSTOM_TEXT).evaluateAttributeExpressions().getValue().getBytes(charset);
+            } else {
+                data = this.data.get();
+            }
         }
 
         Map<PropertyDescriptor, String> processorProperties = context.getProperties();
@@ -240,12 +246,13 @@ public class GenerateFlowFile extends AbstractProcessor {
         }
 
         for (int i = 0; i < context.getProperty(BATCH_SIZE).asInteger(); i++) {
-            FlowFile flowFile = session.create();
-            if (data.length > 0) {
+        FlowFile flowFile = session.create();
+            final byte[] writtenData = uniqueData ? generateData(context) : data;
+            if (writtenData.length > 0) {
                 flowFile = session.write(flowFile, new OutputStreamCallback() {
                     @Override
                     public void process(final OutputStream out) throws IOException {
-                        out.write(data);
+                        out.write(writtenData);
                     }
                 });
             }

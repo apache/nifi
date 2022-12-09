@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>1.19.0-SNAPSHOT</version>
+        <version>1.20.0-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.nifi.registry</groupId>
     <artifactId>nifi-registry</artifactId>
@@ -36,13 +36,14 @@
     </modules>
     <properties>
         <jax.rs.api.version>2.1</jax.rs.api.version>
-        <spring.boot.version>2.7.4</spring.boot.version>
+        <spring.boot.version>2.7.6</spring.boot.version>
         <flyway.version>8.5.13</flyway.version>
         <flyway.tests.version>7.0.0</flyway.tests.version>
         <swagger.ui.version>3.12.0</swagger.ui.version>
         <groovy.eclipse.compiler.version>3.4.0-01</groovy.eclipse.compiler.version>
         <jaxb.version>2.3.2</jaxb.version>
         <jgit.version>5.13.1.202206130422-r</jgit.version>
+        <org.apache.sshd.version>2.9.2</org.apache.sshd.version>
     </properties>
 
     <dependencyManagement>
@@ -93,6 +94,18 @@
                 <artifactId>apache-jstl</artifactId>
                 <scope>compile</scope>
             </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.http2</groupId>
+                <artifactId>http2-server</artifactId>
+                <version>${jetty.version}</version>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-alpn-server</artifactId>
+                <version>${jetty.version}</version>
+                <scope>compile</scope>
+            </dependency>
         <!-- lib/java11 -->
             <dependency>
                 <groupId>jakarta.xml.bind</groupId>
@@ -108,69 +121,69 @@
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-utils</artifactId>
-                <version>1.19.0-SNAPSHOT</version>
+                <version>1.20.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-properties</artifactId>
-                <version>1.19.0-SNAPSHOT</version>
+                <version>1.20.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-properties-loader</artifactId>
-                <version>1.19.0-SNAPSHOT</version>
+                <version>1.20.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-property-protection-factory</artifactId>
-                <version>1.19.0-SNAPSHOT</version>
+                <version>1.20.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-property-protection-loader</artifactId>
-                <version>1.19.0-SNAPSHOT</version>
+                <version>1.20.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-property-utils</artifactId>
-                <version>1.19.0-SNAPSHOT</version>
+                <version>1.20.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-bootstrap</artifactId>
-                <version>1.19.0-SNAPSHOT</version>
+                <version>1.20.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-runtime</artifactId>
-                <version>1.19.0-SNAPSHOT</version>
+                <version>1.20.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-security-api</artifactId>
-                <version>1.19.0-SNAPSHOT</version>
+                <version>1.20.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-provider-api</artifactId>
-                <version>1.19.0-SNAPSHOT</version>
+                <version>1.20.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-web-ui</artifactId>
                 <type>war</type>
-                <version>1.19.0-SNAPSHOT</version>
+                <version>1.20.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-web-api</artifactId>
                 <type>war</type>
-                <version>1.19.0-SNAPSHOT</version>
+                <version>1.20.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-resources</artifactId>
-                <version>1.19.0-SNAPSHOT</version>
+                <version>1.20.0-SNAPSHOT</version>
                 <classifier>resources</classifier>
                 <scope>runtime</scope>
                 <type>zip</type>
@@ -221,13 +234,7 @@
             </dependency>
             <dependency>
                 <groupId>org.testcontainers</groupId>
-                <artifactId>testcontainers</artifactId>
-                <version>${testcontainers.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.testcontainers</groupId>
                 <artifactId>mysql</artifactId>
-                <version>${testcontainers.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.slf4j</groupId>
@@ -235,15 +242,16 @@
                     </exclusion>
                 </exclusions>
             </dependency>
+            <!-- Override transitive SSHD version from JGit -->
             <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>mariadb</artifactId>
-                <version>${testcontainers.version}</version>
+                <groupId>org.apache.sshd</groupId>
+                <artifactId>sshd-osgi</artifactId>
+                <version>${org.apache.sshd.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>postgresql</artifactId>
-                <version>${testcontainers.version}</version>
+                <groupId>org.apache.sshd</groupId>
+                <artifactId>sshd-sftp</artifactId>
+                <version>${org.apache.sshd.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

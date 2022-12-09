@@ -44,6 +44,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 @EventDriven
 @SupportsBatching
 @Tags({ "Ignite", "get", "read", "cache", "key" })
+@SeeAlso({PutIgniteCache.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Get the byte array from Ignite Cache and adds it as the content of a FlowFile." +
     "The processor uses the value of FlowFile attribute (Ignite cache entry key) as the cache key lookup. " +
@@ -53,7 +54,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 @WritesAttributes({
     @WritesAttribute(attribute = GetIgniteCache.IGNITE_GET_FAILED_REASON_ATTRIBUTE_KEY, description = "The reason for getting entry from cache"),
     })
-@SeeAlso({PutIgniteCache.class})
 public class GetIgniteCache extends AbstractIgniteCacheProcessor {
 
     /** Flow file attribute keys and messages */

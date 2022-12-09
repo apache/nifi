@@ -139,10 +139,19 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
         AWSSecretsManager secretsManager = this.configureClient(context);
 
         final List<ParameterGroup> groups = new ArrayList<>();
-        final ListSecretsRequest listSecretsRequest = new ListSecretsRequest();
-        final ListSecretsResult listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
-        for (final SecretListEntry entry : listSecretsResult.getSecretList()) {
-            groups.addAll(fetchSecret(secretsManager, context, entry.getName()));
+        ListSecretsRequest listSecretsRequest = new ListSecretsRequest();
+        ListSecretsResult listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
+        while(!listSecretsResult.getSecretList().isEmpty()) {
+            for (final SecretListEntry entry : listSecretsResult.getSecretList()) {
+                groups.addAll(fetchSecret(secretsManager, context, entry.getName()));
+            }
+            final String nextToken = listSecretsResult.getNextToken();
+            if (nextToken == null) {
+                break;
+            }
+
+            listSecretsRequest.setNextToken(nextToken);
+            listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
         }
 
         return groups;

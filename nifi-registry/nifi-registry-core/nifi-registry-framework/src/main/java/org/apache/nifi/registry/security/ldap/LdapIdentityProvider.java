@@ -26,9 +26,9 @@ import org.apache.nifi.registry.security.authentication.exception.IdentityAccess
 import org.apache.nifi.registry.security.authentication.exception.InvalidCredentialsException;
 import org.apache.nifi.registry.security.exception.SecurityProviderCreationException;
 import org.apache.nifi.registry.security.exception.SecurityProviderDestructionException;
-import org.apache.nifi.registry.security.util.SslContextFactory;
-import org.apache.nifi.registry.security.util.SslContextFactory.ClientAuth;
 import org.apache.nifi.registry.util.FormatUtils;
+import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
+import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ldap.AuthenticationException;
@@ -49,12 +49,9 @@ import org.springframework.security.ldap.userdetails.LdapUserDetails;
 
 import javax.naming.Context;
 import javax.net.ssl.SSLContext;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
+import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -79,8 +76,9 @@ public class LdapIdentityProvider extends BasicAuthIdentityProvider implements I
             throw new SecurityProviderCreationException("The Authentication Expiration must be specified.");
         }
 
+
         try {
-            expiration = FormatUtils.getTimeDuration(rawExpiration, TimeUnit.MILLISECONDS);
+            expiration = Math.round(FormatUtils.getPreciseTimeDuration(rawExpiration, TimeUnit.MILLISECONDS));
         } catch (final IllegalArgumentException iae) {
             throw new SecurityProviderCreationException(String.format("The Expiration Duration '%s' is not a valid time duration", rawExpiration));
         }
@@ -243,12 +241,11 @@ public class LdapIdentityProvider extends BasicAuthIdentityProvider implements I
         try {
             final String username = authenticationRequest.getUsername();
             final Object credentials = authenticationRequest.getCredentials();
-            final String password = credentials != null && credentials instanceof String ? (String) credentials : null;
 
             // perform the authentication
             final UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, credentials);
             final Authentication authentication = ldapAuthenticationProvider.authenticate(token);
-            logger.debug("Created authentication token: {}", token.toString());
+            logger.debug("Created authentication token: {}", token);
 
             // use dn if configured
             if (IdentityStrategy.USE_DN.equals(identityStrategy)) {
@@ -294,8 +291,8 @@ public class LdapIdentityProvider extends BasicAuthIdentityProvider implements I
         final String rawTimeout = configurationContext.getProperty(configurationProperty);
         if (StringUtils.isNotBlank(rawTimeout)) {
             try {
-                final Long timeout = FormatUtils.getTimeDuration(rawTimeout, TimeUnit.MILLISECONDS);
-                baseEnvironment.put(environmentKey, timeout.toString());
+                final long timeout = Math.round(FormatUtils.getPreciseTimeDuration(rawTimeout, TimeUnit.MILLISECONDS));
+                baseEnvironment.put(environmentKey, Long.toString(timeout));
             } catch (final IllegalArgumentException iae) {
                 throw new SecurityProviderCreationException(String.format("The %s '%s' is not a valid time duration", configurationProperty, rawTimeout));
             }
@@ -309,7 +306,6 @@ public class LdapIdentityProvider extends BasicAuthIdentityProvider implements I
         final String rawTruststore = configurationContext.getProperty("TLS - Truststore");
         final String rawTruststorePassword = configurationContext.getProperty("TLS - Truststore Password");
         final String rawTruststoreType = configurationContext.getProperty("TLS - Truststore Type");
-        final String rawClientAuth = configurationContext.getProperty("TLS - Client Auth");
         final String rawProtocol = configurationContext.getProperty("TLS - Protocol");
 
         // create the ssl context
@@ -323,29 +319,32 @@ public class LdapIdentityProvider extends BasicAuthIdentityProvider implements I
                     throw new SecurityProviderCreationException("TLS - Protocol must be specified.");
                 }
 
-                if (StringUtils.isBlank(rawKeystore)) {
-                    sslContext = SslContextFactory.createTrustSslContext(rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, rawProtocol);
-                } else if (StringUtils.isBlank(rawTruststore)) {
-                    sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType, rawProtocol);
-                } else {
-                    // determine the client auth if specified
-                    final ClientAuth clientAuth;
-                    if (StringUtils.isBlank(rawClientAuth)) {
-                        clientAuth = ClientAuth.NONE;
-                    } else {
-                        try {
-                            clientAuth = ClientAuth.valueOf(rawClientAuth);
-                        } catch (final IllegalArgumentException iae) {
-                            throw new SecurityProviderCreationException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
-                                    rawClientAuth, StringUtils.join(ClientAuth.values(), ", ")));
-                        }
-                    }
+                final StandardSslContextBuilder sslContextBuilder = new StandardSslContextBuilder().protocol(rawProtocol);
 
-                    sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType,
-                            rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, clientAuth, rawProtocol);
+                if (StringUtils.isNotBlank(rawTruststore)) {
+                    try (final FileInputStream trustStoreStream = new FileInputStream(rawTruststore)) {
+                        final KeyStore trustStore = new StandardKeyStoreBuilder()
+                                .type(rawTruststoreType)
+                                .password(rawTruststorePassword.toCharArray())
+                                .inputStream(trustStoreStream).build();
+                        sslContextBuilder.trustStore(trustStore);
+                    }
                 }
+
+                if (StringUtils.isNotBlank(rawKeystore)) {
+                    try (final FileInputStream keyStoreStream = new FileInputStream(rawKeystore)) {
+                        final KeyStore keyStore = new StandardKeyStoreBuilder()
+                                .type(rawKeystoreType)
+                                .password(rawKeystorePassword.toCharArray())
+                                .inputStream(keyStoreStream).build();
+                        sslContextBuilder.keyStore(keyStore);
+                        sslContextBuilder.keyPassword(rawKeystorePassword.toCharArray());
+                    }
+                }
+
+                sslContext = sslContextBuilder.build();
             }
-        } catch (final KeyStoreException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException | KeyManagementException | IOException e) {
+        } catch (final RuntimeException | IOException e) {
             throw new SecurityProviderCreationException(e.getMessage(), e);
         }
 

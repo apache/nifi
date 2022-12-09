@@ -177,7 +177,7 @@ public interface FlowFileQueue {
 
     String getFlowFileExpiration();
 
-    int getFlowFileExpiration(TimeUnit timeUnit);
+    long getFlowFileExpiration(TimeUnit timeUnit);
 
     void setFlowFileExpiration(String flowExpirationPeriod);
 

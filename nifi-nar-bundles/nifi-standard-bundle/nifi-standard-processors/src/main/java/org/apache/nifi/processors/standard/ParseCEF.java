@@ -393,10 +393,9 @@ public class ParseCEF extends AbstractProcessor {
             }
 
             final Locale testLocale = Locale.forLanguageTag(input);
-            final Locale[] availableLocales = Locale.getAvailableLocales();
 
-            // Check if the provided Locale is valid by checking against the first value of the array (i.e. "null" locale)
-            if (availableLocales[0].equals(testLocale)) {
+            // Check if the provided Locale is valid by checking against the empty locale string
+            if ("".equals(testLocale.toString())) {
                 // Locale matches the "null" locale so it is treated as invalid
                 return new ValidationResult.Builder().subject(subject).input(input).valid(false)
                         .explanation(input + " is not a valid locale format.").build();

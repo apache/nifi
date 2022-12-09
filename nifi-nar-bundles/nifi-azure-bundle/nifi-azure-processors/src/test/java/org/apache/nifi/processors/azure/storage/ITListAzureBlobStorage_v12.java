@@ -174,7 +174,8 @@ public class ITListAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
 
         runner.assertAllFlowFilesTransferred(ListAzureBlobStorage_v12.REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListAzureBlobStorage_v12.REL_SUCCESS).get(0);
-        assertFlowFileBlobAttributes(flowFile, getContainerName(), "blob5", "Test".length());
+        assertFlowFileCommonBlobAttributes(flowFile, getContainerName(), "blob5");
+        assertFlowFileResultBlobAttributes(flowFile, "Test".length());
     }
 
     private void uploadBlobs() throws Exception {
@@ -207,8 +208,8 @@ public class ITListAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
     }
 
     private void assertFlowFile(MockFlowFile flowFile, String blobName) throws Exception {
-        assertFlowFileBlobAttributes(flowFile, getContainerName(), blobName, BLOB_DATA.length);
-
+        assertFlowFileCommonBlobAttributes(flowFile, getContainerName(), blobName);
+        assertFlowFileResultBlobAttributes(flowFile, BLOB_DATA.length);
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), blobName.substring(blobName.lastIndexOf('/') + 1));
 
         flowFile.assertContentEquals(EMPTY_CONTENT);

@@ -16,15 +16,13 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.registry.RegisteredFlowSnapshotMetadataResult;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -35,17 +33,15 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@DisabledOnOs(OS.WINDOWS)
 public class TestRegisteredFlowSnapshotMetadataResult {
 
     private ByteArrayOutputStream outputStream;
     private PrintStream printStream;
 
-    @BeforeClass
-    public static void setupCompleter() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
-    }
-
-    @Before
+    @BeforeEach
     public void setup() {
         this.outputStream = new ByteArrayOutputStream();
         this.printStream = new PrintStream(outputStream, true);
@@ -75,7 +71,6 @@ public class TestRegisteredFlowSnapshotMetadataResult {
         result.write(printStream);
 
         final String resultOut = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
-        //System.out.println(resultOut);
 
         // can't get the time zone to line up on travis, so ignore this for now
         final String expectedPattern = "^\\n" +
@@ -85,6 +80,6 @@ public class TestRegisteredFlowSnapshotMetadataResult {
                 //"2     Wed, Feb 14 2018 12:30 EST   user2    This is v2                                 \n" +
                 "(.|\\n)+$";
 
-        Assert.assertTrue(resultOut.matches(expectedPattern));
+        assertTrue(resultOut.matches(expectedPattern));
     }
 }

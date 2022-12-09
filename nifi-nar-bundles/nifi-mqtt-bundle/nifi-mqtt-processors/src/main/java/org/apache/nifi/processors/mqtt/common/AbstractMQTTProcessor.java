@@ -240,6 +240,14 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .required(false)
             .build();
 
+    public static final PropertyDescriptor BASE_MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
+            .name("message-demarcator")
+            .displayName("Message Demarcator")
+            .required(false)
+            .addValidator(Validator.VALID)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
     @Override
     public Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(1);
@@ -289,6 +297,12 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         if ((readerIsSet && !writerIsSet) || (!readerIsSet && writerIsSet)) {
             results.add(new ValidationResult.Builder().subject("Record Reader and Writer").valid(false)
                     .explanation("both properties must be set when used.").build());
+        }
+
+        final boolean demarcatorIsSet = validationContext.getProperty(BASE_MESSAGE_DEMARCATOR).isSet();
+        if (readerIsSet && demarcatorIsSet) {
+            results.add(new ValidationResult.Builder().subject("Reader and Writer").valid(false)
+                    .explanation("Message Demarcator and Record Reader/Writer cannot be used at the same time.").build());
         }
 
         return results;

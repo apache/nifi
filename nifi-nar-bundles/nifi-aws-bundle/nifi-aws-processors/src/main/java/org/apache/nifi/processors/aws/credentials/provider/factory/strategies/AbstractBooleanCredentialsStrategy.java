@@ -34,7 +34,7 @@ public abstract class AbstractBooleanCredentialsStrategy extends AbstractCredent
 
     private PropertyDescriptor strategyProperty;
 
-    public AbstractBooleanCredentialsStrategy(String name, PropertyDescriptor strategyProperty) {
+    public AbstractBooleanCredentialsStrategy(final String name, final PropertyDescriptor strategyProperty) {
         super("Default Credentials", new PropertyDescriptor[]{
             strategyProperty
         });
@@ -42,21 +42,21 @@ public abstract class AbstractBooleanCredentialsStrategy extends AbstractCredent
     }
 
     @Override
-    public boolean canCreatePrimaryCredential(Map<PropertyDescriptor, String> properties) {
-        String useStrategyString = properties.get(strategyProperty);
-        Boolean useStrategy = Boolean.parseBoolean(useStrategyString);
+    public boolean canCreatePrimaryCredential(final Map<PropertyDescriptor, String> properties) {
+        final String useStrategyString = properties.get(strategyProperty);
+        final Boolean useStrategy = Boolean.parseBoolean(useStrategyString);
         return useStrategy;
     }
 
     @Override
     public Collection<ValidationResult> validate(final ValidationContext validationContext,
                                                  final CredentialsStrategy primaryStrategy) {
-        boolean thisIsSelectedStrategy = this == primaryStrategy;
-        Boolean useStrategy = validationContext.getProperty(strategyProperty).asBoolean();
+        final boolean thisIsSelectedStrategy = this == primaryStrategy;
+        final Boolean useStrategy = validationContext.getProperty(strategyProperty).asBoolean();
         if (!thisIsSelectedStrategy && useStrategy) {
-            String failureFormat = "property %1$s cannot be used with %2$s";
-            Collection<ValidationResult> validationFailureResults = new ArrayList<ValidationResult>();
-            String message = String.format(failureFormat, strategyProperty.getDisplayName(),
+            final String failureFormat = "property %1$s cannot be used with %2$s";
+            final Collection<ValidationResult> validationFailureResults = new ArrayList<ValidationResult>();
+            final String message = String.format(failureFormat, strategyProperty.getDisplayName(),
                     primaryStrategy.getName());
             validationFailureResults.add(new ValidationResult.Builder()
                     .subject(strategyProperty.getDisplayName())

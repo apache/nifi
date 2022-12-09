@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.minifi.status;
 
-public class StatusRequestException extends Exception {
+public class StatusRequestException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
 

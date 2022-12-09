@@ -1,0 +1,15 @@
+def first(node)
+  if (is-array($node))
+    $node[0]
+  else
+    $node
+
+
+{
+  "rating": {
+    for(.rating)
+    .key : {
+      "value": first(."value".value)
+    }
+  }
+}

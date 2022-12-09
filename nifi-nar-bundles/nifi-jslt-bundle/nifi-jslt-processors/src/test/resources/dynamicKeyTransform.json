@@ -1,0 +1,12 @@
+{
+  "Range": 5,
+  "Rating": .rating.primary.value,
+  "SecondaryRatings": {
+    for(.rating)
+      .key: {
+        "Id": .key,
+        "Range": 5,
+        "Value": .value."value"
+      }
+  }
+}

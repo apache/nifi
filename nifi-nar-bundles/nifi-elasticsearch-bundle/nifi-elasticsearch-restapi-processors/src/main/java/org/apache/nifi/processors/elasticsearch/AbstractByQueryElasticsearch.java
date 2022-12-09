@@ -18,6 +18,7 @@
 package org.apache.nifi.processors.elasticsearch;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.ElasticsearchException;
@@ -38,6 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class AbstractByQueryElasticsearch extends AbstractProcessor implements ElasticsearchRestProcessor {
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
@@ -51,7 +53,7 @@ public abstract class AbstractByQueryElasticsearch extends AbstractProcessor imp
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
 
-    private volatile ElasticSearchClientService clientService;
+    private final AtomicReference<ElasticSearchClientService> clientService = new AtomicReference<>(null);
 
     static {
         final Set<Relationship> rels = new HashSet<>();
@@ -99,9 +101,19 @@ public abstract class AbstractByQueryElasticsearch extends AbstractProcessor imp
                 .build();
     }
 
+    @Override
+    public boolean isIndexNotExistSuccessful() {
+        return false;
+    }
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        clientService = context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class);
+        clientService.set(context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class));
+    }
+
+    @OnStopped
+    public void onStopped() {
+        clientService.set(null);
     }
 
     @Override
@@ -125,7 +137,7 @@ public abstract class AbstractByQueryElasticsearch extends AbstractProcessor imp
                     ? context.getProperty(QUERY_ATTRIBUTE).evaluateAttributeExpressions(input).getValue()
                     : null;
 
-            final OperationResponse or = performOperation(this.clientService, query, index, type, getUrlQueryParameters(context, input));
+            final OperationResponse or = performOperation(clientService.get(), query, index, type, getUrlQueryParameters(context, input));
 
             if (input == null) {
                 input = session.create();

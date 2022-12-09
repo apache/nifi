@@ -20,7 +20,6 @@ FROM apacheminifi:${minifi.version}
 
 USER root
 
-RUN apk update \
-    && apk add python
+RUN apt-get update && apt-get install -y python3
 
 USER minifi

@@ -17,8 +17,8 @@
 package org.apache.nifi.controller.status.history;
 
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.time.LocalDateTime;
@@ -26,8 +26,9 @@ import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.List;
 
-import static junit.framework.TestCase.assertTrue;
-import static org.testng.AssertJUnit.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * This class verifies the VolatileComponentStatusRepository getConnectionStatusHistory method
@@ -41,7 +42,7 @@ public class VolatileComponentStatusRepositoryForComponentsTest {
   private static final int FIVE_MINUTES = 300000;
   private static int BUFSIZE3 = 10;
 
-  @BeforeClass
+  @BeforeAll
   public static void createBuffers() {
     // Fill the repo1 buffer completely with Date objects at five-minute intervals
     // This provides dates up to around Jul 1979
@@ -84,7 +85,7 @@ public class VolatileComponentStatusRepositoryForComponentsTest {
     List<Date> dates = repo.filterDates(null, null, Integer.MAX_VALUE);
     assert repo.timestamps != null;
     assertEquals(repo.timestamps.getSize(), dates.size());
-    assertTrue(dates.equals(repo.timestamps.asList()));
+    assertEquals(dates, repo.timestamps.asList());
     repo.timestamps.add(new Date());
   }
 
@@ -212,7 +213,7 @@ public class VolatileComponentStatusRepositoryForComponentsTest {
       emptyRepo.timestamps.add(new Date(i * FIVE_MINUTES));
       List<Date> dates = emptyRepo.filterDates(null, null, Integer.MAX_VALUE);
       if (i < BUFSIZE3 - 1) {
-        assertEquals(null, emptyRepo.timestamps.getOldestElement());
+        assertNull(emptyRepo.timestamps.getOldestElement());
       } else {
         assertEquals(emptyRepo.timestamps.getOldestElement(), dates.get(0));
       }

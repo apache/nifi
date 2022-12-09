@@ -197,22 +197,7 @@ public class FingerprintFactory {
                     registryClientDtos.add(FlowFromDOMFactory.getFlowRegistryClient(flowRegistryElement, encryptor, encodingVersion));
                 }
 
-                Collections.sort(registryClientDtos, new Comparator<FlowRegistryClientDTO>() {
-                    @Override
-                    public int compare(final FlowRegistryClientDTO o1, final FlowRegistryClientDTO o2) {
-                        if (o1 == null && o2 == null) {
-                            return 0;
-                        }
-                        if (o1 == null && o2 != null) {
-                            return 1;
-                        }
-                        if (o1 != null && o2 == null) {
-                            return -1;
-                        }
-
-                        return o1.getId().compareTo(o2.getId());
-                    }
-                });
+                registryClientDtos.sort(Comparator.comparing(FlowRegistryClientDTO::getId));
 
                 for (final FlowRegistryClientDTO registryClientDto : registryClientDtos) {
                     addFlowRegistryFingerprint(builder, registryClientDto);

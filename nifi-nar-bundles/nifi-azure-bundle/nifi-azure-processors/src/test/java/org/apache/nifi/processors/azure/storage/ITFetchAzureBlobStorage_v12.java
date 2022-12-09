@@ -191,7 +191,8 @@ public class ITFetchAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT 
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchAzureBlobStorage_v12.REL_SUCCESS).get(0);
 
-        assertFlowFileBlobAttributes(flowFile, getContainerName(), blobName, originalLength);
+        assertFlowFileCommonBlobAttributes(flowFile, getContainerName(), blobName);
+        assertFlowFileResultBlobAttributes(flowFile, originalLength);
 
         flowFile.assertContentEquals(blobData);
     }

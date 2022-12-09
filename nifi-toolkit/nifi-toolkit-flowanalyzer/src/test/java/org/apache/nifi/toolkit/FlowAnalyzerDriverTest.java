@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.toolkit;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.math.BigDecimal;
 
 import org.apache.nifi.toolkit.flowanalyzer.FlowAnalyzerDriver;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class FlowAnalyzerDriverTest {
 

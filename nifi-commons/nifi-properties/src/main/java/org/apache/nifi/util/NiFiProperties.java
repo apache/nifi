@@ -193,6 +193,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String SECURITY_USER_OIDC_PREFERRED_JWSALGORITHM = "nifi.security.user.oidc.preferred.jwsalgorithm";
     public static final String SECURITY_USER_OIDC_ADDITIONAL_SCOPES = "nifi.security.user.oidc.additional.scopes";
     public static final String SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER = "nifi.security.user.oidc.claim.identifying.user";
+    public static final String NIFI_SECURITY_USER_OIDC_CLAIM_GROUPS = "nifi.security.user.oidc.claim.groups";
     public static final String SECURITY_USER_OIDC_FALLBACK_CLAIMS_IDENTIFYING_USER = "nifi.security.user.oidc.fallback.claims.identifying.user";
 
     // apache knox
@@ -1143,6 +1144,17 @@ public class NiFiProperties extends ApplicationProperties {
      */
     public String getOidcClaimIdentifyingUser() {
         return getProperty(SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER, "email").trim();
+    }
+
+    /**
+     * Returns the claim to be used to extract user groups from the OIDC payload.
+     * Claim must be requested by adding the scope for it.
+     * Default is 'groups'.
+     *
+     * @return The claim to be used to extract user groups.
+     */
+    public String getOidcClaimGroups() {
+        return getProperty(NIFI_SECURITY_USER_OIDC_CLAIM_GROUPS, "groups").trim();
     }
 
     /**

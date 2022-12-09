@@ -45,6 +45,12 @@
                 <div id="import-flow-version-label"></div>
             </div>
         </div>
+        <div class="setting">
+            <div class="setting-name">Flow Description</div>
+            <div class="setting-field" id="import-flow-description-container">
+                <div id="import-flow-version-details"></div>
+            </div>
+        </div>
         <div id="import-flow-version-table"></div>
     </div>
 </div>

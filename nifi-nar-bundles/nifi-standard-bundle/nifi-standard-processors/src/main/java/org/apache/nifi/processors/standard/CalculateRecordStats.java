@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -55,8 +56,12 @@ import java.util.stream.Collectors;
 @CapabilityDescription("A processor that can count the number of items in a record set, as well as provide counts based on " +
         "user-defined criteria on subsets of the record set.")
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@DynamicProperty(name = "Record Path property", value = "The Record Path value",
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+        description = "A Record Path value, pointing to a field to be counted")
+
 @WritesAttributes({
-    @WritesAttribute(attribute = CalculateRecordStats.RECORD_COUNT_ATTR, description = "A count of the records in the record set in the flowfile."),
+    @WritesAttribute(attribute = CalculateRecordStats.RECORD_COUNT_ATTR, description = "A count of the records in the record set in the FlowFile."),
     @WritesAttribute(attribute = "recordStats.<User Defined Property Name>.count", description = "A count of the records that contain a value for the user defined property."),
     @WritesAttribute(attribute = "recordStats.<User Defined Property Name>.<value>.count",
             description = "Each value discovered for the user defined property will have its own count attribute. " +

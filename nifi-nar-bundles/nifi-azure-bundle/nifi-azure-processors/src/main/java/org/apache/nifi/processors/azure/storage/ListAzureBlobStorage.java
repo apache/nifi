@@ -45,7 +45,9 @@ import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -61,6 +63,7 @@ import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo.Builder;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.util.Optional;
@@ -87,6 +90,8 @@ import java.util.Optional;
         "This allows the Processor to list only blobs that have been added or modified after this date the next time that the Processor is run.  State is " +
         "stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up " +
         "where the previous node left off, without duplicating the data.")
+@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
+@DeprecationNotice(alternatives = ListAzureBlobStorage_v12.class, reason = "Processor depends on legacy Microsoft Azure SDK")
 public class ListAzureBlobStorage extends AbstractListAzureProcessor<BlobInfo> {
 
     private static final PropertyDescriptor PROP_PREFIX = new PropertyDescriptor.Builder()

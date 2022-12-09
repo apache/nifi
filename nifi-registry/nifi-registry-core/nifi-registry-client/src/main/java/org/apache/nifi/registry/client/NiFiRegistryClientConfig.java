@@ -16,28 +16,24 @@
  */
 package org.apache.nifi.registry.client;
 
-import org.apache.nifi.registry.security.util.CertificateUtils;
-import org.apache.nifi.registry.security.util.KeyStoreUtils;
 import org.apache.nifi.registry.security.util.KeystoreType;
+import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
+import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 
 import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.KeyStore;
-import java.security.SecureRandom;
 
 /**
  * Configuration for a NiFiRegistryClient.
  */
 public class NiFiRegistryClientConfig {
 
-    public static final String DEFAULT_PROTOCOL = CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion();
+    private static final String DEFAULT_PROTOCOL = "TLS";
 
     private final String baseUrl;
     private final SSLContext sslContext;
@@ -79,58 +75,49 @@ public class NiFiRegistryClientConfig {
             return sslContext;
         }
 
-        final KeyManagerFactory keyManagerFactory;
+        final KeyStore keyStore;
         if (keystoreFilename != null && keystorePass != null && keystoreType != null) {
-            try {
-                // prepare the keystore
-                final KeyStore keyStore = KeyStoreUtils.getKeyStore(keystoreType.name());
-                try (final InputStream keyStoreStream = new FileInputStream(new File(keystoreFilename))) {
-                    keyStore.load(keyStoreStream, keystorePass.toCharArray());
-                }
-                keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-
-                if (keyPass == null) {
-                    keyManagerFactory.init(keyStore, keystorePass.toCharArray());
-                } else {
-                    keyManagerFactory.init(keyStore, keyPass.toCharArray());
-                }
-            } catch (final Exception e) {
-                throw new IllegalStateException("Failed to load Keystore", e);
+            try (final InputStream keyStoreStream = Files.newInputStream(Paths.get(keystoreFilename))) {
+                keyStore = new StandardKeyStoreBuilder()
+                        .inputStream(keyStoreStream)
+                        .password(keystorePass.toCharArray())
+                        .type(keystoreType.name())
+                        .build();
+            } catch (final IOException e) {
+                throw new IllegalStateException(String.format("Read Key Store [%s] failed", keystoreFilename), e);
             }
         } else {
-            keyManagerFactory = null;
+            keyStore = null;
         }
 
-        final TrustManagerFactory trustManagerFactory;
+        final KeyStore trustStore;
         if (truststoreFilename != null && truststorePass != null && truststoreType != null) {
-            try {
-                // prepare the truststore
-                final KeyStore trustStore = KeyStoreUtils.getKeyStore(truststoreType.name());
-                try (final InputStream trustStoreStream = new FileInputStream(new File(truststoreFilename))) {
-                    trustStore.load(trustStoreStream, truststorePass.toCharArray());
-                }
-                trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                trustManagerFactory.init(trustStore);
-            } catch (final Exception e) {
-                throw new IllegalStateException("Failed to load Truststore", e);
+            try (final InputStream keyStoreStream = Files.newInputStream(Paths.get(truststoreFilename))) {
+                trustStore = new StandardKeyStoreBuilder()
+                        .inputStream(keyStoreStream)
+                        .password(truststorePass.toCharArray())
+                        .type(truststoreType.name())
+                        .build();
+            } catch (final IOException e) {
+                throw new IllegalStateException(String.format("Read Trust Store [%s] failed", truststoreFilename), e);
             }
         } else {
-            trustManagerFactory = null;
+            trustStore = null;
         }
 
-        if (keyManagerFactory != null || trustManagerFactory != null) {
-            try {
-                // initialize the ssl context
-                KeyManager[] keyManagers = keyManagerFactory != null ? keyManagerFactory.getKeyManagers() : null;
-                TrustManager[] trustManagers = trustManagerFactory != null ? trustManagerFactory.getTrustManagers() : null;
-                final SSLContext sslContext = SSLContext.getInstance(getProtocol());
-                sslContext.init(keyManagers, trustManagers, new SecureRandom());
-                sslContext.getDefaultSSLParameters().setNeedClientAuth(true);
+        if (keyStore != null || trustStore != null) {
+            final StandardSslContextBuilder builder = new StandardSslContextBuilder();
+            builder.protocol(protocol);
 
-                return sslContext;
-            } catch (final Exception e) {
-                throw new IllegalStateException("Created keystore and truststore but failed to initialize SSLContext", e);
+            if (keyStore != null) {
+                final char[] keyPassword = keyPass == null ? keystorePass.toCharArray() : keyPass.toCharArray();
+                builder.keyPassword(keyPassword);
+                builder.keyStore(keyStore);
             }
+            if (trustStore != null) {
+                builder.trustStore(trustStore);
+            }
+            return builder.build();
         } else {
             return null;
         }

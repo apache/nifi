@@ -47,7 +47,7 @@ import java.util.List;
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @EventDriven
-@Tags({"elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "query", "scroll", "page", "read", "json"})
+@Tags({"elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "query", "scroll", "page", "read", "json"})
 @CapabilityDescription("A processor that allows the user to run a paginated query (with aggregations) written with the Elasticsearch JSON DSL. " +
         "It will use the flowfile's content for the query unless the QUERY attribute is populated. " +
         "Search After/Point in Time queries must include a valid \"sort\" field.")

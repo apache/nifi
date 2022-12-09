@@ -20,26 +20,6 @@
         <cpe regex="true">^cpe:.*$</cpe>
     </suppress>
     <suppress>
-        <notes>Meta MX HTTP Client is incorrectly identified as Netty</notes>
-        <packageUrl regex="true">^pkg:maven/com\.metamx/http\-client@.*$</packageUrl>
-        <cpe>cpe:/a:netty:netty</cpe>
-    </suppress>
-    <suppress>
-        <notes>Testcontainers MySQL is incorrectly identified with MySQL server</notes>
-        <packageUrl regex="true">^pkg:maven/org\.testcontainers/mysql@.*$</packageUrl>
-        <cpe>cpe:/a:mysql:mysql</cpe>
-    </suppress>
-    <suppress>
-        <notes>StumbleUpon Async is incorrectly identified as the JavaScript Async library</notes>
-        <packageUrl regex="true">^pkg:maven/com\.stumbleupon/async@.*$</packageUrl>
-        <cve>CVE-2021-43138</cve>
-    </suppress>
-    <suppress>
-        <notes>HBase Async is incorrectly identified as the JavaScript Async library</notes>
-        <packageUrl regex="true">^pkg:maven/org\.hbase/asynchbase@.*$</packageUrl>
-        <cve>CVE-2021-43138</cve>
-    </suppress>
-    <suppress>
         <notes>Jetty SSLEngine is incorrectly identified with Jetty Server</notes>
         <packageUrl regex="true">^pkg:maven/org\.mortbay\.jetty/jetty\-sslengine@.*$</packageUrl>
         <cpe regex="true">^cpe:.*$</cpe>
@@ -48,11 +28,6 @@
         <notes>MySQL Binary Log Connector is incorrectly identified as MySQL server</notes>
         <packageUrl regex="true">^pkg:maven/com\.zendesk/mysql\-binlog\-connector\-java@.*$</packageUrl>
         <cpe>cpe:/a:mysql:mysql</cpe>
-    </suppress>
-    <suppress>
-        <notes>Testcontainers MariaDB is incorrectly identified with MariaDB server</notes>
-        <packageUrl regex="true">^pkg:maven/org\.testcontainers/mariadb@.*$</packageUrl>
-        <cpe>cpe:/a:mariadb:mariadb</cpe>
     </suppress>
     <suppress>
         <notes>Twill ZooKeeper is incorrectly identified with ZooKeeper server</notes>
@@ -65,14 +40,9 @@
         <vulnerabilityName regex="true">^CVE.*$</vulnerabilityName>
     </suppress>
     <suppress>
-        <notes>H2 2 is not vulnerable to CVE-2018-14335</notes>
+        <notes>CVE-2022-45868 requires running H2 from a command not applicable to project references</notes>
         <packageUrl regex="true">^pkg:maven/com\.h2database/h2@2.*$</packageUrl>
-        <vulnerabilityName>CVE-2018-14335</vulnerabilityName>
-    </suppress>
-    <suppress>
-        <notes>Jetty apache-jsp is not part of Apache Tomcat server</notes>
-        <packageUrl>pkg:maven/org.mortbay.jasper/apache-jsp@8.5.70</packageUrl>
-        <cpe>cpe:/a:apache:tomcat</cpe>
+        <vulnerabilityName>CVE-2022-45868</vulnerabilityName>
     </suppress>
     <suppress>
         <notes>CVE-2016-1000027 does not apply to Spring Web 5.3.20 and later</notes>
@@ -83,11 +53,6 @@
         <notes>CVE-2020-5408 does not apply to Spring Security Crypto 5.7.1 and later</notes>
         <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring\-security\-crypto@.*$</packageUrl>
         <vulnerabilityName>CVE-2020-5408</vulnerabilityName>
-    </suppress>
-    <suppress>
-        <notes>Spring Security Kerberos Core is an extension of the Spring Security project</notes>
-        <packageUrl regex="true">^pkg:maven/org\.springframework\.security\.kerberos/spring\-security\-kerberos.*$</packageUrl>
-        <cpe>cpe:/a:vmware:spring_security</cpe>
     </suppress>
     <suppress>
         <notes>Servlet API 2.5 does not include Jetty Server vulnerabilities</notes>
@@ -203,5 +168,50 @@
         <notes>CVE-2022-31159 applies to AWS S3 library not the SWF libraries</notes>
         <packageUrl regex="true">^pkg:maven/com\.amazonaws/aws\-java\-sdk\-swf\-libraries@.*$</packageUrl>
         <cve>CVE-2022-31159</cve>
+    </suppress>
+    <suppress>
+        <notes>Hive vulnerabilities do not apply to Iceberg Hive Metadata</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.iceberg/iceberg\-hive\-metastore@.*$</packageUrl>
+        <cpe>cpe:/a:apache:hive</cpe>
+    </suppress>
+    <suppress>
+        <notes>Elasticsearch Server vulnerabilities do not apply to Elasticsearch Plugin</notes>
+        <packageUrl regex="true">^pkg:maven/org\.elasticsearch\.plugin/.*?@7.6.0$</packageUrl>
+        <cpe regex="true">^cpe:/a:elastic.*$</cpe>
+    </suppress>
+    <suppress>
+        <notes>Elasticsearch Server vulnerabilities do not apply to elasticsearch-core</notes>
+        <packageUrl regex="true">^pkg:maven/org\.elasticsearch/elasticsearch\-core@7.6.0$</packageUrl>
+        <cpe regex="true">^cpe:/a:elastic.*$</cpe>
+    </suppress>
+    <suppress>
+        <notes>Elasticsearch Server vulnerabilities do not apply to elasticsearch</notes>
+        <packageUrl regex="true">^pkg:maven/org\.elasticsearch/elasticsearch@7.6.0$</packageUrl>
+        <cpe regex="true">^cpe:/a:elastic.*$</cpe>
+    </suppress>
+    <suppress>
+        <notes>Elasticsearch Server CVE-2020-7009 does not apply to elasticsearch client libraries</notes>
+        <packageUrl regex="true">^pkg:maven/org\.elasticsearch/elasticsearch.*$</packageUrl>
+        <cve>CVE-2020-7009</cve>
+    </suppress>
+    <suppress>
+        <notes>Elasticsearch Server CVE-2020-7014 does not apply to elasticsearch client libraries</notes>
+        <packageUrl regex="true">^pkg:maven/org\.elasticsearch/elasticsearch.*$</packageUrl>
+        <cve>CVE-2020-7014</cve>
+    </suppress>
+    <suppress>
+        <notes>Elasticsearch Server vulnerabilities do not apply to elasticsearch libraries</notes>
+        <packageUrl regex="true">^pkg:maven/org\.elasticsearch/elasticsearch\-.*?@7.6.0$</packageUrl>
+        <cpe regex="true">^cpe:/a:elastic.*$</cpe>
+    </suppress>
+    <suppress>
+        <notes>Elasticsearch Server vulnerabilities do not apply to elasticsearch-rest-client</notes>
+        <packageUrl regex="true">^pkg:maven/org\.elasticsearch\.client/elasticsearch\-.*?\-client@.*$</packageUrl>
+        <cpe regex="true">^cpe:/a:elastic.*$</cpe>
+    </suppress>
+    <suppress>
+        <notes>HTTP server vulnerabilities do not apply to Apache FTP Server</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.ftpserver/.*$</packageUrl>
+        <cpe>cpe:/a:apache:apache_http_server</cpe>
     </suppress>
 </suppressions>

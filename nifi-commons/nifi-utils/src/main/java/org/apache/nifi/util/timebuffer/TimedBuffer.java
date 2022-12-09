@@ -18,6 +18,7 @@ package org.apache.nifi.util.timebuffer;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.LongSupplier;
 
 public class TimedBuffer<T> {
 
@@ -25,20 +26,26 @@ public class TimedBuffer<T> {
     private final EntitySum<T>[] bins;
     private final EntityAccess<T> entityAccess;
     private final TimeUnit binPrecision;
+    private final LongSupplier currentTimeSupplier;
+
+    public TimedBuffer(final TimeUnit binPrecision, final int numBins, final EntityAccess<T> accessor) {
+        this(binPrecision, numBins, accessor, System::currentTimeMillis);
+    }
 
     @SuppressWarnings("unchecked")
-    public TimedBuffer(final TimeUnit binPrecision, final int numBins, final EntityAccess<T> accessor) {
+    public TimedBuffer(final TimeUnit binPrecision, final int numBins, final EntityAccess<T> accessor, final LongSupplier currentTimeSupplier) {
         this.binPrecision = binPrecision;
         this.numBins = numBins + 1;
         this.bins = new EntitySum[this.numBins];
         for (int i = 0; i < this.numBins; i++) {
-            this.bins[i] = new EntitySum<>(binPrecision, numBins, accessor);
+            this.bins[i] = new EntitySum<>(binPrecision, numBins, accessor, currentTimeSupplier);
         }
         this.entityAccess = accessor;
+        this.currentTimeSupplier = currentTimeSupplier;
     }
 
     public T add(final T entity) {
-        final int binIdx = (int) (binPrecision.convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS) % numBins);
+        final int binIdx = (int) (binPrecision.convert(currentTimeSupplier.getAsLong(), TimeUnit.MILLISECONDS) % numBins);
         final EntitySum<T> sum = bins[binIdx];
 
         return sum.addOrReset(entity);
@@ -66,11 +73,13 @@ public class TimedBuffer<T> {
         private final AtomicReference<S> ref = new AtomicReference<>();
         private final TimeUnit binPrecision;
         private final int numConfiguredBins;
+        private final LongSupplier currentTimeSupplier;
 
-        public EntitySum(final TimeUnit binPrecision, final int numConfiguredBins, final EntityAccess<S> aggregator) {
+        public EntitySum(final TimeUnit binPrecision, final int numConfiguredBins, final EntityAccess<S> aggregator, final LongSupplier currentTimeSupplier) {
             this.binPrecision = binPrecision;
             this.entityAccess = aggregator;
             this.numConfiguredBins = numConfiguredBins;
+            this.currentTimeSupplier = currentTimeSupplier;
         }
 
         private S add(final S event) {
@@ -92,7 +101,7 @@ public class TimedBuffer<T> {
             // entityAccess.getTimestamp(curValue) represents the time at which the current value
             // was last updated. If the last value is less than current time - 1 binPrecision, then it
             // means that we've rolled over and need to reset the value.
-            final long maxExpectedTimePeriod = System.currentTimeMillis() - TimeUnit.MILLISECONDS.convert(numConfiguredBins, binPrecision);
+            final long maxExpectedTimePeriod = currentTimeSupplier.getAsLong() - TimeUnit.MILLISECONDS.convert(numConfiguredBins, binPrecision);
 
             final S curValue = ref.get();
             return (entityAccess.getTimestamp(curValue) < maxExpectedTimePeriod);
@@ -102,7 +111,7 @@ public class TimedBuffer<T> {
             // entityAccess.getTimestamp(curValue) represents the time at which the current value
             // was last updated. If the last value is less than current time - 1 binPrecision, then it
             // means that we've rolled over and need to reset the value.
-            final long maxExpectedTimePeriod = System.currentTimeMillis() - TimeUnit.MILLISECONDS.convert(1, binPrecision);
+            final long maxExpectedTimePeriod = currentTimeSupplier.getAsLong() - TimeUnit.MILLISECONDS.convert(1, binPrecision);
 
             final S curValue = ref.get();
             if (entityAccess.getTimestamp(curValue) < maxExpectedTimePeriod) {

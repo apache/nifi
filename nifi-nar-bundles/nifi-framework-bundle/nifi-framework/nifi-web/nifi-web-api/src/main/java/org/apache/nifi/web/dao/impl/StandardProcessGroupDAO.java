@@ -82,6 +82,10 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             group.setPosition(new Position(processGroup.getPosition().getX(), processGroup.getPosition().getY()));
         }
 
+        if (processGroup.getComments() != null) {
+            group.setComments(processGroup.getComments());
+        }
+
         final ParameterContextReferenceEntity parameterContextReference = processGroup.getParameterContext();
         if (parameterContextReference != null && parameterContextReference.getId() != null) {
             final ParameterContext parameterContext = flowController.getFlowManager().getParameterContextManager().getParameterContext(parameterContextReference.getId());

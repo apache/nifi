@@ -23,7 +23,7 @@ Apache NiFi is an easy to use, powerful, and reliable system to process and dist
 - [Getting Help](#getting-help)
 - [Requirements](#requirements)
 - [License](#license)
-- [Export Control] (#export-control)
+- [Export Control](#export-control)
 
 ## Features
 
@@ -51,7 +51,11 @@ Apache NiFi was made for dataflow. It supports highly configurable directed grap
 To start NiFi:
 - [linux/osx] execute bin/nifi.sh start
 - [windows] execute bin/run-nifi.bat
-- Direct your browser to http://localhost:8080/nifi/
+- Obtain the generated username and password from logs/nifi-app.log
+  - [linux/osx] For example: `cat logs/nifi-app.log | grep Generated`
+- Direct your browser to https://localhost:8443/nifi/
+- Use the generated username and password to login
+
 
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.apache.org

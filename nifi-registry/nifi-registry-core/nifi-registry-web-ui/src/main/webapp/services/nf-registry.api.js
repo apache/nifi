@@ -866,7 +866,7 @@ NfRegistryApi.prototype = {
      *
      * @returns {*}
      */
-    deleteToLogout: function (url) {
+    deleteToLogout: function () {
         var self = this;
         var options = {
             headers: headers,
@@ -874,7 +874,7 @@ NfRegistryApi.prototype = {
             responseType: 'text'
         };
 
-        return this.http.delete(url, options).pipe(
+        return this.http.delete('../nifi-registry-api/access/logout', options).pipe(
             map(function (response) {
                 return response;
             }),

@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.amqp.processors;
 
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.GetResponse;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Test;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -24,19 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.GetResponse;
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PublishAMQPTest {
@@ -45,11 +43,13 @@ public class PublishAMQPTest {
     public void validateSuccessfulPublishAndTransferToSuccess() throws Exception {
         final PublishAMQP pubProc = new LocalPublishAMQP();
         final TestRunner runner = TestRunners.newTestRunner(pubProc);
-        runner.setProperty(PublishAMQP.BROKERS, "injvm:5672");
-        runner.setProperty(PublishAMQP.EXCHANGE, "myExchange");
-        runner.setProperty(PublishAMQP.ROUTING_KEY, "key1");
-        runner.setProperty(PublishAMQP.USER, "user");
-        runner.setProperty(PublishAMQP.PASSWORD, "password");
+        setConnectionProperties(runner);
+
+        final Map<String, String> expectedHeaders = new HashMap<String, String>() {{
+            put("foo", "bar");
+            put("foo2", "bar2");
+            put("foo3", null);
+        }};
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("foo", "bar");
@@ -83,13 +83,7 @@ public class PublishAMQPTest {
 
         final Map<String, Object> headerMap = msg1.getProps().getHeaders();
 
-        final Object foo = headerMap.get("foo");
-        final Object foo2 = headerMap.get("foo2");
-        final Object foo3 = headerMap.get("foo3");
-
-        assertEquals("bar", foo.toString());
-        assertEquals("bar2", foo2.toString());
-        assertNull(foo3);
+        assertEquals(expectedHeaders, headerMap);
 
         assertEquals((Integer) 1, msg1.getProps().getDeliveryMode());
         assertEquals((Integer) 2, msg1.getProps().getPriority());
@@ -110,15 +104,16 @@ public class PublishAMQPTest {
     public void validateSuccessWithHeaderWithCommaPublishToSuccess() throws Exception {
         final PublishAMQP pubProc = new LocalPublishAMQP();
         final TestRunner runner = TestRunners.newTestRunner(pubProc);
-        runner.setProperty(PublishAMQP.BROKERS, "injvm:5672");
-        runner.setProperty(PublishAMQP.EXCHANGE, "myExchange");
-        runner.setProperty(PublishAMQP.ROUTING_KEY, "key1");
-        runner.setProperty(PublishAMQP.USER, "user");
-        runner.setProperty(PublishAMQP.PASSWORD, "password");
+        setConnectionProperties(runner);
         runner.setProperty(PublishAMQP.HEADER_SEPARATOR,"|");
 
-        final Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> expectedHeaders = new HashMap<String, String>() {{
+            put("foo", "(bar,bar)");
+            put("foo2", "bar2");
+            put("foo3", null);
+        }};
 
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("amqp$headers", "foo=(bar,bar)|foo2=bar2|foo3");
 
         runner.enqueue("Hello Joe".getBytes(), attributes);
@@ -134,14 +129,7 @@ public class PublishAMQPTest {
 
         final Map<String, Object> headerMap = msg1.getProps().getHeaders();
 
-        final Object foo = headerMap.get("foo");
-        final Object foo2 = headerMap.get("foo2");
-        final Object foo3 = headerMap.get("foo3");
-
-        assertEquals("(bar,bar)", foo.toString());
-        assertEquals("bar2", foo2.toString());
-        assertNull(foo3);
-
+        assertEquals(expectedHeaders, headerMap);
 
         assertNotNull(channel.basicGet("queue2", true));
     }
@@ -152,18 +140,48 @@ public class PublishAMQPTest {
         final TestRunner runner = TestRunners.newTestRunner(pubProc);
         runner.setProperty(PublishAMQP.HEADER_SEPARATOR,"|,");
         runner.assertNotValid();
-
     }
 
     @Test
-    public void validateFailedPublishAndTransferToFailure() throws Exception {
+    public void validateMalformedHeaderIgnoredAndPublishToSuccess() throws Exception {
+        final PublishAMQP pubProc = new LocalPublishAMQP();
+        final TestRunner runner = TestRunners.newTestRunner(pubProc);
+        setConnectionProperties(runner);
+        runner.setProperty(PublishAMQP.HEADER_SEPARATOR,"|");
+
+        final Map<String, String> expectedHeaders = new HashMap<String, String>() {{
+            put("foo", "(bar,bar)");
+            put("foo2", "bar2");
+            put("foo3", null);
+        }};
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("amqp$headers", "foo=(bar,bar)|foo2=bar2|foo3|foo4=malformed=|foo5=mal=formed");
+
+        runner.enqueue("Hello Joe".getBytes(), attributes);
+
+        runner.run();
+
+        final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
+        assertNotNull(successFF);
+
+        final Channel channel = ((LocalPublishAMQP) pubProc).getConnection().createChannel();
+        final GetResponse msg1 = channel.basicGet("queue1", true);
+        assertNotNull(msg1);
+
+        final Map<String, Object> headerMap = msg1.getProps().getHeaders();
+
+        assertEquals(expectedHeaders, headerMap);
+
+        assertNotNull(channel.basicGet("queue2", true));
+    }
+
+    @Test
+    public void validateFailedPublishAndTransferToFailure() {
         PublishAMQP pubProc = new LocalPublishAMQP();
         TestRunner runner = TestRunners.newTestRunner(pubProc);
-        runner.setProperty(PublishAMQP.BROKERS, "injvm:5672");
-        runner.setProperty(PublishAMQP.EXCHANGE, "badToTheBone");
-        runner.setProperty(PublishAMQP.ROUTING_KEY, "key1");
-        runner.setProperty(PublishAMQP.USER, "user");
-        runner.setProperty(PublishAMQP.PASSWORD, "password");
+        setConnectionProperties(runner);
+        runner.setProperty(PublishAMQP.EXCHANGE, "nonExistentExchange");
 
         runner.enqueue("Hello Joe".getBytes());
 
@@ -173,6 +191,13 @@ public class PublishAMQPTest {
         assertNotNull(runner.getFlowFilesForRelationship(PublishAMQP.REL_FAILURE).get(0));
     }
 
+    private void setConnectionProperties(TestRunner runner) {
+        runner.setProperty(PublishAMQP.BROKERS, "injvm:5672");
+        runner.setProperty(PublishAMQP.USER, "user");
+        runner.setProperty(PublishAMQP.PASSWORD, "password");
+        runner.setProperty(PublishAMQP.EXCHANGE, "myExchange");
+        runner.setProperty(PublishAMQP.ROUTING_KEY, "key1");
+    }
 
     public static class LocalPublishAMQP extends PublishAMQP {
         private TestConnection connection;

@@ -1,0 +1,59 @@
+{
+  "data": {
+    "headerWorklists": [],
+    "items": [
+      {
+        "itemId": "10",
+        "itemStatus": {},
+        "itemSchedules": [],
+        "itemWorklists": [
+          {
+            "worklistItem": "364141264",
+            "reasonCode": "I09",
+            "description": "Incomplete"
+          }
+        ]
+      },
+      {
+        "itemId": "20",
+        "itemStatus": {
+          "code": "1",
+          "text": "Planned"
+        },
+        "itemSchedules": [
+          {
+            "scheduleItem": "10",
+            "scheduledQuantity": {
+              "amount": 10,
+              "uom": "KX6"
+            },
+            "scheduledVolume": {
+              "amount": 10000,
+              "uom": "BX6"
+            },
+            "scheduledVolume2": {
+              "amount": 1589.873,
+              "uom": "N15"
+            },
+            "scheduledWeight": {
+              "amount": 1211.642,
+              "uom": "TNZ"
+            }
+          }
+        ],
+        "itemWorklists": [
+          {
+            "worklistItem": "364141264",
+            "reasonCode": "I09",
+            "description": "Line item is incomplete"
+          },
+          {
+            "worklistItem": "364141265",
+            "reasonCode": "Z69",
+            "description": "Incorrect item"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -14,6 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-DOCKER_IMAGE="$(egrep -v '(^#|^\s*$|^\s*\t*#)' DockerImage.txt)"
+DOCKER_IMAGE="$(grep -Ev '(^#|^\s*$|^\s*\t*#)' DockerImage.txt)"
 echo "Running Docker Image: $DOCKER_IMAGE"
-docker run -it -d $DOCKER_IMAGE
+docker run -it -d "$DOCKER_IMAGE"

@@ -1,0 +1,12 @@
+ORG-APACHE-NIFI-JASN1-TEST
+
+DEFINITIONS IMPLICIT TAGS ::=
+
+BEGIN
+
+TypeWithReservedJavaKeyword ::= SEQUENCE
+{
+    length                      [0] INTEGER
+}
+
+END

@@ -26,6 +26,8 @@ import org.apache.nifi.syslog.attributes.SyslogAttributes;
 import org.apache.nifi.syslog.events.Syslog5424Event;
 import org.apache.nifi.syslog.parsers.StrictSyslog5424Parser;
 import org.apache.nifi.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -39,6 +41,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Syslog5424RecordReader implements RecordReader {
+    private static final Logger logger = LoggerFactory.getLogger(Syslog5424RecordReader.class);
+
     private final BufferedReader reader;
     private RecordSchema schema;
     private final StrictSyslog5424Parser parser;
@@ -53,36 +57,39 @@ public class Syslog5424RecordReader implements RecordReader {
 
     @Override
     public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) throws IOException, MalformedRecordException {
-        String line = reader.readLine();
+        String line;
+        while (true) {
+            line = reader.readLine();
 
-        if ( line == null ) {
-            // a null return from readLine() signals the end of the stream
-            return null;
+            if (line == null) {
+                // a null return from readLine() signals the end of the stream
+                return null;
+            }
+
+            if (StringUtils.isBlank(line)) {
+                logger.debug("Encountered empty line, will skip");
+                continue;
+            }
+
+            break;
         }
 
-        if (StringUtils.isBlank(line)) {
-            // while an empty string is an error
-            throw new MalformedRecordException("Encountered a blank message!");
-        }
 
-
-        final MalformedRecordException malformedRecordException;
         Syslog5424Event event = parser.parseEvent(ByteBuffer.wrap(line.getBytes(parser.getCharsetName())));
 
         if (!event.isValid()) {
             if (event.getException() != null) {
-                malformedRecordException = new MalformedRecordException(
+                throw new MalformedRecordException(
                         String.format("Failed to parse %s as a Syslog message: it does not conform to any of the RFC "+
                                 "formats supported", line), event.getException());
             } else {
-                malformedRecordException = new MalformedRecordException(
+                throw new MalformedRecordException(
                         String.format("Failed to parse %s as a Syslog message: it does not conform to any of the RFC" +
                                 " formats supported", line));
             }
-            throw malformedRecordException;
         }
 
-        Map<String,Object> modifiedMap = new HashMap<>(event.getFieldMap());
+        final Map<String,Object> modifiedMap = new HashMap<>(event.getFieldMap());
         modifiedMap.put(SyslogAttributes.TIMESTAMP.key(),convertTimeStamp((String)event.getFieldMap().get(SyslogAttributes.TIMESTAMP.key())));
 
         if(includeRaw) {

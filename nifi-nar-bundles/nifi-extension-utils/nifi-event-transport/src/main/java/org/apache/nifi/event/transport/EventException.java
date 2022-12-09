@@ -24,6 +24,15 @@ public class EventException extends RuntimeException {
      * Event Exception
      *
      * @param message Message
+     */
+    public EventException(final String message) {
+        super(message);
+    }
+
+    /**
+     * Event Exception
+     *
+     * @param message Message
      * @param cause Throwable cause
      */
     public EventException(final String message, final Throwable cause) {

@@ -17,16 +17,17 @@
 package org.apache.nifi.web.api.dto;
 
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestProcessGroupEntity {
 
     @Test
     public void testGetInputPortCount() {
         final ProcessGroupEntity entity = new ProcessGroupEntity();
-        assertEquals(null, entity.getInputPortCount());
+        assertNull(entity.getInputPortCount());
 
         entity.setLocalInputPortCount(3);
         entity.setPublicInputPortCount(4);
@@ -39,7 +40,7 @@ public class TestProcessGroupEntity {
     @Test
     public void testGetOutputPortCount() {
         final ProcessGroupEntity entity = new ProcessGroupEntity();
-        assertEquals(null, entity.getOutputPortCount());
+        assertNull(entity.getOutputPortCount());
 
         entity.setLocalOutputPortCount(2);
         entity.setPublicOutputPortCount(3);

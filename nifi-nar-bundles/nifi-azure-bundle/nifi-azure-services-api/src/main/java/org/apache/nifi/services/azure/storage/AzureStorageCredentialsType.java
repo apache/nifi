@@ -39,3 +39,4 @@ public enum AzureStorageCredentialsType {
     }
 
 }
+

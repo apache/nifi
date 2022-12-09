@@ -121,14 +121,16 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
 
     @Override
     public SmbClientService getClient() throws IOException {
-        Connection connection = smbClient.connect(hostname, port);
+        Connection connection = null;
 
         try {
+            connection = smbClient.connect(hostname, port);
             return connectToShare(connection);
         } catch (IOException e) {
             getLogger().debug("Closing stale connection and trying to create a new one for share " + getServiceLocation());
 
             closeConnection(connection);
+            unregisterHost();
 
             connection = smbClient.connect(hostname, port);
             return connectToShare(connection);
@@ -158,6 +160,10 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
         }
 
         return new SmbjClientService(session, (DiskShare) share, getServiceLocation());
+    }
+
+    private void unregisterHost() {
+        smbClient.getServerList().unregister(hostname);
     }
 
     private void closeConnection(Connection connection) {

@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
 public class Files {
 
     /**
-     * Classpath list separated by semicolon. You can use masks like `*`, `*.jar` in file name.
+     * Classpath list separated by semicolon or comma. You can use masks like `*`, `*.jar` in file name.
      *
      * @return file list defined by classpath parameter
      */
@@ -39,7 +39,7 @@ public class Files {
             return Collections.emptySet();
         }
         Set<File> files = new HashSet<>();
-        for (String cp : classpath.split("\\s*;\\s*")) {
+        for (String cp : classpath.split("\\s*[;,]\\s*")) {
             files.addAll(listPathFiles(cp));
         }
         return files;

@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DefaultRunDuration;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -58,7 +59,7 @@ import java.util.stream.Collectors;
 
 @EventDriven
 @SideEffectFree
-@SupportsBatching
+@SupportsBatching(defaultDuration = DefaultRunDuration.TWENTY_FIVE_MILLIS)
 @Tags({"attributes", "logging"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Emits attributes of the FlowFile at the specified log level")

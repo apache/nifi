@@ -1623,8 +1623,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroupNode);
         final RevisionDTO updatedRevision = dtoFactory.createRevisionDTO(snapshot.getLastModification());
         final ProcessGroupStatusDTO status = dtoFactory.createConciseProcessGroupStatusDto(controllerFacade.getProcessGroupStatus(processGroupNode.getIdentifier()));
-        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(processGroupNode.getIdentifier()));
-        final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+        final List<BulletinEntity> bulletinEntities = getProcessGroupBulletins(processGroupNode);
         return entityFactory.createProcessGroupEntity(snapshot.getComponent(), updatedRevision, permissions, status, bulletinEntities);
     }
 
@@ -3211,14 +3210,20 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public Set<VersionedFlowEntity> getFlowsForUser(String registryClientId, String bucketId) {
+    public Set<VersionedFlowEntity> getFlowsForUser(final String registryClientId, final String bucketId) {
         return flowRegistryDAO.getFlowsForUser(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), registryClientId, bucketId).stream()
                 .map(rf -> createVersionedFlowEntity(registryClientId, rf))
                 .collect(Collectors.toSet());
     }
 
     @Override
-    public Set<VersionedFlowSnapshotMetadataEntity> getFlowVersionsForUser(String registryClientId, String bucketId, String flowId) {
+    public VersionedFlowEntity getFlowForUser(final String registryClientId, final String bucketId, final String flowId) {
+        final RegisteredFlow flow = flowRegistryDAO.getFlowForUser(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), registryClientId, bucketId, flowId);
+        return createVersionedFlowEntity(registryClientId, flow);
+    }
+
+    @Override
+    public Set<VersionedFlowSnapshotMetadataEntity> getFlowVersionsForUser(final String registryClientId, final String bucketId, final String flowId) {
         return flowRegistryDAO.getFlowVersionsForUser(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), registryClientId, bucketId, flowId).stream()
                 .map(md -> createVersionedFlowSnapshotMetadataEntity(registryClientId, md))
                 .collect(Collectors.toSet());
@@ -5190,10 +5195,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         } catch (final FlowRegistryException e) {
             logger.error(e.getMessage(), e);
             throw new IllegalArgumentException("The Flow Registry with ID " + registryId + " reports that no Flow exists with Bucket "
-                    + bucketId + ", Flow " + flowId + ", Version " + flowVersion);
+                    + bucketId + ", Flow " + flowId + ", Version " + flowVersion, e);
         } catch (final IOException ioe) {
-            throw new IllegalStateException(
-                    "Failed to communicate with Flow Registry when attempting to retrieve a versioned flow");
+            throw new IllegalStateException("Failed to communicate with Flow Registry when attempting to retrieve a versioned flow", ioe);
         }
 
         return snapshot;

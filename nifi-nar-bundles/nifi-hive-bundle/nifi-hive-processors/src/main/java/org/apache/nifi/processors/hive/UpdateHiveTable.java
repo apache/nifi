@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -93,6 +94,7 @@ import java.util.stream.Collectors;
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @RequiresInstanceClassLoading
+@DeprecationNotice(classNames = "org.apache.nifi.processors.hive.UpdateHive3Table")
 public class UpdateHiveTable extends AbstractProcessor {
 
     static final String TEXTFILE = "TEXTFILE";

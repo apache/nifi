@@ -17,6 +17,7 @@
 package org.apache.nifi.script.impl;
 
 import org.apache.nifi.processors.script.ScriptRunner;
+import org.apache.nifi.util.StringUtils;
 
 import javax.script.ScriptEngine;
 
@@ -31,13 +32,25 @@ public abstract class BaseScriptRunner implements ScriptRunner {
     protected String[] modulePaths;
 
     public BaseScriptRunner(final ScriptEngine engine, final String scriptBody, final String[] modulePaths) {
+        this(engine, scriptBody, null, modulePaths);
+    }
+
+    public BaseScriptRunner(final ScriptEngine engine, final String scriptBody, final String preloads, final String[] modulePaths) {
         this.scriptEngine = engine;
-        this.scriptBody = scriptBody;
         this.modulePaths = modulePaths;
+        if (StringUtils.isNotEmpty(preloads)) {
+            this.scriptBody = preloads + scriptBody;
+        } else {
+            this.scriptBody = scriptBody;
+        }
     }
 
     @Override
     public ScriptEngine getScriptEngine() {
         return scriptEngine;
+    }
+
+    public String getScript() {
+        return scriptBody;
     }
 }

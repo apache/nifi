@@ -16,29 +16,58 @@
 # under the License.
 #
 
-FROM openjdk:8-jre-alpine
-MAINTAINER Apache MiNiFi <dev@nifi.apache.org>
+ARG IMAGE_NAME=eclipse-temurin
+ARG IMAGE_TAG=11-jre
+FROM ${IMAGE_NAME}:${IMAGE_TAG} as builder
+LABEL stage=builder
 
 ARG UID=1000
-ARG GID=50
+ARG GID=1000
 ARG MINIFI_C2_VERSION
+ARG MINIFI_C2_BINARY_NAME
 ARG MINIFI_C2_BINARY
 
+ENV MINIFI_C2_USER c2
 ENV MINIFI_C2_BASE_DIR /opt/minifi-c2
-ENV MINIFI_C2_HOME $MINIFI_C2_BASE_DIR/minifi-c2-$MINIFI_C2_VERSION
+ENV MINIFI_C2_HOME ${MINIFI_C2_BASE_DIR}/minifi-c2-current
 
-# Setup MiNiFi C2 user
-RUN addgroup -g $GID c2 || groupmod -n c2 `getent group $GID | cut -d: -f1`
-RUN adduser -S -H -G c2 c2
-RUN mkdir -p $MINIFI_C2_HOME
+RUN mkdir -p ${MINIFI_C2_BASE_DIR}
+COPY $MINIFI_C2_BINARY $MINIFI_C2_BASE_DIR
 
-ADD $MINIFI_C2_BINARY $MINIFI_C2_BASE_DIR
-RUN chown -R c2:c2 $MINIFI_C2_HOME
+RUN apt-get update \
+    && apt-get install -y unzip \
+    && apt-get -y autoremove \
+    && apt-get clean autoclean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && unzip ${MINIFI_C2_BASE_DIR}/${MINIFI_C2_BINARY_NAME} -d ${MINIFI_C2_BASE_DIR} \
+    && rm ${MINIFI_C2_BASE_DIR}/${MINIFI_C2_BINARY_NAME} \
+    && groupadd -g ${GID} ${MINIFI_C2_USER} \
+    && useradd --shell /bin/bash -u ${UID} -g ${GID} -m ${MINIFI_C2_USER} \
+    && ln -s ${MINIFI_C2_BASE_DIR}/minifi-c2-${MINIFI_C2_VERSION} ${MINIFI_C2_HOME} \
+    && chown -R -L ${MINIFI_C2_USER}:${MINIFI_C2_USER} ${MINIFI_C2_BASE_DIR}
 
-USER c2
+FROM ${IMAGE_NAME}:${IMAGE_TAG}
+LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
+LABEL site="https://nifi.apache.org"
+
+ARG UID
+ARG GID
+
+ENV MINIFI_C2_USER c2
+ENV MINIFI_C2_BASE_DIR /opt/minifi-c2
+ENV MINIFI_C2_HOME ${MINIFI_C2_BASE_DIR}/minifi-c2-current
+
+RUN groupadd -g ${GID} ${MINIFI_C2_USER} \
+    && useradd --shell /bin/bash -u ${UID} -g ${GID} -m ${MINIFI_C2_USER}
+
+COPY --from=builder ${MINIFI_C2_BASE_DIR} ${MINIFI_C2_BASE_DIR}
+
+USER ${MINIFI_C2_USER}
 
 #Default http port
 EXPOSE 10090
 
-# Startup MiNiFi c2
-CMD $MINIFI_C2_HOME/bin/c2.sh run
+WORKDIR ${MINIFI_C2_HOME}
+
+# Startup MiNiFi C2
+ENTRYPOINT ["./bin/c2.sh", "run"]

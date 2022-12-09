@@ -42,6 +42,8 @@ public interface FlowRegistryDAO {
 
     Set<RegisteredFlow> getFlowsForUser(FlowRegistryClientUserContext context, String registryId, String bucketId);
 
+    RegisteredFlow getFlowForUser(FlowRegistryClientUserContext context, String registryId, String bucketId, String flowId);
+
     Set<RegisteredFlowSnapshotMetadata> getFlowVersionsForUser(FlowRegistryClientUserContext context, String registryId, String bucketId, String flowId);
 
     FlowRegistryClientNode removeFlowRegistry(String registryId);
