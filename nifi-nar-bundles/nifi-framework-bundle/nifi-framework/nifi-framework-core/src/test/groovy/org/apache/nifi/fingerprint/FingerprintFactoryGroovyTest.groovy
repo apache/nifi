@@ -22,19 +22,16 @@ import org.apache.nifi.nar.ExtensionManager
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.AfterClass
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import java.security.Security
 
-@RunWith(JUnit4.class)
 class FingerprintFactoryGroovyTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(FingerprintFactoryGroovyTest.class)
 
@@ -48,7 +45,7 @@ class FingerprintFactoryGroovyTest extends GroovyTestCase {
     private static String originalPropertiesPath = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH)
     private static final String NIFI_PROPERTIES_PATH = "src/test/resources/conf/nifi.properties"
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
@@ -57,17 +54,7 @@ class FingerprintFactoryGroovyTest extends GroovyTestCase {
         }
     }
 
-    @Before
-    void setUp() throws Exception {
-
-    }
-
-    @After
-    void tearDown() throws Exception {
-
-    }
-
-    @AfterClass
+    @AfterAll
     static void tearDownOnce() {
         if (originalPropertiesPath) {
             System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, originalPropertiesPath)

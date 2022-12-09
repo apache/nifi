@@ -21,9 +21,9 @@ import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.repository.schema.RepositoryRecordSchema;
 import org.apache.nifi.repository.schema.NoOpFieldCache;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -34,8 +34,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.apache.nifi.controller.repository.RepositoryRecordType.SWAP_IN;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -47,7 +47,7 @@ public class SchemaRepositoryRecordSerdeTest {
     private ByteArrayOutputStream byteArrayOutputStream;
     private DataOutputStream dataOutputStream;
 
-    @Before
+    @BeforeEach
     public void setup() {
         resourceClaimManager = new StandardResourceClaimManager();
         schemaRepositoryRecordSerde = new SchemaRepositoryRecordSerde(resourceClaimManager, new NoOpFieldCache());
@@ -56,7 +56,7 @@ public class SchemaRepositoryRecordSerdeTest {
         dataOutputStream = new DataOutputStream(byteArrayOutputStream);
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         resourceClaimManager.purge();
     }

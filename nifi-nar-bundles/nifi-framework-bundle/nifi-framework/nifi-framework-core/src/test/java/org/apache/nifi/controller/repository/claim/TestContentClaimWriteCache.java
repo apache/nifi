@@ -25,18 +25,18 @@ import org.apache.nifi.controller.repository.util.DiskUtils;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestContentClaimWriteCache {
 
@@ -45,7 +45,7 @@ public class TestContentClaimWriteCache {
     private final File rootFile = new File("target/testContentClaimWriteCache");
     private NiFiProperties nifiProperties;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         nifiProperties = NiFiProperties.createBasicNiFiProperties(TestFileSystemRepository.class.getResource("/conf/nifi.properties").getFile());
         if (rootFile.exists()) {
@@ -57,7 +57,7 @@ public class TestContentClaimWriteCache {
         repository.purge();
     }
 
-    @After
+    @AfterEach
     public void shutdown() throws IOException {
         repository.shutdown();
     }
@@ -80,7 +80,7 @@ public class TestContentClaimWriteCache {
         final InputStream in = repository.read(claim1);
         final byte[] buff = new byte[(int) claim1.getLength()];
         StreamUtils.fillBuffer(in, buff);
-        Assert.assertArrayEquals("hellogood-bye".getBytes(), buff);
+        assertArrayEquals("hellogood-bye".getBytes(), buff);
 
         final ContentClaim claim2 = cache.getContentClaim();
         final OutputStream out2 = cache.write(claim2);
@@ -94,7 +94,7 @@ public class TestContentClaimWriteCache {
         final InputStream in2 = repository.read(claim2);
         final byte[] buff2 = new byte[(int) claim2.getLength()];
         StreamUtils.fillBuffer(in2, buff2);
-        Assert.assertArrayEquals("good-dayhello".getBytes(), buff2);
+        assertArrayEquals("good-dayhello".getBytes(), buff2);
     }
 
 }

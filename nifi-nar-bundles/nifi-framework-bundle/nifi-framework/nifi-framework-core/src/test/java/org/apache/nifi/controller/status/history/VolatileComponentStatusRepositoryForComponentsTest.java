@@ -40,7 +40,7 @@ public class VolatileComponentStatusRepositoryForComponentsTest {
   private static VolatileComponentStatusRepository partiallyFilledRepo;
   private static VolatileComponentStatusRepository emptyRepo;
   private static final int FIVE_MINUTES = 300000;
-  private static int BUFSIZE3 = 10;
+  private static final int BUFSIZE3 = 10;
 
   @BeforeAll
   public static void createBuffers() {

@@ -16,21 +16,21 @@
  */
 package org.apache.nifi.controller.repository.io;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
+import org.apache.nifi.controller.repository.ContentNotFoundException;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.flowfile.FlowFile;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.apache.nifi.controller.repository.ContentNotFoundException;
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.flowfile.FlowFile;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class TestFlowFileAccessInputStream {
 
@@ -39,7 +39,7 @@ public class TestFlowFileAccessInputStream {
     private ContentClaim claim;
     private final byte[] data = new byte[16];
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         in = mock(InputStream.class);
         flowFile = mock(FlowFile.class);
@@ -53,7 +53,7 @@ public class TestFlowFileAccessInputStream {
             private int count = 0;
 
             @Override
-            public Integer answer(InvocationOnMock invocation) throws Throwable {
+            public Integer answer(InvocationOnMock invocation) {
                 if (count == 0) {
                     count++;
                     return 16;
@@ -62,17 +62,17 @@ public class TestFlowFileAccessInputStream {
             }
         });
         // Flow file total size is 32
-        Mockito.when(flowFile.getSize()).thenReturn(32l);
+        Mockito.when(flowFile.getSize()).thenReturn(32L);
 
         FlowFileAccessInputStream flowFileAccessInputStream = new FlowFileAccessInputStream(in, flowFile, claim);
-        try {
-            while (flowFileAccessInputStream.read(data) != -1) {
-            }
-            fail("Should throw ContentNotFoundException when lesser bytes read from flow file.");
-        } catch (ContentNotFoundException e) {
-            assertTrue("ContentNotFoundException message not matched.", e.getMessage().contains("Stream contained only 16 bytes but should have contained 32"));
-        } finally {
-            flowFileAccessInputStream.close();
-        }
+
+        ContentNotFoundException contentNotFoundException =
+                assertThrows(ContentNotFoundException.class, () -> {
+                    while (flowFileAccessInputStream.read(data) != -1){}
+                });
+
+        assertTrue(contentNotFoundException.getMessage().contains("Stream contained only 16 bytes" +
+                " but should have contained 32"), "ContentNotFoundException message not matched.");
+        flowFileAccessInputStream.close();
     }
 }

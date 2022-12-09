@@ -56,12 +56,11 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessorInitializationContext;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.SynchronousValidationTrigger;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
@@ -74,10 +73,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 
 public class TestStandardControllerServiceProvider {
@@ -119,7 +119,7 @@ public class TestStandardControllerServiceProvider {
     private static Bundle systemBundle;
     private FlowManager flowManager;
 
-    @BeforeClass
+    @BeforeAll
     public static void setNiFiProps() {
         niFiProperties = NiFiProperties.createBasicNiFiProperties(TestStandardControllerServiceProvider.class.getResource("/conf/nifi.properties").getFile());
 
@@ -129,26 +129,20 @@ public class TestStandardControllerServiceProvider {
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         flowManager = Mockito.mock(FlowManager.class);
 
         final ConcurrentMap<String, ProcessorNode> processorMap = new ConcurrentHashMap<>();
-        Mockito.doAnswer(new Answer<ProcessorNode>() {
-            @Override
-            public ProcessorNode answer(InvocationOnMock invocation) throws Throwable {
-                final String id = invocation.getArgument(0);
-                return processorMap.get(id);
-            }
+        Mockito.doAnswer((Answer<ProcessorNode>) invocation -> {
+            final String id = invocation.getArgument(0);
+            return processorMap.get(id);
         }).when(flowManager).getProcessorNode(Mockito.anyString());
 
-        Mockito.doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                final ProcessorNode procNode = invocation.getArgument(0);
-                processorMap.putIfAbsent(procNode.getIdentifier(), procNode);
-                return null;
-            }
+        Mockito.doAnswer((Answer<Object>) invocation -> {
+            final ProcessorNode procNode = invocation.getArgument(0);
+            processorMap.putIfAbsent(procNode.getIdentifier(), procNode);
+            return null;
         }).when(flowManager).onProcessorAdded(any(ProcessorNode.class));
     }
 
@@ -202,7 +196,8 @@ public class TestStandardControllerServiceProvider {
         provider.disableControllerService(serviceNode);
     }
 
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(10)
     public void testEnableDisableWithReference() throws InterruptedException {
         final ProcessGroup group = new MockProcessGroup(flowManager);
         final FlowManager flowManager = Mockito.mock(FlowManager.class);
@@ -238,12 +233,7 @@ public class TestStandardControllerServiceProvider {
             Thread.sleep(5L);
         }
         assertSame(ControllerServiceState.ENABLED, serviceNodeA.getState());
-
-        try {
-            provider.disableControllerService(serviceNodeB);
-            Assert.fail("Was able to disable Service B but Service A is enabled and references B");
-        } catch (final IllegalStateException expected) {
-        }
+        assertThrows(IllegalStateException.class, () -> provider.disableControllerService(serviceNodeB));
 
         provider.disableControllerService(serviceNodeA);
         waitForServiceState(serviceNodeA, ControllerServiceState.DISABLED);
@@ -282,10 +272,10 @@ public class TestStandardControllerServiceProvider {
         assertEquals(2, branches.size());
         List<ControllerServiceNode> ordered = branches.get(0);
         assertEquals(2, ordered.size());
-        assertTrue(ordered.get(0) == serviceNode2);
-        assertTrue(ordered.get(1) == serviceNode1);
+        assertSame(ordered.get(0), serviceNode2);
+        assertSame(ordered.get(1), serviceNode1);
         assertEquals(1, branches.get(1).size());
-        assertTrue(branches.get(1).get(0) == serviceNode2);
+        assertSame(branches.get(1).get(0), serviceNode2);
 
         nodeMap.clear();
         nodeMap.put("2", serviceNode2);
@@ -295,10 +285,10 @@ public class TestStandardControllerServiceProvider {
         assertEquals(2, branches.size());
         ordered = branches.get(1);
         assertEquals(2, ordered.size());
-        assertTrue(ordered.get(0) == serviceNode2);
-        assertTrue(ordered.get(1) == serviceNode1);
+        assertSame(ordered.get(0), serviceNode2);
+        assertSame(ordered.get(1), serviceNode1);
         assertEquals(1, branches.get(0).size());
-        assertTrue(branches.get(0).get(0) == serviceNode2);
+        assertSame(branches.get(0).get(0), serviceNode2);
 
         // add circular dependency on self.
         nodeMap.clear();
@@ -310,8 +300,8 @@ public class TestStandardControllerServiceProvider {
         assertEquals(2, branches.size());
         ordered = branches.get(0);
         assertEquals(2, ordered.size());
-        assertTrue(ordered.get(0) == serviceNode2);
-        assertTrue(ordered.get(1) == serviceNode1);
+        assertSame(ordered.get(0), serviceNode2);
+        assertSame(ordered.get(1), serviceNode1);
 
         nodeMap.clear();
         nodeMap.put("2", serviceNode2);
@@ -320,8 +310,8 @@ public class TestStandardControllerServiceProvider {
         assertEquals(2, branches.size());
         ordered = branches.get(1);
         assertEquals(2, ordered.size());
-        assertTrue(ordered.get(0) == serviceNode2);
-        assertTrue(ordered.get(1) == serviceNode1);
+        assertSame(ordered.get(0), serviceNode2);
+        assertSame(ordered.get(1), serviceNode1);
 
         // add circular dependency once removed. In this case, we won't actually be able to enable these because of the
         // circular dependency because they will never be valid because they will always depend on a disabled service.
@@ -337,8 +327,8 @@ public class TestStandardControllerServiceProvider {
         assertEquals(2, branches.size());
         ordered = branches.get(0);
         assertEquals(2, ordered.size());
-        assertTrue(ordered.get(0) == serviceNode3);
-        assertTrue(ordered.get(1) == serviceNode1);
+        assertSame(ordered.get(0), serviceNode3);
+        assertSame(ordered.get(1), serviceNode1);
 
         nodeMap.clear();
         nodeMap.put("3", serviceNode3);
@@ -347,8 +337,8 @@ public class TestStandardControllerServiceProvider {
         assertEquals(2, branches.size());
         ordered = branches.get(1);
         assertEquals(2, ordered.size());
-        assertTrue(ordered.get(0) == serviceNode3);
-        assertTrue(ordered.get(1) == serviceNode1);
+        assertSame(ordered.get(0), serviceNode3);
+        assertSame(ordered.get(1), serviceNode1);
 
         // Add multiple completely disparate branches.
         nodeMap.clear();
@@ -367,22 +357,22 @@ public class TestStandardControllerServiceProvider {
 
         ordered = branches.get(0);
         assertEquals(2, ordered.size());
-        assertTrue(ordered.get(0) == serviceNode2);
-        assertTrue(ordered.get(1) == serviceNode1);
+        assertSame(ordered.get(0), serviceNode2);
+        assertSame(ordered.get(1), serviceNode1);
 
         assertEquals(1, branches.get(1).size());
-        assertTrue(branches.get(1).get(0) == serviceNode2);
+        assertSame(branches.get(1).get(0), serviceNode2);
 
         ordered = branches.get(2);
         assertEquals(2, ordered.size());
-        assertTrue(ordered.get(0) == serviceNode4);
-        assertTrue(ordered.get(1) == serviceNode3);
+        assertSame(ordered.get(0), serviceNode4);
+        assertSame(ordered.get(1), serviceNode3);
 
         assertEquals(1, branches.get(3).size());
-        assertTrue(branches.get(3).get(0) == serviceNode4);
+        assertSame(branches.get(3).get(0), serviceNode4);
 
         assertEquals(1, branches.get(4).size());
-        assertTrue(branches.get(4).get(0) == serviceNode5);
+        assertSame(branches.get(4).get(0), serviceNode5);
 
         // create 2 branches both dependent on the same service
         nodeMap.clear();
@@ -397,17 +387,17 @@ public class TestStandardControllerServiceProvider {
 
         ordered = branches.get(0);
         assertEquals(2, ordered.size());
-        assertTrue(ordered.get(0) == serviceNode2);
-        assertTrue(ordered.get(1) == serviceNode1);
+        assertSame(ordered.get(0), serviceNode2);
+        assertSame(ordered.get(1), serviceNode1);
 
         ordered = branches.get(1);
         assertEquals(1, ordered.size());
-        assertTrue(ordered.get(0) == serviceNode2);
+        assertSame(ordered.get(0), serviceNode2);
 
         ordered = branches.get(2);
         assertEquals(2, ordered.size());
-        assertTrue(ordered.get(0) == serviceNode2);
-        assertTrue(ordered.get(1) == serviceNode3);
+        assertSame(ordered.get(0), serviceNode2);
+        assertSame(ordered.get(1), serviceNode3);
     }
 
     private ProcessorNode createProcessor(final StandardProcessScheduler scheduler, final ControllerServiceProvider serviceProvider) {

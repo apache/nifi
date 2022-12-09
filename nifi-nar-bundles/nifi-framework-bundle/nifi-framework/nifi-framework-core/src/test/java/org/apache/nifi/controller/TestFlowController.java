@@ -87,11 +87,10 @@ import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -118,13 +117,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -145,12 +144,12 @@ public class TestFlowController {
 
     private static List<String> allIdentifiers;
 
-    @BeforeClass
+    @BeforeAll
     public static void setupOnce() throws IOException {
         allIdentifiers = getAllIdentifiers();
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
 
         flowFileEventRepo = mock(FlowFileEventRepository.class);
@@ -219,7 +218,7 @@ public class TestFlowController {
         standardFlowSynchronizer = new StandardFlowSynchronizer(xmlFlowSynchronizer, versionedFlowSynchronizer);
     }
 
-    @After
+    @AfterEach
     public void cleanup() throws Exception {
         controller.shutdown(true);
         FileUtils.deleteDirectory(new File("./target/flowcontrollertest"));
@@ -413,7 +412,7 @@ public class TestFlowController {
         assertEquals(authFingerprint, authorizer.getFingerprint());
     }
 
-    @Test(expected = UninheritableFlowException.class)
+    @Test
     public void testSynchronizeFlowWhenAuthorizationsAreDifferent() throws IOException {
         final File flowFile = new File("src/test/resources/conf/processor-with-cs-flow-0.7.0.xml");
         final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
@@ -424,15 +423,13 @@ public class TestFlowController {
         controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
         controller.initializeFlow();
 
-        try {
-            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
-            assertNotEquals(authFingerprint, authorizer.getFingerprint());
-        } finally {
-            purgeFlow();
-        }
+        assertThrows(UninheritableFlowException.class,
+                () -> controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE));
+        assertNotEquals(authFingerprint, authorizer.getFingerprint());
+        purgeFlow();
     }
 
-    @Test(expected = FlowSynchronizationException.class)
+    @Test
     public void testSynchronizeFlowWithInvalidParameterContextReference() throws IOException {
         final File flowFile = new File("src/test/resources/conf/parameter-context-flow-error.xml");
         final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
@@ -440,12 +437,12 @@ public class TestFlowController {
         final String authFingerprint = "<authorizations></authorizations>";
         final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
 
-        try {
-            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
-            controller.initializeFlow();
-        } finally {
-            purgeFlow();
-        }
+        assertThrows(FlowSynchronizationException.class,
+                () -> {
+                    controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
+                    controller.initializeFlow();
+                });
+        purgeFlow();
     }
 
     @Test
@@ -544,14 +541,9 @@ public class TestFlowController {
 
         final DataFlow dataflowWithNullAuthorizations = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, null, Collections.emptySet());
 
-        try {
-            controller.synchronize(standardFlowSynchronizer, dataflowWithNullAuthorizations, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
-            Assert.fail("Was able to synchronize controller with null authorizations but dataflow wasn't empty");
-        } catch (final UninheritableFlowException expected) {
-            // expected
-        } finally {
-            purgeFlow();
-        }
+        assertThrows(UninheritableFlowException.class,
+                () -> controller.synchronize(standardFlowSynchronizer, dataflowWithNullAuthorizations, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE));
+        purgeFlow();
     }
 
     @Test
@@ -609,12 +601,11 @@ public class TestFlowController {
         final DataFlow proposedDataFlow = mock(DataFlow.class);
         when(proposedDataFlow.getMissingComponents()).thenReturn(missingComponents);
 
-        try {
-            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
-            Assert.fail("Should have thrown exception");
-        } catch (UninheritableFlowException e) {
-            assertTrue(e.getMessage().contains("Proposed flow has missing components that are not considered missing in the current flow (1,2)"));
-        }
+        UninheritableFlowException uninheritableFlowException =
+                assertThrows(UninheritableFlowException.class,
+                        () -> controller.synchronize(standardFlowSynchronizer, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE));
+        assertTrue(uninheritableFlowException.getMessage().contains("Proposed flow has missing components " +
+                "that are not considered missing in the current flow (1,2)"), uninheritableFlowException.getMessage());
     }
 
     @Test
@@ -650,13 +641,12 @@ public class TestFlowController {
 
         final DataFlow proposedDataFlow = mock(DataFlow.class);
         when(proposedDataFlow.getMissingComponents()).thenReturn(new HashSet<>());
-
-        try {
-            standardFlowSynchronizer.sync(mockFlowController, proposedDataFlow, mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE);
-            Assert.fail("Should have thrown exception");
-        } catch (UninheritableFlowException e) {
-            assertTrue(e.getMessage(), e.getMessage().contains("Current flow has missing components that are not considered missing in the proposed flow (1,2,3)"));
-        }
+        UninheritableFlowException uninheritableFlowException =
+                assertThrows(UninheritableFlowException.class,
+                        () -> standardFlowSynchronizer.sync(mockFlowController, proposedDataFlow,
+                                mock(FlowService.class), BundleUpdateStrategy.IGNORE_BUNDLE));
+        assertTrue(uninheritableFlowException.getMessage().contains("Current flow has missing components that are not" +
+                        " considered missing in the proposed flow (1,2,3)"), uninheritableFlowException.getMessage());
     }
 
     @Test
@@ -679,12 +669,9 @@ public class TestFlowController {
         controller.initializeFlow();
 
         // second sync should fail because the bundle of the processor is different
-        try {
-            syncFlow("src/test/resources/nifi/fingerprint/flow4-with-different-bundle.xml", standardFlowSynchronizer);
-            Assert.fail("Should have thrown UninheritableFlowException");
-        } catch (UninheritableFlowException e) {
-            //e.printStackTrace();
-        }
+        assertThrows(UninheritableFlowException.class,
+                () -> syncFlow("src/test/resources/nifi/fingerprint/flow4-with-different-bundle.xml",
+                        standardFlowSynchronizer));
     }
 
     private void syncFlow(String flowXmlFile, FlowSynchronizer standardFlowSynchronizer) throws IOException {
@@ -1062,7 +1049,7 @@ public class TestFlowController {
         return false;
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testInstantiateSnippetWhenProcessorMissingBundle() throws Exception {
         final String id = UUID.randomUUID().toString();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
@@ -1071,7 +1058,7 @@ public class TestFlowController {
         // create a processor dto
         final ProcessorDTO processorDTO = new ProcessorDTO();
         processorDTO.setId(UUID.randomUUID().toString()); // use a different id here
-        processorDTO.setPosition(new PositionDTO(new Double(0), new Double(0)));
+        processorDTO.setPosition(new PositionDTO((double) 0, (double) 0));
         processorDTO.setStyle(processorNode.getStyle());
         processorDTO.setParentGroupId("1234");
         processorDTO.setInputRequirement(processorNode.getInputRequirement().name());
@@ -1117,7 +1104,9 @@ public class TestFlowController {
 
         // instantiate the snippet
         assertEquals(0, controller.getFlowManager().getRootGroup().getProcessors().size());
-        controller.getFlowManager().instantiateSnippet(controller.getFlowManager().getRootGroup(), flowSnippetDTO);
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.getFlowManager().instantiateSnippet(controller.getFlowManager().getRootGroup(),
+                        flowSnippetDTO));
     }
 
     @Test
@@ -1237,10 +1226,10 @@ public class TestFlowController {
         assertEquals(0, controller.getFlowManager().getRootGroup().getProcessors().size());
         controller.getFlowManager().instantiateSnippet(controller.getFlowManager().getRootGroup(), flowSnippetDTO);
         assertEquals(1, controller.getFlowManager().getRootGroup().getProcessors().size());
-        assertTrue(controller.getFlowManager().getRootGroup().getProcessors().iterator().next().getScheduledState().equals(ScheduledState.DISABLED));
+        assertEquals(controller.getFlowManager().getRootGroup().getProcessors().iterator().next().getScheduledState(), ScheduledState.DISABLED);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testInstantiateSnippetWhenControllerServiceMissingBundle() throws ProcessorInstantiationException {
         final String id = UUID.randomUUID().toString();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
@@ -1269,7 +1258,9 @@ public class TestFlowController {
 
         // instantiate the snippet
         assertEquals(0, controller.getFlowManager().getRootGroup().getControllerServices(false).size());
-        controller.getFlowManager().instantiateSnippet(controller.getFlowManager().getRootGroup(), flowSnippetDTO);
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.getFlowManager().instantiateSnippet(controller.getFlowManager().getRootGroup(),
+                        flowSnippetDTO));
     }
 
     @Test

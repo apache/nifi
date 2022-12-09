@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.controller.repository.io;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 public class TestLimitedInputStream {
 
@@ -83,11 +83,8 @@ public class TestLimitedInputStream {
     @Test
     public void testClose() {
         final LimitedInputStream lis = new LimitedInputStream(bais, 4);
-        try {
-            lis.close();
-        } catch (IOException e) {
-            fail();
-        }
+
+        assertDoesNotThrow(lis::close);
     }
 
     @Test
