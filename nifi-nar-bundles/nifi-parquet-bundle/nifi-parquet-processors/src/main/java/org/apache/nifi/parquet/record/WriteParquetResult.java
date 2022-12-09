@@ -70,7 +70,7 @@ public class WriteParquetResult extends AbstractRecordSetWriter {
     }
 
     @Override
-    protected Map<String, String> onFinishRecordSet() throws IOException {
+    protected Map<String, String> onFinishRecordSet() {
         return accessWriter.getAttributes(recordSchema);
     }
 
