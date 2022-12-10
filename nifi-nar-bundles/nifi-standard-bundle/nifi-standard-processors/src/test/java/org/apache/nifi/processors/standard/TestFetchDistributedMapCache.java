@@ -203,7 +203,7 @@ public class TestFetchDistributedMapCache {
         runner.assertTransferCount(FetchDistributedMapCache.REL_NOT_FOUND, 1);
 
         final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(FetchDistributedMapCache.REL_NOT_FOUND).get(0);
-        outputFlowFile.assertAttributeEquals("test.key1","value1");
+        outputFlowFile.assertAttributeEquals("test.key2",null);
     }
 
 
