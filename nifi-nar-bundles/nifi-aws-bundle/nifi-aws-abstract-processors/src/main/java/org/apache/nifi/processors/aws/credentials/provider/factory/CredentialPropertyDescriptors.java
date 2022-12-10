@@ -16,11 +16,16 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.factory;
 
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
+import software.amazon.awssdk.regions.Region;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Shared definitions of properties that specify various AWS credentials.
@@ -194,4 +199,28 @@ public class CredentialPropertyDescriptors {
                     "this property to \"sts.cn-north-1.amazonaws.com.cn\" when you are requesting session credentials " +
                     "for services in China(Beijing) region or to \"sts.us-gov-west-1.amazonaws.com\" for GovCloud.")
             .build();
+
+    public static final PropertyDescriptor ASSUME_ROLE_REGION = new PropertyDescriptor.Builder()
+            .name("assume-role-sts-region")
+            .displayName("Region")
+            .description("The AWS Security Token Service (STS) region")
+            .dependsOn(ASSUME_ROLE_ARN)
+            .allowableValues(getAvailableRegions())
+            .defaultValue(createAllowableValue(Region.US_WEST_2).getValue())
+            .build();
+
+    public static AllowableValue createAllowableValue(final Region region) {
+        return new AllowableValue(region.id(), region.metadata().description(), "AWS Region Code : " + region.id());
+    }
+
+    public static AllowableValue[] getAvailableRegions() {
+        final List<AllowableValue> values = new ArrayList<>();
+        for (final Region region : Region.regions()) {
+            if (region.isGlobalRegion()) {
+                continue;
+            }
+            values.add(createAllowableValue(region));
+        }
+        return values.toArray(new AllowableValue[0]);
+    }
 }

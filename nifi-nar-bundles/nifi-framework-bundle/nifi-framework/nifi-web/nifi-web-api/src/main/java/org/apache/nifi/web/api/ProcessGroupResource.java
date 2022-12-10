@@ -51,6 +51,7 @@ import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
@@ -2013,7 +2014,15 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             // Step 2: Retrieve flow from Flow Registry
             final RegisteredFlowSnapshot flowSnapshot = getFlowFromRegistry(versionControlInfo);
 
-            // Step 3: Resolve Bundle info
+            // Step 3: Enrich version control info came from UI
+            if (flowSnapshot.getFlowContents() != null) {
+                final VersionedFlowCoordinates versionedFlowCoordinates = flowSnapshot.getFlowContents().getVersionedFlowCoordinates();
+                if (versionedFlowCoordinates != null) {
+                    versionControlInfo.setStorageLocation(versionedFlowCoordinates.getStorageLocation());
+                }
+            }
+
+            // Step 4: Resolve Bundle info
             serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
 
             // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
@@ -2022,7 +2031,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             // If there are any Parameter Providers referenced by Parameter Contexts, resolve these to point to the appropriate Parameter Provider, if we are able to.
             serviceFacade.resolveParameterProviders(flowSnapshot, NiFiUserUtils.getNiFiUser());
 
-            // Step 4: Update contents of the ProcessGroupDTO passed in to include the components that need to be added.
+            // Step 5: Update contents of the ProcessGroupDTO passed in to include the components that need to be added.
             requestProcessGroupEntity.setVersionedFlowSnapshot(flowSnapshot);
         }
 

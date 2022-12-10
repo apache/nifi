@@ -20,13 +20,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.kerberos.authentication.KerberosServiceAuthenticationProvider;
 import org.springframework.security.kerberos.authentication.KerberosServiceRequestToken;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 
 import javax.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 /**
  *
@@ -39,8 +39,10 @@ public class KerberosService {
     public static final String AUTHENTICATION_CHALLENGE_HEADER_NAME = "WWW-Authenticate";
     public static final String AUTHORIZATION_NEGOTIATE = "Negotiate";
 
+    private static final Base64.Decoder decoder = Base64.getDecoder();
+
     private KerberosServiceAuthenticationProvider kerberosServiceAuthenticationProvider;
-    private AuthenticationDetailsSource<HttpServletRequest, ?> authenticationDetailsSource = new WebAuthenticationDetailsSource();
+    private final AuthenticationDetailsSource<HttpServletRequest, ?> authenticationDetailsSource = new WebAuthenticationDetailsSource();
 
     public void setKerberosServiceAuthenticationProvider(KerberosServiceAuthenticationProvider kerberosServiceAuthenticationProvider) {
         this.kerberosServiceAuthenticationProvider = kerberosServiceAuthenticationProvider;
@@ -59,7 +61,7 @@ public class KerberosService {
                 logger.debug("Received Negotiate Header for request " + request.getRequestURL() + ": " + header);
             }
             byte[] base64Token = header.substring(header.indexOf(" ") + 1).getBytes(StandardCharsets.UTF_8);
-            byte[] kerberosTicket = Base64.decode(base64Token);
+            byte[] kerberosTicket = decoder.decode(base64Token);
             KerberosServiceRequestToken authenticationRequest = new KerberosServiceRequestToken(kerberosTicket);
             authenticationRequest.setDetails(authenticationDetailsSource.buildDetails(request));
 

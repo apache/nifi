@@ -33,13 +33,13 @@ import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.server.ServerCnxnFactory;
 import org.apache.zookeeper.server.ZooKeeperServer;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.Assert;
 
 import javax.net.ssl.SSLContext;
 import java.io.File;
@@ -53,6 +53,8 @@ import java.util.Map;
 
 import static org.apache.nifi.leader.election.ITSecureClientZooKeeperFactory.createAndStartServer;
 import static org.apache.nifi.leader.election.ITSecureClientZooKeeperFactory.createSecureClientProperties;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class ITZooKeeperStateProvider extends AbstractTestStateProvider {
 
@@ -60,30 +62,27 @@ public class ITZooKeeperStateProvider extends AbstractTestStateProvider {
 
     private volatile StateProvider provider;
     private volatile ZooKeeperServer zkServer;
-    private static Map<PropertyDescriptor, String> stateProviderProperties = new HashMap<>();
+    private final static Map<PropertyDescriptor, String> stateProviderProperties = new HashMap<>();
     private static Path tempDir;
-    private static Path dataDir;
-    private static int clientPort;
-    private static ServerCnxnFactory serverConnectionFactory;
     private static NiFiProperties nifiProperties;
 
     private static TlsConfiguration tlsConfiguration;
 
-    @BeforeClass
+    @BeforeAll
     public static void setTlsConfiguration() {
         tlsConfiguration = new TemporaryKeyStoreBuilder().build();
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         tempDir = Paths.get("target/TestZooKeeperStateProvider");
-        dataDir = tempDir.resolve("state");
-        clientPort = InstanceSpec.getRandomPort();
+        final Path dataDir = tempDir.resolve("state");
+        final int clientPort = InstanceSpec.getRandomPort();
 
         Files.createDirectory(tempDir);
 
         // Set up the testing server
-        serverConnectionFactory = createAndStartServer(
+        final ServerCnxnFactory serverConnectionFactory = createAndStartServer(
                 dataDir,
                 tempDir,
                 clientPort,
@@ -176,7 +175,7 @@ public class ITZooKeeperStateProvider extends AbstractTestStateProvider {
         return provider;
     }
 
-    @After
+    @AfterEach
     public void clear() throws IOException {
         try {
             if (provider != null) {
@@ -205,7 +204,8 @@ public class ITZooKeeperStateProvider extends AbstractTestStateProvider {
         return provider;
     }
 
-    @Test(timeout = 30000)
+    @Timeout(30)
+    @Test
     public void testStateTooLargeExceptionThrownOnSetState() throws InterruptedException {
         final Map<String, String> state = new HashMap<>();
         final StringBuilder sb = new StringBuilder();
@@ -223,7 +223,7 @@ public class ITZooKeeperStateProvider extends AbstractTestStateProvider {
         while (true) {
             try {
                 getProvider().setState(state, componentId);
-                Assert.fail("Expected StateTooLargeException");
+                fail("Expected StateTooLargeException");
             } catch (final StateTooLargeException stle) {
                 // expected behavior.
                 break;
@@ -235,13 +235,14 @@ public class ITZooKeeperStateProvider extends AbstractTestStateProvider {
                 Thread.sleep(1000L);
             } catch (final Exception e) {
                 logger.error("Something went wrong attempting to set the state in testStateTooLargeExceptionThrownOnSetState()");
-                Assert.fail("Expected StateTooLargeException but " + e.getClass() + " was thrown", e);
+                fail("Expected StateTooLargeException but " + e.getClass() + " was thrown", e);
             }
         }
     }
 
-    @Test(timeout = 30000)
-    public void testStateTooLargeExceptionThrownOnReplace() throws IOException, InterruptedException {
+    @Timeout(30)
+    @Test
+    public void testStateTooLargeExceptionThrownOnReplace() throws InterruptedException {
         final Map<String, String> state = new HashMap<>();
         final StringBuilder sb = new StringBuilder();
 
@@ -271,14 +272,6 @@ public class ITZooKeeperStateProvider extends AbstractTestStateProvider {
             }
         }
 
-        try {
-            getProvider().replace(getProvider().getState(componentId), state, componentId);
-            Assert.fail("Expected StateTooLargeException");
-        } catch (final StateTooLargeException stle) {
-            // expected behavior.
-        } catch (final Exception e) {
-            logger.error("Something went wrong in attempting to get the state in testStateTooLargeExceptionThrownOnReplace()");
-            Assert.fail("Expected StateTooLargeException", e);
-        }
+        assertThrows(StateTooLargeException.class, () -> getProvider().replace(getProvider().getState(componentId), state, componentId));
     }
 }

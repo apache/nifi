@@ -20,8 +20,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
@@ -34,11 +33,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestStandardParameterContext {
 
@@ -229,21 +230,15 @@ public class TestStandardParameterContext {
         updatedParameters.put("foo", new Parameter(fooDescriptor, "baz"));
         updatedParameters.put("xyz", new Parameter(sensitiveXyzDescriptor, "242526"));
 
-        try {
-            context.setParameters(updatedParameters);
-            Assert.fail("Succeeded in changing parameter from non-sensitive to sensitive");
-        } catch (final IllegalStateException expected) {
-        }
+        assertThrows(IllegalStateException.class,
+                () -> context.setParameters(updatedParameters));
 
         final ParameterDescriptor insensitiveAbcDescriptor = new ParameterDescriptor.Builder().name("abc").sensitive(false).build();
         updatedParameters.clear();
         updatedParameters.put("abc", new Parameter(insensitiveAbcDescriptor, "123"));
 
-        try {
-            context.setParameters(updatedParameters);
-            Assert.fail("Succeeded in changing parameter from sensitive to non-sensitive");
-        } catch (final IllegalStateException expected) {
-        }
+        assertThrows(IllegalStateException.class,
+                () -> context.setParameters(updatedParameters));
     }
 
     @Test
@@ -272,18 +267,16 @@ public class TestStandardParameterContext {
         parameters.put("abc", new Parameter(abcDescriptor, "123"));
 
         // Cannot update parameters while running
-        Assert.assertThrows(IllegalStateException.class, () -> context.setParameters(parameters));
+        assertThrows(IllegalStateException.class, () -> context.setParameters(parameters));
 
         // This passes no parameters to update, so it should be fine
         context.setParameters(Collections.emptyMap());
 
         parameters.clear();
         parameters.put("abc", new Parameter(abcDescriptor, null));
-        try {
-            context.setParameters(parameters);
-            Assert.fail("Was able to remove parameter while referencing processor was running");
-        } catch (final IllegalStateException expected) {
-        }
+
+        assertThrows(IllegalStateException.class,
+                () -> context.setParameters(parameters));
 
         assertEquals("321", context.getParameter("abc").get().getValue());
     }
@@ -313,36 +306,32 @@ public class TestStandardParameterContext {
         final ProcessorNode procNode = getProcessorNode(inheritedParamName, referenceManager);
 
         // Show that inherited param 'def' starts with the original value from B
-        Assert.assertEquals(originalValue, a.getParameter(inheritedParamName).get().getValue());
+        assertEquals(originalValue, a.getParameter(inheritedParamName).get().getValue());
 
         // Now demonstrate that we can't effectively add the parameter by referencing Context B while processor runs
         a.setInheritedParameterContexts(Collections.emptyList()); // A now no longer includes 'def'
         startProcessor(procNode);
         try {
             a.setInheritedParameterContexts(Arrays.asList(b));
-            Assert.fail("Was able to change effective parameter while referencing processor was running");
+            fail("Was able to change effective parameter while referencing processor was running");
         } catch (final IllegalStateException expected) {
-            Assert.assertTrue(expected.getMessage().contains("def"));
+            assertTrue(expected.getMessage().contains("def"));
         }
 
         // Safely add Context B, and show we can't effectively remove 'def' while processor runs
         stopProcessor(procNode);
         a.setInheritedParameterContexts(Arrays.asList(b));
         startProcessor(procNode);
-        try {
-            a.setInheritedParameterContexts(Collections.emptyList());
-            Assert.fail("Was able to remove parameter while referencing processor was running");
-        } catch (final IllegalStateException expected) {
-            Assert.assertTrue(expected.getMessage().contains("def"));
-        }
+
+        IllegalStateException illegalStateException =
+                assertThrows(IllegalStateException.class,
+                        () -> a.setInheritedParameterContexts(Collections.emptyList()));
+        assertTrue(illegalStateException.getMessage().contains("def"));
 
         // Show we can't effectively change the value by changing it in B
-        try {
-            addParameter(b, inheritedParamName, changedValue);
-            Assert.fail("Was able to change parameter while referencing processor was running");
-        } catch (final IllegalStateException expected) {
-            Assert.assertTrue(expected.getMessage().contains("def"));
-        }
+        illegalStateException = assertThrows(IllegalStateException.class,
+                        () -> a.setInheritedParameterContexts(Collections.emptyList()));
+        assertTrue(illegalStateException.getMessage().contains("def"));
         assertEquals(originalValue, a.getParameter(inheritedParamName).get().getValue());
 
         // Show we can't effectively change the value by adding Context C with 'def' ahead of 'B'
@@ -351,12 +340,9 @@ public class TestStandardParameterContext {
         addParameter(c, inheritedParamName, changedValue);
         startProcessor(procNode);
 
-        try {
-            a.setInheritedParameterContexts(Arrays.asList(c, b));
-            Assert.fail("Was able to change parameter while referencing processor was running");
-        } catch (final IllegalStateException expected) {
-            Assert.assertTrue(expected.getMessage().contains("def"));
-        }
+        illegalStateException = assertThrows(IllegalStateException.class,
+                () ->  a.setInheritedParameterContexts(Arrays.asList(c, b)));
+        assertTrue(illegalStateException.getMessage().contains("def"));
         assertEquals(originalValue, a.getParameter(inheritedParamName).get().getValue());
 
         // Show that if the effective value of 'def' doesn't change, we don't prevent updating
@@ -372,7 +358,7 @@ public class TestStandardParameterContext {
         // Show that updating a value on a grandchild is prevented because the processor is running and
         // references the parameter via the grandparent
         startProcessor(procNode);
-        Assert.assertThrows(IllegalStateException.class, () -> removeParameter(c, inheritedParamName));
+        assertThrows(IllegalStateException.class, () -> removeParameter(c, inheritedParamName));
     }
 
     private static ProcessorNode getProcessorNode(String parameterName, HashMapParameterReferenceManager referenceManager) {
@@ -462,21 +448,21 @@ public class TestStandardParameterContext {
         for (final ControllerServiceState state : EnumSet.of(ControllerServiceState.ENABLED, ControllerServiceState.ENABLING, ControllerServiceState.DISABLING)) {
             setControllerServiceState(serviceNode, state);
 
-            Assert.assertThrows(IllegalStateException.class, () -> addParameter(b, inheritedParamName, changedValue));
+            assertThrows(IllegalStateException.class, () -> addParameter(b, inheritedParamName, changedValue));
 
-            Assert.assertThrows(IllegalStateException.class, () -> b.setInheritedParameterContexts(Collections.singletonList(c)));
+            assertThrows(IllegalStateException.class, () -> b.setInheritedParameterContexts(Collections.singletonList(c)));
 
             assertEquals(originalValue, a.getParameter(inheritedParamName).get().getValue());
         }
 
-        Assert.assertThrows(IllegalStateException.class, () -> removeParameter(b, inheritedParamName));
+        assertThrows(IllegalStateException.class, () -> removeParameter(b, inheritedParamName));
         setControllerServiceState(serviceNode, ControllerServiceState.DISABLED);
 
         b.setInheritedParameterContexts(Collections.singletonList(c));
 
         setControllerServiceState(serviceNode, ControllerServiceState.DISABLING);
 
-        Assert.assertThrows(IllegalStateException.class, () -> b.setInheritedParameterContexts(Collections.emptyList()));
+        assertThrows(IllegalStateException.class, () -> b.setInheritedParameterContexts(Collections.emptyList()));
     }
 
     @Test
@@ -502,7 +488,7 @@ public class TestStandardParameterContext {
 
             try {
                 context.setParameters(parameters);
-                Assert.fail("Was able to update parameter being referenced by Controller Service that is " + state);
+                fail("Was able to update parameter being referenced by Controller Service that is " + state);
             } catch (final IllegalStateException expected) {
             }
 
@@ -515,7 +501,7 @@ public class TestStandardParameterContext {
         parameters.put("abc", new Parameter(abcDescriptor, null));
         try {
             context.setParameters(parameters);
-            Assert.fail("Was able to remove parameter being referenced by Controller Service that is DISABLING");
+            fail("Was able to remove parameter being referenced by Controller Service that is DISABLING");
         } catch (final IllegalStateException expected) {
         }
     }
@@ -548,7 +534,7 @@ public class TestStandardParameterContext {
 
         b.setInheritedParameterContexts(Arrays.asList(d, e));
 
-        Assert.assertThrows(IllegalStateException.class, () -> a.setInheritedParameterContexts(Arrays.asList(b, c)));
+        assertThrows(IllegalStateException.class, () -> a.setInheritedParameterContexts(Arrays.asList(b, c)));
     }
 
     @Test
@@ -587,9 +573,9 @@ public class TestStandardParameterContext {
         d.setInheritedParameterContexts(Arrays.asList(f));
 
         a.setInheritedParameterContexts(Arrays.asList(b, c));
-        Assert.assertEquals(Arrays.asList(b, c), a.getInheritedParameterContexts());
+        assertEquals(Arrays.asList(b, c), a.getInheritedParameterContexts());
 
-        Assert.assertArrayEquals(new String[] {"B", "C"}, a.getInheritedParameterContextNames().toArray());
+        assertArrayEquals(new String[] {"B", "C"}, a.getInheritedParameterContextNames().toArray());
     }
 
     @Test
@@ -626,22 +612,22 @@ public class TestStandardParameterContext {
 
         final Map<ParameterDescriptor, Parameter> effectiveParameters = a.getEffectiveParameters();
 
-        Assert.assertEquals(5, effectiveParameters.size());
+        assertEquals(5, effectiveParameters.size());
 
-        Assert.assertEquals("a.foo", effectiveParameters.get(foo).getValue());
-        Assert.assertEquals("a", effectiveParameters.get(foo).getParameterContextId());
+        assertEquals("a.foo", effectiveParameters.get(foo).getValue());
+        assertEquals("a", effectiveParameters.get(foo).getParameterContextId());
 
-        Assert.assertEquals("a.bar", effectiveParameters.get(bar).getValue());
-        Assert.assertEquals("a", effectiveParameters.get(bar).getParameterContextId());
+        assertEquals("a.bar", effectiveParameters.get(bar).getValue());
+        assertEquals("a", effectiveParameters.get(bar).getParameterContextId());
 
-        Assert.assertEquals("b.child", effectiveParameters.get(child).getValue());
-        Assert.assertEquals("b", effectiveParameters.get(child).getParameterContextId());
+        assertEquals("b.child", effectiveParameters.get(child).getValue());
+        assertEquals("b", effectiveParameters.get(child).getParameterContextId());
 
-        Assert.assertEquals("c.secondChild", effectiveParameters.get(secondChild).getValue());
-        Assert.assertEquals("c", effectiveParameters.get(secondChild).getParameterContextId());
+        assertEquals("c.secondChild", effectiveParameters.get(secondChild).getValue());
+        assertEquals("c", effectiveParameters.get(secondChild).getParameterContextId());
 
-        Assert.assertEquals("d.grandchild", effectiveParameters.get(grandchild).getValue());
-        Assert.assertEquals("d", effectiveParameters.get(grandchild).getParameterContextId());
+        assertEquals("d.grandchild", effectiveParameters.get(grandchild).getValue());
+        assertEquals("d", effectiveParameters.get(grandchild).getParameterContextId());
     }
 
     @Test
@@ -674,10 +660,10 @@ public class TestStandardParameterContext {
 
         final Map<ParameterDescriptor, Parameter> effectiveParameters = a.getEffectiveParameters();
 
-        Assert.assertEquals(1, effectiveParameters.size());
+        assertEquals(1, effectiveParameters.size());
 
-        Assert.assertEquals("c.child", effectiveParameters.get(child).getValue());
-        Assert.assertEquals("c", effectiveParameters.get(child).getParameterContextId());
+        assertEquals("c.child", effectiveParameters.get(child).getValue());
+        assertEquals("c", effectiveParameters.get(child).getParameterContextId());
     }
 
     @Test
@@ -693,7 +679,7 @@ public class TestStandardParameterContext {
         addParameter(b, "child", "b.child", false);
 
         a.setInheritedParameterContexts(Arrays.asList(b));
-        Assert.assertEquals(Arrays.asList(b), a.getInheritedParameterContexts());
+        assertEquals(Arrays.asList(b), a.getInheritedParameterContexts());
     }
 
     @Test
@@ -710,14 +696,14 @@ public class TestStandardParameterContext {
         b.setInheritedParameterContexts(Arrays.asList(c, d));
         d.setInheritedParameterContexts(Arrays.asList(e));
 
-        Assert.assertTrue(a.inheritsFrom("b"));
-        Assert.assertTrue(a.inheritsFrom("c"));
-        Assert.assertTrue(a.inheritsFrom("d"));
-        Assert.assertTrue(a.inheritsFrom("e"));
-        Assert.assertFalse(a.inheritsFrom("a"));
+        assertTrue(a.inheritsFrom("b"));
+        assertTrue(a.inheritsFrom("c"));
+        assertTrue(a.inheritsFrom("d"));
+        assertTrue(a.inheritsFrom("e"));
+        assertFalse(a.inheritsFrom("a"));
 
-        Assert.assertTrue(b.inheritsFrom("e"));
-        Assert.assertFalse(b.inheritsFrom("a"));
+        assertTrue(b.inheritsFrom("e"));
+        assertFalse(b.inheritsFrom("a"));
 
     }
 
@@ -735,11 +721,11 @@ public class TestStandardParameterContext {
 
         try {
             a.setInheritedParameterContexts(Arrays.asList(b));
-            Assert.fail("Should get a failure for sensitivity mismatch in overriding");
+            fail("Should get a failure for sensitivity mismatch in overriding");
         } catch (IllegalStateException e) {
-            Assert.assertTrue(e.getMessage().contains("foo"));
+            assertTrue(e.getMessage().contains("foo"));
         }
-        Assert.assertEquals(Collections.emptyList(), a.getInheritedParameterContexts());
+        assertEquals(Collections.emptyList(), a.getInheritedParameterContexts());
 
         // Now switch and set a.foo to non-sensitive and b.foo to sensitive
         removeParameter(a, "foo");
@@ -750,11 +736,11 @@ public class TestStandardParameterContext {
 
         try {
             a.setInheritedParameterContexts(Arrays.asList(b));
-            Assert.fail("Should get a failure for sensitivity mismatch in overriding");
+            fail("Should get a failure for sensitivity mismatch in overriding");
         } catch (IllegalStateException e) {
-            Assert.assertTrue(e.getMessage().contains("foo"));
+            assertTrue(e.getMessage().contains("foo"));
         }
-        Assert.assertEquals(Collections.emptyList(), a.getInheritedParameterContexts());
+        assertEquals(Collections.emptyList(), a.getInheritedParameterContexts());
     }
 
     private static void removeParameter(final ParameterContext parameterContext, final String name) {

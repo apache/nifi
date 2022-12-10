@@ -1078,7 +1078,7 @@ public class DataTypeUtils {
     }
 
     public static boolean isStringTypeCompatible(final Object value) {
-        return value != null;
+        return !(value instanceof Record);
     }
 
     public static boolean isEnumTypeCompatible(final Object value, final EnumDataType enumType) {
@@ -1997,6 +1997,26 @@ public class DataTypeUtils {
 
         final RecordFieldType thisFieldType = thisDataType.getFieldType();
         final RecordFieldType otherFieldType = otherDataType.getFieldType();
+
+        if (thisFieldType == RecordFieldType.ARRAY && otherFieldType == RecordFieldType.ARRAY) {
+            // Check for array<null> and return the other (or empty if they are both array<null>). This happens if at some point we inferred an element type of null which
+            // indicates an empty array, and then we inferred a non-null type for the same field in a different record. The non-null type should be used in that case.
+            ArrayDataType thisArrayType = (ArrayDataType) thisDataType;
+            ArrayDataType otherArrayType = (ArrayDataType) otherDataType;
+            if (thisArrayType.getElementType() == null) {
+                if (otherArrayType.getElementType() == null) {
+                    return Optional.empty();
+                } else {
+                    return Optional.of(otherDataType);
+                }
+            } else {
+                if (otherArrayType.getElementType() == null) {
+                    return Optional.of(thisDataType);
+                } else {
+                    return Optional.empty();
+                }
+            }
+        }
 
         final int thisIntTypeValue = getIntegerTypeValue(thisFieldType);
         final int otherIntTypeValue = getIntegerTypeValue(otherFieldType);

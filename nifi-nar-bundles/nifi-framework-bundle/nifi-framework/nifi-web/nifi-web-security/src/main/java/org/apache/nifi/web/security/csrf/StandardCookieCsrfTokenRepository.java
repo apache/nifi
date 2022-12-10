@@ -16,9 +16,13 @@
  */
 package org.apache.nifi.web.security.csrf;
 
+import org.apache.nifi.web.security.cookie.ApplicationCookieName;
+import org.apache.nifi.web.security.cookie.ApplicationCookieService;
+import org.apache.nifi.web.security.cookie.StandardApplicationCookieService;
 import org.apache.nifi.web.security.http.SecurityCookieName;
 import org.apache.nifi.web.security.http.SecurityHeader;
 import org.apache.nifi.web.util.RequestUriBuilder;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.DefaultCsrfToken;
@@ -29,6 +33,7 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.net.URI;
+import java.time.Duration;
 import java.util.UUID;
 
 /**
@@ -37,15 +42,7 @@ import java.util.UUID;
 public class StandardCookieCsrfTokenRepository implements CsrfTokenRepository {
     private static final String REQUEST_PARAMETER = "requestToken";
 
-    private static final String ROOT_PATH = "/";
-
-    private static final String EMPTY = "";
-
-    private static final boolean SECURE_ENABLED = true;
-
-    private static final int MAX_AGE_EXPIRED = 0;
-
-    private static final int MAX_AGE_SESSION = -1;
+    private static final ApplicationCookieService applicationCookieService = new CsrfApplicationCookieService();
 
     /**
      * Generate CSRF Token or return current Token when present in HTTP Servlet Request Cookie header
@@ -71,16 +68,13 @@ public class StandardCookieCsrfTokenRepository implements CsrfTokenRepository {
      */
     @Override
     public void saveToken(final CsrfToken csrfToken, final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse) {
-        final String token = csrfToken == null ? EMPTY : csrfToken.getToken();
-        final int maxAge = csrfToken == null ? MAX_AGE_EXPIRED : MAX_AGE_SESSION;
-
-        final Cookie cookie = new Cookie(SecurityCookieName.REQUEST_TOKEN.getName(), token);
-        cookie.setSecure(SECURE_ENABLED);
-        cookie.setMaxAge(maxAge);
-
-        final String cookiePath = getCookiePath(httpServletRequest);
-        cookie.setPath(cookiePath);
-        httpServletResponse.addCookie(cookie);
+        final URI uri = RequestUriBuilder.fromHttpServletRequest(httpServletRequest).build();
+        if (csrfToken == null) {
+            applicationCookieService.removeCookie(uri, httpServletResponse, ApplicationCookieName.REQUEST_TOKEN);
+        } else {
+            final String token = csrfToken.getToken();
+            applicationCookieService.addSessionCookie(uri, httpServletResponse, ApplicationCookieName.REQUEST_TOKEN, token);
+        }
     }
 
     /**
@@ -104,10 +98,26 @@ public class StandardCookieCsrfTokenRepository implements CsrfTokenRepository {
         return UUID.randomUUID().toString();
     }
 
-    private String getCookiePath(final HttpServletRequest httpServletRequest) {
-        final RequestUriBuilder requestUriBuilder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest);
-        requestUriBuilder.path(ROOT_PATH);
-        final URI uri = requestUriBuilder.build();
-        return uri.getPath();
+    private static class CsrfApplicationCookieService extends StandardApplicationCookieService {
+        private static final boolean HTTP_ONLY_DISABLED = false;
+
+        /**
+         * Get Response Cookie Builder with HttpOnly disabled allowing JavaScript to read value for subsequent requests
+         *
+         * @param resourceUri Resource URI containing path and domain
+         * @param applicationCookieName Application Cookie Name to be used
+         * @param value Cookie value
+         * @param maxAge Max Age
+         * @return Response Cookie Builder
+         */
+        @Override
+        protected ResponseCookie.ResponseCookieBuilder getCookieBuilder(final URI resourceUri,
+                                                                        final ApplicationCookieName applicationCookieName,
+                                                                        final String value,
+                                                                        final Duration maxAge) {
+            final ResponseCookie.ResponseCookieBuilder builder = super.getCookieBuilder(resourceUri, applicationCookieName, value, maxAge);
+            builder.httpOnly(HTTP_ONLY_DISABLED);
+            return builder;
+        }
     }
 }

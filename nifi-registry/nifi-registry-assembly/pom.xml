@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry</artifactId>
-        <version>1.19.0-SNAPSHOT</version>
+        <version>1.20.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-registry-assembly</artifactId>
     <packaging>pom</packaging>
@@ -48,7 +48,10 @@
                                 <descriptor>src/main/assembly/dependencies.xml</descriptor>
                             </descriptors>
                             <tarLongFileMode>posix</tarLongFileMode>
-                            <formats>zip</formats>
+                            <formats>
+                                <format>dir</format>
+                                <format>zip</format>
+                            </formats>
                         </configuration>
                     </execution>
                 </executions>
@@ -100,7 +103,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-utils</artifactId>
-            <version>1.19.0-SNAPSHOT</version>
+            <version>1.20.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
@@ -124,7 +127,7 @@
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-web-docs</artifactId>
             <type>war</type>
-            <version>1.19.0-SNAPSHOT</version>
+            <version>1.20.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
@@ -136,7 +139,7 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-docs</artifactId>
-            <version>1.19.0-SNAPSHOT</version>
+            <version>1.20.0-SNAPSHOT</version>
             <classifier>resources</classifier>
             <scope>runtime</scope>
             <type>zip</type>
@@ -394,7 +397,7 @@
                 <dependency>
                     <groupId>org.apache.nifi.registry</groupId>
                     <artifactId>nifi-registry-ranger-assembly</artifactId>
-                    <version>1.19.0-SNAPSHOT</version>
+                    <version>1.20.0-SNAPSHOT</version>
                     <classifier>bin</classifier>
                     <scope>runtime</scope>
                     <type>${nifi.registry.extension.archive.type}</type>
@@ -437,7 +440,7 @@
                 <dependency>
                     <groupId>org.apache.nifi.registry</groupId>
                     <artifactId>nifi-registry-aws-assembly</artifactId>
-                    <version>1.19.0-SNAPSHOT</version>
+                    <version>1.20.0-SNAPSHOT</version>
                     <classifier>bin</classifier>
                     <scope>runtime</scope>
                     <type>${nifi.registry.extension.archive.type}</type>
@@ -499,7 +502,9 @@
                                         <descriptor>src/main/assembly/dependencies.xml</descriptor>
                                     </descriptors>
                                     <tarLongFileMode>posix</tarLongFileMode>
-                                    <formats>tar.gz</formats>
+                                    <formats>
+                                        <format>tar.gz</format>
+                                    </formats>
                                 </configuration>
                             </execution>
                         </executions>
@@ -536,7 +541,9 @@
                                     <descriptors>
                                         <descriptor>src/main/assembly/dependencies.xml</descriptor>
                                     </descriptors>
-                                    <formats>dir</formats>
+                                    <formats>
+                                        <format>dir</format>
+                                    </formats>
                                 </configuration>
                             </execution>
                         </executions>

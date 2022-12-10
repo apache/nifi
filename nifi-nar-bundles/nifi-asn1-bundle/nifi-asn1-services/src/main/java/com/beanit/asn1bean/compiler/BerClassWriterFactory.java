@@ -14,28 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard;
+package com.beanit.asn1bean.compiler;
 
-import java.io.IOException;
+import com.beanit.asn1bean.compiler.model.AsnModule;
 
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import java.nio.file.Path;
+import java.util.HashMap;
 
-public class UserAgentTestingServlet extends HttpServlet {
+public class BerClassWriterFactory {
+    public static BerClassWriter createBerClassWriter(HashMap<String, AsnModule> modulesByName, Path asnOutDir) {
+        BerClassWriter berClassWriter = new BerClassWriter(
+                modulesByName,
+                asnOutDir.toString(),
+                "",
+                true,
+                false,
+                false
+        );
 
-    private static final long serialVersionUID = 1L;
-
-    public UserAgentTestingServlet() {
-    }
-
-    @Override
-    public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        String userAgent = request.getHeader("User-Agent");
-        if ("testUserAgent".equals(userAgent)) {
-            response.setStatus(200);
-        } else {
-            response.setStatus(500);
-        }
+        return berClassWriter;
     }
 }

@@ -16,27 +16,37 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.factory.strategies;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Map;
-
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_ARN;
-import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_EXTERNAL_ID;
-import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.MAX_SESSION_TIME;
-import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_NAME;
-import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_PORT;
-import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_HOST;
-import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_STS_ENDPOINT;
-import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsStrategy;
-
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClient;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsStrategy;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.sts.StsClient;
+import software.amazon.awssdk.services.sts.StsClientBuilder;
+import software.amazon.awssdk.services.sts.auth.StsAssumeRoleCredentialsProvider;
+import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
+
+import java.net.URI;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Map;
+
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_ARN;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_EXTERNAL_ID;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_NAME;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_HOST;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_PORT;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_STS_ENDPOINT;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.MAX_SESSION_TIME;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_REGION;
 
 
 /**
@@ -57,12 +67,12 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
     }
 
     @Override
-    public boolean canCreatePrimaryCredential(Map<PropertyDescriptor, String> properties) {
+    public boolean canCreatePrimaryCredential(final Map<PropertyDescriptor, String> properties) {
         return false;
     }
 
     @Override
-    public boolean canCreateDerivedCredential(Map<PropertyDescriptor, String> properties) {
+    public boolean canCreateDerivedCredential(final Map<PropertyDescriptor, String> properties) {
         final String assumeRoleArn = properties.get(ASSUME_ROLE_ARN);
         final String assumeRoleName = properties.get(ASSUME_ROLE_NAME);
         if (assumeRoleArn != null && !assumeRoleArn.isEmpty()
@@ -72,7 +82,7 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
         return false;
     }
 
-    public boolean proxyVariablesValidForAssumeRole(Map<PropertyDescriptor, String> properties){
+    public boolean proxyVariablesValidForAssumeRole(final Map<PropertyDescriptor, String> properties){
         final String assumeRoleProxyHost = properties.get(ASSUME_ROLE_PROXY_HOST);
         final String assumeRoleProxyPort = properties.get(ASSUME_ROLE_PROXY_PORT);
         if (assumeRoleProxyHost != null && !assumeRoleProxyHost.isEmpty()
@@ -135,17 +145,17 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
     }
 
     @Override
-    public AWSCredentialsProvider getCredentialsProvider(Map<PropertyDescriptor, String> properties) {
+    public AWSCredentialsProvider getCredentialsProvider(final Map<PropertyDescriptor, String> properties) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public AWSCredentialsProvider getDerivedCredentialsProvider(Map<PropertyDescriptor, String> properties,
-                                                                AWSCredentialsProvider primaryCredentialsProvider) {
+    public AWSCredentialsProvider getDerivedCredentialsProvider(final Map<PropertyDescriptor, String> properties,
+                                                                final AWSCredentialsProvider primaryCredentialsProvider) {
         final String assumeRoleArn = properties.get(ASSUME_ROLE_ARN);
         final String assumeRoleName = properties.get(ASSUME_ROLE_NAME);
         String rawMaxSessionTime = properties.get(MAX_SESSION_TIME);
-        rawMaxSessionTime = (rawMaxSessionTime != null) ? rawMaxSessionTime : MAX_SESSION_TIME.getDefaultValue();
+        rawMaxSessionTime = rawMaxSessionTime == null ? MAX_SESSION_TIME.getDefaultValue() : rawMaxSessionTime;
         final Integer maxSessionTime = Integer.parseInt(rawMaxSessionTime.trim());
         final String assumeRoleExternalId = properties.get(ASSUME_ROLE_EXTERNAL_ID);
         final String assumeRoleSTSEndpoint = properties.get(ASSUME_ROLE_STS_ENDPOINT);
@@ -176,5 +186,63 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
         final AWSCredentialsProvider credsProvider = builder.build();
 
         return credsProvider;
+    }
+
+    @Override
+    public AwsCredentialsProvider getAwsCredentialsProvider(final Map<PropertyDescriptor, String> properties) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public AwsCredentialsProvider getDerivedAwsCredentialsProvider(final Map<PropertyDescriptor, String> properties,
+                                                                   AwsCredentialsProvider primaryCredentialsProvider) {
+        final String assumeRoleArn = properties.get(ASSUME_ROLE_ARN);
+        final String assumeRoleName = properties.get(ASSUME_ROLE_NAME);
+        String rawMaxSessionTime = properties.get(MAX_SESSION_TIME);
+        rawMaxSessionTime = rawMaxSessionTime == null ? MAX_SESSION_TIME.getDefaultValue() : rawMaxSessionTime;
+        final Integer maxSessionTime = Integer.parseInt(rawMaxSessionTime.trim());
+        final String assumeRoleExternalId = properties.get(ASSUME_ROLE_EXTERNAL_ID);
+        final String assumeRoleSTSEndpoint = properties.get(ASSUME_ROLE_STS_ENDPOINT);
+        final String stsRegion = properties.get(ASSUME_ROLE_REGION);
+
+        final StsAssumeRoleCredentialsProvider.Builder builder = StsAssumeRoleCredentialsProvider.builder();
+
+        // If proxy variables are set, then create Client Configuration with those values
+        final ApacheHttpClient.Builder httpClientBuilder = ApacheHttpClient.builder();
+        if (proxyVariablesValidForAssumeRole(properties)) {
+            final String assumeRoleProxyHost = properties.get(ASSUME_ROLE_PROXY_HOST);
+            final Integer assumeRoleProxyPort = Integer.parseInt(properties.get(ASSUME_ROLE_PROXY_PORT));
+            final software.amazon.awssdk.http.apache.ProxyConfiguration proxyConfig = software.amazon.awssdk.http.apache.ProxyConfiguration.builder()
+                    .endpoint(URI.create(String.format("%s:%s", assumeRoleProxyHost, assumeRoleProxyPort)))
+                    .build();
+            httpClientBuilder.proxyConfiguration(proxyConfig);
+        }
+
+        if (stsRegion == null) {
+            throw new IllegalStateException("Assume Role Region is required to interact with STS");
+        }
+
+        final StsClientBuilder stsClientBuilder = StsClient.builder()
+                .credentialsProvider(primaryCredentialsProvider)
+                .region(Region.of(stsRegion))
+                .httpClient(httpClientBuilder.build());
+        if (assumeRoleSTSEndpoint != null && !assumeRoleSTSEndpoint.isEmpty()) {
+            stsClientBuilder.endpointOverride(URI.create(assumeRoleSTSEndpoint));
+        }
+        final StsClient stsClient = stsClientBuilder.build();
+
+        final AssumeRoleRequest.Builder roleRequestBuilder = AssumeRoleRequest.builder()
+                .roleArn(assumeRoleArn)
+                .roleSessionName(assumeRoleName);
+
+        if (assumeRoleExternalId != null && !assumeRoleExternalId.isEmpty()) {
+            roleRequestBuilder.externalId(assumeRoleExternalId);
+        }
+
+        builder.refreshRequest(roleRequestBuilder.build())
+                .stsClient(stsClient)
+                .staleTime(Duration.ofSeconds(maxSessionTime));
+
+        return builder.build();
     }
 }

@@ -107,6 +107,7 @@ class TestRuntimeManifest {
         assertFalse(listHdfsDefinition.getSupportsDynamicProperties());
         assertFalse(listHdfsDefinition.getSupportsDynamicRelationships());
         assertEquals(InputRequirement.Requirement.INPUT_FORBIDDEN, listHdfsDefinition.getInputRequirement());
+        assertTrue(listHdfsDefinition.isAdditionalDetails());
 
         assertEquals("30 sec", listHdfsDefinition.getDefaultPenaltyDuration());
         assertEquals("1 sec", listHdfsDefinition.getDefaultYieldDuration());
@@ -159,6 +160,7 @@ class TestRuntimeManifest {
                 "org.apache.nifi.processors.hadoop.FetchHDFS");
         assertNotNull(fetchHdfsDefinition.isRestricted());
         assertTrue(fetchHdfsDefinition.isRestricted());
+        assertFalse(fetchHdfsDefinition.isAdditionalDetails());
 
         final Set<Restriction> restrictions = fetchHdfsDefinition.getExplicitRestrictions();
         assertNotNull(restrictions);
@@ -171,6 +173,7 @@ class TestRuntimeManifest {
         // Verify ConsumeKafka_2_6 definition which has properties with dependencies
         final ProcessorDefinition consumeKafkaDefinition = getProcessorDefinition(bundles, "nifi-kafka-2-6-nar",
                 "org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_2_6");
+        assertTrue(consumeKafkaDefinition.isAdditionalDetails());
 
         final PropertyDescriptor maxUncommitProp = getPropertyDescriptor(consumeKafkaDefinition, "max-uncommit-offset-wait");
         final List<PropertyDependency> propertyDependencies = maxUncommitProp.getDependencies();

@@ -31,17 +31,12 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
-import org.apache.nifi.json.JsonRecordSetWriter;
-import org.apache.nifi.json.JsonTreeReader;
-import org.apache.nifi.kafka.shared.property.PublishStrategy;
 import org.apache.nifi.kafka.shared.transaction.TransactionIdSupplier;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.serialization.RecordReaderFactory;
-import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -57,12 +52,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -79,30 +77,29 @@ public class TestPublishKafkaMockParameterized {
 
     public static Stream<Arguments> testCaseParametersProvider() {
         return Stream.of(
-                arguments("PublishRecord/parameterized/flowfileInput1.json",
-                        "account", ".*A.", getAttributes(), PublishStrategy.USE_VALUE,
-                        "PublishRecord/parameterized/kafkaOutput1V.json"),
-                arguments("PublishRecord/parameterized/flowfileInput1.json",
-                        "account", ".*B.", getAttributes(), PublishStrategy.USE_WRAPPER,
-                        "PublishRecord/parameterized/kafkaOutput1W.json"),
-                arguments("PublishRecord/parameterized/flowfileInputA.json",
-                        "key", ".*1", getAttributes(), PublishStrategy.USE_VALUE,
-                        "PublishRecord/parameterized/kafkaOutputAV.json"),
-                arguments("PublishRecord/parameterized/flowfileInputA.json",
-                        "key", ".*2", getAttributes(), PublishStrategy.USE_WRAPPER,
-                        "PublishRecord/parameterized/kafkaOutputAW.json")
+                arguments("Publish/parameterized/flowfileInput1.json",
+                        "key1A", ".*A.", getAttributes(),
+                        "Publish/parameterized/kafkaOutput1A.json"),
+                arguments("Publish/parameterized/flowfileInput1.json",
+                        "key1B", ".*B.", getAttributes(),
+                        "Publish/parameterized/kafkaOutput1B.json"),
+                arguments("Publish/parameterized/flowfileInputA.json",
+                        "keyA1", ".*1", getAttributes(),
+                        "Publish/parameterized/kafkaOutputA1.json"),
+                arguments("Publish/parameterized/flowfileInputA.json",
+                        "keyA2", ".*2", getAttributes(),
+                        "Publish/parameterized/kafkaOutputA2.json")
         );
     }
 
     @ParameterizedTest
     @MethodSource("testCaseParametersProvider")
-    public void testPublishKafkaRecord(final String flowfileInputResource,
-                                       final String messageKeyField,
-                                       final String attributeNameRegex,
-                                       final Map<String, String> attributes,
-                                       final PublishStrategy publishStrategy,
-                                       final String kafkaRecordExpectedOutputResource)
-            throws IOException, InitializationException {
+    public void testPublishKafka(final String flowfileInputResource,
+                                 final String messageKey,
+                                 final String attributeNameRegex,
+                                 final Map<String, String> attributes,
+                                 final String kafkaRecordExpectedOutputResource)
+            throws IOException {
         final byte[] flowfileData = IOUtils.toByteArray(Objects.requireNonNull(
                 getClass().getClassLoader().getResource(flowfileInputResource)));
         logger.trace(new String(flowfileData, UTF_8));
@@ -114,12 +111,11 @@ public class TestPublishKafkaMockParameterized {
         final TestRunner runner = getTestRunner(producedRecords);
         runner.setProperty("topic", "test-topic");
         runner.setProperty("attribute-name-regex", attributeNameRegex);
-        runner.setProperty("message-key-field", messageKeyField);
-        runner.setProperty("publish-strategy", publishStrategy.name());
+        runner.setProperty("kafka-key", messageKey);
         runner.enqueue(flowFile);
         runner.run(1);
         // verify results
-        runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesTransferred(PublishKafka_2_6.REL_SUCCESS, 1);
         assertEquals(1, producedRecords.size());
         final ProducerRecord<byte[], byte[]> kafkaRecord = producedRecords.iterator().next();
         final DefaultPrettyPrinter prettyPrinter = new DefaultPrettyPrinter()
@@ -151,7 +147,7 @@ public class TestPublishKafkaMockParameterized {
         public void serialize(final RecordHeader recordHeader, final JsonGenerator jsonGenerator,
                               final SerializerProvider serializerProvider) throws IOException {
             jsonGenerator.writeStartObject();
-            jsonGenerator.writeObjectField("RecordHeader-key",
+            jsonGenerator.writeStringField("RecordHeader-key",
                     (recordHeader.key() == null) ? null : recordHeader.key());
             jsonGenerator.writeObjectField("RecordHeader-value",
                     (recordHeader.value() == null) ? null : new String(recordHeader.value(), StandardCharsets.UTF_8));
@@ -174,11 +170,15 @@ public class TestPublishKafkaMockParameterized {
         public void serialize(ProducerRecord<byte[], byte[]> producerRecord, JsonGenerator jsonGenerator,
                               SerializerProvider serializerProvider) throws IOException {
             jsonGenerator.writeStartObject();
-            jsonGenerator.writeObjectField("ProducerRecord-key",
-                    (producerRecord.key() == null) ? null : objectMapper.readTree(producerRecord.key()));
+            jsonGenerator.writeStringField("ProducerRecord-key",
+                    (producerRecord.key() == null) ? null : new String(producerRecord.key(), StandardCharsets.UTF_8));
             jsonGenerator.writeObjectField("ProducerRecord-value",
                     (producerRecord.value() == null) ? null : objectMapper.readTree(producerRecord.value()));
-            jsonGenerator.writeObjectField("ProducerRecord-headers", producerRecord.headers());
+            final List<Header> headers = new ArrayList<>();
+            producerRecord.headers().forEach(headers::add);
+            final List<Header> headersSorted = headers.stream()
+                    .sorted(Comparator.comparing(Header::key)).collect(Collectors.toList());
+            jsonGenerator.writeObjectField("ProducerRecord-headers", headersSorted);
             jsonGenerator.writeEndObject();
         }
     }
@@ -192,15 +192,8 @@ public class TestPublishKafkaMockParameterized {
         return attributes;
     }
 
-    private TestRunner getTestRunner(final Collection<ProducerRecord<byte[], byte[]>> producedRecords)
-            throws InitializationException {
-        final String readerId = "record-reader";
-        final RecordReaderFactory readerService = new JsonTreeReader();
-        final String writerId = "record-writer";
-        final RecordSetWriterFactory writerService = new JsonRecordSetWriter();
-        final String keyWriterId = "record-key-writer";
-        final RecordSetWriterFactory keyWriterService = new JsonRecordSetWriter();
-        final PublishKafkaRecord_2_6 processor = new PublishKafkaRecord_2_6() {
+    private TestRunner getTestRunner(final Collection<ProducerRecord<byte[], byte[]>> producedRecords) {
+        final PublishKafka_2_6 processor = new PublishKafka_2_6() {
             @Override
             protected PublisherPool createPublisherPool(final ProcessContext context) {
                 return getPublisherPool(producedRecords, context);
@@ -208,15 +201,6 @@ public class TestPublishKafkaMockParameterized {
         };
         final TestRunner runner = TestRunners.newTestRunner(processor);
         runner.setValidateExpressionUsage(false);
-        runner.addControllerService(readerId, readerService);
-        runner.enableControllerService(readerService);
-        runner.setProperty(readerId, readerId);
-        runner.addControllerService(writerId, writerService);
-        runner.enableControllerService(writerService);
-        runner.setProperty(writerId, writerId);
-        runner.addControllerService(keyWriterId, keyWriterService);
-        runner.enableControllerService(keyWriterService);
-        runner.setProperty(keyWriterId, keyWriterId);
         return runner;
     }
 
@@ -229,10 +213,8 @@ public class TestPublishKafkaMockParameterized {
         final boolean useTransactions = context.getProperty("use-transactions").asBoolean();
         final String transactionalIdPrefix = context.getProperty("transactional-id-prefix").evaluateAttributeExpressions().getValue();
         Supplier<String> transactionalIdSupplier = new TransactionIdSupplier(transactionalIdPrefix);
-        final PublishStrategy publishStrategy = PublishStrategy.valueOf(context.getProperty("publish-strategy").getValue());
         final String charsetName = context.getProperty("message-header-encoding").evaluateAttributeExpressions().getValue();
         final Charset charset = Charset.forName(charsetName);
-        final RecordSetWriterFactory recordKeyWriterFactory = context.getProperty("record-key-writer").asControllerService(RecordSetWriterFactory.class);
 
         return new PublisherPool(
                 Collections.emptyMap(),
@@ -243,8 +225,8 @@ public class TestPublishKafkaMockParameterized {
                 transactionalIdSupplier,
                 attributeNamePattern,
                 charset,
-                publishStrategy,
-                recordKeyWriterFactory) {
+                null,
+                null) {
             @Override
             public PublisherLease obtainPublisher() {
                 return getPublisherLease(producedRecords, context);
@@ -259,9 +241,6 @@ public class TestPublishKafkaMockParameterized {
                                              final ProcessContext context) {
         final String attributeNameRegex = context.getProperty("attribute-name-regex").getValue();
         final Pattern patternAttributeName = (attributeNameRegex == null) ? null : Pattern.compile(attributeNameRegex);
-        final RecordSetWriterFactory keyWriterFactory = context.getProperty("record-key-writer")
-                .asControllerService(RecordSetWriterFactory.class);
-        final PublishStrategy publishStrategy = PublishStrategy.valueOf(context.getProperty("publish-strategy").getValue());
 
         final Producer<byte[], byte[]> producer = mock(ProducerBB.class);
         when(producer.send(any(), any())).then(invocation -> {
@@ -280,8 +259,8 @@ public class TestPublishKafkaMockParameterized {
                 true,
                 patternAttributeName,
                 UTF_8,
-                publishStrategy,
-                keyWriterFactory) {
+                null,
+                null) {
             @Override
             protected long getTimestamp() {
                 return 1000000000000L;

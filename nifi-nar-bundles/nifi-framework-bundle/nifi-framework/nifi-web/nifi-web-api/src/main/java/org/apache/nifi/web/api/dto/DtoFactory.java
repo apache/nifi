@@ -2810,6 +2810,7 @@ public final class DtoFactory {
         dto.setFlowName(versionControlInfo.getFlowName());
         dto.setFlowDescription(versionControlInfo.getFlowDescription());
         dto.setVersion(versionControlInfo.getVersion());
+        dto.setStorageLocation(versionControlInfo.getStorageLocation());
 
         final VersionedFlowStatus status = versionControlInfo.getStatus();
         final VersionedFlowState state = status.getState();
@@ -4224,7 +4225,6 @@ public final class DtoFactory {
             } else {
                 final List<AllowableValueEntity> allowableValues = new ArrayList<>();
                 final List<String> controllerServiceIdentifiers = new ArrayList<>(controllerServiceProvider.getControllerServiceIdentifiers(serviceDefinition, groupId));
-                Collections.sort(controllerServiceIdentifiers, Collator.getInstance(Locale.US));
                 for (final String serviceIdentifier : controllerServiceIdentifiers) {
                     final ControllerServiceNode service = controllerServiceProvider.getControllerServiceNode(serviceIdentifier);
                     final boolean isServiceAuthorized = service.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
@@ -4235,6 +4235,7 @@ public final class DtoFactory {
                     allowableValue.setValue(serviceIdentifier);
                     allowableValues.add(entityFactory.createAllowableValueEntity(allowableValue, isServiceAuthorized));
                 }
+                allowableValues.sort(Comparator.comparing(e -> e.getAllowableValue().getDisplayName()));
                 dto.setAllowableValues(allowableValues);
             }
         } else {
@@ -4246,7 +4247,7 @@ public final class DtoFactory {
                 allowableValueDto.setDescription(allowableValue.getDescription());
                 allowableValues.add(entityFactory.createAllowableValueEntity(allowableValueDto, true));
             }
-
+            allowableValues.sort(Comparator.comparing(e -> e.getAllowableValue().getDisplayName()));
             dto.setAllowableValues(allowableValues);
         }
 
@@ -4594,6 +4595,7 @@ public final class DtoFactory {
         copy.setVersion(original.getVersion());
         copy.setState(original.getState());
         copy.setStateExplanation(original.getStateExplanation());
+        copy.setStorageLocation(original.getStorageLocation());
         return copy;
     }
 

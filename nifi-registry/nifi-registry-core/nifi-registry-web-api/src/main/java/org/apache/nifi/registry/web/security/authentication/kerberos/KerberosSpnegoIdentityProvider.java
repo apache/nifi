@@ -35,13 +35,13 @@ import org.springframework.lang.Nullable;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.kerberos.authentication.KerberosServiceAuthenticationProvider;
 import org.springframework.security.kerberos.authentication.KerberosServiceRequestToken;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 
 import javax.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.concurrent.TimeUnit;
 
 public class KerberosSpnegoIdentityProvider implements IdentityProvider {
@@ -67,9 +67,11 @@ public class KerberosSpnegoIdentityProvider implements IdentityProvider {
     private static final String AUTHORIZATION = "Authorization";
     private static final String AUTHORIZATION_NEGOTIATE = "Negotiate";
 
+    private static final Base64.Decoder decoder = Base64.getDecoder();
+
     private long expiration = TimeUnit.MILLISECONDS.convert(12, TimeUnit.HOURS);
-    private KerberosServiceAuthenticationProvider kerberosServiceAuthenticationProvider;
-    private AuthenticationDetailsSource<HttpServletRequest, ?> authenticationDetailsSource;
+    private final KerberosServiceAuthenticationProvider kerberosServiceAuthenticationProvider;
+    private final AuthenticationDetailsSource<HttpServletRequest, ?> authenticationDetailsSource;
 
     @Autowired
     public KerberosSpnegoIdentityProvider(
@@ -80,7 +82,7 @@ public class KerberosSpnegoIdentityProvider implements IdentityProvider {
 
         final String expirationFromProperties = properties.getKerberosSpnegoAuthenticationExpiration();
         if (expirationFromProperties != null) {
-            long expiration = FormatUtils.getTimeDuration(expirationFromProperties, TimeUnit.MILLISECONDS);
+            expiration = Math.round(FormatUtils.getPreciseTimeDuration(expirationFromProperties, TimeUnit.MILLISECONDS));
         }
     }
 
@@ -105,7 +107,7 @@ public class KerberosSpnegoIdentityProvider implements IdentityProvider {
 
         logger.debug("Detected 'Authorization: Negotiate header in request {}", request.getRequestURL());
         byte[] base64Token = headerValue.substring(headerValue.indexOf(" ") + 1).getBytes(StandardCharsets.UTF_8);
-        byte[] kerberosTicket = Base64.decode(base64Token);
+        byte[] kerberosTicket = decoder.decode(base64Token);
         return new AuthenticationRequest(null, kerberosTicket, authenticationDetailsSource.buildDetails(request));
 
     }
@@ -119,7 +121,7 @@ public class KerberosSpnegoIdentityProvider implements IdentityProvider {
         }
 
         final Object credentials = authenticationRequest.getCredentials();
-        byte[] kerberosTicket = credentials != null && credentials instanceof byte[] ? (byte[]) authenticationRequest.getCredentials() : null;
+        byte[] kerberosTicket = credentials instanceof byte[] ? (byte[]) authenticationRequest.getCredentials() : null;
 
         if (credentials == null) {
             logger.info("Kerberos Ticket not found in authenticationRequest credentials, returning null.");
