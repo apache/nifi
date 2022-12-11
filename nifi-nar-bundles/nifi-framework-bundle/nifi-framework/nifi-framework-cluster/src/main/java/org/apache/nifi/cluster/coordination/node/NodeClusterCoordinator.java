@@ -146,7 +146,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         this.leaderElectionManager = leaderElectionManager;
         this.flowElection = flowElection;
         this.nodeProtocolSender = nodeProtocolSender;
-        this.stateManager = stateManagerProvider.getStateManager("Cluster Coordinator");
+        this.stateManager = stateManagerProvider.getStateManager(ClusterRoles.CLUSTER_COORDINATOR);
 
         recoverState();
 
@@ -250,7 +250,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         if (localId != null) {
             final NodeConnectionStatus shutdownStatus = new NodeConnectionStatus(localId, DisconnectionCode.NODE_SHUTDOWN);
             updateNodeStatus(shutdownStatus, false);
-            logger.info("Successfully notified other nodes that I am shutting down");
+            logger.info("Node ID [{}] Disconnection Code [{}] send completed", localId, DisconnectionCode.NODE_SHUTDOWN);
         }
     }
 
@@ -762,7 +762,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         final int colonLoc = electedNodeAddress.indexOf(':');
         if (colonLoc < 1) {
             if (warnOnError) {
-                logger.warn("Failed to determine which node is elected active Cluster Coordinator: ZooKeeper reports the address as {}, but this is not a valid address", electedNodeAddress);
+                logger.warn("Failed to determine which node is elected active Cluster Coordinator: Manager reports the address as {}, but this is not a valid address", electedNodeAddress);
             }
 
             return null;
@@ -775,7 +775,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             electedNodePort = Integer.parseInt(portString);
         } catch (final NumberFormatException nfe) {
             if (warnOnError) {
-                logger.warn("Failed to determine which node is elected active Cluster Coordinator: ZooKeeper reports the address as {}, but this is not a valid address", electedNodeAddress);
+                logger.warn("Failed to determine which node is elected active Cluster Coordinator: Manager reports the address as {}, but this is not a valid address", electedNodeAddress);
             }
 
             return null;
@@ -788,7 +788,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                 .orElse(null);
 
         if (electedNodeId == null && warnOnError) {
-            logger.debug("Failed to determine which node is elected active Cluster Coordinator: ZooKeeper reports the address as {},"
+            logger.debug("Failed to determine which node is elected active Cluster Coordinator: Manager reports the address as {},"
                     + "but there is no node with this address. Will attempt to communicate with node to determine its information", electedNodeAddress);
 
             try {
@@ -807,7 +807,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                     return existingStatus.getNodeIdentifier();
                 }
             } catch (final Exception e) {
-                logger.warn("Failed to determine which node is elected active Cluster Coordinator: ZooKeeper reports the address as {}, but there is no node with this address. "
+                logger.warn("Failed to determine which node is elected active Cluster Coordinator: Manager reports the address as {}, but there is no node with this address. "
                         + "Attempted to determine the node's information but failed to retrieve its information due to {}", electedNodeAddress, e.toString());
 
                 if (logger.isDebugEnabled()) {
@@ -1446,7 +1446,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     }
 
     @Override
-    public Map<NodeIdentifier, NodeWorkload> getClusterWorkload() throws IOException {
+    public Map<NodeIdentifier, NodeWorkload> getClusterWorkload() {
         final ClusterWorkloadRequestMessage request = new ClusterWorkloadRequestMessage();
         final ClusterWorkloadResponseMessage response = nodeProtocolSender.clusterWorkload(request);
         return response.getNodeWorkloads();

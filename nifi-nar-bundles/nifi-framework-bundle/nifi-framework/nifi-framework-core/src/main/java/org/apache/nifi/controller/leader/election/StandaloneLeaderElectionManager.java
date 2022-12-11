@@ -60,11 +60,6 @@ public class StandaloneLeaderElectionManager implements LeaderElectionManager {
     }
 
     @Override
-    public boolean isStopped() {
-        return false;
-    }
-
-    @Override
     public void stop() {
     }
 
@@ -91,10 +86,5 @@ public class StandaloneLeaderElectionManager implements LeaderElectionManager {
     @Override
     public long getPollCount() {
         return -1L;
-    }
-
-    @Override
-    public boolean isLeaderElected(String roleName) {
-        return false;
     }
 }

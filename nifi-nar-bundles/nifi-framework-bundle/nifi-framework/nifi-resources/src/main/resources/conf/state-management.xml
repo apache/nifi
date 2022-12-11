@@ -135,4 +135,14 @@
         </cluster-provider>
     -->
 
+    <!--
+
+    Kubernetes ConfigMap implementation of State Provider
+
+    <cluster-provider>
+        <id>kubernetes-provider</id>
+        <class>org.apache.nifi.kubernetes.state.provider.KubernetesConfigMapStateProvider</class>
+    </cluster-provider>
+    -->
+
 </stateManagement>
