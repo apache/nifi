@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.adx;
 
-import com.microsoft.azure.kusto.data.Client;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
@@ -26,32 +25,27 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
+import com.microsoft.azure.kusto.data.Client;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+
 public class TestAzureAdxSourceConnectionService {
 
-    private TestRunner runner;
-
-    private AzureAdxSourceConnectionService service;
-
     private static final String MOCK_APP_ID = "mockAppId";
-
     private static final String MOCK_APP_KEY = "mockAppKey";
-
     private static final String MOCK_APP_TENANT = "mockAppTenant";
-
     private static final String MOCK_CLUSTER_URL = "https://mockClusterUrl.com/";
+    private TestRunner runner;
+    private AzureAdxSourceConnectionService service;
 
     @BeforeEach
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(TestAzureAdxSourceProcessor.class);
-
         service = new AzureAdxSourceConnectionService();
         runner.addControllerService("test-good", service);
-
     }
 
     @AfterEach
@@ -65,7 +59,6 @@ public class TestAzureAdxSourceConnectionService {
         configureAppKey();
         configureAppTenant();
         configureClusterURL();
-
         runner.assertValid(service);
     }
 
@@ -87,30 +80,23 @@ public class TestAzureAdxSourceConnectionService {
 
     @Test
     public void testCreateExecutionClientSuccess(){
-
         configureAppId();
         configureAppKey();
         configureAppTenant();
         configureClusterURL();
-
         runner.assertValid(service);
         runner.setValidateExpressionUsage(false);
-
         runner.enableControllerService(service);
-
         Client executionClient = service.getKustoExecutionClient();
         Assertions.assertNotNull(executionClient);
-
     }
 
     @Test
     public void testPropertyDescriptor(){
-
         configureAppId();
         configureAppKey();
         configureAppTenant();
         configureClusterURL();
-
         List<PropertyDescriptor> pd = service.getSupportedPropertyDescriptors();
         assertTrue(pd.contains(AzureAdxSourceConnectionService.APP_ID));
         assertTrue(pd.contains(AzureAdxSourceConnectionService.APP_KEY));
@@ -121,17 +107,13 @@ public class TestAzureAdxSourceConnectionService {
 
     @Test
     public void testInvalidConnectionMissingProperty(){
-
         configureAppId();
         configureAppKey();
         configureAppTenant();
-
         runner.assertNotValid(service);
         runner.setValidateExpressionUsage(false);
-
         assertThrows(IllegalStateException.class,()->{
             runner.enableControllerService(service);
         });
-
     }
 }

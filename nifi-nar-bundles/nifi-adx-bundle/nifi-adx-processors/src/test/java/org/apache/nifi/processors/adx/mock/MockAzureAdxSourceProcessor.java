@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.adx.mock;
 
+import org.apache.nifi.processors.adx.AzureAdxSourceProcessor;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
@@ -23,14 +25,12 @@ import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
-import org.apache.nifi.processors.adx.AzureAdxSourceProcessor;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class MockAzureAdxSourceProcessor extends AzureAdxSourceProcessor {
-
     @Override
     protected KustoResultSetTable executeQuery(String databaseName, String adxQuery) throws DataClientException {
         ObjectMapper objectMapper = Utils.getObjectMapper();

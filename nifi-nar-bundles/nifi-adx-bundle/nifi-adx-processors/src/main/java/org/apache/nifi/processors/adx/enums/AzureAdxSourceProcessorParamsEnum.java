@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.adx.enums;
 
 public enum AzureAdxSourceProcessorParamsEnum {
-
     DB_NAME("Database name","The name of the database where the query will be executed."),
 
     ADX_QUERY("ADX query", "The query which needs to be executed in Azure Data Explorer."),

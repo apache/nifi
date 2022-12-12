@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.adx.mock;
 
+import org.apache.nifi.adx.AzureAdxSourceConnectionService;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
@@ -25,7 +27,6 @@ import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
-import org.apache.nifi.adx.AzureAdxSourceConnectionService;
 
 import java.util.ArrayList;
 import java.util.Arrays;

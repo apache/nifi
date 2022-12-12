@@ -16,15 +16,14 @@
  */
 package org.apache.nifi.adx;
 
-import com.microsoft.azure.kusto.data.Client;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ControllerService;
 
+import com.microsoft.azure.kusto.data.Client;
+
 @Tags({"azure", "adx"})
 @CapabilityDescription("Connection-Service to Azure ADX (Kusto) cluster.")
 public interface AdxSourceConnectionService extends ControllerService {
-
     Client getKustoExecutionClient();
-
 }

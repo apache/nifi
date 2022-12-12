@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.processors.adx;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.microsoft.azure.kusto.data.Client;
-import com.microsoft.azure.kusto.data.KustoResultSetTable;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.nifi.adx.AdxSourceConnectionService;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -36,8 +31,14 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.adx.enums.RelationshipStatusEnum;
 import org.apache.nifi.processors.adx.enums.AzureAdxSourceProcessorParamsEnum;
+import org.apache.nifi.processors.adx.enums.RelationshipStatusEnum;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -60,19 +61,8 @@ import java.util.Set;
 })
 public class AzureAdxSourceProcessor extends AbstractProcessor {
 
-    private AdxSourceConnectionService service;
-
-    private Set<Relationship> relationships;
-
-    private List<PropertyDescriptor> descriptors;
-    private Client executionClient;
-
-    private ObjectMapper objectMapper = new ObjectMapper();
-
     public static final String ADX_QUERY_ERROR_MESSAGE = "adx.query.error.message";
-
     public static final String ADX_EXECUTED_QUERY = "adx.executed.query";
-
     public static final Relationship RL_SUCCEEDED = new Relationship.Builder()
             .name(RelationshipStatusEnum.RL_SUCCEEDED.name())
             .description(RelationshipStatusEnum.RL_SUCCEEDED.getDescription())
@@ -81,7 +71,6 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
             .name(RelationshipStatusEnum.RL_FAILED.name())
             .description(RelationshipStatusEnum.RL_FAILED.getDescription())
             .build();
-
     public static final PropertyDescriptor DB_NAME = new PropertyDescriptor
             .Builder().name(AzureAdxSourceProcessorParamsEnum.DB_NAME.name())
             .displayName(AzureAdxSourceProcessorParamsEnum.DB_NAME.getParamDisplayName())
@@ -89,7 +78,6 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-
     public static final PropertyDescriptor ADX_QUERY = new PropertyDescriptor
             .Builder().name(AzureAdxSourceProcessorParamsEnum.ADX_QUERY.name())
             .displayName(AzureAdxSourceProcessorParamsEnum.ADX_QUERY.getParamDisplayName())
@@ -97,7 +85,6 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-
     public static final PropertyDescriptor ADX_SOURCE_SERVICE = new PropertyDescriptor
             .Builder().name(AzureAdxSourceProcessorParamsEnum.ADX_SOURCE_SERVICE.name())
             .displayName(AzureAdxSourceProcessorParamsEnum.ADX_SOURCE_SERVICE.getParamDisplayName())
@@ -105,6 +92,11 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
             .required(true)
             .identifiesControllerService(AdxSourceConnectionService.class)
             .build();
+    private AdxSourceConnectionService service;
+    private Set<Relationship> relationships;
+    private List<PropertyDescriptor> descriptors;
+    private Client executionClient;
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -221,7 +213,4 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
         baos.close();
         return new String(baos.toByteArray(), charset);
     }
-
-
-
 }
