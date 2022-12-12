@@ -150,10 +150,14 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
             FlowFile incomingFlowFile = session.get();
 
             if ( incomingFlowFile == null && context.hasNonLoopConnection() ) {
+                String message = "Incoming connection exists but Incoming flow file is null";
+                getLogger().error(message);
+                incomingFlowFile = session.putAttribute(incomingFlowFile, ADX_QUERY_ERROR_MESSAGE, message);
+                session.transfer(incomingFlowFile, RL_FAILED);
                 return;
             }
 
-            if ( incomingFlowFile.getSize() == 0 ) {
+            if ( incomingFlowFile != null && incomingFlowFile.getSize() == 0 ) {
                 if ( context.getProperty(ADX_QUERY).isSet() ) {
                     adxQuery = context.getProperty(ADX_QUERY).evaluateAttributeExpressions(incomingFlowFile).getValue();
                 } else {
