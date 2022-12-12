@@ -36,7 +36,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 
@@ -78,9 +77,7 @@ public abstract class AwsMachineLearningJobStatusProcessor<T extends AmazonWebSe
             .allowableValues(getAvailableRegions())
             .defaultValue(createAllowableValue(Regions.DEFAULT_REGION).getValue())
             .build();
-    protected final ObjectMapper mapper = JsonMapper.builder()
-            .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
-            .build();
+    public static final String FAILURE_REASON_ATTRIBUTE = "failure.reason";
     protected static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             MANDATORY_AWS_CREDENTIALS_PROVIDER_SERVICE,
             REGION,
@@ -88,8 +85,19 @@ public abstract class AwsMachineLearningJobStatusProcessor<T extends AmazonWebSe
             SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE,
             PROXY_CONFIGURATION_SERVICE));
+    private static final ObjectMapper MAPPER = JsonMapper.builder()
+            .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
+            .build();
 
-    public static final String FAILURE_REASON_ATTRIBUTE = "failure.reason";
+    static {
+        SimpleModule awsResponseModule = new SimpleModule();
+        awsResponseModule.addDeserializer(ResponseMetadata.class, new AwsResponseMetadataDeserializer());
+        SimpleModule sdkHttpModule = new SimpleModule();
+        awsResponseModule.addDeserializer(SdkHttpMetadata.class, new SdkHttpMetadataDeserializer());
+        MAPPER.registerModule(awsResponseModule);
+        MAPPER.registerModule(sdkHttpModule);
+    }
+
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -114,18 +122,7 @@ public abstract class AwsMachineLearningJobStatusProcessor<T extends AmazonWebSe
         throw new UnsupportedOperationException("Client creation not supported");
     }
 
-    @Override
-    protected void init(ProcessorInitializationContext context) {
-        SimpleModule awsResponseModule = new SimpleModule();
-        awsResponseModule.addDeserializer(ResponseMetadata.class, new AwsResponseMetadataDeserializer());
-        SimpleModule sdkHttpModule = new SimpleModule();
-        awsResponseModule.addDeserializer(SdkHttpMetadata.class, new SdkHttpMetadataDeserializer());
-        mapper.registerModule(awsResponseModule);
-        mapper.registerModule(sdkHttpModule);
-    }
-
-
     protected void writeToFlowFile(ProcessSession session, FlowFile flowFile, Object response) {
-        session.write(flowFile, out -> mapper.writeValue(out, response));
+        session.write(flowFile, out -> MAPPER.writeValue(out, response));
     }
 }

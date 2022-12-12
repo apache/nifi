@@ -22,7 +22,7 @@
 </head>
 <body>
 
-<h1>Amazon Translate</h1>
+<h1>GetAwsTranslateJobStatus</h1>
 <p>
     Amazon Translate is a neural machine translation service for translating text to and from English across a breadth of supported languages.
     Powered by deep-learning technologies, Amazon Translate delivers fast, high-quality, and affordable language translation.
@@ -32,44 +32,9 @@
 
 <h3>Usage</h3>
 <p>
-    Amazon ML Processors are implemented to utilize ML services based on the official AWS API Reference.
-    You can find example json payload in the documentation at the Request Syntax sections.
-    For more details please check the official <a target="blank" href="https://docs.aws.amazon.com/translate/latest/APIReference/welcome.html">Translate API reference</a>
-    With this processor you will trigger a startTextTranslationJob async call to Translate Service
-
-    You can define json payload as property or provide as a flow file content. Property has higher precedence.
-</p>
-<p>
-    JSON payload template - note that it can be simplified with the optional fields, check AWS documentation for more details - example:
+    GetAwsTranslateJobStatus Processor is designed to periodically check translate job status. This processor should be used in pair with Translate Processor.
+    If the job successfully finished it will populate outputLocation attribute of the flow file where you can find the output of the Translation job.
 </p>
 
-<code>
-    <pre>
-{
-   "ClientToken": "string",
-   "DataAccessRoleArn": "string",
-   "InputDataConfig": {
-      "ContentType": "string",
-      "S3Uri": "string"
-   },
-   "JobName": "string",
-   "OutputDataConfig": {
-      "EncryptionKey": {
-         "Id": "string",
-         "Type": "string"
-      },
-      "S3Uri": "string"
-   },
-   "ParallelDataNames": [ "string" ],
-   "Settings": {
-      "Formality": "string",
-      "Profanity": "string"
-   },
-   "SourceLanguageCode": "string",
-   "TargetLanguageCodes": [ "string" ],
-   "TerminologyNames": [ "string" ]
-}
-    </pre>
-</code>
 </body>
 </html>

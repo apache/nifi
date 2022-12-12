@@ -55,11 +55,11 @@ public class GetAwsTranscribeJobStatusTest {
     private static final String OUTPUT_LOCATION_PATH = "outputLocationPath";
     private static final String REASON_OF_FAILURE = "reasonOfFailure";
     private static final String CONTENT_STRING = "content";
-    private TestRunner runner = null;
+    private TestRunner runner;
     @Mock
-    private AmazonTranscribeClient mockTranscribeClient = null;
+    private AmazonTranscribeClient mockTranscribeClient;
     @Mock
-    private AWSCredentialsProviderService mockAwsCredentialsProvider = null;
+    private AWSCredentialsProviderService mockAwsCredentialsProvider;
     @Captor
     private ArgumentCaptor<GetTranscriptionJobRequest> requestCaptor;
 

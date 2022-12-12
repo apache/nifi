@@ -52,7 +52,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class GetAwsPollyStatusTest {
     private static final String TEST_TASK_ID = "testTaskId";
     private static final String PLACEHOLDER_CONTENT = "content";
-    private TestRunner runner = null;
+    private TestRunner runner;
     @Mock
     private AmazonPollyClient mockPollyClient;
     @Mock

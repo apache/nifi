@@ -54,11 +54,11 @@ public class GetAwsTranslateJobStatusTest {
     private static final String CONTENT_STRING = "content";
     private static final String AWS_CREDENTIALS_PROVIDER_NAME = "awsCredetialProvider";
     private static final String OUTPUT_LOCATION_PATH = "outputLocation";
-    private TestRunner runner = null;
+    private TestRunner runner;
     @Mock
-    private AmazonTranslateClient mockTranslateClient = null;
+    private AmazonTranslateClient mockTranslateClient;
     @Mock
-    private AWSCredentialsProviderService mockAwsCredentialsProvider = null;
+    private AWSCredentialsProviderService mockAwsCredentialsProvider;
     @Captor
     private ArgumentCaptor<DescribeTextTranslationJobRequest> requestCaptor;
 

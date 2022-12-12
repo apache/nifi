@@ -46,7 +46,6 @@ import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 
 public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceClient, REQUEST extends AmazonWebServiceRequest, RESPONSE extends AmazonWebServiceResult>
         extends AbstractAWSCredentialsProviderProcessor<T> {
-    protected static final String AWS_TASK_ID_PROPERTY = "awsTaskId";
     public static final PropertyDescriptor JSON_PAYLOAD = new PropertyDescriptor.Builder()
             .name("json-payload")
             .displayName("JSON Payload")
@@ -64,6 +63,11 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
             .allowableValues(getAvailableRegions())
             .defaultValue(createAllowableValue(Regions.DEFAULT_REGION).getValue())
             .build();
+    public static final Relationship REL_ORIGINAL = new Relationship.Builder()
+            .name("original")
+            .description("Upon successful completion, the original FlowFile will be routed to this relationship.")
+            .autoTerminateDefault(true)
+            .build();
     protected static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             JSON_PAYLOAD,
             MANDATORY_AWS_CREDENTIALS_PROVIDER_SERVICE,
@@ -71,15 +75,10 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
             TIMEOUT,
             SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE));
-    public static final Relationship REL_ORIGINAL = new Relationship.Builder()
-            .name("original")
-            .description("Upon successful completion, the original FlowFile will be routed to this relationship.")
-            .autoTerminateDefault(true)
-            .build();
-    private final ObjectMapper mapper = JsonMapper.builder()
+    protected static final String AWS_TASK_ID_PROPERTY = "awsTaskId";
+    private final static ObjectMapper MAPPER = JsonMapper.builder()
             .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
             .build();
-
     private static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             REL_ORIGINAL,
             REL_SUCCESS,
@@ -123,15 +122,7 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
     }
 
     protected REQUEST buildRequest(ProcessSession session, ProcessContext context, FlowFile flowFile) throws JsonProcessingException {
-        return mapper.readValue(getPayload(session, context, flowFile), getAwsRequestClass(context));
-    }
-
-    private String getPayload(ProcessSession session, ProcessContext context, FlowFile flowFile) {
-        String payloadPropertyValue = context.getProperty(JSON_PAYLOAD).evaluateAttributeExpressions(flowFile).getValue();
-        if (payloadPropertyValue == null) {
-            payloadPropertyValue = readFlowFile(session, flowFile);
-        }
-        return payloadPropertyValue;
+        return MAPPER.readValue(getPayload(session, context, flowFile), getAwsRequestClass(context));
     }
 
     @Override
@@ -141,7 +132,7 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
 
     protected FlowFile writeToFlowFile(ProcessSession session, FlowFile flowFile, RESPONSE response) {
         FlowFile childFlowFile = session.create(flowFile);
-        childFlowFile = session.write(childFlowFile, out -> mapper.writeValue(out, response));
+        childFlowFile = session.write(childFlowFile, out -> MAPPER.writeValue(out, response));
         return childFlowFile;
     }
 
@@ -151,6 +142,14 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
         } catch (final IOException e) {
             throw new ProcessException("Read FlowFile Failed", e);
         }
+    }
+
+    private String getPayload(ProcessSession session, ProcessContext context, FlowFile flowFile) {
+        String payloadPropertyValue = context.getProperty(JSON_PAYLOAD).evaluateAttributeExpressions(flowFile).getValue();
+        if (payloadPropertyValue == null) {
+            payloadPropertyValue = readFlowFile(session, flowFile);
+        }
+        return payloadPropertyValue;
     }
 
     abstract protected RESPONSE sendRequest(REQUEST request, ProcessContext context) throws JsonProcessingException;

@@ -50,11 +50,11 @@ public class StartAwsTextractJob extends AwsMachineLearningJobStarter<AmazonText
     private static final String DOCUMENT_TEXT_DETECTION = "Document Text Detection";
     private static final String EXPENSE_ANALYSIS = "Expense Analysis";
     public static final PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
-            .name("type-of-service")
-            .displayName("Type of textract")
+            .name("textract-type")
+            .displayName("Textract Type")
             .allowableValues(DOCUMENT_ANALYSIS, DOCUMENT_TEXT_DETECTION, EXPENSE_ANALYSIS)
             .required(true)
-            .defaultValue("Document Analysis")
+            .defaultValue(DOCUMENT_ANALYSIS)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     private static final List<PropertyDescriptor> TEXTRACT_PROPERTIES =
@@ -81,9 +81,9 @@ public class StartAwsTextractJob extends AwsMachineLearningJobStarter<AmazonText
 
     @Override
     protected AmazonWebServiceResult sendRequest(AmazonWebServiceRequest request, ProcessContext context) {
-        String typeOfTextract = context.getProperty(TYPE.getName()).getValue();
+        String textractType = context.getProperty(TYPE.getName()).getValue();
         AmazonWebServiceResult result;
-        switch (typeOfTextract) {
+        switch (textractType) {
             case DOCUMENT_ANALYSIS :
                 result = getClient().startDocumentAnalysis((StartDocumentAnalysisRequest) request);
                 break;
@@ -93,7 +93,7 @@ public class StartAwsTextractJob extends AwsMachineLearningJobStarter<AmazonText
             case EXPENSE_ANALYSIS :
                 result = getClient().startExpenseAnalysis((StartExpenseAnalysisRequest) request);
                 break;
-            default: throw new UnsupportedOperationException("Unsupported textract type: " + typeOfTextract);
+            default: throw new UnsupportedOperationException("Unsupported textract type: " + textractType);
         }
         return result;
     }

@@ -51,7 +51,7 @@ public class GetAwsPollyJobStatus extends AwsMachineLearningJobStatusProcessor<A
     private static final String KEY = "key";
     private static final Pattern S3_PATH = Pattern.compile("https://s3.*amazonaws.com/(?<" + BUCKET + ">[^/]+)/(?<" + KEY + ">.*)");
     private static final String AWS_S3_BUCKET = "PollyS3OutputBucket";
-    private static final String AWS_S3_KEY = "PollyS3OutputKey";
+    private static final String AWS_S3_KEY = "filename";
 
     @Override
     protected AmazonPollyClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {

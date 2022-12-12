@@ -48,17 +48,17 @@ public class GetAwsTextractJobStatus extends AwsMachineLearningJobStatusProcesso
     public static final String DOCUMENT_ANALYSIS = "Document Analysis";
     public static final String DOCUMENT_TEXT_DETECTION = "Document Text Detection";
     public static final String EXPENSE_ANALYSIS = "Expense Analysis";
-    public static final PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
-            .name("type-of-service")
-            .displayName("Type of textract")
+    public static final PropertyDescriptor TEXTRACT_TYPE = new PropertyDescriptor.Builder()
+            .name("textract-type")
+            .displayName("Textract type")
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
             .allowableValues(DOCUMENT_ANALYSIS, DOCUMENT_TEXT_DETECTION, EXPENSE_ANALYSIS)
             .required(true)
-            .defaultValue("Document Analysis")
+            .defaultValue(DOCUMENT_ANALYSIS)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     private static final List<PropertyDescriptor> TEXTRACT_PROPERTIES =
-            Collections.unmodifiableList(Stream.concat(PROPERTIES.stream(), Stream.of(TYPE)).collect(Collectors.toList()));
+            Collections.unmodifiableList(Stream.concat(PROPERTIES.stream(), Stream.of(TEXTRACT_TYPE)).collect(Collectors.toList()));
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -79,12 +79,12 @@ public class GetAwsTextractJobStatus extends AwsMachineLearningJobStatusProcesso
         if (flowFile == null) {
             return;
         }
-        String typeOfTextract = context.getProperty(TYPE).evaluateAttributeExpressions().getValue();
+        String textractType = context.getProperty(TEXTRACT_TYPE).evaluateAttributeExpressions().getValue();
 
         String awsTaskId = flowFile.getAttribute(AWS_TASK_ID_PROPERTY);
-        JobStatus jobStatus = getTaskStatus(typeOfTextract, getClient(), awsTaskId);
+        JobStatus jobStatus = getTaskStatus(textractType, getClient(), awsTaskId);
         if (JobStatus.SUCCEEDED == jobStatus) {
-            Object task = getTask(typeOfTextract, getClient(), awsTaskId);
+            Object task = getTask(textractType, getClient(), awsTaskId);
             writeToFlowFile(session, flowFile, task);
             session.transfer(flowFile, REL_SUCCESS);
         } else if (JobStatus.IN_PROGRESS == jobStatus) {

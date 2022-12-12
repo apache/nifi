@@ -50,11 +50,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 public class GetAwsTranslateJobStatusTest {
     private static final String TEST_TASK_ID = "testTaskId";
-    private TestRunner runner = null;
+    private TestRunner runner;
     @Mock
-    private AmazonTextractClient mockTextractClient = null;
+    private AmazonTextractClient mockTextractClient;
     @Mock
-    private AWSCredentialsProviderService mockAwsCredentialsProvider = null;
+    private AWSCredentialsProviderService mockAwsCredentialsProvider;
     @Captor
     private ArgumentCaptor<GetDocumentAnalysisRequest> requestCaptor;
 
