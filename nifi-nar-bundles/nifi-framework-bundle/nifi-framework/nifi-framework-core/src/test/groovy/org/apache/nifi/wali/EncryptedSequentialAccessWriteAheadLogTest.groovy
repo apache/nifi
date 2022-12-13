@@ -18,13 +18,24 @@
 package org.apache.nifi.wali
 
 import org.apache.nifi.controller.queue.FlowFileQueue
-import org.apache.nifi.controller.repository.*
+import org.apache.nifi.controller.repository.EncryptedSchemaRepositoryRecordSerde
+import org.apache.nifi.controller.repository.LiveSerializedRepositoryRecord
+import org.apache.nifi.controller.repository.RepositoryRecordType
+import org.apache.nifi.controller.repository.SchemaRepositoryRecordSerde
+import org.apache.nifi.controller.repository.SerializedRepositoryRecord
+import org.apache.nifi.controller.repository.StandardFlowFileRecord
+import org.apache.nifi.controller.repository.StandardRepositoryRecord
+import org.apache.nifi.controller.repository.StandardRepositoryRecordSerdeFactory
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager
 import org.apache.nifi.repository.schema.NoOpFieldCache
 import org.apache.nifi.security.kms.StaticKeyProvider
 import org.apache.nifi.util.NiFiProperties
-import org.junit.jupiter.api.*
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.condition.DisabledOnOs
 import org.junit.jupiter.api.condition.OS
 import org.slf4j.Logger
@@ -33,7 +44,8 @@ import org.wali.SerDe
 import org.wali.SerDeFactory
 import org.wali.SingletonSerDeFactory
 
-import static org.junit.jupiter.api.Assertions.*
+import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 @DisabledOnOs(OS.WINDOWS)
 class EncryptedSequentialAccessWriteAheadLogTest {
