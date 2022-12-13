@@ -17,6 +17,8 @@
 
 package org.apache.nifi.processors.aws.ml;
 
+import static org.apache.nifi.flowfile.attributes.CoreAttributes.MIME_TYPE;
+
 import com.amazonaws.AmazonWebServiceClient;
 import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.AmazonWebServiceResult;
@@ -42,6 +44,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 
 public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceClient, REQUEST extends AmazonWebServiceRequest, RESPONSE extends AmazonWebServiceResult>
@@ -51,6 +54,8 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
             .displayName("JSON Payload")
             .description("JSON request for AWS Machine Learning services. The Processor will use FlowFile content for the request when this property is not specified.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor MANDATORY_AWS_CREDENTIALS_PROVIDER_SERVICE =
             new PropertyDescriptor.Builder().fromPropertyDescriptor(AWS_CREDENTIALS_PROVIDER_SERVICE)
@@ -98,7 +103,7 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         FlowFile flowFile = session.get();
-        if (flowFile == null) {
+        if (flowFile == null && !context.getProperty(JSON_PAYLOAD).isSet()) {
             return;
         }
         final RESPONSE response;
@@ -107,17 +112,23 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
             response = sendRequest(buildRequest(session, context, flowFile), context);
             childFlowFile = writeToFlowFile(session, flowFile, response);
             postProcessFlowFile(context, session, childFlowFile, response);
+            session.transfer(childFlowFile, REL_SUCCESS);
         } catch (Exception e) {
-            session.transfer(flowFile, REL_FAILURE);
+            if (context.getProperty(JSON_PAYLOAD).isSet()) {
+                session.transfer(flowFile, REL_FAILURE);
+            }
             getLogger().error("Sending AWS ML Request failed", e);
             return;
         }
-        session.transfer(flowFile, REL_ORIGINAL);
-        session.transfer(childFlowFile, REL_SUCCESS);
+        if (flowFile != null) {
+            session.transfer(flowFile, REL_ORIGINAL);
+        }
+
     }
 
     protected void postProcessFlowFile(ProcessContext context, ProcessSession session, FlowFile flowFile, RESPONSE response) {
         session.putAttribute(flowFile, AWS_TASK_ID_PROPERTY, getAwsTaskId(context, response));
+        session.putAttribute(flowFile, MIME_TYPE.key(), "application/json");
         getLogger().debug("AWS ML task has been started with task id: {}", getAwsTaskId(context, response));
     }
 
@@ -131,7 +142,7 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
     }
 
     protected FlowFile writeToFlowFile(ProcessSession session, FlowFile flowFile, RESPONSE response) {
-        FlowFile childFlowFile = session.create(flowFile);
+        FlowFile childFlowFile = flowFile == null ? session.create() : session.create(flowFile);
         childFlowFile = session.write(childFlowFile, out -> MAPPER.writeValue(out, response));
         return childFlowFile;
     }

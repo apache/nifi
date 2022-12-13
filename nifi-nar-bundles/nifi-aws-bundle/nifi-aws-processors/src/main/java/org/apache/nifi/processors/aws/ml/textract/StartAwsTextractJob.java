@@ -35,7 +35,9 @@ import java.util.stream.Stream;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -52,8 +54,15 @@ public class StartAwsTextractJob extends AwsMachineLearningJobStarter<AmazonText
     public static final PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
             .name("textract-type")
             .displayName("Textract Type")
-            .allowableValues(DOCUMENT_ANALYSIS, DOCUMENT_TEXT_DETECTION, EXPENSE_ANALYSIS)
+            .allowableValues(
+                    new AllowableValue(DOCUMENT_ANALYSIS, DOCUMENT_ANALYSIS, "Document analysis operation return 5 categories of document extraction " +
+                            "— text, forms, tables, query responses, and signatures"),
+                    new AllowableValue(DOCUMENT_TEXT_DETECTION, DOCUMENT_TEXT_DETECTION, "Text detection operation that return only the text detected" +
+                            " in a document."),
+                    new AllowableValue(EXPENSE_ANALYSIS, EXPENSE_ANALYSIS, "Extracts relevant data such as such as vendor and receiver " +
+                            "contact information, from almost any invoice or receipt without the need for any templates or configuration"))
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue(DOCUMENT_ANALYSIS)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
