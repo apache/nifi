@@ -182,7 +182,7 @@ public class PutSalesforceObject extends AbstractProcessor {
         } catch (SchemaNotFoundException e) {
             getLogger().error("Couldn't create record writer", e);
             session.transfer(flowFile, REL_FAILURE);
-        } catch (IOException e) {
+        } catch (Exception e) {
             getLogger().error("Failed to put records to Salesforce.", e);
             session.transfer(flowFile, REL_FAILURE);
         }
